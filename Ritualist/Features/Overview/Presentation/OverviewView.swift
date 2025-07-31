@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 public struct OverviewRoot: View {
     private let factory: OverviewFactory?
@@ -57,6 +58,8 @@ private struct OverviewListView: View {
     @Environment(\.appContainer) private var di
     @Bindable var vm: OverviewViewModel
     @State private var showingAddHabit = false
+    @State private var paywallItem: PaywallItem?
+    @State private var habitCount = 0
     @State private var tipsVM: TipsViewModel?
 
     var body: some View {
@@ -78,7 +81,7 @@ private struct OverviewListView: View {
                 )
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: Spacing.xlarge) {
+                    VStack(alignment: .leading, spacing: Spacing.large) {
                         VStack(alignment: .leading, spacing: Spacing.small) {
 //                            Text("Track Your Progress")
 //                                .font(.title)
@@ -86,13 +89,13 @@ private struct OverviewListView: View {
 //                                .foregroundColor(.primary)
 
                             Text(Strings.Overview.instructions)
-                                .font(.subheadline)
+                                .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
+                        .padding(.horizontal, Spacing.large)
+                        .padding(.top, Spacing.small)
 
-                        VStack(alignment: .leading, spacing: Spacing.medium) {
+                        VStack(alignment: .leading, spacing: Spacing.small) {
                             HStack {
                                 Text(Strings.Overview.yourHabits)
                                     .font(.headline)
@@ -101,7 +104,7 @@ private struct OverviewListView: View {
                                 Spacer()
                                 
                                 Button {
-                                    showingAddHabit = true
+                                    handleCreateHabitTap()
                                 } label: {
                                     Image(systemName: "plus.circle.fill")
                                         .font(.title3)
@@ -109,7 +112,7 @@ private struct OverviewListView: View {
                                 }
                                 .accessibilityLabel(Strings.Accessibility.addHabit)
                             }
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, Spacing.large)
 
 //                            HabitChipsView(
 //                                habits: vm.habits,
@@ -147,14 +150,14 @@ private struct OverviewListView: View {
                                 Text(Strings.Overview.calendar)
                                     .font(.headline)
                                     .fontWeight(.semibold)
-                                    .padding(.horizontal, 16)
+                                    .padding(.horizontal, Spacing.large)
                                 
                                 MonthlyCalendarView(
                                     selectedHabit: selectedHabit,
                                     currentMonth: vm.currentMonth,
                                     fullCalendarDays: vm.fullCalendarDays,
                                     loggedDates: vm.loggedDates,
-                                    isLoggingHabit: vm.isLoggingHabit,
+                                    isLoggingDate: vm.isLoggingDate,
                                     userFirstDayOfWeek: vm.userFirstDayOfWeek,
                                     isViewingCurrentMonth: vm.isViewingCurrentMonth,
                                     getHabitValueForDate: vm.getHabitValueForDate,
@@ -180,12 +183,12 @@ private struct OverviewListView: View {
                                 Text(Strings.EmptyState.noHabitSelected)
                                     .font(.headline)
                                     .fontWeight(.semibold)
-                                    .padding(.horizontal, 16)
+                                    .padding(.horizontal, Spacing.large)
                                 
                                 Text(Strings.EmptyState.tapHabitToView)
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                    .padding(.horizontal, 16)
+                                    .padding(.horizontal, Spacing.large)
                             }
                         }
                         
@@ -216,6 +219,9 @@ private struct OverviewListView: View {
             let detailFactory = HabitDetailFactory(container: di)
             let detailVM = detailFactory.makeViewModel(for: nil)
             HabitDetailView(vm: detailVM)
+        }
+        .sheet(item: $paywallItem) { item in
+            PaywallView(vm: item.viewModel)
         }
         .sheet(isPresented: Binding(
             get: { tipsVM?.showingAllTipsSheet ?? false },
@@ -253,6 +259,48 @@ private struct OverviewListView: View {
                 let tipsFactory = TipsFactory(container: di)
                 tipsVM = tipsFactory.makeViewModel()
                 await tipsVM?.load()
+            }
+            // Load habit count for paywall protection
+            await loadHabitCount()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .habitCountChanged)) { _ in
+            Task {
+                await loadHabitCount()
+            }
+        }
+    }
+    
+    // MARK: - Paywall Protection Methods
+    
+    private func handleCreateHabitTap() {
+        // Check if user can create more habits
+        if di.featureGatingService.canCreateMoreHabits(currentCount: habitCount) {
+            showingAddHabit = true
+        } else {
+            // Show paywall for free users who hit the limit
+            Task { @MainActor in
+                let factory = PaywallFactory(container: di)
+                let viewModel = factory.makeViewModel()
+                
+                // Load data first
+                await viewModel.load()
+                
+                // Use item-based presentation
+                paywallItem = PaywallItem(viewModel: viewModel)
+            }
+        }
+    }
+    
+    private func loadHabitCount() async {
+        do {
+            let habits = try await di.habitRepository.fetchAllHabits()
+            await MainActor.run {
+                habitCount = habits.count
+            }
+        } catch {
+            // If we can't load habits, assume 0 for safety
+            await MainActor.run {
+                habitCount = 0
             }
         }
     }

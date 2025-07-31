@@ -20,23 +20,23 @@ public struct StreakInfoView: View {
     }
     
     public var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.large) {
+        VStack(alignment: .leading, spacing: Spacing.medium) {
             Text(Strings.Overview.stats)
                 .font(.headline)
                 .fontWeight(.semibold)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, Spacing.large)
             
             if isLoading {
                 HStack {
                     Spacer()
                     ProgressView()
-                        .scaleEffect(0.8)
+                        .scaleEffect(ScaleFactors.smallMedium)
                     Text(Strings.Loading.calculatingStreaks)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     Spacer()
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, Spacing.large)
             } else {
                 HStack(spacing: Spacing.none) {
                     // Current Streak
@@ -68,7 +68,7 @@ public struct StreakInfoView: View {
                     // Divider
                     Rectangle()
                         .fill(Color(.systemGray4))
-                        .frame(width: 1, height: 50)
+                        .frame(width: ComponentSize.separatorThin, height: ComponentSize.avatarMedium + Spacing.xxsmall)
                     
                     // Best Streak with animation
                     VStack(spacing: Spacing.small) {
@@ -104,13 +104,13 @@ public struct StreakInfoView: View {
                         }
                     )
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 16)
+                .padding(.horizontal, Spacing.medium)
+                .padding(.vertical, Spacing.medium)
                 .background(
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: CornerRadius.xlarge)
                         .fill(Color(.systemGray6))
                 )
-                .padding(.horizontal, 16)
+                .padding(.horizontal, Spacing.large)
             }
         }
         .onChange(of: shouldAnimateBestStreak) { _, newValue in

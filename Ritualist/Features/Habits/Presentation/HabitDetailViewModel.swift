@@ -13,6 +13,7 @@ public final class HabitDetailViewModel {
     private let createHabit: CreateHabitUseCase
     private let updateHabit: UpdateHabitUseCase
     private let deleteHabit: DeleteHabitUseCase
+    private let refreshTrigger: RefreshTrigger
     
     // Form state
     public var name = ""
@@ -37,10 +38,12 @@ public final class HabitDetailViewModel {
     public init(createHabit: CreateHabitUseCase,
                 updateHabit: UpdateHabitUseCase,
                 deleteHabit: DeleteHabitUseCase,
+                refreshTrigger: RefreshTrigger,
                 habit: Habit?) {
         self.createHabit = createHabit
         self.updateHabit = updateHabit
         self.deleteHabit = deleteHabit
+        self.refreshTrigger = refreshTrigger
         self.originalHabit = habit
         self.isEditMode = habit != nil
         
@@ -88,6 +91,9 @@ public final class HabitDetailViewModel {
                 try await createHabit.execute(habit)
             }
             
+            // Trigger reactive refresh for OverviewViewModel
+            refreshTrigger.triggerOverviewRefresh()
+            
             isSaving = false
             return true
         } catch {
@@ -105,6 +111,10 @@ public final class HabitDetailViewModel {
         
         do {
             try await deleteHabit.execute(id: habitId)
+            
+            // Trigger reactive refresh for OverviewViewModel
+            refreshTrigger.triggerOverviewRefresh()
+            
             isDeleting = false
             return true
         } catch {

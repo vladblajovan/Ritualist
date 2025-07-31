@@ -26,6 +26,7 @@ public final class DefaultAppContainer: AppContainer {
     public let errorRecoveryService: any ErrorRecoveryServiceProtocol
     public let systemHealthMonitor: any SystemHealthMonitorProtocol
     public let errorHandlingStrategy: any ErrorHandlingStrategyProtocol
+    public let refreshTrigger: RefreshTrigger
     
     // Factory methods
     public lazy var onboardingFactory = OnboardingFactory(container: self)
@@ -51,7 +52,8 @@ public final class DefaultAppContainer: AppContainer {
                 stateValidationService: any StateValidationServiceProtocol,
                 errorRecoveryService: any ErrorRecoveryServiceProtocol,
                 systemHealthMonitor: any SystemHealthMonitorProtocol,
-                errorHandlingStrategy: any ErrorHandlingStrategyProtocol) {
+                errorHandlingStrategy: any ErrorHandlingStrategyProtocol,
+                refreshTrigger: RefreshTrigger) {
         self.habitRepository = habitRepository
         self.logRepository = logRepository
         self.profileRepository = profileRepository
@@ -74,6 +76,7 @@ public final class DefaultAppContainer: AppContainer {
         self.errorRecoveryService = errorRecoveryService
         self.systemHealthMonitor = systemHealthMonitor
         self.errorHandlingStrategy = errorHandlingStrategy
+        self.refreshTrigger = refreshTrigger
     }
 
     // Bootstrap with SwiftData and default services (async version)
@@ -181,7 +184,8 @@ public final class DefaultAppContainer: AppContainer {
             stateValidationService: stateValidationService,
             errorRecoveryService: errorRecoveryService,
             systemHealthMonitor: systemHealthMonitor,
-            errorHandlingStrategy: errorHandlingStrategy
+            errorHandlingStrategy: errorHandlingStrategy,
+            refreshTrigger: RefreshTrigger()
         )
     }
     
@@ -282,7 +286,8 @@ public final class DefaultAppContainer: AppContainer {
             stateValidationService: stateValidationService,
             errorRecoveryService: errorRecoveryService,
             systemHealthMonitor: systemHealthMonitor,
-            errorHandlingStrategy: errorHandlingStrategy
+            errorHandlingStrategy: errorHandlingStrategy,
+            refreshTrigger: RefreshTrigger()
         )
     }
     
@@ -388,7 +393,8 @@ public final class DefaultAppContainer: AppContainer {
             stateValidationService: stateValidationService,
             errorRecoveryService: errorRecoveryService,
             systemHealthMonitor: systemHealthMonitor,
-            errorHandlingStrategy: errorHandlingStrategy
+            errorHandlingStrategy: errorHandlingStrategy,
+            refreshTrigger: RefreshTrigger()
         )
     }
 }

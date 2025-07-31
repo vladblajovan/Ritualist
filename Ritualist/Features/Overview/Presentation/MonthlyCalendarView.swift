@@ -5,7 +5,7 @@ public struct MonthlyCalendarView: View {
     let currentMonth: Date
     let fullCalendarDays: [CalendarDay]
     let loggedDates: Set<Date>
-    let isLoggingHabit: Bool
+    let isLoggingDate: (Date) -> Bool
     let userFirstDayOfWeek: Int?
     let isViewingCurrentMonth: Bool
     let getHabitValueForDate: (Date) -> Double
@@ -53,8 +53,8 @@ public struct MonthlyCalendarView: View {
                             Text(Strings.Calendar.today)
                                 .font(.caption)
                                 .foregroundColor(AppColors.brand)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
+                                .padding(.horizontal, Spacing.small)
+                                .padding(.vertical, Spacing.xxsmall)
                                 .background(
                                     Capsule()
                                         .fill(AppColors.brand.opacity(0.1))
@@ -75,14 +75,14 @@ public struct MonthlyCalendarView: View {
                 }
                 .accessibilityLabel(Strings.Accessibility.nextMonth)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, Spacing.large)
             
             // Calendar grid
             CalendarGridView(
                 habit: selectedHabit,
                 fullCalendarDays: fullCalendarDays,
                 loggedDates: loggedDates,
-                isLoggingHabit: isLoggingHabit,
+                isLoggingDate: isLoggingDate,
                 getHabitValueForDate: getHabitValueForDate,
                 isDateSchedulable: isDateSchedulable,
                 isWeeklyTargetMet: isWeeklyTargetMet,
@@ -91,7 +91,7 @@ public struct MonthlyCalendarView: View {
                 userFirstDayOfWeek: userFirstDayOfWeek
             )
         }
-        .padding(.bottom, 16)
+        .padding(.bottom, Spacing.large)
     }
 }
 
@@ -99,7 +99,7 @@ public struct CalendarGridView: View {
     let habit: Habit
     let fullCalendarDays: [CalendarDay]
     let loggedDates: Set<Date>
-    let isLoggingHabit: Bool
+    let isLoggingDate: (Date) -> Bool
     let getHabitValueForDate: (Date) -> Double
     let isDateSchedulable: (Date) -> Bool
     let isWeeklyTargetMet: (Date) -> Bool
@@ -146,7 +146,7 @@ public struct CalendarGridView: View {
                                     isCurrentMonth: calendarDay.isCurrentMonth,
                                     isLogged: loggedDates.contains(calendar.startOfDay(for: calendarDay.date)),
                                     currentValue: getHabitValueForDate(calendarDay.date),
-                                    isLoggingHabit: isLoggingHabit,
+                                    isLoggingHabit: isLoggingDate(calendarDay.date),
                                     isSchedulable: isDateSchedulable(calendarDay.date),
                                     isWeeklyTargetMet: isWeeklyTargetMet(calendarDay.date)
                                 ) {
@@ -161,7 +161,7 @@ public struct CalendarGridView: View {
                                 // Empty placeholder if needed
                                 Rectangle()
                                     .fill(Color.clear)
-                                    .frame(width: 40, height: 40)
+                                    .frame(width: ComponentSize.calendarDay, height: ComponentSize.calendarDay)
                                     .frame(maxWidth: .infinity)
                             }
                         }
@@ -169,6 +169,6 @@ public struct CalendarGridView: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, Spacing.large)
     }
 }

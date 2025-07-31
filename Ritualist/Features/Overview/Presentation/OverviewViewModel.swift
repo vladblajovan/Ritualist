@@ -1,25 +1,34 @@
 import Foundation
 import Observation
+import Combine
 
 @MainActor @Observable
 public final class OverviewViewModel {
     private let getActiveHabits: GetActiveHabitsUseCase
     private let getLogs: GetLogsUseCase
+    private let getLogForDate: GetLogForDateUseCase
     private let streakEngine: StreakEngine
-    private let profileRepository: ProfileRepository
+    private let loadProfile: LoadProfileUseCase
     private let userActionTracker: UserActionTracker
+    private let refreshTrigger: RefreshTrigger
     
-    // Helper managers
-    private let calendarManager: CalendarManager
+    // Domain use cases for business logic
+    private let generateCalendarDays: GenerateCalendarDaysUseCase
+    private let generateCalendarGrid: GenerateCalendarGridUseCase
+    private let toggleHabitLog: ToggleHabitLogUseCase
+    
+    // Reactive coordination
+    private var cancellables = Set<AnyCancellable>()
+    
+    // Simple helper managers (no business logic)
     private let scheduleManager: HabitScheduleManager
-    private let loggingManager: HabitLoggingManager
     
     public private(set) var habits: [Habit] = []
     public private(set) var selectedHabit: Habit?
     public private(set) var currentMonth = Date()
     public private(set) var isLoading = false
     public private(set) var error: Error?
-    public private(set) var isLoggingHabit = false
+    public private(set) var loggingDate: Date?
     
     // Calendar state
     public private(set) var monthDays: [Date] = []
@@ -45,29 +54,47 @@ public final class OverviewViewModel {
     }
     
     public init(getActiveHabits: GetActiveHabitsUseCase,
-                getLogForDate: GetLogForDateUseCase,
-                logHabit: LogHabitUseCase,
-                deleteLog: DeleteLogUseCase,
                 getLogs: GetLogsUseCase,
+                getLogForDate: GetLogForDateUseCase,
                 streakEngine: StreakEngine,
-                profileRepository: ProfileRepository,
-                userActionTracker: UserActionTracker) { 
+                loadProfile: LoadProfileUseCase,
+                generateCalendarDays: GenerateCalendarDaysUseCase,
+                generateCalendarGrid: GenerateCalendarGridUseCase,
+                toggleHabitLog: ToggleHabitLogUseCase,
+                userActionTracker: UserActionTracker,
+                refreshTrigger: RefreshTrigger) { 
         self.getActiveHabits = getActiveHabits
         self.getLogs = getLogs
+        self.getLogForDate = getLogForDate
         self.streakEngine = streakEngine
-        self.profileRepository = profileRepository
+        self.loadProfile = loadProfile
+        self.generateCalendarDays = generateCalendarDays
+        self.generateCalendarGrid = generateCalendarGrid
+        self.toggleHabitLog = toggleHabitLog
         self.userActionTracker = userActionTracker
+        self.refreshTrigger = refreshTrigger
         
-        // Initialize helper managers
-        self.calendarManager = CalendarManager()
+        // Initialize simple helper managers
         self.scheduleManager = HabitScheduleManager()
-        self.loggingManager = HabitLoggingManager(
-            getLogForDate: getLogForDate,
-            logHabit: logHabit,
-            deleteLog: deleteLog
-        )
         
         updateCalendarDays()
+        setupRefreshObservation()
+    }
+    
+    private func setupRefreshObservation() {
+        // React to refresh triggers
+        refreshTrigger.$overviewNeedsRefresh
+            .sink { [weak self] needsRefresh in
+                if needsRefresh {
+                    Task { [weak self] in
+                        await self?.load()
+                        await MainActor.run {
+                            self?.refreshTrigger.resetOverviewRefresh()
+                        }
+                    }
+                }
+            }
+            .store(in: &cancellables)
     }
     
     public func load() async {
@@ -76,10 +103,9 @@ public final class OverviewViewModel {
         
         do {
             // Load user profile for calendar preferences
-            userProfile = try await profileRepository.loadProfile()
+            userProfile = try await loadProfile.execute()
             
             // Update managers with user profile
-            calendarManager.updateUserProfile(userProfile)
             scheduleManager.updateUserProfile(userProfile)
             
             habits = try await getActiveHabits.execute()
@@ -102,9 +128,6 @@ public final class OverviewViewModel {
         selectedHabit = habit
         // Reset animation state when switching habits
         shouldAnimateBestStreak = false
-        // Reset previous best streak when switching habits
-        previousBestStreak = 0
-        bestStreak = 0
         
         // Track habit selection
         userActionTracker.track(.screenViewed(screen: "habit_overview"), context: [
@@ -113,7 +136,7 @@ public final class OverviewViewModel {
         ])
         
         await loadLogsForSelectedHabit()
-        await calculateStreaks(isInitialLoad: true)
+        await calculateStreaks(isInitialLoad: false)
     }
     
     public func navigateToMonth(_ direction: Int) async {
@@ -149,7 +172,12 @@ public final class OverviewViewModel {
     }
     
     public var isViewingCurrentMonth: Bool {
-        calendarManager.isViewingCurrentMonth(currentMonth)
+        let calendar = Calendar.current
+        let today = Date()
+        let currentMonthStart = calendar.dateInterval(of: .month, for: currentMonth)?.start ?? currentMonth
+        let todayMonthStart = calendar.dateInterval(of: .month, for: today)?.start ?? today
+        
+        return calendar.isDate(currentMonthStart, equalTo: todayMonthStart, toGranularity: .month)
     }
     
     public func incrementHabitForDate(_ date: Date) async {
@@ -158,12 +186,15 @@ public final class OverviewViewModel {
         // Check if this date is schedulable for the habit
         guard isDateSchedulable(date) else { return }
         
-        isLoggingHabit = true
+        loggingDate = Calendar.current.startOfDay(for: date)
         error = nil
         
         do {
-            let result = try await loggingManager.incrementHabitForDate(
-                date,
+            // Store previous best streak before logging to check for improvements
+            let previousBest = bestStreak
+            
+            let result = try await toggleHabitLog.execute(
+                date: date,
                 habit: habit,
                 currentLoggedDates: loggedDates,
                 currentHabitLogValues: habitLogValues
@@ -184,11 +215,16 @@ public final class OverviewViewModel {
             
             // Recalculate streaks after logging/unlogging
             await calculateStreaks()
+            
+            // Check if we should trigger celebration animation after logging
+            if bestStreak > previousBest && bestStreak > 0 {
+                shouldAnimateBestStreak = true
+            }
         } catch {
             self.error = error
         }
         
-        isLoggingHabit = false
+        loggingDate = nil
     }
     
     public func retry() async {
@@ -198,6 +234,13 @@ public final class OverviewViewModel {
     public func getHabitValueForDate(_ date: Date) -> Double {
         let normalizedDate = Calendar.current.startOfDay(for: date)
         return habitLogValues[normalizedDate] ?? 0.0
+    }
+    
+    /// Check if a specific date is currently being logged
+    public func isLoggingDate(_ date: Date) -> Bool {
+        guard let loggingDate = loggingDate else { return false }
+        let normalizedDate = Calendar.current.startOfDay(for: date)
+        return Calendar.current.isDate(normalizedDate, inSameDayAs: loggingDate)
     }
     
     /// Check if a date is schedulable for the selected habit
@@ -213,8 +256,8 @@ public final class OverviewViewModel {
     }
     
     private func updateCalendarDays() {
-        monthDays = calendarManager.generateMonthDays(for: currentMonth)
-        fullCalendarDays = calendarManager.generateFullCalendarGrid(for: currentMonth)
+        monthDays = generateCalendarDays.execute(for: currentMonth, userProfile: userProfile)
+        fullCalendarDays = generateCalendarGrid.execute(for: currentMonth, userProfile: userProfile)
     }
     
     private func loadLogsForSelectedHabit() async {
@@ -230,7 +273,7 @@ public final class OverviewViewModel {
                 monthDays
             }
             
-            let result = try await loggingManager.loadLogsForHabit(habit, dates: daysToCheck)
+            let result = try await loadLogsForDates(habit: habit, dates: daysToCheck)
             loggedDates = result.loggedDates
             habitLogValues = result.habitLogValues
         } catch {
@@ -247,7 +290,10 @@ public final class OverviewViewModel {
             return
         }
         
-        isLoadingStreaks = true
+        // Only show loading state on initial load to prevent calendar flashing
+        if isInitialLoad {
+            isLoadingStreaks = true
+        }
         
         do {
             // Get all logs for the habit (no date filtering for streak calculation)
@@ -257,23 +303,19 @@ public final class OverviewViewModel {
             currentStreak = streakEngine.currentStreak(for: habit, logs: allLogs, asOf: Date())
             let newBestStreak = streakEngine.bestStreak(for: habit, logs: allLogs)
             
-            // Check if we should trigger the best streak animation
-            // Animate when best streak increases, but not on initial load
-            if !isInitialLoad && newBestStreak > previousBestStreak && newBestStreak > 0 {
-                shouldAnimateBestStreak = true
-                bestStreak = newBestStreak
-                // Don't update previousBestStreak yet - wait for animation to complete
-            } else {
-                bestStreak = newBestStreak
-                previousBestStreak = newBestStreak
-            }
+            // Always update streak values (no animation logic here)
+            bestStreak = newBestStreak
+            previousBestStreak = newBestStreak
         } catch {
             self.error = error
             currentStreak = 0
             bestStreak = 0
         }
         
-        isLoadingStreaks = false
+        // Only reset loading state if we set it
+        if isInitialLoad {
+            isLoadingStreaks = false
+        }
     }
     
     /// Reset the best streak animation trigger
@@ -281,5 +323,39 @@ public final class OverviewViewModel {
         shouldAnimateBestStreak = false
         // Update previousBestStreak to current value after animation completes
         previousBestStreak = bestStreak
+    }
+    
+    // MARK: - Private Helper Methods
+    
+    /// Load logs for a habit for the given dates (data transformation utility)
+    private func loadLogsForDates(
+        habit: Habit,
+        dates: [Date]
+    ) async throws -> (loggedDates: Set<Date>, habitLogValues: [Date: Double]) {
+        let calendar = Calendar.current
+        var loggedDays: Set<Date> = []
+        var logValues: [Date: Double] = [:]
+        
+        for day in dates {
+            let logForDate = try await getLogForDate.execute(habitID: habit.id, date: day)
+            let normalizedDay = calendar.startOfDay(for: day)
+            
+            if let log = logForDate, let value = log.value {
+                logValues[normalizedDay] = value
+                
+                // For count habits, only mark as "logged" if target is reached
+                if habit.kind == .binary {
+                    loggedDays.insert(normalizedDay)
+                } else if let target = habit.dailyTarget, value >= target {
+                    loggedDays.insert(normalizedDay)
+                }
+            } else if logForDate != nil {
+                // Handle legacy logs without value (treat as binary)
+                logValues[normalizedDay] = 1.0
+                loggedDays.insert(normalizedDay)
+            }
+        }
+        
+        return (loggedDates: loggedDays, habitLogValues: logValues)
     }
 }

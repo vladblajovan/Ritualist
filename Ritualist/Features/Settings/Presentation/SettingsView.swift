@@ -60,8 +60,7 @@ private struct SettingsFormView: View {
     @FocusState private var isNameFieldFocused: Bool
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
-    @State private var showingPaywall = false
-    @State private var paywallViewModel: PaywallViewModel?
+    @State private var paywallItem: PaywallItem?
     
     // Local form state
     @State private var name = ""
@@ -81,62 +80,43 @@ private struct SettingsFormView: View {
                 }
             } else {
                 Form {
-                    Section(Strings.Settings.profile) {
-                        // Avatar and Name row
-                        HStack(spacing: Spacing.medium) {
-                            AvatarView(
-                                name: displayName,
-                                imageData: vm.profile.avatarImageData,
-                                size: 60,
-                                showEditBadge: true
-                            ) {
-                                showingImagePicker = true
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                TextField(Strings.Form.name, text: $name)
-                                    .focused($isNameFieldFocused)
-                                    .onSubmit {
-                                        isNameFieldFocused = false
-                                        Task {
-                                            await updateUserName()
-                                        }
-                                    }
-                                
-                                if vm.isUpdatingUser {
-                                    HStack {
-                                        ProgressView()
-                                            .scaleEffect(0.6)
-                                        Text("Updating...")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                        }
-
-                        HStack {
-                            Picker(Strings.Settings.firstDayOfWeek, selection: $firstDayOfWeek) {
-                                ForEach(1...7, id: \.self) { day in
-                                    Text(dayOfWeekName(day)).tag(day)
-                                }
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                        }
-                        
-                        HStack {
-                            Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
-                                Text(Strings.Settings.followSystem).tag(0)
-                                Text(Strings.Settings.light).tag(1)
-                                Text(Strings.Settings.dark).tag(2)
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                        }
-                    }
+                    
                     
                     // Account Section
                     if vm.isAuthenticated {
                         Section("Account") {
+                            // Avatar and Name row
+                            HStack(spacing: Spacing.medium) {
+                                AvatarView(
+                                    name: displayName,
+                                    imageData: vm.profile.avatarImageData,
+                                    size: 60,
+                                    showEditBadge: true
+                                ) {
+                                    showingImagePicker = true
+                                }
+                                
+                                VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                                    TextField(Strings.Form.name, text: $name)
+                                        .focused($isNameFieldFocused)
+                                        .onSubmit {
+                                            isNameFieldFocused = false
+                                            Task {
+                                                await updateUserName()
+                                            }
+                                        }
+                                    
+                                    if vm.isUpdatingUser {
+                                        HStack {
+                                            ProgressView()
+                                                .scaleEffect(ScaleFactors.tiny)
+                                            Text("Updating...")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                }
+                            }
                             // Email display
                             if let user = vm.currentUser {
                                 HStack {
@@ -174,7 +154,7 @@ private struct SettingsFormView: View {
                                         HStack {
                                             if vm.isCancellingSubscription {
                                                 ProgressView()
-                                                    .scaleEffect(0.8)
+                                                    .scaleEffect(ScaleFactors.smallMedium)
                                                 Text("Cancelling...")
                                             } else {
                                                 Label("Cancel Subscription", systemImage: "xmark.circle")
@@ -210,7 +190,7 @@ private struct SettingsFormView: View {
                                 HStack {
                                     if vm.isLoggingOut {
                                         ProgressView()
-                                            .scaleEffect(0.8)
+                                            .scaleEffect(ScaleFactors.smallMedium)
                                         Text("Signing Out...")
                                     } else {
                                         Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
@@ -223,15 +203,35 @@ private struct SettingsFormView: View {
                         }
                     }
                     
+                    Section(Strings.Settings.profile) {
+                        HStack {
+                            Picker(Strings.Settings.firstDayOfWeek, selection: $firstDayOfWeek) {
+                                ForEach(1...7, id: \.self) { day in
+                                    Text(dayOfWeekName(day)).tag(day)
+                                }
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                        }
+                        
+                        HStack {
+                            Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
+                                Text(Strings.Settings.followSystem).tag(0)
+                                Text(Strings.Settings.light).tag(1)
+                                Text(Strings.Settings.dark).tag(2)
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                        }
+                    }
+                    
                     Section(Strings.Settings.notifications) {
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: Spacing.medium) {
                             HStack(spacing: Spacing.medium) {
                                 Image(systemName: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill")
                                     .foregroundColor(vm.hasNotificationPermission ? .green : .orange)
                                     .font(.title2)
-                                    .frame(width: 24)
+                                    .frame(width: IconSize.large)
                                 
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                                     Text(Strings.Settings.notificationPermission)
                                         .font(.headline)
                                         .fontWeight(.medium)
@@ -265,7 +265,7 @@ private struct SettingsFormView: View {
                                     .overlay {
                                         if vm.isRequestingNotifications {
                                             ProgressView()
-                                                .scaleEffect(0.8)
+                                                .scaleEffect(ScaleFactors.smallMedium)
                                                 .foregroundColor(.white)
                                         }
                                     }
@@ -282,7 +282,7 @@ private struct SettingsFormView: View {
                                 Spacer()
                             }
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, Spacing.small)
                     }
                     
                 }
@@ -305,7 +305,7 @@ private struct SettingsFormView: View {
                         } label: {
                             if vm.isSaving {
                                 ProgressView()
-                                    .scaleEffect(0.8)
+                                    .scaleEffect(ScaleFactors.smallMedium)
                             } else {
                                 Text(Strings.Button.save)
                                     .fontWeight(hasChanges ? .semibold : .regular)
@@ -319,7 +319,7 @@ private struct SettingsFormView: View {
                         AutoSaveConfirmationView(message: Strings.Settings.settingsSaved) {
                             vm.clearSaveSuccess()
                         }
-                        .padding(.top, 8)
+                        .padding(.top, Spacing.small)
                     }
                 }
                 .sheet(isPresented: $showingImagePicker) {
@@ -338,16 +338,7 @@ private struct SettingsFormView: View {
                         showingImagePicker = false
                     }
                 }
-                .sheet(item: Binding<PaywallItem?>(
-                    get: { 
-                        guard showingPaywall, let vm = paywallViewModel else { return nil }
-                        return PaywallItem(viewModel: vm)
-                    },
-                    set: { _ in 
-                        showingPaywall = false
-                        paywallViewModel = nil
-                    }
-                )) { item in
+                .sheet(item: $paywallItem) { item in
                     PaywallView(vm: item.viewModel)
                 }
             }
@@ -357,10 +348,17 @@ private struct SettingsFormView: View {
     // MARK: - Helper Methods
     
     private func showPaywall() {
-        // Create the viewModel without loading - let PaywallView handle the loading
-        let factory = PaywallFactory(container: appContainer)
-        paywallViewModel = factory.makeViewModel()
-        showingPaywall = true
+        // Create the viewModel and load data before showing
+        Task { @MainActor in
+            let factory = PaywallFactory(container: appContainer)
+            let viewModel = factory.makeViewModel()
+            
+            // Load data first
+            await viewModel.load()
+            
+            // Use item-based presentation
+            paywallItem = PaywallItem(viewModel: viewModel)
+        }
     }
     
     // MARK: - Computed Properties
@@ -461,11 +459,11 @@ private struct AutoSaveConfirmationView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, Spacing.large)
+        .padding(.vertical, Spacing.medium)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, Spacing.large)
         .transition(.move(edge: .top).combined(with: .opacity))
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: message)
         .task {

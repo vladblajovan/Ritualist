@@ -8,8 +8,7 @@ public struct HabitsRoot: View {
     @Environment(\.appContainer) private var di
     @State private var showingCreateHabit = false
     @State private var showingHabitAssistant = false
-    @State private var showingPaywall = false
-    @State private var paywallViewModel: PaywallViewModel?
+    @State private var paywallItem: PaywallItem?
     @State private var habitCount = 0
     private let factory: HabitsFactory?
     
@@ -42,10 +41,8 @@ public struct HabitsRoot: View {
             let detailVM = detailFactory.makeViewModel(for: nil)
             HabitDetailView(vm: detailVM)
         }
-        .sheet(isPresented: $showingPaywall) {
-            if let paywallVM = paywallViewModel {
-                PaywallView(vm: paywallVM)
-            }
+        .sheet(item: $paywallItem) { item in
+            PaywallView(vm: item.viewModel)
         }
         .task {
             await loadHabitCount()
@@ -74,9 +71,16 @@ public struct HabitsRoot: View {
             showingCreateHabit = true
         } else {
             // Show paywall for free users who hit the limit
-            let factory = PaywallFactory(container: di)
-            paywallViewModel = factory.makeViewModel()
-            showingPaywall = true
+            Task { @MainActor in
+                let factory = PaywallFactory(container: di)
+                let viewModel = factory.makeViewModel()
+                
+                // Load data first
+                await viewModel.load()
+                
+                // Use item-based presentation
+                paywallItem = PaywallItem(viewModel: viewModel)
+            }
         }
     }
     
@@ -193,7 +197,7 @@ private struct HabitsListView: View {
                     await vm.retry()
                 }
             } else if vm.items.isEmpty {
-                VStack(spacing: 24) {
+                VStack(spacing: Spacing.xlarge) {
                     ContentUnavailableView(
                         Strings.EmptyState.noHabitsYet,
                         systemImage: "plus.circle",
@@ -231,8 +235,8 @@ private struct HabitsListView: View {
                             di.userActionTracker.track(.habitsAssistantOpened(source: .habitsPage))
                             showingHabitAssistant = true
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, Spacing.large)
+                        .padding(.vertical, Spacing.medium)
                     }
                     .background(Color(.systemBackground))
                 }
@@ -304,7 +308,7 @@ private struct HabitRowView: View {
                 Spacer()
                 Circle()
                     .fill(Color(hex: habit.colorHex) ?? .blue)
-                    .frame(width: 12, height: 12)
+                    .frame(width: ComponentSize.smallIndicator, height: ComponentSize.smallIndicator)
             }
         }
         .buttonStyle(PlainButtonStyle())
@@ -320,20 +324,20 @@ private struct OperationStatusView: View {
         HStack {
             if isCreating {
                 ProgressView()
-                    .scaleEffect(0.8)
+                    .scaleEffect(ScaleFactors.smallMedium)
                 Text(Strings.Status.creating)
             } else if isUpdating {
                 ProgressView()
-                    .scaleEffect(0.8)
+                    .scaleEffect(ScaleFactors.smallMedium)
                 Text(Strings.Status.updating)
             } else if isDeleting {
                 ProgressView()
-                    .scaleEffect(0.8)
+                    .scaleEffect(ScaleFactors.smallMedium)
                 Text(Strings.Status.deleting)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Spacing.large)
+        .padding(.vertical, Spacing.small)
         .background(.ultraThinMaterial, in: Capsule())
     }
 }
@@ -343,17 +347,17 @@ private struct AssistantButton: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.medium) {
                 ZStack {
                     Circle()
                         .fill(AppColors.brand.opacity(0.1))
-                        .frame(width: 40, height: 40)
+                        .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
                     
                     Text("🤖")
                         .font(.title2)
                 }
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                     Text("Habit Assistant")
                         .font(.headline)
                         .fontWeight(.semibold)
@@ -371,8 +375,8 @@ private struct AssistantButton: View {
                     .fontWeight(.medium)
                     .foregroundColor(AppColors.brand)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, Spacing.large)
+            .padding(.vertical, Spacing.medium)
         }
         .buttonStyle(PlainButtonStyle())
         .background(
@@ -381,7 +385,7 @@ private struct AssistantButton: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(AppColors.brand.opacity(0.2), lineWidth: 1)
+                .stroke(AppColors.brand.opacity(0.2), lineWidth: ComponentSize.separatorThin)
         )
     }
 }

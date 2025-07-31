@@ -61,8 +61,8 @@ public struct PaywallView: View {
                             // Restore Purchases
                             restoreSection
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
+                        .padding(.horizontal, Spacing.xlarge)
+                        .padding(.vertical, Spacing.large)
                     }
                 }
             }
@@ -75,9 +75,6 @@ public struct PaywallView: View {
                     }
                 }
             }
-        }
-        .task {
-            await vm.load()
         }
         .alert("Purchase Error", isPresented: $showingError) {
             Button("OK") {
@@ -112,7 +109,7 @@ public struct PaywallView: View {
     private var headerSection: some View {
         VStack(spacing: 16) {
             Image(systemName: "crown.fill")
-                .font(.system(size: 50))
+                .font(.system(size: Typography.largeIcon))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.orange, .yellow],
@@ -217,7 +214,7 @@ public struct PaywallView: View {
                     )
                 )
                 .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.xlarge))
             }
             .disabled(vm.isPurchasing || vm.selectedProduct == nil)
             
@@ -267,9 +264,9 @@ private struct BenefitCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CornerRadius.xlarge))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: CornerRadius.xlarge)
                 .stroke(benefit.isHighlighted ? .blue : .clear, lineWidth: 2)
         )
     }
@@ -285,6 +282,7 @@ private struct PricingCard: View {
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 12) {
+                // Header section with title and popular badge
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
@@ -311,18 +309,7 @@ private struct PricingCard: View {
                             .foregroundColor(.secondary)
                     }
                     
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text(product.localizedPrice)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                        
-                        if let discount = product.discount {
-                            Text(discount)
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.green)
-                        }
-                    }
+                    Spacer()
                 }
                 
                 // Features preview
@@ -341,12 +328,28 @@ private struct PricingCard: View {
                         }
                     }
                 }
-                .padding(.top, 4)
+                
+                // Price section at the bottom
+                HStack {
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(product.localizedPrice)
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        
+                        if let discount = product.discount {
+                            Text(discount)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.green)
+                        }
+                    }
+                }
             }
             .padding(16)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CornerRadius.xlarge))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: CornerRadius.xlarge)
                     .stroke(isSelected ? .blue : .clear, lineWidth: 2)
             )
             .overlay(

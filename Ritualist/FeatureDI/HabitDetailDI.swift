@@ -13,6 +13,7 @@ public struct HabitDetailFactory {
             createHabit: createHabit,
             updateHabit: updateHabit,
             deleteHabit: deleteHabit,
+            refreshTrigger: container.refreshTrigger,
             habit: habit
         )
     }

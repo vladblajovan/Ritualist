@@ -52,7 +52,7 @@ struct RootAppView: View {
                     print("Failed to load profile: \(error)")
                 }
             }
-            .onChange(of: container.appearanceManager.currentAppearance) { _, _ in
+            .onReceive(container.appearanceManager.$currentAppearance) { _ in
                 colorScheme = container.appearanceManager.colorScheme
             }
     }

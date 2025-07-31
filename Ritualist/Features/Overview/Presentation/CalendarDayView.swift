@@ -32,40 +32,40 @@ public struct CalendarDayView: View {
             ZStack {
                 Circle()
                     .fill(circleBackgroundColor)
-                    .frame(width: 40, height: 40)
+                    .frame(width: ComponentSize.calendarDay, height: ComponentSize.calendarDay)
                 
                 // Handle different schedule types and display logic
                 if case .timesPerWeek = habit.schedule {
                     // Times per week: show checkmark when weekly target met, otherwise just day number
                     if isWeeklyTargetMet && currentValue > 0 {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: Typography.calendarDaySmall, weight: .bold))
                             .foregroundColor(.white)
                     } else {
                         Text("\(calendar.component(.day, from: date))")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: Typography.calendarDayNumber, weight: .medium))
                             .foregroundColor(dayTextColor)
                     }
                 } else if case .daysOfWeek = habit.schedule {
                     // Specific days habit: show checkmark when weekly target met, otherwise just day number
                     if isWeeklyTargetMet && currentValue > 0 {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: Typography.calendarDaySmall, weight: .bold))
                             .foregroundColor(.white)
                     } else {
                         Text("\(calendar.component(.day, from: date))")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: Typography.calendarDayNumber, weight: .medium))
                             .foregroundColor(dayTextColor)
                     }
                 } else if habit.kind == .binary && !isWeeklyStyleHabit {
                     // Daily binary habit: show checkmark when completed
                     if isLogged {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: Typography.calendarDaySmall, weight: .bold))
                             .foregroundColor(.white)
                     } else {
                         Text("\(calendar.component(.day, from: date))")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: Typography.calendarDayNumber, weight: .medium))
                             .foregroundColor(dayTextColor)
                     }
                 } else {
@@ -73,18 +73,18 @@ public struct CalendarDayView: View {
                     if let target = habit.dailyTarget, currentValue >= target {
                         // Target achieved: show checkmark like binary habit
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: Typography.calendarDaySmall, weight: .bold))
                             .foregroundColor(.white)
                     } else {
                         // Working toward target: show count and day number
                         VStack(spacing: 1) {
                             if currentValue > 0 {
                                 Text("\(Int(currentValue))")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.system(size: Typography.calendarTiny, weight: .bold))
                                     .foregroundColor(countTextColor)
                             }
                             Text("\(calendar.component(.day, from: date))")
-                                .font(.system(size: currentValue > 0 ? 11 : 16, weight: .medium))
+                                .font(.system(size: currentValue > 0 ? Typography.calendarProgress : Typography.calendarDayNumber, weight: .medium))
                                 .foregroundColor(dayTextColor)
                         }
                     }
@@ -94,10 +94,10 @@ public struct CalendarDayView: View {
                 if isLoggingHabit {
                     Circle()
                         .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                        .frame(width: 40, height: 40)
+                        .frame(width: ComponentSize.calendarDay, height: ComponentSize.calendarDay)
                         .overlay(
                             ProgressView()
-                                .scaleEffect(0.6)
+                                .scaleEffect(ScaleFactors.tiny)
                                 .progressViewStyle(CircularProgressViewStyle(tint: AppColors.brand))
                         )
                         .animation(.easeInOut(duration: 0.3), value: isLoggingHabit)

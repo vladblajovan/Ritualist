@@ -1,7 +1,6 @@
 import Foundation
-import Observation
 
-@Observable
+@MainActor @Observable
 public final class PaywallViewModel {
     private let paywallService: PaywallService
     private let userSession: any UserSessionProtocol
@@ -14,6 +13,7 @@ public final class PaywallViewModel {
     public private(set) var purchaseState: PurchaseState = .idle
     public private(set) var selectedProduct: Product?
     public private(set) var isUpdatingUser = false
+    
     
     // Convenience computed properties
     public var isPurchasing: Bool {
@@ -37,15 +37,11 @@ public final class PaywallViewModel {
         self.userSession = userSession
         self.stateCoordinator = stateCoordinator
         self.benefits = PaywallBenefit.defaultBenefits
-        
-        // Observe purchase state changes
-        Task {
-            for await newState in paywallService.purchaseStatePublisher.values {
-                await MainActor.run {
-                    self.purchaseState = newState
-                }
-            }
-        }
+    }
+    
+    private func syncPurchaseState() {
+        // Manually sync purchase state from service
+        purchaseState = paywallService.purchaseState
     }
     
     public func load() async {
@@ -57,23 +53,27 @@ public final class PaywallViewModel {
         await resetPurchaseState()
         
         do {
-            products = try await paywallService.loadProducts()
+            let loadedProducts = try await paywallService.loadProducts()
             
+            products = loadedProducts
             // Auto-select the popular product or first one
             selectedProduct = products.first { $0.isPopular } ?? products.first
+            
+            // Sync purchase state after loading
+            syncPurchaseState()
+            isLoading = false
         } catch {
             self.error = error
+            // Sync purchase state even on error
+            syncPurchaseState()
+            isLoading = false
         }
-        
-        isLoading = false
     }
     
     private func resetPurchaseState() async {
         // Reset the purchase state to idle when the paywall loads
         // This prevents previous purchase success from immediately dismissing the paywall
-        await MainActor.run {
-            paywallService.resetPurchaseState()
-        }
+        paywallService.resetPurchaseState()
     }
     
     public func selectProduct(_ product: Product) {
@@ -88,12 +88,17 @@ public final class PaywallViewModel {
         
         do {
             let success = try await paywallService.purchase(product)
+            // Sync purchase state after purchase attempt
+            syncPurchaseState()
+            
             if success {
                 // Use StateCoordinator for atomic transaction
                 try await stateCoordinator.updateUserSubscription(currentUser, product)
             }
         } catch {
             self.error = error
+            // Sync purchase state even on error
+            syncPurchaseState()
         }
     }
     
@@ -104,12 +109,17 @@ public final class PaywallViewModel {
         
         do {
             let restored = try await paywallService.restorePurchases()
+            // Sync purchase state after restore attempt
+            syncPurchaseState()
+            
             if restored {
                 // Use StateCoordinator for atomic restoration
                 await handleRestoredPurchases(for: currentUser)
             }
         } catch {
             self.error = error
+            // Sync purchase state even on error
+            syncPurchaseState()
         }
     }
     

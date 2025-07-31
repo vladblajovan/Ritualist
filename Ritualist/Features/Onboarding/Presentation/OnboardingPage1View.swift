@@ -12,15 +12,15 @@ struct OnboardingPage1View: View {
                     isTextFieldFocused = false
                 }
 
-            VStack(spacing: 32) {
+            VStack(spacing: Spacing.xxlarge) {
                 Spacer()
                 
                 // Welcome icon
                 Image(systemName: "hand.wave.fill")
-                    .font(.system(size: 60))
+                    .font(.system(size: Typography.heroIcon))
                     .foregroundColor(.accentColor)
                 
-                VStack(spacing: 16) {
+                VStack(spacing: Spacing.large) {
                     Text("Welcome to Ritualist!")
                         .font(.largeTitle)
                         .fontWeight(.bold)
@@ -30,10 +30,10 @@ struct OnboardingPage1View: View {
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, Spacing.extraLarge)
                 }
                 
-                VStack(spacing: 8) {
+                VStack(spacing: Spacing.small) {
                     TextField("Enter your name", text: $viewModel.userName)
                         .textFieldStyle(.roundedBorder)
                         .font(.title3)
@@ -45,7 +45,7 @@ struct OnboardingPage1View: View {
                                 viewModel.nextPage()
                             }
                         }
-                        .padding(.horizontal, 40)
+                        .padding(.horizontal, Spacing.xxxlarge)
                     
                     if viewModel.userName.isEmpty {
                         Text("Don't worry, you can change this later in settings")
@@ -56,7 +56,7 @@ struct OnboardingPage1View: View {
                 
                 Spacer()
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, Spacing.xlarge)
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

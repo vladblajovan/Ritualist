@@ -9,16 +9,26 @@ public struct OverviewFactory {
         let logHabit = LogHabit(repo: container.logRepository)
         let deleteLog = DeleteLog(repo: container.logRepository)
         let getLogs = GetLogs(repo: container.logRepository)
+        let loadProfile = LoadProfile(repo: container.profileRepository)
+        let generateCalendarDays = GenerateCalendarDays()
+        let generateCalendarGrid = GenerateCalendarGrid()
+        let toggleHabitLog = ToggleHabitLog(
+            getLogForDate: getLogForDate,
+            logHabit: logHabit,
+            deleteLog: deleteLog
+        )
         
         return OverviewViewModel(
             getActiveHabits: getActiveHabits,
-            getLogForDate: getLogForDate,
-            logHabit: logHabit,
-            deleteLog: deleteLog,
             getLogs: getLogs,
+            getLogForDate: getLogForDate,
             streakEngine: container.streakEngine,
-            profileRepository: container.profileRepository,
-            userActionTracker: container.userActionTracker
+            loadProfile: loadProfile,
+            generateCalendarDays: generateCalendarDays,
+            generateCalendarGrid: generateCalendarGrid,
+            toggleHabitLog: toggleHabitLog,
+            userActionTracker: container.userActionTracker,
+            refreshTrigger: container.refreshTrigger
         )
     }
 }

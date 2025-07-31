@@ -71,14 +71,18 @@ public struct OnboardingFlowView: View {
         // Only show paywall for free users after onboarding
         if !di.userSession.isPremiumUser {
             print("🏭 Creating factory in checkIfShouldShowPaywall...")
-            let factory = PaywallFactory(container: di)
-            print("🎯 Creating viewModel in checkIfShouldShowPaywall...")
-            let vm = factory.makeViewModel()
-            print("✅ ViewModel created in checkIfShouldShowPaywall")
-            
-            // Set the viewModel - this will automatically show the sheet via the binding
-            paywallViewModel = vm
-            print("🎭 Paywall sheet should now show with viewModel")
+            Task { @MainActor in
+                let factory = PaywallFactory(container: di)
+                print("🎯 Creating viewModel in checkIfShouldShowPaywall...")
+                let vm = factory.makeViewModel()
+                print("✅ ViewModel created in checkIfShouldShowPaywall")
+                await vm.load()
+                print("🔄 ViewModel loaded")
+                
+                // Set the viewModel - this will automatically show the sheet via the binding
+                paywallViewModel = vm
+                print("🎭 Paywall sheet should now show with viewModel")
+            }
         } else {
             print("⚠️ User is premium, dismissing")
             // Premium users or if paywall dismissed, just complete onboarding

@@ -46,6 +46,16 @@ public struct HabitLog: Identifiable, Codable, Hashable {
     }
 }
 
+public struct CalendarDay {
+    public let date: Date
+    public let isCurrentMonth: Bool
+    
+    public init(date: Date, isCurrentMonth: Bool) {
+        self.date = date
+        self.isCurrentMonth = isCurrentMonth
+    }
+}
+
 public struct UserProfile: Identifiable, Codable, Hashable {
     public var id: UUID
     public var name: String
@@ -345,7 +355,7 @@ public struct PaywallBenefit: Identifiable, Hashable {
                 title: "Unlimited Habits",
                 description: "Track as many habits as you want",
                 icon: "infinity.circle.fill",
-                isHighlighted: true
+                isHighlighted: false
             ),
             PaywallBenefit(
                 id: "advanced_analytics",

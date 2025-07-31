@@ -10,13 +10,13 @@ struct LoginView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
+            VStack(spacing: Spacing.xlarge) {
                 Spacer()
                 
                 // App Logo/Header
-                VStack(spacing: 12) {
+                VStack(spacing: Spacing.medium) {
                     Image(systemName: "calendar.badge.checkmark")
-                        .font(.system(size: 60))
+                        .font(.system(size: Typography.heroIcon))
                         .foregroundColor(.accentColor)
                     
                     Text("Welcome to Ritualist")
@@ -31,7 +31,7 @@ struct LoginView: View {
                 Spacer()
                 
                 // Login Form
-                VStack(spacing: 16) {
+                VStack(spacing: Spacing.large) {
                     TextField("Email", text: $viewModel.email)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .textContentType(.emailAddress)
@@ -56,7 +56,7 @@ struct LoginView: View {
                         HStack {
                             if viewModel.isLoading {
                                 ProgressView()
-                                    .scaleEffect(0.8)
+                                    .scaleEffect(ScaleFactors.smallMedium)
                             }
                             Text("Sign In")
                         }
@@ -64,7 +64,7 @@ struct LoginView: View {
                         .padding()
                         .background(Color.accentColor)
                         .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .cornerRadius(CornerRadius.large)
                     }
                     .disabled(viewModel.isLoading || !viewModel.isFormValid)
                 }
@@ -73,7 +73,7 @@ struct LoginView: View {
                 
                 // Debug Section (only in debug builds)
                 #if DEBUG
-                VStack(spacing: 8) {
+                VStack(spacing: Spacing.small) {
                     Button("Show Test Accounts") {
                         showingDebugAccounts = true
                     }
@@ -86,7 +86,7 @@ struct LoginView: View {
                 }
                 #endif
             }
-            .padding(.horizontal, 32)
+            .padding(.horizontal, Spacing.xxlarge)
             .navigationBarHidden(true)
         }
         .sheet(isPresented: $showingDebugAccounts) {
@@ -106,18 +106,18 @@ struct DebugAccountsView: View {
         NavigationView {
             List {
                 ForEach(MockAuthenticationService.testAccounts, id: \.email) { account in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                         HStack {
                             Text(account.email)
                                 .font(.headline)
                             Spacer()
                             Text(account.plan.displayName)
                                 .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
+                                .padding(.horizontal, Spacing.small)
+                                .padding(.vertical, Spacing.xxsmall)
                                 .background(planColor(account.plan))
                                 .foregroundColor(.white)
-                                .cornerRadius(4)
+                                .cornerRadius(CornerRadius.small)
                         }
                         
                         Text("Password: \(account.password)")
@@ -132,7 +132,7 @@ struct DebugAccountsView: View {
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, Spacing.xxsmall)
                 }
             }
             .navigationTitle("Test Accounts")

@@ -16,6 +16,7 @@ public struct PaywallFactory {
         self.container = container
     }
     
+    @MainActor
     public func makeViewModel() -> PaywallViewModel {
         PaywallViewModel(
             paywallService: container.paywallService,

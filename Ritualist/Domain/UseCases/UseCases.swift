@@ -17,6 +17,24 @@ public protocol GetLogForDateUseCase { func execute(habitID: UUID, date: Date) a
 public protocol LoadProfileUseCase { func execute() async throws -> UserProfile }
 public protocol SaveProfileUseCase { func execute(_ profile: UserProfile) async throws }
 
+// MARK: - Calendar Use Cases
+public protocol GenerateCalendarDaysUseCase { 
+    func execute(for month: Date, userProfile: UserProfile?) -> [Date] 
+}
+public protocol GenerateCalendarGridUseCase { 
+    func execute(for month: Date, userProfile: UserProfile?) -> [CalendarDay] 
+}
+
+// MARK: - Habit Logging Use Cases
+public protocol ToggleHabitLogUseCase {
+    func execute(
+        date: Date,
+        habit: Habit,
+        currentLoggedDates: Set<Date>,
+        currentHabitLogValues: [Date: Double]
+    ) async throws -> (loggedDates: Set<Date>, habitLogValues: [Date: Double])
+}
+
 // MARK: - Tip Use Cases
 public protocol GetAllTipsUseCase { func execute() async throws -> [Tip] }
 public protocol GetFeaturedTipsUseCase { func execute() async throws -> [Tip] }
@@ -204,5 +222,146 @@ public final class UpdateUser: UpdateUserUseCase {
     public func execute(_ user: User) async throws -> User {
         try await userSession.updateUser(user)
         return user
+    }
+}
+
+// MARK: - Calendar Use Case Implementations
+
+public final class GenerateCalendarDays: GenerateCalendarDaysUseCase {
+    public init() {}
+    
+    public func execute(for month: Date, userProfile: UserProfile?) -> [Date] {
+        let calendar = DateUtils.userCalendar(firstDayOfWeek: userProfile?.firstDayOfWeek)
+        
+        // Ensure we start with a normalized date (start of day)
+        let normalizedCurrentMonth = calendar.startOfDay(for: month)
+        guard let monthInterval = calendar.dateInterval(of: .month, for: normalizedCurrentMonth) else { return [] }
+        
+        // Generate current month days, ensuring we work with start of day
+        var days: [Date] = []
+        var date = calendar.startOfDay(for: monthInterval.start)
+        let endOfMonth = monthInterval.end
+        
+        while date < endOfMonth {
+            days.append(date)
+            date = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+        }
+        
+        return days
+    }
+}
+
+public final class GenerateCalendarGrid: GenerateCalendarGridUseCase {
+    public init() {}
+    
+    public func execute(for month: Date, userProfile: UserProfile?) -> [CalendarDay] {
+        let calendar = DateUtils.userCalendar(firstDayOfWeek: userProfile?.firstDayOfWeek)
+        
+        let normalizedCurrentMonth = calendar.startOfDay(for: month)
+        guard let monthInterval = calendar.dateInterval(of: .month, for: normalizedCurrentMonth) else { return [] }
+        
+        let startOfMonth = monthInterval.start
+        let endOfMonth = monthInterval.end
+        
+        // Find the first day to display (might be from previous month)
+        let weekdayOfFirst = calendar.component(.weekday, from: startOfMonth)
+        let firstDisplayDay = calendar.date(byAdding: .day, value: -(weekdayOfFirst - 1), to: startOfMonth) ?? startOfMonth
+        
+        // Generate 42 days (6 weeks) for a complete calendar grid
+        var calendarDays: [CalendarDay] = []
+        var currentDate = firstDisplayDay
+        
+        for _ in 0..<42 {
+            let isCurrentMonth = calendar.isDate(currentDate, equalTo: normalizedCurrentMonth, toGranularity: .month)
+            calendarDays.append(CalendarDay(date: currentDate, isCurrentMonth: isCurrentMonth))
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        }
+        
+        return calendarDays
+    }
+}
+
+// MARK: - Habit Logging Use Case Implementation
+
+public final class ToggleHabitLog: ToggleHabitLogUseCase {
+    private let getLogForDate: GetLogForDateUseCase
+    private let logHabit: LogHabitUseCase
+    private let deleteLog: DeleteLogUseCase
+    
+    public init(getLogForDate: GetLogForDateUseCase, logHabit: LogHabitUseCase, deleteLog: DeleteLogUseCase) {
+        self.getLogForDate = getLogForDate
+        self.logHabit = logHabit
+        self.deleteLog = deleteLog
+    }
+    
+    public func execute(
+        date: Date,
+        habit: Habit,
+        currentLoggedDates: Set<Date>,
+        currentHabitLogValues: [Date: Double]
+    ) async throws -> (loggedDates: Set<Date>, habitLogValues: [Date: Double]) {
+        let existingLog = try await getLogForDate.execute(habitID: habit.id, date: date)
+        let normalizedDate = Calendar.current.startOfDay(for: date)
+        
+        var updatedLoggedDates = currentLoggedDates
+        var updatedHabitLogValues = currentHabitLogValues
+        
+        if habit.kind == .binary {
+            // Business Logic: Binary habit toggle
+            if existingLog != nil {
+                // Remove log
+                try await deleteLog.execute(id: existingLog!.id)
+                updatedLoggedDates.remove(normalizedDate)
+                updatedHabitLogValues.removeValue(forKey: normalizedDate)
+            } else {
+                // Add log
+                let newLog = HabitLog(habitID: habit.id, date: date, value: 1.0)
+                try await logHabit.execute(newLog)
+                updatedLoggedDates.insert(normalizedDate)
+                updatedHabitLogValues[normalizedDate] = 1.0
+            }
+        } else {
+            // Count habit: increment value or reset if target is reached
+            let currentValue = existingLog?.value ?? 0.0
+            
+            // If target is already reached, reset to 0
+            let newValue: Double
+            if let target = habit.dailyTarget, currentValue >= target {
+                newValue = 0.0
+            } else {
+                newValue = currentValue + 1.0
+            }
+            
+            if newValue == 0.0 {
+                // Reset to 0: delete the log entry
+                if let existingLog = existingLog {
+                    try await deleteLog.execute(id: existingLog.id)
+                }
+                updatedHabitLogValues.removeValue(forKey: normalizedDate)
+                updatedLoggedDates.remove(normalizedDate)
+            } else {
+                // Increment: update or create log
+                if let existingLog = existingLog {
+                    // Update existing log
+                    let updatedLog = HabitLog(id: existingLog.id, habitID: habit.id, date: date, value: newValue)
+                    try await logHabit.execute(updatedLog)
+                } else {
+                    // Create new log
+                    let newLog = HabitLog(habitID: habit.id, date: date, value: newValue)
+                    try await logHabit.execute(newLog)
+                }
+                
+                updatedHabitLogValues[normalizedDate] = newValue
+                
+                // Check if target is reached for logged dates tracking
+                if let target = habit.dailyTarget, newValue >= target {
+                    updatedLoggedDates.insert(normalizedDate)
+                } else {
+                    updatedLoggedDates.remove(normalizedDate)
+                }
+            }
+        }
+        
+        return (loggedDates: updatedLoggedDates, habitLogValues: updatedHabitLogValues)
     }
 }

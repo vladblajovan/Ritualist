@@ -4,19 +4,22 @@ struct AuthenticationFlowView: View {
     @Environment(\.appContainer) private var container
     
     var body: some View {
+        // Cast to specific types since @ObservedObject can't work with existentials
         Group {
-            // Check if we have a UserSession (which is ObservableObject)
             if let userSession = container.userSession as? UserSession {
-                AuthenticatedFlowView(userSession: userSession, container: container)
+                ReactiveAuthFlow(userSession: userSession, container: container)
+            } else if let userSession = container.userSession as? NoOpUserSession {
+                ReactiveNoOpAuthFlow(userSession: userSession, container: container)
             } else {
-                // Fallback for other UserSession types
-                BasicAuthFlow(container: container)
+                // This should never happen, but provide fallback
+                Text("Authentication system unavailable")
+                    .foregroundColor(.red)
             }
         }
     }
 }
 
-private struct AuthenticatedFlowView: View {
+private struct ReactiveAuthFlow: View {
     @ObservedObject var userSession: UserSession
     let container: AppContainer
     
@@ -34,38 +37,24 @@ private struct AuthenticatedFlowView: View {
     }
 }
 
-private struct BasicAuthFlow: View {
+private struct ReactiveNoOpAuthFlow: View {
+    @ObservedObject var userSession: NoOpUserSession
     let container: AppContainer
-    @State private var isAuthenticated = false
     
     var body: some View {
         Group {
-            if isAuthenticated {
+            if userSession.isAuthenticated {
                 // User is logged in - show main app
                 RootTabView()
                     .environment(\.appContainer, container)
             } else {
                 // User not logged in - show login screen
-                LoginView(userSession: container.userSession)
-            }
-        }
-        .onAppear {
-            isAuthenticated = container.userSession.isAuthenticated
-        }
-        .task {
-            // Periodically check authentication state for non-ObservableObject implementations
-            while true {
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                let newState = container.userSession.isAuthenticated
-                if isAuthenticated != newState {
-                    await MainActor.run {
-                        isAuthenticated = newState
-                    }
-                }
+                LoginView(userSession: userSession)
             }
         }
     }
 }
+
 
 #Preview("Not Authenticated") {
     AuthenticationFlowView()

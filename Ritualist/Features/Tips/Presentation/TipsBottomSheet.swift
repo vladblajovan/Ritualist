@@ -17,7 +17,7 @@ public struct TipsBottomSheet: View {
                 // Handle bar for dragging
                 RoundedRectangle(cornerRadius: 2.5)
                     .fill(AppColors.systemGray4)
-                    .frame(width: 36, height: 5)
+                    .frame(width: ComponentSize.drawerHandle, height: ComponentSize.drawerHandleHeight)
                     .padding(.top, Spacing.small)
                     .padding(.bottom, Spacing.medium)
                 
@@ -26,7 +26,7 @@ public struct TipsBottomSheet: View {
                     // Empty state
                     VStack(spacing: Spacing.medium) {
                         Image(systemName: "lightbulb.slash")
-                            .font(.system(size: 48))
+                            .font(.system(size: Typography.mediumIcon))
                             .foregroundColor(AppColors.systemGray3)
                         
                         Text("No tips available")
@@ -122,12 +122,12 @@ private struct TipListRowContent: View {
                 Image(systemName: icon)
                     .font(.title2)
                     .foregroundColor(AppColors.brand)
-                    .frame(width: 28, height: 28)
+                    .frame(width: ComponentSize.iconMedium, height: ComponentSize.iconMedium)
             } else {
                 // Placeholder circle if no icon
                 Circle()
                     .fill(AppColors.brand.opacity(0.2))
-                    .frame(width: 28, height: 28)
+                    .frame(width: ComponentSize.iconMedium, height: ComponentSize.iconMedium)
                     .overlay(
                         Text(String(tip.title.prefix(1)))
                             .font(.caption)
@@ -221,7 +221,7 @@ private struct TipDetailContentView: View {
             // Divider
             Rectangle()
                 .fill(AppColors.separator)
-                .frame(height: 1)
+                .frame(height: ComponentSize.separatorThin)
                 .padding(.vertical, Spacing.small)
             
             // Full content
@@ -268,7 +268,7 @@ private struct TipDetailContentView: View {
         .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+                .stroke(AppColors.separator.opacity(0.5), lineWidth: ComponentSize.separatorHairline)
         )
     }
     

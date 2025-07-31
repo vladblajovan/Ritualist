@@ -81,8 +81,6 @@ public final class MockPaywallService: PaywallService, ObservableObject {
     public init() {}
     
     public func loadProducts() async throws -> [Product] {
-        // Simulate network delay
-        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
         return mockProducts
     }
     

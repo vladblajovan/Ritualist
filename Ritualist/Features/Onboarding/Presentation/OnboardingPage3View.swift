@@ -2,15 +2,15 @@ import SwiftUI
 
 struct OnboardingPage3View: View {
     var body: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: Spacing.xxlarge) {
             Spacer()
             
             // Customization icon
             Image(systemName: "paintbrush.fill")
-                .font(.system(size: 60))
+                .font(.system(size: Typography.heroIcon))
                 .foregroundColor(.purple)
             
-            VStack(spacing: 16) {
+            VStack(spacing: Spacing.large) {
                 Text("Make It Yours")
                     .font(.largeTitle)
                     .fontWeight(.bold)
@@ -21,10 +21,10 @@ struct OnboardingPage3View: View {
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, Spacing.extraLarge)
             }
             
-            VStack(spacing: 16) {
+            VStack(spacing: Spacing.large) {
                 CustomizationHighlight(
                     icon: "paintpalette.fill",
                     title: "Colors & Emojis",

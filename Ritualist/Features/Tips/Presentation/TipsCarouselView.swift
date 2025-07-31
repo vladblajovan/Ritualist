@@ -110,11 +110,11 @@ private struct TipCard: View {
                 Spacer()
             }
             .padding(Spacing.medium)
-            .frame(width: 200, height: 100)
+            .frame(width: ComponentSize.tipCardWidth, height: ComponentSize.tipCardHeight)
             .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+                    .stroke(AppColors.separator.opacity(0.5), lineWidth: ComponentSize.separatorHairline)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -140,14 +140,14 @@ private struct ShowMoreTipCard: View {
                     .multilineTextAlignment(.center)
             }
             .padding(Spacing.medium)
-            .frame(width: 200, height: 100)
+            .frame(width: ComponentSize.tipCardWidth, height: ComponentSize.tipCardHeight)
             .background(
                 AppColors.brand.opacity(0.1),
                 in: RoundedRectangle(cornerRadius: 12)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(AppColors.brand.opacity(0.3), lineWidth: 1)
+                    .stroke(AppColors.brand.opacity(0.3), lineWidth: ComponentSize.separatorThin)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -161,7 +161,7 @@ private struct TipCardPlaceholder: View {
     var body: some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(AppColors.systemGray6)
-            .frame(width: 200, height: 100)
+            .frame(width: ComponentSize.tipCardWidth, height: ComponentSize.tipCardHeight)
             .redacted(reason: .placeholder)
     }
 }
