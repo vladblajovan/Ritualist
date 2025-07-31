@@ -225,7 +225,7 @@ private struct OverviewListView: View {
                 TipsBottomSheet(
                     tips: tipsVM.tipsForBottomSheet,
                     onTipTap: { tip in
-                        tipsVM.hideAllTipsSheet()
+                        // This is still needed for any external tip tapping (like from carousel)
                         tipsVM.selectTip(tip)
                     },
                     onDismiss: {

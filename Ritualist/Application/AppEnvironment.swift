@@ -21,6 +21,10 @@ public protocol AppContainer {
     var featureGatingService: FeatureGatingService { get }
     var stateCoordinator: any StateCoordinatorProtocol { get }
     var secureUserDefaults: SecureUserDefaults { get }
+    var stateValidationService: any StateValidationServiceProtocol { get }
+    var errorRecoveryService: any ErrorRecoveryServiceProtocol { get }
+    var systemHealthMonitor: any SystemHealthMonitorProtocol { get }
+    var errorHandlingStrategy: any ErrorHandlingStrategyProtocol { get }
     
     // Factory methods
     var onboardingFactory: OnboardingFactory { get }

@@ -12,7 +12,7 @@ public struct TipsBottomSheet: View {
     }
     
     public var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Handle bar for dragging
                 RoundedRectangle(cornerRadius: 2.5)
@@ -41,7 +41,9 @@ public struct TipsBottomSheet: View {
                         if !featuredTips.isEmpty {
                             Section(header: Text("Featured Tips").font(.subheadline).fontWeight(.medium)) {
                                 ForEach(featuredTips, id: \.id) { tip in
-                                    TipListRow(tip: tip, onTap: { onTipTap(tip) })
+                                    NavigationLink(destination: TipDetailContentView(tip: tip)) {
+                                        TipListRowContent(tip: tip)
+                                    }
                                 }
                             }
                         }
@@ -55,7 +57,9 @@ public struct TipsBottomSheet: View {
                             if !categoryTips.isEmpty {
                                 Section(header: Text(categoryDisplayName(category)).font(.subheadline).fontWeight(.medium)) {
                                     ForEach(categoryTips, id: \.id) { tip in
-                                        TipListRow(tip: tip, onTap: { onTipTap(tip) })
+                                        NavigationLink(destination: TipDetailContentView(tip: tip)) {
+                                            TipListRowContent(tip: tip)
+                                        }
                                     }
                                 }
                             }
@@ -66,13 +70,15 @@ public struct TipsBottomSheet: View {
             }
             .navigationTitle(Strings.Tips.allTipsTitle)
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(
-                trailing: Button(Strings.Button.done) {
-                    onDismiss()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(Strings.Button.done) {
+                        onDismiss()
+                    }
                 }
-            )
+            }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.hidden) // We have our own handle bar
     }
     
@@ -90,59 +96,192 @@ public struct TipsBottomSheet: View {
     }
 }
 
-// MARK: - Tip List Row Component
+// MARK: - Tip List Row Component (Legacy - kept for compatibility)
 private struct TipListRow: View {
     let tip: Tip
     let onTap: () -> Void
     
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: Spacing.medium) {
-                // Icon
-                if let icon = tip.icon {
-                    Image(systemName: icon)
-                        .font(.title2)
-                        .foregroundColor(AppColors.brand)
-                        .frame(width: 28, height: 28)
-                } else {
-                    // Placeholder circle if no icon
-                    Circle()
-                        .fill(AppColors.brand.opacity(0.2))
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            Text(String(tip.title.prefix(1)))
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(AppColors.brand)
-                        )
-                }
-                
-                // Content
-                VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                    Text(tip.title)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(AppColors.textPrimary)
-                        .multilineTextAlignment(.leading)
-                    
-                    Text(tip.description)
-                        .font(.caption)
-                        .foregroundColor(AppColors.textSecondary)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(2)
-                }
-                
-                Spacer()
-                
-                // Chevron
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(AppColors.systemGray3)
-            }
-            .padding(.vertical, Spacing.xxsmall)
+            TipListRowContent(tip: tip)
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityLabel("Tip: \(tip.title). \(tip.description)")
         .accessibilityAddTraits(.isButton)
+    }
+}
+
+// MARK: - Tip List Row Content (for NavigationLink)
+private struct TipListRowContent: View {
+    let tip: Tip
+    
+    var body: some View {
+        HStack(spacing: Spacing.medium) {
+            // Icon
+            if let icon = tip.icon {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(AppColors.brand)
+                    .frame(width: 28, height: 28)
+            } else {
+                // Placeholder circle if no icon
+                Circle()
+                    .fill(AppColors.brand.opacity(0.2))
+                    .frame(width: 28, height: 28)
+                    .overlay(
+                        Text(String(tip.title.prefix(1)))
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(AppColors.brand)
+                    )
+            }
+            
+            // Content
+            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                Text(tip.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(AppColors.textPrimary)
+                    .multilineTextAlignment(.leading)
+                
+                Text(tip.description)
+                    .font(.caption)
+                    .foregroundColor(AppColors.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, Spacing.xxsmall)
+        .accessibilityLabel("Tip: \(tip.title). \(tip.description)")
+    }
+}
+
+// MARK: - Tip Detail Content View for NavigationStack
+private struct TipDetailContentView: View {
+    let tip: Tip
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.large) {
+                // Header section with icon and title
+                headerSection
+                
+                // Content section
+                contentSection
+                
+                // Category and metadata
+                metadataSection
+                
+                Spacer()
+            }
+            .padding(Spacing.large)
+        }
+        .navigationTitle(tip.title)
+        .navigationBarTitleDisplayMode(.large)
+    }
+    
+    // MARK: - Header Section
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.medium) {
+            // Icon and category
+            HStack {
+                if let icon = tip.icon {
+                    Image(systemName: icon)
+                        .font(.largeTitle)
+                        .foregroundColor(AppColors.brand)
+                }
+                
+                Spacer()
+                
+                // Category badge
+                Text(categoryDisplayName(tip.category))
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, Spacing.small)
+                    .padding(.vertical, Spacing.xxsmall)
+                    .background(AppColors.brand.opacity(0.1), in: Capsule())
+                    .foregroundColor(AppColors.brand)
+            }
+            
+            // Description (short version)
+            if !tip.description.isEmpty {
+                Text(tip.description)
+                    .font(.headline)
+                    .foregroundColor(AppColors.textSecondary)
+                    .multilineTextAlignment(.leading)
+            }
+        }
+    }
+    
+    // MARK: - Content Section
+    private var contentSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.medium) {
+            // Divider
+            Rectangle()
+                .fill(AppColors.separator)
+                .frame(height: 1)
+                .padding(.vertical, Spacing.small)
+            
+            // Full content
+            Text(tip.content)
+                .font(.body)
+                .foregroundColor(AppColors.textPrimary)
+                .multilineTextAlignment(.leading)
+                .lineSpacing(4)
+        }
+    }
+    
+    // MARK: - Metadata Section
+    private var metadataSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.small) {
+            HStack {
+                Text("Category")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(AppColors.textSecondary)
+                
+                Spacer()
+                
+                Text(categoryDisplayName(tip.category))
+                    .font(.caption)
+                    .foregroundColor(AppColors.textPrimary)
+            }
+            
+            if tip.isFeaturedInCarousel {
+                HStack {
+                    Text("Featured")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(AppColors.textSecondary)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "star.fill")
+                        .font(.caption)
+                        .foregroundColor(AppColors.accentYellow)
+                }
+            }
+        }
+        .padding(Spacing.medium)
+        .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+        )
+    }
+    
+    private func categoryDisplayName(_ category: TipCategory) -> String {
+        switch category {
+        case .gettingStarted:
+            return "Getting Started"
+        case .tracking:
+            return "Tracking"
+        case .motivation:
+            return "Motivation"
+        case .advanced:
+            return "Advanced"
+        }
     }
 }

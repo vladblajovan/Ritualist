@@ -21,14 +21,6 @@ public struct PaywallView: View {
                         Text("Setting up your premium experience")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        
-                        // Debug info
-                        Text("Products: \(vm.products.count)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        Text("Benefits: \(vm.benefits.count)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if vm.hasError {

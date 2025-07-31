@@ -294,9 +294,6 @@
         }
       }
     },
-    "Benefits: %lld" : {
-
-    },
     "button.cancel" : {
       "comment" : "Button label to cancel an action and dismiss a dialog or form without saving changes.",
       "extractionState" : "manual",
@@ -2395,9 +2392,6 @@
       }
     },
     "Processing..." : {
-
-    },
-    "Products: %lld" : {
 
     },
     "Profile Photo" : {
