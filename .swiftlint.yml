@@ -1,0 +1,51 @@
+# SwiftLint configuration for Ritualist
+disabled_rules:
+  - trailing_whitespace
+  - todo
+  - force_cast
+  - force_try
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - explicit_init
+  - fatal_error_message
+  - first_where
+
+included:
+  - Application
+  - Core
+  - Domain
+  - Data
+  - Features
+
+excluded:
+  - Carthage
+  - Pods
+  - .build
+
+line_length:
+  warning: 130
+  error: 160
+  ignores_comments: true
+  ignores_urls: true
+
+identifier_name:
+  min_length: 2
+  allowed_symbols: ["_"]
+  validates_start_with_lowercase: true
+
+type_name:
+  max_length: 50
+
+cyclomatic_complexity:
+  warning: 12
+  error: 18
+
+function_body_length:
+  warning: 80
+  error: 120
+
+file_length:
+  warning: 600
+  error: 800

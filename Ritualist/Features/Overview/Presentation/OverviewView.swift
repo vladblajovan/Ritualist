@@ -1,0 +1,265 @@
+import SwiftUI
+
+public struct OverviewRoot: View {
+    private let factory: OverviewFactory?
+
+    public init(factory: OverviewFactory? = nil) {
+        self.factory = factory
+    }
+
+    public var body: some View {
+        OverviewContentView(factory: factory)
+            .navigationTitle(Strings.Navigation.overview)
+    }
+}
+
+private struct OverviewContentView: View {
+    @Environment(\.appContainer) private var di
+    @State private var vm: OverviewViewModel?
+    @State private var isInitializing = true
+
+    private let factory: OverviewFactory?
+
+    init(factory: OverviewFactory?) {
+        self.factory = factory
+    }
+
+    var body: some View {
+        Group {
+            if isInitializing {
+                ProgressView(Strings.Loading.initializing)
+            } else if let vm = vm {
+                OverviewListView(vm: vm)
+            } else {
+                ErrorView(
+                    title: Strings.Error.failedInitialize,
+                    message: Strings.Error.unableSetupOverview
+                ) {
+                    await initializeAndLoad()
+                }
+            }
+        }
+        .task {
+            await initializeAndLoad()
+        }
+    }
+
+    @MainActor
+    private func initializeAndLoad() async {
+        let actualFactory = factory ?? OverviewFactory(container: di)
+        vm = actualFactory.makeViewModel()
+        await vm?.load()
+        isInitializing = false
+    }
+}
+
+private struct OverviewListView: View {
+    @Environment(\.appContainer) private var di
+    @Bindable var vm: OverviewViewModel
+    @State private var showingAddHabit = false
+    @State private var tipsVM: TipsViewModel?
+
+    var body: some View {
+        Group {
+            if vm.isLoading {
+                ProgressView(Strings.Loading.habits)
+            } else if let error = vm.error {
+                ErrorView(
+                    title: Strings.Error.failedLoadHabits,
+                    message: error.localizedDescription
+                ) {
+                    await vm.retry()
+                }
+            } else if vm.habits.isEmpty {
+                ContentUnavailableView(
+                    Strings.EmptyState.noActiveHabits,
+                    systemImage: "checklist",
+                    description: Text(Strings.EmptyState.createHabitsToStart)
+                )
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Spacing.xlarge) {
+                        VStack(alignment: .leading, spacing: Spacing.small) {
+//                            Text("Track Your Progress")
+//                                .font(.title)
+//                                .fontWeight(.bold)
+//                                .foregroundColor(.primary)
+
+                            Text(Strings.Overview.instructions)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+
+                        VStack(alignment: .leading, spacing: Spacing.medium) {
+                            HStack {
+                                Text(Strings.Overview.yourHabits)
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                
+                                Spacer()
+                                
+                                Button {
+                                    showingAddHabit = true
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.title3)
+                                        .foregroundColor(AppColors.brand)
+                                }
+                                .accessibilityLabel(Strings.Accessibility.addHabit)
+                            }
+                            .padding(.horizontal, 16)
+
+//                            HabitChipsView(
+//                                habits: vm.habits,
+//                                selectedHabit: vm.selectedHabit
+//                            ) { habit in
+//                                await vm.selectHabit(habit)
+//                            }
+                            
+                            OverviewHabitsCarousel(
+                                habits: vm.habits,
+                                selectedHabit: vm.selectedHabit,
+                                onChipTap: { habit in
+                                    await vm.selectHabit(habit)
+                                }
+                            )
+                        }
+
+                        // Streak information for selected habit
+                        if let selectedHabit = vm.selectedHabit {
+                            StreakInfoView(
+                                habit: selectedHabit,
+                                currentStreak: vm.currentStreak,
+                                bestStreak: vm.bestStreak,
+                                isLoading: vm.isLoadingStreaks,
+                                shouldAnimateBestStreak: vm.shouldAnimateBestStreak,
+                                onAnimationComplete: {
+                                    vm.resetBestStreakAnimation()
+                                }
+                            )
+                        }
+                        
+                        // Calendar view
+                        if let selectedHabit = vm.selectedHabit {
+                            VStack(alignment: .leading, spacing: Spacing.large) {
+                                Text(Strings.Overview.calendar)
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .padding(.horizontal, 16)
+                                
+                                MonthlyCalendarView(
+                                    selectedHabit: selectedHabit,
+                                    currentMonth: vm.currentMonth,
+                                    fullCalendarDays: vm.fullCalendarDays,
+                                    loggedDates: vm.loggedDates,
+                                    isLoggingHabit: vm.isLoggingHabit,
+                                    userFirstDayOfWeek: vm.userFirstDayOfWeek,
+                                    isViewingCurrentMonth: vm.isViewingCurrentMonth,
+                                    getHabitValueForDate: vm.getHabitValueForDate,
+                                    isDateSchedulable: vm.isDateSchedulable,
+                                    isWeeklyTargetMet: vm.isWeeklyTargetMet,
+                                    onMonthChange: { direction in
+                                        await vm.navigateToMonth(direction)
+                                    },
+                                    onDateTap: { date in
+                                        await vm.incrementHabitForDate(date)
+                                    },
+                                    onAdjacentDateTap: { date in
+                                        await vm.navigateToDate(date)
+                                    },
+                                    onTodayTap: {
+                                        await vm.navigateToToday()
+                                    }
+                                )
+                            }
+                        } else {
+                            // Empty state when no habit is selected
+                            VStack(spacing: Spacing.medium) {
+                                Text(Strings.EmptyState.noHabitSelected)
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .padding(.horizontal, 16)
+                                
+                                Text(Strings.EmptyState.tapHabitToView)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .padding(.horizontal, 16)
+                            }
+                        }
+                        
+                        // Tips carousel
+                        if let tipsVM = tipsVM {
+                            TipsCarouselView(
+                                tips: tipsVM.featuredTips,
+                                isLoading: tipsVM.isLoading,
+                                onTipTap: { tip in
+                                    tipsVM.selectTip(tip)
+                                },
+                                onShowMoreTap: {
+                                    tipsVM.showAllTipsSheet()
+                                }
+                            )
+                        }
+                        
+                        // Bottom spacing
+                        Spacer(minLength: 20)
+                    }
+                }
+                .refreshable {
+                    await vm.load()
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddHabit) {
+            let detailFactory = HabitDetailFactory(container: di)
+            let detailVM = detailFactory.makeViewModel(for: nil)
+            HabitDetailView(vm: detailVM)
+        }
+        .sheet(isPresented: Binding(
+            get: { tipsVM?.showingAllTipsSheet ?? false },
+            set: { _ in tipsVM?.hideAllTipsSheet() }
+        )) {
+            if let tipsVM = tipsVM {
+                TipsBottomSheet(
+                    tips: tipsVM.tipsForBottomSheet,
+                    onTipTap: { tip in
+                        tipsVM.hideAllTipsSheet()
+                        tipsVM.selectTip(tip)
+                    },
+                    onDismiss: {
+                        tipsVM.hideAllTipsSheet()
+                    }
+                )
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { tipsVM?.showingTipDetail ?? false },
+            set: { _ in tipsVM?.hideTipDetail() }
+        )) {
+            if let tipsVM = tipsVM, let selectedTip = tipsVM.selectedTip {
+                TipDetailView(
+                    tip: selectedTip,
+                    onDismiss: {
+                        tipsVM.hideTipDetail()
+                    }
+                )
+            }
+        }
+        .task {
+            // Initialize tips view model when the view appears
+            if tipsVM == nil {
+                let tipsFactory = TipsFactory(container: di)
+                tipsVM = tipsFactory.makeViewModel()
+                await tipsVM?.load()
+            }
+        }
+    }
+}
+
+#Preview {
+    let container = DefaultAppContainer.createMinimal()
+    return OverviewRoot(factory: OverviewFactory(container: container))
+        .environment(\.appContainer, container)
+}
