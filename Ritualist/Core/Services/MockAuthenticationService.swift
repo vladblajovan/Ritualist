@@ -24,21 +24,21 @@ public final class MockAuthenticationService: AuthenticationService, ObservableO
         "free@test.com": User(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
             email: "free@test.com",
-            name: "Free User",
+            name: "Alex Smith",
             subscriptionPlan: .free,
             subscriptionExpiryDate: nil
         ),
         "monthly@test.com": User(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
             email: "monthly@test.com",
-            name: "Monthly Subscriber",
+            name: "Jamie Wilson",
             subscriptionPlan: .monthly,
             subscriptionExpiryDate: Calendar.current.date(byAdding: .month, value: 1, to: Date())
         ),
         "annual@test.com": User(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
             email: "annual@test.com",
-            name: "Annual Subscriber",
+            name: "Taylor Johnson",
             subscriptionPlan: .annual,
             subscriptionExpiryDate: Calendar.current.date(byAdding: .year, value: 1, to: Date())
         )

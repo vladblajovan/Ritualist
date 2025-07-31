@@ -19,7 +19,8 @@ public struct PaywallFactory {
     public func makeViewModel() -> PaywallViewModel {
         PaywallViewModel(
             paywallService: container.paywallService,
-            userSession: container.userSession
+            userSession: container.userSession,
+            stateCoordinator: container.stateCoordinator
         )
     }
 }

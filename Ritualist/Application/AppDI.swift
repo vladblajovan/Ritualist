@@ -20,6 +20,8 @@ public final class DefaultAppContainer: AppContainer {
     public let userSession: any UserSessionProtocol
     public let paywallService: PaywallService
     public let featureGatingService: FeatureGatingService
+    public let stateCoordinator: any StateCoordinatorProtocol
+    public let secureUserDefaults: SecureUserDefaults
     
     // Factory methods
     public lazy var onboardingFactory = OnboardingFactory(container: self)
@@ -39,7 +41,9 @@ public final class DefaultAppContainer: AppContainer {
                 authenticationService: any AuthenticationService,
                 userSession: any UserSessionProtocol,
                 paywallService: PaywallService,
-                featureGatingService: FeatureGatingService) {
+                featureGatingService: FeatureGatingService,
+                stateCoordinator: any StateCoordinatorProtocol,
+                secureUserDefaults: SecureUserDefaults) {
         self.habitRepository = habitRepository
         self.logRepository = logRepository
         self.profileRepository = profileRepository
@@ -56,6 +60,8 @@ public final class DefaultAppContainer: AppContainer {
         self.userSession = userSession
         self.paywallService = paywallService
         self.featureGatingService = featureGatingService
+        self.stateCoordinator = stateCoordinator
+        self.secureUserDefaults = secureUserDefaults
     }
 
     // Bootstrap with SwiftData and default services (async version)
@@ -93,8 +99,20 @@ public final class DefaultAppContainer: AppContainer {
         let userSession = await UserSession(authService: authService)
         
         // Paywall services
-        let paywallService: PaywallService = await MockPaywallService()
+        let paywallService: PaywallService = MockPaywallService()
         let featureGatingService: FeatureGatingService = DefaultFeatureGatingService(userSession: userSession)
+        
+        // State coordination services
+        let secureUserDefaults = SecureUserDefaults()
+        let stateCoordinator: any StateCoordinatorProtocol = StateCoordinator(
+            paywallService: paywallService,
+            authService: authService,
+            userSession: userSession,
+            secureDefaults: secureUserDefaults
+        )
+        
+        // Wire up coordination
+        await userSession.setStateCoordinator(stateCoordinator)
 
         return DefaultAppContainer(
             habitRepository: habitRepo,
@@ -112,7 +130,9 @@ public final class DefaultAppContainer: AppContainer {
             authenticationService: authService,
             userSession: userSession,
             paywallService: paywallService,
-            featureGatingService: featureGatingService
+            featureGatingService: featureGatingService,
+            stateCoordinator: stateCoordinator,
+            secureUserDefaults: secureUserDefaults
         )
     }
     
@@ -148,6 +168,15 @@ public final class DefaultAppContainer: AppContainer {
         // Paywall services
         let paywallService: PaywallService = MockPaywallService()
         let featureGatingService: FeatureGatingService = DefaultFeatureGatingService(userSession: userSession)
+        
+        // State coordination services - use NoOp for sync bootstrap
+        let secureUserDefaults = SecureUserDefaults()
+        let stateCoordinator: any StateCoordinatorProtocol = StateCoordinator(
+            paywallService: paywallService,
+            authService: userSession.authService,
+            userSession: userSession,
+            secureDefaults: secureUserDefaults
+        )
 
         return DefaultAppContainer(
             habitRepository: habitRepo,
@@ -165,7 +194,9 @@ public final class DefaultAppContainer: AppContainer {
             authenticationService: userSession.authService,
             userSession: userSession,
             paywallService: paywallService,
-            featureGatingService: featureGatingService
+            featureGatingService: featureGatingService,
+            stateCoordinator: stateCoordinator,
+            secureUserDefaults: secureUserDefaults
         )
     }
     
@@ -206,6 +237,15 @@ public final class DefaultAppContainer: AppContainer {
         // Paywall services - use mock for minimal container
         let paywallService: PaywallService = MockPaywallService()
         let featureGatingService: FeatureGatingService = MockFeatureGatingService()
+        
+        // State coordination services - use NoOp for minimal container
+        let secureUserDefaults = SecureUserDefaults()
+        let stateCoordinator: any StateCoordinatorProtocol = StateCoordinator(
+            paywallService: paywallService,
+            authService: authService,
+            userSession: userSession,
+            secureDefaults: secureUserDefaults
+        )
 
         return DefaultAppContainer(
             habitRepository: habitRepo,
@@ -223,7 +263,9 @@ public final class DefaultAppContainer: AppContainer {
             authenticationService: authService,
             userSession: userSession,
             paywallService: paywallService,
-            featureGatingService: featureGatingService
+            featureGatingService: featureGatingService,
+            stateCoordinator: stateCoordinator,
+            secureUserDefaults: secureUserDefaults
         )
     }
 }

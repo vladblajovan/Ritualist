@@ -15,19 +15,7 @@ import SwiftData
         WindowGroup {
             Group {
                 if let container = container {
-                    AuthenticationFlowView()
-                        .environment(\.appContainer, container)
-                        .preferredColorScheme(container.appearanceManager.colorScheme)
-                        .task {
-                            do {
-                                let profile = try await container.profileRepository.loadProfile()
-                                await MainActor.run {
-                                    container.appearanceManager.updateFromProfile(profile)
-                                }
-                            } catch {
-                                print("Failed to load profile: \(error)")
-                            }
-                        }
+                    RootAppView(container: container)
                 } else {
                     VStack {
                         ProgressView()
@@ -41,5 +29,31 @@ import SwiftData
                 }
             }
         }
+    }
+}
+
+// Separate view to properly observe AppearanceManager changes
+struct RootAppView: View {
+    let container: DefaultAppContainer
+    @State private var colorScheme: ColorScheme?
+    
+    var body: some View {
+        AuthenticationFlowView()
+            .environment(\.appContainer, container)
+            .preferredColorScheme(colorScheme)
+            .task {
+                do {
+                    let profile = try await container.profileRepository.loadProfile()
+                    await MainActor.run {
+                        container.appearanceManager.updateFromProfile(profile)
+                        colorScheme = container.appearanceManager.colorScheme
+                    }
+                } catch {
+                    print("Failed to load profile: \(error)")
+                }
+            }
+            .onChange(of: container.appearanceManager.currentAppearance) { _, _ in
+                colorScheme = container.appearanceManager.colorScheme
+            }
     }
 }

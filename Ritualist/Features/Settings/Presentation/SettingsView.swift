@@ -224,84 +224,67 @@ private struct SettingsFormView: View {
                     }
                     
                     Section(Strings.Settings.notifications) {
-                        HStack {
-                            Image(systemName: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill")
-                                .foregroundColor(vm.hasNotificationPermission ? .green : .orange)
-                                .font(.title2)
-                                .frame(width: 24)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(Strings.Settings.notificationPermission)
-                                    .font(.headline)
-                                    .fontWeight(.medium)
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: Spacing.medium) {
+                                Image(systemName: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill")
+                                    .foregroundColor(vm.hasNotificationPermission ? .green : .orange)
+                                    .font(.title2)
+                                    .frame(width: 24)
                                 
-                                Text(vm.hasNotificationPermission ? 
-                                     Strings.Settings.notificationsEnabled :
-                                     Strings.Settings.notificationsDisabled)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(Strings.Settings.notificationPermission)
+                                        .font(.headline)
+                                        .fontWeight(.medium)
+                                    
+                                    Text(vm.hasNotificationPermission ? 
+                                         Strings.Settings.notificationsEnabled :
+                                         Strings.Settings.notificationsDisabled)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                
+                                Spacer()
                             }
                             
-                            Spacer()
-                            
-                            if !vm.hasNotificationPermission {
-                                Button(Strings.Settings.enable) {
-                                    Task {
-                                        await vm.requestNotificationPermission()
+                            // Button aligned with text content, not icon
+                            HStack {
+                                // Spacer to match icon width + spacing
+                                Spacer()
+                                    .frame(width: 24 + Spacing.medium)
+                                
+                                if !vm.hasNotificationPermission {
+                                    Button(Strings.Settings.enable) {
+                                        Task {
+                                            await vm.requestNotificationPermission()
+                                        }
                                     }
-                                }
-                                .disabled(vm.isRequestingNotifications)
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.small)
-                                .overlay {
-                                    if vm.isRequestingNotifications {
-                                        ProgressView()
-                                            .scaleEffect(0.7)
-                                            .foregroundColor(.white)
+                                    .disabled(vm.isRequestingNotifications)
+                                    .buttonStyle(.borderedProminent)
+                                    .controlSize(.regular)
+                                    .overlay {
+                                        if vm.isRequestingNotifications {
+                                            ProgressView()
+                                                .scaleEffect(0.8)
+                                                .foregroundColor(.white)
+                                        }
                                     }
-                                }
-                            } else {
-                                Button(Strings.Settings.openSettings) {
-                                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                                        UIApplication.shared.open(settingsUrl)
+                                } else {
+                                    Button(Strings.Settings.openSettings) {
+                                        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                                            UIApplication.shared.open(settingsUrl)
+                                        }
                                     }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.regular)
                                 }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
+                                
+                                Spacer()
                             }
                         }
                         .padding(.vertical, 8)
                     }
                     
-                    Section {
-                        // Save button
-                        Button {
-                            Task {
-                                await saveChanges()
-                            }
-                        } label: {
-                            HStack {
-                                Spacer()
-                                if vm.isSaving {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                    Text(Strings.Loading.saving)
-                                } else {
-                                    Text(Strings.Button.save)
-                                        .fontWeight(.medium)
-                                }
-                                Spacer()
-                            }
-                            .padding(.vertical, 12)
-                            .background(
-                                hasChanges ? AppColors.brand : Color(.systemGray4),
-                                in: RoundedRectangle(cornerRadius: 10)
-                            )
-                            .foregroundColor(hasChanges ? .white : .secondary)
-                        }
-                        .disabled(!hasChanges || vm.isSaving)
-                        .buttonStyle(PlainButtonStyle())
-                    }
                 }
                 .refreshable {
                     await vm.load()
@@ -311,6 +294,24 @@ private struct SettingsFormView: View {
                     updateLocalState()
                     Task {
                         await vm.refreshNotificationStatus()
+                    }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            Task {
+                                await saveChanges()
+                            }
+                        } label: {
+                            if vm.isSaving {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Text(Strings.Button.save)
+                                    .fontWeight(hasChanges ? .semibold : .regular)
+                            }
+                        }
+                        .disabled(!hasChanges || vm.isSaving)
                     }
                 }
                 .safeAreaInset(edge: .top) {
@@ -370,9 +371,10 @@ private struct SettingsFormView: View {
     }
     
     private var hasChanges: Bool {
-        name != vm.profile.name ||
-        firstDayOfWeek != vm.profile.firstDayOfWeek ||
-        appearance != vm.profile.appearance
+        let currentName = vm.currentUser?.name ?? vm.profile.name
+        return name != currentName ||
+               firstDayOfWeek != vm.profile.firstDayOfWeek ||
+               appearance != vm.profile.appearance
     }
     
     private func updateLocalState() {
@@ -411,6 +413,9 @@ private struct SettingsFormView: View {
         await MainActor.run {
             appContainer.appearanceManager.updateFromProfile(vm.profile)
         }
+        
+        // Update local state to reflect saved values
+        updateLocalState()
     }
     
     private func dayOfWeekName(_ day: Int) -> String {
