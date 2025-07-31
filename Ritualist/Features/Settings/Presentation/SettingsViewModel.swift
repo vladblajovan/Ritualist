@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Combine
 
 @MainActor @Observable
 public final class SettingsViewModel {
@@ -9,6 +10,7 @@ public final class SettingsViewModel {
     private let notificationService: NotificationService
     private let userSession: any UserSessionProtocol
     private let appContainer: AppContainer
+    private var cancellables = Set<AnyCancellable>()
 
     public var profile = UserProfile()
     public private(set) var isLoading = false
@@ -21,6 +23,11 @@ public final class SettingsViewModel {
     public private(set) var isLoggingOut = false
     public private(set) var isUpdatingUser = false
     public private(set) var isCancellingSubscription = false
+    
+    // Reactive properties to track user session state
+    public private(set) var currentUser: User?
+    public private(set) var isAuthenticated = false
+    public private(set) var isPremiumUser = false
 
     public init(loadProfile: LoadProfileUseCase, saveProfile: SaveProfileUseCase, updateUser: UpdateUserUseCase, notificationService: NotificationService, userSession: any UserSessionProtocol, appContainer: AppContainer) {
         self.loadProfile = loadProfile
@@ -29,6 +36,32 @@ public final class SettingsViewModel {
         self.notificationService = notificationService
         self.userSession = userSession
         self.appContainer = appContainer
+        
+        // Initialize current state
+        updateUserSessionState()
+        
+        // Observe user session changes
+        setupUserSessionObservation()
+    }
+    
+    // MARK: - User Session Observation
+    
+    private func setupUserSessionObservation() {
+        // Cast to concrete UserSession type to access objectWillChange
+        if let concreteSession = userSession as? UserSession {
+            concreteSession.objectWillChange
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.updateUserSessionState()
+                }
+                .store(in: &cancellables)
+        }
+    }
+    
+    private func updateUserSessionState() {
+        currentUser = userSession.currentUser
+        isAuthenticated = userSession.isAuthenticated  
+        isPremiumUser = userSession.isPremiumUser
     }
     
     public func load() async {
@@ -37,10 +70,14 @@ public final class SettingsViewModel {
         do {
             profile = try await loadProfile.execute()
             hasNotificationPermission = await notificationService.checkAuthorizationStatus()
+            // Update user session state after loading
+            updateUserSessionState()
         } catch {
             self.error = error
             profile = UserProfile()
             hasNotificationPermission = await notificationService.checkAuthorizationStatus()
+            // Update user session state even on error
+            updateUserSessionState()
         }
         isLoading = false
     }
@@ -55,10 +92,10 @@ public final class SettingsViewModel {
             saveSuccess = true
             
             // Send notification after successful save
-            try? await notificationService.sendImmediate(
-                title: "Settings Saved",
-                body: "Your preferences have been updated successfully."
-            )
+            // try? await notificationService.sendImmediate(
+            //     title: "Settings Saved",
+            //     body: "Your preferences have been updated successfully."
+            // )
             
             isSaving = false
             return true
@@ -89,10 +126,10 @@ public final class SettingsViewModel {
             autoSaveMessage = "Settings saved"
             
             // Send notification after successful auto-save
-            try? await notificationService.sendImmediate(
-                title: "Settings Auto-Saved",
-                body: "Your preferences have been automatically updated."
-            )
+            // try? await notificationService.sendImmediate(
+            //     title: "Settings Auto-Saved",
+            //     body: "Your preferences have been automatically updated."
+            // )
 
             // Auto-dismiss message after 3 seconds
             Task {
@@ -132,18 +169,6 @@ public final class SettingsViewModel {
     }
     
     // MARK: - Authentication Methods
-    
-    public var currentUser: User? {
-        userSession.currentUser
-    }
-    
-    public var isAuthenticated: Bool {
-        userSession.isAuthenticated
-    }
-    
-    public var isPremiumUser: Bool {
-        userSession.isPremiumUser
-    }
     
     public func signOut() async {
         isLoggingOut = true

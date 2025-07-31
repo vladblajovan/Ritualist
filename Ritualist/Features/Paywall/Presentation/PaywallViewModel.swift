@@ -5,6 +5,7 @@ import Observation
 public final class PaywallViewModel {
     private let paywallService: PaywallService
     private let userSession: any UserSessionProtocol
+    private let stateCoordinator: any StateCoordinatorProtocol
     
     public var products: [Product] = []
     public var benefits: [PaywallBenefit] = []
@@ -27,9 +28,14 @@ public final class PaywallViewModel {
         error?.localizedDescription ?? purchaseState.errorMessage
     }
     
-    public init(paywallService: PaywallService, userSession: any UserSessionProtocol) {
+    public init(
+        paywallService: PaywallService, 
+        userSession: any UserSessionProtocol,
+        stateCoordinator: any StateCoordinatorProtocol
+    ) {
         self.paywallService = paywallService
         self.userSession = userSession
+        self.stateCoordinator = stateCoordinator
         self.benefits = PaywallBenefit.defaultBenefits
         
         // Observe purchase state changes
@@ -75,19 +81,16 @@ public final class PaywallViewModel {
     }
     
     public func purchase() async {
-        guard let product = selectedProduct else { return }
+        guard let product = selectedProduct,
+              let currentUser = userSession.currentUser else { return }
         
         error = nil
         
         do {
             let success = try await paywallService.purchase(product)
             if success {
-                // Update user subscription BEFORE setting success state
-                // This ensures the user state is updated before the PaywallView dismisses
-                await updateUserSubscription(for: product)
-                
-                // Now set success state - this will trigger PaywallView to dismiss
-                // but the user subscription will already be updated
+                // Use StateCoordinator for atomic transaction
+                try await stateCoordinator.updateUserSubscription(currentUser, product)
             }
         } catch {
             self.error = error
@@ -95,13 +98,15 @@ public final class PaywallViewModel {
     }
     
     public func restorePurchases() async {
+        guard let currentUser = userSession.currentUser else { return }
+        
         error = nil
         
         do {
             let restored = try await paywallService.restorePurchases()
             if restored {
-                // Restore successful - update user subscription if needed
-                await handleRestoredPurchases()
+                // Use StateCoordinator for atomic restoration
+                await handleRestoredPurchases(for: currentUser)
             }
         } catch {
             self.error = error
@@ -117,42 +122,20 @@ public final class PaywallViewModel {
     
     // MARK: - Private Methods
     
-    private func updateUserSubscription(for product: Product) async {
-        guard let currentUser = userSession.currentUser else { return }
-        
-        isUpdatingUser = true
-        
-        // Update user's subscription plan
-        var updatedUser = currentUser
-        updatedUser.subscriptionPlan = product.subscriptionPlan
-        
-        // Calculate expiry date based on the product duration
-        let calendar = Calendar.current
-        switch product.duration {
-        case .monthly:
-            updatedUser.subscriptionExpiryDate = calendar.date(byAdding: .month, value: 1, to: Date())
-        case .annual:
-            updatedUser.subscriptionExpiryDate = calendar.date(byAdding: .year, value: 1, to: Date())
-        }
-        
-        // Update through user session (if it supports user updates)
-        do {
-            _ = try await userSession.updateUser(updatedUser)
-        } catch {
-            // If updating user fails, we'll still proceed as the purchase was successful
-            print("Failed to update user subscription: \(error)")
-        }
-        
-        isUpdatingUser = false
-    }
-    
-    private func handleRestoredPurchases() async {
+    private func handleRestoredPurchases(for user: User) async {
         // Check which products were restored and update user accordingly
         for product in products {
             let isPurchased = await paywallService.isProductPurchased(product.id)
             if isPurchased {
-                await updateUserSubscription(for: product)
-                break // Only need to restore one subscription
+                do {
+                    isUpdatingUser = true
+                    try await stateCoordinator.updateUserSubscription(user, product)
+                    isUpdatingUser = false
+                    break // Only need to restore one subscription
+                } catch {
+                    isUpdatingUser = false
+                    print("Failed to restore subscription: \(error)")
+                }
             }
         }
     }

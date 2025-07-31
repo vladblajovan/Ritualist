@@ -53,9 +53,17 @@ public final class UserSession: UserSessionProtocol {
     public let authService: any AuthenticationService
     private var cancellables = Set<AnyCancellable>()
     
+    // State coordination support
+    private weak var stateCoordinator: (any StateCoordinatorProtocol)?
+    
     public init(authService: any AuthenticationService) {
         self.authService = authService
         setupStateObservation()
+    }
+    
+    // Method to set state coordinator (called by DI container)
+    public func setStateCoordinator(_ coordinator: any StateCoordinatorProtocol) {
+        self.stateCoordinator = coordinator
     }
     
     private func setupStateObservation() {
@@ -86,7 +94,13 @@ public final class UserSession: UserSessionProtocol {
     }
     
     public func signOut() async throws {
-        try await authService.signOut()
+        // If we have a state coordinator, use it for coordinated sign-out
+        if let coordinator = stateCoordinator, !coordinator.isExecutingTransaction {
+            try await coordinator.executeTransaction([.clearUserSession])
+        } else {
+            // Fallback to direct sign-out
+            try await authService.signOut()
+        }
     }
     
     public func updateUser(_ user: User) async throws {

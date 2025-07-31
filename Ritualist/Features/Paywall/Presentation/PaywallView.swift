@@ -383,8 +383,20 @@ private struct PricingCard: View {
 
 #Preview {
     let mockService = MockPaywallService()
-    let mockUserSession = UserSession(authService: MockAuthenticationService())
-    let vm = PaywallViewModel(paywallService: mockService, userSession: mockUserSession)
+    let mockAuthService = MockAuthenticationService()
+    let mockUserSession = UserSession(authService: mockAuthService)
+    let secureDefaults = SecureUserDefaults()
+    let stateCoordinator = StateCoordinator(
+        paywallService: mockService,
+        authService: mockAuthService,
+        userSession: mockUserSession,
+        secureDefaults: secureDefaults
+    )
+    let vm = PaywallViewModel(
+        paywallService: mockService,
+        userSession: mockUserSession,
+        stateCoordinator: stateCoordinator
+    )
     
-    return PaywallView(vm: vm)
+    PaywallView(vm: vm)
 }

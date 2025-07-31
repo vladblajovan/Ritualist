@@ -19,6 +19,8 @@ public protocol AppContainer {
     var userSession: any UserSessionProtocol { get }
     var paywallService: PaywallService { get }
     var featureGatingService: FeatureGatingService { get }
+    var stateCoordinator: any StateCoordinatorProtocol { get }
+    var secureUserDefaults: SecureUserDefaults { get }
     
     // Factory methods
     var onboardingFactory: OnboardingFactory { get }
