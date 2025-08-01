@@ -151,7 +151,6 @@ final class SwipeNavigationViewTests: XCTestCase {
     func testSwipeNavigationViewWithMonthlyCalendar() {
         // Given
         var monthChangeValue = 0
-        let currentMonth = Date()
         let calendarDays = [CalendarDay(date: Date(), isCurrentMonth: true)]
         
         // When
