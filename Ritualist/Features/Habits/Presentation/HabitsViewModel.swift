@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Combine
 
 @MainActor @Observable
 public final class HabitsViewModel {
@@ -8,6 +9,10 @@ public final class HabitsViewModel {
     private let updateHabit: UpdateHabitUseCase
     private let deleteHabit: DeleteHabitUseCase
     private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
+    private let refreshTrigger: RefreshTrigger
+    
+    // Reactive coordination
+    private var cancellables = Set<AnyCancellable>()
     
     public private(set) var items: [Habit] = []
     public private(set) var isLoading = false
@@ -20,12 +25,16 @@ public final class HabitsViewModel {
                 createHabit: CreateHabitUseCase,
                 updateHabit: UpdateHabitUseCase,
                 deleteHabit: DeleteHabitUseCase,
-                toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase) {
+                toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
+                refreshTrigger: RefreshTrigger) {
         self.getAllHabits = getAllHabits
         self.createHabit = createHabit
         self.updateHabit = updateHabit
         self.deleteHabit = deleteHabit
         self.toggleHabitActiveStatus = toggleHabitActiveStatus
+        self.refreshTrigger = refreshTrigger
+        
+        setupRefreshObservation()
     }
     
     public func load() async {
@@ -49,6 +58,7 @@ public final class HabitsViewModel {
         do {
             try await createHabit.execute(habit)
             await load() // Refresh the list
+            refreshTrigger.triggerHabitCountRefresh()
             isCreating = false
             return true
         } catch {
@@ -81,6 +91,7 @@ public final class HabitsViewModel {
         do {
             try await deleteHabit.execute(id: id)
             await load() // Refresh the list
+            refreshTrigger.triggerHabitCountRefresh()
             isDeleting = false
             return true
         } catch {
@@ -108,5 +119,21 @@ public final class HabitsViewModel {
     
     public func retry() async {
         await load()
+    }
+    
+    private func setupRefreshObservation() {
+        // React to habit count refresh triggers
+        refreshTrigger.$habitCountNeedsRefresh
+            .sink { [weak self] needsRefresh in
+                if needsRefresh {
+                    Task { [weak self] in
+                        await self?.load()
+                        await MainActor.run {
+                            self?.refreshTrigger.resetHabitCountRefresh()
+                        }
+                    }
+                }
+            }
+            .store(in: &cancellables)
     }
 }

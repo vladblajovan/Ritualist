@@ -1,11 +1,8 @@
 import SwiftUI
 
-extension Notification.Name {
-    static let habitCountChanged = Notification.Name("habitCountChanged")
-}
-
 public struct HabitsRoot: View {
     @Environment(\.appContainer) private var di
+    @Environment(\.refreshTrigger) private var refreshTrigger
     @State private var showingCreateHabit = false
     @State private var showingHabitAssistant = false
     @State private var paywallItem: PaywallItem?
@@ -47,9 +44,14 @@ public struct HabitsRoot: View {
         .task {
             await loadHabitCount()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .habitCountChanged)) { _ in
-            Task {
-                await loadHabitCount()
+        .onReceive(refreshTrigger.$habitCountNeedsRefresh) { needsRefresh in
+            if needsRefresh {
+                Task {
+                    await loadHabitCount()
+                    await MainActor.run {
+                        refreshTrigger.resetHabitCountRefresh()
+                    }
+                }
             }
         }
     }
@@ -58,7 +60,7 @@ public struct HabitsRoot: View {
         do {
             let habit = suggestion.toHabit()
             try await di.habitRepository.create(habit)
-            await loadHabitCount() // Refresh count after creation
+            refreshTrigger.triggerHabitCountRefresh()
             return true
         } catch {
             return false
@@ -142,8 +144,6 @@ private struct HabitsContentView: View {
             if !newValue {
                 Task {
                     await vm?.load()
-                    // Also notify parent to refresh habit count
-                    NotificationCenter.default.post(name: .habitCountChanged, object: nil)
                 }
             }
         }

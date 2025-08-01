@@ -93,6 +93,8 @@ public final class HabitDetailViewModel {
                 try await updateHabit.execute(habit)
             } else {
                 try await createHabit.execute(habit)
+                // Trigger habit count refresh for new habits
+                refreshTrigger.triggerHabitCountRefresh()
             }
             
             // Trigger reactive refresh for OverviewViewModel
@@ -116,8 +118,9 @@ public final class HabitDetailViewModel {
         do {
             try await deleteHabit.execute(id: habitId)
             
-            // Trigger reactive refresh for OverviewViewModel
+            // Trigger reactive refresh for OverviewViewModel and habit count
             refreshTrigger.triggerOverviewRefresh()
+            refreshTrigger.triggerHabitCountRefresh()
             
             isDeleting = false
             return true

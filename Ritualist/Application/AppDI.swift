@@ -87,6 +87,7 @@ public final class DefaultAppContainer: AppContainer {
         let stack = try? SwiftDataStack()
         let dateProvider = SystemDateProvider()
         let streakEngine = DefaultStreakEngine(dateProvider: dateProvider)
+        let refreshTrigger = RefreshTrigger()
 
         let habitDS = HabitLocalDataSource(context: stack?.context)
         let logDS   = LogLocalDataSource(context: stack?.context)
@@ -188,7 +189,7 @@ public final class DefaultAppContainer: AppContainer {
             errorRecoveryService: errorRecoveryService,
             systemHealthMonitor: systemHealthMonitor,
             errorHandlingStrategy: errorHandlingStrategy,
-            refreshTrigger: RefreshTrigger(),
+            refreshTrigger: refreshTrigger,
             slogansService: SlogansService(dateProvider: dateProvider)
         )
     }
@@ -199,6 +200,7 @@ public final class DefaultAppContainer: AppContainer {
         let stack = try? SwiftDataStack()
         let dateProvider = SystemDateProvider()
         let streakEngine = DefaultStreakEngine(dateProvider: dateProvider)
+        let refreshTrigger = RefreshTrigger()
 
         let habitDS = HabitLocalDataSource(context: stack?.context)
         let logDS   = LogLocalDataSource(context: stack?.context)
@@ -291,7 +293,7 @@ public final class DefaultAppContainer: AppContainer {
             errorRecoveryService: errorRecoveryService,
             systemHealthMonitor: systemHealthMonitor,
             errorHandlingStrategy: errorHandlingStrategy,
-            refreshTrigger: RefreshTrigger(),
+            refreshTrigger: refreshTrigger,
             slogansService: SlogansService(dateProvider: dateProvider)
         )
     }
@@ -303,6 +305,7 @@ public final class DefaultAppContainer: AppContainer {
         let stack = try? SwiftDataStack()
         let dateProvider = SystemDateProvider()
         let streakEngine = DefaultStreakEngine(dateProvider: dateProvider)
+        let refreshTrigger = RefreshTrigger()
 
         let habitDS = HabitLocalDataSource(context: stack?.context)
         let logDS   = LogLocalDataSource(context: stack?.context)
@@ -399,7 +402,7 @@ public final class DefaultAppContainer: AppContainer {
             errorRecoveryService: errorRecoveryService,
             systemHealthMonitor: systemHealthMonitor,
             errorHandlingStrategy: errorHandlingStrategy,
-            refreshTrigger: RefreshTrigger(),
+            refreshTrigger: refreshTrigger,
             slogansService: SlogansService(dateProvider: dateProvider)
         )
     }

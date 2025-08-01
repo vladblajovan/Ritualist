@@ -57,6 +57,7 @@ private struct OverviewContentView: View {
 
 private struct OverviewListView: View {
     @Environment(\.appContainer) private var di
+    @Environment(\.refreshTrigger) private var refreshTrigger
     @Bindable var vm: OverviewViewModel
     @State private var showingAddHabit = false
     @State private var paywallItem: PaywallItem?
@@ -258,9 +259,14 @@ private struct OverviewListView: View {
             // Load habit count for paywall protection
             await loadHabitCount()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .habitCountChanged)) { _ in
-            Task {
-                await loadHabitCount()
+        .onReceive(refreshTrigger.$habitCountNeedsRefresh) { needsRefresh in
+            if needsRefresh {
+                Task {
+                    await loadHabitCount()
+                    await MainActor.run {
+                        refreshTrigger.resetHabitCountRefresh()
+                    }
+                }
             }
         }
     }

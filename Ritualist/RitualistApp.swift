@@ -40,6 +40,7 @@ struct RootAppView: View {
     var body: some View {
         AuthenticationFlowView()
             .environment(\.appContainer, container)
+            .environment(\.refreshTrigger, container.refreshTrigger)
             .preferredColorScheme(colorScheme)
             .task {
                 do {
