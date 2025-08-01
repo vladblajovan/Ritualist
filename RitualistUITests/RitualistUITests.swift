@@ -23,19 +23,41 @@ final class RitualistUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
-        let app = XCUIApplication()
-        app.launch()
-
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-    }
-
-    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+        // Target: App should launch within 10 seconds on simulator
+        let launchTimeThreshold: TimeInterval = 10.0
+        let iterationCount: Int = 5
+        
+        let options = XCTMeasureOptions()
+        options.iterationCount = iterationCount
+        
+        measure(metrics: [XCTApplicationLaunchMetric()], options: options) {
+            let app = XCUIApplication()
+            
+            // Configure for consistent testing
+            app.launchArguments = [
+                "-TESTING_SKIP_AUTH", "YES",
+                "-TESTING_SKIP_ONBOARDING", "YES",
+                "-TESTING_MODE", "YES"
+            ]
+            
+            let startTime = CFAbsoluteTimeGetCurrent()
+            app.launch()
+            
+            // Wait for main UI to be ready
+            _ = app.tabBars.firstMatch.waitForExistence(timeout: 10)
+            
+            let launchTime = CFAbsoluteTimeGetCurrent() - startTime
+            
+            // Explicit threshold check with descriptive failure
+            XCTAssertLessThan(
+                launchTime, 
+                launchTimeThreshold,
+                "App launch took \(String(format: "%.2f", launchTime))s, exceeding threshold of \(launchTimeThreshold)s"
+            )
+            
+            app.terminate()
         }
     }
 }

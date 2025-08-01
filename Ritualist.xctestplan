@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "52458E1D-5D95-4698-B6ED-50A1D3943456",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Ritualist.xcodeproj",
+      "identifier" : "91B730E82E38E4BC0050A48A",
+      "name" : "Ritualist"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Ritualist.xcodeproj",
+        "identifier" : "91B730F72E38E4C10050A48A",
+        "name" : "RitualistTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Ritualist.xcodeproj",
+        "identifier" : "91B731012E38E4C10050A48A",
+        "name" : "RitualistUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
