@@ -8,12 +8,14 @@ public struct HabitsFactory {
         let createHabit = CreateHabit(repo: container.habitRepository)
         let updateHabit = UpdateHabit(repo: container.habitRepository)
         let deleteHabit = DeleteHabit(repo: container.habitRepository)
+        let toggleHabitActiveStatus = ToggleHabitActiveStatus(repo: container.habitRepository)
         
         return HabitsViewModel(
             getAllHabits: getAllHabits,
             createHabit: createHabit,
             updateHabit: updateHabit,
-            deleteHabit: deleteHabit
+            deleteHabit: deleteHabit,
+            toggleHabitActiveStatus: toggleHabitActiveStatus
         )
     }
 }

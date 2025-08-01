@@ -7,6 +7,7 @@ public final class HabitsViewModel {
     private let createHabit: CreateHabitUseCase
     private let updateHabit: UpdateHabitUseCase
     private let deleteHabit: DeleteHabitUseCase
+    private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
     
     public private(set) var items: [Habit] = []
     public private(set) var isLoading = false
@@ -18,11 +19,13 @@ public final class HabitsViewModel {
     public init(getAllHabits: GetAllHabitsUseCase, 
                 createHabit: CreateHabitUseCase,
                 updateHabit: UpdateHabitUseCase,
-                deleteHabit: DeleteHabitUseCase) {
+                deleteHabit: DeleteHabitUseCase,
+                toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase) {
         self.getAllHabits = getAllHabits
         self.createHabit = createHabit
         self.updateHabit = updateHabit
         self.deleteHabit = deleteHabit
+        self.toggleHabitActiveStatus = toggleHabitActiveStatus
     }
     
     public func load() async {
@@ -83,6 +86,22 @@ public final class HabitsViewModel {
         } catch {
             self.error = error
             isDeleting = false
+            return false
+        }
+    }
+    
+    public func toggleActiveStatus(id: UUID) async -> Bool {
+        isUpdating = true
+        error = nil
+        
+        do {
+            _ = try await toggleHabitActiveStatus.execute(id: id)
+            await load() // Refresh the list
+            isUpdating = false
+            return true
+        } catch {
+            self.error = error
+            isUpdating = false
             return false
         }
     }

@@ -10,7 +10,8 @@ public struct OverviewRoot: View {
 
     public var body: some View {
         OverviewContentView(factory: factory)
-            .navigationTitle(Strings.Navigation.overview)
+            .navigationTitle(Strings.App.name)
+            .navigationBarTitleDisplayMode(.large)
     }
 }
 
@@ -82,19 +83,13 @@ private struct OverviewListView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.large) {
-                        VStack(alignment: .leading, spacing: Spacing.small) {
-//                            Text("Track Your Progress")
-//                                .font(.title)
-//                                .fontWeight(.bold)
-//                                .foregroundColor(.primary)
-
-                            Text(Strings.Overview.instructions)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal, Spacing.large)
-                        .padding(.top, Spacing.small)
-
+                        // Slogan text
+                        Text(vm.currentSlogan)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, Spacing.large)
+                            .padding(.top, Spacing.small)
+                        
                         VStack(alignment: .leading, spacing: Spacing.small) {
                             HStack {
                                 Text(Strings.Overview.yourHabits)

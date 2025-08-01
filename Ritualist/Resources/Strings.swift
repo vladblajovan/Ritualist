@@ -26,6 +26,8 @@ public enum Strings {
         public static let delete = String(localized: "button.delete")
         public static let retry = String(localized: "button.retry")
         public static let done = String(localized: "button.done")
+        public static let activate = String(localized: "Activate")
+        public static let deactivate = String(localized: "Deactivate")
     }
     
     // MARK: - Loading States

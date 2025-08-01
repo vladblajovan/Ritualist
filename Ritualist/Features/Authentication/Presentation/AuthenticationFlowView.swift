@@ -55,7 +55,6 @@ private struct ReactiveNoOpAuthFlow: View {
     }
 }
 
-
 #Preview("Not Authenticated") {
     AuthenticationFlowView()
 }

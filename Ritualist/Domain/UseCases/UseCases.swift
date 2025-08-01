@@ -6,6 +6,7 @@ public protocol GetActiveHabitsUseCase { func execute() async throws -> [Habit] 
 public protocol GetAllHabitsUseCase { func execute() async throws -> [Habit] }
 public protocol UpdateHabitUseCase { func execute(_ habit: Habit) async throws }
 public protocol DeleteHabitUseCase { func execute(id: UUID) async throws }
+public protocol ToggleHabitActiveStatusUseCase { func execute(id: UUID) async throws -> Habit }
 
 // MARK: - Log Use Cases
 public protocol GetLogsUseCase { func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog] }
@@ -46,6 +47,9 @@ public protocol GetOnboardingStateUseCase { func execute() async throws -> Onboa
 public protocol SaveOnboardingStateUseCase { func execute(_ state: OnboardingState) async throws }
 public protocol CompleteOnboardingUseCase { func execute(userName: String?, hasNotifications: Bool) async throws }
 
+// MARK: - Slogan Use Cases
+public protocol GetCurrentSloganUseCase { func execute() -> String }
+
 // MARK: - Habit Use Case Implementations
 public final class CreateHabit: CreateHabitUseCase {
     private let repo: HabitRepository
@@ -79,6 +83,35 @@ public final class DeleteHabit: DeleteHabitUseCase {
     private let repo: HabitRepository
     public init(repo: HabitRepository) { self.repo = repo }
     public func execute(id: UUID) async throws { try await repo.delete(id: id) }
+}
+
+public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
+    private let repo: HabitRepository
+    public init(repo: HabitRepository) { self.repo = repo }
+    public func execute(id: UUID) async throws -> Habit {
+        let allHabits = try await repo.fetchAllHabits()
+        guard let habit = allHabits.first(where: { $0.id == id }) else {
+            throw NSError(domain: "ToggleHabitActiveStatus", code: 404, userInfo: [NSLocalizedDescriptionKey: "Habit not found"])
+        }
+        
+        let updatedHabit = Habit(
+            id: habit.id,
+            name: habit.name,
+            colorHex: habit.colorHex,
+            emoji: habit.emoji,
+            kind: habit.kind,
+            unitLabel: habit.unitLabel,
+            dailyTarget: habit.dailyTarget,
+            schedule: habit.schedule,
+            reminders: habit.reminders,
+            startDate: habit.startDate,
+            endDate: habit.endDate,
+            isActive: !habit.isActive
+        )
+        
+        try await repo.update(updatedHabit)
+        return updatedHabit
+    }
 }
 
 // MARK: - Profile Use Case Implementations
@@ -363,5 +396,19 @@ public final class ToggleHabitLog: ToggleHabitLogUseCase {
         }
         
         return (loggedDates: updatedLoggedDates, habitLogValues: updatedHabitLogValues)
+    }
+}
+
+// MARK: - Slogan Use Case Implementations
+
+public final class GetCurrentSlogan: GetCurrentSloganUseCase {
+    private let slogansService: SlogansServiceProtocol
+    
+    public init(slogansService: SlogansServiceProtocol) {
+        self.slogansService = slogansService
+    }
+    
+    public func execute() -> String {
+        return slogansService.getCurrentSlogan()
     }
 }

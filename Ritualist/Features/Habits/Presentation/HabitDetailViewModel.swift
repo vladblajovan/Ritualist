@@ -13,6 +13,7 @@ public final class HabitDetailViewModel {
     private let createHabit: CreateHabitUseCase
     private let updateHabit: UpdateHabitUseCase
     private let deleteHabit: DeleteHabitUseCase
+    private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
     private let refreshTrigger: RefreshTrigger
     
     // Form state
@@ -25,6 +26,7 @@ public final class HabitDetailViewModel {
     public var timesPerWeek = 1
     public var selectedEmoji = "⭐"
     public var selectedColorHex = "#2DA9E3"
+    public var isActive = true
     
     // State management
     public private(set) var isLoading = false
@@ -38,11 +40,13 @@ public final class HabitDetailViewModel {
     public init(createHabit: CreateHabitUseCase,
                 updateHabit: UpdateHabitUseCase,
                 deleteHabit: DeleteHabitUseCase,
+                toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
                 refreshTrigger: RefreshTrigger,
                 habit: Habit?) {
         self.createHabit = createHabit
         self.updateHabit = updateHabit
         self.deleteHabit = deleteHabit
+        self.toggleHabitActiveStatus = toggleHabitActiveStatus
         self.refreshTrigger = refreshTrigger
         self.originalHabit = habit
         self.isEditMode = habit != nil
@@ -124,6 +128,28 @@ public final class HabitDetailViewModel {
         }
     }
     
+    public func toggleActiveStatus() async -> Bool {
+        guard let habitId = originalHabit?.id else { return false }
+        
+        isSaving = true
+        error = nil
+        
+        do {
+            let updatedHabit = try await toggleHabitActiveStatus.execute(id: habitId)
+            isActive = updatedHabit.isActive
+            
+            // Trigger reactive refresh for OverviewViewModel
+            refreshTrigger.triggerOverviewRefresh()
+            
+            isSaving = false
+            return true
+        } catch {
+            self.error = error
+            isSaving = false
+            return false
+        }
+    }
+    
     public func retry() async {
         // No specific retry logic needed for form
         error = nil
@@ -136,6 +162,7 @@ public final class HabitDetailViewModel {
         dailyTarget = habit.dailyTarget ?? 1.0
         selectedEmoji = habit.emoji ?? "⭐"
         selectedColorHex = habit.colorHex
+        isActive = habit.isActive
         
         // Parse schedule
         switch habit.schedule {
@@ -173,7 +200,7 @@ public final class HabitDetailViewModel {
             reminders: originalHabit?.reminders ?? [],
             startDate: originalHabit?.startDate ?? Date(),
             endDate: originalHabit?.endDate,
-            isActive: originalHabit?.isActive ?? true
+            isActive: isActive
         )
     }
 }

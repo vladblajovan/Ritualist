@@ -16,6 +16,7 @@ public final class OverviewViewModel {
     private let generateCalendarDays: GenerateCalendarDaysUseCase
     private let generateCalendarGrid: GenerateCalendarGridUseCase
     private let toggleHabitLog: ToggleHabitLogUseCase
+    private let getCurrentSlogan: GetCurrentSloganUseCase
     
     // Reactive coordination
     private var cancellables = Set<AnyCancellable>()
@@ -29,6 +30,7 @@ public final class OverviewViewModel {
     public private(set) var isLoading = false
     public private(set) var error: Error?
     public private(set) var loggingDate: Date?
+    public private(set) var currentSlogan: String = ""
     
     // Calendar state
     public private(set) var monthDays: [Date] = []
@@ -61,6 +63,7 @@ public final class OverviewViewModel {
                 generateCalendarDays: GenerateCalendarDaysUseCase,
                 generateCalendarGrid: GenerateCalendarGridUseCase,
                 toggleHabitLog: ToggleHabitLogUseCase,
+                getCurrentSlogan: GetCurrentSloganUseCase,
                 userActionTracker: UserActionTracker,
                 refreshTrigger: RefreshTrigger) { 
         self.getActiveHabits = getActiveHabits
@@ -71,11 +74,15 @@ public final class OverviewViewModel {
         self.generateCalendarDays = generateCalendarDays
         self.generateCalendarGrid = generateCalendarGrid
         self.toggleHabitLog = toggleHabitLog
+        self.getCurrentSlogan = getCurrentSlogan
         self.userActionTracker = userActionTracker
         self.refreshTrigger = refreshTrigger
         
         // Initialize simple helper managers
         self.scheduleManager = HabitScheduleManager()
+        
+        // Get initial slogan
+        self.currentSlogan = getCurrentSlogan.execute()
         
         updateCalendarDays()
         setupRefreshObservation()
@@ -100,6 +107,9 @@ public final class OverviewViewModel {
     public func load() async {
         isLoading = true
         error = nil
+        
+        // Get a fresh slogan when loading
+        currentSlogan = getCurrentSlogan.execute()
         
         do {
             // Load user profile for calendar preferences

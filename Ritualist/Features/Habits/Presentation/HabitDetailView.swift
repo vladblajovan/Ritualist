@@ -72,6 +72,7 @@ private struct HabitFormView: View {
             ScheduleSection(vm: vm)
             AppearanceSection(vm: vm)
             if vm.isEditMode {
+                ActiveStatusSection(vm: vm)
                 DeleteSection(vm: vm)
             }
         }
@@ -354,6 +355,33 @@ private struct DeleteSection: View {
             }
         } message: {
             Text(Strings.Dialog.cannotUndo)
+        }
+    }
+}
+
+private struct ActiveStatusSection: View {
+    @Bindable var vm: HabitDetailViewModel
+    
+    var body: some View {
+        Section {
+            Button {
+                Task {
+                    await vm.toggleActiveStatus()
+                }
+            } label: {
+                Label(
+                    vm.isActive ? Strings.Button.deactivate : Strings.Button.activate,
+                    systemImage: vm.isActive ? "pause.circle" : "play.circle"
+                )
+            }
+            .foregroundColor(vm.isActive ? .orange : .green)
+            .disabled(vm.isSaving)
+            .overlay(alignment: .trailing) {
+                if vm.isSaving {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
+            }
         }
     }
 }

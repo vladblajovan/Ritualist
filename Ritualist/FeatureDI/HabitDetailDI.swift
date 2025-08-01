@@ -8,11 +8,13 @@ public struct HabitDetailFactory {
         let createHabit = CreateHabit(repo: container.habitRepository)
         let updateHabit = UpdateHabit(repo: container.habitRepository)
         let deleteHabit = DeleteHabit(repo: container.habitRepository)
+        let toggleHabitActiveStatus = ToggleHabitActiveStatus(repo: container.habitRepository)
 
         return HabitDetailViewModel(
             createHabit: createHabit,
             updateHabit: updateHabit,
             deleteHabit: deleteHabit,
+            toggleHabitActiveStatus: toggleHabitActiveStatus,
             refreshTrigger: container.refreshTrigger,
             habit: habit
         )

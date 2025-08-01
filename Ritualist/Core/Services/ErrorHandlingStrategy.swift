@@ -4,20 +4,20 @@ import Combine
 // MARK: - Error Classification
 
 public enum ErrorSeverity: String, CaseIterable {
-    case low = "low"
-    case medium = "medium"
-    case high = "high"
-    case critical = "critical"
+    case low
+    case medium
+    case high
+    case critical
 }
 
 public enum ErrorCategory: String, CaseIterable {
-    case authentication = "authentication"
-    case subscription = "subscription"
-    case data = "data"
-    case network = "network"
-    case ui = "ui"
-    case system = "system"
-    case unknown = "unknown"
+    case authentication
+    case subscription
+    case data
+    case network
+    case ui
+    case system
+    case unknown
 }
 
 public struct ErrorContext {

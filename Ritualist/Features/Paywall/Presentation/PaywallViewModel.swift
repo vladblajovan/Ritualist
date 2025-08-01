@@ -14,7 +14,6 @@ public final class PaywallViewModel {
     public private(set) var selectedProduct: Product?
     public private(set) var isUpdatingUser = false
     
-    
     // Convenience computed properties
     public var isPurchasing: Bool {
         purchaseState.isPurchasing
@@ -178,6 +177,6 @@ extension PaywallViewModel {
     /// Get benefits specific to a product tier
     public func benefits(for product: Product) -> [PaywallBenefit] {
         // All products get all benefits in this simple implementation
-        return benefits
+        benefits
     }
 }

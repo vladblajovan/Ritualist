@@ -17,6 +17,7 @@ public struct OverviewFactory {
             logHabit: logHabit,
             deleteLog: deleteLog
         )
+        let getCurrentSlogan = GetCurrentSlogan(slogansService: container.slogansService)
         
         return OverviewViewModel(
             getActiveHabits: getActiveHabits,
@@ -27,6 +28,7 @@ public struct OverviewFactory {
             generateCalendarDays: generateCalendarDays,
             generateCalendarGrid: generateCalendarGrid,
             toggleHabitLog: toggleHabitLog,
+            getCurrentSlogan: getCurrentSlogan,
             userActionTracker: container.userActionTracker,
             refreshTrigger: container.refreshTrigger
         )

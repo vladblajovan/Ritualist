@@ -434,7 +434,7 @@ public final class SystemHealthMonitor: SystemHealthMonitorProtocol, ObservableO
     // MARK: - History Access
     
     public func getHealthHistory() -> [SystemHealthReport] {
-        return healthHistory
+        healthHistory
     }
     
     // MARK: - Utility Methods
@@ -472,7 +472,7 @@ public final class SystemHealthMonitor: SystemHealthMonitorProtocol, ObservableO
     
     private func checkNetworkReachability() async -> Bool {
         // Simplified network check - in production you'd use Network framework
-        return true
+        true
     }
     
     private func calculateErrorRate() -> Double {

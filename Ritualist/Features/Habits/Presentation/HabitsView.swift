@@ -216,6 +216,19 @@ private struct HabitsListView: View {
                             HabitRowView(habit: habit) {
                                 selectedHabit = habit
                             }
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    Task {
+                                        await vm.toggleActiveStatus(id: habit.id)
+                                    }
+                                } label: {
+                                    Label(
+                                        habit.isActive ? Strings.Button.deactivate : Strings.Button.activate,
+                                        systemImage: habit.isActive ? "pause.circle" : "play.circle"
+                                    )
+                                }
+                                .tint(habit.isActive ? .orange : .green)
+                            }
                         }
                         .onDelete(perform: { indexSet in
                             if let index = indexSet.first {
@@ -229,8 +242,7 @@ private struct HabitsListView: View {
                     }
                     
                     VStack(spacing: 0) {
-                        Divider()
-                        
+                        // Habit assistant
                         AssistantButton {
                             di.userActionTracker.track(.habitsAssistantOpened(source: .habitsPage))
                             showingHabitAssistant = true
@@ -238,7 +250,9 @@ private struct HabitsListView: View {
                         .padding(.horizontal, Spacing.large)
                         .padding(.vertical, Spacing.medium)
                     }
-                    .background(Color(.systemBackground))
+                    
+                    Spacer()
+                        .frame(height: Spacing.large)
                 }
             }
         }
@@ -381,7 +395,7 @@ private struct AssistantButton: View {
         .buttonStyle(PlainButtonStyle())
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(AppColors.brand.opacity(0.05))
+                .fill(Color.clear)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)

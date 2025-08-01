@@ -27,6 +27,7 @@ public final class DefaultAppContainer: AppContainer {
     public let systemHealthMonitor: any SystemHealthMonitorProtocol
     public let errorHandlingStrategy: any ErrorHandlingStrategyProtocol
     public let refreshTrigger: RefreshTrigger
+    public let slogansService: SlogansServiceProtocol
     
     // Factory methods
     public lazy var onboardingFactory = OnboardingFactory(container: self)
@@ -53,7 +54,8 @@ public final class DefaultAppContainer: AppContainer {
                 errorRecoveryService: any ErrorRecoveryServiceProtocol,
                 systemHealthMonitor: any SystemHealthMonitorProtocol,
                 errorHandlingStrategy: any ErrorHandlingStrategyProtocol,
-                refreshTrigger: RefreshTrigger) {
+                refreshTrigger: RefreshTrigger,
+                slogansService: SlogansServiceProtocol) {
         self.habitRepository = habitRepository
         self.logRepository = logRepository
         self.profileRepository = profileRepository
@@ -77,6 +79,7 @@ public final class DefaultAppContainer: AppContainer {
         self.systemHealthMonitor = systemHealthMonitor
         self.errorHandlingStrategy = errorHandlingStrategy
         self.refreshTrigger = refreshTrigger
+        self.slogansService = slogansService
     }
 
     // Bootstrap with SwiftData and default services (async version)
@@ -185,7 +188,8 @@ public final class DefaultAppContainer: AppContainer {
             errorRecoveryService: errorRecoveryService,
             systemHealthMonitor: systemHealthMonitor,
             errorHandlingStrategy: errorHandlingStrategy,
-            refreshTrigger: RefreshTrigger()
+            refreshTrigger: RefreshTrigger(),
+            slogansService: SlogansService(dateProvider: dateProvider)
         )
     }
     
@@ -287,7 +291,8 @@ public final class DefaultAppContainer: AppContainer {
             errorRecoveryService: errorRecoveryService,
             systemHealthMonitor: systemHealthMonitor,
             errorHandlingStrategy: errorHandlingStrategy,
-            refreshTrigger: RefreshTrigger()
+            refreshTrigger: RefreshTrigger(),
+            slogansService: SlogansService(dateProvider: dateProvider)
         )
     }
     
@@ -394,7 +399,8 @@ public final class DefaultAppContainer: AppContainer {
             errorRecoveryService: errorRecoveryService,
             systemHealthMonitor: systemHealthMonitor,
             errorHandlingStrategy: errorHandlingStrategy,
-            refreshTrigger: RefreshTrigger()
+            refreshTrigger: RefreshTrigger(),
+            slogansService: SlogansService(dateProvider: dateProvider)
         )
     }
 }

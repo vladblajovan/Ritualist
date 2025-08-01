@@ -81,7 +81,7 @@ public final class MockPaywallService: PaywallService, ObservableObject {
     public init() {}
     
     public func loadProducts() async throws -> [Product] {
-        return mockProducts
+        mockProducts
     }
     
     public func purchase(_ product: Product) async throws -> Bool {
@@ -154,7 +154,7 @@ public final class NoOpPaywallService: PaywallService, ObservableObject {
     public init() {}
     
     public func loadProducts() async throws -> [Product] {
-        return []
+        []
     }
     
     public func purchase(_ product: Product) async throws -> Bool {

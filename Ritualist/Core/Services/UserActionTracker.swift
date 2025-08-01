@@ -57,7 +57,7 @@ public enum UserActionEvent {
 }
 
 public enum HabitsAssistantSource: String, CaseIterable {
-    case onboarding = "onboarding"
+    case onboarding
     case habitsPage = "habits_page"
     case emptyState = "empty_state"
 }

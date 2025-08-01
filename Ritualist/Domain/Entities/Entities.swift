@@ -7,11 +7,6 @@ public enum HabitSchedule: Codable, Equatable, Hashable {
     case timesPerWeek(Int) // 1…7
 }
 
-public struct ReminderTime: Codable, Hashable {
-    public var hour: Int; public var minute: Int
-    public init(hour: Int, minute: Int) { self.hour = hour; self.minute = minute }
-}
-
 public struct Habit: Identifiable, Codable, Hashable {
     public var id: UUID
     public var name: String
@@ -46,6 +41,11 @@ public struct HabitLog: Identifiable, Codable, Hashable {
     }
 }
 
+public struct ReminderTime: Codable, Hashable {
+    public var hour: Int; public var minute: Int
+    public init(hour: Int, minute: Int) { self.hour = hour; self.minute = minute }
+}
+
 public struct CalendarDay {
     public let date: Date
     public let isCurrentMonth: Bool
@@ -71,9 +71,9 @@ public struct UserProfile: Identifiable, Codable, Hashable {
 
 public enum TipCategory: String, Codable, CaseIterable {
     case gettingStarted = "getting_started"
-    case tracking = "tracking" 
-    case motivation = "motivation"
-    case advanced = "advanced"
+    case tracking 
+    case motivation
+    case advanced
 }
 
 public struct Tip: Identifiable, Codable, Hashable {
@@ -167,9 +167,9 @@ public struct HabitSuggestion: Identifiable, Hashable {
 // MARK: - Authentication Entities
 
 public enum SubscriptionPlan: String, Codable, CaseIterable {
-    case free = "free"
-    case monthly = "monthly"
-    case annual = "annual"
+    case free
+    case monthly
+    case annual
     
     public var displayName: String {
         switch self {
@@ -303,8 +303,8 @@ public struct Product: Identifiable, Codable, Hashable {
 }
 
 public enum ProductDuration: String, Codable, CaseIterable {
-    case monthly = "monthly"
-    case annual = "annual"
+    case monthly
+    case annual
     
     public var displayName: String {
         switch self {

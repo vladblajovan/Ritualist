@@ -81,7 +81,6 @@ private struct SettingsFormView: View {
             } else {
                 Form {
                     
-                    
                     // Account Section
                     if vm.isAuthenticated {
                         Section("Account") {
@@ -284,7 +283,6 @@ private struct SettingsFormView: View {
                         }
                         .padding(.vertical, Spacing.small)
                     }
-                    
                 }
                 .refreshable {
                     await vm.load()

@@ -311,6 +311,6 @@ public final class NoOpSecureUserDefaults: SecureUserDefaultsProtocol, @unchecke
     }
     
     public func synchronize() async -> Bool {
-        return true
+        true
     }
 }

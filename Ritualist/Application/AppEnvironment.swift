@@ -26,6 +26,7 @@ public protocol AppContainer {
     var systemHealthMonitor: any SystemHealthMonitorProtocol { get }
     var errorHandlingStrategy: any ErrorHandlingStrategyProtocol { get }
     var refreshTrigger: RefreshTrigger { get }
+    var slogansService: SlogansServiceProtocol { get }
     
     // Factory methods
     var onboardingFactory: OnboardingFactory { get }
