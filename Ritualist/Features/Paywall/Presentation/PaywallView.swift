@@ -380,19 +380,26 @@ private struct PricingCard: View {
     let mockService = MockPaywallService()
     let mockAuthService = MockAuthenticationService()
     let mockUserSession = UserSession(authService: mockAuthService)
-    let secureDefaults = SecureUserDefaults()
-    let refreshTrigger = RefreshTrigger()
-    let stateCoordinator = StateCoordinator(
-        paywallService: mockService,
-        authService: mockAuthService,
+    let updateUserSubscriptionUseCase = UpdateUserSubscription(
         userSession: mockUserSession,
-        secureDefaults: secureDefaults,
-        refreshTrigger: refreshTrigger
+        paywallService: mockService
     )
+    let loadPaywallProducts = LoadPaywallProducts(paywallService: mockService)
+    let purchaseProduct = PurchaseProduct(paywallService: mockService)
+    let restorePurchases = RestorePurchases(paywallService: mockService)
+    let checkProductPurchased = CheckProductPurchased(paywallService: mockService)
+    let resetPurchaseState = ResetPurchaseState(paywallService: mockService)
+    let getPurchaseState = GetPurchaseState(paywallService: mockService)
+    
     let vm = PaywallViewModel(
-        paywallService: mockService,
-        userSession: mockUserSession,
-        stateCoordinator: stateCoordinator
+        loadPaywallProducts: loadPaywallProducts,
+        purchaseProduct: purchaseProduct,
+        restorePurchases: restorePurchases,
+        checkProductPurchased: checkProductPurchased,
+        resetPurchaseState: resetPurchaseState,
+        getPurchaseState: getPurchaseState,
+        updateUserSubscription: updateUserSubscriptionUseCase,
+        userSession: mockUserSession
     )
     
     PaywallView(vm: vm)

@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import Combine
 
 @MainActor @Observable
 public final class OverviewViewModel {
@@ -9,18 +8,17 @@ public final class OverviewViewModel {
     private let getLogForDate: GetLogForDateUseCase
     private let streakEngine: StreakEngine
     private let loadProfile: LoadProfileUseCase
-    private let userActionTracker: UserActionTracker
-    private let refreshTrigger: RefreshTrigger
-    private let featureGatingService: FeatureGatingService
+    private let trackUserAction: TrackUserActionUseCase
+    private let trackHabitLogged: TrackHabitLoggedUseCase
+    private let checkFeatureAccess: CheckFeatureAccessUseCase
+    private let checkHabitCreationLimit: CheckHabitCreationLimitUseCase
+    private let getPaywallMessage: GetPaywallMessageUseCase
     
     // Domain use cases for business logic
     private let generateCalendarDays: GenerateCalendarDaysUseCase
     private let generateCalendarGrid: GenerateCalendarGridUseCase
     private let toggleHabitLog: ToggleHabitLogUseCase
     private let getCurrentSlogan: GetCurrentSloganUseCase
-    
-    // Reactive coordination
-    private var cancellables = Set<AnyCancellable>()
     
     // Simple helper managers (no business logic)
     private let scheduleManager: HabitScheduleManager
@@ -58,26 +56,19 @@ public final class OverviewViewModel {
     
     // MARK: - Paywall Protection
     
-    // Force property change notifications for subscription-dependent properties
-    private var subscriptionStateVersion = 0
-    
-    /// Check if user has access to advanced analytics/stats
+    /// Check if user has access to advanced analytics/stats  
     public var hasAdvancedAnalytics: Bool {
-        // Access subscriptionStateVersion to make this property reactive to subscription changes
-        _ = subscriptionStateVersion
-        return featureGatingService.hasAdvancedAnalytics
+        checkFeatureAccess.execute()
     }
     
     /// Get message to display when stats are blocked by paywall
     public func getStatsBlockedMessage() -> String {
-        featureGatingService.getFeatureBlockedMessage(for: .advancedAnalytics)
+        getPaywallMessage.execute()
     }
     
     /// Check if user can create more habits based on current count
     public var canCreateMoreHabits: Bool {
-        // Access subscriptionStateVersion to make this property reactive to subscription changes
-        _ = subscriptionStateVersion
-        return featureGatingService.canCreateMoreHabits(currentCount: habits.count)
+        checkHabitCreationLimit.execute(currentCount: habits.count)
     }
     
     public init(getActiveHabits: GetActiveHabitsUseCase,
@@ -89,9 +80,11 @@ public final class OverviewViewModel {
                 generateCalendarGrid: GenerateCalendarGridUseCase,
                 toggleHabitLog: ToggleHabitLogUseCase,
                 getCurrentSlogan: GetCurrentSloganUseCase,
-                userActionTracker: UserActionTracker,
-                refreshTrigger: RefreshTrigger,
-                featureGatingService: FeatureGatingService) { 
+                trackUserAction: TrackUserActionUseCase,
+                trackHabitLogged: TrackHabitLoggedUseCase,
+                checkFeatureAccess: CheckFeatureAccessUseCase,
+                checkHabitCreationLimit: CheckHabitCreationLimitUseCase,
+                getPaywallMessage: GetPaywallMessageUseCase) { 
         self.getActiveHabits = getActiveHabits
         self.getLogs = getLogs
         self.getLogForDate = getLogForDate
@@ -101,9 +94,11 @@ public final class OverviewViewModel {
         self.generateCalendarGrid = generateCalendarGrid
         self.toggleHabitLog = toggleHabitLog
         self.getCurrentSlogan = getCurrentSlogan
-        self.userActionTracker = userActionTracker
-        self.refreshTrigger = refreshTrigger
-        self.featureGatingService = featureGatingService
+        self.trackUserAction = trackUserAction
+        self.trackHabitLogged = trackHabitLogged
+        self.checkFeatureAccess = checkFeatureAccess
+        self.checkHabitCreationLimit = checkHabitCreationLimit
+        self.getPaywallMessage = getPaywallMessage
         
         // Initialize simple helper managers
         self.scheduleManager = HabitScheduleManager()
@@ -116,34 +111,7 @@ public final class OverviewViewModel {
     }
     
     private func setupRefreshObservation() {
-        // React to refresh triggers
-        refreshTrigger.$overviewNeedsRefresh
-            .sink { [weak self] needsRefresh in
-                if needsRefresh {
-                    Task { [weak self] in
-                        await self?.load()
-                        await MainActor.run {
-                            self?.refreshTrigger.resetOverviewRefresh()
-                        }
-                    }
-                }
-            }
-            .store(in: &cancellables)
-        
-        // React to subscription state changes
-        refreshTrigger.$subscriptionStateNeedsRefresh
-            .sink { [weak self] needsRefresh in
-                if needsRefresh {
-                    Task { [weak self] in
-                        await MainActor.run {
-                            // Increment version to force SwiftUI to recompute subscription-dependent properties
-                            self?.subscriptionStateVersion += 1
-                            self?.refreshTrigger.resetSubscriptionStateRefresh()
-                        }
-                    }
-                }
-            }
-            .store(in: &cancellables)
+        // No manual refresh triggers needed - @Observable reactivity handles updates
     }
     
     public func load() async {
@@ -182,7 +150,7 @@ public final class OverviewViewModel {
         shouldAnimateBestStreak = false
         
         // Track habit selection
-        userActionTracker.track(.screenViewed(screen: "habit_overview"), context: [
+        trackUserAction.execute(action: .screenViewed(screen: "habit_overview"), context: [
             "habit_id": habit.id.uuidString,
             "habit_name": habit.name
         ])
@@ -257,13 +225,13 @@ public final class OverviewViewModel {
             
             // Track habit logging
             let wasLogged = result.loggedDates.contains(Calendar.current.startOfDay(for: date))
-            userActionTracker.track(.habitLogged(
+            trackHabitLogged.execute(
                 habitId: habit.id.uuidString,
                 habitName: habit.name,
                 date: date,
                 logType: wasLogged ? "completed" : "uncompleted",
                 value: result.habitLogValues[Calendar.current.startOfDay(for: date)]
-            ))
+            )
             
             // Recalculate streaks after logging/unlogging
             await calculateStreaks()

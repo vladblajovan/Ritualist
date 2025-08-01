@@ -20,13 +20,6 @@ public final class DefaultAppContainer: AppContainer {
     public let userSession: any UserSessionProtocol
     public let paywallService: PaywallService
     public let featureGatingService: FeatureGatingService
-    public let stateCoordinator: any StateCoordinatorProtocol
-    public let secureUserDefaults: SecureUserDefaults
-    public let stateValidationService: any StateValidationServiceProtocol
-    public let errorRecoveryService: any ErrorRecoveryServiceProtocol
-    public let systemHealthMonitor: any SystemHealthMonitorProtocol
-    public let errorHandlingStrategy: any ErrorHandlingStrategyProtocol
-    public let refreshTrigger: RefreshTrigger
     public let slogansService: SlogansServiceProtocol
     
     // Factory methods
@@ -48,13 +41,6 @@ public final class DefaultAppContainer: AppContainer {
                 userSession: any UserSessionProtocol,
                 paywallService: PaywallService,
                 featureGatingService: FeatureGatingService,
-                stateCoordinator: any StateCoordinatorProtocol,
-                secureUserDefaults: SecureUserDefaults,
-                stateValidationService: any StateValidationServiceProtocol,
-                errorRecoveryService: any ErrorRecoveryServiceProtocol,
-                systemHealthMonitor: any SystemHealthMonitorProtocol,
-                errorHandlingStrategy: any ErrorHandlingStrategyProtocol,
-                refreshTrigger: RefreshTrigger,
                 slogansService: SlogansServiceProtocol) {
         self.habitRepository = habitRepository
         self.logRepository = logRepository
@@ -72,13 +58,6 @@ public final class DefaultAppContainer: AppContainer {
         self.userSession = userSession
         self.paywallService = paywallService
         self.featureGatingService = featureGatingService
-        self.stateCoordinator = stateCoordinator
-        self.secureUserDefaults = secureUserDefaults
-        self.stateValidationService = stateValidationService
-        self.errorRecoveryService = errorRecoveryService
-        self.systemHealthMonitor = systemHealthMonitor
-        self.errorHandlingStrategy = errorHandlingStrategy
-        self.refreshTrigger = refreshTrigger
         self.slogansService = slogansService
     }
 
@@ -87,7 +66,6 @@ public final class DefaultAppContainer: AppContainer {
         let stack = try? SwiftDataStack()
         let dateProvider = SystemDateProvider()
         let streakEngine = DefaultStreakEngine(dateProvider: dateProvider)
-        let refreshTrigger = RefreshTrigger()
 
         let habitDS = HabitLocalDataSource(context: stack?.context)
         let logDS   = LogLocalDataSource(context: stack?.context)
@@ -118,54 +96,13 @@ public final class DefaultAppContainer: AppContainer {
         let userSession = await UserSession(authService: authService)
         
         // Paywall services
-        let paywallService: PaywallService = MockPaywallService()
+        let paywallService: PaywallService = await MockPaywallService()
         let featureGatingService: FeatureGatingService = DefaultFeatureGatingService(userSession: userSession)
         
         // State coordination services
-        let secureUserDefaults = SecureUserDefaults()
-        let stateCoordinator: any StateCoordinatorProtocol = StateCoordinator(
-            paywallService: paywallService,
-            authService: authService,
-            userSession: userSession,
-            secureDefaults: secureUserDefaults,
-            refreshTrigger: refreshTrigger
-        )
-        
-        // Wire up coordination
-        await userSession.setStateCoordinator(stateCoordinator)
         
         // Phase 2: Reliability services
         let logger = DebugLogger(subsystem: "com.ritualist.app", category: "system")
-        let stateValidationService: any StateValidationServiceProtocol = StateValidationService(
-            dateProvider: dateProvider,
-            logger: logger,
-            userSession: userSession,
-            profileRepository: profileRepo
-        )
-        
-        let errorRecoveryService: any ErrorRecoveryServiceProtocol = ErrorRecoveryService(
-            logger: logger,
-            userSession: userSession,
-            stateCoordinator: stateCoordinator,
-            secureUserDefaults: secureUserDefaults,
-            profileRepository: profileRepo,
-            validationService: stateValidationService
-        )
-        
-        let systemHealthMonitor: any SystemHealthMonitorProtocol = SystemHealthMonitor(
-            userSession: userSession,
-            validationService: stateValidationService,
-            logger: logger,
-            dateProvider: dateProvider
-        )
-        
-        let errorHandlingStrategy: any ErrorHandlingStrategyProtocol = ErrorHandlingStrategy(
-            recoveryService: errorRecoveryService,
-            validationService: stateValidationService,
-            healthMonitor: systemHealthMonitor,
-            logger: logger,
-            userSession: userSession
-        )
 
         return DefaultAppContainer(
             habitRepository: habitRepo,
@@ -184,13 +121,6 @@ public final class DefaultAppContainer: AppContainer {
             userSession: userSession,
             paywallService: paywallService,
             featureGatingService: featureGatingService,
-            stateCoordinator: stateCoordinator,
-            secureUserDefaults: secureUserDefaults,
-            stateValidationService: stateValidationService,
-            errorRecoveryService: errorRecoveryService,
-            systemHealthMonitor: systemHealthMonitor,
-            errorHandlingStrategy: errorHandlingStrategy,
-            refreshTrigger: refreshTrigger,
             slogansService: SlogansService(dateProvider: dateProvider)
         )
     }
@@ -201,7 +131,6 @@ public final class DefaultAppContainer: AppContainer {
         let stack = try? SwiftDataStack()
         let dateProvider = SystemDateProvider()
         let streakEngine = DefaultStreakEngine(dateProvider: dateProvider)
-        let refreshTrigger = RefreshTrigger()
 
         let habitDS = HabitLocalDataSource(context: stack?.context)
         let logDS   = LogLocalDataSource(context: stack?.context)
@@ -230,47 +159,9 @@ public final class DefaultAppContainer: AppContainer {
         let featureGatingService: FeatureGatingService = DefaultFeatureGatingService(userSession: userSession)
         
         // State coordination services - use NoOp for sync bootstrap
-        let secureUserDefaults = SecureUserDefaults()
-        let stateCoordinator: any StateCoordinatorProtocol = StateCoordinator(
-            paywallService: paywallService,
-            authService: userSession.authService,
-            userSession: userSession,
-            secureDefaults: secureUserDefaults,
-            refreshTrigger: refreshTrigger
-        )
         
         // Minimal Phase 2 services for sync bootstrap
         let logger = DebugLogger()
-        let stateValidationService: any StateValidationServiceProtocol = StateValidationService(
-            dateProvider: dateProvider,
-            logger: logger,
-            userSession: userSession,
-            profileRepository: profileRepo
-        )
-        
-        let errorRecoveryService: any ErrorRecoveryServiceProtocol = ErrorRecoveryService(
-            logger: logger,
-            userSession: userSession,
-            stateCoordinator: stateCoordinator,
-            secureUserDefaults: secureUserDefaults,
-            profileRepository: profileRepo,
-            validationService: stateValidationService
-        )
-        
-        let systemHealthMonitor: any SystemHealthMonitorProtocol = SystemHealthMonitor(
-            userSession: userSession,
-            validationService: stateValidationService,
-            logger: logger,
-            dateProvider: dateProvider
-        )
-        
-        let errorHandlingStrategy: any ErrorHandlingStrategyProtocol = ErrorHandlingStrategy(
-            recoveryService: errorRecoveryService,
-            validationService: stateValidationService,
-            healthMonitor: systemHealthMonitor,
-            logger: logger,
-            userSession: userSession
-        )
 
         return DefaultAppContainer(
             habitRepository: habitRepo,
@@ -289,25 +180,18 @@ public final class DefaultAppContainer: AppContainer {
             userSession: userSession,
             paywallService: paywallService,
             featureGatingService: featureGatingService,
-            stateCoordinator: stateCoordinator,
-            secureUserDefaults: secureUserDefaults,
-            stateValidationService: stateValidationService,
-            errorRecoveryService: errorRecoveryService,
-            systemHealthMonitor: systemHealthMonitor,
-            errorHandlingStrategy: errorHandlingStrategy,
-            refreshTrigger: refreshTrigger,
             slogansService: SlogansService(dateProvider: dateProvider)
         )
     }
     
     // Minimal container for environment defaults - creates non-async services
+    @MainActor
     public static func createMinimal() -> DefaultAppContainer {
         // This is a simplified version for environment defaults only
         // Real app should use the async bootstrap method
         let stack = try? SwiftDataStack()
         let dateProvider = SystemDateProvider()
         let streakEngine = DefaultStreakEngine(dateProvider: dateProvider)
-        let refreshTrigger = RefreshTrigger()
 
         let habitDS = HabitLocalDataSource(context: stack?.context)
         let logDS   = LogLocalDataSource(context: stack?.context)
@@ -331,56 +215,20 @@ public final class DefaultAppContainer: AppContainer {
         let userActionTracker: UserActionTracker = NoOpUserActionTracker()
         #endif
         
-        // Create minimal auth service (non-MainActor)
+        // Create minimal auth service (non-MainActor) 
+        // For minimal container used in previews, we use nonisolated implementations
         let authService: any AuthenticationService = NoOpAuthenticationService()
         let userSession = NoOpUserSession()
         
         // Paywall services - use mock for minimal container
-        let paywallService: PaywallService = MockPaywallService()
+        let paywallService: PaywallService = SimplePaywallService()
         let featureGatingService: FeatureGatingService = MockFeatureGatingService()
         
         // State coordination services - use NoOp for minimal container
-        let secureUserDefaults = SecureUserDefaults()
-        let stateCoordinator: any StateCoordinatorProtocol = StateCoordinator(
-            paywallService: paywallService,
-            authService: authService,
-            userSession: userSession,
-            secureDefaults: secureUserDefaults,
-            refreshTrigger: refreshTrigger
-        )
         
-        // Minimal Phase 2 services for createMinimal
-        let logger = DebugLogger()
-        let stateValidationService: any StateValidationServiceProtocol = StateValidationService(
-            dateProvider: dateProvider,
-            logger: logger,
-            userSession: userSession,
-            profileRepository: profileRepo
-        )
+        // Minimal Phase 2 services for createMinimal - use simplified versions
+        let logger = DebugLogger()  
         
-        let errorRecoveryService: any ErrorRecoveryServiceProtocol = ErrorRecoveryService(
-            logger: logger,
-            userSession: userSession,
-            stateCoordinator: stateCoordinator,
-            secureUserDefaults: secureUserDefaults,
-            profileRepository: profileRepo,
-            validationService: stateValidationService
-        )
-        
-        let systemHealthMonitor: any SystemHealthMonitorProtocol = SystemHealthMonitor(
-            userSession: userSession,
-            validationService: stateValidationService,
-            logger: logger,
-            dateProvider: dateProvider
-        )
-        
-        let errorHandlingStrategy: any ErrorHandlingStrategyProtocol = ErrorHandlingStrategy(
-            recoveryService: errorRecoveryService,
-            validationService: stateValidationService,
-            healthMonitor: systemHealthMonitor,
-            logger: logger,
-            userSession: userSession
-        )
 
         return DefaultAppContainer(
             habitRepository: habitRepo,
@@ -399,13 +247,6 @@ public final class DefaultAppContainer: AppContainer {
             userSession: userSession,
             paywallService: paywallService,
             featureGatingService: featureGatingService,
-            stateCoordinator: stateCoordinator,
-            secureUserDefaults: secureUserDefaults,
-            stateValidationService: stateValidationService,
-            errorRecoveryService: errorRecoveryService,
-            systemHealthMonitor: systemHealthMonitor,
-            errorHandlingStrategy: errorHandlingStrategy,
-            refreshTrigger: refreshTrigger,
             slogansService: SlogansService(dateProvider: dateProvider)
         )
     }

@@ -7,12 +7,17 @@ public struct SettingsFactory {
         let loadProfile = LoadProfile(repo: container.profileRepository)
         let saveProfile = SaveProfile(repo: container.profileRepository)
         let updateUser = UpdateUser(userSession: container.userSession)
+        let requestNotificationPermission = RequestNotificationPermission(notificationService: container.notificationService)
+        let checkNotificationStatus = CheckNotificationStatus(notificationService: container.notificationService)
+        let signOutUser = SignOutUser(userSession: container.userSession)
         
         return SettingsViewModel(
             loadProfile: loadProfile,
             saveProfile: saveProfile,
             updateUser: updateUser,
-            notificationService: container.notificationService,
+            requestNotificationPermission: requestNotificationPermission,
+            checkNotificationStatus: checkNotificationStatus,
+            signOutUser: signOutUser,
             userSession: container.userSession,
             appContainer: container
         )

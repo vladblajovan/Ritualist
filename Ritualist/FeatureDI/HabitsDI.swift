@@ -9,6 +9,7 @@ public struct HabitsFactory {
         let updateHabit = UpdateHabit(repo: container.habitRepository)
         let deleteHabit = DeleteHabit(repo: container.habitRepository)
         let toggleHabitActiveStatus = ToggleHabitActiveStatus(repo: container.habitRepository)
+        let checkHabitCreationLimit = CheckHabitCreationLimit(featureGatingService: container.featureGatingService)
         
         return HabitsViewModel(
             getAllHabits: getAllHabits,
@@ -16,7 +17,18 @@ public struct HabitsFactory {
             updateHabit: updateHabit,
             deleteHabit: deleteHabit,
             toggleHabitActiveStatus: toggleHabitActiveStatus,
-            refreshTrigger: container.refreshTrigger,
+            checkHabitCreationLimit: checkHabitCreationLimit
+        )
+    }
+    
+    public func makeCreateHabitFromSuggestionUseCase() -> CreateHabitFromSuggestionUseCase {
+        let getHabitCount = GetHabitCount(habitRepository: container.habitRepository)
+        let checkHabitCreationLimit = CheckHabitCreationLimit(featureGatingService: container.featureGatingService)
+        
+        return CreateHabitFromSuggestion(
+            habitRepository: container.habitRepository,
+            getHabitCount: getHabitCount,
+            checkHabitCreationLimit: checkHabitCreationLimit,
             featureGatingService: container.featureGatingService
         )
     }

@@ -18,10 +18,26 @@ public struct PaywallFactory {
     
     @MainActor
     public func makeViewModel() -> PaywallViewModel {
-        PaywallViewModel(
-            paywallService: container.paywallService,
+        let loadPaywallProducts = LoadPaywallProducts(paywallService: container.paywallService)
+        let purchaseProduct = PurchaseProduct(paywallService: container.paywallService)
+        let restorePurchases = RestorePurchases(paywallService: container.paywallService)
+        let checkProductPurchased = CheckProductPurchased(paywallService: container.paywallService)
+        let resetPurchaseState = ResetPurchaseState(paywallService: container.paywallService)
+        let getPurchaseState = GetPurchaseState(paywallService: container.paywallService)
+        let updateUserSubscription = UpdateUserSubscription(
             userSession: container.userSession,
-            stateCoordinator: container.stateCoordinator
+            paywallService: container.paywallService
+        )
+        
+        return PaywallViewModel(
+            loadPaywallProducts: loadPaywallProducts,
+            purchaseProduct: purchaseProduct,
+            restorePurchases: restorePurchases,
+            checkProductPurchased: checkProductPurchased,
+            resetPurchaseState: resetPurchaseState,
+            getPurchaseState: getPurchaseState,
+            updateUserSubscription: updateUserSubscription,
+            userSession: container.userSession
         )
     }
 }

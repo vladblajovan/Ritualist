@@ -32,6 +32,7 @@ public struct OnboardingFlowView: View {
                 onHabitCreate: { suggestion in
                     await createHabitFromSuggestion(suggestion)
                 },
+                onShowPaywall: showPaywall,
                 userActionTracker: di.userActionTracker
             )
             .onDisappear {
@@ -54,13 +55,19 @@ public struct OnboardingFlowView: View {
         }
     }
     
-    private func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> Bool {
-        do {
-            let habit = suggestion.toHabit()
-            try await di.habitRepository.create(habit)
-            return true
-        } catch {
-            return false
+    private func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
+        let habitsFactory = HabitsFactory(container: di)
+        let createHabitFromSuggestionUseCase = habitsFactory.makeCreateHabitFromSuggestionUseCase()
+        
+        return await createHabitFromSuggestionUseCase.execute(suggestion)
+    }
+    
+    private func showPaywall() {
+        Task { @MainActor in
+            let factory = PaywallFactory(container: di)
+            let vm = factory.makeViewModel()
+            await vm.load()
+            paywallViewModel = vm
         }
     }
     

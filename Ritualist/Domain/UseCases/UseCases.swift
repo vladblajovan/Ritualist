@@ -50,6 +50,58 @@ public protocol CompleteOnboardingUseCase { func execute(userName: String?, hasN
 // MARK: - Slogan Use Cases
 public protocol GetCurrentSloganUseCase { func execute() -> String }
 
+// MARK: - Notification Use Cases
+public protocol RequestNotificationPermissionUseCase { 
+    func execute() async throws -> Bool 
+}
+public protocol CheckNotificationStatusUseCase { 
+    func execute() async -> Bool 
+}
+
+// MARK: - Feature Gating Use Cases
+public protocol CheckFeatureAccessUseCase {
+    func execute() -> Bool
+}
+public protocol CheckHabitCreationLimitUseCase {
+    func execute(currentCount: Int) -> Bool
+}
+public protocol GetPaywallMessageUseCase {
+    func execute() -> String
+}
+
+// MARK: - User Action Use Cases
+public protocol TrackUserActionUseCase {
+    func execute(action: UserActionEvent, context: [String: String])
+}
+public protocol TrackHabitLoggedUseCase {
+    func execute(habitId: String, habitName: String, date: Date, logType: String, value: Double?)
+}
+
+// MARK: - Auth Use Cases
+public protocol SignOutUserUseCase {
+    func execute() async throws
+}
+
+// MARK: - Paywall Use Cases
+public protocol LoadPaywallProductsUseCase {
+    func execute() async throws -> [Product]
+}
+public protocol PurchaseProductUseCase {
+    func execute(_ product: Product) async throws -> Bool
+}
+public protocol RestorePurchasesUseCase {
+    func execute() async throws -> Bool
+}
+public protocol CheckProductPurchasedUseCase {
+    func execute(_ productId: String) async -> Bool
+}
+public protocol ResetPurchaseStateUseCase {
+    func execute()
+}
+public protocol GetPurchaseStateUseCase {
+    func execute() -> PurchaseState
+}
+
 // MARK: - Habit Use Case Implementations
 public final class CreateHabit: CreateHabitUseCase {
     private let repo: HabitRepository
@@ -245,6 +297,10 @@ public protocol UpdateUserUseCase {
     func execute(_ user: User) async throws -> User
 }
 
+public protocol UpdateUserSubscriptionUseCase {
+    func execute(user: User, product: Product) async throws -> User
+}
+
 public final class UpdateUser: UpdateUserUseCase {
     private let userSession: any UserSessionProtocol
     
@@ -255,6 +311,43 @@ public final class UpdateUser: UpdateUserUseCase {
     public func execute(_ user: User) async throws -> User {
         try await userSession.updateUser(user)
         return user
+    }
+}
+
+public final class UpdateUserSubscription: UpdateUserSubscriptionUseCase {
+    private let userSession: any UserSessionProtocol
+    private let paywallService: PaywallService
+    
+    public init(userSession: any UserSessionProtocol, paywallService: PaywallService) {
+        self.userSession = userSession
+        self.paywallService = paywallService
+    }
+    
+    public func execute(user: User, product: Product) async throws -> User {
+        // Business logic: Create updated user with subscription details
+        var updatedUser = user
+        updatedUser.subscriptionPlan = product.subscriptionPlan
+        
+        // Calculate expiry date based on product duration
+        let calendar = Calendar.current
+        switch product.duration {
+        case .monthly:
+            updatedUser.subscriptionExpiryDate = calendar.date(byAdding: .month, value: 1, to: Date())
+        case .annual:
+            updatedUser.subscriptionExpiryDate = calendar.date(byAdding: .year, value: 1, to: Date())
+        }
+        
+        // Update user through user session
+        _ = try await userSession.updateUser(updatedUser)
+        
+        // Update purchase state in paywall service
+        if let mockService = paywallService as? MockPaywallService {
+            await MainActor.run {
+                mockService.purchaseState = .success(product)
+            }
+        }
+        
+        return updatedUser
     }
 }
 
@@ -410,5 +503,266 @@ public final class GetCurrentSlogan: GetCurrentSloganUseCase {
     
     public func execute() -> String {
         slogansService.getCurrentSlogan()
+    }
+}
+
+// MARK: - Notification Use Case Implementations
+
+public final class RequestNotificationPermission: RequestNotificationPermissionUseCase {
+    private let notificationService: NotificationService
+    
+    public init(notificationService: NotificationService) {
+        self.notificationService = notificationService
+    }
+    
+    public func execute() async throws -> Bool {
+        try await notificationService.requestAuthorizationIfNeeded()
+    }
+}
+
+public final class CheckNotificationStatus: CheckNotificationStatusUseCase {
+    private let notificationService: NotificationService
+    
+    public init(notificationService: NotificationService) {
+        self.notificationService = notificationService
+    }
+    
+    public func execute() async -> Bool {
+        await notificationService.checkAuthorizationStatus()
+    }
+}
+
+// MARK: - Feature Gating Use Case Implementations
+
+public final class CheckFeatureAccess: CheckFeatureAccessUseCase {
+    private let featureGatingService: FeatureGatingService
+    
+    public init(featureGatingService: FeatureGatingService) {
+        self.featureGatingService = featureGatingService
+    }
+    
+    public func execute() -> Bool {
+        featureGatingService.hasAdvancedAnalytics
+    }
+}
+
+public final class CheckHabitCreationLimit: CheckHabitCreationLimitUseCase {
+    private let featureGatingService: FeatureGatingService
+    
+    public init(featureGatingService: FeatureGatingService) {
+        self.featureGatingService = featureGatingService
+    }
+    
+    public func execute(currentCount: Int) -> Bool {
+        featureGatingService.canCreateMoreHabits(currentCount: currentCount)
+    }
+}
+
+public final class GetPaywallMessage: GetPaywallMessageUseCase {
+    private let featureGatingService: FeatureGatingService
+    
+    public init(featureGatingService: FeatureGatingService) {
+        self.featureGatingService = featureGatingService
+    }
+    
+    public func execute() -> String {
+        featureGatingService.getFeatureBlockedMessage(for: .advancedAnalytics)
+    }
+}
+
+// MARK: - User Action Use Case Implementations
+
+public final class TrackUserAction: TrackUserActionUseCase {
+    private let userActionTracker: UserActionTracker
+    
+    public init(userActionTracker: UserActionTracker) {
+        self.userActionTracker = userActionTracker
+    }
+    
+    public func execute(action: UserActionEvent, context: [String: String]) {
+        userActionTracker.track(action, context: context)
+    }
+}
+
+public final class TrackHabitLogged: TrackHabitLoggedUseCase {
+    private let userActionTracker: UserActionTracker
+    
+    public init(userActionTracker: UserActionTracker) {
+        self.userActionTracker = userActionTracker
+    }
+    
+    public func execute(habitId: String, habitName: String, date: Date, logType: String, value: Double?) {
+        userActionTracker.track(.habitLogged(
+            habitId: habitId,
+            habitName: habitName,
+            date: date,
+            logType: logType,
+            value: value
+        ))
+    }
+}
+
+// MARK: - Auth Use Case Implementations
+
+public final class SignOutUser: SignOutUserUseCase {
+    private let userSession: any UserSessionProtocol
+    
+    public init(userSession: any UserSessionProtocol) {
+        self.userSession = userSession
+    }
+    
+    public func execute() async throws {
+        try await userSession.signOut()
+    }
+}
+
+// MARK: - Paywall Use Case Implementations
+
+public final class LoadPaywallProducts: LoadPaywallProductsUseCase {
+    private let paywallService: PaywallService
+    
+    public init(paywallService: PaywallService) {
+        self.paywallService = paywallService
+    }
+    
+    public func execute() async throws -> [Product] {
+        try await paywallService.loadProducts()
+    }
+}
+
+public final class PurchaseProduct: PurchaseProductUseCase {
+    private let paywallService: PaywallService
+    
+    public init(paywallService: PaywallService) {
+        self.paywallService = paywallService
+    }
+    
+    public func execute(_ product: Product) async throws -> Bool {
+        try await paywallService.purchase(product)
+    }
+}
+
+public final class RestorePurchases: RestorePurchasesUseCase {
+    private let paywallService: PaywallService
+    
+    public init(paywallService: PaywallService) {
+        self.paywallService = paywallService
+    }
+    
+    public func execute() async throws -> Bool {
+        try await paywallService.restorePurchases()
+    }
+}
+
+public final class CheckProductPurchased: CheckProductPurchasedUseCase {
+    private let paywallService: PaywallService
+    
+    public init(paywallService: PaywallService) {
+        self.paywallService = paywallService
+    }
+    
+    public func execute(_ productId: String) async -> Bool {
+        await paywallService.isProductPurchased(productId)
+    }
+}
+
+public final class ResetPurchaseState: ResetPurchaseStateUseCase {
+    private let paywallService: PaywallService
+    
+    public init(paywallService: PaywallService) {
+        self.paywallService = paywallService
+    }
+    
+    @MainActor
+    public func execute() {
+        paywallService.resetPurchaseState()
+    }
+}
+
+public final class GetPurchaseState: GetPurchaseStateUseCase {
+    private let paywallService: PaywallService
+    
+    public init(paywallService: PaywallService) {
+        self.paywallService = paywallService
+    }
+    
+    @MainActor
+    public func execute() -> PurchaseState {
+        paywallService.purchaseState
+    }
+}
+
+// MARK: - Habit Count UseCase
+
+public protocol GetHabitCountUseCase {
+    func execute() async -> Int
+}
+
+public final class GetHabitCount: GetHabitCountUseCase {
+    private let habitRepository: HabitRepository
+    
+    public init(habitRepository: HabitRepository) {
+        self.habitRepository = habitRepository
+    }
+    
+    public func execute() async -> Int {
+        do {
+            let habits = try await habitRepository.fetchAllHabits()
+            return habits.count
+        } catch {
+            // If we can't fetch habits, assume 0 count for safety
+            return 0
+        }
+    }
+}
+
+// MARK: - Habit Suggestion UseCase
+
+public protocol CreateHabitFromSuggestionUseCase {
+    func execute(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult
+}
+
+public enum CreateHabitFromSuggestionResult {
+    case success
+    case limitReached(message: String)
+    case error(String)
+}
+
+public final class CreateHabitFromSuggestion: CreateHabitFromSuggestionUseCase {
+    private let habitRepository: HabitRepository
+    private let getHabitCount: GetHabitCountUseCase
+    private let checkHabitCreationLimit: CheckHabitCreationLimitUseCase
+    private let featureGatingService: FeatureGatingService
+    
+    public init(habitRepository: HabitRepository,
+                getHabitCount: GetHabitCountUseCase,
+                checkHabitCreationLimit: CheckHabitCreationLimitUseCase,
+                featureGatingService: FeatureGatingService) {
+        self.habitRepository = habitRepository
+        self.getHabitCount = getHabitCount
+        self.checkHabitCreationLimit = checkHabitCreationLimit
+        self.featureGatingService = featureGatingService
+    }
+    
+    public func execute(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
+        // First get current habit count
+        let currentCount = await getHabitCount.execute()
+        
+        // Check if user can create more habits
+        let canCreate = await checkHabitCreationLimit.execute(currentCount: currentCount)
+        
+        if !canCreate {
+            let message = featureGatingService.getFeatureBlockedMessage(for: .unlimitedHabits)
+            return .limitReached(message: message)
+        }
+        
+        // If they can create, proceed with habit creation
+        do {
+            let habit = suggestion.toHabit()
+            try await habitRepository.create(habit)
+            return .success
+        } catch {
+            return .error("Failed to create habit: \(error.localizedDescription)")
+        }
     }
 }

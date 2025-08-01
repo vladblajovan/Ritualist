@@ -255,7 +255,7 @@ private struct SettingsFormView: View {
                                 if !vm.hasNotificationPermission {
                                     Button(Strings.Settings.enable) {
                                         Task {
-                                            await vm.requestNotificationPermission()
+                                            await vm.requestNotifications()
                                         }
                                     }
                                     .disabled(vm.isRequestingNotifications)

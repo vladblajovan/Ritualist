@@ -1,16 +1,16 @@
 import Foundation
 import Observation
-import Combine
 
 @MainActor @Observable
 public final class SettingsViewModel {
     private let loadProfile: LoadProfileUseCase
     private let saveProfile: SaveProfileUseCase
     private let updateUser: UpdateUserUseCase
-    private let notificationService: NotificationService
+    private let requestNotificationPermission: RequestNotificationPermissionUseCase
+    private let checkNotificationStatus: CheckNotificationStatusUseCase
+    private let signOutUser: SignOutUserUseCase
     private let userSession: any UserSessionProtocol
     private let appContainer: AppContainer
-    private var cancellables = Set<AnyCancellable>()
 
     public var profile = UserProfile()
     public private(set) var isLoading = false
@@ -25,59 +25,49 @@ public final class SettingsViewModel {
     public private(set) var isCancellingSubscription = false
     
     // Reactive properties to track user session state
-    public private(set) var currentUser: User?
-    public private(set) var isAuthenticated = false
-    public private(set) var isPremiumUser = false
+    public var currentUser: User? {
+        userSession.currentUser
+    }
+    
+    public var isAuthenticated: Bool {
+        userSession.isAuthenticated
+    }
+    
+    public var isPremiumUser: Bool {
+        userSession.isPremiumUser
+    }
 
-    public init(loadProfile: LoadProfileUseCase, saveProfile: SaveProfileUseCase, updateUser: UpdateUserUseCase, notificationService: NotificationService, userSession: any UserSessionProtocol, appContainer: AppContainer) {
+    public init(loadProfile: LoadProfileUseCase, 
+                saveProfile: SaveProfileUseCase, 
+                updateUser: UpdateUserUseCase, 
+                requestNotificationPermission: RequestNotificationPermissionUseCase,
+                checkNotificationStatus: CheckNotificationStatusUseCase,
+                signOutUser: SignOutUserUseCase,
+                userSession: any UserSessionProtocol, 
+                appContainer: AppContainer) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
         self.updateUser = updateUser
-        self.notificationService = notificationService
+        self.requestNotificationPermission = requestNotificationPermission
+        self.checkNotificationStatus = checkNotificationStatus
+        self.signOutUser = signOutUser
         self.userSession = userSession
         self.appContainer = appContainer
         
-        // Initialize current state
-        updateUserSessionState()
-        
-        // Observe user session changes
-        setupUserSessionObservation()
+        // With @Observable UserSession, no manual setup needed
     }
     
-    // MARK: - User Session Observation
-    
-    private func setupUserSessionObservation() {
-        // Cast to concrete UserSession type to access objectWillChange
-        if let concreteSession = userSession as? UserSession {
-            concreteSession.objectWillChange
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in
-                    self?.updateUserSessionState()
-                }
-                .store(in: &cancellables)
-        }
-    }
-    
-    private func updateUserSessionState() {
-        currentUser = userSession.currentUser
-        isAuthenticated = userSession.isAuthenticated  
-        isPremiumUser = userSession.isPremiumUser
-    }
     
     public func load() async {
         isLoading = true
         error = nil
         do {
             profile = try await loadProfile.execute()
-            hasNotificationPermission = await notificationService.checkAuthorizationStatus()
-            // Update user session state after loading
-            updateUserSessionState()
+            hasNotificationPermission = await checkNotificationStatus.execute()
         } catch {
             self.error = error
             profile = UserProfile()
-            hasNotificationPermission = await notificationService.checkAuthorizationStatus()
-            // Update user session state even on error
-            updateUserSessionState()
+            hasNotificationPermission = await checkNotificationStatus.execute()
         }
         isLoading = false
     }
@@ -149,23 +139,23 @@ public final class SettingsViewModel {
         autoSaveMessage = nil
     }
     
-    public func requestNotificationPermission() async {
+    public func requestNotifications() async {
         isRequestingNotifications = true
         error = nil
         
         do {
-            let granted = try await notificationService.requestAuthorizationIfNeeded()
+            let granted = try await requestNotificationPermission.execute()
             hasNotificationPermission = granted
         } catch {
             self.error = error
-            hasNotificationPermission = await notificationService.checkAuthorizationStatus()
+            hasNotificationPermission = await checkNotificationStatus.execute()
         }
         
         isRequestingNotifications = false
     }
     
     public func refreshNotificationStatus() async {
-        hasNotificationPermission = await notificationService.checkAuthorizationStatus()
+        hasNotificationPermission = await checkNotificationStatus.execute()
     }
     
     // MARK: - Authentication Methods
@@ -175,7 +165,7 @@ public final class SettingsViewModel {
         error = nil
         
         do {
-            try await userSession.signOut()
+            try await signOutUser.execute()
         } catch {
             self.error = error
         }
@@ -209,7 +199,7 @@ public final class SettingsViewModel {
         error = nil
         
         var updatedUser = currentUser
-        updatedUser.subscriptionPlan = .free
+        updatedUser.subscriptionPlan = SubscriptionPlan.free
         updatedUser.subscriptionExpiryDate = nil
         
         do {

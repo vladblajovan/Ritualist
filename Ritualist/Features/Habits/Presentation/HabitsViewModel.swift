@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import Combine
 
 @MainActor @Observable
 public final class HabitsViewModel {
@@ -9,11 +8,7 @@ public final class HabitsViewModel {
     private let updateHabit: UpdateHabitUseCase
     private let deleteHabit: DeleteHabitUseCase
     private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
-    private let refreshTrigger: RefreshTrigger
-    private let featureGatingService: FeatureGatingService
-    
-    // Reactive coordination
-    private var cancellables = Set<AnyCancellable>()
+    private let checkHabitCreationLimit: CheckHabitCreationLimitUseCase
     
     public private(set) var items: [Habit] = []
     public private(set) var isLoading = false
@@ -24,14 +19,9 @@ public final class HabitsViewModel {
     
     // MARK: - Paywall Protection
     
-    // Force property change notifications for subscription-dependent properties
-    private var subscriptionStateVersion = 0
-    
     /// Check if user can create more habits based on current count
     public var canCreateMoreHabits: Bool {
-        // Access subscriptionStateVersion to make this property reactive to subscription changes
-        _ = subscriptionStateVersion
-        return featureGatingService.canCreateMoreHabits(currentCount: items.count)
+        checkHabitCreationLimit.execute(currentCount: items.count)
     }
     
     public init(getAllHabits: GetAllHabitsUseCase, 
@@ -39,15 +29,13 @@ public final class HabitsViewModel {
                 updateHabit: UpdateHabitUseCase,
                 deleteHabit: DeleteHabitUseCase,
                 toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
-                refreshTrigger: RefreshTrigger,
-                featureGatingService: FeatureGatingService) {
+                checkHabitCreationLimit: CheckHabitCreationLimitUseCase) {
         self.getAllHabits = getAllHabits
         self.createHabit = createHabit
         self.updateHabit = updateHabit
         self.deleteHabit = deleteHabit
         self.toggleHabitActiveStatus = toggleHabitActiveStatus
-        self.refreshTrigger = refreshTrigger
-        self.featureGatingService = featureGatingService
+        self.checkHabitCreationLimit = checkHabitCreationLimit
         
         setupRefreshObservation()
     }
@@ -73,7 +61,6 @@ public final class HabitsViewModel {
         do {
             try await createHabit.execute(habit)
             await load() // Refresh the list
-            refreshTrigger.triggerHabitCountRefresh()
             isCreating = false
             return true
         } catch {
@@ -106,7 +93,6 @@ public final class HabitsViewModel {
         do {
             try await deleteHabit.execute(id: id)
             await load() // Refresh the list
-            refreshTrigger.triggerHabitCountRefresh()
             isDeleting = false
             return true
         } catch {
@@ -137,33 +123,6 @@ public final class HabitsViewModel {
     }
     
     private func setupRefreshObservation() {
-        // React to habit count refresh triggers
-        refreshTrigger.$habitCountNeedsRefresh
-            .sink { [weak self] needsRefresh in
-                if needsRefresh {
-                    Task { [weak self] in
-                        await self?.load()
-                        await MainActor.run {
-                            self?.refreshTrigger.resetHabitCountRefresh()
-                        }
-                    }
-                }
-            }
-            .store(in: &cancellables)
-        
-        // React to subscription state changes
-        refreshTrigger.$subscriptionStateNeedsRefresh
-            .sink { [weak self] needsRefresh in
-                if needsRefresh {
-                    Task { [weak self] in
-                        await MainActor.run {
-                            // Increment version to force SwiftUI to recompute subscription-dependent properties
-                            self?.subscriptionStateVersion += 1
-                            self?.refreshTrigger.resetSubscriptionStateRefresh()
-                        }
-                    }
-                }
-            }
-            .store(in: &cancellables)
+        // No manual refresh triggers needed - @Observable reactivity handles updates
     }
 }

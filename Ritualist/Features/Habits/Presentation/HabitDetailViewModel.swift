@@ -14,7 +14,6 @@ public final class HabitDetailViewModel {
     private let updateHabit: UpdateHabitUseCase
     private let deleteHabit: DeleteHabitUseCase
     private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
-    private let refreshTrigger: RefreshTrigger
     
     // Form state
     public var name = ""
@@ -41,13 +40,11 @@ public final class HabitDetailViewModel {
                 updateHabit: UpdateHabitUseCase,
                 deleteHabit: DeleteHabitUseCase,
                 toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
-                refreshTrigger: RefreshTrigger,
                 habit: Habit?) {
         self.createHabit = createHabit
         self.updateHabit = updateHabit
         self.deleteHabit = deleteHabit
         self.toggleHabitActiveStatus = toggleHabitActiveStatus
-        self.refreshTrigger = refreshTrigger
         self.originalHabit = habit
         self.isEditMode = habit != nil
         
@@ -93,12 +90,7 @@ public final class HabitDetailViewModel {
                 try await updateHabit.execute(habit)
             } else {
                 try await createHabit.execute(habit)
-                // Trigger habit count refresh for new habits
-                refreshTrigger.triggerHabitCountRefresh()
             }
-            
-            // Trigger reactive refresh for OverviewViewModel
-            refreshTrigger.triggerOverviewRefresh()
             
             isSaving = false
             return true
@@ -118,10 +110,6 @@ public final class HabitDetailViewModel {
         do {
             try await deleteHabit.execute(id: habitId)
             
-            // Trigger reactive refresh for OverviewViewModel and habit count
-            refreshTrigger.triggerOverviewRefresh()
-            refreshTrigger.triggerHabitCountRefresh()
-            
             isDeleting = false
             return true
         } catch {
@@ -140,9 +128,6 @@ public final class HabitDetailViewModel {
         do {
             let updatedHabit = try await toggleHabitActiveStatus.execute(id: habitId)
             isActive = updatedHabit.isActive
-            
-            // Trigger reactive refresh for OverviewViewModel
-            refreshTrigger.triggerOverviewRefresh()
             
             isSaving = false
             return true

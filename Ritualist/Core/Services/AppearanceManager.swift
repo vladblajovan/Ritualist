@@ -1,8 +1,8 @@
 import SwiftUI
-import Combine
 
-public final class AppearanceManager: ObservableObject {
-    @Published public var currentAppearance: Int = 0 {
+@Observable
+public final class AppearanceManager {
+    public var currentAppearance: Int = 0 {
         didSet {
             updateColorScheme()
         }

@@ -19,13 +19,6 @@ public protocol AppContainer {
     var userSession: any UserSessionProtocol { get }
     var paywallService: PaywallService { get }
     var featureGatingService: FeatureGatingService { get }
-    var stateCoordinator: any StateCoordinatorProtocol { get }
-    var secureUserDefaults: SecureUserDefaults { get }
-    var stateValidationService: any StateValidationServiceProtocol { get }
-    var errorRecoveryService: any ErrorRecoveryServiceProtocol { get }
-    var systemHealthMonitor: any SystemHealthMonitorProtocol { get }
-    var errorHandlingStrategy: any ErrorHandlingStrategyProtocol { get }
-    var refreshTrigger: RefreshTrigger { get }
     var slogansService: SlogansServiceProtocol { get }
     
     // Factory methods
@@ -34,6 +27,7 @@ public protocol AppContainer {
 
 private struct AppContainerKey: EnvironmentKey {
     // Create a minimal default container - real app should inject proper container
+    @MainActor
     static let defaultValue: AppContainer = DefaultAppContainer.createMinimal()
 }
 

@@ -8,7 +8,8 @@ public final class OnboardingViewModel {
     private let getOnboardingState: GetOnboardingState
     private let saveOnboardingState: SaveOnboardingState
     private let completeOnboarding: CompleteOnboarding
-    private let notificationService: NotificationService
+    private let requestNotificationPermission: RequestNotificationPermissionUseCase
+    private let checkNotificationStatus: CheckNotificationStatusUseCase
     
     // Current state
     public var currentPage: Int = 0
@@ -24,11 +25,13 @@ public final class OnboardingViewModel {
     public init(getOnboardingState: GetOnboardingState,
                 saveOnboardingState: SaveOnboardingState,
                 completeOnboarding: CompleteOnboarding,
-                notificationService: NotificationService) {
+                requestNotificationPermission: RequestNotificationPermissionUseCase,
+                checkNotificationStatus: CheckNotificationStatusUseCase) {
         self.getOnboardingState = getOnboardingState
         self.saveOnboardingState = saveOnboardingState
         self.completeOnboarding = completeOnboarding
-        self.notificationService = notificationService
+        self.requestNotificationPermission = requestNotificationPermission
+        self.checkNotificationStatus = checkNotificationStatus
     }
     
     public func loadOnboardingState() async {
@@ -65,7 +68,7 @@ public final class OnboardingViewModel {
     
     public func requestNotificationPermission() async {
         do {
-            let granted = try await notificationService.requestAuthorizationIfNeeded()
+            let granted = try await requestNotificationPermission.execute()
             hasGrantedNotifications = granted
         } catch {
             errorMessage = "Failed to request notification permission"

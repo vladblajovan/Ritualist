@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 CRITICAL DEVELOPMENT REMINDERS 🚨
+
+**ALWAYS FOLLOW THESE PRINCIPLES:**
+- **Clean Architecture**: Views → ViewModels → UseCases → Services/Repositories
+- **Separation of Concerns**: No direct service calls from Views or ViewModels
+- **UseCase Pattern**: Every business operation must go through a UseCase
+- **Build Standard**: ALWAYS test using iPhone 16, iOS 18.5 simulator
+- **Repository Pattern**: Views NEVER call repositories directly - use UseCases
+
+**ARCHITECTURAL VIOLATIONS TO AVOID:**
+- ❌ Direct service calls from ViewModels (use UseCases)
+- ❌ Repository calls from Views (use UseCases) 
+- ❌ Business logic in Views (move to UseCases)
+- ❌ Multiple service dependencies in ViewModels (compose via UseCases)
+
 ## Project Overview
 
 Ritualist is an iOS habit tracking app built with SwiftUI, targeting iOS 17+. The app follows Clean Architecture principles with feature-first organization and uses SwiftData for persistence.

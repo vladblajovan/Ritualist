@@ -1,14 +1,13 @@
 import Foundation
-import Combine
+import Observation
+import SwiftUI
 
 // MARK: - Authentication Service Protocol
 
-public protocol AuthenticationService: ObservableObject {
+@MainActor
+public protocol AuthenticationService {
     /// Current authentication state
     var authState: AuthState { get }
-    
-    /// Publisher for authentication state changes
-    var authStatePublisher: AnyPublisher<AuthState, Never> { get }
     
     /// Sign in with email and password
     func signIn(credentials: AuthCredentials) async throws -> User
@@ -31,7 +30,8 @@ public protocol AuthenticationService: ObservableObject {
 
 // MARK: - User Session Protocol
 
-public protocol UserSessionProtocol: ObservableObject {
+@MainActor
+public protocol UserSessionProtocol {
     var currentUser: User? { get }
     var isAuthenticated: Bool { get }
     var isPremiumUser: Bool { get }
@@ -44,35 +44,51 @@ public protocol UserSessionProtocol: ObservableObject {
 
 // MARK: - Session Management
 
-@MainActor
+@MainActor @Observable
 public final class UserSession: UserSessionProtocol {
-    @Published public private(set) var currentUser: User?
-    @Published public private(set) var isAuthenticated = false
-    @Published public private(set) var isPremiumUser = false
+    public private(set) var currentUser: User?
+    public private(set) var isAuthenticated = false
+    public private(set) var isPremiumUser = false
     
     public let authService: any AuthenticationService
-    private var cancellables = Set<AnyCancellable>()
     
-    // State coordination support
-    private weak var stateCoordinator: (any StateCoordinatorProtocol)?
+    // Task for observing auth state changes
+    private var observationTask: Task<Void, Never>?
     
     public init(authService: any AuthenticationService) {
         self.authService = authService
         setupStateObservation()
     }
     
-    // Method to set state coordinator (called by DI container)
-    public func setStateCoordinator(_ coordinator: any StateCoordinatorProtocol) {
-        self.stateCoordinator = coordinator
+    deinit {
+        // Task cleanup handled automatically
+    }
+    
+    // Clean up observation task when needed
+    public func stopObservation() {
+        observationTask?.cancel()
+        observationTask = nil
     }
     
     private func setupStateObservation() {
-        authService.authStatePublisher
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] authState in
-                self?.updateState(from: authState)
+        observationTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            
+            // Use withObservationTracking to react to authState changes
+            while !Task.isCancelled {
+                withObservationTracking {
+                    self.updateState(from: self.authService.authState)
+                } onChange: {
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.updateState(from: self.authService.authState)
+                    }
+                }
+                
+                // Small delay to prevent tight loops
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             }
-            .store(in: &cancellables)
+        }
     }
     
     private func updateState(from authState: AuthState) {
@@ -94,13 +110,8 @@ public final class UserSession: UserSessionProtocol {
     }
     
     public func signOut() async throws {
-        // If we have a state coordinator, use it for coordinated sign-out
-        if let coordinator = stateCoordinator, !coordinator.isExecutingTransaction {
-            try await coordinator.executeTransaction([.clearUserSession])
-        } else {
-            // Fallback to direct sign-out
-            try await authService.signOut()
-        }
+        // Direct sign-out through authentication service
+        try await authService.signOut()
     }
     
     public func updateUser(_ user: User) async throws {
@@ -111,12 +122,9 @@ public final class UserSession: UserSessionProtocol {
 
 // MARK: - No-Op Implementations for Environment Defaults
 
-public final class NoOpAuthenticationService: AuthenticationService, ObservableObject {
-    @Published public var authState: AuthState = .unauthenticated
-    
-    public var authStatePublisher: AnyPublisher<AuthState, Never> {
-        $authState.eraseToAnyPublisher()
-    }
+@MainActor @Observable
+public final class NoOpAuthenticationService: AuthenticationService {
+    public var authState: AuthState = .unauthenticated
     
     public var isAuthenticated: Bool { false }
     public var isPremiumUser: Bool { false }
@@ -136,10 +144,11 @@ public final class NoOpAuthenticationService: AuthenticationService, ObservableO
     }
 }
 
-public final class NoOpUserSession: UserSessionProtocol, ObservableObject {
-    @Published public private(set) var currentUser: User?
-    @Published public private(set) var isAuthenticated = false
-    @Published public private(set) var isPremiumUser = false
+@MainActor @Observable
+public final class NoOpUserSession: UserSessionProtocol {
+    public private(set) var currentUser: User?
+    public private(set) var isAuthenticated = false
+    public private(set) var isPremiumUser = false
     
     public let authService: any AuthenticationService
     

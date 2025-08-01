@@ -9,12 +9,15 @@ public struct OnboardingFactory {
         let saveOnboardingState = SaveOnboardingState(repo: container.onboardingRepository)
         let completeOnboarding = CompleteOnboarding(repo: container.onboardingRepository, 
                                                    profileRepo: container.profileRepository)
+        let requestNotificationPermission = RequestNotificationPermission(notificationService: container.notificationService)
+        let checkNotificationStatus = CheckNotificationStatus(notificationService: container.notificationService)
         
         return OnboardingViewModel(
             getOnboardingState: getOnboardingState,
             saveOnboardingState: saveOnboardingState,
             completeOnboarding: completeOnboarding,
-            notificationService: container.notificationService
+            requestNotificationPermission: requestNotificationPermission,
+            checkNotificationStatus: checkNotificationStatus
         )
     }
 }

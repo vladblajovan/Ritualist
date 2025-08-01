@@ -1,11 +1,10 @@
 import Foundation
-import Combine
 
 // MARK: - PaywallService Protocol
 
+@MainActor
 public protocol PaywallService {
     var purchaseState: PurchaseState { get }
-    var purchaseStatePublisher: AnyPublisher<PurchaseState, Never> { get }
     
     /// Load available products from the App Store
     func loadProducts() async throws -> [Product]
@@ -28,12 +27,9 @@ public protocol PaywallService {
 
 // MARK: - Mock PaywallService
 
-public final class MockPaywallService: PaywallService, ObservableObject {
-    @Published public var purchaseState: PurchaseState = .idle
-    
-    public var purchaseStatePublisher: AnyPublisher<PurchaseState, Never> {
-        $purchaseState.eraseToAnyPublisher()
-    }
+@Observable
+public final class MockPaywallService: PaywallService {
+    public var purchaseState: PurchaseState = .idle
     
     // Mock products
     private let mockProducts: [Product] = [
@@ -144,12 +140,9 @@ public final class MockPaywallService: PaywallService, ObservableObject {
 
 // MARK: - NoOp PaywallService (for minimal container)
 
-public final class NoOpPaywallService: PaywallService, ObservableObject {
-    @Published public var purchaseState: PurchaseState = .idle
-    
-    public var purchaseStatePublisher: AnyPublisher<PurchaseState, Never> {
-        $purchaseState.eraseToAnyPublisher()
-    }
+@Observable
+public final class NoOpPaywallService: PaywallService {
+    public var purchaseState: PurchaseState = .idle
     
     public init() {}
     
@@ -180,13 +173,9 @@ public final class NoOpPaywallService: PaywallService, ObservableObject {
 
 // MARK: - Production PaywallService (Placeholder)
 
-@MainActor
-public final class ProductionPaywallService: PaywallService, ObservableObject {
-    @Published public var purchaseState: PurchaseState = .idle
-    
-    public var purchaseStatePublisher: AnyPublisher<PurchaseState, Never> {
-        $purchaseState.eraseToAnyPublisher()
-    }
+@MainActor @Observable
+public final class ProductionPaywallService: PaywallService {
+    public var purchaseState: PurchaseState = .idle
     
     public init() {}
     
@@ -216,6 +205,69 @@ public final class ProductionPaywallService: PaywallService, ObservableObject {
     
     public func clearPurchases() {
         // TODO: Clear StoreKit purchases when subscription is cancelled
+    }
+}
+
+// MARK: - Simple PaywallService (nonisolated for previews)
+
+@MainActor @Observable
+public final class SimplePaywallService: PaywallService {
+    public var purchaseState: PurchaseState = .idle
+    
+    public init() {}
+    
+    public func loadProducts() async throws -> [Product] {
+        return [
+            Product(
+                id: "premium_monthly",
+                name: "Premium Monthly",
+                description: "Premium features for one month",
+                price: "$4.99",
+                localizedPrice: "$4.99",
+                subscriptionPlan: .monthly,
+                duration: .monthly,
+                features: ["Unlimited habits", "Advanced analytics", "Custom themes"],
+                isPopular: false
+            ),
+            Product(
+                id: "premium_annual", 
+                name: "Premium Annual",
+                description: "Premium features for one year",
+                price: "$49.99",
+                localizedPrice: "$49.99",
+                subscriptionPlan: .annual,
+                duration: .annual,
+                features: ["Unlimited habits", "Advanced analytics", "Custom themes", "Priority support"],
+                isPopular: true,
+                discount: "Save 17%"
+            )
+        ]
+    }
+    
+    public func purchase(_ product: Product) async throws -> Bool {
+        purchaseState = .purchasing(product.id)
+        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+        purchaseState = .success(product)
+        return true
+    }
+    
+    public func restorePurchases() async throws -> Bool {
+        purchaseState = .purchasing("restore")
+        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        purchaseState = .idle
+        return false
+    }
+    
+    public func isProductPurchased(_ productId: String) async -> Bool {
+        return false
+    }
+    
+    public func resetPurchaseState() {
+        purchaseState = .idle
+    }
+    
+    public func clearPurchases() {
+        purchaseState = .idle
     }
 }
 

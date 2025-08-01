@@ -18,6 +18,11 @@ public struct OverviewFactory {
             deleteLog: deleteLog
         )
         let getCurrentSlogan = GetCurrentSlogan(slogansService: container.slogansService)
+        let trackUserAction = TrackUserAction(userActionTracker: container.userActionTracker)
+        let trackHabitLogged = TrackHabitLogged(userActionTracker: container.userActionTracker)
+        let checkFeatureAccess = CheckFeatureAccess(featureGatingService: container.featureGatingService)
+        let checkHabitCreationLimit = CheckHabitCreationLimit(featureGatingService: container.featureGatingService)
+        let getPaywallMessage = GetPaywallMessage(featureGatingService: container.featureGatingService)
         
         return OverviewViewModel(
             getActiveHabits: getActiveHabits,
@@ -29,9 +34,11 @@ public struct OverviewFactory {
             generateCalendarGrid: generateCalendarGrid,
             toggleHabitLog: toggleHabitLog,
             getCurrentSlogan: getCurrentSlogan,
-            userActionTracker: container.userActionTracker,
-            refreshTrigger: container.refreshTrigger,
-            featureGatingService: container.featureGatingService
+            trackUserAction: trackUserAction,
+            trackHabitLogged: trackHabitLogged,
+            checkFeatureAccess: checkFeatureAccess,
+            checkHabitCreationLimit: checkHabitCreationLimit,
+            getPaywallMessage: getPaywallMessage
         )
     }
 }

@@ -20,7 +20,7 @@ struct AuthenticationFlowView: View {
 }
 
 private struct ReactiveAuthFlow: View {
-    @ObservedObject var userSession: UserSession
+    @Bindable var userSession: UserSession
     let container: AppContainer
     
     var body: some View {
@@ -38,7 +38,7 @@ private struct ReactiveAuthFlow: View {
 }
 
 private struct ReactiveNoOpAuthFlow: View {
-    @ObservedObject var userSession: NoOpUserSession
+    @Bindable var userSession: NoOpUserSession
     let container: AppContainer
     
     var body: some View {

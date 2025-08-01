@@ -40,7 +40,6 @@ struct RootAppView: View {
     var body: some View {
         AuthenticationFlowView()
             .environment(\.appContainer, container)
-            .environment(\.refreshTrigger, container.refreshTrigger)
             .preferredColorScheme(colorScheme)
             .task {
                 do {
@@ -53,7 +52,7 @@ struct RootAppView: View {
                     print("Failed to load profile: \(error)")
                 }
             }
-            .onReceive(container.appearanceManager.$currentAppearance) { _ in
+            .onChange(of: container.appearanceManager.currentAppearance) { _, _ in
                 colorScheme = container.appearanceManager.colorScheme
             }
     }

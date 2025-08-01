@@ -15,16 +15,19 @@ public struct HabitAssistantSheet: View {
     
     private let suggestionsService: HabitSuggestionsService
     private let existingHabits: [Habit]
-    private let onHabitCreate: (HabitSuggestion) async -> Bool
+    private let onHabitCreate: (HabitSuggestion) async -> CreateHabitFromSuggestionResult
+    private let onShowPaywall: () -> Void
     private let userActionTracker: UserActionTracker?
     
     public init(suggestionsService: HabitSuggestionsService,
                 existingHabits: [Habit] = [],
-                onHabitCreate: @escaping (HabitSuggestion) async -> Bool,
+                onHabitCreate: @escaping (HabitSuggestion) async -> CreateHabitFromSuggestionResult,
+                onShowPaywall: @escaping () -> Void,
                 userActionTracker: UserActionTracker? = nil) {
         self.suggestionsService = suggestionsService
         self.existingHabits = existingHabits
         self.onHabitCreate = onHabitCreate
+        self.onShowPaywall = onShowPaywall
         self.userActionTracker = userActionTracker
         // Pre-populate addedHabits based on existing habits
         self._addedHabits = State(initialValue: Self.mapExistingHabitsToSuggestions(existingHabits))
@@ -115,19 +118,31 @@ public struct HabitAssistantSheet: View {
         ))
         
         isCreatingHabit = true
-        let success = await onHabitCreate(suggestion)
+        let result = await onHabitCreate(suggestion)
         
-        if success {
+        switch result {
+        case .success:
             addedHabits.insert(suggestion.id)
             userActionTracker?.track(.habitsAssistantHabitAdded(
                 habitId: suggestion.id,
                 habitName: suggestion.name,
                 category: categoryName(for: suggestion.category)
             ))
-        } else {
+        case .limitReached(_):
+            // Dismiss the assistant first, then show paywall
             userActionTracker?.track(.habitsAssistantHabitAddFailed(
                 habitId: suggestion.id,
-                error: "Failed to create habit"
+                error: "Habit limit reached"
+            ))
+            dismiss()
+            // Show paywall after a short delay to allow dismissal to complete
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                onShowPaywall()
+            }
+        case .error(let errorMessage):
+            userActionTracker?.track(.habitsAssistantHabitAddFailed(
+                habitId: suggestion.id,
+                error: errorMessage
             ))
         }
         
@@ -355,7 +370,10 @@ private struct HabitSuggestionRow: View {
             // Mock implementation - simulate creating habit from suggestion
             print("Preview: Creating habit '\(suggestion.name)' with emoji \(suggestion.emoji)")
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
-            return true
+            return .success
+        },
+        onShowPaywall: {
+            print("Preview: Show paywall")
         },
         userActionTracker: DebugUserActionTracker()
     )

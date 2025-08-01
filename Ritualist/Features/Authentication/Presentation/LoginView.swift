@@ -1,11 +1,11 @@
 import SwiftUI
 
 struct LoginView: View {
-    @StateObject private var viewModel: LoginViewModel
+    @State private var viewModel: LoginViewModel
     @State private var showingDebugAccounts = false
     
     init(userSession: any UserSessionProtocol) {
-        _viewModel = StateObject(wrappedValue: LoginViewModel(userSession: userSession))
+        _viewModel = State(wrappedValue: LoginViewModel(userSession: userSession))
     }
     
     var body: some View {
@@ -99,7 +99,7 @@ struct LoginView: View {
 
 #if DEBUG
 struct DebugAccountsView: View {
-    @ObservedObject var viewModel: LoginViewModel
+    @Bindable var viewModel: LoginViewModel
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -159,12 +159,12 @@ struct DebugAccountsView: View {
 
 // MARK: - Login View Model
 
-@MainActor
-final class LoginViewModel: ObservableObject {
-    @Published var email = ""
-    @Published var password = ""
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+@MainActor @Observable
+final class LoginViewModel {
+    var email = ""
+    var password = ""
+    var isLoading = false
+    var errorMessage: String?
     
     private let userSession: any UserSessionProtocol
     

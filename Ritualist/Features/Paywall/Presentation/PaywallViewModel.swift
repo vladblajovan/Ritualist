@@ -2,9 +2,14 @@ import Foundation
 
 @MainActor @Observable
 public final class PaywallViewModel {
-    private let paywallService: PaywallService
+    private let loadPaywallProducts: LoadPaywallProductsUseCase
+    private let purchaseProduct: PurchaseProductUseCase
+    private let restorePurchases: RestorePurchasesUseCase
+    private let checkProductPurchased: CheckProductPurchasedUseCase
+    private let resetPurchaseState: ResetPurchaseStateUseCase
+    private let getPurchaseState: GetPurchaseStateUseCase
+    private let updateUserSubscription: UpdateUserSubscriptionUseCase
     private let userSession: any UserSessionProtocol
-    private let stateCoordinator: any StateCoordinatorProtocol
     
     public var products: [Product] = []
     public var benefits: [PaywallBenefit] = []
@@ -28,19 +33,36 @@ public final class PaywallViewModel {
     }
     
     public init(
-        paywallService: PaywallService, 
-        userSession: any UserSessionProtocol,
-        stateCoordinator: any StateCoordinatorProtocol
+        loadPaywallProducts: LoadPaywallProductsUseCase,
+        purchaseProduct: PurchaseProductUseCase,
+        restorePurchases: RestorePurchasesUseCase,
+        checkProductPurchased: CheckProductPurchasedUseCase,
+        resetPurchaseState: ResetPurchaseStateUseCase,
+        getPurchaseState: GetPurchaseStateUseCase,
+        updateUserSubscription: UpdateUserSubscriptionUseCase,
+        userSession: any UserSessionProtocol
     ) {
-        self.paywallService = paywallService
+        self.loadPaywallProducts = loadPaywallProducts
+        self.purchaseProduct = purchaseProduct
+        self.restorePurchases = restorePurchases
+        self.checkProductPurchased = checkProductPurchased
+        self.resetPurchaseState = resetPurchaseState
+        self.getPurchaseState = getPurchaseState
+        self.updateUserSubscription = updateUserSubscription
         self.userSession = userSession
-        self.stateCoordinator = stateCoordinator
         self.benefits = PaywallBenefit.defaultBenefits
+    }
+    
+    // MARK: - Private Methods
+    
+    /// Update user subscription after successful purchase using UseCase
+    private func handleUserSubscriptionUpdate(_ user: User, _ product: Product) async throws {
+        _ = try await updateUserSubscription.execute(user: user, product: product)
     }
     
     private func syncPurchaseState() {
         // Manually sync purchase state from service
-        purchaseState = paywallService.purchaseState
+        purchaseState = getPurchaseState.execute()
     }
     
     public func load() async {
@@ -52,7 +74,7 @@ public final class PaywallViewModel {
         await resetPurchaseState()
         
         do {
-            let loadedProducts = try await paywallService.loadProducts()
+            let loadedProducts = try await loadPaywallProducts.execute()
             
             products = loadedProducts
             // Auto-select the popular product or first one
@@ -72,7 +94,7 @@ public final class PaywallViewModel {
     private func resetPurchaseState() async {
         // Reset the purchase state to idle when the paywall loads
         // This prevents previous purchase success from immediately dismissing the paywall
-        paywallService.resetPurchaseState()
+        resetPurchaseState.execute()
     }
     
     public func selectProduct(_ product: Product) {
@@ -86,13 +108,13 @@ public final class PaywallViewModel {
         error = nil
         
         do {
-            let success = try await paywallService.purchase(product)
+            let success = try await purchaseProduct.execute(product)
             // Sync purchase state after purchase attempt
             syncPurchaseState()
             
             if success {
-                // Use StateCoordinator for atomic transaction
-                try await stateCoordinator.updateUserSubscription(currentUser, product)
+                // Update user subscription after successful purchase
+                try await handleUserSubscriptionUpdate(currentUser, product)
             }
         } catch {
             self.error = error
@@ -107,12 +129,12 @@ public final class PaywallViewModel {
         error = nil
         
         do {
-            let restored = try await paywallService.restorePurchases()
+            let restored = try await restorePurchases.execute()
             // Sync purchase state after restore attempt
             syncPurchaseState()
             
             if restored {
-                // Use StateCoordinator for atomic restoration
+                // Handle restored purchases for user
                 await handleRestoredPurchases(for: currentUser)
             }
         } catch {
@@ -134,11 +156,11 @@ public final class PaywallViewModel {
     private func handleRestoredPurchases(for user: User) async {
         // Check which products were restored and update user accordingly
         for product in products {
-            let isPurchased = await paywallService.isProductPurchased(product.id)
+            let isPurchased = await checkProductPurchased.execute(product.id)
             if isPurchased {
                 do {
                     isUpdatingUser = true
-                    try await stateCoordinator.updateUserSubscription(user, product)
+                    try await handleUserSubscriptionUpdate(user, product)
                     isUpdatingUser = false
                     break // Only need to restore one subscription
                 } catch {

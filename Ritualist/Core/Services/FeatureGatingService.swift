@@ -1,4 +1,6 @@
 import Foundation
+import Observation
+import Combine
 
 // MARK: - Feature Gating Service
 
@@ -53,6 +55,7 @@ public enum FeatureType: String, CaseIterable {
 
 // MARK: - Default Implementation
 
+@Observable
 public final class DefaultFeatureGatingService: FeatureGatingService {
     private let userSession: any UserSessionProtocol
     
@@ -63,30 +66,37 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
         self.userSession = userSession
     }
     
+    @MainActor
     public var maxHabitsAllowed: Int {
         isPremiumUser ? Int.max : Self.freeMaxHabits
     }
     
+    @MainActor
     public func canCreateMoreHabits(currentCount: Int) -> Bool {
         isPremiumUser || currentCount < Self.freeMaxHabits
     }
     
+    @MainActor
     public var hasAdvancedAnalytics: Bool {
         isPremiumUser
     }
     
+    @MainActor
     public var hasCustomReminders: Bool {
         isPremiumUser
     }
     
+    @MainActor
     public var hasDataExport: Bool {
         isPremiumUser
     }
     
+    @MainActor
     public var hasPremiumThemes: Bool {
         isPremiumUser
     }
     
+    @MainActor
     public var hasPrioritySupport: Bool {
         isPremiumUser
     }
@@ -108,6 +118,7 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
         }
     }
     
+    @MainActor
     public func isFeatureAvailable(_ feature: FeatureType) -> Bool {
         switch feature {
         case .unlimitedHabits:
@@ -125,6 +136,7 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
         }
     }
     
+    @MainActor
     private var isPremiumUser: Bool {
         userSession.isPremiumUser
     }

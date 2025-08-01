@@ -1,15 +1,10 @@
 import Foundation
-import Combine
 
 // MARK: - Mock Authentication Service
 
-@MainActor
-public final class MockAuthenticationService: AuthenticationService, ObservableObject {
-    @Published public var authState: AuthState = .unauthenticated
-    
-    public var authStatePublisher: AnyPublisher<AuthState, Never> {
-        $authState.eraseToAnyPublisher()
-    }
+@MainActor @Observable
+public final class MockAuthenticationService: AuthenticationService {
+    public var authState: AuthState = .unauthenticated
     
     public var isAuthenticated: Bool {
         authState.isAuthenticated
