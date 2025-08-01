@@ -77,21 +77,33 @@ public struct MonthlyCalendarView: View {
             }
             .padding(.horizontal, Spacing.large)
             
-            // Calendar grid
-            CalendarGridView(
-                habit: selectedHabit,
-                fullCalendarDays: fullCalendarDays,
-                loggedDates: loggedDates,
-                isLoggingDate: isLoggingDate,
-                getHabitValueForDate: getHabitValueForDate,
-                isDateSchedulable: isDateSchedulable,
-                isWeeklyTargetMet: isWeeklyTargetMet,
-                onDateTap: onDateTap,
-                onAdjacentDateTap: onAdjacentDateTap,
-                userFirstDayOfWeek: userFirstDayOfWeek
+            // Calendar grid with swipe navigation
+            SwipeNavigationView(
+                onSwipeLeft: {
+                    await onMonthChange(1) // Swipe left = next month
+                },
+                onSwipeRight: {
+                    await onMonthChange(-1) // Swipe right = previous month
+                },
+                content: {
+                    CalendarGridView(
+                        habit: selectedHabit,
+                        fullCalendarDays: fullCalendarDays,
+                        loggedDates: loggedDates,
+                        isLoggingDate: isLoggingDate,
+                        getHabitValueForDate: getHabitValueForDate,
+                        isDateSchedulable: isDateSchedulable,
+                        isWeeklyTargetMet: isWeeklyTargetMet,
+                        onDateTap: onDateTap,
+                        onAdjacentDateTap: onAdjacentDateTap,
+                        userFirstDayOfWeek: userFirstDayOfWeek
+                    )
+                }
             )
         }
         .padding(.bottom, Spacing.large)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("monthly-calendar")
     }
 }
 
