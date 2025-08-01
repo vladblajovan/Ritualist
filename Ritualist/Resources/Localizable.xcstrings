@@ -2375,6 +2375,42 @@
     "Password: %@" : {
 
     },
+    "paywall.pro_label" : {
+      "comment" : "Label for PRO badge in paywall",
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRO"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRO"
+          }
+        }
+      }
+    },
+    "paywall.unlock_advanced_stats" : {
+      "comment" : "Button text to unlock advanced statistics",
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erweiterte Statistiken freischalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock Advanced Stats"
+          }
+        }
+      }
+    },
     "POPULAR" : {
 
     },

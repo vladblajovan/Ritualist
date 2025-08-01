@@ -252,6 +252,14 @@ public enum Strings {
         public static let trackImmediatelyTitle = String(localized: "tips.track_immediately_title")
         public static let trackImmediatelyDescription = String(localized: "tips.track_immediately_description")
     }
+    
+    // MARK: - Paywall
+    public enum Paywall {
+        public static let unlockAdvancedStats = String(localized: "paywall.unlock_advanced_stats")
+        public static let statsBlockedMessage = String(localized: "paywall.stats_blocked_message")
+        public static let proLabel = String(localized: "paywall.pro_label")
+        public static let upgrade = String(localized: "paywall.upgrade")
+    }
 }
 
 // MARK: - SwiftUI Extensions

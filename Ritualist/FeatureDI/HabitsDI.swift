@@ -16,7 +16,8 @@ public struct HabitsFactory {
             updateHabit: updateHabit,
             deleteHabit: deleteHabit,
             toggleHabitActiveStatus: toggleHabitActiveStatus,
-            refreshTrigger: container.refreshTrigger
+            refreshTrigger: container.refreshTrigger,
+            featureGatingService: container.featureGatingService
         )
     }
 }

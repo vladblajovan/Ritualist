@@ -52,6 +52,7 @@ public final class StateCoordinator: StateCoordinatorProtocol {
     private let authService: any AuthenticationService
     private let userSession: any UserSessionProtocol
     private let secureDefaults: SecureUserDefaults
+    private let refreshTrigger: RefreshTrigger
     
     // Transaction state
     public private(set) var isExecutingTransaction = false
@@ -64,12 +65,14 @@ public final class StateCoordinator: StateCoordinatorProtocol {
         paywallService: PaywallService,
         authService: any AuthenticationService,
         userSession: any UserSessionProtocol,
-        secureDefaults: SecureUserDefaults
+        secureDefaults: SecureUserDefaults,
+        refreshTrigger: RefreshTrigger
     ) {
         self.paywallService = paywallService
         self.authService = authService
         self.userSession = userSession
         self.secureDefaults = secureDefaults
+        self.refreshTrigger = refreshTrigger
     }
     
     // MARK: - Transaction Execution
@@ -174,6 +177,11 @@ public final class StateCoordinator: StateCoordinatorProtocol {
         
         // Update user through auth service
         _ = try await authService.updateUser(updatedUser)
+        
+        // Trigger UI refresh for subscription state changes
+        await MainActor.run {
+            refreshTrigger.triggerSubscriptionStateRefresh()
+        }
         
         // Return rollback action
         return {

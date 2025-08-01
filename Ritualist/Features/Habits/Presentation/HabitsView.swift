@@ -6,7 +6,7 @@ public struct HabitsRoot: View {
     @State private var showingCreateHabit = false
     @State private var showingHabitAssistant = false
     @State private var paywallItem: PaywallItem?
-    @State private var habitCount = 0
+    @State private var canCreateMoreHabits = true  // Will be updated by child view
     private let factory: HabitsFactory?
     
     public init(factory: HabitsFactory? = nil) { 
@@ -18,7 +18,9 @@ public struct HabitsRoot: View {
             factory: factory, 
             showingCreateHabit: $showingCreateHabit,
             showingHabitAssistant: $showingHabitAssistant,
-            onHabitCreate: createHabitFromSuggestion
+            onHabitCreate: createHabitFromSuggestion,
+            canCreateMoreHabits: $canCreateMoreHabits,
+            paywallItem: $paywallItem
         )
         .navigationTitle("Habits")
         .navigationBarTitleDisplayMode(.large)
@@ -31,6 +33,7 @@ public struct HabitsRoot: View {
                         .font(.title3)
                         .foregroundColor(AppColors.brand)
                 }
+                .accessibilityLabel(Strings.Accessibility.addHabit)
             }
         }
         .sheet(isPresented: $showingCreateHabit) {
@@ -40,19 +43,6 @@ public struct HabitsRoot: View {
         }
         .sheet(item: $paywallItem) { item in
             PaywallView(vm: item.viewModel)
-        }
-        .task {
-            await loadHabitCount()
-        }
-        .onReceive(refreshTrigger.$habitCountNeedsRefresh) { needsRefresh in
-            if needsRefresh {
-                Task {
-                    await loadHabitCount()
-                    await MainActor.run {
-                        refreshTrigger.resetHabitCountRefresh()
-                    }
-                }
-            }
         }
     }
     
@@ -68,8 +58,8 @@ public struct HabitsRoot: View {
     }
     
     private func handleCreateHabitTap() {
-        // Check if user can create more habits
-        if di.featureGatingService.canCreateMoreHabits(currentCount: habitCount) {
+        // Use the canCreateMoreHabits state that's updated by the ViewModel
+        if canCreateMoreHabits {
             showingCreateHabit = true
         } else {
             // Show paywall for free users who hit the limit
@@ -85,20 +75,6 @@ public struct HabitsRoot: View {
             }
         }
     }
-    
-    private func loadHabitCount() async {
-        do {
-            let habits = try await di.habitRepository.fetchAllHabits()
-            await MainActor.run {
-                habitCount = habits.count
-            }
-        } catch {
-            // If we can't load habits, assume 0 for safety
-            await MainActor.run {
-                habitCount = 0
-            }
-        }
-    }
 }
 
 private struct HabitsContentView: View {
@@ -107,6 +83,8 @@ private struct HabitsContentView: View {
     @State private var isInitializing = true
     @Binding var showingCreateHabit: Bool
     @Binding var showingHabitAssistant: Bool
+    @Binding var canCreateMoreHabits: Bool
+    @Binding var paywallItem: PaywallItem?
     
     private let factory: HabitsFactory?
     private let onHabitCreate: (HabitSuggestion) async -> Bool
@@ -114,11 +92,15 @@ private struct HabitsContentView: View {
     init(factory: HabitsFactory?, 
          showingCreateHabit: Binding<Bool>,
          showingHabitAssistant: Binding<Bool>,
-         onHabitCreate: @escaping (HabitSuggestion) async -> Bool) {
+         onHabitCreate: @escaping (HabitSuggestion) async -> Bool,
+         canCreateMoreHabits: Binding<Bool>,
+         paywallItem: Binding<PaywallItem?>) {
         self.factory = factory
         self._showingCreateHabit = showingCreateHabit
         self._showingHabitAssistant = showingHabitAssistant
         self.onHabitCreate = onHabitCreate
+        self._canCreateMoreHabits = canCreateMoreHabits
+        self._paywallItem = paywallItem
     }
     
     var body: some View {
@@ -126,7 +108,13 @@ private struct HabitsContentView: View {
             if isInitializing {
                 ProgressView("Initializing...")
             } else if let vm = vm {
-                HabitsListView(vm: vm, showingCreateHabit: $showingCreateHabit, showingHabitAssistant: $showingHabitAssistant)
+                HabitsListView(
+                    vm: vm, 
+                    showingCreateHabit: $showingCreateHabit, 
+                    showingHabitAssistant: $showingHabitAssistant,
+                    canCreateMoreHabits: $canCreateMoreHabits,
+                    paywallItem: $paywallItem
+                )
             } else {
                 ErrorView(
                     title: "Failed to Initialize",
@@ -184,6 +172,8 @@ private struct HabitsListView: View {
     @State private var habitToDelete: Habit?
     @Binding var showingCreateHabit: Bool
     @Binding var showingHabitAssistant: Bool
+    @Binding var canCreateMoreHabits: Bool
+    @Binding var paywallItem: PaywallItem?
     
     var body: some View {
         Group {
@@ -296,6 +286,16 @@ private struct HabitsListView: View {
                 )
             }
         }
+        .task {
+            updateCanCreateMoreHabits()
+        }
+        .onChange(of: vm.items) { _, _ in
+            updateCanCreateMoreHabits()
+        }
+    }
+    
+    private func updateCanCreateMoreHabits() {
+        canCreateMoreHabits = vm.canCreateMoreHabits
     }
     
     private func deleteHabit(_ habit: Habit) async {

@@ -381,11 +381,13 @@ private struct PricingCard: View {
     let mockAuthService = MockAuthenticationService()
     let mockUserSession = UserSession(authService: mockAuthService)
     let secureDefaults = SecureUserDefaults()
+    let refreshTrigger = RefreshTrigger()
     let stateCoordinator = StateCoordinator(
         paywallService: mockService,
         authService: mockAuthService,
         userSession: mockUserSession,
-        secureDefaults: secureDefaults
+        secureDefaults: secureDefaults,
+        refreshTrigger: refreshTrigger
     )
     let vm = PaywallViewModel(
         paywallService: mockService,

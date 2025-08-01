@@ -127,7 +127,8 @@ public final class DefaultAppContainer: AppContainer {
             paywallService: paywallService,
             authService: authService,
             userSession: userSession,
-            secureDefaults: secureUserDefaults
+            secureDefaults: secureUserDefaults,
+            refreshTrigger: refreshTrigger
         )
         
         // Wire up coordination
@@ -234,7 +235,8 @@ public final class DefaultAppContainer: AppContainer {
             paywallService: paywallService,
             authService: userSession.authService,
             userSession: userSession,
-            secureDefaults: secureUserDefaults
+            secureDefaults: secureUserDefaults,
+            refreshTrigger: refreshTrigger
         )
         
         // Minimal Phase 2 services for sync bootstrap
@@ -343,7 +345,8 @@ public final class DefaultAppContainer: AppContainer {
             paywallService: paywallService,
             authService: authService,
             userSession: userSession,
-            secureDefaults: secureUserDefaults
+            secureDefaults: secureUserDefaults,
+            refreshTrigger: refreshTrigger
         )
         
         // Minimal Phase 2 services for createMinimal

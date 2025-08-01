@@ -30,7 +30,8 @@ public struct OverviewFactory {
             toggleHabitLog: toggleHabitLog,
             getCurrentSlogan: getCurrentSlogan,
             userActionTracker: container.userActionTracker,
-            refreshTrigger: container.refreshTrigger
+            refreshTrigger: container.refreshTrigger,
+            featureGatingService: container.featureGatingService
         )
     }
 }

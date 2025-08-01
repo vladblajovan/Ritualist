@@ -10,6 +10,7 @@ public final class HabitsViewModel {
     private let deleteHabit: DeleteHabitUseCase
     private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
     private let refreshTrigger: RefreshTrigger
+    private let featureGatingService: FeatureGatingService
     
     // Reactive coordination
     private var cancellables = Set<AnyCancellable>()
@@ -21,18 +22,32 @@ public final class HabitsViewModel {
     public private(set) var isUpdating = false
     public private(set) var isDeleting = false
     
+    // MARK: - Paywall Protection
+    
+    // Force property change notifications for subscription-dependent properties
+    private var subscriptionStateVersion = 0
+    
+    /// Check if user can create more habits based on current count
+    public var canCreateMoreHabits: Bool {
+        // Access subscriptionStateVersion to make this property reactive to subscription changes
+        _ = subscriptionStateVersion
+        return featureGatingService.canCreateMoreHabits(currentCount: items.count)
+    }
+    
     public init(getAllHabits: GetAllHabitsUseCase, 
                 createHabit: CreateHabitUseCase,
                 updateHabit: UpdateHabitUseCase,
                 deleteHabit: DeleteHabitUseCase,
                 toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
-                refreshTrigger: RefreshTrigger) {
+                refreshTrigger: RefreshTrigger,
+                featureGatingService: FeatureGatingService) {
         self.getAllHabits = getAllHabits
         self.createHabit = createHabit
         self.updateHabit = updateHabit
         self.deleteHabit = deleteHabit
         self.toggleHabitActiveStatus = toggleHabitActiveStatus
         self.refreshTrigger = refreshTrigger
+        self.featureGatingService = featureGatingService
         
         setupRefreshObservation()
     }
@@ -130,6 +145,21 @@ public final class HabitsViewModel {
                         await self?.load()
                         await MainActor.run {
                             self?.refreshTrigger.resetHabitCountRefresh()
+                        }
+                    }
+                }
+            }
+            .store(in: &cancellables)
+        
+        // React to subscription state changes
+        refreshTrigger.$subscriptionStateNeedsRefresh
+            .sink { [weak self] needsRefresh in
+                if needsRefresh {
+                    Task { [weak self] in
+                        await MainActor.run {
+                            // Increment version to force SwiftUI to recompute subscription-dependent properties
+                            self?.subscriptionStateVersion += 1
+                            self?.refreshTrigger.resetSubscriptionStateRefresh()
                         }
                     }
                 }

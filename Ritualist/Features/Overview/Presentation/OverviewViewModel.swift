@@ -11,6 +11,7 @@ public final class OverviewViewModel {
     private let loadProfile: LoadProfileUseCase
     private let userActionTracker: UserActionTracker
     private let refreshTrigger: RefreshTrigger
+    private let featureGatingService: FeatureGatingService
     
     // Domain use cases for business logic
     private let generateCalendarDays: GenerateCalendarDaysUseCase
@@ -55,6 +56,30 @@ public final class OverviewViewModel {
         userProfile?.firstDayOfWeek
     }
     
+    // MARK: - Paywall Protection
+    
+    // Force property change notifications for subscription-dependent properties
+    private var subscriptionStateVersion = 0
+    
+    /// Check if user has access to advanced analytics/stats
+    public var hasAdvancedAnalytics: Bool {
+        // Access subscriptionStateVersion to make this property reactive to subscription changes
+        _ = subscriptionStateVersion
+        return featureGatingService.hasAdvancedAnalytics
+    }
+    
+    /// Get message to display when stats are blocked by paywall
+    public func getStatsBlockedMessage() -> String {
+        featureGatingService.getFeatureBlockedMessage(for: .advancedAnalytics)
+    }
+    
+    /// Check if user can create more habits based on current count
+    public var canCreateMoreHabits: Bool {
+        // Access subscriptionStateVersion to make this property reactive to subscription changes
+        _ = subscriptionStateVersion
+        return featureGatingService.canCreateMoreHabits(currentCount: habits.count)
+    }
+    
     public init(getActiveHabits: GetActiveHabitsUseCase,
                 getLogs: GetLogsUseCase,
                 getLogForDate: GetLogForDateUseCase,
@@ -65,7 +90,8 @@ public final class OverviewViewModel {
                 toggleHabitLog: ToggleHabitLogUseCase,
                 getCurrentSlogan: GetCurrentSloganUseCase,
                 userActionTracker: UserActionTracker,
-                refreshTrigger: RefreshTrigger) { 
+                refreshTrigger: RefreshTrigger,
+                featureGatingService: FeatureGatingService) { 
         self.getActiveHabits = getActiveHabits
         self.getLogs = getLogs
         self.getLogForDate = getLogForDate
@@ -77,6 +103,7 @@ public final class OverviewViewModel {
         self.getCurrentSlogan = getCurrentSlogan
         self.userActionTracker = userActionTracker
         self.refreshTrigger = refreshTrigger
+        self.featureGatingService = featureGatingService
         
         // Initialize simple helper managers
         self.scheduleManager = HabitScheduleManager()
@@ -97,6 +124,21 @@ public final class OverviewViewModel {
                         await self?.load()
                         await MainActor.run {
                             self?.refreshTrigger.resetOverviewRefresh()
+                        }
+                    }
+                }
+            }
+            .store(in: &cancellables)
+        
+        // React to subscription state changes
+        refreshTrigger.$subscriptionStateNeedsRefresh
+            .sink { [weak self] needsRefresh in
+                if needsRefresh {
+                    Task { [weak self] in
+                        await MainActor.run {
+                            // Increment version to force SwiftUI to recompute subscription-dependent properties
+                            self?.subscriptionStateVersion += 1
+                            self?.refreshTrigger.resetSubscriptionStateRefresh()
                         }
                     }
                 }

@@ -61,9 +61,8 @@ private struct OverviewListView: View {
     @Bindable var vm: OverviewViewModel
     @State private var showingAddHabit = false
     @State private var paywallItem: PaywallItem?
-    @State private var habitCount = 0
     @State private var tipsVM: TipsViewModel?
-
+    
     var body: some View {
         Group {
             if vm.isLoading {
@@ -109,13 +108,13 @@ private struct OverviewListView: View {
                                 .accessibilityLabel(Strings.Accessibility.addHabit)
                             }
                             .padding(.horizontal, Spacing.large)
-
-//                            HabitChipsView(
-//                                habits: vm.habits,
-//                                selectedHabit: vm.selectedHabit
-//                            ) { habit in
-//                                await vm.selectHabit(habit)
-//                            }
+                            
+                            //                            HabitChipsView(
+                            //                                habits: vm.habits,
+                            //                                selectedHabit: vm.selectedHabit
+                            //                            ) { habit in
+                            //                                await vm.selectHabit(habit)
+                            //                            }
                             
                             OverviewHabitsCarousel(
                                 habits: vm.habits,
@@ -125,19 +124,79 @@ private struct OverviewListView: View {
                                 }
                             )
                         }
-
-                        // Streak information for selected habit
+                        
+                        // Streak information for selected habit (premium feature)
                         if let selectedHabit = vm.selectedHabit {
-                            StreakInfoView(
-                                habit: selectedHabit,
-                                currentStreak: vm.currentStreak,
-                                bestStreak: vm.bestStreak,
-                                isLoading: vm.isLoadingStreaks,
-                                shouldAnimateBestStreak: vm.shouldAnimateBestStreak,
-                                onAnimationComplete: {
-                                    vm.resetBestStreakAnimation()
+                            if vm.hasAdvancedAnalytics {
+                                StreakInfoView(
+                                    habit: selectedHabit,
+                                    currentStreak: vm.currentStreak,
+                                    bestStreak: vm.bestStreak,
+                                    isLoading: vm.isLoadingStreaks,
+                                    shouldAnimateBestStreak: vm.shouldAnimateBestStreak,
+                                    onAnimationComplete: {
+                                        vm.resetBestStreakAnimation()
+                                    }
+                                )
+                            } else {
+                                // Show paywall prompt for stats
+                                VStack(spacing: Spacing.medium) {
+                                    HStack {
+                                        Text(Strings.Overview.stats)
+                                            .font(.headline)
+                                            .fontWeight(.semibold)
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "lock.fill")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.horizontal, Spacing.large)
+                                    
+                                    Button {
+                                        Task { @MainActor in
+                                            let factory = PaywallFactory(container: di)
+                                            let viewModel = factory.makeViewModel()
+                                            await viewModel.load()
+                                            paywallItem = PaywallItem(viewModel: viewModel)
+                                        }
+                                    } label: {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                                                Text(Strings.Paywall.unlockAdvancedStats)
+                                                    .font(.subheadline)
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.primary)
+                                                
+                                                Text(vm.getStatsBlockedMessage())
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Text(Strings.Paywall.proLabel)
+                                                .font(.caption2)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, Spacing.small)
+                                                .padding(.vertical, Spacing.xxsmall)
+                                                .background(
+                                                    Capsule()
+                                                        .fill(AppColors.brand)
+                                                )
+                                        }
+                                        .padding(Spacing.medium)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: CornerRadius.xlarge)
+                                                .fill(Color(.systemGray6))
+                                        )
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .padding(.horizontal, Spacing.large)
                                 }
-                            )
+                            }
                         }
                         
                         // Calendar view
@@ -256,18 +315,6 @@ private struct OverviewListView: View {
                 tipsVM = tipsFactory.makeViewModel()
                 await tipsVM?.load()
             }
-            // Load habit count for paywall protection
-            await loadHabitCount()
-        }
-        .onReceive(refreshTrigger.$habitCountNeedsRefresh) { needsRefresh in
-            if needsRefresh {
-                Task {
-                    await loadHabitCount()
-                    await MainActor.run {
-                        refreshTrigger.resetHabitCountRefresh()
-                    }
-                }
-            }
         }
     }
     
@@ -275,7 +322,7 @@ private struct OverviewListView: View {
     
     private func handleCreateHabitTap() {
         // Check if user can create more habits
-        if di.featureGatingService.canCreateMoreHabits(currentCount: habitCount) {
+        if vm.canCreateMoreHabits {
             showingAddHabit = true
         } else {
             // Show paywall for free users who hit the limit
@@ -288,20 +335,6 @@ private struct OverviewListView: View {
                 
                 // Use item-based presentation
                 paywallItem = PaywallItem(viewModel: viewModel)
-            }
-        }
-    }
-    
-    private func loadHabitCount() async {
-        do {
-            let habits = try await di.habitRepository.fetchAllHabits()
-            await MainActor.run {
-                habitCount = habits.count
-            }
-        } catch {
-            // If we can't load habits, assume 0 for safety
-            await MainActor.run {
-                habitCount = 0
             }
         }
     }

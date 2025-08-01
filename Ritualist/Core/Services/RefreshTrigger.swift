@@ -10,6 +10,7 @@ import SwiftUI
 public final class RefreshTrigger: ObservableObject {
     @Published public var overviewNeedsRefresh = false
     @Published public var habitCountNeedsRefresh = false
+    @Published public var subscriptionStateNeedsRefresh = false
     
     public init() {}
     
@@ -31,6 +32,16 @@ public final class RefreshTrigger: ObservableObject {
     @MainActor
     public func resetHabitCountRefresh() {
         habitCountNeedsRefresh = false
+    }
+    
+    @MainActor
+    public func triggerSubscriptionStateRefresh() {
+        subscriptionStateNeedsRefresh = true
+    }
+    
+    @MainActor
+    public func resetSubscriptionStateRefresh() {
+        subscriptionStateNeedsRefresh = false
     }
 }
 
