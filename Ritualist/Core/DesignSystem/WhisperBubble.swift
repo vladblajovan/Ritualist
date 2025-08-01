@@ -9,7 +9,7 @@ public struct WhisperBubble: View {
     let tailPosition: TailPosition
     let maxWidth: CGFloat
     
-    public enum TailPosition {
+    public enum TailPosition: Sendable {
         case topLeading
         case topTrailing
         case topCenter

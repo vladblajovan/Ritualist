@@ -1,0 +1,27 @@
+//
+//  HabitRepositoryImpl.swift
+//  Ritualist
+//
+//  Created by Vlad Blajovan on 01.08.2025.
+//
+
+import Foundation
+
+public final class HabitRepositoryImpl: HabitRepository {
+    private let local: HabitLocalDataSourceProtocol
+    public init(local: HabitLocalDataSourceProtocol) { self.local = local }
+    public func fetchAllHabits() async throws -> [Habit] {
+        let sds = try await local.fetchAll()
+        return try sds.map { try HabitMapper.fromSD($0) }
+    }
+    public func create(_ habit: Habit) async throws {
+        try await update(habit)
+    }
+    public func update(_ habit: Habit) async throws {
+        let sd = try HabitMapper.toSD(habit)
+        try await local.upsert(sd)
+    }
+    public func delete(id: UUID) async throws {
+        try await local.delete(id: id)
+    }
+}

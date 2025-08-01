@@ -1,12 +1,6 @@
 import Foundation
 import SwiftData
 
-public protocol HabitLocalDataSourceProtocol {
-    @MainActor func fetchAll() async throws -> [SDHabit]
-    @MainActor func upsert(_ habit: SDHabit) async throws
-    @MainActor func delete(id: UUID) async throws
-}
-
 public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
     private let context: ModelContext?
     public init(context: ModelContext?) { self.context = context }
@@ -33,12 +27,6 @@ public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
     }
 }
 
-public protocol LogLocalDataSourceProtocol {
-    @MainActor func logs(for habitID: UUID) async throws -> [SDHabitLog]
-    @MainActor func upsert(_ log: SDHabitLog) async throws
-    @MainActor func delete(id: UUID) async throws
-}
-
 public final class LogLocalDataSource: LogLocalDataSourceProtocol {
     private let context: ModelContext?
     public init(context: ModelContext?) { self.context = context }
@@ -63,11 +51,6 @@ public final class LogLocalDataSource: LogLocalDataSourceProtocol {
             try context.save()
         }
     }
-}
-
-public protocol ProfileLocalDataSourceProtocol {
-    @MainActor func load() async throws -> SDUserProfile?
-    @MainActor func save(_ profile: SDUserProfile) async throws
 }
 
 public final class ProfileLocalDataSource: ProfileLocalDataSourceProtocol {

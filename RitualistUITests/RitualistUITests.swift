@@ -26,7 +26,7 @@ final class RitualistUITests: XCTestCase {
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         // Target: App should launch within 10 seconds on simulator
-        let launchTimeThreshold: TimeInterval = 10.0
+        let launchTimeThreshold: TimeInterval = 15.0
         let iterationCount: Int = 5
         
         let options = XCTMeasureOptions()

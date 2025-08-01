@@ -133,18 +133,18 @@ public final class MockSlogansService: SlogansServiceProtocol {
     }
     
     public func getCurrentSlogan() -> String {
-        return fixedSlogan
+        fixedSlogan
     }
     
     public func getSlogan(for timeOfDay: TimeOfDay) -> String {
-        return fixedSlogan
+        fixedSlogan
     }
     
     public func getCurrentTimeOfDay() -> TimeOfDay {
-        return fixedTimeOfDay
+        fixedTimeOfDay
     }
     
     public func getTimeOfDay(for date: Date) -> TimeOfDay {
-        return fixedTimeOfDay
+        fixedTimeOfDay
     }
 }

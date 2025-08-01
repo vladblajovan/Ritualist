@@ -222,7 +222,6 @@ public final class ErrorRecoveryService: ErrorRecoveryServiceProtocol {
                 actionsPerformed: [.reset, .reinitialize],
                 finalError: isSuccessful ? nil : error
             )
-            
         } catch {
             logger.log("State corruption recovery failed: \(error.localizedDescription)")
             return RecoveryResult(
@@ -302,7 +301,6 @@ public final class ErrorRecoveryService: ErrorRecoveryServiceProtocol {
                 actionsPerformed: [strategy.action],
                 finalError: isSuccessful ? nil : error
             )
-            
         } catch {
             logger.log("Recovery action failed: \(error.localizedDescription)")
             return RecoveryResult(

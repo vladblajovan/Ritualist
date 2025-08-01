@@ -409,6 +409,6 @@ public final class GetCurrentSlogan: GetCurrentSloganUseCase {
     }
     
     public func execute() -> String {
-        return slogansService.getCurrentSlogan()
+        slogansService.getCurrentSlogan()
     }
 }

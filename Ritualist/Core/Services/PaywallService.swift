@@ -207,7 +207,7 @@ public final class ProductionPaywallService: PaywallService, ObservableObject {
     
     public func isProductPurchased(_ productId: String) async -> Bool {
         // TODO: Check StoreKit transaction history
-        return false
+        false
     }
     
     public func resetPurchaseState() {
