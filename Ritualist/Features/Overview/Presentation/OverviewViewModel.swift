@@ -25,7 +25,7 @@ public final class OverviewViewModel {
     
     public private(set) var habits: [Habit] = []
     public private(set) var selectedHabit: Habit?
-    public private(set) var currentMonth = Date()
+    public private(set) var currentMonth = Calendar.current.startOfDay(for: Date())
     public private(set) var isLoading = false
     public private(set) var error: Error?
     public private(set) var loggingDate: Date?
@@ -162,7 +162,7 @@ public final class OverviewViewModel {
     public func navigateToMonth(_ direction: Int) async {
         let calendar = Calendar.current
         if let newMonth = calendar.date(byAdding: .month, value: direction, to: currentMonth) {
-            currentMonth = newMonth
+            currentMonth = calendar.startOfDay(for: newMonth)
             updateCalendarDays()
             await loadLogsForSelectedHabit()
         }
@@ -185,7 +185,7 @@ public final class OverviewViewModel {
         let todayMonthStart = calendar.dateInterval(of: .month, for: today)?.start ?? today
         
         if !calendar.isDate(currentMonthStart, equalTo: todayMonthStart, toGranularity: .month) {
-            currentMonth = today
+            currentMonth = calendar.startOfDay(for: today)
             updateCalendarDays()
             await loadLogsForSelectedHabit()
         }

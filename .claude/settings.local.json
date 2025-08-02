@@ -4,7 +4,8 @@
       "Bash(swiftlint:*)",
       "Bash(xcodebuild:*)",
       "Bash(find:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

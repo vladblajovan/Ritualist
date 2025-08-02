@@ -186,6 +186,7 @@ private struct HabitsContentView: View {
                     suggestionsService: di.habitSuggestionsService,
                     existingHabits: vm.items,
                     onHabitCreate: onHabitCreate,
+                    onHabitRemove: removeHabit,
                     onShowPaywall: onShowPaywall,
                     userActionTracker: di.userActionTracker
                 )
@@ -199,6 +200,11 @@ private struct HabitsContentView: View {
         vm = actualFactory.makeViewModel()
         await vm?.load()
         isInitializing = false
+    }
+    
+    private func removeHabit(_ habitId: UUID) async -> Bool {
+        guard let vm = vm else { return false }
+        return await vm.delete(id: habitId)
     }
 }
 
@@ -350,7 +356,16 @@ private struct HabitRowView: View {
             onTap()
         } label: {
             HStack {
-                Text(habit.emoji ?? "•")
+                ZStack {
+                    Circle()
+                        .fill(
+                            Color(hex: habit.colorHex)?
+                                .opacity(0.1) ?? .blue
+                                .opacity(0.1)
+                        )
+                        .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                    Text(habit.emoji ?? "•")
+                }
                 VStack(alignment: .leading) {
                     Text(habit.name).bold()
                     Text(habit.isActive ? Strings.Status.active : Strings.Status.inactive)
@@ -358,9 +373,10 @@ private struct HabitRowView: View {
                         .foregroundColor(habit.isActive ? .green : .secondary)
                 }
                 Spacer()
-                Circle()
-                    .fill(Color(hex: habit.colorHex) ?? .blue)
-                    .frame(width: ComponentSize.smallIndicator, height: ComponentSize.smallIndicator)
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.leading, Spacing.small)
             }
         }
         .buttonStyle(PlainButtonStyle())

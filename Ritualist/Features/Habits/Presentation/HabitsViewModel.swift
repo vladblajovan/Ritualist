@@ -62,7 +62,7 @@ public final class HabitsViewModel {
         error = nil
         
         do {
-            try await createHabit.execute(habit)
+            _ = try await createHabit.execute(habit)
             await load() // Refresh the list
             isCreating = false
             return true

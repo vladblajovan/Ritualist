@@ -23,6 +23,8 @@ public enum UserActionEvent {
     case habitsAssistantHabitSuggestionViewed(habitId: String, category: String)
     case habitsAssistantHabitAdded(habitId: String, habitName: String, category: String)
     case habitsAssistantHabitAddFailed(habitId: String, error: String)
+    case habitsAssistantHabitRemoved(habitId: String, habitName: String, category: String)
+    case habitsAssistantHabitRemoveFailed(habitId: String, error: String)
     
     // Habit Management
     case habitCreated(habitId: String, habitName: String, habitType: String)

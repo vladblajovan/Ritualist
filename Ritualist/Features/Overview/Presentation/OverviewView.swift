@@ -108,13 +108,6 @@ private struct OverviewListView: View {
                             }
                             .padding(.horizontal, Spacing.large)
                             
-                            //                            HabitChipsView(
-                            //                                habits: vm.habits,
-                            //                                selectedHabit: vm.selectedHabit
-                            //                            ) { habit in
-                            //                                await vm.selectHabit(habit)
-                            //                            }
-                            
                             OverviewHabitsCarousel(
                                 habits: vm.habits,
                                 selectedHabit: vm.selectedHabit,
@@ -122,80 +115,6 @@ private struct OverviewListView: View {
                                     await vm.selectHabit(habit)
                                 }
                             )
-                        }
-                        
-                        // Streak information for selected habit (premium feature)
-                        if let selectedHabit = vm.selectedHabit {
-                            if vm.hasAdvancedAnalytics {
-                                StreakInfoView(
-                                    habit: selectedHabit,
-                                    currentStreak: vm.currentStreak,
-                                    bestStreak: vm.bestStreak,
-                                    isLoading: vm.isLoadingStreaks,
-                                    shouldAnimateBestStreak: vm.shouldAnimateBestStreak,
-                                    onAnimationComplete: {
-                                        vm.resetBestStreakAnimation()
-                                    }
-                                )
-                            } else {
-                                // Show paywall prompt for stats
-                                VStack(spacing: Spacing.medium) {
-                                    HStack {
-                                        Text(Strings.Overview.stats)
-                                            .font(.headline)
-                                            .fontWeight(.semibold)
-                                        
-                                        Spacer()
-                                        
-                                        Image(systemName: "lock.fill")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.horizontal, Spacing.large)
-                                    
-                                    Button {
-                                        Task { @MainActor in
-                                            let factory = PaywallFactory(container: di)
-                                            let viewModel = factory.makeViewModel()
-                                            await viewModel.load()
-                                            paywallItem = PaywallItem(viewModel: viewModel)
-                                        }
-                                    } label: {
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                                                Text(Strings.Paywall.unlockAdvancedStats)
-                                                    .font(.subheadline)
-                                                    .fontWeight(.medium)
-                                                    .foregroundColor(.primary)
-                                                
-                                                Text(vm.getStatsBlockedMessage())
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            
-                                            Spacer()
-                                            
-                                            Text(Strings.Paywall.proLabel)
-                                                .font(.caption2)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal, Spacing.small)
-                                                .padding(.vertical, Spacing.xxsmall)
-                                                .background(
-                                                    Capsule()
-                                                        .fill(AppColors.brand)
-                                                )
-                                        }
-                                        .padding(Spacing.medium)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: CornerRadius.xlarge)
-                                                .fill(Color(.systemGray6))
-                                        )
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .padding(.horizontal, Spacing.large)
-                                }
-                            }
                         }
                         
                         // Calendar view
@@ -230,6 +149,73 @@ private struct OverviewListView: View {
                                         await vm.navigateToToday()
                                     }
                                 )
+                            }
+                        }
+                        
+                        // Streak information for selected habit (premium feature)
+                        if let selectedHabit = vm.selectedHabit {
+                            if vm.hasAdvancedAnalytics {
+                                StreakInfoView(
+                                    habit: selectedHabit,
+                                    currentStreak: vm.currentStreak,
+                                    bestStreak: vm.bestStreak,
+                                    isLoading: vm.isLoadingStreaks,
+                                    shouldAnimateBestStreak: vm.shouldAnimateBestStreak,
+                                    onAnimationComplete: {
+                                        vm.resetBestStreakAnimation()
+                                    }
+                                )
+                            } else {
+                                // Show paywall prompt for stats (without header when locked)
+                                VStack(spacing: Spacing.medium) {
+                                    Button {
+                                        Task { @MainActor in
+                                            let factory = PaywallFactory(container: di)
+                                            let viewModel = factory.makeViewModel()
+                                            await viewModel.load()
+                                            paywallItem = PaywallItem(viewModel: viewModel)
+                                        }
+                                    } label: {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                                                HStack(spacing: Spacing.xxsmall) {
+                                                    Text(Strings.Paywall.unlockAdvancedStats)
+                                                        .font(.subheadline)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(.primary)
+                                                    
+                                                    Image(systemName: "lock.fill")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                
+                                                Text(vm.getStatsBlockedMessage())
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Text(Strings.Paywall.proLabel)
+                                                .font(.caption2)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, Spacing.small)
+                                                .padding(.vertical, Spacing.xxsmall)
+                                                .background(
+                                                    Capsule()
+                                                        .fill(AppColors.brand)
+                                                )
+                                        }
+                                        .padding(Spacing.medium)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: CornerRadius.xlarge)
+                                                .fill(Color(.systemGray6))
+                                        )
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .padding(.horizontal, Spacing.large)
+                                }
                             }
                         } else {
                             // Empty state when no habit is selected

@@ -47,27 +47,7 @@ public struct HabitAssistantSheet: View {
     public var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Header with assistant character
-                VStack(spacing: Spacing.medium) {
-                    Text("🤖")
-                        .font(.system(size: 60))
-                        .padding(.top, Spacing.large)
-                    
-                    VStack(spacing: Spacing.small) {
-                        Text("Let's Get Started!")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        Text("I'll help you choose some habits to begin your journey. Tap the + button to add any habits that interest you.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, Spacing.large)
-                    }
-                }
-                .padding(.bottom, Spacing.large)
-                
-                // Category selector
+                // Category selector (sticky at top for easy filtering)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Spacing.medium) {
                         ForEach(HabitSuggestionCategory.allCases, id: \.self) { category in
@@ -82,23 +62,69 @@ public struct HabitAssistantSheet: View {
                     }
                     .padding(.horizontal, Spacing.medium)
                 }
+                .mask(
+                    // Fade out edges when content overflows
+                    LinearGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: 0.05),
+                            .init(color: .black, location: 0.95),
+                            .init(color: .clear, location: 1)
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                 .padding(.bottom, Spacing.medium)
                 
-                // Suggestions list
+                // Main scrollable content
                 ScrollView {
-                    LazyVStack(spacing: Spacing.medium) {
-                        ForEach(suggestions) { suggestion in
-                            HabitSuggestionRow(
-                                suggestion: suggestion,
-                                isAdded: addedHabits.contains(suggestion.id),
-                                isCreating: isCreatingHabit
-                            ) {
-                                await addHabit(suggestion)
+                    VStack(spacing: 0) {
+                        // Header with assistant character (fades on scroll)
+                        VStack(spacing: Spacing.medium) {
+                            Text("🤖")
+                                .font(.system(size: 60))
+                                .padding(.top, Spacing.large)
+                            
+                            VStack(spacing: Spacing.small) {
+                                Text("Let's Get Started!")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                
+                                Text("I'll help you choose some habits to begin your journey. Tap the + button to add any habits that interest you.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, Spacing.large)
                             }
                         }
+                        .padding(.bottom, Spacing.large)
+                        .scrollTransition { content, phase in
+                            content
+                                .opacity(phase.isIdentity ? 1 : 0)
+                                .scaleEffect(phase.isIdentity ? 1 : 0.95)
+                        }
+                        
+                        // Suggestions list
+                        LazyVStack(spacing: Spacing.medium) {
+                            ForEach(suggestions) { suggestion in
+                                HabitSuggestionRow(
+                                    suggestion: suggestion,
+                                    isAdded: addedHabits.contains(suggestion.id),
+                                    isCreating: isCreatingHabit,
+                                    isDeleting: isDeletingHabit,
+                                    onAdd: {
+                                        await addHabit(suggestion)
+                                    },
+                                    onRemove: {
+                                        await removeHabit(suggestion)
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, Spacing.medium)
+                        .padding(.bottom, Spacing.xlarge)
                     }
-                    .padding(.horizontal, Spacing.medium)
-                    .padding(.bottom, Spacing.xlarge)
                 }
             }
             .navigationTitle("Habit Assistant")
@@ -128,14 +154,15 @@ public struct HabitAssistantSheet: View {
         let result = await onHabitCreate(suggestion)
         
         switch result {
-        case .success:
+        case .success(let habitId):
             addedHabits.insert(suggestion.id)
+            createdHabits[suggestion.id] = habitId
             userActionTracker?.track(.habitsAssistantHabitAdded(
                 habitId: suggestion.id,
                 habitName: suggestion.name,
                 category: categoryName(for: suggestion.category)
             ))
-        case .limitReached(_):
+        case .limitReached:
             // Dismiss the assistant first, then show paywall
             userActionTracker?.track(.habitsAssistantHabitAddFailed(
                 habitId: suggestion.id,
@@ -156,17 +183,44 @@ public struct HabitAssistantSheet: View {
         isCreatingHabit = false
     }
     
+    private func removeHabit(_ suggestion: HabitSuggestion) async {
+        guard addedHabits.contains(suggestion.id),
+              let habitId = createdHabits[suggestion.id] else { return }
+        
+        isDeletingHabit = true
+        let success = await onHabitRemove(habitId)
+        
+        if success {
+            addedHabits.remove(suggestion.id)
+            createdHabits.removeValue(forKey: suggestion.id)
+            userActionTracker?.track(.habitsAssistantHabitRemoved(
+                habitId: suggestion.id,
+                habitName: suggestion.name,
+                category: categoryName(for: suggestion.category)
+            ))
+        } else {
+            userActionTracker?.track(.habitsAssistantHabitRemoveFailed(
+                habitId: suggestion.id,
+                error: "Failed to remove habit"
+            ))
+        }
+        
+        isDeletingHabit = false
+    }
+    
     /// Maps existing habits to suggestion IDs based on similar characteristics
-    private static func mapExistingHabitsToSuggestions(_ habits: [Habit]) -> Set<String> {
+    private static func mapExistingHabitsToSuggestions(_ habits: [Habit]) -> (Set<String>, [String: UUID]) {
         var mappedSuggestions: Set<String> = []
+        var habitMappings: [String: UUID] = [:]
         
         for habit in habits {
             if let suggestionId = findMatchingSuggestionId(for: habit.name.lowercased()) {
                 mappedSuggestions.insert(suggestionId)
+                habitMappings[suggestionId] = habit.id
             }
         }
         
-        return mappedSuggestions
+        return (mappedSuggestions, habitMappings)
     }
     
     /// Find matching suggestion ID for a habit name
@@ -269,7 +323,9 @@ private struct HabitSuggestionRow: View {
     let suggestion: HabitSuggestion
     let isAdded: Bool
     let isCreating: Bool
+    let isDeleting: Bool
     let onAdd: () async -> Void
+    let onRemove: () async -> Void
     
     private var scheduleText: String {
         switch suggestion.schedule {
@@ -334,16 +390,22 @@ private struct HabitSuggestionRow: View {
             
             Spacer()
             
-            // Add button
+            // Add/Remove button
             Button(action: {
-                Task { await onAdd() }
+                Task { 
+                    if isAdded {
+                        await onRemove()
+                    } else {
+                        await onAdd()
+                    }
+                }
             }, label: {
                 ZStack {
                     Circle()
                         .fill(isAdded ? Color.green : AppColors.brand)
                         .frame(width: 32, height: 32)
                     
-                    if isCreating {
+                    if (isCreating && !isAdded) || (isDeleting && isAdded) {
                         ProgressView()
                             .scaleEffect(0.7)
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -358,7 +420,7 @@ private struct HabitSuggestionRow: View {
                     }
                 }
             })
-            .disabled(isAdded || isCreating)
+            .disabled(isCreating || isDeleting)
             .buttonStyle(PlainButtonStyle())
         }
         .padding(Spacing.medium)
@@ -377,7 +439,13 @@ private struct HabitSuggestionRow: View {
             // Mock implementation - simulate creating habit from suggestion
             print("Preview: Creating habit '\(suggestion.name)' with emoji \(suggestion.emoji)")
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
-            return .success
+            return .success(habitId: UUID())
+        },
+        onHabitRemove: { habitId in
+            // Mock implementation - simulate removing habit
+            print("Preview: Removing habit with ID \(habitId)")
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 second
+            return true
         },
         onShowPaywall: {
             print("Preview: Show paywall")

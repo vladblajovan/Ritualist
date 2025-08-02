@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Habit Use Cases
-public protocol CreateHabitUseCase { func execute(_ habit: Habit) async throws }
+public protocol CreateHabitUseCase { func execute(_ habit: Habit) async throws -> Habit }
 public protocol GetActiveHabitsUseCase { func execute() async throws -> [Habit] }
 public protocol GetAllHabitsUseCase { func execute() async throws -> [Habit] }
 public protocol UpdateHabitUseCase { func execute(_ habit: Habit) async throws }
@@ -107,7 +107,7 @@ public protocol GetPurchaseStateUseCase {
 public final class CreateHabit: CreateHabitUseCase {
     private let repo: HabitRepository
     public init(repo: HabitRepository) { self.repo = repo }
-    public func execute(_ habit: Habit) async throws { 
+    public func execute(_ habit: Habit) async throws -> Habit { 
         // Business logic: Set display order to be last
         let existingHabits = try await repo.fetchAllHabits()
         let maxOrder = existingHabits.map(\.displayOrder).max() ?? -1
@@ -129,6 +129,7 @@ public final class CreateHabit: CreateHabitUseCase {
         )
         
         try await repo.create(habitWithOrder)
+        return habitWithOrder
     }
 }
 
@@ -136,9 +137,9 @@ public final class GetActiveHabits: GetActiveHabitsUseCase {
     private let repo: HabitRepository
     public init(repo: HabitRepository) { self.repo = repo }
     public func execute() async throws -> [Habit] {
-        // Business logic: Filter only active habits
+        // Business logic: Filter only active habits and sort by display order
         let allHabits = try await repo.fetchAllHabits()
-        return allHabits.filter { $0.isActive }
+        return allHabits.filter { $0.isActive }.sorted { $0.displayOrder < $1.displayOrder }
     }
 }
 
@@ -490,7 +491,9 @@ public final class GenerateCalendarGrid: GenerateCalendarGridUseCase {
         
         // Find the first day to display (might be from previous month)
         let weekdayOfFirst = calendar.component(.weekday, from: startOfMonth)
-        let firstDisplayDay = calendar.date(byAdding: .day, value: -(weekdayOfFirst - 1), to: startOfMonth) ?? startOfMonth
+        // Calculate days to subtract based on calendar's firstWeekday setting
+        let daysToSubtract = (weekdayOfFirst - calendar.firstWeekday + 7) % 7
+        let firstDisplayDay = calendar.date(byAdding: .day, value: -daysToSubtract, to: startOfMonth) ?? startOfMonth
         
         // Generate 42 days (6 weeks) for a complete calendar grid
         var calendarDays: [CalendarDay] = []
@@ -822,7 +825,7 @@ public protocol CreateHabitFromSuggestionUseCase {
 }
 
 public enum CreateHabitFromSuggestionResult {
-    case success
+    case success(habitId: UUID)
     case limitReached(message: String)
     case error(String)
 }
@@ -859,8 +862,8 @@ public final class CreateHabitFromSuggestion: CreateHabitFromSuggestionUseCase {
         // This ensures proper displayOrder is set (habit will be added to the end of the list)
         do {
             let habit = suggestion.toHabit()
-            try await createHabit.execute(habit)
-            return .success
+            let createdHabit = try await createHabit.execute(habit)
+            return .success(habitId: createdHabit.id)
         } catch {
             return .error("Failed to create habit: \(error.localizedDescription)")
         }

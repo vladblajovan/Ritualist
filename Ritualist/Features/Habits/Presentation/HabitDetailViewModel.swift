@@ -89,7 +89,7 @@ public final class HabitDetailViewModel {
             if isEditMode {
                 try await updateHabit.execute(habit)
             } else {
-                try await createHabit.execute(habit)
+                _ = try await createHabit.execute(habit)
             }
             
             isSaving = false

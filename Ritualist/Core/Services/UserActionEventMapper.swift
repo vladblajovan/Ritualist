@@ -11,7 +11,8 @@ public final class UserActionEventMapper {
         case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed:
             return onboardingEventName(for: event)
         case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected,
-             .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed:
+             .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
+             .habitsAssistantHabitRemoved, .habitsAssistantHabitRemoveFailed:
             return assistantEventName(for: event)
         case .habitCreated, .habitUpdated, .habitDeleted, .habitArchived, .habitRestored,
              .habitLogged, .habitLogDeleted, .habitLogUpdated, .habitStreakAchieved:
@@ -33,7 +34,8 @@ public final class UserActionEventMapper {
         case .onboardingPageViewed, .onboardingStarted, .onboardingCompleted, .onboardingSkipped:
             return onboardingEventProperties(for: event)
         case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected,
-             .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed:
+             .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
+             .habitsAssistantHabitRemoved, .habitsAssistantHabitRemoveFailed:
             return assistantEventProperties(for: event)
         case .habitCreated, .habitUpdated, .habitDeleted, .habitArchived, .habitRestored,
              .habitLogged, .habitLogDeleted, .habitLogUpdated, .habitStreakAchieved:
@@ -72,6 +74,8 @@ private extension UserActionEventMapper {
         case .habitsAssistantHabitSuggestionViewed: return "habits_assistant_habit_suggestion_viewed"
         case .habitsAssistantHabitAdded: return "habits_assistant_habit_added"
         case .habitsAssistantHabitAddFailed: return "habits_assistant_habit_add_failed"
+        case .habitsAssistantHabitRemoved: return "habits_assistant_habit_removed"
+        case .habitsAssistantHabitRemoveFailed: return "habits_assistant_habit_remove_failed"
         default: return ""
         }
     }
@@ -143,6 +147,10 @@ private extension UserActionEventMapper {
         case .habitsAssistantHabitAdded(let habitId, let habitName, let category):
             return ["habit_id": habitId, "habit_name": habitName, "category": category]
         case .habitsAssistantHabitAddFailed(let habitId, let error):
+            return ["habit_id": habitId, "error": error]
+        case .habitsAssistantHabitRemoved(let habitId, let habitName, let category):
+            return ["habit_id": habitId, "habit_name": habitName, "category": category]
+        case .habitsAssistantHabitRemoveFailed(let habitId, let error):
             return ["habit_id": habitId, "error": error]
         default:
             return [:]

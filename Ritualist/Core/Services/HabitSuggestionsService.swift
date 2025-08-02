@@ -12,8 +12,8 @@ public protocol HabitSuggestionsService {
     func getSuggestions(for category: HabitSuggestionCategory) -> [HabitSuggestion]
 }
 
+// swiftlint:disable type_body_length
 public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
-    
     private let suggestions: [HabitSuggestion] = [
         // Health
         HabitSuggestion(
@@ -207,6 +207,340 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             kind: .binary,
             schedule: .timesPerWeek(3),
             description: "Look for opportunities to help others"
+        ),
+        
+        // Additional Health habits
+        HabitSuggestion(
+            id: "stretch",
+            name: "Stretch",
+            emoji: "🤸‍♀️",
+            colorHex: "#FF6B6B",
+            category: .health,
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 10.0,
+            description: "Improve flexibility with daily stretching"
+        ),
+        
+        HabitSuggestion(
+            id: "take_vitamins",
+            name: "Take Vitamins",
+            emoji: "💊",
+            colorHex: "#4ECDC4",
+            category: .health,
+            kind: .binary,
+            description: "Take your daily vitamins and supplements"
+        ),
+        
+        HabitSuggestion(
+            id: "eat_vegetables",
+            name: "Eat Vegetables",
+            emoji: "🥬",
+            colorHex: "#A8E6CF",
+            category: .health,
+            kind: .numeric,
+            unitLabel: "servings",
+            dailyTarget: 3.0,
+            description: "Include healthy vegetables in your meals"
+        ),
+        
+        HabitSuggestion(
+            id: "limit_sugar",
+            name: "Limit Sugar",
+            emoji: "🚫",
+            colorHex: "#FFB6C1",
+            category: .health,
+            kind: .binary,
+            description: "Avoid excessive sugar consumption"
+        ),
+        
+        HabitSuggestion(
+            id: "drink_tea",
+            name: "Drink Herbal Tea",
+            emoji: "🍵",
+            colorHex: "#DEB887",
+            category: .health,
+            kind: .numeric,
+            unitLabel: "cups",
+            dailyTarget: 2.0,
+            description: "Enjoy the benefits of herbal tea"
+        ),
+        
+        HabitSuggestion(
+            id: "posture_check",
+            name: "Check Posture",
+            emoji: "🧍‍♀️",
+            colorHex: "#D2691E",
+            category: .health,
+            kind: .numeric,
+            unitLabel: "times",
+            dailyTarget: 5.0,
+            description: "Maintain good posture throughout the day"
+        ),
+        
+        // Additional Wellness habits
+        HabitSuggestion(
+            id: "cold_shower",
+            name: "Cold Shower",
+            emoji: "🚿",
+            colorHex: "#87CEEB",
+            category: .wellness,
+            kind: .binary,
+            schedule: .timesPerWeek(3),
+            description: "Boost energy and resilience with cold showers"
+        ),
+        
+        HabitSuggestion(
+            id: "nature_time",
+            name: "Time in Nature",
+            emoji: "🌲",
+            colorHex: "#228B22",
+            category: .wellness,
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 30.0,
+            description: "Spend time outdoors for mental wellness"
+        ),
+        
+        HabitSuggestion(
+            id: "digital_detox",
+            name: "Digital Detox",
+            emoji: "📱",
+            colorHex: "#696969",
+            category: .wellness,
+            kind: .numeric,
+            unitLabel: "hours",
+            dailyTarget: 2.0,
+            description: "Take breaks from digital devices"
+        ),
+        
+        HabitSuggestion(
+            id: "listen_music",
+            name: "Listen to Music",
+            emoji: "🎵",
+            colorHex: "#DA70D6",
+            category: .wellness,
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 20.0,
+            description: "Relax and enjoy music for mental well-being"
+        ),
+        
+        HabitSuggestion(
+            id: "skincare_routine",
+            name: "Skincare Routine",
+            emoji: "🧴",
+            colorHex: "#F0E68C",
+            category: .wellness,
+            kind: .binary,
+            description: "Take care of your skin with a daily routine"
+        ),
+        
+        HabitSuggestion(
+            id: "affirmations",
+            name: "Positive Affirmations",
+            emoji: "💭",
+            colorHex: "#FFD700",
+            category: .wellness,
+            kind: .binary,
+            description: "Start your day with positive self-talk"
+        ),
+        
+        // Additional Productivity habits
+        HabitSuggestion(
+            id: "make_bed",
+            name: "Make Bed",
+            emoji: "🛏️",
+            colorHex: "#8FBC8F",
+            category: .productivity,
+            kind: .binary,
+            description: "Start your day with a simple accomplished task"
+        ),
+        
+        HabitSuggestion(
+            id: "review_goals",
+            name: "Review Goals",
+            emoji: "🎯",
+            colorHex: "#FF4500",
+            category: .productivity,
+            kind: .binary,
+            schedule: .daysOfWeek([7]), // Sunday
+            description: "Weekly review of your goals and progress"
+        ),
+        
+        HabitSuggestion(
+            id: "time_block",
+            name: "Time Blocking",
+            emoji: "⏰",
+            colorHex: "#4169E1",
+            category: .productivity,
+            kind: .binary,
+            description: "Plan your day using time blocking technique"
+        ),
+        
+        HabitSuggestion(
+            id: "inbox_zero",
+            name: "Clear Email Inbox",
+            emoji: "📧",
+            colorHex: "#1E90FF",
+            category: .productivity,
+            kind: .binary,
+            description: "Process and organize your email inbox"
+        ),
+        
+        HabitSuggestion(
+            id: "single_task",
+            name: "Single-Tasking",
+            emoji: "🎯",
+            colorHex: "#FF6347",
+            category: .productivity,
+            kind: .binary,
+            description: "Focus on one task at a time"
+        ),
+        
+        HabitSuggestion(
+            id: "declutter",
+            name: "Declutter Space",
+            emoji: "📦",
+            colorHex: "#CD853F",
+            category: .productivity,
+            kind: .binary,
+            schedule: .timesPerWeek(2),
+            description: "Remove unnecessary items from your space"
+        ),
+        
+        // Additional Learning habits
+        HabitSuggestion(
+            id: "watch_documentary",
+            name: "Watch Documentary",
+            emoji: "🎬",
+            colorHex: "#8B4513",
+            category: .learning,
+            kind: .binary,
+            schedule: .timesPerWeek(2),
+            description: "Learn something new through documentaries"
+        ),
+        
+        HabitSuggestion(
+            id: "practice_instrument",
+            name: "Practice Instrument",
+            emoji: "🎸",
+            colorHex: "#B8860B",
+            category: .learning,
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 20.0,
+            description: "Practice playing a musical instrument"
+        ),
+        
+        HabitSuggestion(
+            id: "write_journal",
+            name: "Write Journal",
+            emoji: "📖",
+            colorHex: "#8B0000",
+            category: .learning,
+            kind: .binary,
+            description: "Reflect and document your thoughts daily"
+        ),
+        
+        HabitSuggestion(
+            id: "listen_podcast",
+            name: "Listen to Podcast",
+            emoji: "🎧",
+            colorHex: "#2F4F4F",
+            category: .learning,
+            kind: .numeric,
+            unitLabel: "episodes",
+            dailyTarget: 1.0,
+            description: "Learn while commuting or exercising"
+        ),
+        
+        HabitSuggestion(
+            id: "practice_coding",
+            name: "Practice Coding",
+            emoji: "💻",
+            colorHex: "#000080",
+            category: .learning,
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 45.0,
+            description: "Improve programming skills with daily practice"
+        ),
+        
+        HabitSuggestion(
+            id: "learn_recipe",
+            name: "Learn New Recipe",
+            emoji: "👨‍🍳",
+            colorHex: "#FF8C00",
+            category: .learning,
+            kind: .binary,
+            schedule: .timesPerWeek(1),
+            description: "Expand culinary skills with new recipes"
+        ),
+        
+        // Additional Social habits
+        HabitSuggestion(
+            id: "text_friends",
+            name: "Text Friends",
+            emoji: "💬",
+            colorHex: "#32CD32",
+            category: .social,
+            kind: .binary,
+            description: "Stay in touch with friends regularly"
+        ),
+        
+        HabitSuggestion(
+            id: "volunteer",
+            name: "Volunteer",
+            emoji: "❤️",
+            colorHex: "#DC143C",
+            category: .social,
+            kind: .binary,
+            schedule: .timesPerWeek(1),
+            description: "Give back to your community through volunteering"
+        ),
+        
+        HabitSuggestion(
+            id: "meet_new_people",
+            name: "Meet New People",
+            emoji: "👋",
+            colorHex: "#FF69B4",
+            category: .social,
+            kind: .binary,
+            schedule: .timesPerWeek(1),
+            description: "Expand your social circle and network"
+        ),
+        
+        HabitSuggestion(
+            id: "practice_gratitude_others",
+            name: "Thank Someone",
+            emoji: "🙏",
+            colorHex: "#DDA0DD",
+            category: .social,
+            kind: .binary,
+            description: "Express gratitude to people around you"
+        ),
+        
+        HabitSuggestion(
+            id: "social_activity",
+            name: "Social Activity",
+            emoji: "🎲",
+            colorHex: "#20B2AA",
+            category: .social,
+            kind: .binary,
+            schedule: .timesPerWeek(2),
+            description: "Engage in activities with others"
+        ),
+        
+        HabitSuggestion(
+            id: "write_letter",
+            name: "Write a Letter",
+            emoji: "✉️",
+            colorHex: "#F4A460",
+            category: .social,
+            kind: .binary,
+            schedule: .timesPerWeek(1),
+            description: "Connect meaningfully through handwritten letters"
         )
     ]
     
