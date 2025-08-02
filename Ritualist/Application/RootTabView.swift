@@ -46,7 +46,9 @@ public struct RootTabView: View {
             await checkOnboardingStatus()
         }
         .fullScreenCover(isPresented: $showOnboarding) {
-            OnboardingFlowView()
+            OnboardingFlowView(onComplete: {
+                showOnboarding = false
+            })
         }
         .onChange(of: showOnboarding) { _, isShowing in
             if !isShowing {

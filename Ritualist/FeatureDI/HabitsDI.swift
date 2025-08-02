@@ -9,6 +9,7 @@ public struct HabitsFactory {
         let updateHabit = UpdateHabit(repo: container.habitRepository)
         let deleteHabit = DeleteHabit(repo: container.habitRepository)
         let toggleHabitActiveStatus = ToggleHabitActiveStatus(repo: container.habitRepository)
+        let reorderHabits = ReorderHabits(repo: container.habitRepository)
         let checkHabitCreationLimit = CheckHabitCreationLimit(featureGatingService: container.featureGatingService)
         
         return HabitsViewModel(
@@ -17,6 +18,7 @@ public struct HabitsFactory {
             updateHabit: updateHabit,
             deleteHabit: deleteHabit,
             toggleHabitActiveStatus: toggleHabitActiveStatus,
+            reorderHabits: reorderHabits,
             checkHabitCreationLimit: checkHabitCreationLimit
         )
     }

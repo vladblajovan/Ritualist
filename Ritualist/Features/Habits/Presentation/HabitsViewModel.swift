@@ -8,6 +8,7 @@ public final class HabitsViewModel {
     private let updateHabit: UpdateHabitUseCase
     private let deleteHabit: DeleteHabitUseCase
     private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
+    private let reorderHabits: ReorderHabitsUseCase
     private let checkHabitCreationLimit: CheckHabitCreationLimitUseCase
     
     public private(set) var items: [Habit] = []
@@ -29,12 +30,14 @@ public final class HabitsViewModel {
                 updateHabit: UpdateHabitUseCase,
                 deleteHabit: DeleteHabitUseCase,
                 toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
+                reorderHabits: ReorderHabitsUseCase,
                 checkHabitCreationLimit: CheckHabitCreationLimitUseCase) {
         self.getAllHabits = getAllHabits
         self.createHabit = createHabit
         self.updateHabit = updateHabit
         self.deleteHabit = deleteHabit
         self.toggleHabitActiveStatus = toggleHabitActiveStatus
+        self.reorderHabits = reorderHabits
         self.checkHabitCreationLimit = checkHabitCreationLimit
         
         setupRefreshObservation()
@@ -113,6 +116,23 @@ public final class HabitsViewModel {
             return true
         } catch {
             self.error = error
+            isUpdating = false
+            return false
+        }
+    }
+    
+    public func reorderHabits(_ newOrder: [Habit]) async -> Bool {
+        isUpdating = true
+        error = nil
+        
+        do {
+            try await reorderHabits.execute(newOrder)
+            items = newOrder // Update local state immediately for smooth UI
+            isUpdating = false
+            return true
+        } catch {
+            self.error = error
+            await load() // Reload on error to restore correct order
             isUpdating = false
             return false
         }

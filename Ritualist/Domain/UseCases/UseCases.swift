@@ -7,6 +7,7 @@ public protocol GetAllHabitsUseCase { func execute() async throws -> [Habit] }
 public protocol UpdateHabitUseCase { func execute(_ habit: Habit) async throws }
 public protocol DeleteHabitUseCase { func execute(id: UUID) async throws }
 public protocol ToggleHabitActiveStatusUseCase { func execute(id: UUID) async throws -> Habit }
+public protocol ReorderHabitsUseCase { func execute(_ habits: [Habit]) async throws }
 
 // MARK: - Log Use Cases
 public protocol GetLogsUseCase { func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog] }
@@ -106,7 +107,29 @@ public protocol GetPurchaseStateUseCase {
 public final class CreateHabit: CreateHabitUseCase {
     private let repo: HabitRepository
     public init(repo: HabitRepository) { self.repo = repo }
-    public func execute(_ habit: Habit) async throws { try await repo.create(habit) }
+    public func execute(_ habit: Habit) async throws { 
+        // Business logic: Set display order to be last
+        let existingHabits = try await repo.fetchAllHabits()
+        let maxOrder = existingHabits.map(\.displayOrder).max() ?? -1
+        
+        let habitWithOrder = Habit(
+            id: habit.id,
+            name: habit.name,
+            colorHex: habit.colorHex,
+            emoji: habit.emoji,
+            kind: habit.kind,
+            unitLabel: habit.unitLabel,
+            dailyTarget: habit.dailyTarget,
+            schedule: habit.schedule,
+            reminders: habit.reminders,
+            startDate: habit.startDate,
+            endDate: habit.endDate,
+            isActive: habit.isActive,
+            displayOrder: maxOrder + 1
+        )
+        
+        try await repo.create(habitWithOrder)
+    }
 }
 
 public final class GetActiveHabits: GetActiveHabitsUseCase {
@@ -122,7 +145,10 @@ public final class GetActiveHabits: GetActiveHabitsUseCase {
 public final class GetAllHabits: GetAllHabitsUseCase {
     private let repo: HabitRepository
     public init(repo: HabitRepository) { self.repo = repo }
-    public func execute() async throws -> [Habit] { try await repo.fetchAllHabits() }
+    public func execute() async throws -> [Habit] { 
+        let habits = try await repo.fetchAllHabits()
+        return habits.sorted { $0.displayOrder < $1.displayOrder }
+    }
 }
 
 public final class UpdateHabit: UpdateHabitUseCase {
@@ -158,11 +184,44 @@ public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
             reminders: habit.reminders,
             startDate: habit.startDate,
             endDate: habit.endDate,
-            isActive: !habit.isActive
+            isActive: !habit.isActive,
+            displayOrder: habit.displayOrder
         )
         
         try await repo.update(updatedHabit)
         return updatedHabit
+    }
+}
+
+public final class ReorderHabits: ReorderHabitsUseCase {
+    private let repo: HabitRepository
+    public init(repo: HabitRepository) { self.repo = repo }
+    public func execute(_ habits: [Habit]) async throws {
+        // Business logic: Update display order for each habit
+        var updatedHabits: [Habit] = []
+        for (index, habit) in habits.enumerated() {
+            let updatedHabit = Habit(
+                id: habit.id,
+                name: habit.name,
+                colorHex: habit.colorHex,
+                emoji: habit.emoji,
+                kind: habit.kind,
+                unitLabel: habit.unitLabel,
+                dailyTarget: habit.dailyTarget,
+                schedule: habit.schedule,
+                reminders: habit.reminders,
+                startDate: habit.startDate,
+                endDate: habit.endDate,
+                isActive: habit.isActive,
+                displayOrder: index
+            )
+            updatedHabits.append(updatedHabit)
+        }
+        
+        // Update all habits with new order
+        for habit in updatedHabits {
+            try await repo.update(habit)
+        }
     }
 }
 

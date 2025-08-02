@@ -8,7 +8,7 @@ public enum HabitMapper {
         return SDHabit(id: habit.id, name: habit.name, colorHex: habit.colorHex, emoji: habit.emoji,
                        kindRaw: kindRaw, unitLabel: habit.unitLabel, dailyTarget: habit.dailyTarget,
                        scheduleData: schedule, remindersData: reminders, startDate: habit.startDate,
-                       endDate: habit.endDate, isActive: habit.isActive)
+                       endDate: habit.endDate, isActive: habit.isActive, displayOrder: habit.displayOrder)
     }
     public static func fromSD(_ sd: SDHabit) throws -> Habit {
         let schedule = try JSONDecoder().decode(HabitSchedule.self, from: sd.scheduleData)
@@ -16,7 +16,8 @@ public enum HabitMapper {
         let kind: HabitKind = (sd.kindRaw == 0) ? .binary : .numeric
         return Habit(id: sd.id, name: sd.name, colorHex: sd.colorHex, emoji: sd.emoji, kind: kind,
                      unitLabel: sd.unitLabel, dailyTarget: sd.dailyTarget, schedule: schedule,
-                     reminders: reminders, startDate: sd.startDate, endDate: sd.endDate, isActive: sd.isActive)
+                     reminders: reminders, startDate: sd.startDate, endDate: sd.endDate, isActive: sd.isActive,
+                     displayOrder: sd.displayOrder)
     }
 }
 

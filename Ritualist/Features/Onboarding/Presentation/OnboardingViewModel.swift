@@ -76,16 +76,19 @@ public final class OnboardingViewModel {
         }
     }
     
-    public func finishOnboarding() async {
+    public func finishOnboarding() async -> Bool {
         isLoading = true
         do {
             try await completeOnboarding.execute(userName: userName.isEmpty ? nil : userName, 
                                                hasNotifications: hasGrantedNotifications)
             isCompleted = true
+            isLoading = false
+            return true
         } catch {
             errorMessage = "Failed to complete onboarding"
+            isLoading = false
+            return false
         }
-        isLoading = false
     }
     
     public var canProceedFromCurrentPage: Bool {

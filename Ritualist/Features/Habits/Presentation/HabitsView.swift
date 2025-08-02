@@ -263,6 +263,11 @@ private struct HabitsListView: View {
                                 showingDeleteConfirmation = true
                             }
                         })
+                        .onMove(perform: { source, destination in
+                            Task {
+                                await moveHabit(from: source, to: destination)
+                            }
+                        })
                     }
                     .refreshable {
                         await vm.load()
@@ -327,6 +332,12 @@ private struct HabitsListView: View {
     
     private func deleteHabit(_ habit: Habit) async {
         _ = await vm.delete(id: habit.id)
+    }
+    
+    private func moveHabit(from source: IndexSet, to destination: Int) async {
+        var reorderedHabits = vm.items
+        reorderedHabits.move(fromOffsets: source, toOffset: destination)
+        _ = await vm.reorderHabits(reorderedHabits)
     }
 }
 
