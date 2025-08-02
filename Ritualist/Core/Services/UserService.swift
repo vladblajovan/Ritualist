@@ -30,7 +30,7 @@ public protocol UserService {
 
 @MainActor @Observable
 public final class MockUserService: UserService {
-    private var _currentProfile: UserProfile = UserProfile()
+    private var _currentProfile = UserProfile()
     
     // Store different test subscription states for easy switching
     private let testSubscriptionStates: [String: (SubscriptionPlan, Date?)] = [
@@ -95,7 +95,7 @@ public final class MockUserService: UserService {
 
 @MainActor @Observable
 public final class ICloudUserService: UserService {
-    private var _currentProfile: UserProfile = UserProfile()
+    private var _currentProfile = UserProfile()
     
     public init() {
         // Initialize with default profile

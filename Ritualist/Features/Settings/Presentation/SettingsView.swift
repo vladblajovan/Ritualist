@@ -201,13 +201,9 @@ private struct SettingsFormView: View {
                                         .foregroundColor(.secondary)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
-                                
                                 Spacer()
                             }
-                            
-                            // Button aligned with text content, not icon
                             HStack {
-                                // Spacer to match icon width + spacing
                                 Spacer()
                                     .frame(width: 24 + Spacing.medium)
                                 
@@ -236,7 +232,6 @@ private struct SettingsFormView: View {
                                     .buttonStyle(.bordered)
                                     .controlSize(.regular)
                                 }
-                                
                                 Spacer()
                             }
                         }
@@ -273,7 +268,7 @@ private struct SettingsFormView: View {
                 }
                 .safeAreaInset(edge: .top) {
                     if vm.saveSuccess {
-                        AutoSaveConfirmationView(message: Strings.Settings.settingsSaved) {
+                        SettingsSavedConfirmationView(message: Strings.Settings.settingsSaved) {
                             vm.clearSaveSuccess()
                         }
                         .padding(.top, Spacing.small)
@@ -330,7 +325,7 @@ private struct SettingsFormView: View {
     }
     
     private var hasChanges: Bool {
-        return name != vm.profile.name ||
+        name != vm.profile.name ||
                firstDayOfWeek != vm.profile.firstDayOfWeek ||
                appearance != vm.profile.appearance
     }
@@ -390,7 +385,7 @@ private struct SettingsFormView: View {
     }
 }
 
-private struct AutoSaveConfirmationView: View {
+private struct SettingsSavedConfirmationView: View {
     let message: String
     let onDismiss: () -> Void
     

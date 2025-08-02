@@ -130,7 +130,6 @@ public final class DefaultAppContainer: AppContainer {
         )
     }
     
-    
     // Minimal container for environment defaults - creates non-async services
     @MainActor
     public static func createMinimal() -> DefaultAppContainer {
