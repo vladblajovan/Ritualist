@@ -1,10 +1,19 @@
 import SwiftUI
 
+// MARK: - Height Preference Key
+private struct CardHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 public struct TipsCarouselView: View {
     let tips: [Tip]
     let isLoading: Bool
     let onTipTap: (Tip) -> Void
     let onShowMoreTap: () -> Void
+    @State private var maxCardHeight: CGFloat = 0
     
     public init(tips: [Tip], isLoading: Bool, onTipTap: @escaping (Tip) -> Void, onShowMoreTap: @escaping () -> Void) {
         self.tips = tips
@@ -42,19 +51,26 @@ public struct TipsCarouselView: View {
             } else {
                 // Tips carousel
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Spacing.medium) {
+                    HStack(alignment: .top, spacing: Spacing.medium) {
                         // Feature tips
                         ForEach(tips, id: \.id) { tip in
                             TipCard(
                                 tip: tip,
+                                targetHeight: maxCardHeight,
                                 onTap: { onTipTap(tip) }
                             )
                         }
                         
                         // "Show more" card
-                        ShowMoreTipCard(onTap: onShowMoreTap)
+                        ShowMoreTipCard(
+                            targetHeight: maxCardHeight,
+                            onTap: onShowMoreTap
+                        )
                     }
                     .padding(.horizontal, Spacing.large)
+                }
+                .onPreferenceChange(CardHeightPreferenceKey.self) { height in
+                    maxCardHeight = height
                 }
                 .mask(
                     // Fade out edges when content overflows
@@ -79,25 +95,40 @@ public struct TipsCarouselView: View {
 // MARK: - Tip Card Component
 private struct TipCard: View {
     let tip: Tip
+    let targetHeight: CGFloat
     let onTap: () -> Void
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
+    private var cardWidth: CGFloat {
+        switch horizontalSizeClass {
+        case .compact:
+            return 160  // Smaller width for iPhone
+        case .regular:
+            return 200  // Original width for iPad
+        default:
+            return 160
+        }
+    }
     
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: Spacing.small) {
                 // Icon and title
-                HStack(spacing: Spacing.small) {
+                HStack(alignment: .top, spacing: Spacing.small) {
                     if let icon = tip.icon {
                         Image(systemName: icon)
                             .font(.title2)
                             .foregroundColor(AppColors.brand)
+                            .frame(width: 20)
                     }
                     
                     Text(tip.title)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                     
-                    Spacer()
+                    Spacer(minLength: 0)
                 }
                 
                 // Description
@@ -105,12 +136,19 @@ private struct TipCard: View {
                     .font(.caption)
                     .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.leading)
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 
-                Spacer()
+                Spacer(minLength: 0)
             }
             .padding(Spacing.medium)
-            .frame(width: ComponentSize.tipCardWidth, height: ComponentSize.tipCardHeight)
+            .frame(width: cardWidth)
+            .frame(height: targetHeight > 0 ? targetHeight : nil)
+            .background(
+                GeometryReader { geometry in
+                    Color.clear
+                        .preference(key: CardHeightPreferenceKey.self, value: geometry.size.height)
+                }
+            )
             .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -125,11 +163,26 @@ private struct TipCard: View {
 
 // MARK: - Show More Card Component
 private struct ShowMoreTipCard: View {
+    let targetHeight: CGFloat
     let onTap: () -> Void
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
+    private var cardWidth: CGFloat {
+        switch horizontalSizeClass {
+        case .compact:
+            return 160  // Smaller width for iPhone
+        case .regular:
+            return 200  // Original width for iPad
+        default:
+            return 160
+        }
+    }
     
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: Spacing.small) {
+                Spacer(minLength: 0)
+                
                 Image(systemName: "ellipsis.circle.fill")
                     .font(.title)
                     .foregroundColor(AppColors.brand)
@@ -138,9 +191,19 @@ private struct ShowMoreTipCard: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Spacer(minLength: 0)
             }
             .padding(Spacing.medium)
-            .frame(width: ComponentSize.tipCardWidth, height: ComponentSize.tipCardHeight)
+            .frame(width: cardWidth)
+            .frame(height: targetHeight > 0 ? targetHeight : nil)
+            .background(
+                GeometryReader { geometry in
+                    Color.clear
+                        .preference(key: CardHeightPreferenceKey.self, value: geometry.size.height)
+                }
+            )
             .background(
                 AppColors.brand.opacity(0.1),
                 in: RoundedRectangle(cornerRadius: 12)
@@ -158,10 +221,23 @@ private struct ShowMoreTipCard: View {
 
 // MARK: - Loading Placeholder
 private struct TipCardPlaceholder: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
+    private var cardWidth: CGFloat {
+        switch horizontalSizeClass {
+        case .compact:
+            return 160  // Smaller width for iPhone
+        case .regular:
+            return 200  // Original width for iPad
+        default:
+            return 160
+        }
+    }
+    
     var body: some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(AppColors.systemGray6)
-            .frame(width: ComponentSize.tipCardWidth, height: ComponentSize.tipCardHeight)
+            .frame(width: cardWidth, height: ComponentSize.tipCardHeight)
             .redacted(reason: .placeholder)
     }
 }

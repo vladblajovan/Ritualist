@@ -8,15 +8,13 @@ public protocol AppContainer {
     var profileRepository: ProfileRepository { get }
     var tipRepository: TipRepository { get }
     var onboardingRepository: OnboardingRepository { get }
-    var userAuthRepository: UserAuthRepository { get }
     var notificationService: NotificationService { get }
     var dateProvider: DateProvider { get }
     var streakEngine: StreakEngine { get }
     var appearanceManager: AppearanceManager { get }
     var habitSuggestionsService: HabitSuggestionsService { get }
     var userActionTracker: UserActionTracker { get }
-    var authenticationService: any AuthenticationService { get }
-    var userSession: any UserSessionProtocol { get }
+    var userService: UserService { get }
     var paywallService: PaywallService { get }
     var featureGatingService: FeatureGatingService { get }
     var slogansService: SlogansServiceProtocol { get }

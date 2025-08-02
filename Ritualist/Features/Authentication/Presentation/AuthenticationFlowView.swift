@@ -4,18 +4,10 @@ struct AuthenticationFlowView: View {
     @Environment(\.appContainer) private var container
     
     var body: some View {
-        // Cast to specific types since @ObservedObject can't work with existentials
-        Group {
-            if let userSession = container.userSession as? UserSession {
-                ReactiveAuthFlow(userSession: userSession, container: container)
-            } else if let userSession = container.userSession as? NoOpUserSession {
-                ReactiveNoOpAuthFlow(userSession: userSession, container: container)
-            } else {
-                // This should never happen, but provide fallback
-                Text("Authentication system unavailable")
-                    .foregroundColor(.red)
-            }
-        }
+        // This view is no longer used - authentication has been removed
+        // Keeping for compatibility, but should be cleaned up
+        Text("Authentication flow no longer needed")
+            .foregroundColor(.red)
     }
 }
 

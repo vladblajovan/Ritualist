@@ -57,13 +57,13 @@ public enum FeatureType: String, CaseIterable {
 
 @Observable
 public final class DefaultFeatureGatingService: FeatureGatingService {
-    private let userSession: any UserSessionProtocol
+    private let userService: UserService
     
     // Free tier limits
     private static let freeMaxHabits = 5
     
-    public init(userSession: any UserSessionProtocol) {
-        self.userSession = userSession
+    public init(userService: UserService) {
+        self.userService = userService
     }
     
     @MainActor
@@ -138,7 +138,7 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
     
     @MainActor
     private var isPremiumUser: Bool {
-        userSession.isPremiumUser
+        userService.isPremiumUser
     }
 }
 

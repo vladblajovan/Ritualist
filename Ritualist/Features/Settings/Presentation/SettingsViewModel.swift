@@ -5,11 +5,9 @@ import Observation
 public final class SettingsViewModel {
     private let loadProfile: LoadProfileUseCase
     private let saveProfile: SaveProfileUseCase
-    private let updateUser: UpdateUserUseCase
     private let requestNotificationPermission: RequestNotificationPermissionUseCase
     private let checkNotificationStatus: CheckNotificationStatusUseCase
-    private let signOutUser: SignOutUserUseCase
-    private let userSession: any UserSessionProtocol
+    private let userService: UserService
     private let appContainer: AppContainer
 
     public var profile = UserProfile()
@@ -20,43 +18,27 @@ public final class SettingsViewModel {
     public private(set) var autoSaveMessage: String?
     public private(set) var hasNotificationPermission = false
     public private(set) var isRequestingNotifications = false
-    public private(set) var isLoggingOut = false
-    public private(set) var isUpdatingUser = false
     public private(set) var isCancellingSubscription = false
+    public private(set) var isUpdatingUser = false
     
-    // Reactive properties to track user session state
-    public var currentUser: User? {
-        userSession.currentUser
-    }
-    
-    public var isAuthenticated: Bool {
-        userSession.isAuthenticated
-    }
-    
+    // Computed properties
     public var isPremiumUser: Bool {
-        userSession.isPremiumUser
+        userService.isPremiumUser
     }
 
     public init(loadProfile: LoadProfileUseCase, 
                 saveProfile: SaveProfileUseCase, 
-                updateUser: UpdateUserUseCase, 
                 requestNotificationPermission: RequestNotificationPermissionUseCase,
                 checkNotificationStatus: CheckNotificationStatusUseCase,
-                signOutUser: SignOutUserUseCase,
-                userSession: any UserSessionProtocol, 
+                userService: UserService, 
                 appContainer: AppContainer) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
-        self.updateUser = updateUser
         self.requestNotificationPermission = requestNotificationPermission
         self.checkNotificationStatus = checkNotificationStatus
-        self.signOutUser = signOutUser
-        self.userSession = userSession
+        self.userService = userService
         self.appContainer = appContainer
-        
-        // With @Observable UserSession, no manual setup needed
     }
-    
     
     public func load() async {
         isLoading = true
@@ -160,31 +142,19 @@ public final class SettingsViewModel {
     
     // MARK: - Authentication Methods
     
-    public func signOut() async {
-        isLoggingOut = true
-        error = nil
-        
-        do {
-            try await signOutUser.execute()
-        } catch {
-            self.error = error
-        }
-        
-        isLoggingOut = false
-    }
+    // Sign out is no longer needed since there's no authentication
     
     public func updateUserName(_ name: String) async {
-        guard let currentUser = userSession.currentUser else { return }
-        
         isUpdatingUser = true
         error = nil
         
-        var updatedUser = currentUser
-        updatedUser.name = name
+        // Update both the local profile state and via UserService
+        profile.name = name
+        profile.updatedAt = Date()
         
         do {
-            _ = try await updateUser.execute(updatedUser)
-            // The updated user will be reflected automatically through userSession
+            try await userService.updateProfile(profile)
+            // Profile is automatically updated via the single source of truth
         } catch {
             self.error = error
         }
@@ -193,18 +163,12 @@ public final class SettingsViewModel {
     }
     
     public func cancelSubscription() async {
-        guard let currentUser = userSession.currentUser else { return }
-        
         isCancellingSubscription = true
         error = nil
         
-        var updatedUser = currentUser
-        updatedUser.subscriptionPlan = SubscriptionPlan.free
-        updatedUser.subscriptionExpiryDate = nil
-        
         do {
-            _ = try await updateUser.execute(updatedUser)
-            // The updated user will be reflected automatically through userSession
+            // Cancel subscription through user service
+            try await userService.updateSubscription(plan: .free, expiryDate: nil)
             
             // Clear any stored purchases from the paywall service
             appContainer.paywallService.clearPurchases()
@@ -213,5 +177,11 @@ public final class SettingsViewModel {
         }
         
         isCancellingSubscription = false
+    }
+    
+    // Method to refresh premium status after purchases
+    public func refreshPremiumStatus() {
+        // Since UserService is @Observable, accessing isPremiumUser will trigger UI updates
+        _ = userService.isPremiumUser
     }
 }

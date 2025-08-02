@@ -144,10 +144,7 @@ public struct PaywallView: View {
                 Spacer()
             }
             
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 16) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: adaptiveColumnCount), spacing: 16) {
                 ForEach(vm.benefits) { benefit in
                     BenefitCard(benefit: benefit)
                 }
@@ -200,7 +197,7 @@ public struct PaywallView: View {
                             .tint(.white)
                         Text("Processing...")
                     } else {
-                        Text("Start Free Trial")
+                        Text(purchaseButtonText)
                             .fontWeight(.semibold)
                     }
                 }
@@ -218,10 +215,40 @@ public struct PaywallView: View {
             }
             .disabled(vm.isPurchasing || vm.selectedProduct == nil)
             
-            Text("7-day free trial, then \(vm.selectedProduct?.localizedPrice ?? ""). Cancel anytime.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+            if let trialText = trialInfoText {
+                Text(trialText)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+    }
+    
+    // MARK: - Helper Properties
+    
+    private var purchaseButtonText: String {
+        guard let selectedProduct = vm.selectedProduct else { return "Purchase" }
+        return selectedProduct.duration == .annual ? "Start Free Trial" : "Purchase"
+    }
+    
+    private var trialInfoText: String? {
+        guard let selectedProduct = vm.selectedProduct else { return nil }
+        if selectedProduct.duration == .annual {
+            return "7-day free trial, then \(selectedProduct.localizedPrice). Cancel anytime."
+        }
+        return nil
+    }
+    
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
+    private var adaptiveColumnCount: Int {
+        switch horizontalSizeClass {
+        case .compact:
+            return 2  // iPhone portrait
+        case .regular:
+            return 3  // iPad or iPhone landscape
+        default:
+            return 2
         }
     }
     
@@ -255,15 +282,21 @@ private struct BenefitCard: View {
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .frame(minHeight: 40)
             
             Text(benefit.description)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .top)
+            
+            Spacer(minLength: 0)
         }
         .padding(16)
         .frame(maxWidth: .infinity)
+        .frame(minHeight: 130)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CornerRadius.xlarge))
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadius.xlarge)
@@ -378,10 +411,9 @@ private struct PricingCard: View {
 
 #Preview {
     let mockService = MockPaywallService()
-    let mockAuthService = MockAuthenticationService()
-    let mockUserSession = UserSession(authService: mockAuthService)
-    let updateUserSubscriptionUseCase = UpdateUserSubscription(
-        userSession: mockUserSession,
+    let mockUserService = MockUserService()
+    let updateProfileSubscription = UpdateProfileSubscription(
+        userService: mockUserService,
         paywallService: mockService
     )
     let loadPaywallProducts = LoadPaywallProducts(paywallService: mockService)
@@ -398,8 +430,8 @@ private struct PricingCard: View {
         checkProductPurchased: checkProductPurchased,
         resetPurchaseState: resetPurchaseState,
         getPurchaseState: getPurchaseState,
-        updateUserSubscription: updateUserSubscriptionUseCase,
-        userSession: mockUserSession
+        updateProfileSubscription: updateProfileSubscription,
+        userService: mockUserService
     )
     
     PaywallView(vm: vm)

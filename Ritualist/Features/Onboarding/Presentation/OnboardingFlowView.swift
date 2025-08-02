@@ -3,15 +3,19 @@ import SwiftUI
 public struct OnboardingFlowView: View {
     @Environment(\.appContainer) private var di
     @State private var viewModel: OnboardingViewModel?
+    @State private var flowViewModel: OnboardingFlowViewModel?
     @State private var showingHabitAssistant = false
     @State private var showingPaywall = false
     @State private var paywallItem: PaywallItem?
     @State private var shouldReopenAssistantAfterPaywall = false
     @State private var isHandlingPaywallDismissal = false
     @State private var paywallWasShownFromAssistant = false
-    @Environment(\.dismiss) private var dismiss
     
-    public init() {}
+    private let onComplete: () -> Void
+    
+    public init(onComplete: @escaping () -> Void = {}) {
+        self.onComplete = onComplete
+    }
     
     public var body: some View {
         Group {
@@ -24,7 +28,10 @@ public struct OnboardingFlowView: View {
                 ProgressView()
                     .task {
                         viewModel = di.onboardingFactory.makeViewModel()
+                        flowViewModel = di.onboardingFactory.makeFlowViewModel()
+                        
                         await viewModel?.loadOnboardingState()
+                        await flowViewModel?.checkUserPremiumStatus()
                     }
             }
         }
@@ -98,13 +105,18 @@ public struct OnboardingFlowView: View {
             }
         } else {
             isHandlingPaywallDismissal = false
-            dismiss()
+            onComplete()
         }
     }
     
     private func checkIfShouldShowPaywall() {
+        guard let flowViewModel = flowViewModel else {
+            onComplete()
+            return
+        }
+        
         // Only show paywall for free users after onboarding
-        if !di.userSession.isPremiumUser {
+        if flowViewModel.shouldShowPaywallAfterOnboarding() {
             Task { @MainActor in
                 let factory = PaywallFactory(container: di)
                 let vm = factory.makeViewModel()
@@ -115,7 +127,7 @@ public struct OnboardingFlowView: View {
             }
         } else {
             // Premium users or if paywall dismissed, just complete onboarding
-            dismiss()
+            onComplete()
         }
     }
 }

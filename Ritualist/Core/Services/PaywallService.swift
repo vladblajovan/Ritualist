@@ -31,21 +31,37 @@ public protocol PaywallService {
 public final class MockPaywallService: PaywallService {
     public var purchaseState: PurchaseState = .idle
     
-    // Mock products
+    // Enhanced mock products with realistic pricing and features
     private let mockProducts: [Product] = [
+        Product(
+            id: "ritualist_weekly",
+            name: "Ritualist Pro",
+            description: "Weekly trial - Perfect to get started",
+            price: "$2.99",
+            localizedPrice: "$2.99/week",
+            subscriptionPlan: .monthly, // Using monthly for now as there's no weekly enum
+            duration: .monthly,
+            features: [
+                "Unlimited habits",
+                "Basic analytics",
+                "Custom reminders"
+            ],
+            isPopular: false
+        ),
         Product(
             id: "ritualist_monthly",
             name: "Ritualist Pro",
-            description: "Monthly subscription",
+            description: "Most flexible option",
             price: "$9.99",
             localizedPrice: "$9.99/month",
             subscriptionPlan: .monthly,
             duration: .monthly,
             features: [
                 "Unlimited habits",
-                "Advanced analytics",
-                "Custom reminders",
-                "Data export",
+                "Advanced analytics & insights",
+                "Custom reminders & notifications",
+                "Data export (CSV, PDF)",
+                "Dark mode & themes",
                 "Priority support"
             ],
             isPopular: false
@@ -53,28 +69,71 @@ public final class MockPaywallService: PaywallService {
         Product(
             id: "ritualist_annual",
             name: "Ritualist Pro",
-            description: "Annual subscription (2 months free!)",
-            price: "$39.99",
-            localizedPrice: "$39.99/year",
+            description: "Best value - Save 58%!",
+            price: "$49.99",
+            localizedPrice: "$49.99/year",
             subscriptionPlan: .annual,
             duration: .annual,
             features: [
                 "Unlimited habits",
-                "Advanced analytics",
-                "Custom reminders",
-                "Data export",
+                "Advanced analytics & insights",
+                "Custom reminders & notifications",
+                "Data export (CSV, PDF)",
+                "Dark mode & premium themes",
                 "Priority support",
-                "Save 67% vs monthly"
+                "Early access to new features",
+                "Cloud backup & sync"
             ],
             isPopular: true,
-            discount: "Save 67%"
+            discount: "Save 58%"
+        ),
+        Product(
+            id: "ritualist_lifetime",
+            name: "Ritualist Pro Lifetime",
+            description: "One-time purchase, lifetime access",
+            price: "$149.99",
+            localizedPrice: "$149.99 once",
+            subscriptionPlan: .monthly, // Using monthly as there's no lifetime enum
+            duration: .monthly,
+            features: [
+                "Everything in Pro",
+                "Lifetime updates",
+                "No recurring charges",
+                "Premium support forever",
+                "Exclusive lifetime features"
+            ],
+            isPopular: false,
+            discount: "Best Deal"
         )
     ]
     
     // Track purchased products
     private var purchasedProductIds: Set<String> = []
     
-    public init() {}
+    // Enhanced testing configuration
+    public var simulatePurchaseDelay: TimeInterval = 2.0
+    public var simulateFailureRate: Double = 0.2 // 20% failure rate by default
+    public var simulateNetworkError: Bool = false
+    public var simulateUserCancellation: Bool = false
+    
+    // Testing scenarios
+    public enum TestingScenario {
+        case alwaysSucceed
+        case alwaysFail
+        case randomResults
+        case networkError
+        case userCancellation
+    }
+    
+    public var currentTestingScenario: TestingScenario = .randomResults
+    
+    public init(testingScenario: TestingScenario = .randomResults) {
+        self.currentTestingScenario = testingScenario
+        
+        // Load any persisted purchases on init
+        let purchased = UserDefaults.standard.stringArray(forKey: "purchased_products") ?? []
+        purchasedProductIds = Set(purchased)
+    }
     
     public func loadProducts() async throws -> [Product] {
         mockProducts
@@ -83,11 +142,26 @@ public final class MockPaywallService: PaywallService {
     public func purchase(_ product: Product) async throws -> Bool {
         purchaseState = .purchasing(product.id)
         
-        // Simulate purchase delay
-        try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+        // Simulate realistic purchase delay
+        let delayNanoseconds = UInt64(simulatePurchaseDelay * 1_000_000_000)
+        try await Task.sleep(nanoseconds: delayNanoseconds)
         
-        // Simulate random success/failure for testing
-        let shouldSucceed = Int.random(in: 1...10) <= 8 // 80% success rate
+        // Determine outcome based on testing scenario
+        let shouldSucceed: Bool
+        switch currentTestingScenario {
+        case .alwaysSucceed:
+            shouldSucceed = true
+        case .alwaysFail:
+            shouldSucceed = false
+        case .randomResults:
+            shouldSucceed = Double.random(in: 0...1) > simulateFailureRate
+        case .networkError:
+            purchaseState = .failed("Network connection failed. Please check your internet and try again.")
+            throw PaywallError.networkError
+        case .userCancellation:
+            purchaseState = .idle
+            throw PaywallError.userCancelled
+        }
         
         if shouldSucceed {
             purchasedProductIds.insert(product.id)
@@ -102,7 +176,14 @@ public final class MockPaywallService: PaywallService {
             
             return true
         } else {
-            purchaseState = .failed("Purchase failed. Please try again.")
+            let errorMessages = [
+                "Purchase failed. Please try again.",
+                "Payment processing failed. Please verify your payment method.",
+                "App Store connection timeout. Please try again later.",
+                "Insufficient funds. Please check your payment method.",
+                "Purchase cannot be completed at this time."
+            ]
+            purchaseState = .failed(errorMessages.randomElement() ?? "Purchase failed")
             return false
         }
     }
@@ -110,15 +191,27 @@ public final class MockPaywallService: PaywallService {
     public func restorePurchases() async throws -> Bool {
         purchaseState = .purchasing("restore")
         
-        // Simulate restore delay
-        try await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+        // Simulate restore delay (typically faster than purchase)
+        let restoreDelay = simulatePurchaseDelay * 0.75
+        let delayNanoseconds = UInt64(restoreDelay * 1_000_000_000)
+        try await Task.sleep(nanoseconds: delayNanoseconds)
         
-        // Restore from UserDefaults
-        let purchased = UserDefaults.standard.stringArray(forKey: "purchased_products") ?? []
-        purchasedProductIds = Set(purchased)
-        
-        purchaseState = .idle
-        return !purchasedProductIds.isEmpty
+        // Handle different testing scenarios for restore
+        switch currentTestingScenario {
+        case .networkError:
+            purchaseState = .failed("Unable to connect to App Store. Please check your internet connection.")
+            throw PaywallError.networkError
+        case .alwaysFail:
+            purchaseState = .failed("Unable to restore purchases. Please try again later.")
+            return false
+        default:
+            // Restore from UserDefaults
+            let purchased = UserDefaults.standard.stringArray(forKey: "purchased_products") ?? []
+            purchasedProductIds = Set(purchased)
+            
+            purchaseState = .idle
+            return !purchasedProductIds.isEmpty
+        }
     }
     
     public func isProductPurchased(_ productId: String) async -> Bool {
@@ -135,6 +228,35 @@ public final class MockPaywallService: PaywallService {
         purchasedProductIds.removeAll()
         UserDefaults.standard.removeObject(forKey: "purchased_products")
         purchaseState = .idle
+    }
+    
+    // MARK: - Enhanced Testing Methods
+    
+    /// Configure mock service for specific testing needs
+    public func configure(scenario: TestingScenario, delay: TimeInterval = 2.0, failureRate: Double = 0.2) {
+        currentTestingScenario = scenario
+        simulatePurchaseDelay = delay
+        simulateFailureRate = failureRate
+    }
+    
+    /// Simulate purchasing a specific product (for testing)
+    public func simulatePurchase(productId: String) {
+        purchasedProductIds.insert(productId)
+        var purchased = UserDefaults.standard.stringArray(forKey: "purchased_products") ?? []
+        if !purchased.contains(productId) {
+            purchased.append(productId)
+            UserDefaults.standard.set(purchased, forKey: "purchased_products")
+        }
+    }
+    
+    /// Get current product catalog for testing
+    public func getTestProducts() -> [Product] {
+        mockProducts
+    }
+    
+    /// Check if any premium product is purchased (useful for testing subscription status)
+    public var hasPremiumPurchase: Bool {
+        !purchasedProductIds.isEmpty
     }
 }
 
@@ -171,32 +293,143 @@ public final class NoOpPaywallService: PaywallService {
     }
 }
 
-// MARK: - Production PaywallService (Placeholder)
+// MARK: - StoreKit PaywallService (Stub for Future Implementation)
 
 @MainActor @Observable
-public final class ProductionPaywallService: PaywallService {
+public final class StoreKitPaywallService: PaywallService {
     public var purchaseState: PurchaseState = .idle
     
-    public init() {}
+    // StoreKit product identifiers - these should match App Store Connect configuration
+    private let productIdentifiers = [
+        "com.vladblajovan.ritualist.weekly",
+        "com.vladblajovan.ritualist.monthly", 
+        "com.vladblajovan.ritualist.annual",
+        "com.vladblajovan.ritualist.lifetime"
+    ]
+    
+    public init() {
+        // TODO: Initialize StoreKit 2 transaction listener
+        // Task { await startTransactionListener() }
+    }
     
     public func loadProducts() async throws -> [Product] {
-        // TODO: Implement StoreKit integration
+        // TODO: Replace with StoreKit 2 product loading
+        /*
+        import StoreKit
+        
+        do {
+            let storeProducts = try await StoreKit.Product.products(for: productIdentifiers)
+            return storeProducts.map { storeProduct in
+                mapStoreKitProductToDomainProduct(storeProduct)
+            }
+        } catch {
+            throw PaywallError.productsNotAvailable
+        }
+        */
+        
+        // Temporary stub - return empty until StoreKit integration
         throw PaywallError.productsNotAvailable
     }
     
     public func purchase(_ product: Product) async throws -> Bool {
-        // TODO: Implement StoreKit purchase flow
+        purchaseState = .purchasing(product.id)
+        
+        // TODO: Replace with StoreKit 2 purchase flow
+        /*
+        import StoreKit
+        
+        guard let storeProduct = await findStoreKitProduct(productId: product.id) else {
+            purchaseState = .failed("Product not found")
+            return false
+        }
+        
+        do {
+            let result = try await storeProduct.purchase()
+            
+            switch result {
+            case .success(let verification):
+                let transaction = try checkVerified(verification)
+                await transaction.finish()
+                
+                purchaseState = .success(product)
+                return true
+                
+            case .userCancelled:
+                purchaseState = .idle
+                throw PaywallError.userCancelled
+                
+            case .pending:
+                purchaseState = .idle
+                throw PaywallError.purchaseFailed("Purchase is pending approval")
+                
+            @unknown default:
+                purchaseState = .failed("Unknown purchase result")
+                return false
+            }
+        } catch {
+            purchaseState = .failed(error.localizedDescription)
+            throw PaywallError.purchaseFailed(error.localizedDescription)
+        }
+        */
+        
+        // Temporary stub
+        purchaseState = .failed("StoreKit integration not implemented")
         throw PaywallError.purchaseFailed("StoreKit integration not implemented")
     }
     
     public func restorePurchases() async throws -> Bool {
-        // TODO: Implement StoreKit restore purchases
+        purchaseState = .purchasing("restore")
+        
+        // TODO: Replace with StoreKit 2 restore flow
+        /*
+        import StoreKit
+        
+        do {
+            try await AppStore.sync()
+            
+            var hasValidPurchases = false
+            for await result in Transaction.currentEntitlements {
+                let transaction = try checkVerified(result)
+                
+                if productIdentifiers.contains(transaction.productID) {
+                    hasValidPurchases = true
+                }
+            }
+            
+            purchaseState = .idle
+            return hasValidPurchases
+        } catch {
+            purchaseState = .failed("Failed to restore purchases")
+            throw PaywallError.purchaseFailed("Failed to restore purchases: \(error.localizedDescription)")
+        }
+        */
+        
+        // Temporary stub
+        purchaseState = .failed("StoreKit integration not implemented")
         throw PaywallError.purchaseFailed("StoreKit integration not implemented")
     }
     
     public func isProductPurchased(_ productId: String) async -> Bool {
-        // TODO: Check StoreKit transaction history
-        false
+        // TODO: Replace with StoreKit 2 entitlement checking
+        /*
+        import StoreKit
+        
+        for await result in Transaction.currentEntitlements {
+            do {
+                let transaction = try checkVerified(result)
+                if transaction.productID == productId {
+                    return true
+                }
+            } catch {
+                // Invalid transaction, continue checking
+                continue
+            }
+        }
+        return false
+        */
+        
+        // Temporary stub
+        return false
     }
     
     public func resetPurchaseState() {
@@ -204,8 +437,107 @@ public final class ProductionPaywallService: PaywallService {
     }
     
     public func clearPurchases() {
-        // TODO: Clear StoreKit purchases when subscription is cancelled
+        // TODO: Handle subscription cancellation
+        // For StoreKit, this might involve updating local state
+        // The actual cancellation happens through App Store Connect
+        purchaseState = .idle
     }
+    
+    // MARK: - Private StoreKit Helper Methods (Stubs)
+    
+    /*
+    private func startTransactionListener() async {
+        for await result in Transaction.updates {
+            do {
+                let transaction = try checkVerified(result)
+                // Handle transaction updates
+                await transaction.finish()
+            } catch {
+                // Handle verification failure
+            }
+        }
+    }
+    
+    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        switch result {
+        case .unverified:
+            throw PaywallError.purchaseFailed("Transaction verification failed")
+        case .verified(let safe):
+            return safe
+        }
+    }
+    
+    private func findStoreKitProduct(productId: String) async -> StoreKit.Product? {
+        do {
+            let products = try await StoreKit.Product.products(for: [productId])
+            return products.first
+        } catch {
+            return nil
+        }
+    }
+    
+    private func mapStoreKitProductToDomainProduct(_ storeProduct: StoreKit.Product) -> Product {
+        let subscriptionPlan: SubscriptionPlan
+        let duration: ProductDuration
+        
+        // Map based on product identifier
+        switch storeProduct.id {
+        case "com.vladblajovan.ritualist.weekly":
+            subscriptionPlan = .monthly // No weekly enum, use monthly
+            duration = .monthly
+        case "com.vladblajovan.ritualist.monthly":
+            subscriptionPlan = .monthly
+            duration = .monthly
+        case "com.vladblajovan.ritualist.annual":
+            subscriptionPlan = .annual
+            duration = .annual
+        default:
+            subscriptionPlan = .monthly
+            duration = .monthly
+        }
+        
+        let features: [String]
+        let isPopular: Bool
+        let discount: String?
+        
+        // Configure features based on product
+        switch storeProduct.id {
+        case "com.vladblajovan.ritualist.weekly":
+            features = ["Unlimited habits", "Basic analytics", "Custom reminders"]
+            isPopular = false
+            discount = nil
+        case "com.vladblajovan.ritualist.monthly":
+            features = ["Unlimited habits", "Advanced analytics", "Custom reminders", "Data export", "Priority support"]
+            isPopular = false
+            discount = nil
+        case "com.vladblajovan.ritualist.annual":
+            features = ["Unlimited habits", "Advanced analytics", "Custom reminders", "Data export", "Priority support", "Cloud sync", "Early access"]
+            isPopular = true
+            discount = "Save 58%"
+        case "com.vladblajovan.ritualist.lifetime":
+            features = ["Everything in Pro", "Lifetime updates", "No recurring charges", "Premium support forever"]
+            isPopular = false
+            discount = "Best Deal"
+        default:
+            features = ["Unlimited habits"]
+            isPopular = false
+            discount = nil
+        }
+        
+        return Product(
+            id: storeProduct.id,
+            name: storeProduct.displayName,
+            description: storeProduct.description,
+            price: storeProduct.displayPrice,
+            localizedPrice: storeProduct.displayPrice,
+            subscriptionPlan: subscriptionPlan,
+            duration: duration,
+            features: features,
+            isPopular: isPopular,
+            discount: discount
+        )
+    }
+    */
 }
 
 // MARK: - Simple PaywallService (nonisolated for previews)

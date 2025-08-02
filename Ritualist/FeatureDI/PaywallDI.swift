@@ -28,8 +28,8 @@ public struct PaywallFactory {
         let checkProductPurchased = CheckProductPurchased(paywallService: container.paywallService)
         let resetPurchaseState = ResetPurchaseState(paywallService: container.paywallService)
         let getPurchaseState = GetPurchaseState(paywallService: container.paywallService)
-        let updateUserSubscription = UpdateUserSubscription(
-            userSession: container.userSession,
+        let updateProfileSubscription = UpdateProfileSubscription(
+            userService: container.userService,
             paywallService: container.paywallService
         )
         
@@ -40,8 +40,8 @@ public struct PaywallFactory {
             checkProductPurchased: checkProductPurchased,
             resetPurchaseState: resetPurchaseState,
             getPurchaseState: getPurchaseState,
-            updateUserSubscription: updateUserSubscription,
-            userSession: container.userSession
+            updateProfileSubscription: updateProfileSubscription,
+            userService: container.userService
         )
     }
 }

@@ -286,7 +286,10 @@ public final class CompleteOnboarding: CompleteOnboardingUseCase {
         if let userName = userName, !userName.isEmpty {
             var profile = try await profileRepo.loadProfile()
             profile.name = userName
+            profile.updatedAt = Date()
             try await profileRepo.saveProfile(profile)
+            
+            // No need to sync to UserService - it uses ProfileRepository as single source of truth
         }
     }
 }
@@ -299,6 +302,11 @@ public protocol UpdateUserUseCase {
 
 public protocol UpdateUserSubscriptionUseCase {
     func execute(user: User, product: Product) async throws -> User
+}
+
+// New UserService-based subscription update
+public protocol UpdateProfileSubscriptionUseCase {
+    func execute(product: Product) async throws
 }
 
 public final class UpdateUser: UpdateUserUseCase {
@@ -348,6 +356,38 @@ public final class UpdateUserSubscription: UpdateUserSubscriptionUseCase {
         }
         
         return updatedUser
+    }
+}
+
+@MainActor
+public final class UpdateProfileSubscription: UpdateProfileSubscriptionUseCase {
+    private let userService: UserService
+    private let paywallService: PaywallService
+    
+    public init(userService: UserService, paywallService: PaywallService) {
+        self.userService = userService
+        self.paywallService = paywallService
+    }
+    
+    public func execute(product: Product) async throws {
+        // Calculate expiry date based on product duration
+        let calendar = Calendar.current
+        let expiryDate: Date?
+        
+        switch product.duration {
+        case .monthly:
+            expiryDate = calendar.date(byAdding: .month, value: 1, to: Date())
+        case .annual:
+            expiryDate = calendar.date(byAdding: .year, value: 1, to: Date())
+        }
+        
+        // Update subscription through user service (single source of truth)
+        try await userService.updateSubscription(plan: product.subscriptionPlan, expiryDate: expiryDate)
+        
+        // Update purchase state in paywall service
+        if let mockService = paywallService as? MockPaywallService {
+            mockService.purchaseState = .success(product)
+        }
     }
 }
 
@@ -764,5 +804,43 @@ public final class CreateHabitFromSuggestion: CreateHabitFromSuggestionUseCase {
         } catch {
             return .error("Failed to create habit: \(error.localizedDescription)")
         }
+    }
+}
+
+// MARK: - User Use Cases
+
+public protocol CheckPremiumStatusUseCase {
+    func execute() async -> Bool
+}
+
+public protocol GetCurrentUserProfileUseCase {
+    func execute() async -> UserProfile
+}
+
+// MARK: - User Use Case Implementations
+
+@MainActor
+public final class CheckPremiumStatus: CheckPremiumStatusUseCase {
+    private let userService: UserService
+    
+    public init(userService: UserService) {
+        self.userService = userService
+    }
+    
+    public func execute() async -> Bool {
+        userService.isPremiumUser
+    }
+}
+
+@MainActor
+public final class GetCurrentUserProfile: GetCurrentUserProfileUseCase {
+    private let userService: UserService
+    
+    public init(userService: UserService) {
+        self.userService = userService
+    }
+    
+    public func execute() async -> UserProfile {
+        userService.currentProfile
     }
 }

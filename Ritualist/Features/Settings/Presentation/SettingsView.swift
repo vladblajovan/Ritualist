@@ -82,8 +82,7 @@ private struct SettingsFormView: View {
                 Form {
                     
                     // Account Section
-                    if vm.isAuthenticated {
-                        Section("Account") {
+                    Section("Account") {
                             // Avatar and Name row
                             HStack(spacing: Spacing.medium) {
                                 AvatarView(
@@ -116,90 +115,50 @@ private struct SettingsFormView: View {
                                     }
                                 }
                             }
-                            // Email display
-                            if let user = vm.currentUser {
-                                HStack {
-                                    Label("Email", systemImage: "envelope")
-                                    Spacer()
-                                    Text(user.email)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                // Subscription info
-                                HStack {
-                                    Label("Subscription", systemImage: "crown")
-                                    Spacer()
-                                    Text(user.subscriptionPlan.displayName)
-                                        .foregroundColor(user.isPremiumUser ? .orange : .secondary)
-                                        .fontWeight(user.isPremiumUser ? .medium : .regular)
-                                }
-                                
-                                if let expiryDate = user.subscriptionExpiryDate, user.isPremiumUser {
-                                    HStack {
-                                        Label("Expires", systemImage: "calendar")
-                                        Spacer()
-                                        Text(expiryDate.formatted(date: .abbreviated, time: .omitted))
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                
-                                // Cancel subscription for premium users or Subscribe for free users
-                                if user.isPremiumUser {
-                                    Button {
-                                        Task {
-                                            await vm.cancelSubscription()
-                                        }
-                                    } label: {
-                                        HStack {
-                                            if vm.isCancellingSubscription {
-                                                ProgressView()
-                                                    .scaleEffect(ScaleFactors.smallMedium)
-                                                Text("Cancelling...")
-                                            } else {
-                                                Label("Cancel Subscription", systemImage: "xmark.circle")
-                                            }
-                                            Spacer()
-                                        }
-                                        .foregroundColor(.orange)
-                                    }
-                                    .disabled(vm.isCancellingSubscription)
-                                } else {
-                                    // Subscribe button for free users
-                                    Button {
-                                        showPaywall()
-                                    } label: {
-                                        HStack {
-                                            Label("Subscribe to Pro", systemImage: "crown.fill")
-                                            Spacer()
-                                            Image(systemName: "chevron.right")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                        .foregroundColor(.blue)
-                                    }
-                                }
+                            // Subscription info
+                            HStack {
+                                Label("Subscription", systemImage: "crown")
+                                Spacer()
+                                Text(vm.isPremiumUser ? "Pro" : "Free")
+                                    .foregroundColor(vm.isPremiumUser ? .orange : .secondary)
+                                    .fontWeight(vm.isPremiumUser ? .medium : .regular)
                             }
                             
-                            // Logout button
-                            Button {
-                                Task {
-                                    await vm.signOut()
-                                }
-                            } label: {
-                                HStack {
-                                    if vm.isLoggingOut {
-                                        ProgressView()
-                                            .scaleEffect(ScaleFactors.smallMedium)
-                                        Text("Signing Out...")
-                                    } else {
-                                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                            // Cancel subscription for premium users or Subscribe for free users
+                            if vm.isPremiumUser {
+                                Button {
+                                    Task {
+                                        await vm.cancelSubscription()
                                     }
-                                    Spacer()
+                                } label: {
+                                    HStack {
+                                        if vm.isCancellingSubscription {
+                                            ProgressView()
+                                                .scaleEffect(ScaleFactors.smallMedium)
+                                            Text("Cancelling...")
+                                        } else {
+                                            Label("Cancel Subscription", systemImage: "xmark.circle")
+                                        }
+                                        Spacer()
+                                    }
+                                    .foregroundColor(.orange)
                                 }
-                                .foregroundColor(.red)
+                                .disabled(vm.isCancellingSubscription)
+                            } else {
+                                // Subscribe button for free users
+                                Button {
+                                    showPaywall()
+                                } label: {
+                                    HStack {
+                                        Label("Subscribe to Pro", systemImage: "crown.fill")
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .foregroundColor(.blue)
+                                }
                             }
-                            .disabled(vm.isLoggingOut)
-                        }
                     }
                     
                     Section(Strings.Settings.profile) {
@@ -339,6 +298,11 @@ private struct SettingsFormView: View {
                 .sheet(item: $paywallItem) { item in
                     PaywallView(vm: item.viewModel)
                 }
+                .onAppear {
+                    // Refresh premium status when settings page appears
+                    vm.refreshPremiumStatus()
+                    updateLocalState()
+                }
             }
         }
     }
@@ -362,48 +326,37 @@ private struct SettingsFormView: View {
     // MARK: - Computed Properties
     
     private var displayName: String {
-        // Use authenticated user's name if available, otherwise fall back to profile name
-        vm.currentUser?.name ?? vm.profile.name
+        vm.profile.name
     }
     
     private var hasChanges: Bool {
-        let currentName = vm.currentUser?.name ?? vm.profile.name
-        return name != currentName ||
+        return name != vm.profile.name ||
                firstDayOfWeek != vm.profile.firstDayOfWeek ||
                appearance != vm.profile.appearance
     }
     
     private func updateLocalState() {
-        // Use authenticated user's name if available, otherwise use profile name
-        name = vm.currentUser?.name ?? vm.profile.name
+        name = vm.profile.name
         firstDayOfWeek = vm.profile.firstDayOfWeek
         appearance = vm.profile.appearance
     }
     
     private func updateUserName() async {
-        // If user is authenticated, update their name in the user account
-        if vm.isAuthenticated {
-            await vm.updateUserName(name)
-        } else {
-            // If not authenticated, update the profile name
-            vm.profile.name = name
-            _ = await vm.save()
-        }
+        // Update both profile name and user service
+        await vm.updateUserName(name)
+        vm.profile.name = name
+        _ = await vm.save()
     }
     
     private func saveChanges() async {
-        // Update profile settings (but not name if user is authenticated)
-        if !vm.isAuthenticated {
-            vm.profile.name = name
-        }
+        // Update profile settings
+        vm.profile.name = name
         vm.profile.firstDayOfWeek = firstDayOfWeek
         vm.profile.appearance = appearance
         _ = await vm.save()
         
-        // Update user name if authenticated
-        if vm.isAuthenticated && name != vm.currentUser?.name {
-            await vm.updateUserName(name)
-        }
+        // Also update the user service name
+        await vm.updateUserName(name)
         
         // Update app appearance
         await MainActor.run {

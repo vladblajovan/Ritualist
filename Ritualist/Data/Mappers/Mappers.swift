@@ -31,12 +31,28 @@ public enum HabitLogMapper {
 
 public enum ProfileMapper {
     public static func toSD(_ profile: UserProfile) -> SDUserProfile {
-        SDUserProfile(id: profile.id, name: profile.name, avatarImageData: profile.avatarImageData,
-                      firstDayOfWeek: profile.firstDayOfWeek, appearance: profile.appearance)
+        SDUserProfile(id: profile.id, 
+                      name: profile.name, 
+                      avatarImageData: profile.avatarImageData,
+                      firstDayOfWeek: profile.firstDayOfWeek, 
+                      appearance: profile.appearance,
+                      subscriptionPlan: profile.subscriptionPlan.rawValue,
+                      subscriptionExpiryDate: profile.subscriptionExpiryDate,
+                      createdAt: profile.createdAt,
+                      updatedAt: profile.updatedAt)
     }
+    
     public static func fromSD(_ sd: SDUserProfile) -> UserProfile {
-        UserProfile(id: sd.id, name: sd.name, avatarImageData: sd.avatarImageData,
-                    firstDayOfWeek: sd.firstDayOfWeek, appearance: sd.appearance)
+        let subscriptionPlan = SubscriptionPlan(rawValue: sd.subscriptionPlan) ?? .free
+        return UserProfile(id: sd.id, 
+                          name: sd.name, 
+                          avatarImageData: sd.avatarImageData,
+                          firstDayOfWeek: sd.firstDayOfWeek, 
+                          appearance: sd.appearance,
+                          subscriptionPlan: subscriptionPlan,
+                          subscriptionExpiryDate: sd.subscriptionExpiryDate,
+                          createdAt: sd.createdAt,
+                          updatedAt: sd.updatedAt)
     }
 }
 

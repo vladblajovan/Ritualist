@@ -8,8 +8,8 @@ public final class PaywallViewModel {
     private let checkProductPurchased: CheckProductPurchasedUseCase
     private let resetPurchaseState: ResetPurchaseStateUseCase
     private let getPurchaseState: GetPurchaseStateUseCase
-    private let updateUserSubscription: UpdateUserSubscriptionUseCase
-    private let userSession: any UserSessionProtocol
+    private let updateProfileSubscription: UpdateProfileSubscriptionUseCase
+    private let userService: UserService
     
     public var products: [Product] = []
     public var benefits: [PaywallBenefit] = []
@@ -39,8 +39,8 @@ public final class PaywallViewModel {
         checkProductPurchased: CheckProductPurchasedUseCase,
         resetPurchaseState: ResetPurchaseStateUseCase,
         getPurchaseState: GetPurchaseStateUseCase,
-        updateUserSubscription: UpdateUserSubscriptionUseCase,
-        userSession: any UserSessionProtocol
+        updateProfileSubscription: UpdateProfileSubscriptionUseCase,
+        userService: UserService
     ) {
         self.loadPaywallProducts = loadPaywallProducts
         self.purchaseProduct = purchaseProduct
@@ -48,16 +48,16 @@ public final class PaywallViewModel {
         self.checkProductPurchased = checkProductPurchased
         self.resetPurchaseState = resetPurchaseState
         self.getPurchaseState = getPurchaseState
-        self.updateUserSubscription = updateUserSubscription
-        self.userSession = userSession
+        self.updateProfileSubscription = updateProfileSubscription
+        self.userService = userService
         self.benefits = PaywallBenefit.defaultBenefits
     }
     
     // MARK: - Private Methods
     
     /// Update user subscription after successful purchase using UseCase
-    private func handleUserSubscriptionUpdate(_ user: User, _ product: Product) async throws {
-        _ = try await updateUserSubscription.execute(user: user, product: product)
+    private func handleUserSubscriptionUpdate(_ product: Product) async throws {
+        try await updateProfileSubscription.execute(product: product)
     }
     
     private func syncPurchaseState() {
@@ -102,8 +102,7 @@ public final class PaywallViewModel {
     }
     
     public func purchase() async {
-        guard let product = selectedProduct,
-              let currentUser = userSession.currentUser else { return }
+        guard let product = selectedProduct else { return }
         
         error = nil
         
@@ -114,7 +113,7 @@ public final class PaywallViewModel {
             
             if success {
                 // Update user subscription after successful purchase
-                try await handleUserSubscriptionUpdate(currentUser, product)
+                try await handleUserSubscriptionUpdate(product)
             }
         } catch {
             self.error = error
@@ -124,8 +123,6 @@ public final class PaywallViewModel {
     }
     
     public func restorePurchases() async {
-        guard let currentUser = userSession.currentUser else { return }
-        
         error = nil
         
         do {
@@ -134,8 +131,8 @@ public final class PaywallViewModel {
             syncPurchaseState()
             
             if restored {
-                // Handle restored purchases for user
-                await handleRestoredPurchases(for: currentUser)
+                // Handle restored purchases
+                await handleRestoredPurchases()
             }
         } catch {
             self.error = error
@@ -153,14 +150,14 @@ public final class PaywallViewModel {
     
     // MARK: - Private Methods
     
-    private func handleRestoredPurchases(for user: User) async {
+    private func handleRestoredPurchases() async {
         // Check which products were restored and update user accordingly
         for product in products {
             let isPurchased = await checkProductPurchased.execute(product.id)
             if isPurchased {
                 do {
                     isUpdatingUser = true
-                    try await handleUserSubscriptionUpdate(user, product)
+                    try await handleUserSubscriptionUpdate(product)
                     isUpdatingUser = false
                     break // Only need to restore one subscription
                 } catch {

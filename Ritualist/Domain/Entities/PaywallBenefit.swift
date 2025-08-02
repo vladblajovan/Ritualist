@@ -49,18 +49,6 @@ public struct PaywallBenefit: Identifiable, Hashable {
                 title: "Data Export",
                 description: "Export your habit data to CSV",
                 icon: "square.and.arrow.up.circle.fill"
-            ),
-            PaywallBenefit(
-                id: "priority_support",
-                title: "Priority Support",
-                description: "Get help faster with premium support",
-                icon: "person.badge.plus.fill"
-            ),
-            PaywallBenefit(
-                id: "themes",
-                title: "Premium Themes",
-                description: "Beautiful color schemes and customization",
-                icon: "paintpalette.fill"
             )
         ]
     }

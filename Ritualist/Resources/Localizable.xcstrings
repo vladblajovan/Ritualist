@@ -43,9 +43,6 @@
         }
       }
     },
-    "7-day free trial, then %@. Cancel anytime." : {
-
-    },
     "accessibility.add_habit" : {
       "comment" : "VoiceOver label for Add new habit",
       "extractionState" : "manual",
@@ -278,7 +275,7 @@
         }
       }
     },
-    "Authentication system unavailable" : {
+    "Authentication flow no longer needed" : {
 
     },
     "Back" : {
@@ -1073,9 +1070,6 @@
         }
       }
     },
-    "Expires" : {
-
-    },
     "Featured" : {
       "localizations" : {
         "de" : {
@@ -1482,6 +1476,9 @@
           }
         }
       }
+    },
+    "Free" : {
+
     },
     "Get expert tips and insights to help you build better habits and maintain long-term consistency." : {
       "localizations" : {
@@ -2414,6 +2411,9 @@
     "POPULAR" : {
 
     },
+    "Pro" : {
+
+    },
     "Processing image..." : {
       "localizations" : {
         "de" : {
@@ -2736,15 +2736,6 @@
     "Sign In" : {
 
     },
-    "Sign Out" : {
-
-    },
-    "Signing Out..." : {
-
-    },
-    "Start Free Trial" : {
-
-    },
     "status.active" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2967,13 +2958,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Konsistenz über Perfektion"
+            "value" : "Konsistenz"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Consistency Over Perfection"
+            "value" : "Consistency"
           }
         }
       }
