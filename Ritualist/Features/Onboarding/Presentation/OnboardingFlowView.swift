@@ -24,7 +24,6 @@ public struct OnboardingFlowView: View {
         }
         .background(Color(.systemBackground))
     }
-    
 }
 
 private struct OnboardingContentView: View {

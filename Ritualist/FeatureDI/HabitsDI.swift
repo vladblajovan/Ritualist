@@ -24,11 +24,12 @@ public struct HabitsFactory {
     }
     
     public func makeCreateHabitFromSuggestionUseCase() -> CreateHabitFromSuggestionUseCase {
+        let createHabit = CreateHabit(repo: container.habitRepository)
         let getHabitCount = GetHabitCount(habitRepository: container.habitRepository)
         let checkHabitCreationLimit = CheckHabitCreationLimit(featureGatingService: container.featureGatingService)
         
         return CreateHabitFromSuggestion(
-            habitRepository: container.habitRepository,
+            createHabit: createHabit,
             getHabitCount: getHabitCount,
             checkHabitCreationLimit: checkHabitCreationLimit,
             featureGatingService: container.featureGatingService

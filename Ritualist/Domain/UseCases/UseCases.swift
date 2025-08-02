@@ -828,16 +828,16 @@ public enum CreateHabitFromSuggestionResult {
 }
 
 public final class CreateHabitFromSuggestion: CreateHabitFromSuggestionUseCase {
-    private let habitRepository: HabitRepository
+    private let createHabit: CreateHabitUseCase
     private let getHabitCount: GetHabitCountUseCase
     private let checkHabitCreationLimit: CheckHabitCreationLimitUseCase
     private let featureGatingService: FeatureGatingService
     
-    public init(habitRepository: HabitRepository,
+    public init(createHabit: CreateHabitUseCase,
                 getHabitCount: GetHabitCountUseCase,
                 checkHabitCreationLimit: CheckHabitCreationLimitUseCase,
                 featureGatingService: FeatureGatingService) {
-        self.habitRepository = habitRepository
+        self.createHabit = createHabit
         self.getHabitCount = getHabitCount
         self.checkHabitCreationLimit = checkHabitCreationLimit
         self.featureGatingService = featureGatingService
@@ -855,10 +855,11 @@ public final class CreateHabitFromSuggestion: CreateHabitFromSuggestionUseCase {
             return .limitReached(message: message)
         }
         
-        // If they can create, proceed with habit creation
+        // If they can create, proceed with habit creation using CreateHabit use case
+        // This ensures proper displayOrder is set (habit will be added to the end of the list)
         do {
             let habit = suggestion.toHabit()
-            try await habitRepository.create(habit)
+            try await createHabit.execute(habit)
             return .success
         } catch {
             return .error("Failed to create habit: \(error.localizedDescription)")

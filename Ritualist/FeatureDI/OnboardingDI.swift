@@ -20,12 +20,4 @@ public struct OnboardingFactory {
             checkNotificationStatus: checkNotificationStatus
         )
     }
-    
-    @MainActor public func makeFlowViewModel() -> OnboardingFlowViewModel {
-        let checkPremiumStatus = CheckPremiumStatus(userService: container.userService)
-        
-        return OnboardingFlowViewModel(
-            checkPremiumStatus: checkPremiumStatus
-        )
-    }
 }
