@@ -11,26 +11,33 @@ public struct HabitAssistantSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedCategory: HabitSuggestionCategory = .health
     @State private var addedHabits: Set<String> = []
+    @State private var createdHabits: [String: UUID] = [:] // Maps suggestion ID to habit ID
     @State private var isCreatingHabit = false
+    @State private var isDeletingHabit = false
     
     private let suggestionsService: HabitSuggestionsService
     private let existingHabits: [Habit]
     private let onHabitCreate: (HabitSuggestion) async -> CreateHabitFromSuggestionResult
+    private let onHabitRemove: (UUID) async -> Bool
     private let onShowPaywall: () -> Void
     private let userActionTracker: UserActionTracker?
     
     public init(suggestionsService: HabitSuggestionsService,
                 existingHabits: [Habit] = [],
                 onHabitCreate: @escaping (HabitSuggestion) async -> CreateHabitFromSuggestionResult,
+                onHabitRemove: @escaping (UUID) async -> Bool,
                 onShowPaywall: @escaping () -> Void,
                 userActionTracker: UserActionTracker? = nil) {
         self.suggestionsService = suggestionsService
         self.existingHabits = existingHabits
         self.onHabitCreate = onHabitCreate
+        self.onHabitRemove = onHabitRemove
         self.onShowPaywall = onShowPaywall
         self.userActionTracker = userActionTracker
-        // Pre-populate addedHabits based on existing habits
-        self._addedHabits = State(initialValue: Self.mapExistingHabitsToSuggestions(existingHabits))
+        // Pre-populate addedHabits and createdHabits based on existing habits
+        let (addedSuggestions, habitMappings) = Self.mapExistingHabitsToSuggestions(existingHabits)
+        self._addedHabits = State(initialValue: addedSuggestions)
+        self._createdHabits = State(initialValue: habitMappings)
     }
     
     private var suggestions: [HabitSuggestion] {
