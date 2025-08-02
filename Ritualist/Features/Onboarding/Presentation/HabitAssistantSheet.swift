@@ -135,8 +135,8 @@ public struct HabitAssistantSheet: View {
                 error: "Habit limit reached"
             ))
             dismiss()
-            // Show paywall after a short delay to allow dismissal to complete
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Show paywall after a longer delay to allow dismissal to complete
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 onShowPaywall()
             }
         case .error(let errorMessage):

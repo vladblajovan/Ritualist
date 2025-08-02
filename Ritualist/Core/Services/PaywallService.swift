@@ -217,7 +217,7 @@ public final class SimplePaywallService: PaywallService {
     public init() {}
     
     public func loadProducts() async throws -> [Product] {
-        return [
+        [
             Product(
                 id: "premium_monthly",
                 name: "Premium Monthly",
@@ -259,7 +259,7 @@ public final class SimplePaywallService: PaywallService {
     }
     
     public func isProductPurchased(_ productId: String) async -> Bool {
-        return false
+        false
     }
     
     public func resetPurchaseState() {

@@ -5,6 +5,8 @@ public struct HabitsRoot: View {
     @State private var showingCreateHabit = false
     @State private var showingHabitAssistant = false
     @State private var paywallItem: PaywallItem?
+    @State private var shouldReopenAssistantAfterPaywall = false
+    @State private var isHandlingPaywallDismissal = false
     private let factory: HabitsFactory?
     
     public init(factory: HabitsFactory? = nil) { 
@@ -17,9 +19,9 @@ public struct HabitsRoot: View {
             showingCreateHabit: $showingCreateHabit,
             showingHabitAssistant: $showingHabitAssistant,
             onHabitCreate: createHabitFromSuggestion,
-            onShowPaywall: showPaywall,
+            onShowPaywall: showPaywallFromAssistant,
             paywallItem: $paywallItem,
-            onCreateHabitTap: handleCreateHabitTap
+            onCreateHabitTap: handleToolbarCreateHabitTap
         )
         .navigationTitle("Habits")
         .navigationBarTitleDisplayMode(.large)
@@ -31,6 +33,12 @@ public struct HabitsRoot: View {
         .sheet(item: $paywallItem) { item in
             PaywallView(vm: item.viewModel)
         }
+        .onChange(of: paywallItem) { oldValue, newValue in
+            // When paywall item becomes nil, the sheet is dismissed
+            if oldValue != nil && newValue == nil {
+                handlePaywallDismissal()
+            }
+        }
     }
     
     private func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
@@ -38,6 +46,12 @@ public struct HabitsRoot: View {
         let createHabitFromSuggestionUseCase = habitsFactory.makeCreateHabitFromSuggestionUseCase()
         
         return await createHabitFromSuggestionUseCase.execute(suggestion)
+    }
+    
+    private func showPaywallFromAssistant() {
+        // Mark that we should reopen assistant after paywall closes
+        shouldReopenAssistantAfterPaywall = true
+        showPaywall()
     }
     
     private func showPaywall() {
@@ -49,21 +63,36 @@ public struct HabitsRoot: View {
         }
     }
     
-    private func handleCreateHabitTap(canCreate: Bool) {
+    private func handlePaywallDismissal() {
+        // Guard against multiple calls
+        guard !isHandlingPaywallDismissal else {
+            return
+        }
+        
+        isHandlingPaywallDismissal = true
+        
+        if shouldReopenAssistantAfterPaywall {
+            // Reset the flag
+            shouldReopenAssistantAfterPaywall = false
+            
+            // Wait longer for paywall dismissal animation to complete before reopening assistant
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                showingHabitAssistant = true
+                isHandlingPaywallDismissal = false
+            }
+        } else {
+            isHandlingPaywallDismissal = false
+        }
+        // No else clause needed - in HabitsView we just stay on the habits screen
+    }
+    
+    private func handleToolbarCreateHabitTap(canCreate: Bool) {
         if canCreate {
             showingCreateHabit = true
         } else {
-            // Show paywall for free users who hit the limit
-            Task { @MainActor in
-                let factory = PaywallFactory(container: di)
-                let viewModel = factory.makeViewModel()
-                
-                // Load data first
-                await viewModel.load()
-                
-                // Use item-based presentation
-                paywallItem = PaywallItem(viewModel: viewModel)
-            }
+            // Show paywall for free users who hit the limit (from toolbar, not assistant)
+            // This should NOT reopen the assistant
+            showPaywall()
         }
     }
 }

@@ -5,7 +5,10 @@ public struct OnboardingFlowView: View {
     @State private var viewModel: OnboardingViewModel?
     @State private var showingHabitAssistant = false
     @State private var showingPaywall = false
-    @State private var paywallViewModel: PaywallViewModel?
+    @State private var paywallItem: PaywallItem?
+    @State private var shouldReopenAssistantAfterPaywall = false
+    @State private var isHandlingPaywallDismissal = false
+    @State private var paywallWasShownFromAssistant = false
     @Environment(\.dismiss) private var dismiss
     
     public init() {}
@@ -36,22 +39,23 @@ public struct OnboardingFlowView: View {
                 userActionTracker: di.userActionTracker
             )
             .onDisappear {
-                checkIfShouldShowPaywall()
+                // Only check for paywall if it wasn't already shown from within the assistant
+                if !paywallWasShownFromAssistant {
+                    checkIfShouldShowPaywall()
+                } else {
+                    // Reset the flag for future assistant usage
+                    paywallWasShownFromAssistant = false
+                }
             }
         }
-        .sheet(item: Binding<PaywallItem?>(
-            get: { 
-                guard let vm = paywallViewModel else { return nil }
-                return PaywallItem(viewModel: vm)
-            },
-            set: { _ in 
-                paywallViewModel = nil
-            }
-        )) { item in
+        .sheet(item: $paywallItem) { item in
             PaywallView(vm: item.viewModel)
-                .onDisappear {
-                    dismiss() // Dismiss onboarding after paywall
-                }
+        }
+        .onChange(of: paywallItem) { oldValue, newValue in
+            // When paywall item becomes nil, the sheet is dismissed
+            if oldValue != nil && newValue == nil {
+                handlePaywallDismissal()
+            }
         }
     }
     
@@ -63,35 +67,53 @@ public struct OnboardingFlowView: View {
     }
     
     private func showPaywall() {
+        // Mark that we should reopen assistant after paywall closes
+        shouldReopenAssistantAfterPaywall = true
+        paywallWasShownFromAssistant = true  // Track that paywall was shown from assistant
+        
         Task { @MainActor in
             let factory = PaywallFactory(container: di)
             let vm = factory.makeViewModel()
             await vm.load()
-            paywallViewModel = vm
+            paywallItem = PaywallItem(viewModel: vm)
+        }
+    }
+    
+    private func handlePaywallDismissal() {
+        // Guard against multiple calls
+        guard !isHandlingPaywallDismissal else {
+            return
+        }
+        
+        isHandlingPaywallDismissal = true
+        
+        if shouldReopenAssistantAfterPaywall {
+            // Reset the flag
+            shouldReopenAssistantAfterPaywall = false
+            
+            // Wait longer for paywall dismissal animation to complete before reopening assistant
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                showingHabitAssistant = true
+                isHandlingPaywallDismissal = false
+            }
+        } else {
+            isHandlingPaywallDismissal = false
+            dismiss()
         }
     }
     
     private func checkIfShouldShowPaywall() {
-        print("🔍 checkIfShouldShowPaywall called")
-        print("🔍 isPremiumUser: \(di.userSession.isPremiumUser)")
-        
         // Only show paywall for free users after onboarding
         if !di.userSession.isPremiumUser {
-            print("🏭 Creating factory in checkIfShouldShowPaywall...")
             Task { @MainActor in
                 let factory = PaywallFactory(container: di)
-                print("🎯 Creating viewModel in checkIfShouldShowPaywall...")
                 let vm = factory.makeViewModel()
-                print("✅ ViewModel created in checkIfShouldShowPaywall")
                 await vm.load()
-                print("🔄 ViewModel loaded")
                 
-                // Set the viewModel - this will automatically show the sheet via the binding
-                paywallViewModel = vm
-                print("🎭 Paywall sheet should now show with viewModel")
+                // Set the paywallItem - this will automatically show the sheet via the binding
+                paywallItem = PaywallItem(viewModel: vm)
             }
         } else {
-            print("⚠️ User is premium, dismissing")
             // Premium users or if paywall dismissed, just complete onboarding
             dismiss()
         }

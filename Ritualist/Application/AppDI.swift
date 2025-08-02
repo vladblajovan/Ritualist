@@ -229,7 +229,6 @@ public final class DefaultAppContainer: AppContainer {
         // Minimal Phase 2 services for createMinimal - use simplified versions
         let logger = DebugLogger()  
         
-
         return DefaultAppContainer(
             habitRepository: habitRepo,
             logRepository: logRepo,

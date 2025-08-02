@@ -1,11 +1,15 @@
 import Foundation
 
-public struct PaywallItem: Identifiable {
+public struct PaywallItem: Identifiable, Equatable {
     public let id = UUID()
     public let viewModel: PaywallViewModel
     
     public init(viewModel: PaywallViewModel) {
         self.viewModel = viewModel
+    }
+    
+    public static func == (lhs: PaywallItem, rhs: PaywallItem) -> Bool {
+        lhs.id == rhs.id
     }
 }
 
