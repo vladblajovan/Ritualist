@@ -142,9 +142,6 @@ private struct OverviewListView: View {
                                     onDateTap: { date in
                                         await vm.incrementHabitForDate(date)
                                     },
-                                    onAdjacentDateTap: { date in
-                                        await vm.navigateToDate(date)
-                                    },
                                     onTodayTap: {
                                         await vm.navigateToToday()
                                     }

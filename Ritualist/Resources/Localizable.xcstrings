@@ -254,9 +254,6 @@
     "Account" : {
 
     },
-    "All accounts use password: test123" : {
-
-    },
     "app.name" : {
       "comment" : "The name of the habit tracking app. This is a proper noun and should remain consistent across languages or be adapted to local naming conventions.",
       "extractionState" : "manual",
@@ -274,9 +271,6 @@
           }
         }
       }
-    },
-    "Authentication flow no longer needed" : {
-
     },
     "Back" : {
       "localizations" : {
@@ -797,9 +791,6 @@
           }
         }
       }
-    },
-    "Email" : {
-
     },
     "empty.create_habits_to_start" : {
       "extractionState" : "manual",
@@ -2366,12 +2357,6 @@
         }
       }
     },
-    "Password" : {
-
-    },
-    "Password: %@" : {
-
-    },
     "paywall.pro_label" : {
       "comment" : "Label for PRO badge in paywall",
       "extractionState" : "stale",
@@ -2730,12 +2715,6 @@
         }
       }
     },
-    "Show Test Accounts" : {
-
-    },
-    "Sign In" : {
-
-    },
     "status.active" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2841,12 +2820,6 @@
 
     },
     "Subscription" : {
-
-    },
-    "Swipe left for next month, swipe right for previous month" : {
-
-    },
-    "Test Accounts" : {
 
     },
     "test.long_habit_name" : {
@@ -3089,9 +3062,6 @@
         }
       }
     },
-    "Track your habits, build your future" : {
-
-    },
     "Try Again" : {
 
     },
@@ -3102,9 +3072,6 @@
 
     },
     "Updating..." : {
-
-    },
-    "Use This Account" : {
 
     },
     "validation.name_required" : {
@@ -3176,9 +3143,6 @@
           }
         }
       }
-    },
-    "Welcome to Ritualist" : {
-
     },
     "Welcome to Ritualist!" : {
       "localizations" : {

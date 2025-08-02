@@ -13,7 +13,6 @@ public struct MonthlyCalendarView: View {
     let isWeeklyTargetMet: (Date) -> Bool
     let onMonthChange: (Int) async -> Void
     let onDateTap: (Date) async -> Void
-    let onAdjacentDateTap: (Date) async -> Void
     let onTodayTap: () async -> Void
     
     private let calendar = Calendar.current
@@ -77,28 +76,17 @@ public struct MonthlyCalendarView: View {
             }
             .padding(.horizontal, Spacing.large)
             
-            // Calendar grid with swipe navigation
-            SwipeNavigationView(
-                onSwipeLeft: {
-                    await onMonthChange(1) // Swipe left = next month
-                },
-                onSwipeRight: {
-                    await onMonthChange(-1) // Swipe right = previous month
-                },
-                content: {
-                    CalendarGridView(
-                        habit: selectedHabit,
-                        fullCalendarDays: fullCalendarDays,
-                        loggedDates: loggedDates,
-                        isLoggingDate: isLoggingDate,
-                        getHabitValueForDate: getHabitValueForDate,
-                        isDateSchedulable: isDateSchedulable,
-                        isWeeklyTargetMet: isWeeklyTargetMet,
-                        onDateTap: onDateTap,
-                        onAdjacentDateTap: onAdjacentDateTap,
-                        userFirstDayOfWeek: userFirstDayOfWeek
-                    )
-                }
+            // Calendar grid
+            CalendarGridView(
+                habit: selectedHabit,
+                fullCalendarDays: fullCalendarDays,
+                loggedDates: loggedDates,
+                isLoggingDate: isLoggingDate,
+                getHabitValueForDate: getHabitValueForDate,
+                isDateSchedulable: isDateSchedulable,
+                isWeeklyTargetMet: isWeeklyTargetMet,
+                onDateTap: onDateTap,
+                userFirstDayOfWeek: userFirstDayOfWeek
             )
         }
         .padding(.bottom, Spacing.large)
@@ -116,7 +104,6 @@ public struct CalendarGridView: View {
     let isDateSchedulable: (Date) -> Bool
     let isWeeklyTargetMet: (Date) -> Bool
     let onDateTap: (Date) async -> Void
-    let onAdjacentDateTap: (Date) async -> Void
     let userFirstDayOfWeek: Int?
     
     private var calendar: Calendar {
@@ -162,11 +149,7 @@ public struct CalendarGridView: View {
                                     isSchedulable: isDateSchedulable(calendarDay.date),
                                     isWeeklyTargetMet: isWeeklyTargetMet(calendarDay.date)
                                 ) {
-                                    if calendarDay.isCurrentMonth {
-                                        await onDateTap(calendarDay.date)
-                                    } else {
-                                        await onAdjacentDateTap(calendarDay.date)
-                                    }
+                                    await onDateTap(calendarDay.date)
                                 }
                                 .frame(maxWidth: .infinity)
                             } else {
