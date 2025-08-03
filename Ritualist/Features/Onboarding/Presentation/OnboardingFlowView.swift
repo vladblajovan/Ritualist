@@ -108,6 +108,9 @@ private struct OnboardingNavigationView: View {
             
             // Next/Complete button
             Button(viewModel.isLastPage ? "Get Started" : "Next") {
+                // Dismiss keyboard first
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                
                 if viewModel.isLastPage {
                     Task {
                         let success = await viewModel.finishOnboarding()

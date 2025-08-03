@@ -5,14 +5,7 @@ struct OnboardingPage1View: View {
     @FocusState private var isTextFieldFocused: Bool
     
     var body: some View {
-        ZStack {
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    isTextFieldFocused = false
-                }
-
-            VStack(spacing: Spacing.xxlarge) {
+        VStack(spacing: Spacing.xxlarge) {
                 Spacer()
                 
                 // Welcome icon
@@ -57,7 +50,10 @@ struct OnboardingPage1View: View {
                 Spacer()
             }
             .padding(.horizontal, Spacing.xlarge)
-        }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isTextFieldFocused = false
+            }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isTextFieldFocused = true

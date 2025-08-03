@@ -7,6 +7,7 @@ public struct CategoryFilterCarousel: View {
     let onCategorySelect: (Category?) -> Void
     let onManageCategories: (() -> Void)?
     let onAddHabit: (() -> Void)?
+    let onAssistant: (() -> Void)?
     
     public init(
         selectedCategory: Binding<Category?>,
@@ -14,7 +15,8 @@ public struct CategoryFilterCarousel: View {
         isLoading: Bool = false,
         onCategorySelect: @escaping (Category?) -> Void,
         onManageCategories: (() -> Void)? = nil,
-        onAddHabit: (() -> Void)? = nil
+        onAddHabit: (() -> Void)? = nil,
+        onAssistant: (() -> Void)? = nil
     ) {
         self._selectedCategory = selectedCategory
         self.categories = categories
@@ -22,6 +24,7 @@ public struct CategoryFilterCarousel: View {
         self.onCategorySelect = onCategorySelect
         self.onManageCategories = onManageCategories
         self.onAddHabit = onAddHabit
+        self.onAssistant = onAssistant
     }
     
     public var body: some View {
@@ -49,15 +52,33 @@ public struct CategoryFilterCarousel: View {
                 
                 Spacer()
                 
-                if let onAddHabit = onAddHabit {
-                    Button {
-                        onAddHabit()
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(AppColors.brand)
+                HStack(spacing: Spacing.small) {
+                    if let onAssistant = onAssistant {
+                        Button {
+                            onAssistant()
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.blue.opacity(0.1))
+                                    .frame(width: 28, height: 28)
+                                
+                                Text("🤖")
+                                    .font(.system(size: 16))
+                            }
+                        }
+                        .accessibilityLabel("Habits Assistant")
                     }
-                    .accessibilityLabel("Add Habit")
+                    
+                    if let onAddHabit = onAddHabit {
+                        Button {
+                            onAddHabit()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(AppColors.brand)
+                        }
+                        .accessibilityLabel("Add Habit")
+                    }
                 }
             }
             .padding(.horizontal, Spacing.large)
@@ -93,6 +114,9 @@ public struct CategoryFilterCarousel: View {
                                 )
                             }
                             .buttonStyle(PlainButtonStyle())
+                            .onLongPressGesture {
+                                onManageCategories?()
+                            }
                         }
                     }
                     .padding(.horizontal, Spacing.large)

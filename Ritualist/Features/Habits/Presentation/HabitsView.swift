@@ -95,15 +95,18 @@ private struct HabitsContentView: View {
 }
 
 private struct HabitsListView: View {
+    @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
     @State private var showingDeleteConfirmation = false
     @State private var habitToDelete: Habit?
+    @State private var selection: Set<UUID> = []
     
     var body: some View {
         Group {
-            if vm.isLoading {
-                ProgressView(Strings.Loading.habits)
-            } else if let error = vm.error {
+            // if vm.isLoading {
+            //     ProgressView()
+            // } else 
+            if let error = vm.error {
                 ErrorView(
                     title: Strings.Error.failedLoadHabits,
                     message: error.localizedDescription
@@ -126,11 +129,41 @@ private struct HabitsListView: View {
                         onManageCategories: {
                             vm.handleCategoryManagementTap()
                         },
-                        onAddHabit: {
-                            vm.handleCreateHabitTap()
-                        }
+                        onAddHabit: nil,
+                        onAssistant: nil
                     )
                     .padding(.bottom, Spacing.medium)
+                    
+                    // Edit button and actions positioned above the empty state
+                    HStack {
+                        Spacer()
+                        
+                        HStack(spacing: Spacing.small) {
+                            Button {
+                                vm.handleAssistantTap(source: "emptyState")
+                            } label: {
+                                Image(systemName: "lightbulb.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.blue)
+                            }
+                            .accessibilityLabel("Habits Assistant")
+                            
+                            EditButton()
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.blue)
+                            
+                            Button {
+                                vm.handleCreateHabitTap()
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.blue)
+                            }
+                            .accessibilityLabel("Add Habit")
+                        }
+                        .padding(.horizontal, Spacing.large)
+                        .padding(.bottom, Spacing.small)
+                    }
                     
                     VStack(spacing: Spacing.xlarge) {
                         if vm.selectedFilterCategory != nil {
@@ -147,10 +180,6 @@ private struct HabitsListView: View {
                                 systemImage: "plus.circle",
                                 description: Text(Strings.EmptyState.tapPlusToCreate)
                             )
-                            
-                            AssistantButton {
-                                vm.handleAssistantTap(source: "emptyState")
-                            }
                         }
                     }
                 }
@@ -170,29 +199,63 @@ private struct HabitsListView: View {
                         onManageCategories: {
                             vm.handleCategoryManagementTap()
                         },
-                        onAddHabit: {
-                            vm.handleCreateHabitTap()
-                        }
+                        onAddHabit: nil,
+                        onAssistant: nil
                     )
                     .padding(.bottom, Spacing.medium)
                     
-                    List {
+                    // Edit button and actions positioned above the list
+                    HStack {
+                        Spacer()
+                        
+                        HStack(spacing: Spacing.small) {
+                            Button {
+                                vm.handleAssistantTap(source: "habitsPage")
+                            } label: {
+                                Image(systemName: "lightbulb.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.blue)
+                            }
+                            .accessibilityLabel("Habits Assistant")
+                            
+                            EditButton()
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.blue)
+                            
+                            Button {
+                                vm.handleCreateHabitTap()
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.blue)
+                            }
+                            .accessibilityLabel("Add Habit")
+                        }
+                        .padding(.horizontal, Spacing.large)
+                        .padding(.bottom, Spacing.small)
+                    }
+                    
+                    List(selection: $selection) {
                         ForEach(vm.filteredHabits, id: \.id) { habit in
                             HabitRowView(habit: habit) {
                                 vm.selectHabit(habit)
                             }
+                            .tag(habit.id)
                             .swipeActions(edge: .leading) {
-                                Button {
-                                    Task {
-                                        await vm.toggleActiveStatus(id: habit.id)
+                                // Only show swipe actions when not in edit mode
+                                if editMode?.wrappedValue != .active {
+                                    Button {
+                                        Task {
+                                            await vm.toggleActiveStatus(id: habit.id)
+                                        }
+                                    } label: {
+                                        Label(
+                                            habit.isActive ? Strings.Button.deactivate : Strings.Button.activate,
+                                            systemImage: habit.isActive ? "pause.circle" : "play.circle"
+                                        )
                                     }
-                                } label: {
-                                    Label(
-                                        habit.isActive ? Strings.Button.deactivate : Strings.Button.activate,
-                                        systemImage: habit.isActive ? "pause.circle" : "play.circle"
-                                    )
+                                    .tint(habit.isActive ? .orange : .green)
                                 }
-                                .tint(habit.isActive ? .orange : .green)
                             }
                         }
                         .onDelete(perform: { indexSet in
@@ -203,25 +266,36 @@ private struct HabitsListView: View {
                         })
                         .onMove(perform: { source, destination in
                             Task {
-                                await moveHabit(from: source, to: destination)
+                                await handleMove(from: source, to: destination)
                             }
                         })
                     }
                     .refreshable {
                         await vm.load()
                     }
-                    
-                    VStack(spacing: 0) {
-                        // Habit assistant
-                        AssistantButton {
-                            vm.handleAssistantTap(source: "habitsPage")
+                    .onChange(of: editMode?.wrappedValue) { oldValue, newValue in
+                        // Clear selection when exiting edit mode
+                        if oldValue == .active && newValue != .active {
+                            selection.removeAll()
                         }
-                        .padding(.horizontal, Spacing.large)
-                        .padding(.vertical, Spacing.medium)
                     }
                     
-                    Spacer()
-                        .frame(height: Spacing.large)
+                    // Bottom content - either edit toolbar or assistant button
+                    VStack(spacing: 0) {
+                        if !selection.isEmpty {
+                            editModeToolbar
+                        } else {
+                            // Habit assistant - commented out, moved to navigation bar
+                            // AssistantButton {
+                            //     vm.handleAssistantTap(source: "habitsPage")
+                            // }
+                            // .padding(.horizontal, Spacing.large)
+                            // .padding(.vertical, Spacing.medium)
+                            
+                            Spacer()
+                                .frame(height: Spacing.large)
+                        }
+                    }
                 }
             }
         }
@@ -264,17 +338,139 @@ private struct HabitsListView: View {
         }
     }
     
+    private var editModeToolbar: some View {
+        HStack(spacing: Spacing.large) {
+            Spacer()
+            
+            // Activate button (only show if inactive habits are selected)
+            if hasInactiveSelectedHabits {
+                Button {
+                    Task {
+                        await activateSelectedHabits()
+                    }
+                } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: "play.circle")
+                            .font(.title2)
+                        Text("Activate")
+                            .font(.caption2)
+                    }
+                }
+                .foregroundColor(.green)
+            }
+            
+            // Deactivate button (only show if active habits are selected)
+            if hasActiveSelectedHabits {
+                Button {
+                    Task {
+                        await deactivateSelectedHabits()
+                    }
+                } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: "pause.circle")
+                            .font(.title2)
+                        Text("Deactivate")
+                            .font(.caption2)
+                    }
+                }
+                .foregroundColor(.orange)
+            }
+            
+            // Delete button
+            Button {
+                Task {
+                    await deleteSelectedHabits()
+                }
+            } label: {
+                VStack(spacing: 2) {
+                    Image(systemName: "trash")
+                        .font(.title2)
+                    Text("Delete")
+                        .font(.caption2)
+                }
+            }
+            .foregroundColor(.red)
+            
+            Spacer()
+        }
+        .padding(.horizontal, Spacing.large)
+        .padding(.vertical, Spacing.medium)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, Spacing.medium)
+        .padding(.bottom, Spacing.small)
+    }
+    
+    private var hasActiveSelectedHabits: Bool {
+        let selectedHabits = vm.filteredHabits.filter { selection.contains($0.id) }
+        return selectedHabits.contains { $0.isActive }
+    }
+    
+    private var hasInactiveSelectedHabits: Bool {
+        let selectedHabits = vm.filteredHabits.filter { selection.contains($0.id) }
+        return selectedHabits.contains { !$0.isActive }
+    }
+    
+    private func activateSelectedHabits() async {
+        for habitId in selection {
+            await vm.toggleActiveStatus(id: habitId)
+        }
+        selection.removeAll()
+    }
+    
+    private func deactivateSelectedHabits() async {
+        for habitId in selection {
+            await vm.toggleActiveStatus(id: habitId)
+        }
+        selection.removeAll()
+    }
+    
+    private func deleteSelectedHabits() async {
+        for habitId in selection {
+            await vm.delete(id: habitId)
+        }
+        selection.removeAll()
+    }
+    
     private func deleteHabit(_ habit: Habit) async {
         _ = await vm.delete(id: habit.id)
     }
     
-    private func moveHabit(from source: IndexSet, to destination: Int) async {
+    private func handleMove(from source: IndexSet, to destination: Int) async {
         // When filtering is active, disable reordering to avoid confusion
         guard vm.selectedFilterCategory == nil else { return }
         
-        var reorderedHabits = vm.items
+        // Work with the filtered habits that the user sees, but update the full list
+        var reorderedHabits = vm.filteredHabits
         reorderedHabits.move(fromOffsets: source, toOffset: destination)
-        _ = await vm.reorderHabits(reorderedHabits)
+        
+        // Update display order based on new positions
+        for (index, habit) in reorderedHabits.enumerated() {
+            reorderedHabits[index] = Habit(
+                id: habit.id,
+                name: habit.name,
+                colorHex: habit.colorHex,
+                emoji: habit.emoji,
+                kind: habit.kind,
+                unitLabel: habit.unitLabel,
+                dailyTarget: habit.dailyTarget,
+                schedule: habit.schedule,
+                reminders: habit.reminders,
+                startDate: habit.startDate,
+                endDate: habit.endDate,
+                isActive: habit.isActive,
+                displayOrder: index,
+                categoryId: habit.categoryId,
+                suggestionId: habit.suggestionId
+            )
+        }
+        
+        // Save the reordered habits
+        for habit in reorderedHabits {
+            _ = await vm.update(habit)
+        }
+        
+        // Refresh to show updated order
+        await vm.load()
     }
 }
 
@@ -304,10 +500,6 @@ private struct HabitRowView: View {
                         .foregroundColor(habit.isActive ? .green : .secondary)
                 }
                 Spacer()
-                Image(systemName: "line.3.horizontal")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.leading, Spacing.small)
             }
         }
         .buttonStyle(PlainButtonStyle())

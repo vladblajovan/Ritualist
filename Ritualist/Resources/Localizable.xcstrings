@@ -36,6 +36,30 @@
     "%lld selected" : {
 
     },
+    "• Can be from any time period (past or present)" : {
+
+    },
+    "• Finds the longest unbroken chain of consecutive days" : {
+
+    },
+    "• Looks at your entire habit history" : {
+
+    },
+    "• Never decreases - it's your personal record" : {
+
+    },
+    "• Only includes days you've completed the habit" : {
+
+    },
+    "• Resets to 0 if you miss today" : {
+
+    },
+    "• Starts from today and counts backwards" : {
+
+    },
+    "• Stops at the first day you missed the habit" : {
+
+    },
     "🏷️" : {
 
     },
@@ -312,6 +336,9 @@
         }
       }
     },
+    "Best Streak" : {
+
+    },
     "button.cancel" : {
       "comment" : "Button label to cancel an action and dismiss a dialog or form without saving changes.",
       "extractionState" : "manual",
@@ -486,10 +513,16 @@
     "Close" : {
 
     },
+    "Consecutive days ending with today (counting backwards until first gap)" : {
+
+    },
     "Create Custom Category" : {
 
     },
     "Creating category..." : {
+
+    },
+    "Current Streak" : {
 
     },
     "day.fri" : {
@@ -1109,6 +1142,12 @@
         }
       }
     },
+    "Example: If you completed your habit today, yesterday, and 3 days ago (but missed 2 days ago), your current streak is 1 day." : {
+
+    },
+    "Example: If you had a 10-day streak last month and your current streak is 3 days, your best streak remains 10 days." : {
+
+    },
     "Failed to load categories: %@" : {
 
     },
@@ -1582,6 +1621,12 @@
         }
       }
     },
+    "Habits Assistant" : {
+
+    },
+    "How it works:" : {
+
+    },
     "I'll help you choose some habits to begin your journey. Tap the + button to add any habits that interest you." : {
 
     },
@@ -1798,6 +1843,9 @@
           }
         }
       }
+    },
+    "Longest consecutive sequence in the entire habit history (could be from any time period)" : {
+
     },
     "Make It Yours" : {
       "localizations" : {
