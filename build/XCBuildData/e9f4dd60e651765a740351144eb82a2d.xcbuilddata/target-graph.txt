@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'RitualistTests' in project 'Ritualist'
+➜ Explicit dependency on target 'Ritualist' in project 'Ritualist'
+Target 'Ritualist' in project 'Ritualist' (no dependencies)

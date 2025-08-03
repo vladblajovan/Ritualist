@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>colors</key>
+	<array>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACColorNameAccentColor</string>
+			<key>relativePath</key>
+			<string>./AccentColor.colorset</string>
+			<key>swiftSymbol</key>
+			<string>accent</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACColorNameAccentYellow</string>
+			<key>relativePath</key>
+			<string>./AccentYellow.colorset</string>
+			<key>swiftSymbol</key>
+			<string>accentYellow</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACColorNameBrand</string>
+			<key>relativePath</key>
+			<string>./Brand.colorset</string>
+			<key>swiftSymbol</key>
+			<string>brand</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACColorNameSurface</string>
+			<key>relativePath</key>
+			<string>./Surface.colorset</string>
+			<key>swiftSymbol</key>
+			<string>surface</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACColorNameTextPrimary</string>
+			<key>relativePath</key>
+			<string>./TextPrimary.colorset</string>
+			<key>swiftSymbol</key>
+			<string>textPrimary</string>
+		</dict>
+	</array>
+	<key>images</key>
+	<array/>
+	<key>symbols</key>
+	<array/>
+</dict>
+</plist>

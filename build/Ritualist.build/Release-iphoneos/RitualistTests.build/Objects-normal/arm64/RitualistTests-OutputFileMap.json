@@ -1,0 +1,75 @@
+{
+  "" : {
+    "const-values" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RitualistTests-master.swiftconstvalues",
+    "dependencies" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RitualistTests-master.d",
+    "diagnostics" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RitualistTests-master.dia",
+    "emit-module-dependencies" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RitualistTests-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RitualistTests-master-emit-module.dia",
+    "swift-dependencies" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RitualistTests-master.swiftdeps"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/DateUtilsTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/DateUtilsTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/DateUtilsTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/DateUtilsTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/HabitDetailViewModelTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/HabitDetailViewModelTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/HabitDetailViewModelTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/HabitDetailViewModelTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/HabitRepositoryTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/HabitRepositoryTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/HabitRepositoryTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/HabitRepositoryTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/HabitsViewModelTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/HabitsViewModelTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/HabitsViewModelTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/HabitsViewModelTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/LocalizationLayoutTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/LocalizationLayoutTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/LocalizationLayoutTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/LocalizationLayoutTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/LogRepositoryTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/LogRepositoryTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/LogRepositoryTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/LogRepositoryTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/NumberUtilsTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/NumberUtilsTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/NumberUtilsTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/NumberUtilsTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/PaywallProtectionTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/PaywallProtectionTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/PaywallProtectionTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/PaywallProtectionTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/ProfileRepositoryTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/ProfileRepositoryTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/ProfileRepositoryTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/ProfileRepositoryTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/RefreshCoordinationTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RefreshCoordinationTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RefreshCoordinationTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RefreshCoordinationTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/RefreshTriggerTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RefreshTriggerTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RefreshTriggerTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/RefreshTriggerTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/StreakEngineTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/StreakEngineTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/StreakEngineTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/StreakEngineTests.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/RitualistTests/SwipeNavigationViewTests.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/SwipeNavigationViewTests.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/SwipeNavigationViewTests.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/RitualistTests.build/Objects-normal/arm64/SwipeNavigationViewTests.o"
+  }
+}

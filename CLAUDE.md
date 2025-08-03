@@ -5,6 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 📋 COLLABORATION GUIDE
 **CRITICAL**: Always reference `CLAUDE-COLLABORATION-GUIDE.md` before starting any work. This guide contains the interaction protocol, quality gates, and learning procedures that must be followed for effective collaboration.
 
+## 🧪 TESTING STRATEGY
+**IMPORTANT**: All code changes must include proper unit tests. Reference `TESTING-STRATEGY.md` for comprehensive testing guidelines, patterns, and requirements. Never create standalone test files - always use the proper RitualistTests/ structure.
+
 ## 🚨 CRITICAL DEVELOPMENT REMINDERS 🚨
 
 **ALWAYS FOLLOW THESE PRINCIPLES:**

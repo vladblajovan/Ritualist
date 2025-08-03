@@ -1,0 +1,580 @@
+{
+  "" : {
+    "const-values" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Ritualist-master.swiftconstvalues",
+    "dependencies" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Ritualist-master.d",
+    "diagnostics" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Ritualist-master.dia",
+    "emit-module-dependencies" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Ritualist-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Ritualist-master-emit-module.dia",
+    "swift-dependencies" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Ritualist-master.swiftdeps"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Application/AppDI.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AppDI.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AppDI.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AppDI.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Application/AppEnvironment.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AppEnvironment.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AppEnvironment.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AppEnvironment.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Application/RootTabView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/RootTabView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/RootTabView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/RootTabView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/DesignSystem/ConfirmationDialog.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ConfirmationDialog.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ConfirmationDialog.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ConfirmationDialog.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/DesignSystem/DesignTokens.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DesignTokens.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DesignTokens.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DesignTokens.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/DesignSystem/ErrorView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ErrorView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ErrorView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ErrorView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/DesignSystem/HabitAssistantSheet.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitAssistantSheet.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitAssistantSheet.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitAssistantSheet.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/DesignSystem/LocalizationTesting.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LocalizationTesting.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LocalizationTesting.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LocalizationTesting.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/DesignSystem/WhisperBubble.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/WhisperBubble.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/WhisperBubble.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/WhisperBubble.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/AppearanceManager.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AppearanceManager.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AppearanceManager.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AppearanceManager.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/AuthenticationService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthenticationService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthenticationService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthenticationService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/BuildConfigFeatureGatingService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/BuildConfigFeatureGatingService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/BuildConfigFeatureGatingService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/BuildConfigFeatureGatingService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/BuildConfigurationService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/BuildConfigurationService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/BuildConfigurationService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/BuildConfigurationService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/DateProvider.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DateProvider.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DateProvider.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DateProvider.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/DebugLogger.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DebugLogger.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DebugLogger.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DebugLogger.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/FeatureGatingService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/FeatureGatingService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/FeatureGatingService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/FeatureGatingService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/HabitSuggestionsService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSuggestionsService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSuggestionsService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSuggestionsService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/MockAuthenticationService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/MockAuthenticationService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/MockAuthenticationService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/MockAuthenticationService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/NotificationService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/NotificationService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/NotificationService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/NotificationService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/PaywallService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/SlogansService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SlogansService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SlogansService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SlogansService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/StreakEngine.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/StreakEngine.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/StreakEngine.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/StreakEngine.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/SystemPreferences.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SystemPreferences.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SystemPreferences.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SystemPreferences.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/UserActionEventMapper.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserActionEventMapper.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserActionEventMapper.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserActionEventMapper.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/UserActionTracker.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserActionTracker.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserActionTracker.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserActionTracker.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Services/UserService.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserService.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserService.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserService.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Utilities/DateUtils.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DateUtils.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DateUtils.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/DateUtils.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/Utilities/NumberUtils.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/NumberUtils.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/NumberUtils.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/NumberUtils.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/DataSources/HabitLocalDataSourceProtocol.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitLocalDataSourceProtocol.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitLocalDataSourceProtocol.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitLocalDataSourceProtocol.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/DataSources/LocalDataSources.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LocalDataSources.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LocalDataSources.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LocalDataSources.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/DataSources/LogLocalDataSourceProtocol.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LogLocalDataSourceProtocol.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LogLocalDataSourceProtocol.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LogLocalDataSourceProtocol.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/DataSources/ProfileLocalDataSourceProtocol.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProfileLocalDataSourceProtocol.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProfileLocalDataSourceProtocol.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProfileLocalDataSourceProtocol.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/DataSources/SwiftDataStack.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SwiftDataStack.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SwiftDataStack.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SwiftDataStack.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Mappers/Mappers.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Mappers.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Mappers.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Mappers.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Models/SDHabit.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDHabit.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDHabit.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDHabit.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Models/SDHabitLog.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDHabitLog.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDHabitLog.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDHabitLog.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Models/SDOnboardingState.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDOnboardingState.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDOnboardingState.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDOnboardingState.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Models/SDUserProfile.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDUserProfile.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDUserProfile.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SDUserProfile.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Repositories/HabitRepositoryImpl.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitRepositoryImpl.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitRepositoryImpl.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitRepositoryImpl.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Repositories/LogRepositoryImpl.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LogRepositoryImpl.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LogRepositoryImpl.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LogRepositoryImpl.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Repositories/MockUserAuthRepositoryImpl.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/MockUserAuthRepositoryImpl.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/MockUserAuthRepositoryImpl.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/MockUserAuthRepositoryImpl.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Repositories/OnboardingRepositoryImpl.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingRepositoryImpl.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingRepositoryImpl.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingRepositoryImpl.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Repositories/ProfileRepositoryImpl.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProfileRepositoryImpl.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProfileRepositoryImpl.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProfileRepositoryImpl.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Data/Repositories/TipRepositoryImpl.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipRepositoryImpl.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipRepositoryImpl.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipRepositoryImpl.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/AuthCredentials.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthCredentials.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthCredentials.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthCredentials.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/CalendarDay.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/CalendarDay.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/CalendarDay.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/CalendarDay.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/Habit.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Habit.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Habit.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Habit.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/HabitLog.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitLog.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitLog.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitLog.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/HabitSuggestion.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSuggestion.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSuggestion.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSuggestion.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/OnboardingState.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingState.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingState.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingState.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/PaywallBenefit.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallBenefit.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallBenefit.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallBenefit.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/Product.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Product.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Product.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Product.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/ReminderTime.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ReminderTime.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ReminderTime.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ReminderTime.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/Tip.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Tip.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Tip.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Tip.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/User.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/User.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/User.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/User.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Entities/UserProfile.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserProfile.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserProfile.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserProfile.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/AuthError.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthError.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthError.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthError.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/AuthState.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthState.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthState.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AuthState.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/HabitKind.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitKind.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitKind.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitKind.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/HabitSchedule.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSchedule.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSchedule.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSchedule.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/HabitSuggestionCategory.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSuggestionCategory.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSuggestionCategory.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitSuggestionCategory.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/PaywallError.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallError.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallError.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallError.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/ProductDuration.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProductDuration.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProductDuration.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProductDuration.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/PurchaseState.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PurchaseState.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PurchaseState.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PurchaseState.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/SubscriptionPlan.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SubscriptionPlan.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SubscriptionPlan.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SubscriptionPlan.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Enums/TipCategory.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipCategory.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipCategory.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipCategory.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Repositories/HabitRepository.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitRepository.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitRepository.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitRepository.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Repositories/LogRepository.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LogRepository.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LogRepository.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/LogRepository.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Repositories/OnboardingRepository.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingRepository.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingRepository.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingRepository.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Repositories/ProfileRepository.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProfileRepository.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProfileRepository.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/ProfileRepository.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Repositories/TipRepository.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipRepository.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipRepository.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipRepository.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/Repositories/UserAuthRepository.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserAuthRepository.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserAuthRepository.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UserAuthRepository.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Domain/UseCases/UseCases.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UseCases.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UseCases.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/UseCases.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/FeatureDI/HabitDetailDI.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitDetailDI.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitDetailDI.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitDetailDI.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/FeatureDI/HabitsDI.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitsDI.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitsDI.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitsDI.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/FeatureDI/OnboardingDI.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingDI.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingDI.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingDI.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/FeatureDI/OverviewDI.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewDI.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewDI.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewDI.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/FeatureDI/PaywallDI.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallDI.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallDI.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallDI.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/FeatureDI/SettingsDI.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SettingsDI.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SettingsDI.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SettingsDI.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/FeatureDI/TipsDI.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsDI.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsDI.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsDI.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Habits/Presentation/HabitDetailView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitDetailView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitDetailView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitDetailView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Habits/Presentation/HabitDetailViewModel.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitDetailViewModel.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitDetailViewModel.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitDetailViewModel.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Habits/Presentation/HabitsView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitsView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitsView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitsView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Habits/Presentation/HabitsViewModel.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitsViewModel.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitsViewModel.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitsViewModel.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingFlowView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingFlowView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingFlowView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingFlowView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingPage1View.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage1View.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage1View.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage1View.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingPage2View.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage2View.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage2View.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage2View.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingPage3View.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage3View.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage3View.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage3View.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingPage4View.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage4View.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage4View.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage4View.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingPage5View.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage5View.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage5View.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingPage5View.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingViewModel.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingViewModel.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingViewModel.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OnboardingViewModel.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/BestStreakAnimationView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/BestStreakAnimationView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/BestStreakAnimationView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/BestStreakAnimationView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/CalendarDayView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/CalendarDayView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/CalendarDayView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/CalendarDayView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/CalendarManager.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/CalendarManager.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/CalendarManager.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/CalendarManager.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/HabitChipsView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitChipsView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitChipsView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitChipsView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/HabitLoggingManager.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitLoggingManager.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitLoggingManager.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitLoggingManager.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/HabitScheduleManager.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitScheduleManager.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitScheduleManager.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/HabitScheduleManager.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/MonthlyCalendarView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/MonthlyCalendarView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/MonthlyCalendarView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/MonthlyCalendarView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/OverviewHabitsCarousel.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewHabitsCarousel.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewHabitsCarousel.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewHabitsCarousel.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/OverviewView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/OverviewViewModel.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewViewModel.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewViewModel.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/OverviewViewModel.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Overview/Presentation/StreakInfoView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/StreakInfoView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/StreakInfoView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/StreakInfoView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Paywall/Presentation/PaywallView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Paywall/Presentation/PaywallViewModel.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallViewModel.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallViewModel.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/PaywallViewModel.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Settings/Presentation/AvatarView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AvatarView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AvatarView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/AvatarView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Settings/Presentation/SettingsView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SettingsView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Settings/Presentation/SettingsViewModel.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SettingsViewModel.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SettingsViewModel.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/SettingsViewModel.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Tips/Presentation/TipDetailView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipDetailView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipDetailView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipDetailView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Tips/Presentation/TipsBottomSheet.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsBottomSheet.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsBottomSheet.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsBottomSheet.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Tips/Presentation/TipsCarouselView.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsCarouselView.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsCarouselView.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsCarouselView.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Tips/Presentation/TipsViewModel.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsViewModel.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsViewModel.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/TipsViewModel.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Resources/Strings.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Strings.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Strings.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/Strings.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/RitualistApp.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/RitualistApp.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/RitualistApp.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/RitualistApp.o"
+  },
+  "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/vladblajovan/Developer/GitHub/Ritualist/build/Ritualist.build/Release-iphoneos/Ritualist.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

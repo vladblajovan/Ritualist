@@ -39,6 +39,7 @@
 - **Follow SwiftUI + SwiftData best practices**
 - **Maintain consistency** with existing code style
 - **Prioritize readability** over cleverness
+- **Apply YAGNI principle** - Don't create new UseCases/abstractions when existing ones work perfectly
 
 ## Knowledge Management
 
@@ -90,6 +91,7 @@
 - ❌ **Architecture drift** - New code not following established patterns
 - ❌ **Build failures** - Not testing changes incrementally
 - ❌ **Unclear rationale** - Can't explain why specific approach was chosen
+- ❌ **Creating standalone test files** - NEVER create separate test scripts or files outside the proper test structure
 
 ## Tools and Automation
 
@@ -104,5 +106,17 @@
 - **Check patterns** - Grep for similar implementations
 - **Validate architecture** - Ensure clean boundaries maintained
 - **Update documentation** - Keep CLAUDE.md current
+
+### Testing Requirements:
+- **ALWAYS write proper unit tests** - Use existing test structure in RitualistTests/
+- **NEVER create standalone test files** - All tests must go in the proper test target
+- **Test logic and behavior** - Write tests to verify actual implementation behavior
+- **Follow existing test patterns** - Look at existing tests for naming and structure conventions
+
+### Build Configuration:
+- **Always use iPhone 16 with iOS 18.5** for build testing
+- **Use proper scheme**: `Ritualist-AllFeatures` or `Ritualist-Subscription`
+- **Standard build command**: `xcodebuild -project Ritualist.xcodeproj -scheme Ritualist-AllFeatures -destination "platform=iOS Simulator,name=iPhone 16" build`
+- **Avoid other devices/simulators** - They may not be available and cause build failures
 
 This guide ensures our collaboration remains productive, educational, and aligned with your project goals!

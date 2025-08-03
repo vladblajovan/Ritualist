@@ -2453,6 +2453,12 @@
         }
       }
     },
+    "Reset" : {
+
+    },
+    "Reset Completed Habit" : {
+
+    },
     "Restore Purchases" : {
 
     },
@@ -2855,6 +2861,9 @@
           }
         }
       }
+    },
+    "This will mark the habit as incomplete for this day." : {
+
     },
     "Tip: %@. %@" : {
       "localizations" : {

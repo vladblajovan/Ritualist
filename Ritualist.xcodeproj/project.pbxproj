@@ -27,7 +27,6 @@
 		91B730E92E38E4BC0050A48A /* Ritualist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ritualist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91B730F82E38E4C10050A48A /* RitualistTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		91B731022E38E4C10050A48A /* RitualistUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		91DDD9FD2E3CC14E00B7F5B5 /* Ritualist.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Ritualist.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -76,7 +75,6 @@
 		91B730E02E38E4BC0050A48A = {
 			isa = PBXGroup;
 			children = (
-				91DDD9FD2E3CC14E00B7F5B5 /* Ritualist.xctestplan */,
 				91B730EB2E38E4BC0050A48A /* Ritualist */,
 				91B730FB2E38E4C10050A48A /* RitualistTests */,
 				91B731052E38E4C10050A48A /* RitualistUITests */,

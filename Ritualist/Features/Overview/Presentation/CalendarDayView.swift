@@ -10,6 +10,9 @@ public struct CalendarDayView: View {
     let isSchedulable: Bool
     let isWeeklyTargetMet: Bool
     let onTap: () async -> Void
+    let onLongPressToReset: (() async -> Void)?
+    
+    @State private var showingResetConfirmation = false
     
     private let calendar = Calendar.current
     
@@ -23,9 +26,28 @@ public struct CalendarDayView: View {
         }
     }
     
+    /// Helper to check if the habit is completed for this day
+    private var isCompleted: Bool {
+        // Weekly style habits: check if weekly target is met and has current value
+        if isWeeklyStyleHabit {
+            return isWeeklyTargetMet && currentValue > 0
+        }
+        // Binary habits: check if logged
+        if habit.kind == .binary {
+            return isLogged
+        }
+        // Numeric habits: check if target reached
+        if let target = habit.dailyTarget {
+            return currentValue >= target
+        }
+        return false
+    }
+    
     public var body: some View {
         Button {
-            if !isFutureDate && isSchedulable && (!isTargetReached || habit.kind == .numeric) {
+            // Allow tap only if: not future, schedulable, and not completed
+            // This prevents accidental taps on completed habits (they need long press)
+            if !isFutureDate && isSchedulable && !isCompleted {
                 Task { await onTap() }
             }
         } label: {
@@ -105,7 +127,25 @@ public struct CalendarDayView: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
-        .disabled(isLoggingHabit || isFutureDate || !isSchedulable || (isTargetReached && habit.kind != .numeric))
+        .disabled(isLoggingHabit || isFutureDate || !isSchedulable || isCompleted)
+        .onLongPressGesture(minimumDuration: 0.6) {
+            // Only allow long press on completed habits that are not in future and are schedulable
+            if isCompleted && !isFutureDate && isSchedulable {
+                showingResetConfirmation = true
+            }
+        }
+        .confirmationDialog(
+            "Reset Completed Habit",
+            isPresented: $showingResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Reset", role: .destructive) {
+                Task { await onLongPressToReset?() }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will mark the habit as incomplete for this day.")
+        }
         .accessibilityLabel(accessibilityDescription)
         .accessibilityAddTraits(isLogged ? [.isSelected, .isButton] : .isButton)
     }

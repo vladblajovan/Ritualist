@@ -147,10 +147,14 @@ public struct CalendarGridView: View {
                                     currentValue: getHabitValueForDate(calendarDay.date),
                                     isLoggingHabit: isLoggingDate(calendarDay.date),
                                     isSchedulable: isDateSchedulable(calendarDay.date),
-                                    isWeeklyTargetMet: isWeeklyTargetMet(calendarDay.date)
-                                ) {
-                                    await onDateTap(calendarDay.date)
-                                }
+                                    isWeeklyTargetMet: isWeeklyTargetMet(calendarDay.date),
+                                    onTap: {
+                                        await onDateTap(calendarDay.date)
+                                    },
+                                    onLongPressToReset: {
+                                        await onDateTap(calendarDay.date)
+                                    }
+                                )
                                 .frame(maxWidth: .infinity)
                             } else {
                                 // Empty placeholder if needed
