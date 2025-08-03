@@ -28,7 +28,6 @@ public protocol SlogansServiceProtocol {
 
 public final class SlogansService: SlogansServiceProtocol {
     
-    private let dateProvider: DateProvider
     
     // MARK: - Slogans Data
     
@@ -71,9 +70,7 @@ public final class SlogansService: SlogansServiceProtocol {
         "Close the loop, open tomorrow."
     ]
     
-    public init(dateProvider: DateProvider) {
-        self.dateProvider = dateProvider
-    }
+    public init() {}
     
     // MARK: - Public Methods
     
@@ -88,7 +85,7 @@ public final class SlogansService: SlogansServiceProtocol {
     }
     
     public func getCurrentTimeOfDay() -> TimeOfDay {
-        let currentDate = dateProvider.now
+        let currentDate = DateUtils.now
         return getTimeOfDay(for: currentDate)
     }
     

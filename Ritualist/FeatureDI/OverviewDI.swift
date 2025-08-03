@@ -25,12 +25,15 @@ public struct OverviewFactory {
         let getPaywallMessage = GetPaywallMessage(featureGatingService: container.featureGatingService)
         let validateHabitSchedule = ValidateHabitSchedule()
         let checkWeeklyTarget = CheckWeeklyTarget()
+        let calculateCurrentStreak = CalculateCurrentStreak()
+        let calculateBestStreak = CalculateBestStreak()
         
         return OverviewViewModel(
             getActiveHabits: getActiveHabits,
             getLogs: getLogs,
             getLogForDate: getLogForDate,
-            streakEngine: container.streakEngine,
+            calculateCurrentStreak: calculateCurrentStreak,
+            calculateBestStreak: calculateBestStreak,
             loadProfile: loadProfile,
             generateCalendarDays: generateCalendarDays,
             generateCalendarGrid: generateCalendarGrid,

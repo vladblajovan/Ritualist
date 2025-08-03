@@ -14,6 +14,10 @@ public final class HabitDetailViewModel {
     private let updateHabit: UpdateHabitUseCase
     private let deleteHabit: DeleteHabitUseCase
     private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
+    private let getActiveCategories: GetActiveCategoriesUseCase
+    private let createCustomCategory: CreateCustomCategoryUseCase
+    private let validateCategoryName: ValidateCategoryNameUseCase
+    private let validateHabitUniqueness: ValidateHabitUniquenessUseCase
     
     // Form state
     public var name = ""
@@ -27,6 +31,16 @@ public final class HabitDetailViewModel {
     public var selectedColorHex = "#2DA9E3"
     public var isActive = true
     
+    // Category state
+    public var selectedCategory: Category?
+    public private(set) var categories: [Category] = []
+    public private(set) var isLoadingCategories = false
+    public private(set) var categoriesError: Error?
+    
+    // Validation state
+    public private(set) var isDuplicateHabit = false
+    public private(set) var isValidatingDuplicate = false
+    
     // State management
     public private(set) var isLoading = false
     public private(set) var isSaving = false
@@ -34,17 +48,25 @@ public final class HabitDetailViewModel {
     public private(set) var error: Error?
     public private(set) var isEditMode: Bool
     
-    private let originalHabit: Habit?
+    public let originalHabit: Habit?
     
     public init(createHabit: CreateHabitUseCase,
                 updateHabit: UpdateHabitUseCase,
                 deleteHabit: DeleteHabitUseCase,
                 toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
+                getActiveCategories: GetActiveCategoriesUseCase,
+                createCustomCategory: CreateCustomCategoryUseCase,
+                validateCategoryName: ValidateCategoryNameUseCase,
+                validateHabitUniqueness: ValidateHabitUniquenessUseCase,
                 habit: Habit?) {
         self.createHabit = createHabit
         self.updateHabit = updateHabit
         self.deleteHabit = deleteHabit
         self.toggleHabitActiveStatus = toggleHabitActiveStatus
+        self.getActiveCategories = getActiveCategories
+        self.createCustomCategory = createCustomCategory
+        self.validateCategoryName = validateCategoryName
+        self.validateHabitUniqueness = validateHabitUniqueness
         self.originalHabit = habit
         self.isEditMode = habit != nil
         
@@ -57,7 +79,8 @@ public final class HabitDetailViewModel {
     public var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         (selectedKind == .binary || (dailyTarget > 0 && !unitLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)) &&
-        (selectedSchedule != .daysOfWeek || !selectedDaysOfWeek.isEmpty)
+        (selectedSchedule != .daysOfWeek || !selectedDaysOfWeek.isEmpty) &&
+        !isDuplicateHabit
     }
     
     // Individual validation properties for better UI feedback
@@ -143,6 +166,93 @@ public final class HabitDetailViewModel {
         error = nil
     }
     
+    // MARK: - Category Management
+    
+    public func loadCategories() async {
+        isLoadingCategories = true
+        categoriesError = nil
+        
+        do {
+            categories = try await getActiveCategories.execute()
+            
+            // Set selected category if editing and habit has a category
+            if isEditMode, let originalHabit = originalHabit, 
+               originalHabit.categoryId != nil {
+                // For habits from suggestions, categoryId contains suggestion ID, not category ID
+                // For custom categories, categoryId will be nil
+                // For now, we'll handle this in the UI display logic
+                selectedCategory = nil
+            }
+        } catch {
+            categoriesError = error
+            categories = []
+        }
+        
+        isLoadingCategories = false
+    }
+    
+    public func selectCategory(_ category: Category) {
+        selectedCategory = category
+        // Re-validate for duplicates when category changes
+        Task {
+            await validateForDuplicates()
+        }
+    }
+    
+    public func createCustomCategory(name: String, emoji: String) async -> Bool {
+        do {
+            // Validate category name first
+            let isValid = try await validateCategoryName.execute(name: name)
+            guard isValid else {
+                return false
+            }
+            
+            // Create new category with unique ID
+            let newCategory = Category(
+                id: UUID().uuidString,
+                name: name.lowercased(),
+                displayName: name,
+                emoji: emoji,
+                order: categories.count,
+                isActive: true
+            )
+            
+            try await createCustomCategory.execute(newCategory)
+            
+            // Reload categories and select the new one
+            await loadCategories()
+            selectedCategory = newCategory
+            
+            return true
+        } catch {
+            return false
+        }
+    }
+    
+    public func validateForDuplicates() async {
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            isDuplicateHabit = false
+            return
+        }
+        
+        isValidatingDuplicate = true
+        
+        do {
+            let categoryId = selectedCategory?.id
+            let isUnique = try await validateHabitUniqueness.execute(
+                name: name,
+                categoryId: categoryId,
+                excludeId: originalHabit?.id
+            )
+            isDuplicateHabit = !isUnique
+        } catch {
+            // If validation fails, assume no duplicate to avoid blocking the user
+            isDuplicateHabit = false
+        }
+        
+        isValidatingDuplicate = false
+    }
+    
     private func loadHabitData(_ habit: Habit) {
         name = habit.name
         selectedKind = habit.kind
@@ -176,6 +286,19 @@ public final class HabitDetailViewModel {
             schedule = .timesPerWeek(timesPerWeek)
         }
         
+        // Handle category logic:
+        // - For new habits: use selected category ID if available
+        // - For edited habits from suggestions: preserve original categoryId 
+        // - For edited habits with custom categories: use selected category ID
+        let finalCategoryId: String?
+        if isEditMode, let originalHabit = originalHabit, originalHabit.suggestionId != nil {
+            // Preserve category ID for habits from suggestions
+            finalCategoryId = originalHabit.categoryId
+        } else {
+            // Use selected category ID for new habits or edited custom habits
+            finalCategoryId = selectedCategory?.id
+        }
+        
         return Habit(
             id: originalHabit?.id ?? UUID(),
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -188,7 +311,9 @@ public final class HabitDetailViewModel {
             reminders: originalHabit?.reminders ?? [],
             startDate: originalHabit?.startDate ?? Date(),
             endDate: originalHabit?.endDate,
-            isActive: isActive
+            isActive: isActive,
+            categoryId: finalCategoryId,
+            suggestionId: originalHabit?.suggestionId
         )
     }
 }

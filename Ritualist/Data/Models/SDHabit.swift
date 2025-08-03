@@ -22,13 +22,17 @@ import SwiftData
     public var endDate: Date?
     public var isActive: Bool
     public var displayOrder: Int
+    public var categoryId: String?
+    public var suggestionId: String?
     public init(id: UUID, name: String, colorHex: String, emoji: String?, kindRaw: Int,
                 unitLabel: String?, dailyTarget: Double?, scheduleData: Data,
-                remindersData: Data, startDate: Date, endDate: Date?, isActive: Bool, displayOrder: Int) {
+                remindersData: Data, startDate: Date, endDate: Date?, isActive: Bool, displayOrder: Int,
+                categoryId: String?, suggestionId: String?) {
         self.id = id; self.name = name; self.colorHex = colorHex; self.emoji = emoji
         self.kindRaw = kindRaw; self.unitLabel = unitLabel; self.dailyTarget = dailyTarget
         self.scheduleData = scheduleData; self.remindersData = remindersData
         self.startDate = startDate; self.endDate = endDate; self.isActive = isActive
         self.displayOrder = displayOrder
+        self.categoryId = categoryId; self.suggestionId = suggestionId
     }
 }

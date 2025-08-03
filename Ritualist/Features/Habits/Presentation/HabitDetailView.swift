@@ -69,12 +69,16 @@ private struct HabitFormView: View {
     var body: some View {
         Form {
             BasicInfoSection(vm: vm)
+            CategorySection(vm: vm)
             ScheduleSection(vm: vm)
             AppearanceSection(vm: vm)
             if vm.isEditMode {
                 ActiveStatusSection(vm: vm)
                 DeleteSection(vm: vm)
             }
+        }
+        .task {
+            await vm.loadCategories()
         }
     }
 }
@@ -103,6 +107,12 @@ private struct BasicInfoSection: View {
                                 focusedField = .unitLabel
                             }
                         }
+                        .onChange(of: vm.name) { _, _ in
+                            // Validate for duplicates when name changes
+                            Task {
+                                await vm.validateForDuplicates()
+                            }
+                        }
                 }
                 
                 // Form validation feedback
@@ -112,6 +122,26 @@ private struct BasicInfoSection: View {
                         .foregroundColor(.red)
                         .padding(.leading, 4)
                         .transition(.opacity)
+                }
+                
+                // Duplicate validation feedback
+                if vm.isDuplicateHabit {
+                    HStack(spacing: Spacing.xxsmall) {
+                        if vm.isValidatingDuplicate {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .orange))
+                        } else {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
+                        Text("A habit with this name and category already exists")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.leading, 4)
+                    .transition(.opacity)
                 }
             }
             
@@ -246,6 +276,68 @@ private struct DaysOfWeekSelector: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
+            }
+        }
+    }
+}
+
+private struct CategorySection: View {
+    @Bindable var vm: HabitDetailViewModel
+    @State private var showingAddCustomCategory = false
+    
+    var body: some View {
+        Section {
+            // Show category selection for new habits or editable habits (not from suggestions)
+            if !vm.isEditMode || (vm.originalHabit?.suggestionId == nil) {
+                CategorySelectionView(
+                    selectedCategory: $vm.selectedCategory,
+                    categories: vm.categories,
+                    isLoading: vm.isLoadingCategories,
+                    showAddCustomOption: true,
+                    onCategorySelect: { category in
+                        vm.selectCategory(category)
+                    },
+                    onAddCustomCategory: {
+                        showingAddCustomCategory = true
+                    }
+                )
+                .padding(.vertical, Spacing.small)
+            } else if let originalHabit = vm.originalHabit, originalHabit.suggestionId != nil {
+                // Show read-only category info for habits from suggestions
+                VStack(alignment: .leading, spacing: Spacing.small) {
+                    HStack {
+                        Text("Category")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        Spacer()
+                        
+                        Text("From Suggestion")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, Spacing.small)
+                            .padding(.vertical, Spacing.xxsmall)
+                            .background(AppColors.systemGray6, in: Capsule())
+                    }
+                    
+                    Text("This habit was added from a suggestion and its category cannot be changed.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, Spacing.small)
+            }
+            
+            // Error state
+            if let error = vm.categoriesError {
+                Text("Failed to load categories: \(error.localizedDescription)")
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+        }
+        .sheet(isPresented: $showingAddCustomCategory) {
+            AddCustomCategorySheet { name, emoji in
+                await vm.createCustomCategory(name: name, emoji: emoji)
             }
         }
     }

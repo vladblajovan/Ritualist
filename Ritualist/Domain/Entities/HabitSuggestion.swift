@@ -12,7 +12,7 @@ public struct HabitSuggestion: Identifiable, Hashable {
     public let name: String
     public let emoji: String
     public let colorHex: String
-    public let category: HabitSuggestionCategory
+    public let categoryId: String
     public let kind: HabitKind
     public let unitLabel: String?
     public let dailyTarget: Double?
@@ -20,14 +20,14 @@ public struct HabitSuggestion: Identifiable, Hashable {
     public let description: String
     
     public init(id: String, name: String, emoji: String, colorHex: String,
-                category: HabitSuggestionCategory, kind: HabitKind,
+                categoryId: String, kind: HabitKind,
                 unitLabel: String? = nil, dailyTarget: Double? = nil,
                 schedule: HabitSchedule = .daily, description: String) {
         self.id = id
         self.name = name
         self.emoji = emoji
         self.colorHex = colorHex
-        self.category = category
+        self.categoryId = categoryId
         self.kind = kind
         self.unitLabel = unitLabel
         self.dailyTarget = dailyTarget
@@ -48,7 +48,9 @@ public struct HabitSuggestion: Identifiable, Hashable {
             reminders: [],
             startDate: Date(),
             endDate: nil,
-            isActive: true
+            isActive: true,
+            categoryId: categoryId,  // Use actual category ID for proper duplicate detection
+            suggestionId: id         // Store suggestion ID for tracking which suggestion was used
         )
     }
 }

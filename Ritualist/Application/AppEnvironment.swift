@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 // MARK: - DI Container EnvironmentKey
@@ -8,19 +9,27 @@ public protocol AppContainer {
     var profileRepository: ProfileRepository { get }
     var tipRepository: TipRepository { get }
     var onboardingRepository: OnboardingRepository { get }
+    var categoryRepository: CategoryRepository { get }
     var notificationService: NotificationService { get }
-    var dateProvider: DateProvider { get }
-    var streakEngine: StreakEngine { get }
     var appearanceManager: AppearanceManager { get }
     var habitSuggestionsService: HabitSuggestionsService { get }
-    var userActionTracker: UserActionTracker { get }
+    var userActionTracker: UserActionTrackerService { get }
     var userService: UserService { get }
     var paywallService: PaywallService { get }
     var featureGatingService: FeatureGatingService { get }
     var slogansService: SlogansServiceProtocol { get }
     
-    // Factory methods
+    // Domain UseCases
+    var createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase { get }
+    
+    // Shared ViewModels
+    var habitsAssistantViewModel: HabitsAssistantViewModel { get }
+    
+    // Feature factories
     var onboardingFactory: OnboardingFactory { get }
+    var habitDetailFactory: HabitDetailFactory { get }
+    var paywallFactory: PaywallFactory { get }
+    var habitsAssistantFactory: HabitsAssistantFactory { get }
 }
 
 private struct AppContainerKey: EnvironmentKey {

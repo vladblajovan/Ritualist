@@ -108,13 +108,21 @@ private struct OverviewListView: View {
                             }
                             .padding(.horizontal, Spacing.large)
                             
-                            OverviewHabitsCarousel(
-                                habits: vm.habits,
-                                selectedHabit: vm.selectedHabit,
-                                onChipTap: { habit in
+                            HorizontalCarousel(
+                                items: vm.habits,
+                                selectedItem: vm.selectedHabit,
+                                onItemTap: { habit in
                                     await vm.selectHabit(habit)
-                                }
-                            )
+                                },
+                                showPageIndicator: false
+                            ) { habit, isSelected in
+                                Chip(
+                                    text: habit.name,
+                                    emoji: habit.emoji ?? "•",
+                                    color: Color(hex: habit.colorHex) ?? AppColors.brand,
+                                    isSelected: isSelected
+                                )
+                            }
                         }
                         
                         // Calendar view
@@ -131,7 +139,6 @@ private struct OverviewListView: View {
                                     fullCalendarDays: vm.fullCalendarDays,
                                     loggedDates: vm.loggedDates,
                                     isLoggingDate: vm.isLoggingDate,
-                                    userFirstDayOfWeek: vm.userFirstDayOfWeek,
                                     isViewingCurrentMonth: vm.isViewingCurrentMonth,
                                     getHabitValueForDate: vm.getHabitValueForDate,
                                     isDateSchedulable: vm.isDateSchedulable,

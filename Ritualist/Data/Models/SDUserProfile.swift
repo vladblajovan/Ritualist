@@ -12,7 +12,6 @@ import SwiftData
     @Attribute(.unique) public var id: UUID
     public var name: String
     public var avatarImageData: Data?
-    public var firstDayOfWeek: Int
     public var appearance: Int
     
     // Subscription info (consolidated from User entity)
@@ -26,7 +25,6 @@ import SwiftData
     public init(id: UUID, 
                 name: String, 
                 avatarImageData: Data?, 
-                firstDayOfWeek: Int, 
                 appearance: Int,
                 subscriptionPlan: String = "free",
                 subscriptionExpiryDate: Date? = nil,
@@ -35,7 +33,6 @@ import SwiftData
         self.id = id
         self.name = name
         self.avatarImageData = avatarImageData
-        self.firstDayOfWeek = firstDayOfWeek
         self.appearance = appearance
         self.subscriptionPlan = subscriptionPlan
         self.subscriptionExpiryDate = subscriptionExpiryDate

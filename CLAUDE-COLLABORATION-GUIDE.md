@@ -13,6 +13,8 @@
 2. ✅ **Maintain clean boundaries** - Domain ↔ Data ↔ Presentation separation
 3. ✅ **Use established DI** - Leverage AppContainer and feature factories
 4. ✅ **Test incrementally** - Build/compile after significant changes
+5. ✅ **Identify architectural violations** - When encountering cross-feature dependencies or violations in existing code, STOP and propose proper refactoring before proceeding
+6. ✅ **Challenge user requests with evidence** - If a request seems architecturally unsound, research the codebase thoroughly first, then push back with concrete examples and explanations. User wants to be challenged on questionable decisions, but only when backed by actual code analysis
 
 ### When I Make Mistakes, I Must:
 1. ✅ **Acknowledge the error** - Be explicit about what went wrong
@@ -92,6 +94,7 @@
 - ❌ **Build failures** - Not testing changes incrementally
 - ❌ **Unclear rationale** - Can't explain why specific approach was chosen
 - ❌ **Creating standalone test files** - NEVER create separate test scripts or files outside the proper test structure
+- ❌ **Cross-feature dependencies** - Features directly calling other feature factories/components
 
 ## Tools and Automation
 

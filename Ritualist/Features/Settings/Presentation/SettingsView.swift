@@ -64,7 +64,6 @@ private struct SettingsFormView: View {
     
     // Local form state
     @State private var name = ""
-    @State private var firstDayOfWeek = 2
     @State private var appearance = 0
     
     var body: some View {
@@ -162,14 +161,6 @@ private struct SettingsFormView: View {
                     }
                     
                     Section(Strings.Settings.profile) {
-                        HStack {
-                            Picker(Strings.Settings.firstDayOfWeek, selection: $firstDayOfWeek) {
-                                ForEach(1...7, id: \.self) { day in
-                                    Text(dayOfWeekName(day)).tag(day)
-                                }
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                        }
                         
                         HStack {
                             Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
@@ -326,13 +317,11 @@ private struct SettingsFormView: View {
     
     private var hasChanges: Bool {
         name != vm.profile.name ||
-               firstDayOfWeek != vm.profile.firstDayOfWeek ||
                appearance != vm.profile.appearance
     }
     
     private func updateLocalState() {
         name = vm.profile.name
-        firstDayOfWeek = vm.profile.firstDayOfWeek
         appearance = vm.profile.appearance
     }
     
@@ -346,7 +335,6 @@ private struct SettingsFormView: View {
     private func saveChanges() async {
         // Update profile settings
         vm.profile.name = name
-        vm.profile.firstDayOfWeek = firstDayOfWeek
         vm.profile.appearance = appearance
         _ = await vm.save()
         
@@ -362,18 +350,6 @@ private struct SettingsFormView: View {
         updateLocalState()
     }
     
-    private func dayOfWeekName(_ day: Int) -> String {
-        switch day {
-        case 1: return Strings.DayOfWeek.sunday
-        case 2: return Strings.DayOfWeek.monday
-        case 3: return Strings.DayOfWeek.tuesday
-        case 4: return Strings.DayOfWeek.wednesday
-        case 5: return Strings.DayOfWeek.thursday
-        case 6: return Strings.DayOfWeek.friday
-        case 7: return Strings.DayOfWeek.saturday
-        default: return Strings.DayOfWeek.unknown
-        }
-    }
     
     private func appearanceName(_ appearance: Int) -> String {
         switch appearance {

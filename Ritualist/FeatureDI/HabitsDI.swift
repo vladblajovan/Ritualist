@@ -19,20 +19,13 @@ public struct HabitsFactory {
             deleteHabit: deleteHabit,
             toggleHabitActiveStatus: toggleHabitActiveStatus,
             reorderHabits: reorderHabits,
-            checkHabitCreationLimit: checkHabitCreationLimit
-        )
-    }
-    
-    public func makeCreateHabitFromSuggestionUseCase() -> CreateHabitFromSuggestionUseCase {
-        let createHabit = CreateHabit(repo: container.habitRepository)
-        let getHabitCount = GetHabitCount(habitRepository: container.habitRepository)
-        let checkHabitCreationLimit = CheckHabitCreationLimit(featureGatingService: container.featureGatingService)
-        
-        return CreateHabitFromSuggestion(
-            createHabit: createHabit,
-            getHabitCount: getHabitCount,
             checkHabitCreationLimit: checkHabitCreationLimit,
-            featureGatingService: container.featureGatingService
+            createHabitFromSuggestionUseCase: container.createHabitFromSuggestionUseCase,
+            habitDetailFactory: container.habitDetailFactory,
+            paywallFactory: container.paywallFactory,
+            habitsAssistantViewModel: container.habitsAssistantViewModel,
+            habitSuggestionsService: container.habitSuggestionsService,
+            userActionTracker: container.userActionTracker
         )
     }
 }

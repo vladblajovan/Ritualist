@@ -6,7 +6,8 @@ public final class OverviewViewModel {
     private let getActiveHabits: GetActiveHabitsUseCase
     private let getLogs: GetLogsUseCase
     private let getLogForDate: GetLogForDateUseCase
-    private let streakEngine: StreakEngine
+    private let calculateCurrentStreak: CalculateCurrentStreakUseCase
+    private let calculateBestStreak: CalculateBestStreakUseCase
     private let loadProfile: LoadProfileUseCase
     private let trackUserAction: TrackUserActionUseCase
     private let trackHabitLogged: TrackHabitLoggedUseCase
@@ -48,10 +49,6 @@ public final class OverviewViewModel {
     // User preferences
     private var userProfile: UserProfile?
     
-    /// User's preferred first day of week for calendar display
-    public var userFirstDayOfWeek: Int? {
-        userProfile?.firstDayOfWeek
-    }
     
     // MARK: - Paywall Protection
     
@@ -73,7 +70,8 @@ public final class OverviewViewModel {
     public init(getActiveHabits: GetActiveHabitsUseCase,
                 getLogs: GetLogsUseCase,
                 getLogForDate: GetLogForDateUseCase,
-                streakEngine: StreakEngine,
+                calculateCurrentStreak: CalculateCurrentStreakUseCase,
+                calculateBestStreak: CalculateBestStreakUseCase,
                 loadProfile: LoadProfileUseCase,
                 generateCalendarDays: GenerateCalendarDaysUseCase,
                 generateCalendarGrid: GenerateCalendarGridUseCase,
@@ -89,7 +87,8 @@ public final class OverviewViewModel {
         self.getActiveHabits = getActiveHabits
         self.getLogs = getLogs
         self.getLogForDate = getLogForDate
-        self.streakEngine = streakEngine
+        self.calculateCurrentStreak = calculateCurrentStreak
+        self.calculateBestStreak = calculateBestStreak
         self.loadProfile = loadProfile
         self.generateCalendarDays = generateCalendarDays
         self.generateCalendarGrid = generateCalendarGrid
@@ -316,9 +315,9 @@ public final class OverviewViewModel {
             // Get all logs for the habit (no date filtering for streak calculation)
             let allLogs = try await getLogs.execute(for: habit.id, since: nil, until: nil)
             
-            // Calculate streaks using the streak engine
-            currentStreak = streakEngine.currentStreak(for: habit, logs: allLogs, asOf: Date())
-            let newBestStreak = streakEngine.bestStreak(for: habit, logs: allLogs)
+            // Calculate streaks using the streak use cases
+            currentStreak = calculateCurrentStreak.execute(habit: habit, logs: allLogs, asOf: Date())
+            let newBestStreak = calculateBestStreak.execute(habit: habit, logs: allLogs)
             
             // Always update streak values (no animation logic here)
             bestStreak = newBestStreak

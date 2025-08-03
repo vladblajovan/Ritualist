@@ -16,8 +16,7 @@ public final class ProfileRepositoryImpl: ProfileRepository {
         } else {
             // Create profile with system defaults
             let defaultProfile = UserProfile(
-                firstDayOfWeek: SystemPreferences.getSystemFirstDayOfWeek(),
-                appearance: SystemPreferences.getSystemAppearance()
+                appearance: AppearanceManager.getSystemAppearance()
             )
             try await saveProfile(defaultProfile)
             return defaultProfile

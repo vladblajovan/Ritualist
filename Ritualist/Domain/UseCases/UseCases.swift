@@ -1,5 +1,11 @@
 import Foundation
 
+public enum CategoryError: Error {
+    case categoryAlreadyExists
+    case categoryNotFound
+    case invalidCategoryName
+}
+
 // MARK: - Habit Use Cases
 public protocol CreateHabitUseCase { func execute(_ habit: Habit) async throws -> Habit }
 public protocol GetActiveHabitsUseCase { func execute() async throws -> [Habit] }
@@ -8,6 +14,7 @@ public protocol UpdateHabitUseCase { func execute(_ habit: Habit) async throws }
 public protocol DeleteHabitUseCase { func execute(id: UUID) async throws }
 public protocol ToggleHabitActiveStatusUseCase { func execute(id: UUID) async throws -> Habit }
 public protocol ReorderHabitsUseCase { func execute(_ habits: [Habit]) async throws }
+public protocol ValidateHabitUniquenessUseCase { func execute(name: String, categoryId: String?, excludeId: UUID?) async throws -> Bool }
 
 // MARK: - Log Use Cases
 public protocol GetLogsUseCase { func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog] }
@@ -42,6 +49,14 @@ public protocol GetAllTipsUseCase { func execute() async throws -> [Tip] }
 public protocol GetFeaturedTipsUseCase { func execute() async throws -> [Tip] }
 public protocol GetTipByIdUseCase { func execute(id: UUID) async throws -> Tip? }
 public protocol GetTipsByCategoryUseCase { func execute(category: TipCategory) async throws -> [Tip] }
+
+// MARK: - Category Use Cases
+public protocol GetAllCategoriesUseCase { func execute() async throws -> [Category] }
+public protocol GetCategoryByIdUseCase { func execute(id: String) async throws -> Category? }
+public protocol GetActiveCategoriesUseCase { func execute() async throws -> [Category] }
+public protocol GetPredefinedCategoriesUseCase { func execute() async throws -> [Category] }
+public protocol CreateCustomCategoryUseCase { func execute(_ category: Category) async throws }
+public protocol ValidateCategoryNameUseCase { func execute(name: String) async throws -> Bool }
 
 // MARK: - Onboarding Use Cases
 public protocol GetOnboardingStateUseCase { func execute() async throws -> OnboardingState }
@@ -133,7 +148,9 @@ public final class CreateHabit: CreateHabitUseCase {
             startDate: habit.startDate,
             endDate: habit.endDate,
             isActive: habit.isActive,
-            displayOrder: maxOrder + 1
+            displayOrder: maxOrder + 1,
+            categoryId: habit.categoryId,
+            suggestionId: habit.suggestionId
         )
         
         try await repo.create(habitWithOrder)
@@ -194,7 +211,9 @@ public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
             startDate: habit.startDate,
             endDate: habit.endDate,
             isActive: !habit.isActive,
-            displayOrder: habit.displayOrder
+            displayOrder: habit.displayOrder,
+            categoryId: habit.categoryId,
+            suggestionId: habit.suggestionId
         )
         
         try await repo.update(updatedHabit)
@@ -222,7 +241,9 @@ public final class ReorderHabits: ReorderHabitsUseCase {
                 startDate: habit.startDate,
                 endDate: habit.endDate,
                 isActive: habit.isActive,
-                displayOrder: index
+                displayOrder: index,
+                categoryId: habit.categoryId,
+                suggestionId: habit.suggestionId
             )
             updatedHabits.append(updatedHabit)
         }
@@ -231,6 +252,34 @@ public final class ReorderHabits: ReorderHabitsUseCase {
         for habit in updatedHabits {
             try await repo.update(habit)
         }
+    }
+}
+
+public final class ValidateHabitUniqueness: ValidateHabitUniquenessUseCase {
+    private let repo: HabitRepository
+    public init(repo: HabitRepository) { self.repo = repo }
+    
+    public func execute(name: String, categoryId: String?, excludeId: UUID?) async throws -> Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let allHabits = try await repo.fetchAllHabits()
+        
+        // Check for duplicate: same name AND same categoryId
+        let isDuplicate = allHabits.contains { habit in
+            // Skip the habit being edited (if any)
+            if let excludeId = excludeId, habit.id == excludeId {
+                return false
+            }
+            
+            // Check if name matches
+            let nameMatches = habit.name.lowercased() == trimmedName
+            
+            // Check if category matches (both nil, or both have same value)
+            let categoryMatches = (habit.categoryId == categoryId)
+            
+            return nameMatches && categoryMatches
+        }
+        
+        return !isDuplicate  // Return true if unique (no duplicate found)
     }
 }
 
@@ -322,6 +371,60 @@ public final class GetTipsByCategory: GetTipsByCategoryUseCase {
     private let repo: TipRepository
     public init(repo: TipRepository) { self.repo = repo }
     public func execute(category: TipCategory) async throws -> [Tip] { try await repo.getTips(by: category) }
+}
+
+// MARK: - Category Use Case Implementations
+public final class GetAllCategories: GetAllCategoriesUseCase {
+    private let repo: CategoryRepository
+    public init(repo: CategoryRepository) { self.repo = repo }
+    public func execute() async throws -> [Category] { try await repo.getAllCategories() }
+}
+
+public final class GetCategoryById: GetCategoryByIdUseCase {
+    private let repo: CategoryRepository
+    public init(repo: CategoryRepository) { self.repo = repo }
+    public func execute(id: String) async throws -> Category? { try await repo.getCategory(by: id) }
+}
+
+public final class GetActiveCategories: GetActiveCategoriesUseCase {
+    private let repo: CategoryRepository
+    public init(repo: CategoryRepository) { self.repo = repo }
+    public func execute() async throws -> [Category] { try await repo.getActiveCategories() }
+}
+
+public final class GetPredefinedCategories: GetPredefinedCategoriesUseCase {
+    private let repo: CategoryRepository
+    public init(repo: CategoryRepository) { self.repo = repo }
+    public func execute() async throws -> [Category] { try await repo.getPredefinedCategories() }
+}
+
+public final class CreateCustomCategory: CreateCustomCategoryUseCase {
+    private let repo: CategoryRepository
+    public init(repo: CategoryRepository) { self.repo = repo }
+    public func execute(_ category: Category) async throws {
+        // Business logic: Validate category doesn't already exist
+        let existsByName = try await repo.categoryExists(name: category.name)
+        let existsById = try await repo.categoryExists(id: category.id)
+        
+        guard !existsByName && !existsById else {
+            throw CategoryError.categoryAlreadyExists
+        }
+        
+        try await repo.createCustomCategory(category)
+    }
+}
+
+public final class ValidateCategoryName: ValidateCategoryNameUseCase {
+    private let repo: CategoryRepository
+    public init(repo: CategoryRepository) { self.repo = repo }
+    public func execute(name: String) async throws -> Bool {
+        // Business logic: Check if category name is unique
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return false }
+        
+        let exists = try await repo.categoryExists(name: trimmedName)
+        return !exists
+    }
 }
 
 // MARK: - Onboarding Use Case Implementations
@@ -465,7 +568,7 @@ public final class GenerateCalendarDays: GenerateCalendarDaysUseCase {
     public init() {}
     
     public func execute(for month: Date, userProfile: UserProfile?) -> [Date] {
-        let calendar = DateUtils.userCalendar(firstDayOfWeek: userProfile?.firstDayOfWeek)
+        let calendar = DateUtils.userCalendar()
         
         // Ensure we start with a normalized date (start of day)
         let normalizedCurrentMonth = calendar.startOfDay(for: month)
@@ -489,7 +592,7 @@ public final class GenerateCalendarGrid: GenerateCalendarGridUseCase {
     public init() {}
     
     public func execute(for month: Date, userProfile: UserProfile?) -> [CalendarDay] {
-        let calendar = DateUtils.userCalendar(firstDayOfWeek: userProfile?.firstDayOfWeek)
+        let calendar = DateUtils.userCalendar()
         
         let normalizedCurrentMonth = calendar.startOfDay(for: month)
         guard let monthInterval = calendar.dateInterval(of: .month, for: normalizedCurrentMonth) else { return [] }
@@ -683,9 +786,9 @@ public final class GetPaywallMessage: GetPaywallMessageUseCase {
 // MARK: - User Action Use Case Implementations
 
 public final class TrackUserAction: TrackUserActionUseCase {
-    private let userActionTracker: UserActionTracker
+    private let userActionTracker: UserActionTrackerService
     
-    public init(userActionTracker: UserActionTracker) {
+    public init(userActionTracker: UserActionTrackerService) {
         self.userActionTracker = userActionTracker
     }
     
@@ -695,9 +798,9 @@ public final class TrackUserAction: TrackUserActionUseCase {
 }
 
 public final class TrackHabitLogged: TrackHabitLoggedUseCase {
-    private let userActionTracker: UserActionTracker
+    private let userActionTracker: UserActionTrackerService
     
-    public init(userActionTracker: UserActionTracker) {
+    public init(userActionTracker: UserActionTrackerService) {
         self.userActionTracker = userActionTracker
     }
     
@@ -944,16 +1047,16 @@ public final class CheckWeeklyTarget: CheckWeeklyTargetUseCase {
     public func execute(date: Date, habit: Habit, habitLogValues: [Date: Double], userProfile: UserProfile?) -> Bool {
         switch habit.schedule {
         case .timesPerWeek(let target):
-            let weekKey = DateUtils.weekKey(for: date, firstWeekday: userProfile?.firstDayOfWeek ?? Calendar.current.firstWeekday)
+            let weekKey = DateUtils.weekKey(for: date, firstWeekday: Calendar.current.firstWeekday)
             let logsInWeek = habitLogValues.filter { (logDate, value) in
-                let logWeekKey = DateUtils.weekKey(for: logDate, firstWeekday: userProfile?.firstDayOfWeek ?? Calendar.current.firstWeekday)
+                let logWeekKey = DateUtils.weekKey(for: logDate, firstWeekday: Calendar.current.firstWeekday)
                 return logWeekKey.year == weekKey.year && logWeekKey.week == weekKey.week && value > 0
             }
             return logsInWeek.count >= target
         case .daysOfWeek(let requiredDays):
-            let weekKey = DateUtils.weekKey(for: date, firstWeekday: userProfile?.firstDayOfWeek ?? Calendar.current.firstWeekday)
+            let weekKey = DateUtils.weekKey(for: date, firstWeekday: Calendar.current.firstWeekday)
             let logsInWeek = habitLogValues.filter { (logDate, value) in
-                let logWeekKey = DateUtils.weekKey(for: logDate, firstWeekday: userProfile?.firstDayOfWeek ?? Calendar.current.firstWeekday)
+                let logWeekKey = DateUtils.weekKey(for: logDate, firstWeekday: Calendar.current.firstWeekday)
                 return logWeekKey.year == weekKey.year && logWeekKey.week == weekKey.week && value > 0
             }
             // Check if all required days for this week are logged

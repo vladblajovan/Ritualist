@@ -211,6 +211,36 @@ vm.hasAdvancedAnalytics  // Uses service layer
 - ❌ **Business logic in Views**: Move to UseCases
 - ❌ **Multiple service dependencies**: Compose via UseCases
 
+### Code Duplication Anti-Patterns:
+- ❌ **Duplicate UI components**: Use shared components in `/Features/Shared/Presentation/`
+- ❌ **Copy-paste similar Views**: Extract common patterns into reusable components
+- ❌ **Feature-specific versions of shared logic**: Use domain-level shared components
+
+### Domain UseCase Management:
+**CRITICAL PATTERN**: Shared UseCases belong in AppContainer, not feature-specific factories.
+
+**✅ Correct Pattern:**
+```swift
+// AppContainer protocol
+var createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase { get }
+
+// Feature using shared UseCase
+return await di.createHabitFromSuggestionUseCase.execute(suggestion)
+```
+
+**❌ Wrong Pattern:**
+```swift
+// Cross-feature dependency violation
+let habitsAssistantFactory = HabitsAssistantFactory(container: di)
+let useCase = habitsAssistantFactory.makeCreateHabitFromSuggestionUseCase()
+```
+
+**Why This Matters:**
+- **Feature Independence**: No cross-feature dependencies
+- **Testability**: Each feature can be tested in isolation  
+- **Single Source of Truth**: Shared logic lives in Domain layer
+- **Clean Architecture**: Proper dependency flow
+
 ## Performance Considerations
 
 - **Build-time decisions**: Zero runtime overhead for feature flagging

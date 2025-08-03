@@ -6,7 +6,6 @@ public struct MonthlyCalendarView: View {
     let fullCalendarDays: [CalendarDay]
     let loggedDates: Set<Date>
     let isLoggingDate: (Date) -> Bool
-    let userFirstDayOfWeek: Int?
     let isViewingCurrentMonth: Bool
     let getHabitValueForDate: (Date) -> Double
     let isDateSchedulable: (Date) -> Bool
@@ -85,8 +84,7 @@ public struct MonthlyCalendarView: View {
                 getHabitValueForDate: getHabitValueForDate,
                 isDateSchedulable: isDateSchedulable,
                 isWeeklyTargetMet: isWeeklyTargetMet,
-                onDateTap: onDateTap,
-                userFirstDayOfWeek: userFirstDayOfWeek
+                onDateTap: onDateTap
             )
         }
         .padding(.bottom, Spacing.large)
@@ -104,18 +102,14 @@ public struct CalendarGridView: View {
     let isDateSchedulable: (Date) -> Bool
     let isWeeklyTargetMet: (Date) -> Bool
     let onDateTap: (Date) async -> Void
-    let userFirstDayOfWeek: Int?
     
     private var calendar: Calendar {
-        DateUtils.userCalendar(firstDayOfWeek: userFirstDayOfWeek)
+        DateUtils.userCalendar()
     }
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
     
     private var weekdayHeaders: [String] {
-        DateUtils.orderedWeekdaySymbols(
-            firstDayOfWeek: userFirstDayOfWeek ?? calendar.firstWeekday, 
-            style: .veryShort
-        )
+        DateUtils.orderedWeekdaySymbols(style: .veryShort)
     }
     
     public var body: some View {

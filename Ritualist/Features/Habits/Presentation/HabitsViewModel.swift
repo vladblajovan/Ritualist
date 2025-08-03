@@ -10,13 +10,28 @@ public final class HabitsViewModel {
     private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
     private let reorderHabits: ReorderHabitsUseCase
     private let checkHabitCreationLimit: CheckHabitCreationLimitUseCase
+    private let createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase
+    private let habitDetailFactory: HabitDetailFactory
+    private let paywallFactory: PaywallFactory
+    public let habitSuggestionsService: HabitSuggestionsService
+    public let userActionTracker: UserActionTrackerService
     
+    // MARK: - Data State
     public private(set) var items: [Habit] = []
     public private(set) var isLoading = false
     public private(set) var error: Error?
     public private(set) var isCreating = false
     public private(set) var isUpdating = false
     public private(set) var isDeleting = false
+    
+    // MARK: - Navigation State
+    public var showingCreateHabit = false
+    public var showingHabitAssistant = false
+    public var selectedHabit: Habit?
+    public var paywallItem: PaywallItem?
+    public var shouldReopenAssistantAfterPaywall = false
+    public var isHandlingPaywallDismissal = false
+    public private(set) var habitsAssistantViewModel: HabitsAssistantViewModel?
     
     // MARK: - Paywall Protection
     
@@ -31,7 +46,13 @@ public final class HabitsViewModel {
                 deleteHabit: DeleteHabitUseCase,
                 toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
                 reorderHabits: ReorderHabitsUseCase,
-                checkHabitCreationLimit: CheckHabitCreationLimitUseCase) {
+                checkHabitCreationLimit: CheckHabitCreationLimitUseCase,
+                createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase,
+                habitDetailFactory: HabitDetailFactory,
+                paywallFactory: PaywallFactory,
+                habitsAssistantViewModel: HabitsAssistantViewModel,
+                habitSuggestionsService: HabitSuggestionsService,
+                userActionTracker: UserActionTrackerService) {
         self.getAllHabits = getAllHabits
         self.createHabit = createHabit
         self.updateHabit = updateHabit
@@ -39,6 +60,12 @@ public final class HabitsViewModel {
         self.toggleHabitActiveStatus = toggleHabitActiveStatus
         self.reorderHabits = reorderHabits
         self.checkHabitCreationLimit = checkHabitCreationLimit
+        self.createHabitFromSuggestionUseCase = createHabitFromSuggestionUseCase
+        self.habitDetailFactory = habitDetailFactory
+        self.paywallFactory = paywallFactory
+        self.habitsAssistantViewModel = habitsAssistantViewModel
+        self.habitSuggestionsService = habitSuggestionsService
+        self.userActionTracker = userActionTracker
         
         setupRefreshObservation()
     }
@@ -144,5 +171,95 @@ public final class HabitsViewModel {
     
     private func setupRefreshObservation() {
         // No manual refresh triggers needed - @Observable reactivity handles updates
+    }
+    
+    // MARK: - Presentation Logic
+    
+    /// Create habit detail ViewModel for editing/creating habits
+    public func makeHabitDetailViewModel(for habit: Habit?) -> HabitDetailViewModel {
+        return habitDetailFactory.makeViewModel(for: habit)
+    }
+    
+    /// Create habit from suggestion (for assistant)
+    public func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
+        return await createHabitFromSuggestionUseCase.execute(suggestion)
+    }
+    
+    /// Handle create habit button tap from toolbar
+    public func handleCreateHabitTap() {
+        if canCreateMoreHabits {
+            showingCreateHabit = true
+        } else {
+            // Show paywall for users who hit the limit
+            showPaywall()
+        }
+    }
+    
+    /// Handle habit assistant button tap
+    public func handleAssistantTap(source: String) {
+        userActionTracker.track(.habitsAssistantOpened(source: source == "emptyState" ? .emptyState : .habitsPage))
+        showingHabitAssistant = true
+    }
+    
+    /// Show paywall
+    public func showPaywall() {
+        Task { @MainActor in
+            let paywallViewModel = paywallFactory.makeViewModel()
+            await paywallViewModel.load()
+            paywallItem = PaywallItem(viewModel: paywallViewModel)
+        }
+    }
+    
+    /// Show paywall from assistant (sets flag to reopen assistant after)
+    public func showPaywallFromAssistant() {
+        shouldReopenAssistantAfterPaywall = true
+        showPaywall()
+    }
+    
+    /// Handle paywall dismissal
+    public func handlePaywallDismissal() {
+        // Guard against multiple calls
+        guard !isHandlingPaywallDismissal else { return }
+        
+        isHandlingPaywallDismissal = true
+        
+        if shouldReopenAssistantAfterPaywall {
+            // Reset the flag
+            shouldReopenAssistantAfterPaywall = false
+            
+            // Wait for paywall dismissal animation to complete before reopening assistant
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.showingHabitAssistant = true
+                self.isHandlingPaywallDismissal = false
+            }
+        } else {
+            isHandlingPaywallDismissal = false
+        }
+    }
+    
+    /// Handle when create habit sheet is dismissed - refresh data
+    public func handleCreateHabitDismissal() {
+        Task {
+            await load()
+        }
+    }
+    
+    /// Handle when assistant sheet is dismissed - refresh data  
+    public func handleAssistantDismissal() {
+        Task {
+            await load()
+        }
+    }
+    
+    /// Handle when habit detail sheet is dismissed - refresh data
+    public func handleHabitDetailDismissal() {
+        Task {
+            await load()
+        }
+    }
+    
+    /// Select a habit for editing
+    public func selectHabit(_ habit: Habit) {
+        selectedHabit = habit
     }
 }

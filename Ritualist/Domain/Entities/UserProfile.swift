@@ -11,7 +11,6 @@ public struct UserProfile: Identifiable, Codable, Hashable {
     public var id: UUID
     public var name: String
     public var avatarImageData: Data?
-    public var firstDayOfWeek: Int // 1..7
     public var appearance: Int // 0 followSystem, 1 light, 2 dark
     
     // Subscription info (consolidated from User entity)
@@ -25,7 +24,6 @@ public struct UserProfile: Identifiable, Codable, Hashable {
     public init(id: UUID = UUID(), 
                 name: String = "", 
                 avatarImageData: Data? = nil,
-                firstDayOfWeek: Int = 2, 
                 appearance: Int = 0,
                 subscriptionPlan: SubscriptionPlan = .free,
                 subscriptionExpiryDate: Date? = nil,
@@ -34,7 +32,6 @@ public struct UserProfile: Identifiable, Codable, Hashable {
         self.id = id
         self.name = name
         self.avatarImageData = avatarImageData
-        self.firstDayOfWeek = firstDayOfWeek
         self.appearance = appearance
         self.subscriptionPlan = subscriptionPlan
         self.subscriptionExpiryDate = subscriptionExpiryDate

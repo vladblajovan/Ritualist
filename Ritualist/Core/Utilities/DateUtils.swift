@@ -8,6 +8,9 @@
 import Foundation
 
 public enum DateUtils {
+    
+    // MARK: - Current Time
+    public static var now: Date { Date() }
     /// Normalize a Date to local midnight (00:00) in the given calendar.
     public static func startOfDay(_ date: Date, calendar: Calendar = .current) -> Date {
         calendar.startOfDay(for: date)
@@ -37,21 +40,17 @@ public enum DateUtils {
         return (comps.yearForWeekOfYear ?? 0, comps.weekOfYear ?? 0)
     }
     
-    /// Creates a locale-aware calendar with user's preferred first day of week
-    public static func userCalendar(firstDayOfWeek: Int? = nil) -> Calendar {
+    /// Creates a locale-aware calendar using system first day of week
+    public static func userCalendar() -> Calendar {
+        // Always use system calendar settings
         var calendar = Calendar.current
-        // Respect user preference if provided, otherwise use locale default
-        if let userFirstDay = firstDayOfWeek {
-            calendar.firstWeekday = userFirstDay
-        }
-        // Ensure proper locale is set
         calendar.locale = Locale.current
         return calendar
     }
     
-    /// Get properly ordered weekday symbols respecting user's week start preference
-    public static func orderedWeekdaySymbols(firstDayOfWeek: Int, style: WeekdaySymbolStyle = .veryShort) -> [String] {
-        let calendar = userCalendar(firstDayOfWeek: firstDayOfWeek)
+    /// Get properly ordered weekday symbols respecting system week start preference
+    public static func orderedWeekdaySymbols(style: WeekdaySymbolStyle = .veryShort) -> [String] {
+        let calendar = userCalendar()
         var symbols: [String]
         
         switch style {
@@ -71,9 +70,9 @@ public enum DateUtils {
         }
         
         // Calendar weekday symbols are ordered starting from Sunday (index 0)
-        // firstDayOfWeek: 1=Sunday, 2=Monday, etc.
+        // System firstWeekday: 1=Sunday, 2=Monday, etc.
         // Convert to 0-based index for array access
-        let startIndex = firstDayOfWeek - 1
+        let startIndex = calendar.firstWeekday - 1
         
         // Ensure we don't go out of bounds
         guard startIndex >= 0 && startIndex < symbols.count else {

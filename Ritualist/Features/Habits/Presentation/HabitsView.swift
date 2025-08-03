@@ -2,11 +2,8 @@ import SwiftUI
 
 public struct HabitsRoot: View {
     @Environment(\.appContainer) private var di
-    @State private var showingCreateHabit = false
-    @State private var showingHabitAssistant = false
-    @State private var paywallItem: PaywallItem?
-    @State private var shouldReopenAssistantAfterPaywall = false
-    @State private var isHandlingPaywallDismissal = false
+    @State private var vm: HabitsViewModel?
+    @State private var isInitializing = true
     private let factory: HabitsFactory?
     
     public init(factory: HabitsFactory? = nil) { 
@@ -14,129 +11,11 @@ public struct HabitsRoot: View {
     }
     
     public var body: some View {
-        HabitsContentView(
-            factory: factory, 
-            showingCreateHabit: $showingCreateHabit,
-            showingHabitAssistant: $showingHabitAssistant,
-            onHabitCreate: createHabitFromSuggestion,
-            onShowPaywall: showPaywallFromAssistant,
-            paywallItem: $paywallItem,
-            onCreateHabitTap: handleToolbarCreateHabitTap
-        )
-        .navigationTitle("Habits")
-        .navigationBarTitleDisplayMode(.large)
-        .sheet(isPresented: $showingCreateHabit) {
-            let detailFactory = HabitDetailFactory(container: di)
-            let detailVM = detailFactory.makeViewModel(for: nil)
-            HabitDetailView(vm: detailVM)
-        }
-        .sheet(item: $paywallItem) { item in
-            PaywallView(vm: item.viewModel)
-        }
-        .onChange(of: paywallItem) { oldValue, newValue in
-            // When paywall item becomes nil, the sheet is dismissed
-            if oldValue != nil && newValue == nil {
-                handlePaywallDismissal()
-            }
-        }
-    }
-    
-    private func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
-        let habitsFactory = factory ?? HabitsFactory(container: di)
-        let createHabitFromSuggestionUseCase = habitsFactory.makeCreateHabitFromSuggestionUseCase()
-        
-        return await createHabitFromSuggestionUseCase.execute(suggestion)
-    }
-    
-    private func showPaywallFromAssistant() {
-        // Mark that we should reopen assistant after paywall closes
-        shouldReopenAssistantAfterPaywall = true
-        showPaywall()
-    }
-    
-    private func showPaywall() {
-        Task { @MainActor in
-            let paywallFactory = PaywallFactory(container: di)
-            let paywallViewModel = paywallFactory.makeViewModel()
-            await paywallViewModel.load()
-            paywallItem = PaywallItem(viewModel: paywallViewModel)
-        }
-    }
-    
-    private func handlePaywallDismissal() {
-        // Guard against multiple calls
-        guard !isHandlingPaywallDismissal else {
-            return
-        }
-        
-        isHandlingPaywallDismissal = true
-        
-        if shouldReopenAssistantAfterPaywall {
-            // Reset the flag
-            shouldReopenAssistantAfterPaywall = false
-            
-            // Wait longer for paywall dismissal animation to complete before reopening assistant
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                showingHabitAssistant = true
-                isHandlingPaywallDismissal = false
-            }
-        } else {
-            isHandlingPaywallDismissal = false
-        }
-        // No else clause needed - in HabitsView we just stay on the habits screen
-    }
-    
-    private func handleToolbarCreateHabitTap(canCreate: Bool) {
-        if canCreate {
-            showingCreateHabit = true
-        } else {
-            // Show paywall for free users who hit the limit (from toolbar, not assistant)
-            // This should NOT reopen the assistant
-            showPaywall()
-        }
-    }
-}
-
-private struct HabitsContentView: View {
-    @Environment(\.appContainer) private var di
-    @State private var vm: HabitsViewModel?
-    @State private var isInitializing = true
-    @Binding var showingCreateHabit: Bool
-    @Binding var showingHabitAssistant: Bool
-    @Binding var paywallItem: PaywallItem?
-    
-    private let factory: HabitsFactory?
-    private let onHabitCreate: (HabitSuggestion) async -> CreateHabitFromSuggestionResult
-    private let onShowPaywall: () -> Void
-    private let onCreateHabitTap: (Bool) -> Void
-    
-    init(factory: HabitsFactory?, 
-         showingCreateHabit: Binding<Bool>,
-         showingHabitAssistant: Binding<Bool>,
-         onHabitCreate: @escaping (HabitSuggestion) async -> CreateHabitFromSuggestionResult,
-         onShowPaywall: @escaping () -> Void,
-         paywallItem: Binding<PaywallItem?>,
-         onCreateHabitTap: @escaping (Bool) -> Void) {
-        self.factory = factory
-        self._showingCreateHabit = showingCreateHabit
-        self._showingHabitAssistant = showingHabitAssistant
-        self.onHabitCreate = onHabitCreate
-        self.onShowPaywall = onShowPaywall
-        self._paywallItem = paywallItem
-        self.onCreateHabitTap = onCreateHabitTap
-    }
-    
-    var body: some View {
         Group {
             if isInitializing {
                 ProgressView("Initializing...")
             } else if let vm = vm {
-                HabitsListView(
-                    vm: vm, 
-                    showingCreateHabit: $showingCreateHabit, 
-                    showingHabitAssistant: $showingHabitAssistant,
-                    paywallItem: $paywallItem
-                )
+                HabitsContentView(vm: vm)
             } else {
                 ErrorView(
                     title: "Failed to Initialize",
@@ -146,51 +25,10 @@ private struct HabitsContentView: View {
                 }
             }
         }
-        .toolbar {
-            if let vm = vm {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        // Directly use the reactive ViewModel property
-                        onCreateHabitTap(vm.canCreateMoreHabits)
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(AppColors.brand)
-                    }
-                    .accessibilityLabel(Strings.Accessibility.addHabit)
-                }
-            }
-        }
+        .navigationTitle("Habits")
+        .navigationBarTitleDisplayMode(.large)
         .task {
             await initializeAndLoad()
-        }
-        .onChange(of: showingCreateHabit) { _, newValue in
-            // Refresh the list when the create habit sheet is dismissed
-            if !newValue {
-                Task {
-                    await vm?.load()
-                }
-            }
-        }
-        .onChange(of: showingHabitAssistant) { _, newValue in
-            // Refresh the list when the assistant sheet is dismissed
-            if !newValue {
-                Task {
-                    await vm?.load()
-                }
-            }
-        }
-        .sheet(isPresented: $showingHabitAssistant) {
-            if let vm = vm {
-                HabitAssistantSheet(
-                    suggestionsService: di.habitSuggestionsService,
-                    existingHabits: vm.items,
-                    onHabitCreate: onHabitCreate,
-                    onHabitRemove: removeHabit,
-                    onShowPaywall: onShowPaywall,
-                    userActionTracker: di.userActionTracker
-                )
-            }
         }
     }
     
@@ -201,22 +39,62 @@ private struct HabitsContentView: View {
         await vm?.load()
         isInitializing = false
     }
+}
+
+private struct HabitsContentView: View {
+    @Bindable var vm: HabitsViewModel
     
-    private func removeHabit(_ habitId: UUID) async -> Bool {
-        guard let vm = vm else { return false }
-        return await vm.delete(id: habitId)
+    var body: some View {
+        HabitsListView(vm: vm)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        vm.handleCreateHabitTap()
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(AppColors.brand)
+                    }
+                    .accessibilityLabel(Strings.Accessibility.addHabit)
+                }
+            }
+            .sheet(isPresented: $vm.showingCreateHabit) {
+                let detailVM = vm.makeHabitDetailViewModel(for: nil)
+                HabitDetailView(vm: detailVM)
+                    .onDisappear {
+                        vm.handleCreateHabitDismissal()
+                    }
+            }
+            .sheet(item: $vm.paywallItem) { item in
+                PaywallView(vm: item.viewModel)
+            }
+            .sheet(isPresented: $vm.showingHabitAssistant) {
+                if let assistantVM = vm.habitsAssistantViewModel {
+                    HabitsAssistantSheet(
+                        vm: assistantVM,
+                        existingHabits: vm.items,
+                        onHabitCreate: vm.createHabitFromSuggestion,
+                        onHabitRemove: { habitId in await vm.delete(id: habitId) },
+                        onShowPaywall: vm.showPaywallFromAssistant
+                    )
+                    .onDisappear {
+                        vm.handleAssistantDismissal()
+                    }
+                }
+            }
+            .onChange(of: vm.paywallItem) { oldValue, newValue in
+                // When paywall item becomes nil, the sheet is dismissed
+                if oldValue != nil && newValue == nil {
+                    vm.handlePaywallDismissal()
+                }
+            }
     }
 }
 
 private struct HabitsListView: View {
-    @Environment(\.appContainer) private var di
     @Bindable var vm: HabitsViewModel
-    @State private var selectedHabit: Habit?
     @State private var showingDeleteConfirmation = false
     @State private var habitToDelete: Habit?
-    @Binding var showingCreateHabit: Bool
-    @Binding var showingHabitAssistant: Bool
-    @Binding var paywallItem: PaywallItem?
     
     var body: some View {
         Group {
@@ -238,8 +116,7 @@ private struct HabitsListView: View {
                     )
                     
                     AssistantButton {
-                        di.userActionTracker.track(.habitsAssistantOpened(source: .emptyState))
-                        showingHabitAssistant = true
+                        vm.handleAssistantTap(source: "emptyState")
                     }
                 }
             } else {
@@ -247,7 +124,7 @@ private struct HabitsListView: View {
                     List {
                         ForEach(vm.items, id: \.id) { habit in
                             HabitRowView(habit: habit) {
-                                selectedHabit = habit
+                                vm.selectHabit(habit)
                             }
                             .swipeActions(edge: .leading) {
                                 Button {
@@ -282,8 +159,7 @@ private struct HabitsListView: View {
                     VStack(spacing: 0) {
                         // Habit assistant
                         AssistantButton {
-                            di.userActionTracker.track(.habitsAssistantOpened(source: .habitsPage))
-                            showingHabitAssistant = true
+                            vm.handleAssistantTap(source: "habitsPage")
                         }
                         .padding(.horizontal, Spacing.large)
                         .padding(.vertical, Spacing.medium)
@@ -304,14 +180,11 @@ private struct HabitsListView: View {
                 .padding()
             }
         }
-        .sheet(item: $selectedHabit) { habit in
-            let detailFactory = HabitDetailFactory(container: di)
-            let detailVM = detailFactory.makeViewModel(for: habit)
+        .sheet(item: $vm.selectedHabit) { habit in
+            let detailVM = vm.makeHabitDetailViewModel(for: habit)
             HabitDetailView(vm: detailVM)
                 .onDisappear {
-                    Task {
-                        await vm.load() // Refresh the list when detail view is dismissed
-                    }
+                    vm.handleHabitDetailDismissal()
                 }
         }
         .confirmationDialog(isPresented: $showingDeleteConfirmation) {

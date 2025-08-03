@@ -9,31 +9,52 @@ public final class DefaultAppContainer: AppContainer {
     public let profileRepository: ProfileRepository
     public let tipRepository: TipRepository
     public let onboardingRepository: OnboardingRepository
+    public let categoryRepository: CategoryRepository
     public let notificationService: NotificationService
-    public let dateProvider: DateProvider
-    public let streakEngine: StreakEngine
     public let appearanceManager: AppearanceManager
     public let habitSuggestionsService: HabitSuggestionsService
-    public let userActionTracker: UserActionTracker
+    public let userActionTracker: UserActionTrackerService
     public let userService: UserService
     public let paywallService: PaywallService
     public let featureGatingService: FeatureGatingService
     public let slogansService: SlogansServiceProtocol
     
-    // Factory methods
+    // Domain UseCases
+    public lazy var createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase = {
+        let createHabit = CreateHabit(repo: habitRepository)
+        let getHabitCount = GetHabitCount(habitRepository: habitRepository)
+        let checkHabitCreationLimit = CheckHabitCreationLimit(featureGatingService: featureGatingService)
+        
+        return CreateHabitFromSuggestion(
+            createHabit: createHabit,
+            getHabitCount: getHabitCount,
+            checkHabitCreationLimit: checkHabitCreationLimit,
+            featureGatingService: featureGatingService
+        )
+    }()
+    
+    // Shared ViewModels
+    @MainActor
+    public var habitsAssistantViewModel: HabitsAssistantViewModel {
+        return habitsAssistantFactory.makeViewModel()
+    }
+    
+    // Feature factories
     public lazy var onboardingFactory = OnboardingFactory(container: self)
+    public lazy var habitDetailFactory = HabitDetailFactory(container: self)
+    public lazy var paywallFactory = PaywallFactory(container: self)
+    public lazy var habitsAssistantFactory = HabitsAssistantFactory(container: self)
 
     public init(habitRepository: HabitRepository,
                 logRepository: LogRepository,
                 profileRepository: ProfileRepository,
                 tipRepository: TipRepository,
                 onboardingRepository: OnboardingRepository,
+                categoryRepository: CategoryRepository,
                 notificationService: NotificationService,
-                dateProvider: DateProvider,
-                streakEngine: StreakEngine,
                 appearanceManager: AppearanceManager,
                 habitSuggestionsService: HabitSuggestionsService,
-                userActionTracker: UserActionTracker,
+                userActionTracker: UserActionTrackerService,
                 userService: UserService,
                 paywallService: PaywallService,
                 featureGatingService: FeatureGatingService,
@@ -43,9 +64,8 @@ public final class DefaultAppContainer: AppContainer {
         self.profileRepository = profileRepository
         self.tipRepository = tipRepository
         self.onboardingRepository = onboardingRepository
+        self.categoryRepository = categoryRepository
         self.notificationService = notificationService
-        self.dateProvider = dateProvider
-        self.streakEngine = streakEngine
         self.appearanceManager = appearanceManager
         self.habitSuggestionsService = habitSuggestionsService
         self.userActionTracker = userActionTracker
@@ -59,20 +79,20 @@ public final class DefaultAppContainer: AppContainer {
     @MainActor
     public static func bootstrap() async -> DefaultAppContainer {
         let stack = try? SwiftDataStack()
-        let dateProvider = SystemDateProvider()
-        let streakEngine = DefaultStreakEngine(dateProvider: dateProvider)
 
         let habitDS = HabitLocalDataSource(context: stack?.context)
         let logDS   = LogLocalDataSource(context: stack?.context)
         let profileDS = ProfileLocalDataSource(context: stack?.context)
         let tipDS = TipLocalDataSource()
         let onboardingDS = OnboardingLocalDataSource(context: stack?.context)
+        let categoryDS = SwiftDataCategoryLocalDataSource(context: stack?.context)
 
         let habitRepo: HabitRepository = HabitRepositoryImpl(local: habitDS)
         let logRepo: LogRepository = LogRepositoryImpl(local: logDS)
         let profileRepo: ProfileRepository = ProfileRepositoryImpl(local: profileDS)
         let tipRepo: TipRepository = TipRepositoryImpl(local: tipDS)
         let onboardingRepo: OnboardingRepository = OnboardingRepositoryImpl(local: onboardingDS)
+        let categoryRepo: CategoryRepository = CategoryRepositoryImpl(local: categoryDS)
         let notifications: NotificationService = LocalNotificationService()
         let appearanceManager = AppearanceManager()
         let habitSuggestionsService: HabitSuggestionsService = DefaultHabitSuggestionsService()
@@ -80,9 +100,9 @@ public final class DefaultAppContainer: AppContainer {
         // Use DebugUserActionTracker in development, NoOpUserActionTracker in production
         // You can easily swap this with your preferred analytics provider later
         #if DEBUG
-        let userActionTracker: UserActionTracker = DebugUserActionTracker()
+        let userActionTracker: UserActionTrackerService = DebugUserActionTrackerService()
         #else
-        let userActionTracker: UserActionTracker = NoOpUserActionTracker()
+        let userActionTracker: UserActionTrackerService = NoOpUserActionTrackerService()
         #endif
         
         // User services - use mock in debug, can be swapped for production
@@ -126,16 +146,15 @@ public final class DefaultAppContainer: AppContainer {
             profileRepository: profileRepo,
             tipRepository: tipRepo,
             onboardingRepository: onboardingRepo,
+            categoryRepository: categoryRepo,
             notificationService: notifications,
-            dateProvider: dateProvider,
-            streakEngine: streakEngine,
             appearanceManager: appearanceManager,
             habitSuggestionsService: habitSuggestionsService,
             userActionTracker: userActionTracker,
             userService: userService,
             paywallService: paywallService,
             featureGatingService: featureGatingService,
-            slogansService: SlogansService(dateProvider: dateProvider)
+            slogansService: SlogansService()
         )
     }
     
@@ -145,28 +164,28 @@ public final class DefaultAppContainer: AppContainer {
         // This is a simplified version for environment defaults only
         // Real app should use the async bootstrap method
         let stack = try? SwiftDataStack()
-        let dateProvider = SystemDateProvider()
-        let streakEngine = DefaultStreakEngine(dateProvider: dateProvider)
 
         let habitDS = HabitLocalDataSource(context: stack?.context)
         let logDS   = LogLocalDataSource(context: stack?.context)
         let profileDS = ProfileLocalDataSource(context: stack?.context)
         let tipDS = TipLocalDataSource()
         let onboardingDS = OnboardingLocalDataSource(context: stack?.context)
+        let categoryDS = SwiftDataCategoryLocalDataSource(context: stack?.context)
 
         let habitRepo: HabitRepository = HabitRepositoryImpl(local: habitDS)
         let logRepo: LogRepository = LogRepositoryImpl(local: logDS)
         let profileRepo: ProfileRepository = ProfileRepositoryImpl(local: profileDS)
         let tipRepo: TipRepository = TipRepositoryImpl(local: tipDS)
         let onboardingRepo: OnboardingRepository = OnboardingRepositoryImpl(local: onboardingDS)
+        let categoryRepo: CategoryRepository = CategoryRepositoryImpl(local: categoryDS)
         let notifications: NotificationService = LocalNotificationService()
         let appearanceManager = AppearanceManager()
         let habitSuggestionsService: HabitSuggestionsService = DefaultHabitSuggestionsService()
         
         #if DEBUG
-        let userActionTracker: UserActionTracker = DebugUserActionTracker()
+        let userActionTracker: UserActionTrackerService = DebugUserActionTrackerService()
         #else
-        let userActionTracker: UserActionTracker = NoOpUserActionTracker()
+        let userActionTracker: UserActionTrackerService = NoOpUserActionTrackerService()
         #endif
         
         // Create minimal user service
@@ -198,16 +217,15 @@ public final class DefaultAppContainer: AppContainer {
             profileRepository: profileRepo,
             tipRepository: tipRepo,
             onboardingRepository: onboardingRepo,
+            categoryRepository: categoryRepo,
             notificationService: notifications,
-            dateProvider: dateProvider,
-            streakEngine: streakEngine,
             appearanceManager: appearanceManager,
             habitSuggestionsService: habitSuggestionsService,
             userActionTracker: userActionTracker,
             userService: userService,
             paywallService: paywallService,
             featureGatingService: featureGatingService,
-            slogansService: SlogansService(dateProvider: dateProvider)
+            slogansService: SlogansService()
         )
     }
 }

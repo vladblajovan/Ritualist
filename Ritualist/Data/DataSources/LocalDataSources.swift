@@ -1,6 +1,11 @@
 import Foundation
 import SwiftData
 
+public enum CategoryDataSourceError: Error {
+    case categoryAlreadyExists
+    case categoryNotFound
+}
+
 public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
     private let context: ModelContext?
     public init(context: ModelContext?) { self.context = context }
@@ -75,7 +80,6 @@ public final class ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
             // Update existing profile
             existing.name = profile.name
             existing.avatarImageData = profile.avatarImageData
-            existing.firstDayOfWeek = profile.firstDayOfWeek
             existing.appearance = profile.appearance
         } else {
             // Insert new profile
@@ -259,5 +263,233 @@ public final class OnboardingLocalDataSource: OnboardingLocalDataSourceProtocol 
         }
         
         try context.save()
+    }
+}
+
+public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProtocol {
+    private let context: ModelContext?
+    
+    public init(context: ModelContext?) { 
+        self.context = context 
+    }
+    
+    private lazy var predefinedCategories: [Category] = {
+        [
+            Category(
+                id: "health",
+                name: "health",
+                displayName: "Health",
+                emoji: "💪",
+                order: 0
+            ),
+            Category(
+                id: "wellness",
+                name: "wellness",
+                displayName: "Wellness",
+                emoji: "🧘",
+                order: 1
+            ),
+            Category(
+                id: "productivity",
+                name: "productivity",
+                displayName: "Productivity",
+                emoji: "⚡",
+                order: 2
+            ),
+            Category(
+                id: "learning",
+                name: "learning",
+                displayName: "Learning",
+                emoji: "📚",
+                order: 3
+            ),
+            Category(
+                id: "social",
+                name: "social",
+                displayName: "Social",
+                emoji: "👥",
+                order: 4
+            )
+        ]
+    }()
+    
+    @MainActor
+    private func getCustomCategories() async throws -> [Category] {
+        guard let context else { return [] }
+        let descriptor = FetchDescriptor<SDCategory>()
+        let sdCategories = try context.fetch(descriptor)
+        return sdCategories.map { CategoryMapper.fromSD($0) }
+    }
+    
+    public func getAllCategories() async throws -> [Category] {
+        let customCategories = try await getCustomCategories()
+        let allCategories = predefinedCategories + customCategories
+        return allCategories.sorted { $0.order < $1.order }
+    }
+    
+    public func getCategory(by id: String) async throws -> Category? {
+        let allCategories = try await getAllCategories()
+        return allCategories.first { $0.id == id }
+    }
+    
+    public func getActiveCategories() async throws -> [Category] {
+        let allCategories = try await getAllCategories()
+        return allCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
+    }
+    
+    public func getPredefinedCategories() async throws -> [Category] {
+        return predefinedCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
+    }
+    
+    @MainActor
+    public func createCustomCategory(_ category: Category) async throws {
+        guard let context else { return }
+        
+        // Check if category already exists
+        let allCategories = try await getAllCategories()
+        guard !allCategories.contains(where: { $0.id == category.id }) else {
+            throw CategoryDataSourceError.categoryAlreadyExists
+        }
+        
+        let sdCategory = CategoryMapper.toSD(category)
+        context.insert(sdCategory)
+        try context.save()
+    }
+    
+    public func categoryExists(id: String) async throws -> Bool {
+        let allCategories = try await getAllCategories()
+        return allCategories.contains { $0.id == id }
+    }
+    
+    public func categoryExists(name: String) async throws -> Bool {
+        let allCategories = try await getAllCategories()
+        return allCategories.contains { $0.name.lowercased() == name.lowercased() }
+    }
+}
+
+public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol {
+    public init() {}
+    
+    private lazy var predefinedCategories: [Category] = {
+        [
+            Category(
+                id: "health",
+                name: "health",
+                displayName: "Health",
+                emoji: "💪",
+                order: 0
+            ),
+            Category(
+                id: "wellness",
+                name: "wellness",
+                displayName: "Wellness",
+                emoji: "🧘",
+                order: 1
+            ),
+            Category(
+                id: "productivity",
+                name: "productivity",
+                displayName: "Productivity",
+                emoji: "⚡",
+                order: 2
+            ),
+            Category(
+                id: "learning",
+                name: "learning",
+                displayName: "Learning",
+                emoji: "📚",
+                order: 3
+            ),
+            Category(
+                id: "social",
+                name: "social",
+                displayName: "Social",
+                emoji: "👥",
+                order: 4
+            )
+        ]
+    }()
+    
+    private var customCategories: [Category] = []
+    
+    public func getAllCategories() async throws -> [Category] {
+        let allCategories = predefinedCategories + customCategories
+        return allCategories.sorted { $0.order < $1.order }
+    }
+    
+    public func getCategory(by id: String) async throws -> Category? {
+        let allCategories = predefinedCategories + customCategories
+        return allCategories.first { $0.id == id }
+    }
+    
+    public func getActiveCategories() async throws -> [Category] {
+        let allCategories = predefinedCategories + customCategories
+        return allCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
+    }
+    
+    public func getPredefinedCategories() async throws -> [Category] {
+        return predefinedCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
+    }
+    
+    public func createCustomCategory(_ category: Category) async throws {
+        guard !customCategories.contains(where: { $0.id == category.id }) else {
+            throw CategoryDataSourceError.categoryAlreadyExists
+        }
+        customCategories.append(category)
+    }
+    
+    public func categoryExists(id: String) async throws -> Bool {
+        let allCategories = predefinedCategories + customCategories
+        return allCategories.contains { $0.id == id }
+    }
+    
+    public func categoryExists(name: String) async throws -> Bool {
+        let allCategories = predefinedCategories + customCategories
+        return allCategories.contains { $0.name.lowercased() == name.lowercased() }
+    }
+}
+
+public final class CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
+    public init() {}
+    
+    // TODO: Implement backend integration when available
+    // For now, this is a NoOp implementation - replace with real backend calls
+    
+    public func getAllCategories() async throws -> [Category] {
+        // TODO: Fetch from backend API
+        // For now, return empty array until backend is available
+        return []
+    }
+    
+    public func getCategory(by id: String) async throws -> Category? {
+        // TODO: Fetch specific category from backend API
+        return nil
+    }
+    
+    public func getActiveCategories() async throws -> [Category] {
+        // TODO: Fetch active categories from backend API
+        return []
+    }
+    
+    public func getPredefinedCategories() async throws -> [Category] {
+        // TODO: Fetch predefined categories from backend API
+        return []
+    }
+    
+    public func createCustomCategory(_ category: Category) async throws {
+        // TODO: Create custom category via backend API
+        // For now, this is a NoOp until backend is available
+    }
+    
+    public func categoryExists(id: String) async throws -> Bool {
+        // TODO: Check if category exists via backend API
+        // For now, return false until backend is available
+        return false
+    }
+    
+    public func categoryExists(name: String) async throws -> Bool {
+        // TODO: Check if category name exists via backend API
+        // For now, return false until backend is available
+        return false
     }
 }

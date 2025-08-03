@@ -9,7 +9,7 @@ import Foundation
 
 public protocol HabitSuggestionsService {
     func getSuggestions() -> [HabitSuggestion]
-    func getSuggestions(for category: HabitSuggestionCategory) -> [HabitSuggestion]
+    func getSuggestions(for categoryId: String) -> [HabitSuggestion]
 }
 
 // swiftlint:disable type_body_length
@@ -21,7 +21,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Drink Water",
             emoji: "💧",
             colorHex: "#2DA9E3",
-            category: .health,
+            categoryId: "health",
             kind: .numeric,
             unitLabel: "glasses",
             dailyTarget: 8.0,
@@ -33,7 +33,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Exercise",
             emoji: "🏋️‍♂️",
             colorHex: "#E36414",
-            category: .health,
+            categoryId: "health",
             kind: .binary,
             schedule: .timesPerWeek(3),
             description: "Get your body moving with regular workouts"
@@ -44,7 +44,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Walk",
             emoji: "🚶‍♀️",
             colorHex: "#28A745",
-            category: .health,
+            categoryId: "health",
             kind: .numeric,
             unitLabel: "steps",
             dailyTarget: 10000.0,
@@ -56,7 +56,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Eat Fruits",
             emoji: "🍎",
             colorHex: "#DC3545",
-            category: .health,
+            categoryId: "health",
             kind: .numeric,
             unitLabel: "servings",
             dailyTarget: 2.0,
@@ -69,7 +69,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Meditate",
             emoji: "🧘‍♀️",
             colorHex: "#6A994E",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .binary,
             description: "Practice mindfulness and inner peace"
         ),
@@ -79,7 +79,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Sleep Early",
             emoji: "😴",
             colorHex: "#6F42C1",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .binary,
             description: "Get quality rest by sleeping early"
         ),
@@ -89,7 +89,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Deep Breathing",
             emoji: "🫁",
             colorHex: "#20C997",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .numeric,
             unitLabel: "minutes",
             dailyTarget: 5.0,
@@ -101,7 +101,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Gratitude Journal",
             emoji: "📝",
             colorHex: "#FD7E14",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .binary,
             description: "Write down things you're grateful for"
         ),
@@ -112,7 +112,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "No Phone Morning",
             emoji: "📵",
             colorHex: "#6C757D",
-            category: .productivity,
+            categoryId: "productivity",
             kind: .binary,
             description: "Start your day phone-free for better focus"
         ),
@@ -122,7 +122,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Plan Your Day",
             emoji: "📋",
             colorHex: "#0D6EFD",
-            category: .productivity,
+            categoryId: "productivity",
             kind: .binary,
             description: "Create a daily plan to stay organized"
         ),
@@ -132,7 +132,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Clean Workspace",
             emoji: "🧹",
             colorHex: "#198754",
-            category: .productivity,
+            categoryId: "productivity",
             kind: .binary,
             schedule: .daysOfWeek([1, 3, 5]), // Mon, Wed, Fri
             description: "Keep your workspace tidy and organized"
@@ -144,7 +144,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Read",
             emoji: "📚",
             colorHex: "#795548",
-            category: .learning,
+            categoryId: "learning",
             kind: .numeric,
             unitLabel: "pages",
             dailyTarget: 10.0,
@@ -156,7 +156,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Language Practice",
             emoji: "🗣️",
             colorHex: "#E91E63",
-            category: .learning,
+            categoryId: "learning",
             kind: .numeric,
             unitLabel: "minutes",
             dailyTarget: 15.0,
@@ -168,7 +168,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Learn New Skill",
             emoji: "🎯",
             colorHex: "#FF9800",
-            category: .learning,
+            categoryId: "learning",
             kind: .numeric,
             unitLabel: "minutes",
             dailyTarget: 30.0,
@@ -182,7 +182,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Call Family",
             emoji: "📞",
             colorHex: "#9C27B0",
-            category: .social,
+            categoryId: "social",
             kind: .binary,
             schedule: .timesPerWeek(2),
             description: "Stay connected with family members"
@@ -193,7 +193,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Give Compliment",
             emoji: "😊",
             colorHex: "#FFEB3B",
-            category: .social,
+            categoryId: "social",
             kind: .binary,
             description: "Brighten someone's day with a genuine compliment"
         ),
@@ -203,7 +203,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Help Someone",
             emoji: "🤝",
             colorHex: "#607D8B",
-            category: .social,
+            categoryId: "social",
             kind: .binary,
             schedule: .timesPerWeek(3),
             description: "Look for opportunities to help others"
@@ -215,7 +215,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Stretch",
             emoji: "🤸‍♀️",
             colorHex: "#FF6B6B",
-            category: .health,
+            categoryId: "health",
             kind: .numeric,
             unitLabel: "minutes",
             dailyTarget: 10.0,
@@ -227,7 +227,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Take Vitamins",
             emoji: "💊",
             colorHex: "#4ECDC4",
-            category: .health,
+            categoryId: "health",
             kind: .binary,
             description: "Take your daily vitamins and supplements"
         ),
@@ -237,7 +237,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Eat Vegetables",
             emoji: "🥬",
             colorHex: "#A8E6CF",
-            category: .health,
+            categoryId: "health",
             kind: .numeric,
             unitLabel: "servings",
             dailyTarget: 3.0,
@@ -249,7 +249,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Limit Sugar",
             emoji: "🚫",
             colorHex: "#FFB6C1",
-            category: .health,
+            categoryId: "health",
             kind: .binary,
             description: "Avoid excessive sugar consumption"
         ),
@@ -259,7 +259,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Drink Herbal Tea",
             emoji: "🍵",
             colorHex: "#DEB887",
-            category: .health,
+            categoryId: "health",
             kind: .numeric,
             unitLabel: "cups",
             dailyTarget: 2.0,
@@ -271,7 +271,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Check Posture",
             emoji: "🧍‍♀️",
             colorHex: "#D2691E",
-            category: .health,
+            categoryId: "health",
             kind: .numeric,
             unitLabel: "times",
             dailyTarget: 5.0,
@@ -284,7 +284,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Cold Shower",
             emoji: "🚿",
             colorHex: "#87CEEB",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .binary,
             schedule: .timesPerWeek(3),
             description: "Boost energy and resilience with cold showers"
@@ -295,7 +295,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Time in Nature",
             emoji: "🌲",
             colorHex: "#228B22",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .numeric,
             unitLabel: "minutes",
             dailyTarget: 30.0,
@@ -307,7 +307,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Digital Detox",
             emoji: "📱",
             colorHex: "#696969",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .numeric,
             unitLabel: "hours",
             dailyTarget: 2.0,
@@ -319,7 +319,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Listen to Music",
             emoji: "🎵",
             colorHex: "#DA70D6",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .numeric,
             unitLabel: "minutes",
             dailyTarget: 20.0,
@@ -331,7 +331,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Skincare Routine",
             emoji: "🧴",
             colorHex: "#F0E68C",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .binary,
             description: "Take care of your skin with a daily routine"
         ),
@@ -341,7 +341,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Positive Affirmations",
             emoji: "💭",
             colorHex: "#FFD700",
-            category: .wellness,
+            categoryId: "wellness",
             kind: .binary,
             description: "Start your day with positive self-talk"
         ),
@@ -352,7 +352,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Make Bed",
             emoji: "🛏️",
             colorHex: "#8FBC8F",
-            category: .productivity,
+            categoryId: "productivity",
             kind: .binary,
             description: "Start your day with a simple accomplished task"
         ),
@@ -362,7 +362,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Review Goals",
             emoji: "🎯",
             colorHex: "#FF4500",
-            category: .productivity,
+            categoryId: "productivity",
             kind: .binary,
             schedule: .daysOfWeek([7]), // Sunday
             description: "Weekly review of your goals and progress"
@@ -373,7 +373,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Time Blocking",
             emoji: "⏰",
             colorHex: "#4169E1",
-            category: .productivity,
+            categoryId: "productivity",
             kind: .binary,
             description: "Plan your day using time blocking technique"
         ),
@@ -383,7 +383,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Clear Email Inbox",
             emoji: "📧",
             colorHex: "#1E90FF",
-            category: .productivity,
+            categoryId: "productivity",
             kind: .binary,
             description: "Process and organize your email inbox"
         ),
@@ -393,7 +393,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Single-Tasking",
             emoji: "🎯",
             colorHex: "#FF6347",
-            category: .productivity,
+            categoryId: "productivity",
             kind: .binary,
             description: "Focus on one task at a time"
         ),
@@ -403,7 +403,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Declutter Space",
             emoji: "📦",
             colorHex: "#CD853F",
-            category: .productivity,
+            categoryId: "productivity",
             kind: .binary,
             schedule: .timesPerWeek(2),
             description: "Remove unnecessary items from your space"
@@ -415,7 +415,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Watch Documentary",
             emoji: "🎬",
             colorHex: "#8B4513",
-            category: .learning,
+            categoryId: "learning",
             kind: .binary,
             schedule: .timesPerWeek(2),
             description: "Learn something new through documentaries"
@@ -426,7 +426,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Practice Instrument",
             emoji: "🎸",
             colorHex: "#B8860B",
-            category: .learning,
+            categoryId: "learning",
             kind: .numeric,
             unitLabel: "minutes",
             dailyTarget: 20.0,
@@ -438,7 +438,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Write Journal",
             emoji: "📖",
             colorHex: "#8B0000",
-            category: .learning,
+            categoryId: "learning",
             kind: .binary,
             description: "Reflect and document your thoughts daily"
         ),
@@ -448,7 +448,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Listen to Podcast",
             emoji: "🎧",
             colorHex: "#2F4F4F",
-            category: .learning,
+            categoryId: "learning",
             kind: .numeric,
             unitLabel: "episodes",
             dailyTarget: 1.0,
@@ -460,7 +460,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Practice Coding",
             emoji: "💻",
             colorHex: "#000080",
-            category: .learning,
+            categoryId: "learning",
             kind: .numeric,
             unitLabel: "minutes",
             dailyTarget: 45.0,
@@ -472,7 +472,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Learn New Recipe",
             emoji: "👨‍🍳",
             colorHex: "#FF8C00",
-            category: .learning,
+            categoryId: "learning",
             kind: .binary,
             schedule: .timesPerWeek(1),
             description: "Expand culinary skills with new recipes"
@@ -484,7 +484,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Text Friends",
             emoji: "💬",
             colorHex: "#32CD32",
-            category: .social,
+            categoryId: "social",
             kind: .binary,
             description: "Stay in touch with friends regularly"
         ),
@@ -494,7 +494,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Volunteer",
             emoji: "❤️",
             colorHex: "#DC143C",
-            category: .social,
+            categoryId: "social",
             kind: .binary,
             schedule: .timesPerWeek(1),
             description: "Give back to your community through volunteering"
@@ -505,7 +505,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Meet New People",
             emoji: "👋",
             colorHex: "#FF69B4",
-            category: .social,
+            categoryId: "social",
             kind: .binary,
             schedule: .timesPerWeek(1),
             description: "Expand your social circle and network"
@@ -516,7 +516,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Thank Someone",
             emoji: "🙏",
             colorHex: "#DDA0DD",
-            category: .social,
+            categoryId: "social",
             kind: .binary,
             description: "Express gratitude to people around you"
         ),
@@ -526,7 +526,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Social Activity",
             emoji: "🎲",
             colorHex: "#20B2AA",
-            category: .social,
+            categoryId: "social",
             kind: .binary,
             schedule: .timesPerWeek(2),
             description: "Engage in activities with others"
@@ -537,7 +537,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
             name: "Write a Letter",
             emoji: "✉️",
             colorHex: "#F4A460",
-            category: .social,
+            categoryId: "social",
             kind: .binary,
             schedule: .timesPerWeek(1),
             description: "Connect meaningfully through handwritten letters"
@@ -550,7 +550,7 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
         suggestions
     }
     
-    public func getSuggestions(for category: HabitSuggestionCategory) -> [HabitSuggestion] {
-        suggestions.filter { $0.category == category }
+    public func getSuggestions(for categoryId: String) -> [HabitSuggestion] {
+        suggestions.filter { $0.categoryId == categoryId }
     }
 }

@@ -33,6 +33,9 @@
         }
       }
     },
+    "🏷️" : {
+
+    },
     "🤖" : {
       "localizations" : {
         "de" : {
@@ -42,6 +45,9 @@
           }
         }
       }
+    },
+    "A habit with this name and category already exists" : {
+
     },
     "accessibility.add_habit" : {
       "comment" : "VoiceOver label for Add new habit",
@@ -254,6 +260,12 @@
     "Account" : {
 
     },
+    "Add a new category to organize your habits" : {
+
+    },
+    "Add Custom" : {
+
+    },
     "app.name" : {
       "comment" : "The name of the habit tracking app. This is a proper noun and should remain consistent across languages or be adapted to local naming conventions.",
       "extractionState" : "manual",
@@ -431,6 +443,12 @@
         }
       }
     },
+    "Category Name" : {
+
+    },
+    "Choose an Emoji" : {
+
+    },
     "Choose from Photos" : {
       "localizations" : {
         "de" : {
@@ -451,6 +469,12 @@
 
     },
     "Close" : {
+
+    },
+    "Create Custom Category" : {
+
+    },
+    "Creating category..." : {
 
     },
     "day.fri" : {
@@ -910,6 +934,9 @@
         }
       }
     },
+    "Enter category name" : {
+
+    },
     "Enter your name" : {
       "localizations" : {
         "de" : {
@@ -1060,6 +1087,9 @@
           }
         }
       }
+    },
+    "Failed to load categories: %@" : {
+
     },
     "Featured" : {
       "localizations" : {
@@ -1471,6 +1501,9 @@
     "Free" : {
 
     },
+    "From Suggestion" : {
+
+    },
     "Get expert tips and insights to help you build better habits and maintain long-term consistency." : {
       "localizations" : {
         "de" : {
@@ -1581,6 +1614,9 @@
           }
         }
       }
+    },
+    "Loading categories..." : {
+
     },
     "Loading plans..." : {
 
@@ -1842,6 +1878,9 @@
           }
         }
       }
+    },
+    "New Category" : {
+
     },
     "Next" : {
       "localizations" : {
@@ -2481,6 +2520,9 @@
     "Ritualist Pro" : {
 
     },
+    "Save" : {
+
+    },
     "Setting up your premium experience" : {
 
     },
@@ -2861,6 +2903,9 @@
           }
         }
       }
+    },
+    "This habit was added from a suggestion and its category cannot be changed." : {
+
     },
     "This will mark the habit as incomplete for this day." : {
 
