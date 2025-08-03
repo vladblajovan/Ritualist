@@ -1,0 +1,48 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/DesignSystem/HabitAssistantSheet.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Habit Assistant",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "🤖",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 85
+        }
+      },
+      {
+        "comment": "",
+        "key": "Let's Get Started!",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 90
+        }
+      },
+      {
+        "comment": "",
+        "key": "I'll help you choose some habits to begin your journey. Tap the + button to add any habits that interest you.",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 94
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 134
+        }
+      }
+    ]
+  },
+  "version": 1
+}

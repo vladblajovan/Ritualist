@@ -1,0 +1,56 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Settings/Presentation/AvatarView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Profile Photo",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 162
+        }
+      },
+      {
+        "comment": "",
+        "key": "Processing image...",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 214
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose from Photos",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 182
+        }
+      },
+      {
+        "comment": "",
+        "key": "Remove Photo",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 200
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 224
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 230
+        }
+      }
+    ]
+  },
+  "version": 1
+}

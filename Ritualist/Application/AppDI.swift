@@ -104,7 +104,16 @@ public final class DefaultAppContainer: AppContainer {
         let paywallService: PaywallService = StoreKitPaywallService()
         #endif
         
-        let featureGatingService: FeatureGatingService = DefaultFeatureGatingService(userService: userService)
+        // Feature gating service - conditional based on build configuration
+        let featureGatingService: FeatureGatingService = {
+            #if ALL_FEATURES_ENABLED
+            // All features enabled - use mock service that grants everything
+            return MockFeatureGatingService()
+            #else
+            // Subscription-based gating - use build config aware service with standard logic
+            return BuildConfigFeatureGatingService.create(userService: userService)
+            #endif
+        }()
         
         // State coordination services
         
@@ -166,7 +175,17 @@ public final class DefaultAppContainer: AppContainer {
         
         // Paywall services - use mock for minimal container
         let paywallService: PaywallService = SimplePaywallService()
-        let featureGatingService: FeatureGatingService = MockFeatureGatingService()
+        
+        // Feature gating service - conditional based on build configuration (minimal container)
+        let featureGatingService: FeatureGatingService = {
+            #if ALL_FEATURES_ENABLED
+            // All features enabled - use mock service that grants everything
+            return MockFeatureGatingService()
+            #else
+            // Subscription-based gating - use build config aware service
+            return BuildConfigFeatureGatingService.create(userService: userService)
+            #endif
+        }()
         
         // State coordination services - use NoOp for minimal container
         

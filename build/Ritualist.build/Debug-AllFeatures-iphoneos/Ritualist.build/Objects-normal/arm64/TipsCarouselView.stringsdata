@@ -1,0 +1,24 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Tips/Presentation/TipsCarouselView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "No tips available",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tip: %@. %@",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 159
+        }
+      }
+    ]
+  },
+  "version": 1
+}

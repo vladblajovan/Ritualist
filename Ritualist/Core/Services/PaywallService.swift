@@ -136,7 +136,12 @@ public final class MockPaywallService: PaywallService {
     }
     
     public func loadProducts() async throws -> [Product] {
-        mockProducts
+        // If all features are enabled at build time, return empty products
+        #if ALL_FEATURES_ENABLED
+        return []
+        #else
+        return mockProducts
+        #endif
     }
     
     public func purchase(_ product: Product) async throws -> Bool {

@@ -1,0 +1,16 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Habits/Presentation/HabitDetailView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 203
+        }
+      }
+    ]
+  },
+  "version": 1
+}

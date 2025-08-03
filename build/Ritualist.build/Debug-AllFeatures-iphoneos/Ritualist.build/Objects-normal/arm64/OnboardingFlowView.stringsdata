@@ -1,0 +1,48 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingFlowView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Error",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 65
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "Back",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 101
+        }
+      },
+      {
+        "comment": "",
+        "key": "Get Started",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 110
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 110
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,48 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Habits/Presentation/HabitsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Habits",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 26
+        }
+      },
+      {
+        "comment": "",
+        "key": "Initializing...",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 132
+        }
+      },
+      {
+        "comment": "",
+        "key": "🤖",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 424
+        }
+      },
+      {
+        "comment": "",
+        "key": "Habit Assistant",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 429
+        }
+      },
+      {
+        "comment": "",
+        "key": "Get personalized habit suggestions",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 434
+        }
+      }
+    ]
+  },
+  "version": 1
+}

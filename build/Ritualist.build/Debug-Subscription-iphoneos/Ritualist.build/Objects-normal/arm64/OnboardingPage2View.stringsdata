@@ -1,0 +1,16 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingPage2View.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Track Your Habits",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 16
+        }
+      }
+    ]
+  },
+  "version": 1
+}

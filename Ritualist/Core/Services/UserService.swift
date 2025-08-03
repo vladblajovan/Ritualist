@@ -49,7 +49,12 @@ public final class MockUserService: UserService {
     }
     
     public var isPremiumUser: Bool {
-        _currentProfile.isPremiumUser
+        // If all features are enabled at build time, always return true for mock service
+        #if ALL_FEATURES_ENABLED
+        return true
+        #else
+        return _currentProfile.isPremiumUser
+        #endif
     }
     
     public func updateProfile(_ profile: UserProfile) async throws {
@@ -112,7 +117,12 @@ public final class ICloudUserService: UserService {
     }
     
     public var isPremiumUser: Bool {
-        _currentProfile.isPremiumUser
+        // If all features are enabled at build time, always return true
+        #if ALL_FEATURES_ENABLED
+        return true
+        #else
+        return _currentProfile.isPremiumUser
+        #endif
     }
     
     public func updateProfile(_ profile: UserProfile) async throws {

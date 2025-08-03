@@ -1,0 +1,24 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/DesignSystem/WhisperBubble.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Ritualist",
+        "location": {
+          "startingColumn": 1,
+          "startingLine": 177
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ritualist",
+        "location": {
+          "startingColumn": 1,
+          "startingLine": 177
+        }
+      }
+    ]
+  },
+  "version": 1
+}

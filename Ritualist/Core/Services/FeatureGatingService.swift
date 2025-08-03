@@ -178,9 +178,16 @@ public struct FeatureGating {
         "You've created \(current) of \(limit) habits available on the free plan. Upgrade to Ritualist Pro for unlimited habits and more features."
     }
     
-    /// Check if we should show paywall based on habit count
+    /// Check if we should show paywall based on habit count and build configuration
     public static func shouldShowPaywallForHabits(currentCount: Int, maxAllowed: Int) -> Bool {
-        currentCount >= maxAllowed
+        // Don't show paywall if all features are enabled at build time
+        guard BuildConfig.shouldShowPaywalls else { return false }
+        return currentCount >= maxAllowed
+    }
+    
+    /// Check if we should show any paywall UI based on build configuration
+    public static func shouldShowPaywallUI() -> Bool {
+        BuildConfig.shouldShowPaywalls
     }
     
     /// Features included in premium subscription

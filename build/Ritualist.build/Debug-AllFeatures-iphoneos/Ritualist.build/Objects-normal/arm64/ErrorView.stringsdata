@@ -1,0 +1,16 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Core/DesignSystem/ErrorView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Retry",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 24
+        }
+      }
+    ]
+  },
+  "version": 1
+}
