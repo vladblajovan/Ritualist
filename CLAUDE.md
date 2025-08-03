@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 📋 COLLABORATION GUIDE
+**CRITICAL**: Always reference `CLAUDE-COLLABORATION-GUIDE.md` before starting any work. This guide contains the interaction protocol, quality gates, and learning procedures that must be followed for effective collaboration.
+
 ## 🚨 CRITICAL DEVELOPMENT REMINDERS 🚨
 
 **ALWAYS FOLLOW THESE PRINCIPLES:**
@@ -115,3 +118,104 @@ When adding new features:
 6. Add comprehensive tests
 
 Always run SwiftLint before committing - the build phase will show violations in Xcode.
+
+## Build Configuration System
+
+The app uses a sophisticated build-time configuration system for subscription management:
+
+### Build Configurations:
+- **Debug-AllFeatures / Release-AllFeatures**: All premium features enabled (TestFlight/launch)
+- **Debug-Subscription / Release-Subscription**: Subscription-based feature gating (production)
+
+### Compiler Flags:
+- `ALL_FEATURES_ENABLED`: Grants all premium features regardless of subscription
+- `SUBSCRIPTION_ENABLED`: Enforces subscription-based feature gating
+
+### Architecture Integration:
+- **FeatureGatingService**: Respects build configuration automatically
+- **Build-time validation**: Compile errors prevent invalid flag combinations
+- **Clean boundaries**: UI layer unaware of build config - uses service layer
+
+### Usage:
+```swift
+// ✅ Correct - Service layer handles build config
+vm.hasAdvancedAnalytics  // Automatically respects build flags
+
+// ❌ Wrong - Never put build checks in views
+#if ALL_FEATURES_ENABLED
+// View logic here
+#endif
+```
+
+## Architecture Decisions Log
+
+### Recent Decisions (August 2025):
+
+1. **Build Configuration Strategy**
+   - **Decision**: Explicit dual boolean flags with compile-time validation
+   - **Rationale**: Prevents configuration errors, enables TestFlight→AppStore workflow
+   - **Implementation**: `BuildConfigurationService` with `#error` validation
+
+2. **Feature Gating Architecture**
+   - **Decision**: Service layer handles all build config logic, not views
+   - **Rationale**: Maintains clean architecture, easier testing, single responsibility
+   - **Implementation**: `BuildConfigFeatureGatingService` wraps standard service
+
+3. **Subscription Testing Strategy**
+   - **Decision**: AllFeatures build for TestFlight, Subscription build for App Store
+   - **Rationale**: Beta users test full experience, production has revenue model
+   - **Implementation**: Scheme-based switching, zero code changes needed
+
+## Established Code Patterns
+
+### Feature Creation Workflow:
+1. **Domain First**: Define entities, repository protocols, use cases
+2. **Data Layer**: Implement repositories, data sources, mappers
+3. **Presentation**: Create ViewModels that use UseCases, then Views
+4. **Dependency Injection**: Wire up in appropriate FeatureDI factory
+5. **Testing**: Unit tests for domain, UI tests for flows
+
+### Build Configuration Integration:
+```swift
+// ✅ Service layer pattern (correct)
+public var hasAdvancedAnalytics: Bool {
+    #if ALL_FEATURES_ENABLED
+    return true
+    #else
+    return standardFeatureGating.hasAdvancedAnalytics
+    #endif
+}
+
+// ✅ ViewModel pattern (correct)
+vm.hasAdvancedAnalytics  // Uses service layer
+
+// ❌ View pattern (avoid)
+#if ALL_FEATURES_ENABLED
+// UI logic
+#endif
+```
+
+## Anti-Patterns to Avoid
+
+### Build Configuration Anti-Patterns:
+- ❌ **Build checks in views**: Use service layer instead
+- ❌ **Implicit configuration**: Always require explicit flags
+- ❌ **Mixed build logic**: Keep build config in dedicated services
+
+### Architecture Anti-Patterns:
+- ❌ **Direct service calls from ViewModels**: Use UseCases
+- ❌ **Repository calls from Views**: Use UseCases → Repositories
+- ❌ **Business logic in Views**: Move to UseCases
+- ❌ **Multiple service dependencies**: Compose via UseCases
+
+## Performance Considerations
+
+- **Build-time decisions**: Zero runtime overhead for feature flagging
+- **SwiftData optimization**: Use appropriate fetch descriptors and sorting
+- **UI performance**: Minimize re-renders with proper @Observable usage
+
+## External Integration Guidelines
+
+- **Build tools**: All configurations must build successfully before merge
+- **TestFlight**: Use AllFeatures configuration for beta testing
+- **App Store**: Use Subscription configuration for production releases
