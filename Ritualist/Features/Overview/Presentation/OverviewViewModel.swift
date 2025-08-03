@@ -19,9 +19,8 @@ public final class OverviewViewModel {
     private let generateCalendarGrid: GenerateCalendarGridUseCase
     private let toggleHabitLog: ToggleHabitLogUseCase
     private let getCurrentSlogan: GetCurrentSloganUseCase
-    
-    // Simple helper managers (no business logic)
-    private let scheduleManager: HabitScheduleManager
+    private let validateHabitSchedule: ValidateHabitScheduleUseCase
+    private let checkWeeklyTarget: CheckWeeklyTargetUseCase
     
     public private(set) var habits: [Habit] = []
     public private(set) var selectedHabit: Habit?
@@ -84,7 +83,9 @@ public final class OverviewViewModel {
                 trackHabitLogged: TrackHabitLoggedUseCase,
                 checkFeatureAccess: CheckFeatureAccessUseCase,
                 checkHabitCreationLimit: CheckHabitCreationLimitUseCase,
-                getPaywallMessage: GetPaywallMessageUseCase) { 
+                getPaywallMessage: GetPaywallMessageUseCase,
+                validateHabitSchedule: ValidateHabitScheduleUseCase,
+                checkWeeklyTarget: CheckWeeklyTargetUseCase) { 
         self.getActiveHabits = getActiveHabits
         self.getLogs = getLogs
         self.getLogForDate = getLogForDate
@@ -99,9 +100,8 @@ public final class OverviewViewModel {
         self.checkFeatureAccess = checkFeatureAccess
         self.checkHabitCreationLimit = checkHabitCreationLimit
         self.getPaywallMessage = getPaywallMessage
-        
-        // Initialize simple helper managers
-        self.scheduleManager = HabitScheduleManager()
+        self.validateHabitSchedule = validateHabitSchedule
+        self.checkWeeklyTarget = checkWeeklyTarget
         
         // Get initial slogan
         self.currentSlogan = getCurrentSlogan.execute()
@@ -124,9 +124,6 @@ public final class OverviewViewModel {
         do {
             // Load user profile for calendar preferences
             userProfile = try await loadProfile.execute()
-            
-            // Update managers with user profile
-            scheduleManager.updateUserProfile(userProfile)
             
             habits = try await getActiveHabits.execute()
             
@@ -266,13 +263,13 @@ public final class OverviewViewModel {
     /// Check if a date is schedulable for the selected habit
     public func isDateSchedulable(_ date: Date) -> Bool {
         guard let habit = selectedHabit else { return false }
-        return scheduleManager.isDateSchedulable(date, for: habit)
+        return validateHabitSchedule.execute(date: date, habit: habit)
     }
     
     /// For weekly habits, check if the weekly target is met for the week containing this date
     public func isWeeklyTargetMet(for date: Date) -> Bool {
         guard let habit = selectedHabit else { return false }
-        return scheduleManager.isWeeklyTargetMet(for: date, habit: habit, habitLogValues: habitLogValues)
+        return checkWeeklyTarget.execute(date: date, habit: habit, habitLogValues: habitLogValues, userProfile: userProfile)
     }
     
     private func updateCalendarDays() {

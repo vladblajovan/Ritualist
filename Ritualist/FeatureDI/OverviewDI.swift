@@ -23,6 +23,8 @@ public struct OverviewFactory {
         let checkFeatureAccess = CheckFeatureAccess(featureGatingService: container.featureGatingService)
         let checkHabitCreationLimit = CheckHabitCreationLimit(featureGatingService: container.featureGatingService)
         let getPaywallMessage = GetPaywallMessage(featureGatingService: container.featureGatingService)
+        let validateHabitSchedule = ValidateHabitSchedule()
+        let checkWeeklyTarget = CheckWeeklyTarget()
         
         return OverviewViewModel(
             getActiveHabits: getActiveHabits,
@@ -38,7 +40,9 @@ public struct OverviewFactory {
             trackHabitLogged: trackHabitLogged,
             checkFeatureAccess: checkFeatureAccess,
             checkHabitCreationLimit: checkHabitCreationLimit,
-            getPaywallMessage: getPaywallMessage
+            getPaywallMessage: getPaywallMessage,
+            validateHabitSchedule: validateHabitSchedule,
+            checkWeeklyTarget: checkWeeklyTarget
         )
     }
 }
