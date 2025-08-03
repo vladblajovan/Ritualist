@@ -263,6 +263,11 @@ private struct OverviewListView: View {
             let detailFactory = HabitDetailFactory(container: di)
             let detailVM = detailFactory.makeViewModel(for: nil)
             HabitDetailView(vm: detailVM)
+                .onDisappear {
+                    Task {
+                        await vm.load()
+                    }
+                }
         }
         .sheet(item: $paywallItem) { item in
             PaywallView(vm: item.viewModel)

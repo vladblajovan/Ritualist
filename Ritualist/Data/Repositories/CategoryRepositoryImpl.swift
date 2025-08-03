@@ -30,8 +30,20 @@ public final class CategoryRepositoryImpl: CategoryRepository {
         try await localDataSource.getPredefinedCategories()
     }
     
+    public func getCustomCategories() async throws -> [Category] {
+        try await localDataSource.getCustomCategories()
+    }
+    
     public func createCustomCategory(_ category: Category) async throws {
         try await localDataSource.createCustomCategory(category)
+    }
+    
+    public func updateCategory(_ category: Category) async throws {
+        try await localDataSource.updateCategory(category)
+    }
+    
+    public func deleteCategory(id: String) async throws {
+        try await localDataSource.deleteCategory(id: id)
     }
     
     public func categoryExists(id: String) async throws -> Bool {

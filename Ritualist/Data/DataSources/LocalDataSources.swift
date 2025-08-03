@@ -12,7 +12,9 @@ public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
     @MainActor
     public func fetchAll() async throws -> [SDHabit] {
         guard let context else { return [] }
-        let descriptor = FetchDescriptor<SDHabit>()
+        let descriptor = FetchDescriptor<SDHabit>(
+            sortBy: [SortDescriptor(\.displayOrder)]
+        )
         return try context.fetch(descriptor)
     }
     @MainActor
@@ -280,41 +282,51 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
                 name: "health",
                 displayName: "Health",
                 emoji: "💪",
-                order: 0
+                order: 0,
+                isActive: true,
+                isPredefined: true
             ),
             Category(
                 id: "wellness",
                 name: "wellness",
                 displayName: "Wellness",
                 emoji: "🧘",
-                order: 1
+                order: 1,
+                isActive: true,
+                isPredefined: true
             ),
             Category(
                 id: "productivity",
                 name: "productivity",
                 displayName: "Productivity",
                 emoji: "⚡",
-                order: 2
+                order: 2,
+                isActive: true,
+                isPredefined: true
             ),
             Category(
                 id: "learning",
                 name: "learning",
                 displayName: "Learning",
                 emoji: "📚",
-                order: 3
+                order: 3,
+                isActive: true,
+                isPredefined: true
             ),
             Category(
                 id: "social",
                 name: "social",
                 displayName: "Social",
                 emoji: "👥",
-                order: 4
+                order: 4,
+                isActive: true,
+                isPredefined: true
             )
         ]
     }()
     
     @MainActor
-    private func getCustomCategories() async throws -> [Category] {
+    private func getStoredCategories() async throws -> [Category] {
         guard let context else { return [] }
         let descriptor = FetchDescriptor<SDCategory>()
         let sdCategories = try context.fetch(descriptor)
@@ -322,8 +334,8 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
     }
     
     public func getAllCategories() async throws -> [Category] {
-        let customCategories = try await getCustomCategories()
-        let allCategories = predefinedCategories + customCategories
+        let storedCategories = try await getStoredCategories()
+        let allCategories = predefinedCategories + storedCategories
         return allCategories.sorted { $0.order < $1.order }
     }
     
@@ -341,6 +353,11 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
         return predefinedCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
     }
     
+    public func getCustomCategories() async throws -> [Category] {
+        let allCategories = try await getAllCategories()
+        return allCategories.filter { !$0.isPredefined && $0.isActive }.sorted { $0.order < $1.order }
+    }
+    
     @MainActor
     public func createCustomCategory(_ category: Category) async throws {
         guard let context else { return }
@@ -353,6 +370,41 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
         
         let sdCategory = CategoryMapper.toSD(category)
         context.insert(sdCategory)
+        try context.save()
+    }
+    
+    @MainActor
+    public func updateCategory(_ category: Category) async throws {
+        guard let context else { return }
+        
+        // Find the existing category in SwiftData
+        let descriptor = FetchDescriptor<SDCategory>(predicate: #Predicate { $0.id == category.id })
+        guard let existingCategory = try context.fetch(descriptor).first else {
+            throw CategoryDataSourceError.categoryNotFound
+        }
+        
+        // Update the properties
+        existingCategory.name = category.name
+        existingCategory.displayName = category.displayName
+        existingCategory.emoji = category.emoji
+        existingCategory.order = category.order
+        existingCategory.isActive = category.isActive
+        existingCategory.isPredefined = category.isPredefined
+        
+        try context.save()
+    }
+    
+    @MainActor
+    public func deleteCategory(id: String) async throws {
+        guard let context else { return }
+        
+        // Find the category to delete
+        let descriptor = FetchDescriptor<SDCategory>(predicate: #Predicate { $0.id == id })
+        guard let categoryToDelete = try context.fetch(descriptor).first else {
+            throw CategoryDataSourceError.categoryNotFound
+        }
+        
+        context.delete(categoryToDelete)
         try context.save()
     }
     
@@ -377,35 +429,45 @@ public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol 
                 name: "health",
                 displayName: "Health",
                 emoji: "💪",
-                order: 0
+                order: 0,
+                isActive: true,
+                isPredefined: true
             ),
             Category(
                 id: "wellness",
                 name: "wellness",
                 displayName: "Wellness",
                 emoji: "🧘",
-                order: 1
+                order: 1,
+                isActive: true,
+                isPredefined: true
             ),
             Category(
                 id: "productivity",
                 name: "productivity",
                 displayName: "Productivity",
                 emoji: "⚡",
-                order: 2
+                order: 2,
+                isActive: true,
+                isPredefined: true
             ),
             Category(
                 id: "learning",
                 name: "learning",
                 displayName: "Learning",
                 emoji: "📚",
-                order: 3
+                order: 3,
+                isActive: true,
+                isPredefined: true
             ),
             Category(
                 id: "social",
                 name: "social",
                 displayName: "Social",
                 emoji: "👥",
-                order: 4
+                order: 4,
+                isActive: true,
+                isPredefined: true
             )
         ]
     }()
@@ -431,11 +493,29 @@ public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol 
         return predefinedCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
     }
     
+    public func getCustomCategories() async throws -> [Category] {
+        return customCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
+    }
+    
     public func createCustomCategory(_ category: Category) async throws {
         guard !customCategories.contains(where: { $0.id == category.id }) else {
             throw CategoryDataSourceError.categoryAlreadyExists
         }
         customCategories.append(category)
+    }
+    
+    public func updateCategory(_ category: Category) async throws {
+        guard let index = customCategories.firstIndex(where: { $0.id == category.id }) else {
+            throw CategoryDataSourceError.categoryNotFound
+        }
+        customCategories[index] = category
+    }
+    
+    public func deleteCategory(id: String) async throws {
+        guard let index = customCategories.firstIndex(where: { $0.id == id }) else {
+            throw CategoryDataSourceError.categoryNotFound
+        }
+        customCategories.remove(at: index)
     }
     
     public func categoryExists(id: String) async throws -> Bool {
@@ -476,8 +556,23 @@ public final class CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
         return []
     }
     
+    public func getCustomCategories() async throws -> [Category] {
+        // TODO: Fetch custom categories from backend API
+        return []
+    }
+    
     public func createCustomCategory(_ category: Category) async throws {
         // TODO: Create custom category via backend API
+        // For now, this is a NoOp until backend is available
+    }
+    
+    public func updateCategory(_ category: Category) async throws {
+        // TODO: Update category via backend API
+        // For now, this is a NoOp until backend is available
+    }
+    
+    public func deleteCategory(id: String) async throws {
+        // TODO: Delete category via backend API
         // For now, this is a NoOp until backend is available
     }
     

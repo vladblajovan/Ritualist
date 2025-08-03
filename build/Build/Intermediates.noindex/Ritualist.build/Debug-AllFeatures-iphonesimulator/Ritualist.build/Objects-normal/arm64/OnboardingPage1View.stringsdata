@@ -1,0 +1,40 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Onboarding/Presentation/OnboardingPage1View.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Welcome to Ritualist!",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 24
+        }
+      },
+      {
+        "comment": "",
+        "key": "Let's start by getting to know you better. What should we call you?",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 29
+        }
+      },
+      {
+        "comment": "",
+        "key": "Don't worry, you can change this later in settings",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 51
+        }
+      },
+      {
+        "comment": "",
+        "key": "Enter your name",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 37
+        }
+      }
+    ]
+  },
+  "version": 1
+}

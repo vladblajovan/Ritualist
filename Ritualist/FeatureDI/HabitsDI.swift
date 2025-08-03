@@ -11,6 +11,7 @@ public struct HabitsFactory {
         let toggleHabitActiveStatus = ToggleHabitActiveStatus(repo: container.habitRepository)
         let reorderHabits = ReorderHabits(repo: container.habitRepository)
         let checkHabitCreationLimit = CheckHabitCreationLimit(featureGatingService: container.featureGatingService)
+        let getActiveCategories = GetActiveCategories(repo: container.categoryRepository)
         
         return HabitsViewModel(
             getAllHabits: getAllHabits,
@@ -21,6 +22,7 @@ public struct HabitsFactory {
             reorderHabits: reorderHabits,
             checkHabitCreationLimit: checkHabitCreationLimit,
             createHabitFromSuggestionUseCase: container.createHabitFromSuggestionUseCase,
+            getActiveCategories: getActiveCategories,
             habitDetailFactory: container.habitDetailFactory,
             paywallFactory: container.paywallFactory,
             habitsAssistantViewModel: container.habitsAssistantViewModel,

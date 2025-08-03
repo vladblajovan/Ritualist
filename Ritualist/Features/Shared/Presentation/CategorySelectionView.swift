@@ -6,6 +6,7 @@ public struct CategorySelectionView: View {
     let isLoading: Bool
     let onCategorySelect: (Category) -> Void
     let onAddCustomCategory: () -> Void
+    let onManageCategories: (() -> Void)?
     let showAddCustomOption: Bool
     
     public init(
@@ -14,7 +15,8 @@ public struct CategorySelectionView: View {
         isLoading: Bool = false,
         showAddCustomOption: Bool = true,
         onCategorySelect: @escaping (Category) -> Void,
-        onAddCustomCategory: @escaping () -> Void
+        onAddCustomCategory: @escaping () -> Void,
+        onManageCategories: (() -> Void)? = nil
     ) {
         self._selectedCategory = selectedCategory
         self.categories = categories
@@ -22,6 +24,7 @@ public struct CategorySelectionView: View {
         self.showAddCustomOption = showAddCustomOption
         self.onCategorySelect = onCategorySelect
         self.onAddCustomCategory = onAddCustomCategory
+        self.onManageCategories = onManageCategories
     }
     
     public var body: some View {
@@ -34,18 +37,39 @@ public struct CategorySelectionView: View {
                 
                 Spacer()
                 
-                if showAddCustomOption {
-                    Button {
-                        onAddCustomCategory()
-                    } label: {
-                        HStack(spacing: Spacing.xsmall) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.caption)
-                            Text("Add Custom")
-                                .font(.caption)
-                                .fontWeight(.medium)
+                HStack(spacing: Spacing.medium) {
+                    if let onManageCategories = onManageCategories {
+                        Button {
+                            onManageCategories()
+                        } label: {
+                            HStack(spacing: Spacing.xsmall) {
+                                Image(systemName: "gear")
+                                    .font(.caption)
+                                Text("Manage")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.secondary)
                         }
-                        .foregroundColor(AppColors.brand)
+                        .buttonStyle(PlainButtonStyle())
+                        .allowsHitTesting(true)
+                    }
+                    
+                    if showAddCustomOption {
+                        Button {
+                            onAddCustomCategory()
+                        } label: {
+                            HStack(spacing: Spacing.xsmall) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.caption)
+                                Text("Add Custom")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(AppColors.brand)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .allowsHitTesting(true)
                     }
                 }
             }

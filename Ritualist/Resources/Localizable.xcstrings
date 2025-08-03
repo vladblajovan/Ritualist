@@ -33,6 +33,9 @@
         }
       }
     },
+    "%lld selected" : {
+
+    },
     "🏷️" : {
 
     },
@@ -260,10 +263,19 @@
     "Account" : {
 
     },
+    "Activate" : {
+
+    },
+    "Add" : {
+
+    },
     "Add a new category to organize your habits" : {
 
     },
     "Add Custom" : {
+
+    },
+    "Add Habit" : {
 
     },
     "app.name" : {
@@ -425,6 +437,9 @@
 
     },
     "Cancelling..." : {
+
+    },
+    "Categories" : {
 
     },
     "Category" : {
@@ -731,6 +746,12 @@
           }
         }
       }
+    },
+    "Deactivate" : {
+
+    },
+    "Delete" : {
+
     },
     "dialog.cannot_undo" : {
       "extractionState" : "manual",
@@ -1564,6 +1585,9 @@
     "I'll help you choose some habits to begin your journey. Tap the + button to add any habits that interest you." : {
 
     },
+    "Inactive" : {
+
+    },
     "Initializing..." : {
       "localizations" : {
         "de" : {
@@ -1791,6 +1815,12 @@
         }
       }
     },
+    "Manage" : {
+
+    },
+    "Manage Categories" : {
+
+    },
     "navigation.edit_habit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1897,6 +1927,12 @@
           }
         }
       }
+    },
+    "No habits found for the selected category. Try selecting a different category or create a new habit." : {
+
+    },
+    "No habits in this category" : {
+
     },
     "No tips available" : {
       "localizations" : {
@@ -2433,6 +2469,9 @@
       }
     },
     "POPULAR" : {
+
+    },
+    "Predefined" : {
 
     },
     "Pro" : {

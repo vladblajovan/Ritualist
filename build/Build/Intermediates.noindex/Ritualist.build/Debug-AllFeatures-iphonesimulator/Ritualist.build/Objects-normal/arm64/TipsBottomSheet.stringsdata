@@ -1,0 +1,56 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Tips/Presentation/TipsBottomSheet.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "No tips available",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 32
+        }
+      },
+      {
+        "comment": "",
+        "key": "Featured Tips",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tip: %@. %@",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tip: %@. %@",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 157
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 240
+        }
+      },
+      {
+        "comment": "",
+        "key": "Featured",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 254
+        }
+      }
+    ]
+  },
+  "version": 1
+}

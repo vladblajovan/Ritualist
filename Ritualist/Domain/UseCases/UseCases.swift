@@ -15,6 +15,8 @@ public protocol DeleteHabitUseCase { func execute(id: UUID) async throws }
 public protocol ToggleHabitActiveStatusUseCase { func execute(id: UUID) async throws -> Habit }
 public protocol ReorderHabitsUseCase { func execute(_ habits: [Habit]) async throws }
 public protocol ValidateHabitUniquenessUseCase { func execute(name: String, categoryId: String?, excludeId: UUID?) async throws -> Bool }
+public protocol GetHabitsByCategoryUseCase { func execute(categoryId: String) async throws -> [Habit] }
+public protocol OrphanHabitsFromCategoryUseCase { func execute(categoryId: String) async throws }
 
 // MARK: - Log Use Cases
 public protocol GetLogsUseCase { func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog] }
@@ -55,7 +57,10 @@ public protocol GetAllCategoriesUseCase { func execute() async throws -> [Catego
 public protocol GetCategoryByIdUseCase { func execute(id: String) async throws -> Category? }
 public protocol GetActiveCategoriesUseCase { func execute() async throws -> [Category] }
 public protocol GetPredefinedCategoriesUseCase { func execute() async throws -> [Category] }
+public protocol GetCustomCategoriesUseCase { func execute() async throws -> [Category] }
 public protocol CreateCustomCategoryUseCase { func execute(_ category: Category) async throws }
+public protocol UpdateCategoryUseCase { func execute(_ category: Category) async throws }
+public protocol DeleteCategoryUseCase { func execute(id: String) async throws }
 public protocol ValidateCategoryNameUseCase { func execute(name: String) async throws -> Bool }
 
 // MARK: - Onboarding Use Cases
@@ -283,6 +288,47 @@ public final class ValidateHabitUniqueness: ValidateHabitUniquenessUseCase {
     }
 }
 
+public final class GetHabitsByCategory: GetHabitsByCategoryUseCase {
+    private let repo: HabitRepository
+    public init(repo: HabitRepository) { self.repo = repo }
+    
+    public func execute(categoryId: String) async throws -> [Habit] {
+        let allHabits = try await repo.fetchAllHabits()
+        return allHabits.filter { $0.categoryId == categoryId }
+    }
+}
+
+public final class OrphanHabitsFromCategory: OrphanHabitsFromCategoryUseCase {
+    private let repo: HabitRepository
+    public init(repo: HabitRepository) { self.repo = repo }
+    
+    public func execute(categoryId: String) async throws {
+        let habitsInCategory = try await GetHabitsByCategory(repo: repo).execute(categoryId: categoryId)
+        
+        // Set categoryId to nil for all habits in the deleted category
+        for habit in habitsInCategory {
+            let orphanedHabit = Habit(
+                id: habit.id,
+                name: habit.name,
+                colorHex: habit.colorHex,
+                emoji: habit.emoji,
+                kind: habit.kind,
+                unitLabel: habit.unitLabel,
+                dailyTarget: habit.dailyTarget,
+                schedule: habit.schedule,
+                reminders: habit.reminders,
+                startDate: habit.startDate,
+                endDate: habit.endDate,
+                isActive: habit.isActive,
+                displayOrder: habit.displayOrder,
+                categoryId: nil, // Remove category reference
+                suggestionId: habit.suggestionId
+            )
+            try await repo.update(orphanedHabit)
+        }
+    }
+}
+
 // MARK: - Profile Use Case Implementations
 public final class LoadProfile: LoadProfileUseCase {
     private let repo: ProfileRepository
@@ -398,6 +444,12 @@ public final class GetPredefinedCategories: GetPredefinedCategoriesUseCase {
     public func execute() async throws -> [Category] { try await repo.getPredefinedCategories() }
 }
 
+public final class GetCustomCategories: GetCustomCategoriesUseCase {
+    private let repo: CategoryRepository
+    public init(repo: CategoryRepository) { self.repo = repo }
+    public func execute() async throws -> [Category] { try await repo.getCustomCategories() }
+}
+
 public final class CreateCustomCategory: CreateCustomCategoryUseCase {
     private let repo: CategoryRepository
     public init(repo: CategoryRepository) { self.repo = repo }
@@ -411,6 +463,22 @@ public final class CreateCustomCategory: CreateCustomCategoryUseCase {
         }
         
         try await repo.createCustomCategory(category)
+    }
+}
+
+public final class UpdateCategory: UpdateCategoryUseCase {
+    private let repo: CategoryRepository
+    public init(repo: CategoryRepository) { self.repo = repo }
+    public func execute(_ category: Category) async throws {
+        try await repo.updateCategory(category)
+    }
+}
+
+public final class DeleteCategory: DeleteCategoryUseCase {
+    private let repo: CategoryRepository
+    public init(repo: CategoryRepository) { self.repo = repo }
+    public func execute(id: String) async throws {
+        try await repo.deleteCategory(id: id)
     }
 }
 

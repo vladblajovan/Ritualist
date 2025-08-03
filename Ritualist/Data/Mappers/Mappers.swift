@@ -64,7 +64,8 @@ public enum CategoryMapper {
             displayName: category.displayName,
             emoji: category.emoji,
             order: category.order,
-            isActive: category.isActive
+            isActive: category.isActive,
+            isPredefined: category.isPredefined
         )
     }
     
@@ -75,7 +76,8 @@ public enum CategoryMapper {
             displayName: sd.displayName,
             emoji: sd.emoji,
             order: sd.order,
-            isActive: sd.isActive
+            isActive: sd.isActive,
+            isPredefined: sd.isPredefined
         )
     }
 }

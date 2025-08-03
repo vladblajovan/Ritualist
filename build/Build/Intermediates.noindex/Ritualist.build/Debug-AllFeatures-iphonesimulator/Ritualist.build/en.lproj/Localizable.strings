@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%lld</key>
+	<string>%lld</string>
+	<key>...</key>
+	<string>…</string>
+	<key>Back</key>
+	<string>Back</string>
+	<key>Cancel</key>
+	<string>Cancel</string>
+	<key>Category</key>
+	<string>Category</string>
+	<key>Choose from Photos</key>
+	<string>Choose from Photos</string>
+	<key>Don't worry, you can change this later in settings</key>
+	<string>Don't worry, you can change this later in settings</string>
+	<key>Done</key>
+	<string>Done</string>
+	<key>Enable Notifications</key>
+	<string>Enable Notifications</string>
+	<key>Enter your name</key>
+	<string>Enter your name</string>
+	<key>Error</key>
+	<string>Error</string>
+	<key>Featured</key>
+	<string>Featured</string>
+	<key>Featured Tips</key>
+	<string>Featured Tips</string>
+	<key>Get Started</key>
+	<string>Get Started</string>
+	<key>Get expert tips and insights to help you build better habits and maintain long-term consistency.</key>
+	<string>Get expert tips and insights to help you build better habits and maintain long-term consistency.</string>
+	<key>Habits</key>
+	<string>Habits</string>
+	<key>Initializing...</key>
+	<string>Initializing...</string>
+	<key>Learn &amp; Improve</key>
+	<string>Learn &amp; Improve</string>
+	<key>Let's start by getting to know you better. What should we call you?</key>
+	<string>Let's start by getting to know you better. What should we call you?</string>
+	<key>Loading settings...</key>
+	<string>Loading settings...</string>
+	<key>Loading...</key>
+	<string>Loading...</string>
+	<key>Make It Yours</key>
+	<string>Make It Yours</string>
+	<key>Next</key>
+	<string>Next</string>
+	<key>No tips available</key>
+	<string>No tips available</string>
+	<key>Notifications Enabled</key>
+	<string>Notifications enabled</string>
+	<key>OK</key>
+	<string>OK</string>
+	<key>Processing image...</key>
+	<string>Processing image...</string>
+	<key>Profile Photo</key>
+	<string>Profile Photo</string>
+	<key>Remove Photo</key>
+	<string>Remove Photo</string>
+	<key>Retry</key>
+	<string>Retry</string>
+	<key>Settings</key>
+	<string>Settings</string>
+	<key>Stay on Track</key>
+	<string>Stay on Track</string>
+	<key>Track Your Habits</key>
+	<string>Track Your Habits</string>
+	<key>Welcome to Ritualist!</key>
+	<string>Welcome to Ritualist!</string>
+	<key>You can skip this step and enable notifications later in settings.</key>
+	<string>You can skip this step and enable notifications later in settings.</string>
+	<key>accessibility.add_habit</key>
+	<string>Add new habit</string>
+	<key>accessibility.calendar_day</key>
+	<string>Day %@</string>
+	<key>accessibility.delete_habit</key>
+	<string>Delete %@ habit</string>
+	<key>accessibility.go_to_today</key>
+	<string>Go to today</string>
+	<key>accessibility.habit_chip</key>
+	<string>Select %@ habit</string>
+	<key>accessibility.habit_logged</key>
+	<string>Habit completed on %@</string>
+	<key>accessibility.habit_not_logged</key>
+	<string>Tap to log habit for %@</string>
+	<key>accessibility.habit_status</key>
+	<string>%@ habit, %@</string>
+	<key>accessibility.month_header</key>
+	<string>Calendar showing %@</string>
+	<key>accessibility.next_month</key>
+	<string>Next month</string>
+	<key>accessibility.previous_month</key>
+	<string>Previous month</string>
+	<key>accessibility.streak_info</key>
+	<string>Current streak: %@, Best streak: %@</string>
+	<key>app.name</key>
+	<string>Ritualist</string>
+	<key>button.cancel</key>
+	<string>Cancel</string>
+	<key>button.delete</key>
+	<string>Delete</string>
+	<key>button.done</key>
+	<string>Done</string>
+	<key>button.retry</key>
+	<string>Retry</string>
+	<key>button.save</key>
+	<string>Save</string>
+	<key>calendar.today</key>
+	<string>Today</string>
+	<key>day.fri</key>
+	<string>Fri</string>
+	<key>day.friday</key>
+	<string>Friday</string>
+	<key>day.mon</key>
+	<string>Mon</string>
+	<key>day.monday</key>
+	<string>Monday</string>
+	<key>day.sat</key>
+	<string>Sat</string>
+	<key>day.saturday</key>
+	<string>Saturday</string>
+	<key>day.sun</key>
+	<string>Sun</string>
+	<key>day.sunday</key>
+	<string>Sunday</string>
+	<key>day.thu</key>
+	<string>Thu</string>
+	<key>day.thursday</key>
+	<string>Thursday</string>
+	<key>day.tue</key>
+	<string>Tue</string>
+	<key>day.tuesday</key>
+	<string>Tuesday</string>
+	<key>day.unknown</key>
+	<string>Unknown</string>
+	<key>day.wed</key>
+	<string>Wed</string>
+	<key>day.wednesday</key>
+	<string>Wednesday</string>
+	<key>dialog.cannot_undo</key>
+	<string>This action cannot be undone. All logged data for this habit will be permanently deleted.</string>
+	<key>dialog.delete_habit</key>
+	<string>Delete Habit</string>
+	<key>dialog.delete_habit_message</key>
+	<string>Are you sure you want to delete "%@"? This action cannot be undone.</string>
+	<key>empty.create_habits_to_start</key>
+	<string>Create some habits to get started</string>
+	<key>empty.no_active_habits</key>
+	<string>No Active Habits</string>
+	<key>empty.no_habit_selected</key>
+	<string>No Habit Selected</string>
+	<key>empty.no_habits_yet</key>
+	<string>No Habits Yet</string>
+	<key>empty.tap_habit_to_view</key>
+	<string>Tap on a habit above to view its calendar.</string>
+	<key>empty.tap_plus_to_create</key>
+	<string>Tap the + button to create your first habit</string>
+	<key>error.failed_initialize</key>
+	<string>Failed to Initialize</string>
+	<key>error.failed_load_habit</key>
+	<string>Failed to Load Habit</string>
+	<key>error.failed_load_habits</key>
+	<string>Failed to Load Habits</string>
+	<key>error.failed_load_settings</key>
+	<string>Failed to Load Settings</string>
+	<key>error.unable_setup_habits</key>
+	<string>Unable to set up the habits screen</string>
+	<key>error.unable_setup_overview</key>
+	<string>Unable to set up the overview screen</string>
+	<key>error.unable_setup_settings</key>
+	<string>Unable to set up the settings screen</string>
+	<key>form.appearance</key>
+	<string>Appearance</string>
+	<key>form.basic_information</key>
+	<string>Basic Information</string>
+	<key>form.color</key>
+	<string>Color</string>
+	<key>form.count</key>
+	<string>Count</string>
+	<key>form.daily</key>
+	<string>Daily</string>
+	<key>form.daily_target</key>
+	<string>Daily Target</string>
+	<key>form.emoji</key>
+	<string>Emoji</string>
+	<key>form.frequency</key>
+	<string>Frequency</string>
+	<key>form.habit_name</key>
+	<string>Habit name</string>
+	<key>form.name</key>
+	<string>Name</string>
+	<key>form.schedule</key>
+	<string>Schedule</string>
+	<key>form.select_days</key>
+	<string>Select days</string>
+	<key>form.specific_days</key>
+	<string>Specific Days</string>
+	<key>form.target</key>
+	<string>Target</string>
+	<key>form.times_per_week</key>
+	<string>Times per Week</string>
+	<key>form.times_per_week_label</key>
+	<string>Times per week</string>
+	<key>form.type</key>
+	<string>Type</string>
+	<key>form.unit</key>
+	<string>Unit</string>
+	<key>form.unit_placeholder</key>
+	<string>e.g., cups, minutes</string>
+	<key>form.yes_no</key>
+	<string>Yes/No</string>
+	<key>format.habit_value_with_unit</key>
+	<string>%@ %@</string>
+	<key>format.progress_percentage</key>
+	<string>%@ complete</string>
+	<key>loading.calculating_streaks</key>
+	<string>Calculating streaks...</string>
+	<key>loading.habit</key>
+	<string>Loading habit...</string>
+	<key>loading.habits</key>
+	<string>Loading habits...</string>
+	<key>loading.initializing</key>
+	<string>Initializing...</string>
+	<key>loading.processing_image</key>
+	<string>Processing image...</string>
+	<key>loading.saving</key>
+	<string>Saving...</string>
+	<key>loading.settings</key>
+	<string>Loading settings...</string>
+	<key>navigation.edit_habit</key>
+	<string>Edit Habit</string>
+	<key>navigation.habits</key>
+	<string>Habits</string>
+	<key>navigation.new_habit</key>
+	<string>New Habit</string>
+	<key>navigation.overview</key>
+	<string>Overview</string>
+	<key>navigation.settings</key>
+	<string>Settings</string>
+	<key>notification.body</key>
+	<string>It's time for your habit.</string>
+	<key>notification.title</key>
+	<string>Ritualist</string>
+	<key>onboarding.customize_description</key>
+	<string>Customize your habits with colors, emojis, and flexible scheduling to match your lifestyle and preferences.</string>
+	<key>onboarding.customize_title</key>
+	<string>Make It Yours</string>
+	<key>onboarding.enable_notifications</key>
+	<string>Enable Notifications</string>
+	<key>onboarding.get_started</key>
+	<string>Get Started</string>
+	<key>onboarding.learn_description</key>
+	<string>Get expert tips and insights to help you build better habits and maintain long-term consistency.</string>
+	<key>onboarding.learn_title</key>
+	<string>Learn &amp; Improve</string>
+	<key>onboarding.name_note</key>
+	<string>Don't worry, you can change this later in settings</string>
+	<key>onboarding.name_placeholder</key>
+	<string>Enter your name</string>
+	<key>onboarding.name_prompt</key>
+	<string>Let's start by getting to know you better. What should we call you?</string>
+	<key>onboarding.notifications_description</key>
+	<string>Enable notifications to get gentle reminders for your habits. You can customize or disable them anytime in settings.</string>
+	<key>onboarding.notifications_enabled</key>
+	<string>Notifications Enabled</string>
+	<key>onboarding.notifications_title</key>
+	<string>Stay on Track</string>
+	<key>onboarding.skip_notifications</key>
+	<string>You can skip this step and enable notifications later in settings.</string>
+	<key>onboarding.track_habits_description</key>
+	<string>Build lasting habits by tracking them daily. Ritualist helps you stay consistent with visual progress tracking and smart reminders.</string>
+	<key>onboarding.track_habits_title</key>
+	<string>Track Your Habits</string>
+	<key>onboarding.welcome_title</key>
+	<string>Welcome to Ritualist!</string>
+	<key>overview.best</key>
+	<string>Best</string>
+	<key>overview.calendar</key>
+	<string>Calendar</string>
+	<key>overview.current</key>
+	<string>Current</string>
+	<key>overview.instructions</key>
+	<string>Select a habit below and mark the days you completed it.</string>
+	<key>overview.stats</key>
+	<string>Stats</string>
+	<key>overview.your_habits</key>
+	<string>Your Habits</string>
+	<key>paywall.pro_label</key>
+	<string>PRO</string>
+	<key>paywall.unlock_advanced_stats</key>
+	<string>Unlock Advanced Stats</string>
+	<key>settings.appearance</key>
+	<string>Appearance</string>
+	<key>settings.dark</key>
+	<string>Dark</string>
+	<key>settings.enable</key>
+	<string>Enable</string>
+	<key>settings.first_day_of_week</key>
+	<string>First day of week</string>
+	<key>settings.follow_system</key>
+	<string>Follow System</string>
+	<key>settings.light</key>
+	<string>Light</string>
+	<key>settings.notification_permission</key>
+	<string>Notification Permission</string>
+	<key>settings.notifications</key>
+	<string>Notifications</string>
+	<key>settings.notifications_disabled</key>
+	<string>Notifications are disabled</string>
+	<key>settings.notifications_enabled</key>
+	<string>Notifications are enabled</string>
+	<key>settings.open_settings</key>
+	<string>Open Settings</string>
+	<key>settings.profile</key>
+	<string>Profile</string>
+	<key>settings.saved</key>
+	<string>Settings saved</string>
+	<key>status.active</key>
+	<string>Active</string>
+	<key>status.creating</key>
+	<string>Creating...</string>
+	<key>status.deleting</key>
+	<string>Deleting...</string>
+	<key>status.inactive</key>
+	<string>Inactive</string>
+	<key>status.updating</key>
+	<string>Updating...</string>
+	<key>test.long_habit_name</key>
+	<string>Daily Morning Meditation Practice</string>
+	<key>test.very_long_description</key>
+	<string>This is a very long description that will test how the interface handles text that might wrap across multiple lines or cause layout issues</string>
+	<key>tips.all_tips_title</key>
+	<string>All Tips</string>
+	<key>tips.carousel_title</key>
+	<string>Tips &amp; Insights</string>
+	<key>tips.consistency_description</key>
+	<string>It's better to do a little every day than a lot once in a while.</string>
+	<key>tips.consistency_title</key>
+	<string>Consistency</string>
+	<key>tips.show_more</key>
+	<string>Show more tips</string>
+	<key>tips.start_small_description</key>
+	<string>Begin with tiny habits that take less than 2 minutes to complete.</string>
+	<key>tips.start_small_title</key>
+	<string>Start Small</string>
+	<key>tips.tip_detail_title</key>
+	<string>Tip Details</string>
+	<key>tips.track_immediately_description</key>
+	<string>Log your habits right after completing them to avoid forgetting.</string>
+	<key>tips.track_immediately_title</key>
+	<string>Track Immediately</string>
+	<key>validation.name_required</key>
+	<string>Name is required</string>
+	<key>validation.select_at_least_one_day</key>
+	<string>Please select at least one day</string>
+	<key>validation.target_greater_than_zero</key>
+	<string>Target must be greater than 0</string>
+	<key>validation.unit_required</key>
+	<string>Unit label is required for numeric habits</string>
+</dict>
+</plist>

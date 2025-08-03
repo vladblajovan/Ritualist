@@ -1,0 +1,40 @@
+{
+  "source": "/Users/vladblajovan/Developer/GitHub/Ritualist/Ritualist/Features/Shared/Presentation/CategorySelectionView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "Manage",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Custom",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 63
+        }
+      },
+      {
+        "comment": "",
+        "key": "Loading categories...",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 78
+        }
+      }
+    ]
+  },
+  "version": 1
+}

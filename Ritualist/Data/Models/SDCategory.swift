@@ -15,6 +15,7 @@ import SwiftData
     public var emoji: String
     public var order: Int
     public var isActive: Bool
+    public var isPredefined: Bool
     
     public init(
         id: String,
@@ -22,7 +23,8 @@ import SwiftData
         displayName: String,
         emoji: String,
         order: Int,
-        isActive: Bool = true
+        isActive: Bool = true,
+        isPredefined: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -30,5 +32,6 @@ import SwiftData
         self.emoji = emoji
         self.order = order
         self.isActive = isActive
+        self.isPredefined = isPredefined
     }
 }

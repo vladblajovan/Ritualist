@@ -282,8 +282,10 @@ private struct DaysOfWeekSelector: View {
 }
 
 private struct CategorySection: View {
+    @Environment(\.appContainer) private var appContainer
     @Bindable var vm: HabitDetailViewModel
     @State private var showingAddCustomCategory = false
+    @State private var showingCategoryManagement = false
     
     var body: some View {
         Section {
@@ -299,6 +301,9 @@ private struct CategorySection: View {
                     },
                     onAddCustomCategory: {
                         showingAddCustomCategory = true
+                    },
+                    onManageCategories: {
+                        showingCategoryManagement = true
                     }
                 )
                 .padding(.vertical, Spacing.small)
@@ -339,6 +344,26 @@ private struct CategorySection: View {
             AddCustomCategorySheet { name, emoji in
                 await vm.createCustomCategory(name: name, emoji: emoji)
             }
+        }
+        .onChange(of: showingAddCustomCategory) { _, isShowing in
+            if !isShowing {
+                // Refresh categories when sheet is dismissed
+                Task {
+                    await vm.loadCategories()
+                }
+            }
+        }
+        .sheet(isPresented: $showingCategoryManagement) {
+            categoryManagementSheet
+        }
+    }
+    
+    @ViewBuilder
+    private var categoryManagementSheet: some View {
+        NavigationStack {
+            // Create ViewModel via DI factory - clean and simple
+            let factory = SettingsFactory(container: appContainer)
+            CategoryManagementView(vm: factory.makeCategoryManagementViewModel())
         }
     }
 }

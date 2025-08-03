@@ -11,6 +11,7 @@ public final class HabitsViewModel {
     private let reorderHabits: ReorderHabitsUseCase
     private let checkHabitCreationLimit: CheckHabitCreationLimitUseCase
     private let createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase
+    private let getActiveCategories: GetActiveCategoriesUseCase
     private let habitDetailFactory: HabitDetailFactory
     private let paywallFactory: PaywallFactory
     public let habitSuggestionsService: HabitSuggestionsService
@@ -24,9 +25,16 @@ public final class HabitsViewModel {
     public private(set) var isUpdating = false
     public private(set) var isDeleting = false
     
+    // MARK: - Category Filtering State
+    public private(set) var categories: [Category] = []
+    public private(set) var isLoadingCategories = false
+    public private(set) var categoriesError: Error?
+    public var selectedFilterCategory: Category?
+    
     // MARK: - Navigation State
     public var showingCreateHabit = false
     public var showingHabitAssistant = false
+    public var showingCategoryManagement = false
     public var selectedHabit: Habit?
     public var paywallItem: PaywallItem?
     public var shouldReopenAssistantAfterPaywall = false
@@ -40,6 +48,26 @@ public final class HabitsViewModel {
         checkHabitCreationLimit.execute(currentCount: items.count)
     }
     
+    /// Filtered habits based on selected category and active categories only
+    public var filteredHabits: [Habit] {
+        let activeCategoryIds = Set(categories.map { $0.id })
+        
+        // First filter to only habits from active categories or habits with no category
+        let habitsFromActiveCategories = items.filter { habit in
+            // Include habits with no category or habits from active categories
+            habit.categoryId == nil || activeCategoryIds.contains(habit.categoryId ?? "")
+        }
+        
+        // Then apply category filter if one is selected
+        guard let selectedFilterCategory = selectedFilterCategory else {
+            return habitsFromActiveCategories
+        }
+        
+        return habitsFromActiveCategories.filter { habit in
+            habit.categoryId == selectedFilterCategory.id
+        }
+    }
+    
     public init(getAllHabits: GetAllHabitsUseCase, 
                 createHabit: CreateHabitUseCase,
                 updateHabit: UpdateHabitUseCase,
@@ -48,6 +76,7 @@ public final class HabitsViewModel {
                 reorderHabits: ReorderHabitsUseCase,
                 checkHabitCreationLimit: CheckHabitCreationLimitUseCase,
                 createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase,
+                getActiveCategories: GetActiveCategoriesUseCase,
                 habitDetailFactory: HabitDetailFactory,
                 paywallFactory: PaywallFactory,
                 habitsAssistantViewModel: HabitsAssistantViewModel,
@@ -61,6 +90,7 @@ public final class HabitsViewModel {
         self.reorderHabits = reorderHabits
         self.checkHabitCreationLimit = checkHabitCreationLimit
         self.createHabitFromSuggestionUseCase = createHabitFromSuggestionUseCase
+        self.getActiveCategories = getActiveCategories
         self.habitDetailFactory = habitDetailFactory
         self.paywallFactory = paywallFactory
         self.habitsAssistantViewModel = habitsAssistantViewModel
@@ -74,8 +104,12 @@ public final class HabitsViewModel {
         isLoading = true
         error = nil
         
+        async let habitsResult = getAllHabits.execute()
+        async let categoriesResult: () = loadCategories()
+        
         do { 
-            items = try await getAllHabits.execute() 
+            items = try await habitsResult
+            await categoriesResult
         } catch { 
             self.error = error
             items = [] 
@@ -201,6 +235,11 @@ public final class HabitsViewModel {
         showingHabitAssistant = true
     }
     
+    /// Handle category management button tap
+    public func handleCategoryManagementTap() {
+        showingCategoryManagement = true
+    }
+    
     /// Show paywall
     public func showPaywall() {
         Task { @MainActor in
@@ -258,8 +297,37 @@ public final class HabitsViewModel {
         }
     }
     
+    /// Handle when category management sheet is dismissed - refresh data
+    public func handleCategoryManagementDismissal() {
+        Task {
+            await load()
+        }
+    }
+    
     /// Select a habit for editing
     public func selectHabit(_ habit: Habit) {
         selectedHabit = habit
+    }
+    
+    // MARK: - Category Management
+    
+    /// Load categories for filtering
+    private func loadCategories() async {
+        isLoadingCategories = true
+        categoriesError = nil
+        
+        do {
+            categories = try await getActiveCategories.execute()
+        } catch {
+            categoriesError = error
+            categories = []
+        }
+        
+        isLoadingCategories = false
+    }
+    
+    /// Handle category filter selection
+    public func selectFilterCategory(_ category: Category?) {
+        selectedFilterCategory = category
     }
 }

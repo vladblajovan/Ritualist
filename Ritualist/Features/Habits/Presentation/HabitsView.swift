@@ -42,22 +42,11 @@ public struct HabitsRoot: View {
 }
 
 private struct HabitsContentView: View {
+    @Environment(\.appContainer) private var appContainer
     @Bindable var vm: HabitsViewModel
     
     var body: some View {
         HabitsListView(vm: vm)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        vm.handleCreateHabitTap()
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(AppColors.brand)
-                    }
-                    .accessibilityLabel(Strings.Accessibility.addHabit)
-                }
-            }
             .sheet(isPresented: $vm.showingCreateHabit) {
                 let detailVM = vm.makeHabitDetailViewModel(for: nil)
                 HabitDetailView(vm: detailVM)
@@ -82,12 +71,26 @@ private struct HabitsContentView: View {
                     }
                 }
             }
+            .sheet(isPresented: $vm.showingCategoryManagement) {
+                categoryManagementSheet
+            }
             .onChange(of: vm.paywallItem) { oldValue, newValue in
                 // When paywall item becomes nil, the sheet is dismissed
                 if oldValue != nil && newValue == nil {
                     vm.handlePaywallDismissal()
                 }
             }
+    }
+    
+    @ViewBuilder
+    private var categoryManagementSheet: some View {
+        NavigationStack {
+            let factory = SettingsFactory(container: appContainer)
+            CategoryManagementView(vm: factory.makeCategoryManagementViewModel())
+                .onDisappear {
+                    vm.handleCategoryManagementDismissal()
+                }
+        }
     }
 }
 
@@ -107,22 +110,74 @@ private struct HabitsListView: View {
                 ) {
                     await vm.retry()
                 }
-            } else if vm.items.isEmpty {
-                VStack(spacing: Spacing.xlarge) {
-                    ContentUnavailableView(
-                        Strings.EmptyState.noHabitsYet,
-                        systemImage: "plus.circle",
-                        description: Text(Strings.EmptyState.tapPlusToCreate)
+            } else if vm.filteredHabits.isEmpty {
+                VStack(spacing: 0) {
+                    // Always show category filters, even when empty
+                    CategoryFilterCarousel(
+                        selectedCategory: Binding(
+                            get: { vm.selectedFilterCategory },
+                            set: { vm.selectFilterCategory($0) }
+                        ),
+                        categories: vm.categories,
+                        isLoading: vm.isLoadingCategories,
+                        onCategorySelect: { category in
+                            vm.selectFilterCategory(category)
+                        },
+                        onManageCategories: {
+                            vm.handleCategoryManagementTap()
+                        },
+                        onAddHabit: {
+                            vm.handleCreateHabitTap()
+                        }
                     )
+                    .padding(.bottom, Spacing.medium)
                     
-                    AssistantButton {
-                        vm.handleAssistantTap(source: "emptyState")
+                    VStack(spacing: Spacing.xlarge) {
+                        if vm.selectedFilterCategory != nil {
+                            // Empty state when filtering
+                            ContentUnavailableView(
+                                "No habits in this category",
+                                systemImage: "tray",
+                                description: Text("No habits found for the selected category. Try selecting a different category or create a new habit.")
+                            )
+                        } else {
+                            // Empty state when no habits at all
+                            ContentUnavailableView(
+                                Strings.EmptyState.noHabitsYet,
+                                systemImage: "plus.circle",
+                                description: Text(Strings.EmptyState.tapPlusToCreate)
+                            )
+                            
+                            AssistantButton {
+                                vm.handleAssistantTap(source: "emptyState")
+                            }
+                        }
                     }
                 }
             } else {
                 VStack(spacing: 0) {
+                    // Always show the header with add button, categories if available
+                    CategoryFilterCarousel(
+                        selectedCategory: Binding(
+                            get: { vm.selectedFilterCategory },
+                            set: { vm.selectFilterCategory($0) }
+                        ),
+                        categories: vm.categories,
+                        isLoading: vm.isLoadingCategories,
+                        onCategorySelect: { category in
+                            vm.selectFilterCategory(category)
+                        },
+                        onManageCategories: {
+                            vm.handleCategoryManagementTap()
+                        },
+                        onAddHabit: {
+                            vm.handleCreateHabitTap()
+                        }
+                    )
+                    .padding(.bottom, Spacing.medium)
+                    
                     List {
-                        ForEach(vm.items, id: \.id) { habit in
+                        ForEach(vm.filteredHabits, id: \.id) { habit in
                             HabitRowView(habit: habit) {
                                 vm.selectHabit(habit)
                             }
@@ -142,7 +197,7 @@ private struct HabitsListView: View {
                         }
                         .onDelete(perform: { indexSet in
                             if let index = indexSet.first {
-                                habitToDelete = vm.items[index]
+                                habitToDelete = vm.filteredHabits[index]
                                 showingDeleteConfirmation = true
                             }
                         })
@@ -214,6 +269,9 @@ private struct HabitsListView: View {
     }
     
     private func moveHabit(from source: IndexSet, to destination: Int) async {
+        // When filtering is active, disable reordering to avoid confusion
+        guard vm.selectedFilterCategory == nil else { return }
+        
         var reorderedHabits = vm.items
         reorderedHabits.move(fromOffsets: source, toOffset: destination)
         _ = await vm.reorderHabits(reorderedHabits)
