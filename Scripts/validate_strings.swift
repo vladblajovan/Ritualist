@@ -32,7 +32,7 @@ class StringValidator {
         guard let data = FileManager.default.contents(atPath: path),
               let catalog = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let strings = catalog["strings"] as? [String: Any] else {
-            print("❌ Could not read String Catalog at: \\(path)")
+            print("❌ Could not read String Catalog at: \(path)")
             return []
         }
         
@@ -70,16 +70,16 @@ class StringValidator {
     }
     
     private func determineConstraint(for key: String) -> StringConstraints {
-        switch {
-        case key.hasPrefix("navigation."):
+        switch key {
+        case _ where key.hasPrefix("navigation."):
             return .tabBarLabel
-        case key.hasPrefix("button."):
+        case _ where key.hasPrefix("button."):
             return .buttonLabel
-        case key.hasPrefix("form."):
+        case _ where key.hasPrefix("form."):
             return .formFieldLabel
-        case key.hasPrefix("validation."):
+        case _ where key.hasPrefix("validation."):
             return .validationMessage
-        case key.hasPrefix("accessibility."):
+        case _ where key.hasPrefix("accessibility."):
             return .accessibilityLabel
         default:
             return .formFieldLabel // Default constraint
@@ -91,7 +91,7 @@ class StringValidator {
         
         // Length validation
         if value.count > constraint.characterLimit {
-            issues.append("Exceeds \\(constraint.name.lowercased()) limit (\\(value.count)/\\(constraint.characterLimit))")
+            issues.append("Exceeds \(constraint.name.lowercased()) limit (\(value.count)/\(constraint.characterLimit))")
         }
         
         // Whitespace validation
@@ -114,7 +114,7 @@ class StringValidator {
             // Ensure proper format specifier usage
             let formatCount = value.components(separatedBy: "%").count - 1
             if formatCount > 2 {
-                issues.append("Too many format specifiers (\\(formatCount))")
+                issues.append("Too many format specifiers (\(formatCount))")
             }
         }
         
@@ -131,7 +131,7 @@ class StringValidator {
         var report = """
         🌍 Ritualist String Validation Report
         =====================================
-        Generated: \\(Date())
+        Generated: \(Date())
         
         """
         
@@ -141,10 +141,10 @@ class StringValidator {
         
         report += """
         📊 Summary:
-           Total strings: \\(totalCount)
-           ✅ Valid: \\(validCount)
-           ❌ Invalid: \\(invalidCount)
-           📈 Success rate: \\(Int(Double(validCount) / Double(totalCount) * 100))%
+           Total strings: \(totalCount)
+           ✅ Valid: \(validCount)
+           ❌ Invalid: \(invalidCount)
+           📈 Success rate: \(Int(Double(validCount) / Double(totalCount) * 100))%
         
         """
         
@@ -157,8 +157,8 @@ class StringValidator {
             
             report += """
             
-            📱 \\(constraintName) Strings (\\(constraintValid)/\\(constraintTotal) valid)
-            \\(String(repeating: "-", count: 50))
+            📱 \(constraintName) Strings (\(constraintValid)/\(constraintTotal) valid)
+            \(String(repeating: "-", count: 50))
             
             """
             
@@ -166,11 +166,11 @@ class StringValidator {
                 let status = result.isValid ? "✅" : "❌"
                 let truncatedValue = result.value.count > 40 ? String(result.value.prefix(40)) + "..." : result.value
                 
-                report += "\\(status) \\(result.key): \\"\\(truncatedValue)\\"\\n"
+                report += "\(status) \(result.key): \"\(truncatedValue)\"\n"
                 
                 if !result.isValid {
                     for issue in result.issues {
-                        report += "    ⚠️  \\(issue)\\n"
+                        report += "    ⚠️  \(issue)\n"
                     }
                 }
             }
@@ -204,7 +204,7 @@ func main() {
     let validator = StringValidator()
     let catalogPath = "Ritualist/Resources/Localizable.xcstrings"
     
-    print("🔍 Validating strings in: \\(catalogPath)")
+    print("🔍 Validating strings in: \(catalogPath)")
     
     let results = validator.validateStringCatalog(at: catalogPath)
     let report = validator.generateReport(results: results)
@@ -215,9 +215,9 @@ func main() {
     let reportPath = "string_validation_report.txt"
     do {
         try report.write(toFile: reportPath, atomically: true, encoding: .utf8)
-        print("📄 Report saved to: \\(reportPath)")
+        print("📄 Report saved to: \(reportPath)")
     } catch {
-        print("⚠️  Could not save report: \\(error)")
+        print("⚠️  Could not save report: \(error)")
     }
     
     // Exit with error code if validation failed

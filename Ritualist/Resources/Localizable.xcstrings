@@ -798,7 +798,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This action cannot be undone. All logged data for this habit will be permanently deleted."
+            "value" : "Cannot be undone"
           }
         }
       }
@@ -833,7 +833,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Are you sure you want to delete \"%@\"? This action cannot be undone."
+            "value" : "Delete \"%@\"? Cannot be undone."
           }
         }
       }
@@ -849,7 +849,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Don't worry, you can change this later in settings"
+            "value" : "You can change this later"
           }
         }
       }
@@ -882,7 +882,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Create some habits to get started"
+            "value" : "Create habits to get started"
           }
         }
       }
@@ -950,7 +950,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap on a habit above to view its calendar."
+            "value" : "Tap a habit to view calendar."
           }
         }
       }
@@ -967,7 +967,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap the + button to create your first habit"
+            "value" : "Tap + to create first habit"
           }
         }
       }
@@ -1103,7 +1103,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unable to set up the habits screen"
+            "value" : "Unable to setup habits screen"
           }
         }
       }
@@ -1120,7 +1120,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unable to set up the overview screen"
+            "value" : "Unable to setup overview"
           }
         }
       }
@@ -1137,7 +1137,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unable to set up the settings screen"
+            "value" : "Unable to setup settings"
           }
         }
       }
@@ -1575,7 +1575,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Get expert tips and insights to help you build better habits and maintain long-term consistency."
+            "value" : "Get tips for better habits"
           }
         }
       }
@@ -1679,7 +1679,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Let's start by getting to know you better. What should we call you?"
+            "value" : "What should we call you?"
           }
         }
       }
@@ -2076,7 +2076,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Customize your habits with colors, emojis, and flexible scheduling to match your lifestyle and preferences."
+            "value" : "Customize colors and emojis"
           }
         }
       }
@@ -2144,7 +2144,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Get expert tips and insights to help you build better habits and maintain long-term consistency."
+            "value" : "Get tips for better habits"
           }
         }
       }
@@ -2178,7 +2178,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Don't worry, you can change this later in settings"
+            "value" : "You can change this later"
           }
         }
       }
@@ -2212,7 +2212,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Let's start by getting to know you better. What should we call you?"
+            "value" : "What should we call you?"
           }
         }
       }
@@ -2229,7 +2229,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enable notifications to get gentle reminders for your habits. You can customize or disable them anytime in settings."
+            "value" : "Get gentle habit reminders"
           }
         }
       }
@@ -2280,7 +2280,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You can skip this step and enable notifications later in settings."
+            "value" : "You can enable later"
           }
         }
       }
@@ -2297,7 +2297,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Build lasting habits by tracking them daily. Ritualist helps you stay consistent with visual progress tracking and smart reminders."
+            "value" : "Track daily for lasting habits"
           }
         }
       }
@@ -2441,7 +2441,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Select a habit below and mark the days you completed it."
+            "value" : "Select habit and mark days"
           }
         }
       }
@@ -2969,7 +2969,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Daily Morning Meditation Practice"
+            "value" : "Morning Meditation Practice"
           }
         }
       }
@@ -2986,7 +2986,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This is a very long description that will test how the interface handles text that might wrap across multiple lines or cause layout issues"
+            "value" : "Test description for layout"
           }
         }
       }
@@ -3061,7 +3061,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "It's better to do a little every day than a lot once in a while."
+            "value" : "Daily beats big efforts"
           }
         }
       }
@@ -3113,7 +3113,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Begin with tiny habits that take less than 2 minutes to complete."
+            "value" : "Start with 2-minute habits"
           }
         }
       }
@@ -3165,7 +3165,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Log your habits right after completing them to avoid forgetting."
+            "value" : "Log immediately after doing"
           }
         }
       }
@@ -3318,7 +3318,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You can skip this step and enable notifications later in settings."
+            "value" : "You can enable later"
           }
         }
       }
