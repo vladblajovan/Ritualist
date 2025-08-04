@@ -55,13 +55,9 @@ public struct StreakInfoView: View {
                                     .fontWeight(.medium)
                                     .foregroundColor(.secondary)
                                 
-                                Button {
-                                    showingCurrentStreakInfo = true
-                                } label: {
-                                    Image(systemName: "info.circle")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
+                                Image(systemName: "info.circle")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
                             }
                         }
                         
@@ -76,6 +72,10 @@ public struct StreakInfoView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        showingCurrentStreakInfo = true
+                    }
                     
                     // Divider
                     Rectangle()
@@ -96,13 +96,9 @@ public struct StreakInfoView: View {
                                     .fontWeight(.medium)
                                     .foregroundColor(.secondary)
                                 
-                                Button {
-                                    showingBestStreakInfo = true
-                                } label: {
-                                    Image(systemName: "info.circle")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
+                                Image(systemName: "info.circle")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
                             }
                         }
                         
@@ -117,6 +113,10 @@ public struct StreakInfoView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        showingBestStreakInfo = true
+                    }
                     .bestStreakAnimation(
                         isTriggered: animationTrigger,
                         config: .bestStreak,

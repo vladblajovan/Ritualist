@@ -241,6 +241,9 @@ private struct HabitsListView: View {
                                 vm.selectHabit(habit)
                             }
                             .tag(habit.id)
+                            .onTapGesture {
+                                // Intercept List row taps - do nothing
+                            }
                             .swipeActions(edge: .leading) {
                                 // Only show swipe actions when not in edit mode
                                 if editMode?.wrappedValue != .active {
@@ -340,6 +343,10 @@ private struct HabitsListView: View {
     
     private var editModeToolbar: some View {
         HStack(spacing: Spacing.large) {
+            Text("\(selection.count) selected")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
             Spacer()
             
             // Activate button (only show if inactive habits are selected)
@@ -390,8 +397,6 @@ private struct HabitsListView: View {
                 }
             }
             .foregroundColor(.red)
-            
-            Spacer()
         }
         .padding(.horizontal, Spacing.large)
         .padding(.vertical, Spacing.medium)
@@ -479,30 +484,35 @@ private struct HabitRowView: View {
     let onTap: () -> Void
     
     var body: some View {
-        Button {
-            onTap()
-        } label: {
-            HStack {
-                ZStack {
-                    Circle()
-                        .fill(
-                            Color(hex: habit.colorHex)?
-                                .opacity(0.1) ?? .blue
-                                .opacity(0.1)
-                        )
-                        .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
-                    Text(habit.emoji ?? "•")
-                }
-                VStack(alignment: .leading) {
-                    Text(habit.name).bold()
-                    Text(habit.isActive ? Strings.Status.active : Strings.Status.inactive)
-                        .font(.caption)
-                        .foregroundColor(habit.isActive ? .green : .secondary)
-                }
-                Spacer()
+        HStack {
+            ZStack {
+                Circle()
+                    .fill(
+                        Color(hex: habit.colorHex)?
+                            .opacity(0.1) ?? .blue
+                            .opacity(0.1)
+                    )
+                    .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                Text(habit.emoji ?? "•")
             }
+            VStack(alignment: .leading) {
+                Text(habit.name).bold()
+                Text(habit.isActive ? Strings.Status.active : Strings.Status.inactive)
+                    .font(.caption)
+                    .foregroundColor(habit.isActive ? .green : .secondary)
+            }
+            Spacer()
+            
+            Image(systemName: "info.circle")
+                .font(.title3)
+                .foregroundColor(.secondary)
+                .onTapGesture {
+                    onTap()
+                }
+                .accessibilityLabel("View habit details")
         }
-        .buttonStyle(PlainButtonStyle())
+        .contentShape(Rectangle())
+        .allowsHitTesting(true)
     }
 }
 

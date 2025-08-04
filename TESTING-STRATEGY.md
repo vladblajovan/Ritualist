@@ -17,7 +17,7 @@ This document outlines the comprehensive testing strategy for the Ritualist iOS 
 
 #### 1. Unit Tests (Foundation Layer)
 **Target**: Individual components in isolation
-**Framework**: XCTest
+**Framework**: Swift Testing (iOS 17+)
 **Coverage**: 80%+ for business logic
 
 **What to Test:**
@@ -34,7 +34,7 @@ This document outlines the comprehensive testing strategy for the Ritualist iOS 
 
 #### 2. Integration Tests (Component Layer)
 **Target**: Multiple components working together
-**Framework**: XCTest
+**Framework**: Swift Testing
 
 **What to Test:**
 - **Repository Implementations**: Data access with mock data sources
@@ -83,16 +83,20 @@ RitualistTests/
 
 ### Test Naming Convention
 ```swift
-func test_methodName_whenCondition_thenExpectedBehavior()
+// Swift Testing uses @Test attribute with descriptive names
+@Test("Current streak returns correct value when habit completed today")
+func currentStreakWithHabitCompletedToday()
 
-// Examples:
-func test_currentStreak_whenHabitCompletedToday_thenReturnsCorrectStreak()
-func test_bestStreak_whenMultipleStreaks_thenReturnsLongest()
+@Test("Best streak returns longest when multiple streaks exist")  
+func bestStreakWithMultipleStreaks()
 ```
 
 ### Test Structure (AAA Pattern)
 ```swift
-func test_example() {
+import Testing
+
+@Test("Streak engine calculates current streak correctly")
+func streakEngineCalculatesCurrentStreak() {
     // Arrange - Set up test data and dependencies
     let mockDateProvider = MockDateProvider()
     let streakEngine = DefaultStreakEngine(dateProvider: mockDateProvider)
@@ -102,7 +106,7 @@ func test_example() {
     let result = streakEngine.currentStreak(for: habit, logs: logs, asOf: today)
     
     // Assert - Verify the expected outcome
-    XCTAssertEqual(result, expectedStreak)
+    #expect(result == expectedStreak)
 }
 ```
 
@@ -136,35 +140,30 @@ class MockDateProvider: DateProvider {
 
 ### Example ViewModel Test
 ```swift
+import Testing
+
 @MainActor
-final class OverviewViewModelTests: XCTestCase {
-    private var viewModel: OverviewViewModel!
-    private var mockGetActiveHabits: MockGetActiveHabitsUseCase!
-    private var mockStreakEngine: MockStreakEngine!
-    
-    override func setUp() {
-        super.setUp()
-        mockGetActiveHabits = MockGetActiveHabitsUseCase()
-        mockStreakEngine = MockStreakEngine()
+struct OverviewViewModelTests {
+    @Test("Load updates state when habits exist")
+    func loadUpdatesStateWhenHabitsExist() async {
+        // Arrange
+        let mockGetActiveHabits = MockGetActiveHabitsUseCase()
+        let mockStreakEngine = MockStreakEngine()
+        let expectedHabits = [createTestHabit()]
+        mockGetActiveHabits.executeReturnValue = expectedHabits
         
-        viewModel = OverviewViewModel(
+        let viewModel = OverviewViewModel(
             getActiveHabits: mockGetActiveHabits,
             streakEngine: mockStreakEngine
             // ... other dependencies
         )
-    }
-    
-    func test_load_whenHabitsExist_thenUpdatesState() async {
-        // Arrange
-        let expectedHabits = [createTestHabit()]
-        mockGetActiveHabits.executeReturnValue = expectedHabits
         
         // Act
         await viewModel.load()
         
         // Assert
-        XCTAssertEqual(viewModel.habits, expectedHabits)
-        XCTAssertFalse(viewModel.isLoading)
+        #expect(viewModel.habits == expectedHabits)
+        #expect(viewModel.isLoading == false)
     }
 }
 ```
@@ -178,23 +177,19 @@ final class OverviewViewModelTests: XCTestCase {
 
 ### Example Repository Test
 ```swift
-final class HabitRepositoryTests: XCTestCase {
-    private var repository: HabitRepositoryImpl!
-    private var mockDataSource: MockHabitDataSource!
-    private var mockMapper: MockHabitMapper!
-    
-    override func setUp() {
-        super.setUp()
-        mockDataSource = MockHabitDataSource()
-        mockMapper = MockHabitMapper()
-        repository = HabitRepositoryImpl(
+import Testing
+
+struct HabitRepositoryTests {
+    @Test("Get active habits returns habits when data exists")
+    func getActiveHabitsReturnsHabitsWhenDataExists() async throws {
+        // Arrange
+        let mockDataSource = MockHabitDataSource()
+        let mockMapper = MockHabitMapper()
+        let repository = HabitRepositoryImpl(
             dataSource: mockDataSource,
             mapper: mockMapper
         )
-    }
-    
-    func test_getActiveHabits_whenDataExists_thenReturnsHabits() async throws {
-        // Arrange
+        
         let mockModels = [createSDHabit()]
         let expectedEntities = [createHabit()]
         mockDataSource.getActiveHabitsReturnValue = mockModels
@@ -204,7 +199,7 @@ final class HabitRepositoryTests: XCTestCase {
         let result = try await repository.getActiveHabits()
         
         // Assert
-        XCTAssertEqual(result, expectedEntities)
+        #expect(result == expectedEntities)
     }
 }
 ```
@@ -263,15 +258,21 @@ class HabitBuilder {
 
 ### Example Performance Test
 ```swift
-func test_streakCalculation_withLargeDataset_performsInReasonableTime() {
+import Testing
+
+@Test("Streak calculation performs in reasonable time with large dataset")
+func streakCalculationPerformance() {
     let habits = (0..<1000).map { _ in createTestHabit() }
     let logs = (0..<10000).map { _ in createTestLog() }
     
-    measure {
+    let clock = ContinuousClock()
+    let elapsed = clock.measure {
         for habit in habits {
             _ = streakEngine.currentStreak(for: habit, logs: logs, asOf: Date())
         }
     }
+    
+    #expect(elapsed < .seconds(1), "Streak calculation should complete within 1 second")
 }
 ```
 
@@ -301,19 +302,22 @@ mockDateProvider.todayReturnValue = testDate
 
 ### Async Testing
 ```swift
-func test_asyncOperation() async {
-    let expectation = XCTestExpectation(description: "Async operation completes")
-    
+import Testing
+
+@Test("Async operation completes successfully")
+func asyncOperationCompletes() async {
     await viewModel.performAsyncOperation()
     
-    XCTAssertTrue(viewModel.operationCompleted)
-    expectation.fulfill()
+    #expect(viewModel.operationCompleted == true)
 }
 ```
 
 ### Error Testing
 ```swift
-func test_operation_whenErrorOccurs_thenHandlesGracefully() async {
+import Testing
+
+@Test("Operation handles errors gracefully")
+func operationHandlesErrorsGracefully() async {
     // Arrange
     mockRepository.shouldThrowError = true
     
@@ -321,8 +325,8 @@ func test_operation_whenErrorOccurs_thenHandlesGracefully() async {
     await viewModel.loadData()
     
     // Assert
-    XCTAssertNotNil(viewModel.error)
-    XCTAssertFalse(viewModel.isLoading)
+    #expect(viewModel.error != nil)
+    #expect(viewModel.isLoading == false)
 }
 ```
 
@@ -342,13 +346,13 @@ func test_operation_whenErrorOccurs_thenHandlesGracefully() async {
 ## Tools and Frameworks
 
 ### Core Testing
-- **XCTest**: Primary testing framework
+- **Swift Testing**: Primary testing framework (iOS 17+)
 - **XCUITest**: UI automation testing
-- **SwiftUI Testing**: View testing utilities (iOS 17+)
+- **XCTest**: Legacy support where needed
 
 ### Additional Tools
 - **Code Coverage**: Built-in Xcode coverage tools
-- **Performance Testing**: XCTest measure blocks
+- **Performance Testing**: Swift Testing time measurement
 - **Memory Testing**: Instruments integration
 
 ## Success Metrics

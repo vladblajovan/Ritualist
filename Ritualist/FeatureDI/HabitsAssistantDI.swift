@@ -8,7 +8,7 @@ public struct HabitsAssistantFactory {
     }
     
     public func makeDeleteHabitUseCase() -> DeleteHabitUseCase {
-        return DeleteHabit(repo: container.habitRepository)
+        DeleteHabit(repo: container.habitRepository)
     }
     
     @MainActor

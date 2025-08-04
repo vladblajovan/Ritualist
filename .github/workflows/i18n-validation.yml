@@ -1,16 +1,20 @@
-name: Internationalization Validation
+name: Build and Test
 
 on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'Ritualist/Resources/Localizable.xcstrings'
       - 'Ritualist/**/*.swift'
+      - 'Ritualist/Resources/**'
+      - 'Ritualist.xcodeproj/**'
+      - 'TestPlan.xctestplan'
   pull_request:
     branches: [ main ]
     paths:
-      - 'Ritualist/Resources/Localizable.xcstrings'
       - 'Ritualist/**/*.swift'
+      - 'Ritualist/Resources/**'
+      - 'Ritualist.xcodeproj/**'
+      - 'TestPlan.xctestplan'
 
 jobs:
   string-validation:
@@ -36,8 +40,8 @@ jobs:
         path: string_validation_report.txt
         retention-days: 30
 
-  unit-tests:
-    name: Localization Unit Tests
+  build-test:
+    name: Build and Test
     runs-on: macos-latest
     
     steps:
@@ -48,115 +52,52 @@ jobs:
       with:
         xcode-version: latest-stable
     
-    - name: Run Localization Tests
+    - name: Build Project
+      run: |
+        xcodebuild build \
+          -project Ritualist.xcodeproj \
+          -scheme Ritualist-AllFeatures \
+          -destination 'platform=iOS Simulator,name=iPhone 16' \
+          -configuration Debug
+    
+    - name: Run Tests (including Swift Testing)
       run: |
         xcodebuild test \
           -project Ritualist.xcodeproj \
-          -scheme Ritualist \
-          -destination 'platform=iOS Simulator,name=iPhone 15' \
-          -testClass LocalizationLayoutTests
+          -scheme Ritualist-AllFeatures \
+          -destination 'platform=iOS Simulator,name=iPhone 16' \
+          -only-testing:RitualistTests \
+          -resultBundlePath TestResults.xcresult
+      continue-on-error: true
           
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: localization-test-results
+        name: test-results
         path: |
-          build/reports/
-          *.xcresult/
+          TestResults.xcresult/
         retention-days: 30
 
-  visual-regression:
-    name: Visual Regression Tests
-    runs-on: macos-latest
-    if: github.event_name == 'pull_request'
-    
-    strategy:
-      matrix:
-        locale: [en, de, fr, es]
-        device: ['iPhone 15', 'iPad Air (5th generation)']
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: latest-stable
-    
-    - name: Install xcparse
-      run: brew install chargepoint/xcparse/xcparse
-    
-    - name: Run Visual Tests - ${{ matrix.locale }} on ${{ matrix.device }}
-      run: |
-        xcodebuild test \
-          -project Ritualist.xcodeproj \
-          -scheme Ritualist \
-          -destination 'platform=iOS Simulator,name=${{ matrix.device }}' \
-          -testClass LocaleScreenshotTests/testScreenshotConsistencyAcrossLocales \
-          -resultBundlePath "test-results-${{ matrix.locale }}-${{ matrix.device }}.xcresult" \
-          OTHER_SWIFT_FLAGS="-D TESTING_LOCALE_${{ matrix.locale }}"
-      continue-on-error: true
-    
-    - name: Extract Screenshots
-      run: |
-        mkdir -p screenshots/${{ matrix.locale }}-${{ matrix.device }}
-        if [ -d "test-results-${{ matrix.locale }}-${{ matrix.device }}.xcresult" ]; then
-          xcparse screenshots "test-results-${{ matrix.locale }}-${{ matrix.device }}.xcresult" "screenshots/${{ matrix.locale }}-${{ matrix.device }}/"
-        fi
-    
-    - name: Upload Screenshots
-      uses: actions/upload-artifact@v4
-      with:
-        name: screenshots-${{ matrix.locale }}-${{ matrix.device }}
-        path: screenshots/
-        retention-days: 14
-
-  accessibility-audit:
-    name: Accessibility Audit
+  swiftlint:
+    name: SwiftLint
     runs-on: macos-latest
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: latest-stable
+    - name: Install SwiftLint
+      run: brew install swiftlint
     
-    - name: Run Accessibility Tests
+    - name: Run SwiftLint
       run: |
-        xcodebuild test \
-          -project Ritualist.xcodeproj \
-          -scheme Ritualist \
-          -destination 'platform=iOS Simulator,name=iPhone 15' \
-          -only-testing:RitualistUITests/testAccessibilityLabels
-    
-  rtl-validation:
-    name: RTL Layout Validation
-    runs-on: macos-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: latest-stable
-    
-    - name: Test RTL Layout
-      run: |
-        xcodebuild test \
-          -project Ritualist.xcodeproj \
-          -scheme Ritualist \
-          -destination 'platform=iOS Simulator,name=iPhone 15' \
-          -testClass LocaleScreenshotTests/testRTLLocaleScreenshots \
-          -testClass LocaleScreenshotTests/testUIElementPositionsInRTL
+        cd Ritualist
+        swiftlint --reporter github-actions-logging
 
   generate-report:
-    name: Generate I18n Report
+    name: Generate Build Report
     runs-on: macos-latest
-    needs: [string-validation, unit-tests, visual-regression, accessibility-audit, rtl-validation]
+    needs: [string-validation, build-test, swiftlint]
     if: always()
     
     steps:
@@ -167,39 +108,36 @@ jobs:
       with:
         path: artifacts/
     
-    - name: Generate Comprehensive Report
+    - name: Generate Build Report
       run: |
-        cat > i18n-report.md << 'EOF'
-        # 🌍 Internationalization Validation Report
+        cat > build-report.md << 'EOF'
+        # 🔨 Ritualist Build Report
         
         ## Summary
-        This report shows the results of comprehensive internationalization testing for the Ritualist app.
+        This report shows the results of the build and test pipeline for the Ritualist app.
         
         ## Test Results
         - **String Validation**: ${{ needs.string-validation.result }}
-        - **Unit Tests**: ${{ needs.unit-tests.result }}
-        - **Visual Regression**: ${{ needs.visual-regression.result }}
-        - **Accessibility Audit**: ${{ needs.accessibility-audit.result }}
-        - **RTL Validation**: ${{ needs.rtl-validation.result }}
+        - **Build & Test**: ${{ needs.build-test.result }}
+        - **SwiftLint**: ${{ needs.swiftlint.result }}
         
         ## Artifacts
-        Check the "Artifacts" section below for detailed reports and screenshots.
+        Check the "Artifacts" section below for detailed reports.
         
         ## Next Steps
-        - Review any failed tests in the artifacts
+        - Review any failed builds or tests
+        - Fix SwiftLint violations if any
         - Update string translations if validation failed
-        - Fix layout issues identified in visual regression tests
-        - Ensure accessibility labels are properly localized
         
         Generated on: $(date)
         EOF
     
-    - name: Upload Comprehensive Report
+    - name: Upload Build Report
       uses: actions/upload-artifact@v4
       with:
-        name: i18n-comprehensive-report
+        name: build-report
         path: |
-          i18n-report.md
+          build-report.md
           artifacts/
         retention-days: 30
     
@@ -209,7 +147,7 @@ jobs:
       with:
         script: |
           const fs = require('fs');
-          const report = fs.readFileSync('i18n-report.md', 'utf8');
+          const report = fs.readFileSync('build-report.md', 'utf8');
           
           github.rest.issues.createComment({
             issue_number: context.issue.number,

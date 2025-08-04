@@ -36,7 +36,7 @@ public final class DefaultAppContainer: AppContainer {
     // Shared ViewModels
     @MainActor
     public var habitsAssistantViewModel: HabitsAssistantViewModel {
-        return habitsAssistantFactory.makeViewModel()
+        habitsAssistantFactory.makeViewModel()
     }
     
     // Feature factories

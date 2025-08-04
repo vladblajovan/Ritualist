@@ -350,7 +350,7 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
     }
     
     public func getPredefinedCategories() async throws -> [Category] {
-        return predefinedCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
+        predefinedCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
     }
     
     public func getCustomCategories() async throws -> [Category] {
@@ -490,11 +490,11 @@ public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol 
     }
     
     public func getPredefinedCategories() async throws -> [Category] {
-        return predefinedCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
+        predefinedCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
     }
     
     public func getCustomCategories() async throws -> [Category] {
-        return customCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
+        customCategories.filter { $0.isActive }.sorted { $0.order < $1.order }
     }
     
     public func createCustomCategory(_ category: Category) async throws {

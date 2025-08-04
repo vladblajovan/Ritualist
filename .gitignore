@@ -34,6 +34,14 @@ playground.xcworkspace
 # Build folder
 build/
 
+# Xcode build artifacts
+*.o
+*.d
+*.dia
+*.swiftdeps
+*.swiftconstvalues
+*.stringsdata
+
 # CocoaPods
 #
 # We recommend against adding the Pods directory to your .gitignore. However
