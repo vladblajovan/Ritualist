@@ -8,7 +8,10 @@ public final class UserActionEventMapper {
     /// Get event name for tracking
     public func eventName(for event: UserActionEvent) -> String {
         switch event {
-        case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed:
+        case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed, 
+             .onboardingPageNext, .onboardingPageBack, .onboardingUserNameEntered,
+             .onboardingNotificationPermissionRequested, .onboardingNotificationPermissionGranted,
+             .onboardingNotificationPermissionDenied:
             return onboardingEventName(for: event)
         case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected,
              .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
@@ -22,6 +25,14 @@ public final class UserActionEventMapper {
         case .notificationPermissionRequested, .notificationPermissionGranted, .notificationPermissionDenied,
              .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled:
             return notificationEventName(for: event)
+        case .categoryCreated, .categoryUpdated, .categoryDeleted, .categoryReordered, .categoryManagementOpened:
+            return categoryEventName(for: event)
+        case .paywallShown, .paywallDismissed, .productSelected, .purchaseAttempted, .purchaseCompleted,
+             .purchaseFailed, .purchaseRestoreAttempted, .purchaseRestoreCompleted, .purchaseRestoreFailed:
+            return paywallEventName(for: event)
+        case .tipsCarouselViewed, .tipViewed, .tipDetailOpened, .tipDetailClosed, .tipsBottomSheetOpened,
+             .tipsBottomSheetClosed, .tipsCategoryFilterApplied:
+            return tipsEventName(for: event)
         case .settingsOpened, .profileUpdated, .notificationSettingsChanged, .appearanceChanged:
             return settingsEventName(for: event)
         case .errorOccurred, .crashReported, .performanceMetric:
@@ -34,7 +45,10 @@ public final class UserActionEventMapper {
     /// Get event properties for tracking
     public func eventProperties(for event: UserActionEvent) -> [String: Any] {
         switch event {
-        case .onboardingPageViewed, .onboardingStarted, .onboardingCompleted, .onboardingSkipped:
+        case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed,
+             .onboardingPageNext, .onboardingPageBack, .onboardingUserNameEntered,
+             .onboardingNotificationPermissionRequested, .onboardingNotificationPermissionGranted,
+             .onboardingNotificationPermissionDenied:
             return onboardingEventProperties(for: event)
         case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected,
              .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
@@ -48,6 +62,14 @@ public final class UserActionEventMapper {
         case .notificationPermissionRequested, .notificationPermissionGranted, .notificationPermissionDenied,
              .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled:
             return notificationEventProperties(for: event)
+        case .categoryCreated, .categoryUpdated, .categoryDeleted, .categoryReordered, .categoryManagementOpened:
+            return categoryEventProperties(for: event)
+        case .paywallShown, .paywallDismissed, .productSelected, .purchaseAttempted, .purchaseCompleted,
+             .purchaseFailed, .purchaseRestoreAttempted, .purchaseRestoreCompleted, .purchaseRestoreFailed:
+            return paywallEventProperties(for: event)
+        case .tipsCarouselViewed, .tipViewed, .tipDetailOpened, .tipDetailClosed, .tipsBottomSheetOpened,
+             .tipsBottomSheetClosed, .tipsCategoryFilterApplied:
+            return tipsEventProperties(for: event)
         case .settingsOpened, .profileUpdated, .notificationSettingsChanged, .appearanceChanged:
             return settingsEventProperties(for: event)
         case .errorOccurred, .crashReported, .performanceMetric:
@@ -68,6 +90,12 @@ private extension UserActionEventMapper {
         case .onboardingCompleted: return "onboarding_completed"
         case .onboardingSkipped: return "onboarding_skipped"
         case .onboardingPageViewed: return "onboarding_page_viewed"
+        case .onboardingPageNext: return "onboarding_page_next"
+        case .onboardingPageBack: return "onboarding_page_back"
+        case .onboardingUserNameEntered: return "onboarding_user_name_entered"
+        case .onboardingNotificationPermissionRequested: return "onboarding_notification_permission_requested"
+        case .onboardingNotificationPermissionGranted: return "onboarding_notification_permission_granted"
+        case .onboardingNotificationPermissionDenied: return "onboarding_notification_permission_denied"
         default: return ""
         }
     }
@@ -122,6 +150,45 @@ private extension UserActionEventMapper {
         }
     }
     
+    func categoryEventName(for event: UserActionEvent) -> String {
+        switch event {
+        case .categoryCreated: return "category_created"
+        case .categoryUpdated: return "category_updated"
+        case .categoryDeleted: return "category_deleted"
+        case .categoryReordered: return "category_reordered"
+        case .categoryManagementOpened: return "category_management_opened"
+        default: return ""
+        }
+    }
+    
+    func paywallEventName(for event: UserActionEvent) -> String {
+        switch event {
+        case .paywallShown: return "paywall_shown"
+        case .paywallDismissed: return "paywall_dismissed"
+        case .productSelected: return "product_selected"
+        case .purchaseAttempted: return "purchase_attempted"
+        case .purchaseCompleted: return "purchase_completed"
+        case .purchaseFailed: return "purchase_failed"
+        case .purchaseRestoreAttempted: return "purchase_restore_attempted"
+        case .purchaseRestoreCompleted: return "purchase_restore_completed"
+        case .purchaseRestoreFailed: return "purchase_restore_failed"
+        default: return ""
+        }
+    }
+    
+    func tipsEventName(for event: UserActionEvent) -> String {
+        switch event {
+        case .tipsCarouselViewed: return "tips_carousel_viewed"
+        case .tipViewed: return "tip_viewed"
+        case .tipDetailOpened: return "tip_detail_opened"
+        case .tipDetailClosed: return "tip_detail_closed"
+        case .tipsBottomSheetOpened: return "tips_bottom_sheet_opened"
+        case .tipsBottomSheetClosed: return "tips_bottom_sheet_closed"
+        case .tipsCategoryFilterApplied: return "tips_category_filter_applied"
+        default: return ""
+        }
+    }
+    
     func settingsEventName(for event: UserActionEvent) -> String {
         switch event {
         case .settingsOpened: return "settings_opened"
@@ -148,8 +215,18 @@ private extension UserActionEventMapper {
     
     func onboardingEventProperties(for event: UserActionEvent) -> [String: Any] {
         switch event {
-        case .onboardingPageViewed(let page):
-            return ["page": page]
+        case .onboardingPageViewed(let page, let pageName):
+            return ["page": page, "page_name": pageName]
+        case .onboardingPageNext(let fromPage, let toPage):
+            return ["from_page": fromPage, "to_page": toPage]
+        case .onboardingPageBack(let fromPage, let toPage):
+            return ["from_page": fromPage, "to_page": toPage]
+        case .onboardingUserNameEntered(let hasName):
+            return ["has_name": hasName]
+        case .onboardingNotificationPermissionRequested,
+             .onboardingNotificationPermissionGranted,
+             .onboardingNotificationPermissionDenied:
+            return [:]
         default:
             return [:]
         }
@@ -240,6 +317,135 @@ private extension UserActionEventMapper {
                 "habit_id": habitId,
                 "habit_name": habitName,
                 "reason": reason
+            ]
+        default:
+            return [:]
+        }
+    }
+    
+    func categoryEventProperties(for event: UserActionEvent) -> [String: Any] {
+        switch event {
+        case .categoryCreated(let categoryId, let categoryName, let emoji):
+            return [
+                "category_id": categoryId,
+                "category_name": categoryName,
+                "emoji": emoji
+            ]
+        case .categoryUpdated(let categoryId, let categoryName):
+            return [
+                "category_id": categoryId,
+                "category_name": categoryName
+            ]
+        case .categoryDeleted(let categoryId, let categoryName, let habitsCount):
+            return [
+                "category_id": categoryId,
+                "category_name": categoryName,
+                "habits_count": habitsCount
+            ]
+        case .categoryReordered(let categoryId, let fromOrder, let toOrder):
+            return [
+                "category_id": categoryId,
+                "from_order": fromOrder,
+                "to_order": toOrder
+            ]
+        case .categoryManagementOpened:
+            return [:]
+        default:
+            return [:]
+        }
+    }
+    
+    func paywallEventProperties(for event: UserActionEvent) -> [String: Any] {
+        switch event {
+        case .paywallShown(let source, let trigger):
+            return [
+                "source": source,
+                "trigger": trigger
+            ]
+        case .paywallDismissed(let source, let duration):
+            return [
+                "source": source,
+                "duration": duration
+            ]
+        case .productSelected(let productId, let productName, let price):
+            return [
+                "product_id": productId,
+                "product_name": productName,
+                "price": price
+            ]
+        case .purchaseAttempted(let productId, let productName, let price):
+            return [
+                "product_id": productId,
+                "product_name": productName,
+                "price": price
+            ]
+        case .purchaseCompleted(let productId, let productName, let price, let duration):
+            return [
+                "product_id": productId,
+                "product_name": productName,
+                "price": price,
+                "duration": duration
+            ]
+        case .purchaseFailed(let productId, let error):
+            return [
+                "product_id": productId,
+                "error": error
+            ]
+        case .purchaseRestoreAttempted:
+            return [:]
+        case .purchaseRestoreCompleted(let productId, let productName):
+            var props: [String: Any] = [:]
+            if let productId = productId {
+                props["product_id"] = productId
+            }
+            if let productName = productName {
+                props["product_name"] = productName
+            }
+            return props
+        case .purchaseRestoreFailed(let error):
+            return [
+                "error": error
+            ]
+        default:
+            return [:]
+        }
+    }
+    
+    func tipsEventProperties(for event: UserActionEvent) -> [String: Any] {
+        switch event {
+        case .tipsCarouselViewed:
+            return [:]
+        case .tipViewed(let tipId, let tipTitle, let category, let source):
+            return [
+                "tip_id": tipId,
+                "tip_title": tipTitle,
+                "category": category,
+                "source": source
+            ]
+        case .tipDetailOpened(let tipId, let tipTitle, let category, let isFeatured):
+            return [
+                "tip_id": tipId,
+                "tip_title": tipTitle,
+                "category": category,
+                "is_featured": isFeatured
+            ]
+        case .tipDetailClosed(let tipId, let tipTitle, let timeSpent):
+            return [
+                "tip_id": tipId,
+                "tip_title": tipTitle,
+                "time_spent": timeSpent
+            ]
+        case .tipsBottomSheetOpened(let source):
+            return [
+                "source": source
+            ]
+        case .tipsBottomSheetClosed(let timeSpent):
+            return [
+                "time_spent": timeSpent
+            ]
+        case .tipsCategoryFilterApplied(let category):
+            return [
+                "category": category
             ]
         default:
             return [:]

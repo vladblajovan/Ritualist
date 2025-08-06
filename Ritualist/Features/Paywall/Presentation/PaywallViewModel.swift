@@ -1,4 +1,5 @@
 import Foundation
+import FactoryKit
 
 @MainActor @Observable
 public final class PaywallViewModel {
@@ -10,6 +11,7 @@ public final class PaywallViewModel {
     private let getPurchaseState: GetPurchaseStateUseCase
     private let updateProfileSubscription: UpdateProfileSubscriptionUseCase
     private let userService: UserService
+    @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     
     public var products: [Product] = []
     public var benefits: [PaywallBenefit] = []
@@ -18,6 +20,11 @@ public final class PaywallViewModel {
     public private(set) var purchaseState: PurchaseState = .idle
     public private(set) var selectedProduct: Product?
     public private(set) var isUpdatingUser = false
+    
+    // Tracking properties
+    private var paywallShownTime: Date?
+    private var paywallSource: String = "unknown"
+    private var paywallTrigger: String = "unknown"
     
     // Convenience computed properties
     public var isPurchasing: Bool {
@@ -66,6 +73,7 @@ public final class PaywallViewModel {
     }
     
     public func load() async {
+        let startTime = Date()
         isLoading = true
         error = nil
         
@@ -83,12 +91,35 @@ public final class PaywallViewModel {
             // Sync purchase state after loading
             syncPurchaseState()
             isLoading = false
+            
+            // Track performance metrics
+            let loadTime = Date().timeIntervalSince(startTime)
+            userActionTracker.trackPerformance(
+                metric: "paywall_load_time",
+                value: loadTime * 1000, // Convert to milliseconds
+                unit: "ms",
+                additionalProperties: ["products_count": products.count]
+            )
         } catch {
             self.error = error
+            userActionTracker.trackError(error, context: "paywall_load")
             // Sync purchase state even on error
             syncPurchaseState()
             isLoading = false
         }
+    }
+    
+    public func trackPaywallShown(source: String, trigger: String) {
+        paywallShownTime = Date()
+        paywallSource = source
+        paywallTrigger = trigger
+        
+        userActionTracker.track(.paywallShown(source: source, trigger: trigger))
+    }
+    
+    public func trackPaywallDismissed() {
+        let duration = paywallShownTime?.timeIntervalSinceNow.magnitude ?? 0
+        userActionTracker.track(.paywallDismissed(source: paywallSource, duration: duration))
     }
     
     private func resetPurchaseState() async {
@@ -99,6 +130,13 @@ public final class PaywallViewModel {
     
     public func selectProduct(_ product: Product) {
         selectedProduct = product
+        
+        // Track product selection
+        userActionTracker.track(.productSelected(
+            productId: product.id,
+            productName: product.name,
+            price: product.localizedPrice
+        ))
     }
     
     public func purchase() async {
@@ -106,16 +144,37 @@ public final class PaywallViewModel {
         
         error = nil
         
+        // Track purchase attempt
+        userActionTracker.track(.purchaseAttempted(
+            productId: product.id,
+            productName: product.name,
+            price: product.localizedPrice
+        ))
+        
         do {
             let success = try await purchaseProduct.execute(product)
             // Sync purchase state after purchase attempt
             syncPurchaseState()
             
             if success {
+                // Track successful purchase
+                userActionTracker.track(.purchaseCompleted(
+                    productId: product.id,
+                    productName: product.name,
+                    price: product.localizedPrice,
+                    duration: product.duration.rawValue
+                ))
+                
                 // Update user subscription after successful purchase
                 try await handleUserSubscriptionUpdate(product)
             }
         } catch {
+            // Track purchase failure
+            userActionTracker.track(.purchaseFailed(
+                productId: product.id,
+                error: error.localizedDescription
+            ))
+            
             self.error = error
             // Sync purchase state even on error
             syncPurchaseState()
@@ -125,6 +184,9 @@ public final class PaywallViewModel {
     public func restorePurchases() async {
         error = nil
         
+        // Track restore attempt
+        userActionTracker.track(.purchaseRestoreAttempted)
+        
         do {
             let restored = try await restorePurchases.execute()
             // Sync purchase state after restore attempt
@@ -133,8 +195,14 @@ public final class PaywallViewModel {
             if restored {
                 // Handle restored purchases
                 await handleRestoredPurchases()
+            } else {
+                // Track that restore was attempted but nothing was restored
+                userActionTracker.track(.purchaseRestoreCompleted(productId: nil, productName: nil))
             }
         } catch {
+            // Track restore failure
+            userActionTracker.track(.purchaseRestoreFailed(error: error.localizedDescription))
+            
             self.error = error
             // Sync purchase state even on error
             syncPurchaseState()
@@ -159,9 +227,17 @@ public final class PaywallViewModel {
                     isUpdatingUser = true
                     try await handleUserSubscriptionUpdate(product)
                     isUpdatingUser = false
+                    
+                    // Track successful restore
+                    userActionTracker.track(.purchaseRestoreCompleted(
+                        productId: product.id,
+                        productName: product.name
+                    ))
+                    
                     break // Only need to restore one subscription
                 } catch {
                     isUpdatingUser = false
+                    userActionTracker.trackError(error, context: "subscription_update_after_restore", additionalProperties: ["product_id": product.id])
                     print("Failed to restore subscription: \(error)")
                 }
             }

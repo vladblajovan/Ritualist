@@ -80,6 +80,7 @@ public final class HabitsViewModel {
     }
     
     public func load() async {
+        let startTime = Date()
         isLoading = true
         error = nil
         
@@ -89,9 +90,19 @@ public final class HabitsViewModel {
         do { 
             items = try await habitsResult
             await categoriesResult
+            
+            // Track performance metrics
+            let loadTime = Date().timeIntervalSince(startTime)
+            userActionTracker.trackPerformance(
+                metric: "habits_load_time",
+                value: loadTime * 1000, // Convert to milliseconds
+                unit: "ms",
+                additionalProperties: ["habits_count": items.count, "categories_count": categories.count]
+            )
         } catch { 
             self.error = error
-            items = [] 
+            items = []
+            userActionTracker.trackError(error, context: "habits_load")
         }
         
         isLoading = false
@@ -105,10 +116,19 @@ public final class HabitsViewModel {
             _ = try await createHabit.execute(habit)
             await load() // Refresh the list
             isCreating = false
+            
+            // Track habit creation
+            userActionTracker.track(.habitCreated(
+                habitId: habit.id.uuidString,
+                habitName: habit.name,
+                habitType: habit.kind == .binary ? "binary" : "numeric"
+            ))
+            
             return true
         } catch {
             self.error = error
             isCreating = false
+            userActionTracker.trackError(error, context: "habit_create", additionalProperties: ["habit_name": habit.name, "habit_type": habit.kind == .binary ? "binary" : "numeric"])
             return false
         }
     }
@@ -121,10 +141,18 @@ public final class HabitsViewModel {
             try await updateHabit.execute(habit)
             await load() // Refresh the list
             isUpdating = false
+            
+            // Track habit update
+            userActionTracker.track(.habitUpdated(
+                habitId: habit.id.uuidString,
+                habitName: habit.name
+            ))
+            
             return true
         } catch {
             self.error = error
             isUpdating = false
+            userActionTracker.trackError(error, context: "habit_update", additionalProperties: ["habit_id": habit.id.uuidString, "habit_name": habit.name])
             return false
         }
     }
@@ -133,14 +161,27 @@ public final class HabitsViewModel {
         isDeleting = true
         error = nil
         
+        // Capture habit info before deletion for tracking
+        let habitToDelete = items.first { $0.id == id }
+        
         do {
             try await deleteHabit.execute(id: id)
             await load() // Refresh the list
             isDeleting = false
+            
+            // Track habit deletion
+            if let habit = habitToDelete {
+                userActionTracker.track(.habitDeleted(
+                    habitId: habit.id.uuidString,
+                    habitName: habit.name
+                ))
+            }
+            
             return true
         } catch {
             self.error = error
             isDeleting = false
+            userActionTracker.trackError(error, context: "habit_delete", additionalProperties: ["habit_id": id.uuidString])
             return false
         }
     }
@@ -149,14 +190,36 @@ public final class HabitsViewModel {
         isUpdating = true
         error = nil
         
+        // Capture habit info before toggle for tracking
+        let habitToToggle = items.first { $0.id == id }
+        
         do {
             _ = try await toggleHabitActiveStatus.execute(id: id)
             await load() // Refresh the list
             isUpdating = false
+            
+            // Track habit activation/deactivation
+            if let habit = habitToToggle {
+                if habit.isActive {
+                    // Was active, now archived
+                    userActionTracker.track(.habitArchived(
+                        habitId: habit.id.uuidString,
+                        habitName: habit.name
+                    ))
+                } else {
+                    // Was inactive, now restored
+                    userActionTracker.track(.habitRestored(
+                        habitId: habit.id.uuidString,
+                        habitName: habit.name
+                    ))
+                }
+            }
+            
             return true
         } catch {
             self.error = error
             isUpdating = false
+            userActionTracker.trackError(error, context: "habit_toggle_status", additionalProperties: ["habit_id": id.uuidString])
             return false
         }
     }
@@ -172,6 +235,7 @@ public final class HabitsViewModel {
             return true
         } catch {
             self.error = error
+            userActionTracker.trackError(error, context: "habit_reorder", additionalProperties: ["habits_count": newOrder.count])
             await load() // Reload on error to restore correct order
             isUpdating = false
             return false
@@ -216,6 +280,7 @@ public final class HabitsViewModel {
     
     /// Handle category management button tap
     public func handleCategoryManagementTap() {
+        userActionTracker.track(.categoryManagementOpened)
         showingCategoryManagement = true
     }
     
@@ -223,6 +288,7 @@ public final class HabitsViewModel {
     public func showPaywall() {
         Task { @MainActor in
             await paywallViewModel.load()
+            paywallViewModel.trackPaywallShown(source: "habits", trigger: "habit_limit")
             paywallItem = PaywallItem(viewModel: paywallViewModel)
         }
     }
@@ -230,13 +296,20 @@ public final class HabitsViewModel {
     /// Show paywall from assistant (sets flag to reopen assistant after)
     public func showPaywallFromAssistant() {
         shouldReopenAssistantAfterPaywall = true
-        showPaywall()
+        Task { @MainActor in
+            await paywallViewModel.load()
+            paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
+            paywallItem = PaywallItem(viewModel: paywallViewModel)
+        }
     }
     
     /// Handle paywall dismissal
     public func handlePaywallDismissal() {
         // Guard against multiple calls
         guard !isHandlingPaywallDismissal else { return }
+        
+        // Track paywall dismissal
+        paywallViewModel.trackPaywallDismissed()
         
         isHandlingPaywallDismissal = true
         
@@ -299,6 +372,7 @@ public final class HabitsViewModel {
         } catch {
             categoriesError = error
             categories = []
+            userActionTracker.trackError(error, context: "load_categories")
         }
         
         isLoadingCategories = false

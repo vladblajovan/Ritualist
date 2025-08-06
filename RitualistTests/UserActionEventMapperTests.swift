@@ -40,14 +40,52 @@ struct UserActionEventMapperTests {
     
     @Test("Onboarding page viewed event returns correct name")
     func onboardingPageViewedEventName() {
-        let result = mapper.eventName(for: .onboardingPageViewed(page: 1))
+        let result = mapper.eventName(for: .onboardingPageViewed(page: 1, pageName: "welcome"))
         #expect(result == "onboarding_page_viewed")
     }
     
     @Test("Onboarding page viewed event returns correct properties")
     func onboardingPageViewedProperties() {
-        let result = mapper.eventProperties(for: .onboardingPageViewed(page: 3))
+        let result = mapper.eventProperties(for: .onboardingPageViewed(page: 3, pageName: "permissions"))
         #expect(result["page"] as? Int == 3)
+        #expect(result["page_name"] as? String == "permissions")
+    }
+    
+    @Test("Onboarding page navigation events return correct properties")
+    func onboardingPageNavigationProperties() {
+        let nextEvent = UserActionEvent.onboardingPageNext(fromPage: 1, toPage: 2)
+        let backEvent = UserActionEvent.onboardingPageBack(fromPage: 2, toPage: 1)
+        
+        let nextProps = mapper.eventProperties(for: nextEvent)
+        let backProps = mapper.eventProperties(for: backEvent)
+        
+        #expect(nextProps["from_page"] as? Int == 1)
+        #expect(nextProps["to_page"] as? Int == 2)
+        #expect(backProps["from_page"] as? Int == 2)
+        #expect(backProps["to_page"] as? Int == 1)
+    }
+    
+    @Test("Onboarding user name entered event returns correct properties")
+    func onboardingUserNameEnteredProperties() {
+        let hasNameEvent = UserActionEvent.onboardingUserNameEntered(hasName: true)
+        let noNameEvent = UserActionEvent.onboardingUserNameEntered(hasName: false)
+        
+        let hasNameProps = mapper.eventProperties(for: hasNameEvent)
+        let noNameProps = mapper.eventProperties(for: noNameEvent)
+        
+        #expect(hasNameProps["has_name"] as? Bool == true)
+        #expect(noNameProps["has_name"] as? Bool == false)
+    }
+    
+    @Test("Onboarding notification permission events return correct names")
+    func onboardingNotificationPermissionEvents() {
+        let requestEvent = mapper.eventName(for: .onboardingNotificationPermissionRequested)
+        let grantedEvent = mapper.eventName(for: .onboardingNotificationPermissionGranted)
+        let deniedEvent = mapper.eventName(for: .onboardingNotificationPermissionDenied)
+        
+        #expect(requestEvent == "onboarding_notification_permission_requested")
+        #expect(grantedEvent == "onboarding_notification_permission_granted")
+        #expect(deniedEvent == "onboarding_notification_permission_denied")
     }
     
     @Test("Onboarding events without parameters return empty properties")
@@ -336,6 +374,245 @@ struct UserActionEventMapperTests {
         #expect(properties["to"] as? String == "habits")
     }
     
+    // MARK: - Notification Event Tests
+    
+    @Test("Notification permission events return correct names")
+    func notificationPermissionEvents() {
+        #expect(mapper.eventName(for: .notificationPermissionRequested) == "notification_permission_requested")
+        #expect(mapper.eventName(for: .notificationPermissionGranted) == "notification_permission_granted")
+        #expect(mapper.eventName(for: .notificationPermissionDenied) == "notification_permission_denied")
+    }
+    
+    @Test("Notification received event returns correct properties")
+    func notificationReceivedEvent() {
+        let event = UserActionEvent.notificationReceived(habitId: Self.testHabitId, habitName: Self.testHabitName, source: "daily_reminder")
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "notification_received")
+        #expect(properties["habit_id"] as? String == Self.testHabitId)
+        #expect(properties["habit_name"] as? String == Self.testHabitName)
+        #expect(properties["source"] as? String == "daily_reminder")
+    }
+    
+    @Test("Notification action tapped event returns correct properties")
+    func notificationActionTappedEvent() {
+        let event = UserActionEvent.notificationActionTapped(action: "mark_complete", habitId: Self.testHabitId, habitName: Self.testHabitName, source: "notification_center")
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "notification_action_tapped")
+        #expect(properties["action"] as? String == "mark_complete")
+        #expect(properties["habit_id"] as? String == Self.testHabitId)
+        #expect(properties["habit_name"] as? String == Self.testHabitName)
+        #expect(properties["source"] as? String == "notification_center")
+    }
+    
+    @Test("Notification scheduled and cancelled events return correct properties")
+    func notificationSchedulingEvents() {
+        let scheduledEvent = UserActionEvent.notificationScheduled(habitId: Self.testHabitId, habitName: Self.testHabitName, reminderCount: 3)
+        let cancelledEvent = UserActionEvent.notificationCancelled(habitId: Self.testHabitId, habitName: Self.testHabitName, reason: "habit_deleted")
+        
+        let scheduledProps = mapper.eventProperties(for: scheduledEvent)
+        let cancelledProps = mapper.eventProperties(for: cancelledEvent)
+        
+        #expect(scheduledProps["habit_id"] as? String == Self.testHabitId)
+        #expect(scheduledProps["reminder_count"] as? Int == 3)
+        #expect(cancelledProps["habit_id"] as? String == Self.testHabitId)
+        #expect(cancelledProps["reason"] as? String == "habit_deleted")
+    }
+    
+    // MARK: - Category Management Event Tests
+    
+    @Test("Category created event returns correct properties")
+    func categoryCreatedEvent() {
+        let event = UserActionEvent.categoryCreated(categoryId: "cat-123", categoryName: "Fitness", emoji: "💪")
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "category_created")
+        #expect(properties["category_id"] as? String == "cat-123")
+        #expect(properties["category_name"] as? String == "Fitness")
+        #expect(properties["emoji"] as? String == "💪")
+    }
+    
+    @Test("Category deleted event returns correct properties")
+    func categoryDeletedEvent() {
+        let event = UserActionEvent.categoryDeleted(categoryId: "cat-123", categoryName: "Fitness", habitsCount: 5)
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "category_deleted")
+        #expect(properties["category_id"] as? String == "cat-123")
+        #expect(properties["category_name"] as? String == "Fitness")
+        #expect(properties["habits_count"] as? Int == 5)
+    }
+    
+    @Test("Category reordered event returns correct properties")
+    func categoryReorderedEvent() {
+        let event = UserActionEvent.categoryReordered(categoryId: "cat-123", fromOrder: 2, toOrder: 0)
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "category_reordered")
+        #expect(properties["category_id"] as? String == "cat-123")
+        #expect(properties["from_order"] as? Int == 2)
+        #expect(properties["to_order"] as? Int == 0)
+    }
+    
+    @Test("Category management opened event returns correct name")
+    func categoryManagementOpenedEvent() {
+        let name = mapper.eventName(for: .categoryManagementOpened)
+        #expect(name == "category_management_opened")
+    }
+    
+    // MARK: - Paywall Event Tests
+    
+    @Test("Paywall shown event returns correct properties")
+    func paywallShownEvent() {
+        let event = UserActionEvent.paywallShown(source: "habits", trigger: "habit_limit")
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "paywall_shown")
+        #expect(properties["source"] as? String == "habits")
+        #expect(properties["trigger"] as? String == "habit_limit")
+    }
+    
+    @Test("Paywall dismissed event returns correct properties")
+    func paywallDismissedEvent() {
+        let event = UserActionEvent.paywallDismissed(source: "habits", duration: 15.5)
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "paywall_dismissed")
+        #expect(properties["source"] as? String == "habits")
+        #expect(properties["duration"] as? TimeInterval == 15.5)
+    }
+    
+    @Test("Product selected event returns correct properties")
+    func productSelectedEvent() {
+        let event = UserActionEvent.productSelected(productId: "monthly_pro", productName: "Monthly Pro", price: "$4.99")
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "product_selected")
+        #expect(properties["product_id"] as? String == "monthly_pro")
+        #expect(properties["product_name"] as? String == "Monthly Pro")
+        #expect(properties["price"] as? String == "$4.99")
+    }
+    
+    @Test("Purchase events return correct properties")
+    func purchaseEvents() {
+        let attemptedEvent = UserActionEvent.purchaseAttempted(productId: "annual_pro", productName: "Annual Pro", price: "$29.99")
+        let completedEvent = UserActionEvent.purchaseCompleted(productId: "annual_pro", productName: "Annual Pro", price: "$29.99", duration: "annual")
+        let failedEvent = UserActionEvent.purchaseFailed(productId: "annual_pro", error: "payment_declined")
+        
+        let attemptedProps = mapper.eventProperties(for: attemptedEvent)
+        let completedProps = mapper.eventProperties(for: completedEvent)
+        let failedProps = mapper.eventProperties(for: failedEvent)
+        
+        #expect(mapper.eventName(for: attemptedEvent) == "purchase_attempted")
+        #expect(mapper.eventName(for: completedEvent) == "purchase_completed")
+        #expect(mapper.eventName(for: failedEvent) == "purchase_failed")
+        
+        #expect(attemptedProps["product_id"] as? String == "annual_pro")
+        #expect(completedProps["duration"] as? String == "annual")
+        #expect(failedProps["error"] as? String == "payment_declined")
+    }
+    
+    @Test("Purchase restore events return correct properties")
+    func purchaseRestoreEvents() {
+        let attemptedEvent = UserActionEvent.purchaseRestoreAttempted
+        let completedWithProductEvent = UserActionEvent.purchaseRestoreCompleted(productId: "annual_pro", productName: "Annual Pro")
+        let completedWithoutProductEvent = UserActionEvent.purchaseRestoreCompleted(productId: nil, productName: nil)
+        let failedEvent = UserActionEvent.purchaseRestoreFailed(error: "no_purchases_found")
+        
+        #expect(mapper.eventName(for: attemptedEvent) == "purchase_restore_attempted")
+        #expect(mapper.eventProperties(for: attemptedEvent).isEmpty)
+        
+        let completedWithProps = mapper.eventProperties(for: completedWithProductEvent)
+        let completedWithoutProps = mapper.eventProperties(for: completedWithoutProductEvent)
+        let failedProps = mapper.eventProperties(for: failedEvent)
+        
+        #expect(completedWithProps["product_id"] as? String == "annual_pro")
+        #expect(completedWithProps["product_name"] as? String == "Annual Pro")
+        #expect(completedWithoutProps.isEmpty)
+        #expect(failedProps["error"] as? String == "no_purchases_found")
+    }
+    
+    // MARK: - Tips Event Tests
+    
+    @Test("Tips carousel viewed event returns correct name")
+    func tipsCarouselViewedEvent() {
+        let name = mapper.eventName(for: .tipsCarouselViewed)
+        #expect(name == "tips_carousel_viewed")
+    }
+    
+    @Test("Tip viewed event returns correct properties")
+    func tipViewedEvent() {
+        let event = UserActionEvent.tipViewed(tipId: "tip-123", tipTitle: "Start Small", category: "gettingStarted", source: "carousel")
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "tip_viewed")
+        #expect(properties["tip_id"] as? String == "tip-123")
+        #expect(properties["tip_title"] as? String == "Start Small")
+        #expect(properties["category"] as? String == "gettingStarted")
+        #expect(properties["source"] as? String == "carousel")
+    }
+    
+    @Test("Tip detail events return correct properties")
+    func tipDetailEvents() {
+        let openedEvent = UserActionEvent.tipDetailOpened(tipId: "tip-123", tipTitle: "Start Small", category: "gettingStarted", isFeatured: true)
+        let closedEvent = UserActionEvent.tipDetailClosed(tipId: "tip-123", tipTitle: "Start Small", timeSpent: 45.2)
+        
+        let openedProps = mapper.eventProperties(for: openedEvent)
+        let closedProps = mapper.eventProperties(for: closedEvent)
+        
+        #expect(mapper.eventName(for: openedEvent) == "tip_detail_opened")
+        #expect(mapper.eventName(for: closedEvent) == "tip_detail_closed")
+        
+        #expect(openedProps["tip_id"] as? String == "tip-123")
+        #expect(openedProps["is_featured"] as? Bool == true)
+        #expect(closedProps["time_spent"] as? TimeInterval == 45.2)
+    }
+    
+    @Test("Tips bottom sheet events return correct properties")
+    func tipsBottomSheetEvents() {
+        let openedEvent = UserActionEvent.tipsBottomSheetOpened(source: "tips_carousel")
+        let closedEvent = UserActionEvent.tipsBottomSheetClosed(timeSpent: 120.5)
+        
+        let openedProps = mapper.eventProperties(for: openedEvent)
+        let closedProps = mapper.eventProperties(for: closedEvent)
+        
+        #expect(mapper.eventName(for: openedEvent) == "tips_bottom_sheet_opened")
+        #expect(mapper.eventName(for: closedEvent) == "tips_bottom_sheet_closed")
+        
+        #expect(openedProps["source"] as? String == "tips_carousel")
+        #expect(closedProps["time_spent"] as? TimeInterval == 120.5)
+    }
+    
+    @Test("Tips category filter applied event returns correct properties")
+    func tipsCategoryFilterAppliedEvent() {
+        let event = UserActionEvent.tipsCategoryFilterApplied(category: "motivation")
+        
+        let name = mapper.eventName(for: event)
+        let properties = mapper.eventProperties(for: event)
+        
+        #expect(name == "tips_category_filter_applied")
+        #expect(properties["category"] as? String == "motivation")
+    }
+
     // MARK: - Settings Event Tests
     
     @Test("Settings opened event returns correct name")

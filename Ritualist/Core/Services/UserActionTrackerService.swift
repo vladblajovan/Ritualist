@@ -14,7 +14,13 @@ public enum UserActionEvent {
     case onboardingStarted
     case onboardingCompleted
     case onboardingSkipped
-    case onboardingPageViewed(page: Int)
+    case onboardingPageViewed(page: Int, pageName: String)
+    case onboardingPageNext(fromPage: Int, toPage: Int)
+    case onboardingPageBack(fromPage: Int, toPage: Int)
+    case onboardingUserNameEntered(hasName: Bool)
+    case onboardingNotificationPermissionRequested
+    case onboardingNotificationPermissionGranted
+    case onboardingNotificationPermissionDenied
     
     // Habits Assistant
     case habitsAssistantOpened(source: HabitsAssistantSource)
@@ -51,6 +57,33 @@ public enum UserActionEvent {
     case notificationActionTapped(action: String, habitId: String, habitName: String, source: String)
     case notificationScheduled(habitId: String, habitName: String, reminderCount: Int)
     case notificationCancelled(habitId: String, habitName: String, reason: String)
+    
+    // Category Management
+    case categoryCreated(categoryId: String, categoryName: String, emoji: String)
+    case categoryUpdated(categoryId: String, categoryName: String)
+    case categoryDeleted(categoryId: String, categoryName: String, habitsCount: Int)
+    case categoryReordered(categoryId: String, fromOrder: Int, toOrder: Int)
+    case categoryManagementOpened
+    
+    // Paywall & Purchases
+    case paywallShown(source: String, trigger: String)
+    case paywallDismissed(source: String, duration: TimeInterval)
+    case productSelected(productId: String, productName: String, price: String)
+    case purchaseAttempted(productId: String, productName: String, price: String)
+    case purchaseCompleted(productId: String, productName: String, price: String, duration: String)
+    case purchaseFailed(productId: String, error: String)
+    case purchaseRestoreAttempted
+    case purchaseRestoreCompleted(productId: String?, productName: String?)
+    case purchaseRestoreFailed(error: String)
+    
+    // Tips & Engagement
+    case tipsCarouselViewed
+    case tipViewed(tipId: String, tipTitle: String, category: String, source: String)
+    case tipDetailOpened(tipId: String, tipTitle: String, category: String, isFeatured: Bool)
+    case tipDetailClosed(tipId: String, tipTitle: String, timeSpent: TimeInterval)
+    case tipsBottomSheetOpened(source: String)
+    case tipsBottomSheetClosed(timeSpent: TimeInterval)
+    case tipsCategoryFilterApplied(category: String)
     
     // Settings & Profile
     case settingsOpened

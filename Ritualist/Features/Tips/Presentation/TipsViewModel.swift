@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import FactoryKit
 
 @MainActor @Observable
 public final class TipsViewModel {
@@ -7,6 +8,7 @@ public final class TipsViewModel {
     private let getFeaturedTips: GetFeaturedTipsUseCase
     private let getTipById: GetTipByIdUseCase
     private let getTipsByCategory: GetTipsByCategoryUseCase
+    @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     
     public private(set) var allTips: [Tip] = []
     public private(set) var featuredTips: [Tip] = []
@@ -17,6 +19,10 @@ public final class TipsViewModel {
     public private(set) var showingAllTipsSheet = false
     public private(set) var selectedTip: Tip?
     public private(set) var showingTipDetail = false
+    
+    // Tracking properties
+    private var bottomSheetOpenedTime: Date?
+    private var tipDetailOpenedTime: Date?
     
     // Tips organized by category for bottom sheet
     public var tipsByCategory: [(category: TipCategory, tips: [Tip])] {
@@ -60,6 +66,11 @@ public final class TipsViewModel {
             
             allTips = try await allTipsTask
             featuredTips = try await featuredTipsTask
+            
+            // Track carousel view when tips are loaded
+            if !featuredTips.isEmpty {
+                userActionTracker.track(.tipsCarouselViewed)
+            }
         } catch {
             self.error = error
             allTips = []
@@ -70,25 +81,75 @@ public final class TipsViewModel {
     }
     
     public func showAllTipsSheet() {
+        showAllTipsSheet(source: "tips_carousel")
+    }
+    
+    public func showAllTipsSheet(source: String) {
+        bottomSheetOpenedTime = Date()
         showingAllTipsSheet = true
+        
+        // Track bottom sheet opening with source
+        userActionTracker.track(.tipsBottomSheetOpened(source: source))
     }
     
     public func hideAllTipsSheet() {
+        let timeSpent = bottomSheetOpenedTime?.timeIntervalSinceNow.magnitude ?? 0
+        
+        // Track bottom sheet closing with time spent
+        userActionTracker.track(.tipsBottomSheetClosed(timeSpent: timeSpent))
+        
+        bottomSheetOpenedTime = nil
         showingAllTipsSheet = false
     }
     
     public func selectTip(_ tip: Tip) {
         selectedTip = tip
+        tipDetailOpenedTime = Date()
         showingTipDetail = true
+        
+        // Track tip detail opening
+        userActionTracker.track(.tipDetailOpened(
+            tipId: tip.id.uuidString,
+            tipTitle: tip.title,
+            category: tip.category.rawValue,
+            isFeatured: tip.isFeaturedInCarousel
+        ))
     }
     
     public func hideTipDetail() {
+        if let tip = selectedTip {
+            let timeSpent = tipDetailOpenedTime?.timeIntervalSinceNow.magnitude ?? 0
+            
+            // Track tip detail closing with time spent
+            userActionTracker.track(.tipDetailClosed(
+                tipId: tip.id.uuidString,
+                tipTitle: tip.title,
+                timeSpent: timeSpent
+            ))
+        }
+        
+        tipDetailOpenedTime = nil
         showingTipDetail = false
         selectedTip = nil
     }
     
     public func retry() async {
         await load()
+    }
+    
+    // Track individual tip viewed in carousel
+    public func trackTipViewed(_ tip: Tip, source: String) {
+        userActionTracker.track(.tipViewed(
+            tipId: tip.id.uuidString,
+            tipTitle: tip.title,
+            category: tip.category.rawValue,
+            source: source
+        ))
+    }
+    
+    // Track category filter applied in bottom sheet
+    public func trackCategoryFilterApplied(_ category: TipCategory) {
+        userActionTracker.track(.tipsCategoryFilterApplied(category: category.rawValue))
     }
     
     // Helper method to get tip by ID (for navigation from other parts of the app)

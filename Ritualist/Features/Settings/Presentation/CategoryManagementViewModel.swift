@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import FactoryKit
 
 @Observable
 public final class CategoryManagementViewModel {
@@ -11,6 +12,7 @@ public final class CategoryManagementViewModel {
     private let deleteCategoryUseCase: DeleteCategoryUseCase
     private let getHabitsByCategoryUseCase: GetHabitsByCategoryUseCase
     private let orphanHabitsFromCategoryUseCase: OrphanHabitsFromCategoryUseCase
+    @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     
     // MARK: - State
     public private(set) var categories: [Category] = []
@@ -60,6 +62,10 @@ public final class CategoryManagementViewModel {
         isLoading = false
     }
     
+    public func trackCategoryManagementOpened() {
+        userActionTracker.track(.categoryManagementOpened)
+    }
+    
     @MainActor
     public func createCategory(_ category: Category) async {
         error = nil
@@ -67,6 +73,13 @@ public final class CategoryManagementViewModel {
         do {
             try await createCustomCategoryUseCase.execute(category)
             await load() // Refresh the list
+            
+            // Track category creation
+            userActionTracker.track(.categoryCreated(
+                categoryId: category.id,
+                categoryName: category.displayName,
+                emoji: category.emoji
+            ))
         } catch {
             self.error = error
         }
@@ -89,6 +102,14 @@ public final class CategoryManagementViewModel {
         do {
             try await createCustomCategoryUseCase.execute(category)
             await load() // Refresh the list
+            
+            // Track category creation
+            userActionTracker.track(.categoryCreated(
+                categoryId: category.id,
+                categoryName: category.displayName,
+                emoji: category.emoji
+            ))
+            
             return true
         } catch {
             self.error = error
@@ -103,6 +124,12 @@ public final class CategoryManagementViewModel {
         do {
             try await updateCategoryUseCase.execute(category)
             await load() // Refresh the list
+            
+            // Track category update
+            userActionTracker.track(.categoryUpdated(
+                categoryId: category.id,
+                categoryName: category.displayName
+            ))
         } catch {
             self.error = error
         }
@@ -123,11 +150,21 @@ public final class CategoryManagementViewModel {
         
         do {
             for category in categoriesToDelete {
+                // Get habits count before deletion for tracking
+                let habitsCount = await getHabitsCount(for: category.id)
+                
                 // Handle cascading deletion - orphan habits first
                 try await orphanHabitsFromCategoryUseCase.execute(categoryId: category.id)
                 
                 // Then delete the category
                 try await deleteCategoryUseCase.execute(id: category.id)
+                
+                // Track category deletion
+                userActionTracker.track(.categoryDeleted(
+                    categoryId: category.id,
+                    categoryName: category.displayName,
+                    habitsCount: habitsCount
+                ))
             }
             await load() // Refresh the list
         } catch {
@@ -152,8 +189,9 @@ public final class CategoryManagementViewModel {
         var updatedCategories = categories
         updatedCategories.move(fromOffsets: source, toOffset: destination)
         
-        // Update order values
+        // Update order values and track reordering
         for (index, category) in updatedCategories.enumerated() {
+            let oldOrder = category.order
             updatedCategories[index] = Category(
                 id: category.id,
                 name: category.name,
@@ -163,6 +201,15 @@ public final class CategoryManagementViewModel {
                 isActive: category.isActive,
                 isPredefined: category.isPredefined
             )
+            
+            // Track reordering if order changed
+            if oldOrder != index {
+                userActionTracker.track(.categoryReordered(
+                    categoryId: category.id,
+                    fromOrder: oldOrder,
+                    toOrder: index
+                ))
+            }
         }
         
         // Save only custom categories (predefined categories maintain their original order)
@@ -195,11 +242,21 @@ public final class CategoryManagementViewModel {
         }
         
         do {
+            // Get habits count before deletion for tracking
+            let habitsCount = await getHabitsCount(for: categoryId)
+            
             // Handle cascading deletion - orphan habits from this category
             try await orphanHabitsFromCategoryUseCase.execute(categoryId: categoryId)
             
             // Delete the category
             try await deleteCategoryUseCase.execute(id: categoryId)
+            
+            // Track category deletion
+            userActionTracker.track(.categoryDeleted(
+                categoryId: category.id,
+                categoryName: category.displayName,
+                habitsCount: habitsCount
+            ))
             
             // Refresh the list
             await load()

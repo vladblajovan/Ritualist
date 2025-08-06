@@ -10,6 +10,7 @@ public final class SettingsViewModel {
     private let checkNotificationStatus: CheckNotificationStatusUseCase
     private let userService: UserService
     @ObservationIgnored @Injected(\.paywallService) var paywallService
+    @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
 
     public var profile = UserProfile()
     public private(set) var isLoading = false
@@ -48,6 +49,7 @@ public final class SettingsViewModel {
         } catch {
             self.error = error
             profile = UserProfile()
+            userActionTracker.trackError(error, context: "settings_load")
             hasNotificationPermission = await checkNotificationStatus.execute()
         }
         isLoading = false
@@ -62,6 +64,9 @@ public final class SettingsViewModel {
             try await saveProfile.execute(profile)
             saveSuccess = true
             
+            // Track profile update
+            userActionTracker.track(.profileUpdated(field: "general_settings"))
+            
             // Send notification after successful save
             // try? await notificationService.sendImmediate(
             //     title: "Settings Saved",
@@ -73,6 +78,7 @@ public final class SettingsViewModel {
         } catch {
             self.error = error
             isSaving = false
+            userActionTracker.trackError(error, context: "settings_save")
             return false
         }
     }
@@ -113,6 +119,7 @@ public final class SettingsViewModel {
             }
         } catch {
             self.error = error
+            userActionTracker.trackError(error, context: "settings_auto_save")
         }
     }
     
@@ -127,8 +134,12 @@ public final class SettingsViewModel {
         do {
             let granted = try await requestNotificationPermission.execute()
             hasNotificationPermission = granted
+            
+            // Track notification settings change
+            userActionTracker.track(.notificationSettingsChanged(enabled: granted))
         } catch {
             self.error = error
+            userActionTracker.trackError(error, context: "notification_permission_request")
             hasNotificationPermission = await checkNotificationStatus.execute()
         }
         
@@ -154,8 +165,12 @@ public final class SettingsViewModel {
         do {
             try await userService.updateProfile(profile)
             // Profile is automatically updated via the single source of truth
+            
+            // Track user name update
+            userActionTracker.track(.profileUpdated(field: "name"))
         } catch {
             self.error = error
+            userActionTracker.trackError(error, context: "user_name_update", additionalProperties: ["name": name])
         }
         
         isUpdatingUser = false
@@ -173,6 +188,7 @@ public final class SettingsViewModel {
             paywallService.clearPurchases()
         } catch {
             self.error = error
+            userActionTracker.trackError(error, context: "subscription_cancellation")
         }
         
         isCancellingSubscription = false
