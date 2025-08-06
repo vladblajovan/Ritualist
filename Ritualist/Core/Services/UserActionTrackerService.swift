@@ -43,6 +43,15 @@ public enum UserActionEvent {
     case screenViewed(screen: String)
     case tabSwitched(from: String, to: String)
     
+    // Notifications
+    case notificationPermissionRequested
+    case notificationPermissionGranted
+    case notificationPermissionDenied
+    case notificationReceived(habitId: String, habitName: String, source: String)
+    case notificationActionTapped(action: String, habitId: String, habitName: String, source: String)
+    case notificationScheduled(habitId: String, habitName: String, reminderCount: Int)
+    case notificationCancelled(habitId: String, habitName: String, reason: String)
+    
     // Settings & Profile
     case settingsOpened
     case profileUpdated(field: String)

@@ -176,20 +176,18 @@ private struct HabitsListView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: Spacing.medium) {
                                 ForEach(vm.categories, id: \.id) { category in
-                                    Button {
+                                    Chip(
+                                        text: category.displayName,
+                                        emoji: category.emoji,
+                                        isSelected: vm.selectedFilterCategory?.id == category.id
+                                    )
+                                    .onTapGesture {
                                         if vm.selectedFilterCategory?.id == category.id {
                                             vm.selectFilterCategory(nil)
                                         } else {
                                             vm.selectFilterCategory(category)
                                         }
-                                    } label: {
-                                        Chip(
-                                            text: category.displayName,
-                                            emoji: category.emoji,
-                                            isSelected: vm.selectedFilterCategory?.id == category.id
-                                        )
                                     }
-                                    .buttonStyle(PlainButtonStyle())
                                     .onLongPressGesture {
                                         vm.handleCategoryManagementTap()
                                     }

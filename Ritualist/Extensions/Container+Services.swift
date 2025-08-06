@@ -9,13 +9,18 @@ extension Container {
     
     @MainActor
     var navigationService: Factory<NavigationService> {
-        self { @MainActor in NavigationService() }
-            .singleton
+        self { @MainActor in 
+            let service = NavigationService()
+            service.trackingService = self.userActionTracker()
+            return service
+        }
+        .singleton
     }
     
     var notificationService: Factory<NotificationService> {
         self { 
             let service = LocalNotificationService()
+            service.trackingService = self.userActionTracker()
             
             // Configure the action handler to use dependency injection
             service.actionHandler = { [weak self] action, habitId, habitName, reminderTime in

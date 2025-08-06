@@ -16,6 +16,7 @@ public final class LocalNotificationService: NSObject, NotificationService {
     
     // Delegate handler for notification actions
     public var actionHandler: ((NotificationAction, UUID, String?, ReminderTime?) async throws -> Void)?
+    public var trackingService: UserActionTrackerService?
     
     override public init() {
         super.init()
@@ -32,7 +33,14 @@ public final class LocalNotificationService: NSObject, NotificationService {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         if settings.authorizationStatus == .notDetermined {
-            return try await center.requestAuthorization(options: [.alert, .badge, .sound])
+            trackingService?.track(.notificationPermissionRequested)
+            let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
+            if granted {
+                trackingService?.track(.notificationPermissionGranted)
+            } else {
+                trackingService?.track(.notificationPermissionDenied)
+            }
+            return granted
         }
         return settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
     }
@@ -85,13 +93,33 @@ public final class LocalNotificationService: NSObject, NotificationService {
             
             try await center.add(request)
         }
+        
+        // Track notification scheduling
+        trackingService?.track(.notificationScheduled(
+            habitId: habitID.uuidString,
+            habitName: habitName,
+            reminderCount: times.count
+        ))
     }
     public func cancel(for habitID: UUID) async {
         let center = UNUserNotificationCenter.current()
         let prefix = habitID.uuidString
         let pending = await center.pendingNotificationRequests()
         let ids = pending.map { $0.identifier }.filter { $0.hasPrefix(prefix) }
+        
+        // Extract habit name from pending notifications for tracking
+        let habitName = pending.first(where: { $0.identifier.hasPrefix(prefix) })?.content.userInfo["habitName"] as? String ?? "Unknown Habit"
+        
         center.removePendingNotificationRequests(withIdentifiers: ids)
+        
+        // Track notification cancellation
+        if !ids.isEmpty {
+            trackingService?.track(.notificationCancelled(
+                habitId: habitID.uuidString,
+                habitName: habitName,
+                reason: "manual_cancellation"
+            ))
+        }
     }
     
     public func sendImmediate(title: String, body: String) async throws {
@@ -204,6 +232,14 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         }
         
         print("Handling notification action: \(action) for habit: \(habitName)")
+        
+        // Track notification action
+        trackingService?.track(.notificationActionTapped(
+            action: action.rawValue,
+            habitId: habitId.uuidString,
+            habitName: habitName,
+            source: "notification_action"
+        ))
         
         // Call the injected action handler (we're already on main thread)
         do {

@@ -19,6 +19,9 @@ public final class UserActionEventMapper {
             return habitEventName(for: event)
         case .screenViewed, .tabSwitched:
             return navigationEventName(for: event)
+        case .notificationPermissionRequested, .notificationPermissionGranted, .notificationPermissionDenied,
+             .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled:
+            return notificationEventName(for: event)
         case .settingsOpened, .profileUpdated, .notificationSettingsChanged, .appearanceChanged:
             return settingsEventName(for: event)
         case .errorOccurred, .crashReported, .performanceMetric:
@@ -42,6 +45,9 @@ public final class UserActionEventMapper {
             return habitEventProperties(for: event)
         case .screenViewed, .tabSwitched:
             return navigationEventProperties(for: event)
+        case .notificationPermissionRequested, .notificationPermissionGranted, .notificationPermissionDenied,
+             .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled:
+            return notificationEventProperties(for: event)
         case .settingsOpened, .profileUpdated, .notificationSettingsChanged, .appearanceChanged:
             return settingsEventProperties(for: event)
         case .errorOccurred, .crashReported, .performanceMetric:
@@ -99,6 +105,19 @@ private extension UserActionEventMapper {
         switch event {
         case .screenViewed: return "screen_viewed"
         case .tabSwitched: return "tab_switched"
+        default: return ""
+        }
+    }
+    
+    func notificationEventName(for event: UserActionEvent) -> String {
+        switch event {
+        case .notificationPermissionRequested: return "notification_permission_requested"
+        case .notificationPermissionGranted: return "notification_permission_granted"
+        case .notificationPermissionDenied: return "notification_permission_denied"
+        case .notificationReceived: return "notification_received"
+        case .notificationActionTapped: return "notification_action_tapped"
+        case .notificationScheduled: return "notification_scheduled"
+        case .notificationCancelled: return "notification_cancelled"
         default: return ""
         }
     }
@@ -188,6 +207,40 @@ private extension UserActionEventMapper {
             return ["screen": screen]
         case .tabSwitched(let from, let to):
             return ["from": from, "to": to]
+        default:
+            return [:]
+        }
+    }
+    
+    func notificationEventProperties(for event: UserActionEvent) -> [String: Any] {
+        switch event {
+        case .notificationPermissionRequested, .notificationPermissionGranted, .notificationPermissionDenied:
+            return [:]
+        case .notificationReceived(let habitId, let habitName, let source):
+            return [
+                "habit_id": habitId,
+                "habit_name": habitName,
+                "source": source
+            ]
+        case .notificationActionTapped(let action, let habitId, let habitName, let source):
+            return [
+                "action": action,
+                "habit_id": habitId,
+                "habit_name": habitName,
+                "source": source
+            ]
+        case .notificationScheduled(let habitId, let habitName, let reminderCount):
+            return [
+                "habit_id": habitId,
+                "habit_name": habitName,
+                "reminder_count": reminderCount
+            ]
+        case .notificationCancelled(let habitId, let habitName, let reason):
+            return [
+                "habit_id": habitId,
+                "habit_name": habitName,
+                "reason": reason
+            ]
         default:
             return [:]
         }
