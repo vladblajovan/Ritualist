@@ -73,6 +73,7 @@ private struct HabitFormView: View {
             BasicInfoSection(vm: vm)
             CategorySection(vm: vm)
             ScheduleSection(vm: vm)
+            ReminderSection(vm: vm)
             AppearanceSection(vm: vm)
             if vm.isEditMode {
                 ActiveStatusSection(vm: vm)

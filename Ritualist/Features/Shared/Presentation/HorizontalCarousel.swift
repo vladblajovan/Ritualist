@@ -4,6 +4,7 @@ public struct HorizontalCarousel<T: Identifiable, Content: View>: View {
     let items: [T]
     let selectedItem: T?
     let onItemTap: (T) async -> Void
+    let onItemLongPress: ((T) -> Void)?
     let content: (T, Bool) -> Content
     let showPageIndicator: Bool
     let itemSpacing: CGFloat
@@ -14,6 +15,7 @@ public struct HorizontalCarousel<T: Identifiable, Content: View>: View {
         items: [T],
         selectedItem: T?,
         onItemTap: @escaping (T) async -> Void,
+        onItemLongPress: ((T) -> Void)? = nil,
         showPageIndicator: Bool = true,
         itemSpacing: CGFloat = Spacing.medium,
         horizontalPadding: CGFloat = 16,
@@ -23,6 +25,7 @@ public struct HorizontalCarousel<T: Identifiable, Content: View>: View {
         self.items = items
         self.selectedItem = selectedItem
         self.onItemTap = onItemTap
+        self.onItemLongPress = onItemLongPress
         self.content = content
         self.showPageIndicator = showPageIndicator
         self.itemSpacing = itemSpacing
@@ -36,12 +39,13 @@ public struct HorizontalCarousel<T: Identifiable, Content: View>: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: itemSpacing) {
                     ForEach(items) { item in
-                        Button {
-                            Task { await onItemTap(item) }
-                        } label: {
-                            content(item, selectedItem?.id == item.id)
-                        }
-                        .buttonStyle(PlainButtonStyle())
+                        content(item, selectedItem?.id == item.id)
+                            .onTapGesture {
+                                Task { await onItemTap(item) }
+                            }
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                onItemLongPress?(item)
+                            }
                     }
                 }
                 .padding(.horizontal, horizontalPadding)

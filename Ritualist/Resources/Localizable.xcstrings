@@ -310,6 +310,9 @@
     "Add Habit" : {
 
     },
+    "Add Reminder" : {
+
+    },
     "addCustomCategory" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2206,6 +2209,9 @@
     "No habits in this category" : {
 
     },
+    "No reminders set" : {
+
+    },
     "No tips available" : {
       "localizations" : {
         "de" : {
@@ -2796,6 +2802,12 @@
       }
     },
     "Purchase Error" : {
+
+    },
+    "Reminder Time" : {
+
+    },
+    "Reminders" : {
 
     },
     "Remove Photo" : {
@@ -3565,6 +3577,9 @@
           }
         }
       }
+    },
+    "You'll receive a notification at this time with options to log your habit, snooze for 20 minutes, or dismiss." : {
+
     }
   },
   "version" : "1.0"

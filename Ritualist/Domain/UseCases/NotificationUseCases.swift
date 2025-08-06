@@ -1,0 +1,162 @@
+import Foundation
+
+// MARK: - Notification Use Case Protocols
+
+public protocol ScheduleHabitRemindersUseCase {
+    func execute(habit: Habit) async throws
+}
+
+public protocol LogHabitFromNotificationUseCase {
+    func execute(habitId: UUID, date: Date, value: Double?) async throws
+}
+
+public protocol SnoozeHabitReminderUseCase {
+    func execute(habitId: UUID, habitName: String, originalTime: ReminderTime) async throws
+}
+
+public protocol HandleNotificationActionUseCase {
+    func execute(action: NotificationAction, habitId: UUID, habitName: String?, reminderTime: ReminderTime?) async throws
+}
+
+public protocol CancelHabitRemindersUseCase {
+    func execute(habitId: UUID) async
+}
+
+// MARK: - Notification Use Case Implementations
+
+public final class ScheduleHabitReminders: ScheduleHabitRemindersUseCase {
+    private let habitRepository: HabitRepository
+    private let notificationService: NotificationService
+    
+    public init(habitRepository: HabitRepository, notificationService: NotificationService) {
+        self.habitRepository = habitRepository
+        self.notificationService = notificationService
+    }
+    
+    public func execute(habit: Habit) async throws {
+        // Cancel existing notifications for this habit
+        await notificationService.cancel(for: habit.id)
+        
+        // Schedule new notifications only for active habits with reminders
+        guard habit.isActive && !habit.reminders.isEmpty else { return }
+        
+        try await notificationService.scheduleWithActions(for: habit.id, habitName: habit.name, times: habit.reminders)
+    }
+}
+
+public final class LogHabitFromNotification: LogHabitFromNotificationUseCase {
+    private let habitRepository: HabitRepository
+    private let logRepository: LogRepository
+    private let getLogForDate: GetLogForDateUseCase
+    private let logHabit: LogHabitUseCase
+    
+    public init(
+        habitRepository: HabitRepository,
+        logRepository: LogRepository,
+        getLogForDate: GetLogForDateUseCase,
+        logHabit: LogHabitUseCase
+    ) {
+        self.habitRepository = habitRepository
+        self.logRepository = logRepository
+        self.getLogForDate = getLogForDate
+        self.logHabit = logHabit
+    }
+    
+    public func execute(habitId: UUID, date: Date, value: Double?) async throws {
+        // Fetch habit to determine logging behavior
+        let allHabits = try await habitRepository.fetchAllHabits()
+        guard let habit = allHabits.first(where: { $0.id == habitId }) else {
+            throw NSError(domain: "LogHabitFromNotification", code: 404, 
+                         userInfo: [NSLocalizedDescriptionKey: "Habit not found"])
+        }
+        
+        // Check if there's already a log for today
+        let existingLog = try await getLogForDate.execute(habitID: habitId, date: date)
+        
+        if habit.kind == .binary {
+            // Binary habit: log as complete if not already logged
+            if existingLog == nil {
+                let log = HabitLog(habitID: habitId, date: date, value: 1.0)
+                try await logHabit.execute(log)
+            }
+        } else {
+            // Count habit: increment by 1 or use provided value
+            let currentValue = existingLog?.value ?? 0.0
+            let newValue = value ?? (currentValue + 1.0)
+            
+            if let existingLog = existingLog {
+                let updatedLog = HabitLog(id: existingLog.id, habitID: habitId, date: date, value: newValue)
+                try await logHabit.execute(updatedLog)
+            } else {
+                let newLog = HabitLog(habitID: habitId, date: date, value: newValue)
+                try await logHabit.execute(newLog)
+            }
+        }
+    }
+}
+
+public final class SnoozeHabitReminder: SnoozeHabitReminderUseCase {
+    private let notificationService: NotificationService
+    
+    public init(notificationService: NotificationService) {
+        self.notificationService = notificationService
+    }
+    
+    public func execute(habitId: UUID, habitName: String, originalTime: ReminderTime) async throws {
+        // Schedule a one-time notification 20 minutes from now
+        let title = "Reminder: \(habitName)"
+        let body = "You asked to be reminded about your \(habitName) habit!"
+        
+        try await notificationService.sendImmediate(title: title, body: body)
+    }
+}
+
+public final class HandleNotificationAction: HandleNotificationActionUseCase {
+    private let logHabitFromNotification: LogHabitFromNotificationUseCase
+    private let snoozeHabitReminder: SnoozeHabitReminderUseCase
+    
+    public init(
+        logHabitFromNotification: LogHabitFromNotificationUseCase,
+        snoozeHabitReminder: SnoozeHabitReminderUseCase
+    ) {
+        self.logHabitFromNotification = logHabitFromNotification
+        self.snoozeHabitReminder = snoozeHabitReminder
+    }
+    
+    public func execute(
+        action: NotificationAction,
+        habitId: UUID,
+        habitName: String?,
+        reminderTime: ReminderTime?
+    ) async throws {
+        let currentDate = Date()
+        
+        switch action {
+        case .log:
+            try await logHabitFromNotification.execute(habitId: habitId, date: currentDate, value: nil)
+            
+        case .remindLater:
+            guard let habitName = habitName, let reminderTime = reminderTime else {
+                throw NSError(domain: "HandleNotificationAction", code: 400,
+                             userInfo: [NSLocalizedDescriptionKey: "Missing habit name or reminder time for snooze"])
+            }
+            try await snoozeHabitReminder.execute(habitId: habitId, habitName: habitName, originalTime: reminderTime)
+            
+        case .dismiss:
+            // Nothing to do - user dismissed the notification
+            break
+        }
+    }
+}
+
+public final class CancelHabitReminders: CancelHabitRemindersUseCase {
+    private let notificationService: NotificationService
+    
+    public init(notificationService: NotificationService) {
+        self.notificationService = notificationService
+    }
+    
+    public func execute(habitId: UUID) async {
+        await notificationService.cancel(for: habitId)
+    }
+}

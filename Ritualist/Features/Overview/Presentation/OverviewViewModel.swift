@@ -31,6 +31,7 @@ public final class OverviewViewModel {
     public private(set) var loggingDate: Date?
     public private(set) var currentSlogan: String = ""
     
+    
     // Calendar state
     public private(set) var monthDays: [Date] = []
     public private(set) var fullCalendarDays: [CalendarDay] = []
@@ -126,11 +127,21 @@ public final class OverviewViewModel {
             
             habits = try await getActiveHabits.execute()
             
-            // Auto-select first habit if none selected
+            // Auto-select first habit if none selected, or ensure selected habit is still valid
             if selectedHabit == nil, let firstHabit = habits.first {
                 selectedHabit = firstHabit
+            } else if let currentSelected = selectedHabit {
+                // Ensure selected habit is still in the active habits list
+                selectedHabit = habits.first { $0.id == currentSelected.id }
+                if selectedHabit == nil, let firstHabit = habits.first {
+                    selectedHabit = firstHabit
+                }
+            }
+            
+            // Always reload logs and streaks when loading (including refreshes)
+            if selectedHabit != nil {
                 await loadLogsForSelectedHabit()
-                await calculateStreaks(isInitialLoad: true)
+                await calculateStreaks(isInitialLoad: false)
             }
         } catch {
             self.error = error
@@ -154,6 +165,7 @@ public final class OverviewViewModel {
         await loadLogsForSelectedHabit()
         await calculateStreaks(isInitialLoad: false)
     }
+    
     
     public func navigateToMonth(_ direction: Int) async {
         let calendar = Calendar.current

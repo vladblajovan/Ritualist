@@ -4,14 +4,16 @@ import FactoryKit
 
 public struct OverviewRoot: View {
     @Injected(\.overviewViewModel) var vm
+    @Injected(\.navigationService) var navigationService
     @State private var showingAddHabit = false
     @State private var paywallItem: PaywallItem?
+    @State private var selectedHabitForEdit: Habit?
     @Injected(\.paywallViewModel) var paywallViewModel
 
     public init() {}
 
     public var body: some View {
-        OverviewContentView(vm: vm, showingAddHabit: $showingAddHabit, paywallItem: $paywallItem)
+        OverviewContentView(vm: vm, showingAddHabit: $showingAddHabit, paywallItem: $paywallItem, selectedHabitForEdit: $selectedHabitForEdit)
             .navigationTitle(Strings.App.name)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -43,8 +45,30 @@ public struct OverviewRoot: View {
             .sheet(item: $paywallItem) { item in
                 PaywallView(vm: item.viewModel)
             }
+            .sheet(item: $selectedHabitForEdit) { habit in
+                let detailVM = HabitDetailViewModel(habit: habit)
+                HabitDetailView(vm: detailVM)
+                    .onDisappear {
+                        // Refresh data after potential habit changes
+                        Task {
+                            await vm.load()
+                        }
+                    }
+            }
             .task {
                 await vm.load()
+            }
+            .onChange(of: navigationService.shouldRefreshOverview) { _, shouldRefresh in
+                if shouldRefresh {
+                    Task {
+                        // Small delay to ensure database transaction is complete
+                        try? await Task.sleep(for: .milliseconds(100))
+                        await vm.load()
+                        await MainActor.run {
+                            navigationService.didRefreshOverview()
+                        }
+                    }
+                }
             }
     }
     
@@ -64,9 +88,10 @@ private struct OverviewContentView: View {
     @Bindable var vm: OverviewViewModel
     @Binding var showingAddHabit: Bool
     @Binding var paywallItem: PaywallItem?
+    @Binding var selectedHabitForEdit: Habit?
 
     var body: some View {
-        OverviewListView(vm: vm, showingAddHabit: $showingAddHabit, paywallItem: $paywallItem)
+        OverviewListView(vm: vm, showingAddHabit: $showingAddHabit, paywallItem: $paywallItem, selectedHabitForEdit: $selectedHabitForEdit)
     }
 }
 
@@ -74,6 +99,7 @@ private struct OverviewListView: View {
     @Bindable var vm: OverviewViewModel
     @Binding var showingAddHabit: Bool
     @Binding var paywallItem: PaywallItem?
+    @Binding var selectedHabitForEdit: Habit?
     @Injected(\.tipsViewModel) var tipsVM
     @Injected(\.paywallViewModel) var paywallViewModel
     
@@ -129,6 +155,9 @@ private struct OverviewListView: View {
                             selectedItem: vm.selectedHabit,
                             onItemTap: { habit in
                                 await vm.selectHabit(habit)
+                            },
+                            onItemLongPress: { habit in
+                                selectedHabitForEdit = habit
                             },
                             showPageIndicator: false
                         ) { habit, isSelected in

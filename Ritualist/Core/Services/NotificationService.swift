@@ -5,15 +5,27 @@ public protocol NotificationService {
     func requestAuthorizationIfNeeded() async throws -> Bool
     func checkAuthorizationStatus() async -> Bool
     func schedule(for habitID: UUID, times: [ReminderTime]) async throws
+    func scheduleWithActions(for habitID: UUID, habitName: String, times: [ReminderTime]) async throws
     func cancel(for habitID: UUID) async
     func sendImmediate(title: String, body: String) async throws
+    func setupNotificationCategories() async
 }
 
 public final class LocalNotificationService: NSObject, NotificationService {
+    private static let habitReminderCategory = "HABIT_REMINDER"
+    
+    // Delegate handler for notification actions
+    public var actionHandler: ((NotificationAction, UUID, String?, ReminderTime?) async throws -> Void)?
+    
     override public init() {
         super.init()
         // Set up the notification center delegate to handle foreground notifications
         UNUserNotificationCenter.current().delegate = self
+        
+        // Setup notification categories with actions
+        Task {
+            await setupNotificationCategories()
+        }
     }
     
     public func requestAuthorizationIfNeeded() async throws -> Bool {
@@ -44,6 +56,36 @@ public final class LocalNotificationService: NSObject, NotificationService {
             try await center.add(req)
         }
     }
+    
+    public func scheduleWithActions(for habitID: UUID, habitName: String, times: [ReminderTime]) async throws {
+        let center = UNUserNotificationCenter.current()
+        
+        for (index, time) in times.enumerated() {
+            let content = UNMutableNotificationContent()
+            content.title = "Time for \(habitName)"
+            content.body = "It's \(String(format: "%02d:%02d", time.hour, time.minute)) - time to work on your \(habitName) habit!"
+            content.sound = .default
+            content.categoryIdentifier = Self.habitReminderCategory
+            
+            // Store habit information in userInfo for action handling
+            content.userInfo = [
+                "habitId": habitID.uuidString,
+                "habitName": habitName,
+                "reminderHour": time.hour,
+                "reminderMinute": time.minute
+            ]
+            
+            var date = DateComponents()
+            date.hour = time.hour
+            date.minute = time.minute
+            let trigger = UNCalendarNotificationTrigger(dateMatching: date, repeats: true)
+            
+            let id = "\(habitID.uuidString)-\(time.hour)-\(time.minute)"
+            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+            
+            try await center.add(request)
+        }
+    }
     public func cancel(for habitID: UUID) async {
         let center = UNUserNotificationCenter.current()
         let prefix = habitID.uuidString
@@ -67,14 +109,14 @@ public final class LocalNotificationService: NSObject, NotificationService {
         content.body = body
         content.sound = .default
         
-        // Trigger with 1 second delay to ensure it shows (0.1 might be too fast)
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1.0, repeats: false)
-        let id = "immediate-\(UUID().uuidString)"
+        // Trigger with 20 minutes delay for "remind me later" functionality
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 20.0 * 60.0, repeats: false)
+        let id = "snooze-\(UUID().uuidString)"
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
         
-        print("Scheduling notification: \(title) - \(body)")
+        print("Scheduling snooze notification: \(title) - \(body)")
         try await center.add(request)
-        print("Notification scheduled successfully")
+        print("Snooze notification scheduled successfully")
     }
 }
 
@@ -97,7 +139,77 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        // Handle notification tap if needed
-        completionHandler()
+        // Handle notification response on main thread
+        DispatchQueue.main.async {
+            Task {
+                await self.handleNotificationResponse(response)
+                completionHandler()
+            }
+        }
+    }
+    
+    // MARK: - Notification Categories Setup
+    
+    public func setupNotificationCategories() async {
+        let logAction = UNNotificationAction(
+            identifier: NotificationAction.log.rawValue,
+            title: NotificationAction.log.title,
+            options: [.foreground]
+        )
+        
+        let remindLaterAction = UNNotificationAction(
+            identifier: NotificationAction.remindLater.rawValue,
+            title: NotificationAction.remindLater.title,
+            options: []
+        )
+        
+        let dismissAction = UNNotificationAction(
+            identifier: NotificationAction.dismiss.rawValue,
+            title: NotificationAction.dismiss.title,
+            options: []
+        )
+        
+        let habitReminderCategory = UNNotificationCategory(
+            identifier: Self.habitReminderCategory,
+            actions: [logAction, remindLaterAction, dismissAction],
+            intentIdentifiers: [],
+            options: []
+        )
+        
+        let center = UNUserNotificationCenter.current()
+        await center.setNotificationCategories([habitReminderCategory])
+        
+        print("Notification categories setup complete")
+    }
+    
+    // MARK: - Notification Response Handling
+    
+    private func handleNotificationResponse(_ response: UNNotificationResponse) async {
+        let userInfo = response.notification.request.content.userInfo
+        
+        guard let habitIdString = userInfo["habitId"] as? String,
+              let habitId = UUID(uuidString: habitIdString),
+              let habitName = userInfo["habitName"] as? String,
+              let reminderHour = userInfo["reminderHour"] as? Int,
+              let reminderMinute = userInfo["reminderMinute"] as? Int else {
+            print("Invalid notification userInfo: \(userInfo)")
+            return
+        }
+        
+        let reminderTime = ReminderTime(hour: reminderHour, minute: reminderMinute)
+        
+        guard let action = NotificationAction(rawValue: response.actionIdentifier) else {
+            print("Unknown notification action: \(response.actionIdentifier)")
+            return
+        }
+        
+        print("Handling notification action: \(action) for habit: \(habitName)")
+        
+        // Call the injected action handler (we're already on main thread)
+        do {
+            try await actionHandler?(action, habitId, habitName, reminderTime)
+        } catch {
+            print("Error handling notification action: \(error)")
+        }
     }
 }

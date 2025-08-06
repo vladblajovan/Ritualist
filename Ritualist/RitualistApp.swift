@@ -7,12 +7,22 @@
 
 import SwiftUI
 import SwiftData
+import FactoryKit
 
 @main struct RitualistApp: App {
     var body: some Scene {
         WindowGroup {
             RootAppView()
+                .task {
+                    await setupNotifications()
+                }
         }
+    }
+    
+    private func setupNotifications() async {
+        // Setup notification categories on app launch
+        let notificationService = Container.shared.notificationService()
+        await notificationService.setupNotificationCategories()
     }
 }
 

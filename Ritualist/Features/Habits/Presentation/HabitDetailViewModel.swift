@@ -19,6 +19,7 @@ public final class HabitDetailViewModel {
     @ObservationIgnored @Injected(\.createCustomCategory) var createCustomCategory
     @ObservationIgnored @Injected(\.validateCategoryName) var validateCategoryName
     @ObservationIgnored @Injected(\.validateHabitUniqueness) var validateHabitUniqueness
+    @ObservationIgnored @Injected(\.scheduleHabitReminders) var scheduleHabitReminders
     
     // Form state
     public var name = ""
@@ -30,6 +31,7 @@ public final class HabitDetailViewModel {
     public var timesPerWeek = 1
     public var selectedEmoji = "⭐"
     public var selectedColorHex = "#2DA9E3"
+    public var reminders: [ReminderTime] = []
     public var isActive = true
     
     // Category state
@@ -100,6 +102,9 @@ public final class HabitDetailViewModel {
                 _ = try await createHabit.execute(habit)
             }
             
+            // Schedule notifications for the habit
+            try await scheduleHabitReminders.execute(habit: habit)
+            
             isSaving = false
             return true
         } catch {
@@ -149,6 +154,35 @@ public final class HabitDetailViewModel {
     public func retry() async {
         // No specific retry logic needed for form
         error = nil
+    }
+    
+    // MARK: - Reminder Management
+    
+    public func addReminder(hour: Int, minute: Int) {
+        let newReminder = ReminderTime(hour: hour, minute: minute)
+        
+        // Check if reminder already exists
+        guard !reminders.contains(where: { $0.hour == hour && $0.minute == minute }) else {
+            return
+        }
+        
+        reminders.append(newReminder)
+        // Sort reminders by time
+        reminders.sort { first, second in
+            if first.hour != second.hour {
+                return first.hour < second.hour
+            }
+            return first.minute < second.minute
+        }
+    }
+    
+    public func removeReminder(at index: Int) {
+        guard index >= 0 && index < reminders.count else { return }
+        reminders.remove(at: index)
+    }
+    
+    public func removeReminder(_ reminder: ReminderTime) {
+        reminders.removeAll { $0.hour == reminder.hour && $0.minute == reminder.minute }
     }
     
     // MARK: - Category Management
@@ -245,6 +279,7 @@ public final class HabitDetailViewModel {
         dailyTarget = habit.dailyTarget ?? 1.0
         selectedEmoji = habit.emoji ?? "⭐"
         selectedColorHex = habit.colorHex
+        reminders = habit.reminders
         isActive = habit.isActive
         
         // Parse schedule
@@ -293,7 +328,7 @@ public final class HabitDetailViewModel {
             unitLabel: selectedKind == .numeric ? unitLabel : nil,
             dailyTarget: selectedKind == .numeric ? dailyTarget : nil,
             schedule: schedule,
-            reminders: originalHabit?.reminders ?? [],
+            reminders: reminders,
             startDate: originalHabit?.startDate ?? Date(),
             endDate: originalHabit?.endDate,
             isActive: isActive,

@@ -7,7 +7,7 @@ public enum RootTab: Hashable {
 
 public struct RootTabView: View {
     @Injected(\.getOnboardingState) var getOnboardingState
-    @State private var selectedTab: RootTab = .overview
+    @StateObject private var navigationService = Container.shared.navigationService()
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var overviewKey = 0
@@ -23,7 +23,7 @@ public struct RootTabView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.systemBackground))
             } else {
-                TabView(selection: $selectedTab) {
+                TabView(selection: $navigationService.selectedTab) {
                     Tab(Strings.Navigation.overview, systemImage: "calendar", value: RootTab.overview) {
                             NavigationStack {
                                 OverviewRoot()

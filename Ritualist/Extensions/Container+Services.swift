@@ -7,9 +7,37 @@ extension Container {
     
     // MARK: - Core Services
     
-    var notificationService: Factory<NotificationService> {
-        self { LocalNotificationService() }
+    @MainActor
+    var navigationService: Factory<NavigationService> {
+        self { @MainActor in NavigationService() }
             .singleton
+    }
+    
+    var notificationService: Factory<NotificationService> {
+        self { 
+            let service = LocalNotificationService()
+            
+            // Configure the action handler to use dependency injection
+            service.actionHandler = { [weak self] action, habitId, habitName, reminderTime in
+                guard let self = self else { return }
+                try await self.handleNotificationAction().execute(
+                    action: action,
+                    habitId: habitId,
+                    habitName: habitName,
+                    reminderTime: reminderTime
+                )
+                
+                // Navigate to Overview page after logging habit
+                if action == .log {
+                    Task { @MainActor in
+                        self.navigationService().navigateToOverview(shouldRefresh: true)
+                    }
+                }
+            }
+            
+            return service
+        }
+        .singleton
     }
     
     var appearanceManager: Factory<AppearanceManager> {
