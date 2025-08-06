@@ -47,7 +47,7 @@ public struct StreakInfoView: View {
                             Text(NumberUtils.formatHabitValue(Double(currentStreak)))
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundColor(Color(hex: habit.colorHex) ?? AppColors.brand)
+                                .foregroundColor(AppColors.brand)
                             
                             HStack(spacing: Spacing.xxsmall) {
                                 Text(Strings.Overview.current)
@@ -88,7 +88,7 @@ public struct StreakInfoView: View {
                             Text(NumberUtils.formatHabitValue(Double(bestStreak)))
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundColor(Color(hex: habit.colorHex) ?? AppColors.brand)
+                                .foregroundColor(AppColors.brand)
                             
                             HStack(spacing: Spacing.xxsmall) {
                                 Text(Strings.Overview.best)

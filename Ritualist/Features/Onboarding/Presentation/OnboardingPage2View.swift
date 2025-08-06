@@ -4,51 +4,58 @@ struct OnboardingPage2View: View {
     @Bindable var viewModel: OnboardingViewModel
     
     var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
-            
-            // Habits icon
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.green)
-            
-            VStack(spacing: 16) {
-                Text("Track Your Habits")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
-                
-                Text(personalizedGreeting)
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: adaptiveSpacing(for: geometry.size.height)) {
+                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
+                    
+                    // Habits icon
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.green)
+                    
+                    VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
+                        Text("Track Your Habits")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                        
+                        Text(personalizedGreeting)
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, adaptivePadding(for: geometry.size.width))
+                    }
+                    
+                    VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
+                        FeatureHighlight(
+                            icon: "calendar",
+                            title: "Daily Tracking",
+                            description: "Mark habits as complete each day"
+                        )
+                        
+                        FeatureHighlight(
+                            icon: "chart.bar.fill",
+                            title: "Progress Visualization",  
+                            description: "See your streaks and patterns over time"
+                        )
+                        
+                        FeatureHighlight(
+                            icon: "bell",
+                            title: "Smart Reminders",
+                            description: "Get notified when it's time for your habits"
+                        )
+                    }
+                    .padding(.horizontal, adaptivePadding(for: geometry.size.width))
+                    
+                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
+                }
+                .frame(minHeight: geometry.size.height)
+                .padding(.horizontal, adaptivePadding(for: geometry.size.width))
             }
-            
-            VStack(spacing: 16) {
-                FeatureHighlight(
-                    icon: "calendar",
-                    title: "Daily Tracking",
-                    description: "Mark habits as complete each day"
-                )
-                
-                FeatureHighlight(
-                    icon: "chart.bar.fill",
-                    title: "Progress Visualization",  
-                    description: "See your streaks and patterns over time"
-                )
-                
-                FeatureHighlight(
-                    icon: "bell",
-                    title: "Smart Reminders",
-                    description: "Get notified when it's time for your habits"
-                )
-            }
-            .padding(.horizontal, 20)
-            
-            Spacer()
         }
-        .padding(.horizontal, 24)
     }
     
     private var personalizedGreeting: String {
@@ -59,6 +66,22 @@ struct OnboardingPage2View: View {
             return "Hi, \(viewModel.userName). \(baseMessage)"
         } else {
             return baseMessage
+        }
+    }
+    
+    private func adaptiveSpacing(for height: CGFloat) -> CGFloat {
+        switch height {
+        case 0..<600: return 16  // Small screens - compact spacing
+        case 600..<750: return 24  // Medium screens
+        default: return 32  // Large screens - original spacing
+        }
+    }
+    
+    private func adaptivePadding(for width: CGFloat) -> CGFloat {
+        switch width {
+        case 0..<350: return 16  // Small screens
+        case 350..<400: return 20  // Medium screens  
+        default: return 24  // Large screens - original padding
         }
     }
 }
@@ -79,10 +102,12 @@ private struct FeatureHighlight: View {
                 Text(title)
                     .font(.headline)
                     .fontWeight(.medium)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 Text(description)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             
             Spacer()

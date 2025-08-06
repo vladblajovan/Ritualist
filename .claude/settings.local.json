@@ -9,7 +9,9 @@
       "Bash(swiftc:*)",
       "Bash(mv:*)",
       "Bash(mkdir:*)",
-      "Bash(swift:*)"
+      "Bash(swift:*)",
+      "Bash(git checkout:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

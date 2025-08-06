@@ -1,8 +1,8 @@
 import SwiftUI
+import FactoryKit
 
 public struct OnboardingFlowView: View {
-    @Environment(\.appContainer) private var di
-    @State private var viewModel: OnboardingViewModel?
+    @Injected(\.onboardingViewModel) var viewModel
     
     private let onComplete: () -> Void
     
@@ -11,18 +11,11 @@ public struct OnboardingFlowView: View {
     }
     
     public var body: some View {
-        Group {
-            if let viewModel = viewModel {
-                OnboardingContentView(viewModel: viewModel, onComplete: onComplete)
-            } else {
-                ProgressView()
-                    .task {
-                        viewModel = di.onboardingFactory.makeViewModel()
-                        await viewModel?.loadOnboardingState()
-                    }
+        OnboardingContentView(viewModel: viewModel, onComplete: onComplete)
+            .background(Color(.systemBackground))
+            .task {
+                await viewModel.loadOnboardingState()
             }
-        }
-        .background(Color(.systemBackground))
     }
 }
 

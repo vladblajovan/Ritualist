@@ -1,4 +1,5 @@
 import SwiftUI
+import FactoryKit
 
 public struct CategoryManagementView: View {
     @Environment(\.dismiss) private var dismiss
@@ -268,8 +269,6 @@ private struct CategoryRowView: View {
 
 
 #Preview {
-    let container = DefaultAppContainer.createMinimal()
-    let factory = SettingsFactory(container: container)
-    return CategoryManagementView(vm: factory.makeCategoryManagementViewModel())
-        .environment(\.appContainer, container)
+    let vm = Container.shared.categoryManagementViewModel()
+    CategoryManagementView(vm: vm)
 }

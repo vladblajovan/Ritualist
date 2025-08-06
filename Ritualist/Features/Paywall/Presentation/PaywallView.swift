@@ -1,5 +1,19 @@
 import SwiftUI
 
+// MARK: - PaywallItem
+public struct PaywallItem: Identifiable, Equatable {
+    public let id = UUID()
+    public let viewModel: PaywallViewModel
+    
+    public init(viewModel: PaywallViewModel) {
+        self.viewModel = viewModel
+    }
+    
+    public static func == (lhs: PaywallItem, rhs: PaywallItem) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
 public struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var vm: PaywallViewModel

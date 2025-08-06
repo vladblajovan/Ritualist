@@ -29,7 +29,7 @@ public struct TipsBottomSheet: View {
                             .font(.system(size: Typography.mediumIcon))
                             .foregroundColor(AppColors.systemGray3)
                         
-                        Text("No tips available")
+                        Text(String(localized: "noTipsAvailable"))
                             .font(.headline)
                             .foregroundColor(AppColors.textSecondary)
                     }
@@ -39,7 +39,7 @@ public struct TipsBottomSheet: View {
                         // Featured tips section
                         let featuredTips = tips.filter { $0.isFeaturedInCarousel }.sorted { $0.order < $1.order }
                         if !featuredTips.isEmpty {
-                            Section(header: Text("Featured Tips").font(.subheadline).fontWeight(.medium)) {
+                            Section(header: Text(String(localized: "featuredTips")).font(.subheadline).fontWeight(.medium)) {
                                 ForEach(featuredTips, id: \.id) { tip in
                                     NavigationLink(destination: TipDetailContentView(tip: tip)) {
                                         TipListRowContent(tip: tip)
@@ -85,13 +85,13 @@ public struct TipsBottomSheet: View {
     private func categoryDisplayName(_ category: TipCategory) -> String {
         switch category {
         case .gettingStarted:
-            return "Getting Started"
+            return String(localized: "gettingStarted")
         case .tracking:
-            return "Tracking"
+            return String(localized: "trackingTips")
         case .motivation:
-            return "Motivation"
+            return String(localized: "motivationTips")
         case .advanced:
-            return "Advanced"
+            return String(localized: "advancedTips")
         }
     }
 }
@@ -275,13 +275,13 @@ private struct TipDetailContentView: View {
     private func categoryDisplayName(_ category: TipCategory) -> String {
         switch category {
         case .gettingStarted:
-            return "Getting Started"
+            return String(localized: "gettingStarted")
         case .tracking:
-            return "Tracking"
+            return String(localized: "trackingTips")
         case .motivation:
-            return "Motivation"
+            return String(localized: "motivationTips")
         case .advanced:
-            return "Advanced"
+            return String(localized: "advancedTips")
         }
     }
 }

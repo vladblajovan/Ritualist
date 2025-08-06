@@ -213,7 +213,7 @@ private struct HabitSuggestionRow: View {
             // Emoji and color indicator
             ZStack {
                 Circle()
-                    .fill(Color(hex: suggestion.colorHex) ?? AppColors.brand)
+                    .fill(AppColors.brand)
                     .frame(width: 50, height: 50)
                 
                 Text(suggestion.emoji)

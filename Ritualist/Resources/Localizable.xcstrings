@@ -73,10 +73,7 @@
         }
       }
     },
-    "A habit with this name and category already exists" : {
-
-    },
-    "accessibility.add_habit" : {
+    "accessibilityAddHabit" : {
       "comment" : "VoiceOver label for Add new habit",
       "extractionState" : "manual",
       "localizations" : {
@@ -94,7 +91,7 @@
         }
       }
     },
-    "accessibility.calendar_day" : {
+    "accessibilityCalendarDay" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -111,7 +108,7 @@
         }
       }
     },
-    "accessibility.delete_habit" : {
+    "accessibilityDeleteHabit" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -128,7 +125,7 @@
         }
       }
     },
-    "accessibility.go_to_today" : {
+    "accessibilityGoToToday" : {
       "comment" : "VoiceOver label for Today button",
       "extractionState" : "manual",
       "localizations" : {
@@ -146,7 +143,7 @@
         }
       }
     },
-    "accessibility.habit_chip" : {
+    "accessibilityHabitChip" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -163,7 +160,7 @@
         }
       }
     },
-    "accessibility.habit_logged" : {
+    "accessibilityHabitLogged" : {
       "comment" : "VoiceOver label for calendar days where the habit was completed. %@ is replaced with the full date. Should sound natural when read aloud.",
       "extractionState" : "manual",
       "localizations" : {
@@ -181,7 +178,7 @@
         }
       }
     },
-    "accessibility.habit_not_logged" : {
+    "accessibilityHabitNotLogged" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -198,7 +195,7 @@
         }
       }
     },
-    "accessibility.habit_status" : {
+    "accessibilityHabitStatus" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -215,7 +212,7 @@
         }
       }
     },
-    "accessibility.month_header" : {
+    "accessibilityMonthHeader" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -232,7 +229,7 @@
         }
       }
     },
-    "accessibility.next_month" : {
+    "accessibilityNextMonth" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -249,7 +246,7 @@
         }
       }
     },
-    "accessibility.previous_month" : {
+    "accessibilityPreviousMonth" : {
       "comment" : "VoiceOver label for the left arrow button in calendar navigation. Should clearly indicate the action.",
       "extractionState" : "manual",
       "localizations" : {
@@ -267,7 +264,7 @@
         }
       }
     },
-    "accessibility.streak_info" : {
+    "accessibilityStreakInfo" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -287,6 +284,17 @@
     "Account" : {
 
     },
+    "activate" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activate"
+          }
+        }
+      }
+    },
     "Activate" : {
 
     },
@@ -302,7 +310,29 @@
     "Add Habit" : {
 
     },
-    "app.name" : {
+    "addCustomCategory" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Custom"
+          }
+        }
+      }
+    },
+    "advancedTips" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
+          }
+        }
+      }
+    },
+    "appName" : {
       "comment" : "The name of the habit tracking app. This is a proper noun and should remain consistent across languages or be adapted to local naming conventions.",
       "extractionState" : "manual",
       "localizations" : {
@@ -319,6 +349,9 @@
           }
         }
       }
+    },
+    "Assistant" : {
+
     },
     "Back" : {
       "localizations" : {
@@ -339,7 +372,7 @@
     "Best Streak" : {
 
     },
-    "button.cancel" : {
+    "buttonCancel" : {
       "comment" : "Button label to cancel an action and dismiss a dialog or form without saving changes.",
       "extractionState" : "manual",
       "localizations" : {
@@ -357,7 +390,7 @@
         }
       }
     },
-    "button.delete" : {
+    "buttonDelete" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -374,7 +407,7 @@
         }
       }
     },
-    "button.done" : {
+    "buttonDone" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -391,7 +424,7 @@
         }
       }
     },
-    "button.retry" : {
+    "buttonRetry" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -408,7 +441,7 @@
         }
       }
     },
-    "button.save" : {
+    "buttonSave" : {
       "comment" : "Button label to save changes. Used in forms and configuration screens. Should be short and action-oriented.",
       "extractionState" : "manual",
       "localizations" : {
@@ -426,7 +459,7 @@
         }
       }
     },
-    "calendar.today" : {
+    "calendarToday" : {
       "comment" : "Today button text",
       "extractionState" : "manual",
       "localizations" : {
@@ -488,6 +521,28 @@
     "Category Name" : {
 
     },
+    "categoryLabel" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category"
+          }
+        }
+      }
+    },
+    "categoryName" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category Name"
+          }
+        }
+      }
+    },
     "Choose an Emoji" : {
 
     },
@@ -510,6 +565,17 @@
     "Choose Your Plan" : {
 
     },
+    "chooseEmoji" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an Emoji"
+          }
+        }
+      }
+    },
     "Close" : {
 
     },
@@ -519,13 +585,35 @@
     "Create Custom Category" : {
 
     },
+    "createCustomCategory" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Custom Category"
+          }
+        }
+      }
+    },
     "Creating category..." : {
 
+    },
+    "creatingCategory" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creating category..."
+          }
+        }
+      }
     },
     "Current Streak" : {
 
     },
-    "day.fri" : {
+    "dayFri" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -542,7 +630,7 @@
         }
       }
     },
-    "day.friday" : {
+    "dayFriday" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -559,7 +647,7 @@
         }
       }
     },
-    "day.mon" : {
+    "dayMon" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -576,7 +664,7 @@
         }
       }
     },
-    "day.monday" : {
+    "dayMonday" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -593,7 +681,7 @@
         }
       }
     },
-    "day.sat" : {
+    "daySat" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -610,7 +698,7 @@
         }
       }
     },
-    "day.saturday" : {
+    "daySaturday" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -627,7 +715,7 @@
         }
       }
     },
-    "day.sun" : {
+    "daySun" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -644,7 +732,7 @@
         }
       }
     },
-    "day.sunday" : {
+    "daySunday" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -661,7 +749,7 @@
         }
       }
     },
-    "day.thu" : {
+    "dayThu" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -678,7 +766,7 @@
         }
       }
     },
-    "day.thursday" : {
+    "dayThursday" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -695,7 +783,7 @@
         }
       }
     },
-    "day.tue" : {
+    "dayTue" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -712,7 +800,7 @@
         }
       }
     },
-    "day.tuesday" : {
+    "dayTuesday" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -729,7 +817,7 @@
         }
       }
     },
-    "day.unknown" : {
+    "dayUnknown" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -746,7 +834,7 @@
         }
       }
     },
-    "day.wed" : {
+    "dayWed" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -763,7 +851,7 @@
         }
       }
     },
-    "day.wednesday" : {
+    "dayWednesday" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -780,13 +868,24 @@
         }
       }
     },
+    "deactivate" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deactivate"
+          }
+        }
+      }
+    },
     "Deactivate" : {
 
     },
     "Delete" : {
 
     },
-    "dialog.cannot_undo" : {
+    "dialogCannotUndo" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -803,7 +902,7 @@
         }
       }
     },
-    "dialog.delete_habit" : {
+    "dialogDeleteHabit" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -820,7 +919,7 @@
         }
       }
     },
-    "dialog.delete_habit_message" : {
+    "dialogDeleteHabitMessage" : {
       "comment" : "Confirmation message for deleting a habit. %@ is replaced with the habit name in quotes. Should convey the permanent nature of the action.",
       "extractionState" : "manual",
       "localizations" : {
@@ -870,7 +969,18 @@
         }
       }
     },
-    "empty.create_habits_to_start" : {
+    "duplicateHabitWarning" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A habit with this name and category already exists"
+          }
+        }
+      }
+    },
+    "emptyCreateHabitsToStart" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -887,7 +997,7 @@
         }
       }
     },
-    "empty.no_active_habits" : {
+    "emptyNoActiveHabits" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -904,7 +1014,7 @@
         }
       }
     },
-    "empty.no_habit_selected" : {
+    "emptyNoHabitSelected" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -921,7 +1031,7 @@
         }
       }
     },
-    "empty.no_habits_yet" : {
+    "emptyNoHabitsYet" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -938,7 +1048,7 @@
         }
       }
     },
-    "empty.tap_habit_to_view" : {
+    "emptyTapHabitToView" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -955,7 +1065,7 @@
         }
       }
     },
-    "empty.tap_plus_to_create" : {
+    "emptyTapPlusToCreate" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1007,6 +1117,17 @@
         }
       }
     },
+    "enterCategoryName" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter category name"
+          }
+        }
+      }
+    },
     "Error" : {
       "localizations" : {
         "de" : {
@@ -1023,7 +1144,7 @@
         }
       }
     },
-    "error.failed_initialize" : {
+    "errorFailedInitialize" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1040,7 +1161,7 @@
         }
       }
     },
-    "error.failed_load_habit" : {
+    "errorFailedLoadHabit" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1057,7 +1178,7 @@
         }
       }
     },
-    "error.failed_load_habits" : {
+    "errorFailedLoadHabits" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1074,7 +1195,7 @@
         }
       }
     },
-    "error.failed_load_settings" : {
+    "errorFailedLoadSettings" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1091,7 +1212,7 @@
         }
       }
     },
-    "error.unable_setup_habits" : {
+    "errorUnableSetupHabits" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1108,7 +1229,7 @@
         }
       }
     },
-    "error.unable_setup_overview" : {
+    "errorUnableSetupOverview" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1125,7 +1246,7 @@
         }
       }
     },
-    "error.unable_setup_settings" : {
+    "errorUnableSetupSettings" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1148,8 +1269,16 @@
     "Example: If you had a 10-day streak last month and your current streak is 3 days, your best streak remains 10 days." : {
 
     },
-    "Failed to load categories: %@" : {
-
+    "failedLoadCategories" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to load categories: %@"
+          }
+        }
+      }
     },
     "Featured" : {
       "localizations" : {
@@ -1168,6 +1297,7 @@
       }
     },
     "Featured Tips" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1183,7 +1313,29 @@
         }
       }
     },
-    "form.appearance" : {
+    "featuredLabel" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured"
+          }
+        }
+      }
+    },
+    "featuredTips" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured Tips"
+          }
+        }
+      }
+    },
+    "formAppearance" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1196,330 +1348,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Appearance"
-          }
-        }
-      }
-    },
-    "form.basic_information" : {
-      "comment" : "Section header in habit creation form for name, type, and target fields. Can be longer as it's a section header.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grundlegende Informationen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basic Information"
-          }
-        }
-      }
-    },
-    "form.color" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Farbe"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Color"
-          }
-        }
-      }
-    },
-    "form.count" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anzahl"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Count"
-          }
-        }
-      }
-    },
-    "form.daily" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Täglich"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Daily"
-          }
-        }
-      }
-    },
-    "form.daily_target" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tägliches Ziel"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Daily Target"
-          }
-        }
-      }
-    },
-    "form.emoji" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Emoji"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Emoji"
-          }
-        }
-      }
-    },
-    "form.frequency" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Häufigkeit"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frequency"
-          }
-        }
-      }
-    },
-    "form.habit_name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gewohnheitsname"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Habit name"
-          }
-        }
-      }
-    },
-    "form.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name"
-          }
-        }
-      }
-    },
-    "form.schedule" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zeitplan"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schedule"
-          }
-        }
-      }
-    },
-    "form.select_days" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tage auswählen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select days"
-          }
-        }
-      }
-    },
-    "form.specific_days" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bestimmte Tage"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Specific Days"
-          }
-        }
-      }
-    },
-    "form.target" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ziel"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Target"
-          }
-        }
-      }
-    },
-    "form.times_per_week" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mal pro Woche"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Times per Week"
-          }
-        }
-      }
-    },
-    "form.times_per_week_label" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mal pro Woche"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Times per week"
-          }
-        }
-      }
-    },
-    "form.type" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Typ"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Type"
-          }
-        }
-      }
-    },
-    "form.unit" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einheit"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unit"
-          }
-        }
-      }
-    },
-    "form.unit_placeholder" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "z.B. Tassen, Minuten"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "e.g., cups, minutes"
-          }
-        }
-      }
-    },
-    "form.yes_no" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ja/Nein"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yes/No"
           }
         }
       }
@@ -1558,11 +1386,343 @@
         }
       }
     },
+    "formBasicInformation" : {
+      "comment" : "Section header in habit creation form for name, type, and target fields. Can be longer as it's a section header.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grundlegende Informationen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basic Information"
+          }
+        }
+      }
+    },
+    "formColor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farbe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color"
+          }
+        }
+      }
+    },
+    "formCount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzahl"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count"
+          }
+        }
+      }
+    },
+    "formDaily" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Täglich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily"
+          }
+        }
+      }
+    },
+    "formDailyTarget" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tägliches Ziel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily Target"
+          }
+        }
+      }
+    },
+    "formEmoji" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emoji"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emoji"
+          }
+        }
+      }
+    },
+    "formFrequency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Häufigkeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequency"
+          }
+        }
+      }
+    },
+    "formHabitName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gewohnheitsname"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habit name"
+          }
+        }
+      }
+    },
+    "formName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        }
+      }
+    },
+    "formSchedule" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeitplan"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule"
+          }
+        }
+      }
+    },
+    "formSelectDays" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tage auswählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select days"
+          }
+        }
+      }
+    },
+    "formSpecificDays" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestimmte Tage"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Specific Days"
+          }
+        }
+      }
+    },
+    "formTarget" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target"
+          }
+        }
+      }
+    },
+    "formTimesPerWeek" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mal pro Woche"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Times per Week"
+          }
+        }
+      }
+    },
+    "formTimesPerWeekLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mal pro Woche"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Times per week"
+          }
+        }
+      }
+    },
+    "formType" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typ"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
+          }
+        }
+      }
+    },
+    "formUnit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einheit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unit"
+          }
+        }
+      }
+    },
+    "formUnitPlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "z.B. Tassen, Minuten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g., cups, minutes"
+          }
+        }
+      }
+    },
+    "formYesNo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ja/Nein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes/No"
+          }
+        }
+      }
+    },
     "Free" : {
 
     },
-    "From Suggestion" : {
-
+    "fromSuggestion" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From Suggestion"
+          }
+        }
+      }
     },
     "Get expert tips and insights to help you build better habits and maintain long-term consistency." : {
       "localizations" : {
@@ -1579,9 +1739,6 @@
           }
         }
       }
-    },
-    "Get personalized habit suggestions" : {
-
     },
     "Get Started" : {
       "localizations" : {
@@ -1601,6 +1758,17 @@
     },
     "Get unlimited habits, advanced analytics, and premium features" : {
 
+    },
+    "gettingStarted" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Getting Started"
+          }
+        }
+      }
     },
     "Habit Assistant" : {
 
@@ -1624,6 +1792,17 @@
     "Habits Assistant" : {
 
     },
+    "habitSuggestionRestriction" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This habit was added from a suggestion and its category cannot be changed."
+          }
+        }
+      }
+    },
     "How it works:" : {
 
     },
@@ -1634,6 +1813,7 @@
 
     },
     "Initializing..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1725,7 +1905,7 @@
         }
       }
     },
-    "loading.calculating_streaks" : {
+    "loadingCalculatingStreaks" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1742,7 +1922,18 @@
         }
       }
     },
-    "loading.habit" : {
+    "loadingCategories" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading categories..."
+          }
+        }
+      }
+    },
+    "loadingHabit" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1759,7 +1950,7 @@
         }
       }
     },
-    "loading.habits" : {
+    "loadingHabits" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1776,7 +1967,7 @@
         }
       }
     },
-    "loading.initializing" : {
+    "loadingInitializing" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1793,7 +1984,7 @@
         }
       }
     },
-    "loading.processing_image" : {
+    "loadingProcessingImage" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1810,7 +2001,7 @@
         }
       }
     },
-    "loading.saving" : {
+    "loadingSaving" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1827,7 +2018,7 @@
         }
       }
     },
-    "loading.settings" : {
+    "loadingSettings" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1869,7 +2060,29 @@
     "Manage Categories" : {
 
     },
-    "navigation.edit_habit" : {
+    "manageCategories" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage Categories"
+          }
+        }
+      }
+    },
+    "motivationTips" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motivation"
+          }
+        }
+      }
+    },
+    "navigationEditHabit" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1886,7 +2099,7 @@
         }
       }
     },
-    "navigation.habits" : {
+    "navigationHabits" : {
       "comment" : "Tab bar label for the screen where users manage their list of habits. Should be concise (max 12 characters recommended).",
       "extractionState" : "manual",
       "localizations" : {
@@ -1904,7 +2117,7 @@
         }
       }
     },
-    "navigation.new_habit" : {
+    "navigationNewHabit" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -1921,7 +2134,7 @@
         }
       }
     },
-    "navigation.overview" : {
+    "navigationOverview" : {
       "comment" : "Tab bar label for the main screen where users view and interact with their habit calendar. Should be concise (max 12 characters recommended).",
       "extractionState" : "manual",
       "localizations" : {
@@ -1939,7 +2152,7 @@
         }
       }
     },
-    "navigation.settings" : {
+    "navigationSettings" : {
       "comment" : "Tab bar label for the user preferences and configuration screen. Should be concise (max 12 characters recommended).",
       "extractionState" : "manual",
       "localizations" : {
@@ -1959,6 +2172,17 @@
     },
     "New Category" : {
 
+    },
+    "newCategory" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Category"
+          }
+        }
+      }
     },
     "Next" : {
       "localizations" : {
@@ -2044,6 +2268,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifications enabled"
+          }
+        }
+      }
+    },
+    "noTipsAvailable" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No tips available"
           }
         }
       }
@@ -2336,7 +2571,7 @@
         }
       }
     },
-    "overview.best" : {
+    "overviewBest" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2353,7 +2588,7 @@
         }
       }
     },
-    "overview.calendar" : {
+    "overviewCalendar" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2370,7 +2605,7 @@
         }
       }
     },
-    "overview.current" : {
+    "overviewCurrent" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2387,7 +2622,7 @@
         }
       }
     },
-    "overview.day_plural" : {
+    "overviewDayPlural" : {
       "comment" : "Displays streak length with proper pluralization. %lld is replaced with the number of days. Ensure plural rules are correct for your language.",
       "extractionState" : "manual",
       "localizations" : {
@@ -2429,7 +2664,7 @@
         }
       }
     },
-    "overview.instructions" : {
+    "overviewInstructions" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2446,7 +2681,7 @@
         }
       }
     },
-    "overview.stats" : {
+    "overviewStats" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2463,7 +2698,7 @@
         }
       }
     },
-    "overview.your_habits" : {
+    "overviewYourHabits" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2482,7 +2717,7 @@
     },
     "paywall.pro_label" : {
       "comment" : "Label for PRO badge in paywall",
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2500,7 +2735,7 @@
     },
     "paywall.unlock_advanced_stats" : {
       "comment" : "Button text to unlock advanced statistics",
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2629,7 +2864,7 @@
         }
       }
     },
-    "settings.appearance" : {
+    "settingsAppearance" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2646,7 +2881,7 @@
         }
       }
     },
-    "settings.dark" : {
+    "settingsDark" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2663,7 +2898,7 @@
         }
       }
     },
-    "settings.enable" : {
+    "settingsEnable" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2680,7 +2915,7 @@
         }
       }
     },
-    "settings.first_day_of_week" : {
+    "settingsFirstDayOfWeek" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2697,7 +2932,7 @@
         }
       }
     },
-    "settings.follow_system" : {
+    "settingsFollowSystem" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2714,7 +2949,7 @@
         }
       }
     },
-    "settings.light" : {
+    "settingsLight" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2731,7 +2966,7 @@
         }
       }
     },
-    "settings.notification_permission" : {
+    "settingsNotificationPermission" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2748,7 +2983,7 @@
         }
       }
     },
-    "settings.notifications" : {
+    "settingsNotifications" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2765,7 +3000,7 @@
         }
       }
     },
-    "settings.notifications_disabled" : {
+    "settingsNotificationsDisabled" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2782,7 +3017,7 @@
         }
       }
     },
-    "settings.notifications_enabled" : {
+    "settingsNotificationsEnabled" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2799,7 +3034,7 @@
         }
       }
     },
-    "settings.open_settings" : {
+    "settingsOpenSettings" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2816,7 +3051,7 @@
         }
       }
     },
-    "settings.profile" : {
+    "settingsProfile" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2833,7 +3068,7 @@
         }
       }
     },
-    "settings.saved" : {
+    "settingsSaved" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2850,7 +3085,7 @@
         }
       }
     },
-    "status.active" : {
+    "statusActive" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2867,7 +3102,7 @@
         }
       }
     },
-    "status.creating" : {
+    "statusCreating" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2884,7 +3119,7 @@
         }
       }
     },
-    "status.deleting" : {
+    "statusDeleting" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2901,7 +3136,7 @@
         }
       }
     },
-    "status.inactive" : {
+    "statusInactive" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2918,7 +3153,7 @@
         }
       }
     },
-    "status.updating" : {
+    "statusUpdating" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -2990,9 +3225,6 @@
           }
         }
       }
-    },
-    "This habit was added from a suggestion and its category cannot be changed." : {
-
     },
     "This will mark the habit as incomplete for this day." : {
 
@@ -3203,6 +3435,17 @@
         }
       }
     },
+    "trackingTips" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tracking"
+          }
+        }
+      }
+    },
     "Try Again" : {
 
     },
@@ -3215,7 +3458,7 @@
     "Updating..." : {
 
     },
-    "validation.name_required" : {
+    "validationNameRequired" : {
       "comment" : "Error message shown when user tries to save a habit without entering a name. Should be clear and concise.",
       "extractionState" : "manual",
       "localizations" : {
@@ -3233,7 +3476,7 @@
         }
       }
     },
-    "validation.select_at_least_one_day" : {
+    "validationSelectAtLeastOneDay" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -3250,7 +3493,7 @@
         }
       }
     },
-    "validation.target_greater_than_zero" : {
+    "validationTargetGreaterThanZero" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -3267,7 +3510,7 @@
         }
       }
     },
-    "validation.unit_required" : {
+    "validationUnitRequired" : {
       "comment" : "Error message for numeric habits when unit label is missing (e.g., 'cups', 'minutes'). Explains why this field is required.",
       "extractionState" : "manual",
       "localizations" : {

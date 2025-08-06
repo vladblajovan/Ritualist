@@ -99,7 +99,7 @@ public struct TipDetailView: View {
     private var metadataSection: some View {
         VStack(alignment: .leading, spacing: Spacing.small) {
             HStack {
-                Text("Category")
+                Text(String(localized: "categoryLabel"))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(AppColors.textSecondary)
@@ -113,7 +113,7 @@ public struct TipDetailView: View {
             
             if tip.isFeaturedInCarousel {
                 HStack {
-                    Text("Featured")
+                    Text(String(localized: "featuredLabel"))
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(AppColors.textSecondary)
@@ -137,13 +137,13 @@ public struct TipDetailView: View {
     private func categoryDisplayName(_ category: TipCategory) -> String {
         switch category {
         case .gettingStarted:
-            return "Getting Started"
+            return String(localized: "gettingStarted")
         case .tracking:
-            return "Tracking"
+            return String(localized: "trackingTips")
         case .motivation:
-            return "Motivation"
+            return String(localized: "motivationTips")
         case .advanced:
-            return "Advanced"
+            return String(localized: "advancedTips")
         }
     }
 }

@@ -1,8 +1,10 @@
 import SwiftUI
+import FactoryKit
 
 public struct HabitDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var vm: HabitDetailViewModel
+    @ObservationIgnored @Injected(\.categoryManagementViewModel) var categoryManagementVM
     
     public init(vm: HabitDetailViewModel) {
         self.vm = vm
@@ -136,7 +138,7 @@ private struct BasicInfoSection: View {
                                 .foregroundColor(.orange)
                                 .font(.caption)
                         }
-                        Text("A habit with this name and category already exists")
+                        Text(String(localized: "duplicateHabitWarning"))
                             .font(.caption)
                             .foregroundColor(.orange)
                     }
@@ -282,10 +284,10 @@ private struct DaysOfWeekSelector: View {
 }
 
 private struct CategorySection: View {
-    @Environment(\.appContainer) private var appContainer
     @Bindable var vm: HabitDetailViewModel
     @State private var showingAddCustomCategory = false
     @State private var showingCategoryManagement = false
+    @ObservationIgnored @Injected(\.categoryManagementViewModel) var categoryManagementVM
     
     var body: some View {
         Section {
@@ -317,7 +319,7 @@ private struct CategorySection: View {
                         
                         Spacer()
                         
-                        Text("From Suggestion")
+                        Text(String(localized: "fromSuggestion"))
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
@@ -326,7 +328,7 @@ private struct CategorySection: View {
                             .background(AppColors.systemGray6, in: Capsule())
                     }
                     
-                    Text("This habit was added from a suggestion and its category cannot be changed.")
+                    Text(String(localized: "habitSuggestionRestriction"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -335,7 +337,7 @@ private struct CategorySection: View {
             
             // Error state
             if let error = vm.categoriesError {
-                Text("Failed to load categories: \(error.localizedDescription)")
+                Text(String(format: String(localized: "failedLoadCategories"), error.localizedDescription))
                     .font(.caption)
                     .foregroundColor(.red)
             }
@@ -361,9 +363,7 @@ private struct CategorySection: View {
     @ViewBuilder
     private var categoryManagementSheet: some View {
         NavigationStack {
-            // Create ViewModel via DI factory - clean and simple
-            let factory = SettingsFactory(container: appContainer)
-            CategoryManagementView(vm: factory.makeCategoryManagementViewModel())
+            CategoryManagementView(vm: categoryManagementVM)
         }
     }
 }
@@ -421,7 +421,7 @@ private struct AppearanceSection: View {
                                 vm.selectedColorHex = colorHex
                             } label: {
                                 Circle()
-                                    .fill(Color(hex: colorHex) ?? AppColors.brand)
+                                    .fill(AppColors.brand ?? AppColors.brand)
                                     .frame(width: 31, height: 33)
                                     .overlay(
                                         Circle()
@@ -504,9 +504,6 @@ private struct ActiveStatusSection: View {
 }
 
 #Preview {
-    let container = DefaultAppContainer.createMinimal()
-    let factory = HabitDetailFactory(container: container)
-    let vm = factory.makeViewModel(for: nil)
-    
+    let vm = HabitDetailViewModel(habit: nil)
     return HabitDetailView(vm: vm)
 }

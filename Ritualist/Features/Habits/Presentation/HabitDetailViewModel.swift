@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import FactoryKit
 
 // Helper enum for schedule picker
 public enum ScheduleType: CaseIterable {
@@ -10,14 +11,14 @@ public enum ScheduleType: CaseIterable {
 
 @MainActor @Observable
 public final class HabitDetailViewModel {
-    private let createHabit: CreateHabitUseCase
-    private let updateHabit: UpdateHabitUseCase
-    private let deleteHabit: DeleteHabitUseCase
-    private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
-    private let getActiveCategories: GetActiveCategoriesUseCase
-    private let createCustomCategory: CreateCustomCategoryUseCase
-    private let validateCategoryName: ValidateCategoryNameUseCase
-    private let validateHabitUniqueness: ValidateHabitUniquenessUseCase
+    @ObservationIgnored @Injected(\.createHabit) var createHabit
+    @ObservationIgnored @Injected(\.updateHabit) var updateHabit
+    @ObservationIgnored @Injected(\.deleteHabit) var deleteHabit
+    @ObservationIgnored @Injected(\.toggleHabitActiveStatus) var toggleHabitActiveStatus
+    @ObservationIgnored @Injected(\.getActiveCategories) var getActiveCategories
+    @ObservationIgnored @Injected(\.createCustomCategory) var createCustomCategory
+    @ObservationIgnored @Injected(\.validateCategoryName) var validateCategoryName
+    @ObservationIgnored @Injected(\.validateHabitUniqueness) var validateHabitUniqueness
     
     // Form state
     public var name = ""
@@ -50,23 +51,7 @@ public final class HabitDetailViewModel {
     
     public let originalHabit: Habit?
     
-    public init(createHabit: CreateHabitUseCase,
-                updateHabit: UpdateHabitUseCase,
-                deleteHabit: DeleteHabitUseCase,
-                toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
-                getActiveCategories: GetActiveCategoriesUseCase,
-                createCustomCategory: CreateCustomCategoryUseCase,
-                validateCategoryName: ValidateCategoryNameUseCase,
-                validateHabitUniqueness: ValidateHabitUniquenessUseCase,
-                habit: Habit?) {
-        self.createHabit = createHabit
-        self.updateHabit = updateHabit
-        self.deleteHabit = deleteHabit
-        self.toggleHabitActiveStatus = toggleHabitActiveStatus
-        self.getActiveCategories = getActiveCategories
-        self.createCustomCategory = createCustomCategory
-        self.validateCategoryName = validateCategoryName
-        self.validateHabitUniqueness = validateHabitUniqueness
+    public init(habit: Habit? = nil) {
         self.originalHabit = habit
         self.isEditMode = habit != nil
         

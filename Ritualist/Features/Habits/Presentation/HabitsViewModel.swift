@@ -1,21 +1,25 @@
 import Foundation
 import Observation
+import FactoryKit
 
 @MainActor @Observable
 public final class HabitsViewModel {
-    private let getAllHabits: GetAllHabitsUseCase
-    private let createHabit: CreateHabitUseCase
-    private let updateHabit: UpdateHabitUseCase
-    private let deleteHabit: DeleteHabitUseCase
-    private let toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase
-    private let reorderHabits: ReorderHabitsUseCase
-    private let checkHabitCreationLimit: CheckHabitCreationLimitUseCase
-    private let createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase
-    private let getActiveCategories: GetActiveCategoriesUseCase
-    private let habitDetailFactory: HabitDetailFactory
-    private let paywallFactory: PaywallFactory
-    public let habitSuggestionsService: HabitSuggestionsService
-    public let userActionTracker: UserActionTrackerService
+    // MARK: - Factory Injected Dependencies
+    @ObservationIgnored @Injected(\.getAllHabits) var getAllHabits
+    @ObservationIgnored @Injected(\.createHabit) var createHabit
+    @ObservationIgnored @Injected(\.updateHabit) var updateHabit
+    @ObservationIgnored @Injected(\.deleteHabit) var deleteHabit
+    @ObservationIgnored @Injected(\.toggleHabitActiveStatus) var toggleHabitActiveStatus
+    @ObservationIgnored @Injected(\.reorderHabits) var reorderHabits
+    @ObservationIgnored @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
+    @ObservationIgnored @Injected(\.createHabitFromSuggestionUseCase) var createHabitFromSuggestionUseCase
+    @ObservationIgnored @Injected(\.getActiveCategories) var getActiveCategories
+    @ObservationIgnored @Injected(\.habitSuggestionsService) var habitSuggestionsService
+    @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
+    @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
+    @ObservationIgnored @Injected(\.habitsAssistantViewModel) var habitsAssistantViewModelInjected
+    
+    // MARK: - Shared ViewModels
     
     // MARK: - Data State
     public private(set) var items: [Habit] = []
@@ -39,7 +43,9 @@ public final class HabitsViewModel {
     public var paywallItem: PaywallItem?
     public var shouldReopenAssistantAfterPaywall = false
     public var isHandlingPaywallDismissal = false
-    public private(set) var habitsAssistantViewModel: HabitsAssistantViewModel?
+    public var habitsAssistantViewModel: HabitsAssistantViewModel {
+        habitsAssistantViewModelInjected
+    }
     
     // MARK: - Paywall Protection
     
@@ -68,35 +74,8 @@ public final class HabitsViewModel {
         }
     }
     
-    public init(getAllHabits: GetAllHabitsUseCase, 
-                createHabit: CreateHabitUseCase,
-                updateHabit: UpdateHabitUseCase,
-                deleteHabit: DeleteHabitUseCase,
-                toggleHabitActiveStatus: ToggleHabitActiveStatusUseCase,
-                reorderHabits: ReorderHabitsUseCase,
-                checkHabitCreationLimit: CheckHabitCreationLimitUseCase,
-                createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase,
-                getActiveCategories: GetActiveCategoriesUseCase,
-                habitDetailFactory: HabitDetailFactory,
-                paywallFactory: PaywallFactory,
-                habitsAssistantViewModel: HabitsAssistantViewModel,
-                habitSuggestionsService: HabitSuggestionsService,
-                userActionTracker: UserActionTrackerService) {
-        self.getAllHabits = getAllHabits
-        self.createHabit = createHabit
-        self.updateHabit = updateHabit
-        self.deleteHabit = deleteHabit
-        self.toggleHabitActiveStatus = toggleHabitActiveStatus
-        self.reorderHabits = reorderHabits
-        self.checkHabitCreationLimit = checkHabitCreationLimit
-        self.createHabitFromSuggestionUseCase = createHabitFromSuggestionUseCase
-        self.getActiveCategories = getActiveCategories
-        self.habitDetailFactory = habitDetailFactory
-        self.paywallFactory = paywallFactory
-        self.habitsAssistantViewModel = habitsAssistantViewModel
-        self.habitSuggestionsService = habitSuggestionsService
-        self.userActionTracker = userActionTracker
-        
+    // MARK: - Initialization
+    public init() {
         setupRefreshObservation()
     }
     
@@ -211,7 +190,7 @@ public final class HabitsViewModel {
     
     /// Create habit detail ViewModel for editing/creating habits
     public func makeHabitDetailViewModel(for habit: Habit?) -> HabitDetailViewModel {
-        return habitDetailFactory.makeViewModel(for: habit)
+        return HabitDetailViewModel(habit: habit)
     }
     
     /// Create habit from suggestion (for assistant)
@@ -243,7 +222,6 @@ public final class HabitsViewModel {
     /// Show paywall
     public func showPaywall() {
         Task { @MainActor in
-            let paywallViewModel = paywallFactory.makeViewModel()
             await paywallViewModel.load()
             paywallItem = PaywallItem(viewModel: paywallViewModel)
         }

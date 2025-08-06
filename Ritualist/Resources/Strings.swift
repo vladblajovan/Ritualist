@@ -7,168 +7,168 @@ public enum Strings {
     
     // MARK: - App
     public enum App {
-        public static let name = String(localized: "app.name")
+        public static let name = String(localized: "appName")
     }
     
     // MARK: - Navigation
     public enum Navigation {
-        public static let overview = String(localized: "navigation.overview")
-        public static let habits = String(localized: "navigation.habits")
-        public static let settings = String(localized: "navigation.settings")
-        public static let editHabit = String(localized: "navigation.edit_habit")
-        public static let newHabit = String(localized: "navigation.new_habit")
+        public static let overview = String(localized: "navigationOverview")
+        public static let habits = String(localized: "navigationHabits")
+        public static let settings = String(localized: "navigationSettings")
+        public static let editHabit = String(localized: "navigationEditHabit")
+        public static let newHabit = String(localized: "navigationNewHabit")
     }
     
     // MARK: - Buttons
     public enum Button {
-        public static let save = String(localized: "button.save")
-        public static let cancel = String(localized: "button.cancel")
-        public static let delete = String(localized: "button.delete")
-        public static let retry = String(localized: "button.retry")
-        public static let done = String(localized: "button.done")
-        public static let activate = String(localized: "Activate")
-        public static let deactivate = String(localized: "Deactivate")
+        public static let save = String(localized: "buttonSave")
+        public static let cancel = String(localized: "buttonCancel")
+        public static let delete = String(localized: "buttonDelete")
+        public static let retry = String(localized: "buttonRetry")
+        public static let done = String(localized: "buttonDone")
+        public static let activate = String(localized: "activate")
+        public static let deactivate = String(localized: "deactivate")
     }
     
     // MARK: - Loading States
     public enum Loading {
-        public static let initializing = String(localized: "loading.initializing")
-        public static let habits = String(localized: "loading.habits")
-        public static let settings = String(localized: "loading.settings")
-        public static let habit = String(localized: "loading.habit")
-        public static let saving = String(localized: "loading.saving")
-        public static let calculatingStreaks = String(localized: "loading.calculating_streaks")
-        public static let processingImage = String(localized: "loading.processing_image")
+        public static let initializing = String(localized: "loadingInitializing")
+        public static let habits = String(localized: "loadingHabits")
+        public static let settings = String(localized: "loadingSettings")
+        public static let habit = String(localized: "loadingHabit")
+        public static let saving = String(localized: "loadingSaving")
+        public static let calculatingStreaks = String(localized: "loadingCalculatingStreaks")
+        public static let processingImage = String(localized: "loadingProcessingImage")
     }
     
     // MARK: - Status Messages
     public enum Status {
-        public static let creating = String(localized: "status.creating")
-        public static let updating = String(localized: "status.updating")
-        public static let deleting = String(localized: "status.deleting")
-        public static let active = String(localized: "status.active")
-        public static let inactive = String(localized: "status.inactive")
+        public static let creating = String(localized: "statusCreating")
+        public static let updating = String(localized: "statusUpdating")
+        public static let deleting = String(localized: "statusDeleting")
+        public static let active = String(localized: "statusActive")
+        public static let inactive = String(localized: "statusInactive")
     }
     
     // MARK: - Error Messages
     public enum Error {
-        public static let failedInitialize = String(localized: "error.failed_initialize")
-        public static let failedLoadHabits = String(localized: "error.failed_load_habits")
-        public static let failedLoadSettings = String(localized: "error.failed_load_settings")
-        public static let failedLoadHabit = String(localized: "error.failed_load_habit")
-        public static let unableSetupOverview = String(localized: "error.unable_setup_overview")
-        public static let unableSetupHabits = String(localized: "error.unable_setup_habits")
-        public static let unableSetupSettings = String(localized: "error.unable_setup_settings")
+        public static let failedInitialize = String(localized: "errorFailedInitialize")
+        public static let failedLoadHabits = String(localized: "errorFailedLoadHabits")
+        public static let failedLoadSettings = String(localized: "errorFailedLoadSettings")
+        public static let failedLoadHabit = String(localized: "errorFailedLoadHabit")
+        public static let unableSetupOverview = String(localized: "errorUnableSetupOverview")
+        public static let unableSetupHabits = String(localized: "errorUnableSetupHabits")
+        public static let unableSetupSettings = String(localized: "errorUnableSetupSettings")
     }
     
     // MARK: - Empty States
     public enum EmptyState {
-        public static let noActiveHabits = String(localized: "empty.no_active_habits")
-        public static let createHabitsToStart = String(localized: "empty.create_habits_to_start")
-        public static let noHabitsYet = String(localized: "empty.no_habits_yet")
-        public static let tapPlusToCreate = String(localized: "empty.tap_plus_to_create")
-        public static let noHabitSelected = String(localized: "empty.no_habit_selected")
-        public static let tapHabitToView = String(localized: "empty.tap_habit_to_view")
+        public static let noActiveHabits = String(localized: "emptyNoActiveHabits")
+        public static let createHabitsToStart = String(localized: "emptyCreateHabitsToStart")
+        public static let noHabitsYet = String(localized: "emptyNoHabitsYet")
+        public static let tapPlusToCreate = String(localized: "emptyTapPlusToCreate")
+        public static let noHabitSelected = String(localized: "emptyNoHabitSelected")
+        public static let tapHabitToView = String(localized: "emptyTapHabitToView")
     }
     
     // MARK: - Form Labels
     public enum Form {
-        public static let basicInformation = String(localized: "form.basic_information")
-        public static let schedule = String(localized: "form.schedule")
-        public static let appearance = String(localized: "form.appearance")
-        public static let name = String(localized: "form.name")
-        public static let habitName = String(localized: "form.habit_name")
-        public static let type = String(localized: "form.type")
-        public static let yesNo = String(localized: "form.yes_no")
-        public static let count = String(localized: "form.count")
-        public static let unit = String(localized: "form.unit")
-        public static let unitPlaceholder = String(localized: "form.unit_placeholder")
-        public static let dailyTarget = String(localized: "form.daily_target")
-        public static let target = String(localized: "form.target")
-        public static let frequency = String(localized: "form.frequency")
-        public static let daily = String(localized: "form.daily")
-        public static let specificDays = String(localized: "form.specific_days")
-        public static let timesPerWeek = String(localized: "form.times_per_week")
-        public static let timesPerWeekLabel = String(localized: "form.times_per_week_label")
-        public static let selectDays = String(localized: "form.select_days")
-        public static let emoji = String(localized: "form.emoji")
-        public static let color = String(localized: "form.color")
+        public static let basicInformation = String(localized: "formBasicInformation")
+        public static let schedule = String(localized: "formSchedule")
+        public static let appearance = String(localized: "formAppearance")
+        public static let name = String(localized: "formName")
+        public static let habitName = String(localized: "formHabitName")
+        public static let type = String(localized: "formType")
+        public static let yesNo = String(localized: "formYesNo")
+        public static let count = String(localized: "formCount")
+        public static let unit = String(localized: "formUnit")
+        public static let unitPlaceholder = String(localized: "formUnitPlaceholder")
+        public static let dailyTarget = String(localized: "formDailyTarget")
+        public static let target = String(localized: "formTarget")
+        public static let frequency = String(localized: "formFrequency")
+        public static let daily = String(localized: "formDaily")
+        public static let specificDays = String(localized: "formSpecificDays")
+        public static let timesPerWeek = String(localized: "formTimesPerWeek")
+        public static let timesPerWeekLabel = String(localized: "formTimesPerWeekLabel")
+        public static let selectDays = String(localized: "formSelectDays")
+        public static let emoji = String(localized: "formEmoji")
+        public static let color = String(localized: "formColor")
     }
     
     // MARK: - Validation Messages
     public enum Validation {
-        public static let nameRequired = String(localized: "validation.name_required")
-        public static let unitRequired = String(localized: "validation.unit_required")
-        public static let targetGreaterThanZero = String(localized: "validation.target_greater_than_zero")
-        public static let selectAtLeastOneDay = String(localized: "validation.select_at_least_one_day")
+        public static let nameRequired = String(localized: "validationNameRequired")
+        public static let unitRequired = String(localized: "validationUnitRequired")
+        public static let targetGreaterThanZero = String(localized: "validationTargetGreaterThanZero")
+        public static let selectAtLeastOneDay = String(localized: "validationSelectAtLeastOneDay")
     }
     
     // MARK: - Settings
     public enum Settings {
-        public static let profile = String(localized: "settings.profile")
-        public static let firstDayOfWeek = String(localized: "settings.first_day_of_week")
-        public static let appearanceSetting = String(localized: "settings.appearance")
-        public static let followSystem = String(localized: "settings.follow_system")
-        public static let light = String(localized: "settings.light")
-        public static let dark = String(localized: "settings.dark")
-        public static let settingsSaved = String(localized: "settings.saved")
-        public static let notifications = String(localized: "settings.notifications")
-        public static let notificationPermission = String(localized: "settings.notification_permission")
-        public static let notificationsEnabled = String(localized: "settings.notifications_enabled")
-        public static let notificationsDisabled = String(localized: "settings.notifications_disabled")
-        public static let enable = String(localized: "settings.enable")
-        public static let openSettings = String(localized: "settings.open_settings")
+        public static let profile = String(localized: "settingsProfile")
+        public static let firstDayOfWeek = String(localized: "settingsFirstDayOfWeek")
+        public static let appearanceSetting = String(localized: "settingsAppearance")
+        public static let followSystem = String(localized: "settingsFollowSystem")
+        public static let light = String(localized: "settingsLight")
+        public static let dark = String(localized: "settingsDark")
+        public static let settingsSaved = String(localized: "settingsSaved")
+        public static let notifications = String(localized: "settingsNotifications")
+        public static let notificationPermission = String(localized: "settingsNotificationPermission")
+        public static let notificationsEnabled = String(localized: "settingsNotificationsEnabled")
+        public static let notificationsDisabled = String(localized: "settingsNotificationsDisabled")
+        public static let enable = String(localized: "settingsEnable")
+        public static let openSettings = String(localized: "settingsOpenSettings")
     }
     
     // MARK: - Days of Week
     public enum DayOfWeek {
-        public static let monday = String(localized: "day.monday")
-        public static let tuesday = String(localized: "day.tuesday")
-        public static let wednesday = String(localized: "day.wednesday")
-        public static let thursday = String(localized: "day.thursday")
-        public static let friday = String(localized: "day.friday")
-        public static let saturday = String(localized: "day.saturday")
-        public static let sunday = String(localized: "day.sunday")
-        public static let unknown = String(localized: "day.unknown")
+        public static let monday = String(localized: "dayMonday")
+        public static let tuesday = String(localized: "dayTuesday")
+        public static let wednesday = String(localized: "dayWednesday")
+        public static let thursday = String(localized: "dayThursday")
+        public static let friday = String(localized: "dayFriday")
+        public static let saturday = String(localized: "daySaturday")
+        public static let sunday = String(localized: "daySunday")
+        public static let unknown = String(localized: "dayUnknown")
         
         // Day abbreviations
-        public static let mon = String(localized: "day.mon")
-        public static let tue = String(localized: "day.tue")
-        public static let wed = String(localized: "day.wed")
-        public static let thu = String(localized: "day.thu")
-        public static let fri = String(localized: "day.fri")
-        public static let sat = String(localized: "day.sat")
-        public static let sun = String(localized: "day.sun")
+        public static let mon = String(localized: "dayMon")
+        public static let tue = String(localized: "dayTue")
+        public static let wed = String(localized: "dayWed")
+        public static let thu = String(localized: "dayThu")
+        public static let fri = String(localized: "dayFri")
+        public static let sat = String(localized: "daySat")
+        public static let sun = String(localized: "daySun")
     }
     
     // MARK: - Overview/Calendar
     public enum Overview {
-        public static let instructions = String(localized: "overview.instructions")
-        public static let yourHabits = String(localized: "overview.your_habits")
-        public static let calendar = String(localized: "overview.calendar")
-        public static let stats = String(localized: "overview.stats")
-        public static let current = String(localized: "overview.current")
-        public static let best = String(localized: "overview.best")
+        public static let instructions = String(localized: "overviewInstructions")
+        public static let yourHabits = String(localized: "overviewYourHabits")
+        public static let calendar = String(localized: "overviewCalendar")
+        public static let stats = String(localized: "overviewStats")
+        public static let current = String(localized: "overviewCurrent")
+        public static let best = String(localized: "overviewBest")
         
         // Dynamic strings with pluralization
         public static func dayPlural(_ count: Int) -> String {
-            String(localized: "overview.day_plural", defaultValue: "\(count) day(s)")
+            String(localized: "overviewDayPlural", defaultValue: "\(count) day(s)")
         }
     }
     
     // MARK: - Calendar
     public enum Calendar {
-        public static let today = String(localized: "calendar.today")
+        public static let today = String(localized: "calendarToday")
     }
     
     // MARK: - Confirmation Dialogs
     public enum Dialog {
-        public static let deleteHabit = String(localized: "dialog.delete_habit")
-        public static let cannotUndo = String(localized: "dialog.cannot_undo")
+        public static let deleteHabit = String(localized: "dialogDeleteHabit")
+        public static let cannotUndo = String(localized: "dialogCannotUndo")
         
         // Dynamic string with habit name interpolation
         public static func deleteHabitMessage(_ habitName: String) -> String {
-            String(format: String(localized: "dialog.delete_habit_message"), habitName)
+            String(format: String(localized: "dialogDeleteHabitMessage"), habitName)
         }
     }
     
@@ -187,42 +187,42 @@ public enum Strings {
     
     // MARK: - Accessibility
     public enum Accessibility {
-        public static let previousMonth = String(localized: "accessibility.previous_month")
-        public static let nextMonth = String(localized: "accessibility.next_month")
-        public static let addHabit = String(localized: "accessibility.add_habit")
-        public static let goToToday = String(localized: "accessibility.go_to_today")
+        public static let previousMonth = String(localized: "accessibilityPreviousMonth")
+        public static let nextMonth = String(localized: "accessibilityNextMonth")
+        public static let addHabit = String(localized: "accessibilityAddHabit")
+        public static let goToToday = String(localized: "accessibilityGoToToday")
         
         // Dynamic accessibility labels
         public static func calendarDay(_ day: String) -> String {
-            String(format: String(localized: "accessibility.calendar_day"), day)
+            String(format: String(localized: "accessibilityCalendarDay"), day)
         }
         
         public static func habitLogged(_ date: String) -> String {
-            String(format: String(localized: "accessibility.habit_logged"), date)
+            String(format: String(localized: "accessibilityHabitLogged"), date)
         }
         
         public static func habitNotLogged(_ date: String) -> String {
-            String(format: String(localized: "accessibility.habit_not_logged"), date)
+            String(format: String(localized: "accessibilityHabitNotLogged"), date)
         }
         
         public static func habitChip(_ habitName: String) -> String {
-            String(format: String(localized: "accessibility.habit_chip"), habitName)
+            String(format: String(localized: "accessibilityHabitChip"), habitName)
         }
         
         public static func monthHeader(_ monthYear: String) -> String {
-            String(format: String(localized: "accessibility.month_header"), monthYear)
+            String(format: String(localized: "accessibilityMonthHeader"), monthYear)
         }
         
         public static func deleteHabit(_ habitName: String) -> String {
-            String(format: String(localized: "accessibility.delete_habit"), habitName)
+            String(format: String(localized: "accessibilityDeleteHabit"), habitName)
         }
         
         public static func habitStatus(_ habitName: String, _ status: String) -> String {
-            String(format: String(localized: "accessibility.habit_status"), habitName, status)
+            String(format: String(localized: "accessibilityHabitStatus"), habitName, status)
         }
         
         public static func streakInfo(_ currentStreak: String, _ bestStreak: String) -> String {
-            String(format: String(localized: "accessibility.streak_info"), currentStreak, bestStreak)
+            String(format: String(localized: "accessibilityStreakInfo"), currentStreak, bestStreak)
         }
     }
     

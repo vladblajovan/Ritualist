@@ -224,25 +224,25 @@ public struct CalendarDayView: View {
         // Weekly habits and specific days: full color if target met and this day has value, otherwise check progress
         if isWeeklyStyleHabit {
             if isWeeklyTargetMet && currentValue > 0 {
-                return Color(hex: habit.colorHex) ?? AppColors.brand
+                return AppColors.brand
             } else if currentValue > 0 {
-                return (Color(hex: habit.colorHex) ?? AppColors.brand).opacity(0.3)
+                return (AppColors.brand).opacity(0.3)
             }
             return Color.clear
         }
         
         // Binary habits
         if habit.kind == .binary {
-            return isLogged ? Color(hex: habit.colorHex) ?? AppColors.brand : Color.clear
+            return isLogged ? AppColors.brand : Color.clear
         } else {
             // Count habit: show progress-based background
             if currentValue > 0 {
                 if let target = habit.dailyTarget, currentValue >= target {
                     // Target reached: full color
-                    return Color(hex: habit.colorHex) ?? AppColors.brand
+                    return AppColors.brand
                 } else {
                     // Progress made: light background
-                    return (Color(hex: habit.colorHex) ?? AppColors.brand).opacity(0.3)
+                    return (AppColors.brand).opacity(0.3)
                 }
             }
             return Color.clear
@@ -279,7 +279,7 @@ public struct CalendarDayView: View {
         } else if isWeeklyStyleHabit && isWeeklyTargetMet {
             return .white
         } else {
-            return Color(hex: habit.colorHex) ?? AppColors.brand
+            return AppColors.brand
         }
     }
 }

@@ -1,18 +1,21 @@
 import SwiftUI
+import FactoryKit
 
 public enum RootTab: Hashable {
     case overview, habits, settings
 }
 
 public struct RootTabView: View {
-    @Environment(\.appContainer) private var di
+    @Injected(\.getOnboardingState) var getOnboardingState
     @State private var selectedTab: RootTab = .overview
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var overviewKey = 0
+    @Namespace private var glassUnionNamespace
 
     public init() {}
 
+    @ViewBuilder
     public var body: some View {
         Group {
             if isCheckingOnboarding {
@@ -21,25 +24,26 @@ public struct RootTabView: View {
                     .background(Color(.systemBackground))
             } else {
                 TabView(selection: $selectedTab) {
-                    NavigationStack {
-                        OverviewRoot()
-                            .id(overviewKey)
-                    }
-                    .tabItem { Label(Strings.Navigation.overview, systemImage: "calendar") }
-                    .tag(RootTab.overview)
+                    Tab(Strings.Navigation.overview, systemImage: "calendar", value: RootTab.overview) {
+                            NavigationStack {
+                                OverviewRoot()
+                                    .id(overviewKey)
+                            }
+                        }
 
-                    NavigationStack {
-                        HabitsRoot()
-                    }
-                    .tabItem { Label(Strings.Navigation.habits, systemImage: "checklist") }
-                    .tag(RootTab.habits)
+                        Tab(Strings.Navigation.habits, systemImage: "checklist", value: RootTab.habits) {
+                            NavigationStack {
+                                HabitsRoot()
+                            }
+                        }
 
-                    NavigationStack {
-                        SettingsRoot()
-                    }
-                    .tabItem { Label(Strings.Navigation.settings, systemImage: "gear") }
-                    .tag(RootTab.settings)
+                        Tab(Strings.Navigation.settings, systemImage: "gear", value: RootTab.settings) {
+                            NavigationStack {
+                                SettingsRoot()
+                            }
+                        }
                 }
+                .tabBarMinimizeBehavior(.onScrollDown)
             }
         }
         .task {
@@ -52,7 +56,6 @@ public struct RootTabView: View {
         }
         .onChange(of: showOnboarding) { _, isShowing in
             if !isShowing {
-                // Refresh Overview when onboarding completes
                 overviewKey += 1
             }
         }
@@ -60,7 +63,6 @@ public struct RootTabView: View {
     
     private func checkOnboardingStatus() async {
         do {
-            let getOnboardingState = GetOnboardingState(repo: di.onboardingRepository)
             let state = try await getOnboardingState.execute()
             await MainActor.run {
                 showOnboarding = !state.isCompleted
@@ -69,7 +71,7 @@ public struct RootTabView: View {
         } catch {
             print("Failed to check onboarding status: \(error)")
             await MainActor.run {
-                showOnboarding = true // Default to showing onboarding on error
+                showOnboarding = true
                 isCheckingOnboarding = false
             }
         }
@@ -78,5 +80,4 @@ public struct RootTabView: View {
 
 #Preview {
     RootTabView()
-        .environment(\.appContainer, DefaultAppContainer.createMinimal())
 }

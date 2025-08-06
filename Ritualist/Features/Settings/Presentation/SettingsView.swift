@@ -1,66 +1,37 @@
 import SwiftUI
 import UIKit
+import FactoryKit
 
 public struct SettingsRoot: View {
-    private let factory: SettingsFactory?
+    @Injected(\.settingsViewModel) var vm
     
-    public init(factory: SettingsFactory? = nil) { 
-        self.factory = factory
-    }
+    public init() {}
     
     public var body: some View {
-        SettingsContentView(factory: factory)
+        SettingsContentView(vm: vm)
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.large)
+            .task {
+                await vm.load()
+            }
     }
 }
 
 private struct SettingsContentView: View {
-    @Environment(\.appContainer) private var di
-    @State private var vm: SettingsViewModel?
-    @State private var isInitializing = true
-    
-    private let factory: SettingsFactory?
-    
-    init(factory: SettingsFactory?) {
-        self.factory = factory
-    }
+    @Bindable var vm: SettingsViewModel
     
     var body: some View {
-        Group {
-            if isInitializing {
-                ProgressView("Initializing...")
-            } else if let vm = vm {
-                SettingsFormView(vm: vm)
-            } else {
-                ErrorView(
-                    title: "Failed to Initialize",
-                    message: "Unable to set up the settings screen"
-                ) {
-                    await initializeAndLoad()
-                }
-            }
-        }
-        .task {
-            await initializeAndLoad()
-        }
-    }
-    
-    @MainActor
-    private func initializeAndLoad() async {
-        let actualFactory = factory ?? SettingsFactory(container: di)
-        vm = actualFactory.makeViewModel()
-        await vm?.load()
-        isInitializing = false
+        SettingsFormView(vm: vm)
     }
 }
 
 private struct SettingsFormView: View {
-    @Environment(\.appContainer) private var appContainer
     @Bindable var vm: SettingsViewModel
     @FocusState private var isNameFieldFocused: Bool
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
     @State private var paywallItem: PaywallItem?
+    @Injected(\.paywallViewModel) var paywallViewModel
     
     // Local form state
     @State private var name = ""
@@ -296,16 +267,9 @@ private struct SettingsFormView: View {
     // MARK: - Helper Methods
     
     private func showPaywall() {
-        // Create the viewModel and load data before showing
         Task { @MainActor in
-            let factory = PaywallFactory(container: appContainer)
-            let viewModel = factory.makeViewModel()
-            
-            // Load data first
-            await viewModel.load()
-            
-            // Use item-based presentation
-            paywallItem = PaywallItem(viewModel: viewModel)
+            await paywallViewModel.load()
+            paywallItem = PaywallItem(viewModel: paywallViewModel)
         }
     }
     
@@ -341,10 +305,11 @@ private struct SettingsFormView: View {
         // Also update the user service name
         await vm.updateUserName(name)
         
-        // Update app appearance
-        await MainActor.run {
-            appContainer.appearanceManager.updateFromProfile(vm.profile)
-        }
+        // TODO: Update app appearance via SettingsViewModel instead of direct access
+        // The ViewModel should handle appearance updates internally
+        // await MainActor.run {
+        //     appContainer.appearanceManager.updateFromProfile(vm.profile)
+        // }
         
         // Update local state to reflect saved values
         updateLocalState()
@@ -397,7 +362,5 @@ private struct SettingsSavedConfirmationView: View {
 }
 
 #Preview {
-    let container = DefaultAppContainer.createMinimal()
-    return SettingsRoot(factory: SettingsFactory(container: container))
-        .environment(\.appContainer, container)
+    SettingsRoot()
 }

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import FactoryKit
 
 @MainActor @Observable
 public final class SettingsViewModel {
@@ -8,7 +9,7 @@ public final class SettingsViewModel {
     private let requestNotificationPermission: RequestNotificationPermissionUseCase
     private let checkNotificationStatus: CheckNotificationStatusUseCase
     private let userService: UserService
-    private let appContainer: AppContainer
+    @ObservationIgnored @Injected(\.paywallService) var paywallService
 
     public var profile = UserProfile()
     public private(set) var isLoading = false
@@ -30,14 +31,12 @@ public final class SettingsViewModel {
                 saveProfile: SaveProfileUseCase, 
                 requestNotificationPermission: RequestNotificationPermissionUseCase,
                 checkNotificationStatus: CheckNotificationStatusUseCase,
-                userService: UserService, 
-                appContainer: AppContainer) {
+                userService: UserService) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
         self.requestNotificationPermission = requestNotificationPermission
         self.checkNotificationStatus = checkNotificationStatus
         self.userService = userService
-        self.appContainer = appContainer
     }
     
     public func load() async {
@@ -171,7 +170,7 @@ public final class SettingsViewModel {
             try await userService.updateSubscription(plan: .free, expiryDate: nil)
             
             // Clear any stored purchases from the paywall service
-            appContainer.paywallService.clearPurchases()
+            paywallService.clearPurchases()
         } catch {
             self.error = error
         }
