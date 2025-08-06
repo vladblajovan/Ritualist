@@ -315,10 +315,23 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     }
     
     public func getAnalysisPreferences(for userId: UUID) async throws -> PersonalityAnalysisPreferences? {
-        return nil // No preferences saved
+        let key = "personality_preferences_\(userId.uuidString)"
+        if let data = UserDefaults.standard.data(forKey: key),
+           let preferences = try? JSONDecoder().decode(PersonalityAnalysisPreferences.self, from: data) {
+            print("🔍 Repository loaded from UserDefaults: frequency=\(preferences.analysisFrequency.rawValue)")
+            return preferences
+        }
+        print("🔍 Repository: No saved preferences, returning nil")
+        return nil
     }
     
     public func saveAnalysisPreferences(_ preferences: PersonalityAnalysisPreferences) async throws {
-        // Stub implementation
+        let key = "personality_preferences_\(preferences.userId.uuidString)"
+        if let data = try? JSONEncoder().encode(preferences) {
+            UserDefaults.standard.set(data, forKey: key)
+            print("🔍 Repository saved to UserDefaults: frequency=\(preferences.analysisFrequency.rawValue)")
+        } else {
+            throw NSError(domain: "PersonalityRepository", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode preferences"])
+        }
     }
 }

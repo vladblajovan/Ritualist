@@ -138,8 +138,10 @@ extension Container {
             PersonalityInsightsViewModel(
                 analyzePersonalityUseCase: self.analyzePersonalityUseCase(),
                 getPersonalityProfileUseCase: self.getPersonalityProfileUseCase(),
-                validateAnalysisDataUseCase: self.validateAnalysisDataUseCase()
+                validateAnalysisDataUseCase: self.validateAnalysisDataUseCase(),
+                personalityRepository: self.personalityAnalysisRepository()
             )
         }
+        .singleton
     }
 }

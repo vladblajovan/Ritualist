@@ -10,39 +10,69 @@ import FactoryKit
 
 struct PersonalityInsightsSettingsRow: View {
     @State private var showingPersonalityInsights = false
-    @Injected(\.personalityInsightsViewModel) private var personalityVM
+    @StateObject private var personalityVM = resolve(\.personalityInsightsViewModel)
     
     var body: some View {
-        Button {
-            showingPersonalityInsights = true
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "person.crop.circle.badge.questionmark")
-                    .foregroundColor(.blue)
-                    .font(.title2)
-                    .frame(width: 24)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Personality Analysis")
-                        .font(.headline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
+        let isEnabled = personalityVM.preferences?.isEnabled ?? false
+        
+        VStack(spacing: 0) {
+            // Main personality insights row
+            Button {
+                showingPersonalityInsights = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: isEnabled ? "person.crop.circle.badge.questionmark" : "person.crop.circle.badge.xmark")
+                        .foregroundColor(isEnabled ? .blue : .gray)
+                        .font(.title2)
+                        .frame(width: 24)
                     
-                    Text("Discover your Big Five personality traits")
-                        .font(.subheadline)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Personality Analysis")
+                            .font(.headline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: isEnabled ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .font(.caption)
+                                .foregroundColor(isEnabled ? .green : .red)
+                            
+                            Text(isEnabled ? "Analysis enabled - Tap to view insights" : "Analysis disabled - Tap to enable")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            
+        }
+        .onAppear {
+            Task {
+                await personalityVM.loadPreferences()
             }
         }
-        .buttonStyle(.plain)
+        .onReceive(personalityVM.$preferences) { _ in
+            // Force refresh when preferences change
+        }
         .sheet(isPresented: $showingPersonalityInsights) {
             PersonalityInsightsView(viewModel: personalityVM)
+        }
+    }
+    
+    // MARK: - Helper Properties
+    
+    private var privacyStatusText: String {
+        if personalityVM.isAnalysisEnabled {
+            return "Analysis enabled - Tap to view insights"
+        } else {
+            return "Analysis disabled - Tap to enable"
         }
     }
 }

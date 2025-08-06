@@ -285,17 +285,113 @@ public struct HabitCompletionStats: Codable {
 }
 
 /// User preferences for personality analysis
-public struct PersonalityAnalysisPreferences: Codable {
+public struct PersonalityAnalysisPreferences: Identifiable, Codable, Hashable {
+    public let id: UUID
     public let userId: UUID
+    
+    // Core Privacy Controls
     public let isEnabled: Bool
-    public let shareInsights: Bool
     public let analysisFrequency: AnalysisFrequency
     
-    public init(userId: UUID, isEnabled: Bool = true, shareInsights: Bool = false, analysisFrequency: AnalysisFrequency = .weekly) {
+    // Data Control & Retention
+    public let dataRetentionDays: Int // 30, 90, 365, -1 for forever
+    public let allowDataCollection: Bool
+    public let pausedUntil: Date?
+    
+    // Analysis Customization
+    public let enabledTraits: Set<PersonalityTrait>
+    public let sensitivityLevel: AnalysisSensitivity
+    
+    // Transparency & Sharing
+    public let shareInsights: Bool
+    public let allowFutureEnhancements: Bool
+    public let showDataUsage: Bool
+    
+    // Privacy Tracking
+    public let createdAt: Date
+    public let updatedAt: Date
+    public let lastAnalysisDate: Date?
+    
+    public init(
+        id: UUID = UUID(),
+        userId: UUID,
+        isEnabled: Bool = true,
+        analysisFrequency: AnalysisFrequency = .weekly,
+        dataRetentionDays: Int = 365,
+        allowDataCollection: Bool = true,
+        pausedUntil: Date? = nil,
+        enabledTraits: Set<PersonalityTrait> = Set(PersonalityTrait.allCases),
+        sensitivityLevel: AnalysisSensitivity = .standard,
+        shareInsights: Bool = false,
+        allowFutureEnhancements: Bool = true,
+        showDataUsage: Bool = true,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        lastAnalysisDate: Date? = nil
+    ) {
+        self.id = id
         self.userId = userId
         self.isEnabled = isEnabled
-        self.shareInsights = shareInsights
         self.analysisFrequency = analysisFrequency
+        self.dataRetentionDays = dataRetentionDays
+        self.allowDataCollection = allowDataCollection
+        self.pausedUntil = pausedUntil
+        self.enabledTraits = enabledTraits
+        self.sensitivityLevel = sensitivityLevel
+        self.shareInsights = shareInsights
+        self.allowFutureEnhancements = allowFutureEnhancements
+        self.showDataUsage = showDataUsage
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.lastAnalysisDate = lastAnalysisDate
+    }
+    
+    /// Whether analysis is currently active (not paused and enabled)
+    public var isCurrentlyActive: Bool {
+        guard isEnabled else { return false }
+        if let pausedUntil = pausedUntil {
+            return Date() > pausedUntil
+        }
+        return true
+    }
+    
+    /// Whether data should be retained based on retention policy
+    public func shouldRetainData(analysisDate: Date) -> Bool {
+        guard dataRetentionDays != -1 else { return true } // Forever
+        let cutoffDate = Calendar.current.date(byAdding: .day, value: -dataRetentionDays, to: Date()) ?? Date()
+        return analysisDate >= cutoffDate
+    }
+    
+    /// Update preferences with new values
+    public func updated(
+        isEnabled: Bool? = nil,
+        analysisFrequency: AnalysisFrequency? = nil,
+        dataRetentionDays: Int? = nil,
+        allowDataCollection: Bool? = nil,
+        pausedUntil: Date? = nil,
+        enabledTraits: Set<PersonalityTrait>? = nil,
+        sensitivityLevel: AnalysisSensitivity? = nil,
+        shareInsights: Bool? = nil,
+        allowFutureEnhancements: Bool? = nil,
+        showDataUsage: Bool? = nil
+    ) -> PersonalityAnalysisPreferences {
+        return PersonalityAnalysisPreferences(
+            id: self.id,
+            userId: self.userId,
+            isEnabled: isEnabled ?? self.isEnabled,
+            analysisFrequency: analysisFrequency ?? self.analysisFrequency,
+            dataRetentionDays: dataRetentionDays ?? self.dataRetentionDays,
+            allowDataCollection: allowDataCollection ?? self.allowDataCollection,
+            pausedUntil: pausedUntil ?? self.pausedUntil,
+            enabledTraits: enabledTraits ?? self.enabledTraits,
+            sensitivityLevel: sensitivityLevel ?? self.sensitivityLevel,
+            shareInsights: shareInsights ?? self.shareInsights,
+            allowFutureEnhancements: allowFutureEnhancements ?? self.allowFutureEnhancements,
+            showDataUsage: showDataUsage ?? self.showDataUsage,
+            createdAt: self.createdAt,
+            updatedAt: Date(),
+            lastAnalysisDate: self.lastAnalysisDate
+        )
     }
 }
 
@@ -305,4 +401,54 @@ public enum AnalysisFrequency: String, CaseIterable, Codable {
     case weekly = "weekly"
     case monthly = "monthly"
     case manual = "manual"
+    
+    public var displayName: String {
+        switch self {
+        case .daily: return "Daily"
+        case .weekly: return "Weekly"
+        case .monthly: return "Monthly"
+        case .manual: return "Manual Only"
+        }
+    }
+    
+    public var description: String {
+        switch self {
+        case .daily: return "Analyze personality patterns daily"
+        case .weekly: return "Weekly analysis for balanced insights"
+        case .monthly: return "Monthly deep analysis"
+        case .manual: return "Only when you choose to analyze"
+        }
+    }
+}
+
+/// Analysis sensitivity levels for privacy control
+public enum AnalysisSensitivity: String, CaseIterable, Codable {
+    case minimal = "minimal"
+    case standard = "standard"
+    case detailed = "detailed"
+    
+    public var displayName: String {
+        switch self {
+        case .minimal: return "Minimal"
+        case .standard: return "Standard"
+        case .detailed: return "Detailed"
+        }
+    }
+    
+    public var description: String {
+        switch self {
+        case .minimal: return "Basic trait analysis only"
+        case .standard: return "Balanced analysis with key insights"
+        case .detailed: return "Comprehensive analysis with all factors"
+        }
+    }
+    
+    /// Minimum confidence threshold for this sensitivity level
+    public var confidenceThreshold: Double {
+        switch self {
+        case .minimal: return 0.4
+        case .standard: return 0.6
+        case .detailed: return 0.8
+        }
+    }
 }

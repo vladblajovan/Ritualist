@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import FactoryKit
 
 /// Main view for displaying personality insights in Settings
 public struct PersonalityInsightsView: View {
     
     @StateObject private var viewModel: PersonalityInsightsViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showingPrivacy = false
     
     public init(viewModel: PersonalityInsightsViewModel) {
         self._viewModel = StateObject(wrappedValue: viewModel)
@@ -19,27 +21,67 @@ public struct PersonalityInsightsView: View {
     
     public var body: some View {
         NavigationView {
-            Group {
-                switch viewModel.viewState {
-                case .loading:
-                    ProgressView("Analyzing your personality...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack {
+                // Status Banner
+                HStack {
+                    Image(systemName: viewModel.isAnalysisEnabled ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundColor(viewModel.isAnalysisEnabled ? .green : .red)
                     
-                case .insufficientData(let requirements, let estimatedDays):
-                    ScrollView {
-                        DataThresholdPlaceholderView(
-                            requirements: requirements,
-                            estimatedDays: estimatedDays
-                        )
+                    Text(viewModel.isAnalysisEnabled ? "Analysis is enabled" : "Analysis is disabled")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    
+                    Spacer()
+                }
+                .padding()
+                .background(viewModel.isAnalysisEnabled ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
+                .cornerRadius(8)
+                .padding(.horizontal)
+                
+                // Main Content
+                Group {
+                    if !viewModel.isAnalysisEnabled {
+                        // Disabled State
+                        VStack(spacing: 20) {
+                            Image(systemName: "person.crop.circle.badge.xmark")
+                                .font(.system(size: 60))
+                                .foregroundColor(.secondary)
+                            
+                            Text("Personality Analysis Disabled")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            
+                            Text("Enable analysis to discover your Big Five personality traits based on your habit patterns.")
+                                .font(.body)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.secondary)
+                        }
                         .padding()
-                    }
-                    
-                case .ready(let profile):
-                    PersonalityProfileView(profile: profile)
-                    
-                case .error(let error):
-                    PersonalityErrorView(error: error) {
-                        await viewModel.refresh()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        // Enabled State - Show normal content
+                        switch viewModel.viewState {
+                        case .loading:
+                            ProgressView("Analyzing your personality...")
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            
+                        case .insufficientData(let requirements, let estimatedDays):
+                            ScrollView {
+                                DataThresholdPlaceholderView(
+                                    requirements: requirements,
+                                    estimatedDays: estimatedDays
+                                )
+                                .padding()
+                            }
+                            
+                        case .ready(let profile):
+                            PersonalityProfileView(profile: profile)
+                            
+                        case .error(let error):
+                            PersonalityErrorView(error: error) {
+                                await viewModel.refresh()
+                            }
+                        }
                     }
                 }
             }
@@ -47,17 +89,21 @@ public struct PersonalityInsightsView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+                    HStack {
+                        Button("Privacy") {
+                            showingPrivacy = true
+                        }
+                        
+                        Button("Done") {
+                            dismiss()
+                        }
                     }
                 }
                 
-                if case .ready = viewModel.viewState {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Refresh") {
-                            Task {
-                                await viewModel.refresh()
-                            }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(viewModel.isAnalysisEnabled ? "Disable" : "Enable") {
+                        Task {
+                            await viewModel.toggleAnalysis()
                         }
                     }
                 }
@@ -66,6 +112,91 @@ public struct PersonalityInsightsView: View {
         .task {
             await viewModel.loadPersonalityInsights()
         }
+        .sheet(isPresented: $showingPrivacy) {
+            BasicPrivacyView()
+        }
+    }
+}
+
+// MARK: - Basic Privacy View (Step 1)
+
+private struct BasicPrivacyView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Injected(\.personalityInsightsViewModel) private var viewModel: PersonalityInsightsViewModel
+    @State private var allowDataCollection = true
+    @State private var analysisFrequency: AnalysisFrequency = .weekly
+    @State private var hasLoaded = false
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section {
+                    Toggle("Allow Data Collection", isOn: $allowDataCollection)
+                } footer: {
+                    Text("Control whether new habit data can be used for personality analysis.")
+                }
+                
+                Section {
+                    NavigationLink {
+                        FrequencySelectionView(selectedFrequency: $analysisFrequency)
+                            .onDisappear {
+                                print("🔍 NavigationLink returning with frequency: \(analysisFrequency.rawValue)")
+                            }
+                    } label: {
+                        HStack {
+                            Text("Analysis Frequency")
+                            Spacer()
+                            Text(analysisFrequency.displayName)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } footer: {
+                    Text("How often personality analysis is performed.")
+                }
+            }
+            .navigationTitle("Privacy")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        Task { await save() }
+                    }
+                }
+            }
+            .task { 
+                if !hasLoaded {
+                    await load()
+                    hasLoaded = true
+                }
+            }
+        }
+    }
+    
+    @MainActor
+    private func load() async {
+        await viewModel.loadPreferences()
+        if let prefs = viewModel.preferences {
+            allowDataCollection = prefs.allowDataCollection
+            analysisFrequency = prefs.analysisFrequency
+            print("🔍 BasicPrivacyView loaded - allowDataCollection: \(allowDataCollection), frequency: \(analysisFrequency.rawValue)")
+        } else {
+            print("🔍 BasicPrivacyView loaded - no preferences found, using defaults")
+        }
+    }
+    
+    @MainActor
+    private func save() async {
+        guard let current = viewModel.preferences else { return }
+        print("🔍 BasicPrivacyView saving - allowDataCollection: \(allowDataCollection), frequency: \(analysisFrequency.rawValue)")
+        let updated = current.updated(
+            analysisFrequency: analysisFrequency, allowDataCollection: allowDataCollection
+        )
+        await viewModel.savePreferences(updated)
+        dismiss()
     }
 }
 
@@ -402,4 +533,45 @@ private extension DateFormatter {
     )
     
     PersonalityProfileView(profile: sampleProfile)
+}
+
+// MARK: - Frequency Selection View
+
+private struct FrequencySelectionView: View {
+    @Binding var selectedFrequency: AnalysisFrequency
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        List {
+            ForEach(AnalysisFrequency.allCases, id: \.self) { frequency in
+                Button {
+                    print("🔍 User selected frequency: \(frequency.rawValue)")
+                    selectedFrequency = frequency
+                    dismiss()
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(frequency.displayName)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                            Text(frequency.description)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        if selectedFrequency == frequency {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .navigationTitle("Analysis Frequency")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            print("🔍 FrequencySelectionView appeared with: \(selectedFrequency.rawValue)")
+        }
+    }
 }

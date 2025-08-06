@@ -13,6 +13,9 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     // MARK: - Published Properties
     
     @Published public var viewState: ViewState = .loading
+    @Published public var preferences: PersonalityAnalysisPreferences?
+    @Published public var isLoadingPreferences = false
+    @Published public var isSavingPreferences = false
     
     // MARK: - View State
     
@@ -28,6 +31,7 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     private let analyzePersonalityUseCase: AnalyzePersonalityUseCase
     private let getPersonalityProfileUseCase: GetPersonalityProfileUseCase
     private let validateAnalysisDataUseCase: ValidateAnalysisDataUseCase
+    private let personalityRepository: PersonalityAnalysisRepositoryProtocol
     private let currentUserId: UUID // In real app, this would come from user session
     
     // MARK: - Initialization
@@ -36,11 +40,13 @@ public final class PersonalityInsightsViewModel: ObservableObject {
         analyzePersonalityUseCase: AnalyzePersonalityUseCase,
         getPersonalityProfileUseCase: GetPersonalityProfileUseCase,
         validateAnalysisDataUseCase: ValidateAnalysisDataUseCase,
+        personalityRepository: PersonalityAnalysisRepositoryProtocol,
         currentUserId: UUID = UUID() // TODO: Replace with actual user ID
     ) {
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
         self.getPersonalityProfileUseCase = getPersonalityProfileUseCase
         self.validateAnalysisDataUseCase = validateAnalysisDataUseCase
+        self.personalityRepository = personalityRepository
         self.currentUserId = currentUserId
     }
     
@@ -138,5 +144,121 @@ public final class PersonalityInsightsViewModel: ObservableObject {
             return requirements
         }
         return nil
+    }
+    
+    // MARK: - Privacy Management
+    
+    public func loadPreferences() async {
+        await MainActor.run {
+            isLoadingPreferences = true
+        }
+        
+        do {
+            let loadedPreferences = try await personalityRepository.getAnalysisPreferences(for: currentUserId)
+            
+            await MainActor.run {
+                if let loadedPreferences = loadedPreferences {
+                    preferences = loadedPreferences
+                } else {
+                    // Create default preferences
+                    let defaultPreferences = PersonalityAnalysisPreferences(userId: currentUserId)
+                    preferences = defaultPreferences
+                    
+                    // Save defaults in background
+                    Task {
+                        try? await personalityRepository.saveAnalysisPreferences(defaultPreferences)
+                    }
+                }
+                isLoadingPreferences = false
+            }
+        } catch {
+            print("Error loading preferences: \(error)")
+            await MainActor.run {
+                // Create default preferences on error
+                preferences = PersonalityAnalysisPreferences(userId: currentUserId)
+                isLoadingPreferences = false
+            }
+        }
+    }
+    
+    public func savePreferences(_ newPreferences: PersonalityAnalysisPreferences) async {
+        await MainActor.run {
+            isSavingPreferences = true
+        }
+        
+        print("🔍 ViewModel saving preferences: enabled=\(newPreferences.isEnabled), frequency=\(newPreferences.analysisFrequency.rawValue)")
+        
+        do {
+            try await personalityRepository.saveAnalysisPreferences(newPreferences)
+            print("🔍 Repository save completed successfully")
+            
+            await MainActor.run {
+                preferences = newPreferences
+                isSavingPreferences = false
+            }
+            
+            print("🔍 ViewModel preferences updated to: enabled=\(newPreferences.isEnabled), frequency=\(newPreferences.analysisFrequency.rawValue)")
+            
+            // If analysis was disabled, we might need to update the view state
+            if !newPreferences.isCurrentlyActive {
+                await loadPersonalityInsights()
+            }
+        } catch {
+            print("🔍 Error saving preferences: \(error)")
+            await MainActor.run {
+                isSavingPreferences = false
+            }
+        }
+    }
+    
+    public func deleteAllPersonalityData() async {
+        do {
+            // Delete all personality profiles
+            try await personalityRepository.deleteAllPersonalityProfiles(for: currentUserId)
+            
+            // Reset view state to trigger fresh analysis
+            await loadPersonalityInsights()
+        } catch {
+            print("Error deleting personality data: \(error)")
+        }
+    }
+    
+    public func pauseAnalysisUntil(_ date: Date) async {
+        guard let currentPrefs = preferences else { return }
+        
+        let updatedPrefs = currentPrefs.updated(pausedUntil: date)
+        await savePreferences(updatedPrefs)
+    }
+    
+    public func resumeAnalysis() async {
+        guard let currentPrefs = preferences else { return }
+        
+        let updatedPrefs = currentPrefs.updated(pausedUntil: nil)
+        await savePreferences(updatedPrefs)
+    }
+    
+    public func toggleAnalysis() async {
+        guard let currentPrefs = preferences else { return }
+        
+        let updatedPrefs = currentPrefs.updated(isEnabled: !currentPrefs.isEnabled)
+        await savePreferences(updatedPrefs)
+    }
+    
+    // MARK: - Privacy Helper Properties
+    
+    public var isAnalysisEnabled: Bool {
+        return preferences?.isEnabled ?? true
+    }
+    
+    public var isAnalysisCurrentlyActive: Bool {
+        return preferences?.isCurrentlyActive ?? false
+    }
+    
+    public var analysisFrequency: AnalysisFrequency {
+        return preferences?.analysisFrequency ?? .weekly
+    }
+    
+    public var shouldShowDataUsage: Bool {
+        return preferences?.showDataUsage ?? true
     }
 }
