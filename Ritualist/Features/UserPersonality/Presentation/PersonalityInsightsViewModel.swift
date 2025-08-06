@@ -32,6 +32,7 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     private let getPersonalityProfileUseCase: GetPersonalityProfileUseCase
     private let validateAnalysisDataUseCase: ValidateAnalysisDataUseCase
     private let personalityRepository: PersonalityAnalysisRepositoryProtocol
+    private let scheduler: PersonalityAnalysisSchedulerProtocol
     private let currentUserId: UUID // In real app, this would come from user session
     
     // MARK: - Initialization
@@ -41,12 +42,14 @@ public final class PersonalityInsightsViewModel: ObservableObject {
         getPersonalityProfileUseCase: GetPersonalityProfileUseCase,
         validateAnalysisDataUseCase: ValidateAnalysisDataUseCase,
         personalityRepository: PersonalityAnalysisRepositoryProtocol,
-        currentUserId: UUID = UUID() // TODO: Replace with actual user ID
+        scheduler: PersonalityAnalysisSchedulerProtocol,
+        currentUserId: UUID = UUID()
     ) {
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
         self.getPersonalityProfileUseCase = getPersonalityProfileUseCase
         self.validateAnalysisDataUseCase = validateAnalysisDataUseCase
         self.personalityRepository = personalityRepository
+        self.scheduler = scheduler
         self.currentUserId = currentUserId
     }
     
@@ -55,7 +58,17 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     public func loadPersonalityInsights() async {
         viewState = .loading
         
+        // Always load preferences first to get current analysis state
+        await loadPreferences()
+        
+        // Check if analysis is disabled - exit early and let UI handle disabled state
+        guard isAnalysisEnabled else {
+            viewState = .loading // UI will show disabled state based on isAnalysisEnabled
+            return
+        }
+        
         do {
+            
             // First check if user has existing profile
             if let existingProfile = try await getPersonalityProfileUseCase.execute(for: currentUserId) {
                 viewState = .ready(profile: existingProfile)
@@ -156,21 +169,32 @@ public final class PersonalityInsightsViewModel: ObservableObject {
         do {
             let loadedPreferences = try await personalityRepository.getAnalysisPreferences(for: currentUserId)
             
-            await MainActor.run {
-                if let loadedPreferences = loadedPreferences {
+            if let loadedPreferences = loadedPreferences {
+                await MainActor.run {
                     preferences = loadedPreferences
-                } else {
-                    // Create default preferences
-                    let defaultPreferences = PersonalityAnalysisPreferences(userId: currentUserId)
-                    preferences = defaultPreferences
-                    
-                    // Save defaults in background
-                    Task {
-                        try? await personalityRepository.saveAnalysisPreferences(defaultPreferences)
-                    }
+                    isLoadingPreferences = false
                 }
-                isLoadingPreferences = false
+            } else {
+                // Create default preferences
+                let defaultPreferences = PersonalityAnalysisPreferences(userId: currentUserId)
+                
+                // Save defaults immediately to persist them
+                try? await personalityRepository.saveAnalysisPreferences(defaultPreferences)
+                
+                await MainActor.run {
+                    preferences = defaultPreferences
+                    isLoadingPreferences = false
+                }
+                
+                // Start scheduling with default preferences
+                await scheduler.startScheduling(for: currentUserId)
             }
+            
+            // Start scheduling if analysis is enabled
+            if let prefs = preferences, prefs.isCurrentlyActive {
+                await scheduler.startScheduling(for: currentUserId)
+            }
+            
         } catch {
             print("Error loading preferences: \(error)")
             await MainActor.run {
@@ -186,25 +210,23 @@ public final class PersonalityInsightsViewModel: ObservableObject {
             isSavingPreferences = true
         }
         
-        print("🔍 ViewModel saving preferences: enabled=\(newPreferences.isEnabled), frequency=\(newPreferences.analysisFrequency.rawValue)")
-        
         do {
             try await personalityRepository.saveAnalysisPreferences(newPreferences)
-            print("🔍 Repository save completed successfully")
             
             await MainActor.run {
                 preferences = newPreferences
                 isSavingPreferences = false
             }
             
-            print("🔍 ViewModel preferences updated to: enabled=\(newPreferences.isEnabled), frequency=\(newPreferences.analysisFrequency.rawValue)")
+            // Update scheduler based on new preferences
+            await scheduler.updateScheduling(for: currentUserId, preferences: newPreferences)
             
             // If analysis was disabled, we might need to update the view state
             if !newPreferences.isCurrentlyActive {
                 await loadPersonalityInsights()
             }
         } catch {
-            print("🔍 Error saving preferences: \(error)")
+            print("Error saving preferences: \(error)")
             await MainActor.run {
                 isSavingPreferences = false
             }
@@ -240,8 +262,14 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     public func toggleAnalysis() async {
         guard let currentPrefs = preferences else { return }
         
-        let updatedPrefs = currentPrefs.updated(isEnabled: !currentPrefs.isEnabled)
+        let newEnabledState = !currentPrefs.isEnabled
+        let updatedPrefs = currentPrefs.updated(isEnabled: newEnabledState)
         await savePreferences(updatedPrefs)
+        
+        // If we just enabled analysis, try to load insights
+        if newEnabledState {
+            await loadPersonalityInsights()
+        }
     }
     
     // MARK: - Privacy Helper Properties
@@ -261,4 +289,33 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     public var shouldShowDataUsage: Bool {
         return preferences?.showDataUsage ?? true
     }
+    
+    // MARK: - Scheduling Helper Properties
+    
+    public func getNextScheduledAnalysisDate() async -> Date? {
+        return await scheduler.getNextScheduledAnalysis(for: currentUserId)
+    }
+    
+    public func triggerManualAnalysisCheck() async {
+        let timestamp = Date().timeIntervalSince1970
+        print("🔄 Manual refresh triggered at \(timestamp)")
+        
+        // Check if user is in manual mode - if so, force analysis
+        if let prefs = preferences, prefs.analysisFrequency == .manual {
+            print("🔄 Using forceManualAnalysis for manual mode")
+            await scheduler.forceManualAnalysis(for: currentUserId)
+        } else {
+            print("🔄 Using regular triggerAnalysisCheck")
+            // For other frequencies, use regular check
+            await scheduler.triggerAnalysisCheck(for: currentUserId)
+        }
+        
+        print("🔄 Analysis check completed, refreshing view state")
+        // Refresh view state after potential analysis
+        await loadPersonalityInsights()
+        
+        let endTimestamp = Date().timeIntervalSince1970
+        print("🔄 Manual refresh completed at \(endTimestamp), duration: \(endTimestamp - timestamp)s")
+    }
+    
 }

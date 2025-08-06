@@ -16,4 +16,15 @@ extension Container {
         self { DefaultDataThresholdValidator(repository: self.personalityAnalysisRepository()) }
             .singleton
     }
+    
+    var personalityAnalysisScheduler: Factory<PersonalityAnalysisSchedulerProtocol> {
+        self { 
+            PersonalityAnalysisScheduler(
+                personalityRepository: self.personalityAnalysisRepository(),
+                analyzePersonalityUseCase: self.analyzePersonalityUseCase(),
+                validateAnalysisDataUseCase: self.validateAnalysisDataUseCase()
+            )
+        }
+        .singleton
+    }
 }

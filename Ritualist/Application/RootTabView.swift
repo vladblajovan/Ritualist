@@ -8,9 +8,11 @@ public enum RootTab: Hashable {
 public struct RootTabView: View {
     @Injected(\.getOnboardingState) var getOnboardingState
     @StateObject private var navigationService = Container.shared.navigationService()
+    @StateObject private var deepLinkCoordinator = PersonalityDeepLinkCoordinator.shared
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var overviewKey = 0
+    @State private var showingPersonalityAnalysis = false
     @Namespace private var glassUnionNamespace
 
     public init() {}
@@ -57,6 +59,36 @@ public struct RootTabView: View {
         .onChange(of: showOnboarding) { _, isShowing in
             if !isShowing {
                 overviewKey += 1
+            }
+        }
+        .onChange(of: deepLinkCoordinator.shouldShowPersonalityAnalysis) { oldValue, shouldShow in
+            if !shouldShow {
+                // Handle dismissal
+                showingPersonalityAnalysis = false
+            } else if shouldShow {
+                // Navigate to settings tab first
+                navigationService.selectedTab = .settings
+                // Small delay to ensure tab switch completes
+                Task {
+                    try? await Task.sleep(for: .milliseconds(100))
+                    await MainActor.run {
+                        showingPersonalityAnalysis = true
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingPersonalityAnalysis) {
+            PersonalityAnalysisDeepLinkSheet(
+                action: deepLinkCoordinator.pendingNotificationAction
+            ) {
+                deepLinkCoordinator.clearPendingNavigation()
+                showingPersonalityAnalysis = false
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Check for pending navigation when app enters foreground
+            if deepLinkCoordinator.processPendingNavigation() {
+                // Already handled by onChange above
             }
         }
     }

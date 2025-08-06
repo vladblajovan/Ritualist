@@ -90,9 +90,20 @@ public struct PersonalityInsightsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
+                        // Show Refresh button when analysis is enabled
+                        if viewModel.isAnalysisEnabled {
+                            Button("Refresh") {
+                                Task {
+                                    await viewModel.triggerManualAnalysisCheck()
+                                }
+                            }
+                            .disabled(viewModel.isLoading)
+                        }
+                        
                         Button("Privacy") {
                             showingPrivacy = true
                         }
+                        .disabled(!viewModel.isAnalysisEnabled)
                         
                         Button("Done") {
                             dismiss()
@@ -139,9 +150,6 @@ private struct BasicPrivacyView: View {
                 Section {
                     NavigationLink {
                         FrequencySelectionView(selectedFrequency: $analysisFrequency)
-                            .onDisappear {
-                                print("🔍 NavigationLink returning with frequency: \(analysisFrequency.rawValue)")
-                            }
                     } label: {
                         HStack {
                             Text("Analysis Frequency")
@@ -182,16 +190,13 @@ private struct BasicPrivacyView: View {
         if let prefs = viewModel.preferences {
             allowDataCollection = prefs.allowDataCollection
             analysisFrequency = prefs.analysisFrequency
-            print("🔍 BasicPrivacyView loaded - allowDataCollection: \(allowDataCollection), frequency: \(analysisFrequency.rawValue)")
         } else {
-            print("🔍 BasicPrivacyView loaded - no preferences found, using defaults")
         }
     }
     
     @MainActor
     private func save() async {
         guard let current = viewModel.preferences else { return }
-        print("🔍 BasicPrivacyView saving - allowDataCollection: \(allowDataCollection), frequency: \(analysisFrequency.rawValue)")
         let updated = current.updated(
             analysisFrequency: analysisFrequency, allowDataCollection: allowDataCollection
         )
@@ -545,7 +550,6 @@ private struct FrequencySelectionView: View {
         List {
             ForEach(AnalysisFrequency.allCases, id: \.self) { frequency in
                 Button {
-                    print("🔍 User selected frequency: \(frequency.rawValue)")
                     selectedFrequency = frequency
                     dismiss()
                 } label: {
@@ -570,8 +574,5 @@ private struct FrequencySelectionView: View {
         }
         .navigationTitle("Analysis Frequency")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            print("🔍 FrequencySelectionView appeared with: \(selectedFrequency.rawValue)")
-        }
     }
 }

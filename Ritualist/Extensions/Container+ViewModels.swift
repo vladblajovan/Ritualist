@@ -139,7 +139,8 @@ extension Container {
                 analyzePersonalityUseCase: self.analyzePersonalityUseCase(),
                 getPersonalityProfileUseCase: self.getPersonalityProfileUseCase(),
                 validateAnalysisDataUseCase: self.validateAnalysisDataUseCase(),
-                personalityRepository: self.personalityAnalysisRepository()
+                personalityRepository: self.personalityAnalysisRepository(),
+                scheduler: self.personalityAnalysisScheduler()
             )
         }
         .singleton
