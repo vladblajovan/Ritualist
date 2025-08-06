@@ -16,6 +16,10 @@ public struct Category: Identifiable, Hashable, Codable {
     public let isActive: Bool
     public let isPredefined: Bool
     
+    /// Personality trait weights for this category
+    /// Used for personality analysis when user creates habits in this category
+    public let personalityWeights: [String: Double]?
+    
     public init(
         id: String,
         name: String,
@@ -23,7 +27,8 @@ public struct Category: Identifiable, Hashable, Codable {
         emoji: String,
         order: Int,
         isActive: Bool = true,
-        isPredefined: Bool = false
+        isPredefined: Bool = false,
+        personalityWeights: [String: Double]? = nil
     ) {
         self.id = id
         self.name = name
@@ -32,5 +37,6 @@ public struct Category: Identifiable, Hashable, Codable {
         self.order = order
         self.isActive = isActive
         self.isPredefined = isPredefined
+        self.personalityWeights = personalityWeights
     }
 }

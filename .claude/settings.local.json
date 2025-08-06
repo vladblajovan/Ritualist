@@ -11,7 +11,8 @@
       "Bash(mkdir:*)",
       "Bash(swift:*)",
       "Bash(git checkout:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "WebFetch(domain:en.wikipedia.org)"
     ],
     "deny": []
   }

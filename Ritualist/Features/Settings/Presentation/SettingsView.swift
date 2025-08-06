@@ -143,6 +143,10 @@ private struct SettingsFormView: View {
                         }
                     }
                     
+                    Section("Personality Insights") {
+                        PersonalityInsightsSettingsRow()
+                    }
+                    
                     Section(Strings.Settings.notifications) {
                         VStack(alignment: .leading, spacing: Spacing.medium) {
                             HStack(spacing: Spacing.medium) {

@@ -129,4 +129,17 @@ extension Container {
             )
         }
     }
+    
+    // MARK: - Personality ViewModels
+    
+    @MainActor
+    var personalityInsightsViewModel: Factory<PersonalityInsightsViewModel> {
+        self { @MainActor in
+            PersonalityInsightsViewModel(
+                analyzePersonalityUseCase: self.analyzePersonalityUseCase(),
+                getPersonalityProfileUseCase: self.getPersonalityProfileUseCase(),
+                validateAnalysisDataUseCase: self.validateAnalysisDataUseCase()
+            )
+        }
+    }
 }

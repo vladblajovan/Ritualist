@@ -5,7 +5,7 @@ public final class SwiftDataStack {
     public let container: ModelContainer
     public var context: ModelContext { ModelContext(container) }
     public init() throws {
-        let schema = Schema([SDHabit.self, SDHabitLog.self, SDUserProfile.self, SDOnboardingState.self, SDCategory.self])
+        let schema = Schema([SDHabit.self, SDHabitLog.self, SDUserProfile.self, SDOnboardingState.self, SDCategory.self, PersonalityProfileModel.self])
         container = try ModelContainer(for: schema)
     }
 }

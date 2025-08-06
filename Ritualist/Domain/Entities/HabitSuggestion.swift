@@ -19,10 +19,15 @@ public struct HabitSuggestion: Identifiable, Hashable {
     public let schedule: HabitSchedule
     public let description: String
     
+    /// Personality trait weights for this habit suggestion
+    /// Used for personality analysis when user selects this habit
+    public let personalityWeights: [String: Double]?
+    
     public init(id: String, name: String, emoji: String, colorHex: String,
                 categoryId: String, kind: HabitKind,
                 unitLabel: String? = nil, dailyTarget: Double? = nil,
-                schedule: HabitSchedule = .daily, description: String) {
+                schedule: HabitSchedule = .daily, description: String,
+                personalityWeights: [String: Double]? = nil) {
         self.id = id
         self.name = name
         self.emoji = emoji
@@ -33,6 +38,7 @@ public struct HabitSuggestion: Identifiable, Hashable {
         self.dailyTarget = dailyTarget
         self.schedule = schedule
         self.description = description
+        self.personalityWeights = personalityWeights
     }
     
     /// Convert suggestion to a habit entity
