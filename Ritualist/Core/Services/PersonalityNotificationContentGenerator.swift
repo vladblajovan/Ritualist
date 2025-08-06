@@ -114,6 +114,8 @@ public struct PersonalityNotificationContentGenerator {
     
     private static func getConfidenceEmoji(for confidence: ConfidenceLevel) -> String {
         switch confidence {
+        case .veryHigh:
+            return "🎯"
         case .high:
             return "🎯"
         case .medium:

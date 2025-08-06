@@ -284,7 +284,12 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
                 emoji: "💪",
                 order: 0,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "conscientiousness": 0.6,  // Disciplined health routines
+                    "neuroticism": -0.3,       // Lower anxiety, stress management
+                    "agreeableness": 0.2       // Self-care affects relationships
+                ]
             ),
             Category(
                 id: "wellness",
@@ -293,7 +298,13 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
                 emoji: "🧘",
                 order: 1,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "conscientiousness": 0.4,  // Regular wellness practices
+                    "neuroticism": -0.5,       // Stress reduction, emotional stability
+                    "openness": 0.3,           // Open to new wellness practices
+                    "agreeableness": 0.2       // Mindfulness affects empathy
+                ]
             ),
             Category(
                 id: "productivity",
@@ -302,7 +313,12 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
                 emoji: "⚡",
                 order: 2,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "conscientiousness": 0.8,  // High organization and discipline
+                    "neuroticism": -0.2,       // Confidence in systems
+                    "openness": 0.1            // Trying new productivity methods
+                ]
             ),
             Category(
                 id: "learning",
@@ -311,7 +327,12 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
                 emoji: "📚",
                 order: 3,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "openness": 0.7,           // High curiosity and learning
+                    "conscientiousness": 0.4,  // Disciplined study habits
+                    "extraversion": -0.1       // Some preference for quiet study
+                ]
             ),
             Category(
                 id: "social",
@@ -320,7 +341,13 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
                 emoji: "👥",
                 order: 4,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "extraversion": 0.8,       // High social engagement
+                    "agreeableness": 0.5,      // Cooperative and friendly
+                    "openness": 0.2,           // Open to new social experiences
+                    "neuroticism": -0.2        // Comfortable in social settings
+                ]
             )
         ]
     }()
@@ -431,7 +458,12 @@ public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol 
                 emoji: "💪",
                 order: 0,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "conscientiousness": 0.6,  // Disciplined health routines
+                    "neuroticism": -0.3,       // Lower anxiety, stress management
+                    "agreeableness": 0.2       // Self-care affects relationships
+                ]
             ),
             Category(
                 id: "wellness",
@@ -440,7 +472,13 @@ public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol 
                 emoji: "🧘",
                 order: 1,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "conscientiousness": 0.4,  // Regular wellness practices
+                    "neuroticism": -0.5,       // Stress reduction, emotional stability
+                    "openness": 0.3,           // Open to new wellness practices
+                    "agreeableness": 0.2       // Mindfulness affects empathy
+                ]
             ),
             Category(
                 id: "productivity",
@@ -449,7 +487,12 @@ public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol 
                 emoji: "⚡",
                 order: 2,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "conscientiousness": 0.8,  // High organization and discipline
+                    "neuroticism": -0.2,       // Confidence in systems
+                    "openness": 0.1            // Trying new productivity methods
+                ]
             ),
             Category(
                 id: "learning",
@@ -458,7 +501,12 @@ public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol 
                 emoji: "📚",
                 order: 3,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "openness": 0.7,           // High curiosity and learning
+                    "conscientiousness": 0.4,  // Disciplined study habits
+                    "extraversion": -0.1       // Some preference for quiet study
+                ]
             ),
             Category(
                 id: "social",
@@ -467,7 +515,13 @@ public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol 
                 emoji: "👥",
                 order: 4,
                 isActive: true,
-                isPredefined: true
+                isPredefined: true,
+                personalityWeights: [
+                    "extraversion": 0.8,       // High social engagement
+                    "agreeableness": 0.5,      // Cooperative and friendly
+                    "openness": 0.2,           // Open to new social experiences
+                    "neuroticism": -0.2        // Comfortable in social settings
+                ]
             )
         ]
     }()

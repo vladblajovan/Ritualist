@@ -98,7 +98,10 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         let trackingDays = calculateConsecutiveTrackingDays(logs: allLogs)
         
         // Calculate total data points for analysis confidence
-        let totalDataPoints = allLogs.count + customHabits.count + customCategories.count
+        // Now includes individual habit analysis (each active habit with completion rate = 1 data point)
+        let individualHabitAnalysis = activeHabits.count
+        let totalDataPoints = allLogs.count + customHabits.count + customCategories.count + individualHabitAnalysis
+        
         
         return HabitAnalysisInput(
             activeHabits: activeHabits,

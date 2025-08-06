@@ -207,6 +207,7 @@ private struct BasicPrivacyView: View {
 
 private struct PersonalityProfileView: View {
     let profile: PersonalityProfile
+    @State private var showingConfidenceInfo = false
     
     var body: some View {
         ScrollView {
@@ -220,6 +221,9 @@ private struct PersonalityProfileView: View {
                 insightsSection
             }
             .padding()
+        }
+        .sheet(isPresented: $showingConfidenceInfo) {
+            ConfidenceInfoSheet(confidence: profile.confidence)
         }
     }
     
@@ -252,7 +256,9 @@ private struct PersonalityProfileView: View {
                     .padding(.horizontal)
             }
             
-            ConfidenceBadge(confidence: profile.confidence)
+            ConfidenceBadge(confidence: profile.confidence) {
+                showingConfidenceInfo = true
+            }
         }
         .padding()
         .background(
@@ -406,22 +412,41 @@ private struct TraitRowView: View {
 
 private struct ConfidenceBadge: View {
     let confidence: ConfidenceLevel
+    let onInfoTap: (() -> Void)?
+    
+    init(confidence: ConfidenceLevel, onInfoTap: (() -> Void)? = nil) {
+        self.confidence = confidence
+        self.onInfoTap = onInfoTap
+    }
     
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "checkmark.seal.fill")
-                .foregroundColor(confidence.color)
-            
-            Text(confidence.rawValue.capitalized)
-                .font(.caption)
-                .fontWeight(.medium)
+        Button(action: {
+            onInfoTap?()
+        }) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundColor(confidence.color)
+                
+                Text(confidence.rawValue.capitalized)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                
+                if onInfoTap != nil {
+                    Image(systemName: "info.circle.fill")
+                        .font(.caption2)
+                        .foregroundColor(confidence.color)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(confidence.color.opacity(0.2))
+            )
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(confidence.color.opacity(0.2))
-        )
+        .buttonStyle(.plain)
+        .disabled(onInfoTap == nil)
     }
 }
 
@@ -504,6 +529,37 @@ private extension ConfidenceLevel {
         case .low: return .red
         case .medium: return .orange
         case .high: return .green
+        case .veryHigh: return .purple
+        }
+    }
+    
+    var explanation: String {
+        switch self {
+        case .insufficient:
+            return "There isn't enough data to provide a reliable personality analysis. More habit tracking is needed."
+        case .low:
+            return "This analysis is based on limited data. The results give a general indication but may not be highly accurate."
+        case .medium:
+            return "This analysis is based on a moderate amount of data. The results are reasonably reliable but could improve with more tracking."
+        case .high:
+            return "This analysis is based on extensive data from your habit tracking. The results are highly reliable and accurately reflect your patterns."
+        case .veryHigh:
+            return "This analysis is based on comprehensive, long-term data from your habit tracking. The results are exceptionally reliable and provide deep insights into your personality patterns."
+        }
+    }
+    
+    var improvementTip: String {
+        switch self {
+        case .insufficient:
+            return "Continue tracking habits daily and create habits across different categories to build up your analysis data."
+        case .low:
+            return "Keep tracking your habits consistently for a few more weeks to improve analysis accuracy."
+        case .medium:
+            return "Track more habits or extend your tracking period to reach high confidence analysis."
+        case .high:
+            return "" // No improvement needed
+        case .veryHigh:
+            return "" // Maximum confidence achieved
         }
     }
 }
@@ -574,5 +630,105 @@ private struct FrequencySelectionView: View {
         }
         .navigationTitle("Analysis Frequency")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Confidence Info Sheet
+
+private struct ConfidenceInfoSheet: View {
+    let confidence: ConfidenceLevel
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                // Header with confidence badge
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(confidence.color)
+                    
+                    Text("Analysis Confidence")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    
+                    ConfidenceBadge(confidence: confidence)
+                }
+                .padding(.top)
+                
+                // Explanation
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("What does this mean?")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    Text(confidence.explanation)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    // Data requirements
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Confidence Levels:")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            confidenceLevelRow(.veryHigh, "150+ data points")
+                            confidenceLevelRow(.high, "75-149 data points")
+                            confidenceLevelRow(.medium, "30-74 data points")  
+                            confidenceLevelRow(.low, "Less than 30 data points")
+                        }
+                        .padding(.leading, 8)
+                    }
+                    
+                    // Improvement tip
+                    if confidence != .high {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("How to improve:")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Text(confidence.improvementTip)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(8)
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Confidence Level")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func confidenceLevelRow(_ level: ConfidenceLevel, _ description: String) -> some View {
+        HStack {
+            Circle()
+                .fill(level.color)
+                .frame(width: 8, height: 8)
+            
+            Text(level.rawValue.capitalized)
+                .font(.caption)
+                .fontWeight(level == confidence ? .semibold : .regular)
+            
+            Text("- \(description)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+        }
     }
 }

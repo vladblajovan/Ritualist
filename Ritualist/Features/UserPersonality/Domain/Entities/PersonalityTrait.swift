@@ -118,6 +118,7 @@ public enum ConfidenceLevel: String, CaseIterable, Codable {
     case low = "low"
     case medium = "medium"
     case high = "high"
+    case veryHigh = "veryHigh"
     
     /// Numeric confidence score (0.0 - 1.0)
     public var score: Double {
@@ -130,6 +131,8 @@ public enum ConfidenceLevel: String, CaseIterable, Codable {
             return 0.8
         case .high:
             return 0.95
+        case .veryHigh:
+            return 0.99
         }
     }
     
@@ -144,6 +147,8 @@ public enum ConfidenceLevel: String, CaseIterable, Codable {
             return "Good confidence - reliable insights with room for improvement"
         case .high:
             return "High confidence - very reliable insights based on rich data"
+        case .veryHigh:
+            return "Exceptional confidence - comprehensive analysis with extensive data"
         }
     }
     
@@ -158,6 +163,8 @@ public enum ConfidenceLevel: String, CaseIterable, Codable {
             return "#3498DB" // Blue
         case .high:
             return "#27AE60" // Green
+        case .veryHigh:
+            return "#8E44AD" // Purple
         }
     }
 }

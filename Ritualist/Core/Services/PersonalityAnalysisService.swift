@@ -22,6 +22,7 @@ public protocol PersonalityAnalysisService {
     func calculateConfidence(from metadata: AnalysisMetadata) -> ConfidenceLevel
 }
 
+// swiftlint:disable function_body_length type_body_length
 public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService {
     
     private let repository: PersonalityAnalysisRepositoryProtocol
@@ -35,10 +36,15 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         let input = try await repository.getHabitAnalysisInput(for: userId)
         
         // Calculate personality scores
-        let traitScores = calculatePersonalityScores(from: input)
+        let (traitScores, accumulators, weights) = calculatePersonalityScoresWithDetails(from: input)
         
-        // Determine dominant trait
-        let dominantTrait = determineDominantTrait(from: traitScores)
+        // Determine dominant trait with intelligent tie-breaking
+        let dominantTrait = determineDominantTraitWithTieBreaking(
+            from: traitScores,
+            traitAccumulators: accumulators,
+            totalWeights: weights,
+            input: input
+        )
         
         // Create metadata
         let metadata = AnalysisMetadata(
@@ -65,6 +71,16 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     }
     
     public func calculatePersonalityScores(from input: HabitAnalysisInput) -> [PersonalityTrait: Double] {
+        let (scores, _, _) = calculatePersonalityScoresWithDetails(from: input)
+        return scores
+    }
+    
+    // swiftlint:disable function_body_length cyclomatic_complexity empty_count
+    public func calculatePersonalityScoresWithDetails(from input: HabitAnalysisInput) -> (
+        scores: [PersonalityTrait: Double],
+        accumulators: [PersonalityTrait: Double],
+        totalWeights: [PersonalityTrait: Double]
+    ) {
         var traitAccumulators: [PersonalityTrait: Double] = [
             .openness: 0.0,
             .conscientiousness: 0.0,
@@ -83,7 +99,9 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         
         // Analyze habit selections from suggestions
         for suggestion in input.selectedSuggestions {
-            guard let weights = suggestion.personalityWeights else { continue }
+            guard let weights = suggestion.personalityWeights else { 
+                continue 
+            }
             
             for (traitKey, weight) in weights {
                 if let trait = PersonalityTrait(rawValue: traitKey) {
@@ -93,17 +111,83 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             }
         }
         
-        // Analyze custom habit categories
-        for category in input.customCategories {
+        // CRITICAL FIX: Analyze predefined category habits
+        
+        // Group active habits by predefined category
+        var habitsByPredefinedCategory: [String: [Habit]] = [:]
+        for habit in input.activeHabits {
+            guard let categoryId = habit.categoryId else { continue }
+            guard let category = input.habitCategories.first(where: { $0.id == categoryId && $0.isPredefined }) else { continue }
+            habitsByPredefinedCategory[categoryId, default: []].append(habit)
+        }
+        
+        // Process each predefined category
+        for (categoryId, categoryHabits) in habitsByPredefinedCategory {
+            guard let category = input.habitCategories.first(where: { $0.id == categoryId }) else { continue }
             guard let weights = category.personalityWeights else { continue }
             
+            
+            // Distribute category weight across habits in that category
+            let habitWeight = 1.0 / Double(categoryHabits.count)
+            
+            // Apply weights for each habit in this category with specific modifiers and completion weighting
+            for habit in categoryHabits {
+                
+                // Get individual habit completion rate
+                let completionRate = getCompletionRateForHabit(habit: habit, input: input)
+                
+                // Calculate habit-specific modifiers
+                let habitModifiers = calculateHabitSpecificModifiers(habit: habit, input: input)
+                
+                // Calculate completion-based weighting (0.3 to 1.0 range)
+                // High completion rates get full weight, low completion rates get reduced weight
+                let completionWeighting = 0.3 + (completionRate * 0.7)
+                
+                for (traitKey, categoryWeight) in weights {
+                    if let trait = PersonalityTrait(rawValue: traitKey) {
+                        // Apply habit-specific modifier and completion weighting to base category weight
+                        let habitModifier = habitModifiers[trait] ?? 1.0
+                        let modifiedWeight = categoryWeight * habitModifier * completionWeighting
+                        let contribution = modifiedWeight * habitWeight
+                        
+                        traitAccumulators[trait, default: 0.0] += contribution
+                        totalWeights[trait, default: 0.0] += abs(contribution)
+                        
+                    }
+                }
+            }
+        }
+        
+        
+        // Analyze custom habit categories
+        for category in input.customCategories {
             let categoryHabits = input.customHabits.filter { $0.categoryId == category.id }
+            
+            // Use explicit weights if available, otherwise infer from behavior
+            var weights = category.personalityWeights
+            if weights == nil {
+                weights = inferPersonalityWeights(for: category, habits: categoryHabits, allLogs: input.completionRates)
+            }
+            
             let categoryWeight = Double(categoryHabits.count) / Double(max(input.customHabits.count, 1))
             
-            for (traitKey, weight) in weights {
-                if let trait = PersonalityTrait(rawValue: traitKey) {
-                    traitAccumulators[trait, default: 0.0] += weight * categoryWeight
-                    totalWeights[trait, default: 0.0] += abs(weight * categoryWeight)
+            if let weights = weights {
+                // Calculate average completion rate for habits in this custom category
+                let categoryCompletionRates = categoryHabits.compactMap { habit in
+                    getCompletionRateForHabit(habit: habit, input: input)
+                }
+                let avgCategoryCompletion = categoryCompletionRates.isEmpty ? 0.5 : 
+                    categoryCompletionRates.reduce(0.0, +) / Double(categoryCompletionRates.count)
+                let categoryCompletionWeighting = 0.3 + (avgCategoryCompletion * 0.7)
+                
+                
+                for (traitKey, weight) in weights {
+                    if let trait = PersonalityTrait(rawValue: traitKey) {
+                        let contribution = weight * categoryWeight * categoryCompletionWeighting
+                        traitAccumulators[trait, default: 0.0] += contribution
+                        totalWeights[trait, default: 0.0] += abs(contribution)
+                        
+                    }
                 }
             }
         }
@@ -134,42 +218,342 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             totalWeights[.extraversion, default: 0.0] += 0.25
         }
         
-        // Normalize scores to 0.0-1.0 range
+        
+        // Normalize scores with evidence strength consideration
         var normalizedScores: [PersonalityTrait: Double] = [:]
+        let maxTotalWeight = totalWeights.values.max() ?? 1.0
+        
         for trait in PersonalityTrait.allCases {
             let accumulator = traitAccumulators[trait, default: 0.0]
             let totalWeight = totalWeights[trait, default: 0.0]
             
             if totalWeight > 0 {
+                // Calculate base ratio (-1 to 1 range)
+                let rawRatio = accumulator / totalWeight
+                
+                // Evidence strength factor (0.1 to 1.0) - weak evidence gets dampened
+                let evidenceStrength = min(totalWeight / maxTotalWeight, 1.0)
+                let minStrength = 0.1
+                let adjustedStrength = max(evidenceStrength, minStrength)
+                
+                // Apply evidence dampening to extreme ratios
+                var adjustedRatio = rawRatio
+                if abs(rawRatio) > 0.8 && adjustedStrength < 0.3 {
+                    // Dampen extreme ratios when evidence is weak
+                    let dampeningFactor = 0.3 + (adjustedStrength * 0.5) // 0.3 to 0.8 range
+                    adjustedRatio = rawRatio * dampeningFactor
+                }
+                
                 // Convert from -1 to 1 range to 0 to 1 range
-                let normalizedScore = (accumulator / totalWeight + 1.0) / 2.0
+                let normalizedScore = (adjustedRatio + 1.0) / 2.0
                 normalizedScores[trait] = max(0.0, min(1.0, normalizedScore))
+                
             } else {
                 // Default to neutral (0.5) if no data
                 normalizedScores[trait] = 0.5
             }
         }
         
-        return normalizedScores
+        let winner = determineDominantTrait(from: normalizedScores)
+        
+        return (scores: normalizedScores, accumulators: traitAccumulators, totalWeights: totalWeights)
     }
+    // swiftlint:enable function_body_length
     
     public func determineDominantTrait(from scores: [PersonalityTrait: Double]) -> PersonalityTrait {
         return scores.max(by: { $0.value < $1.value })?.key ?? .conscientiousness
     }
     
+    /// Determine dominant trait with sophisticated multi-criteria tie-breaking
+    public func determineDominantTraitWithTieBreaking(
+        from scores: [PersonalityTrait: Double],
+        traitAccumulators: [PersonalityTrait: Double],
+        totalWeights: [PersonalityTrait: Double],
+        input: HabitAnalysisInput
+    ) -> PersonalityTrait {
+        // Find the highest score
+        let maxScore = scores.values.max() ?? 0.0
+        let topTraits = scores.filter { $0.value == maxScore }
+        
+        if topTraits.count == 1 {
+            return topTraits.first!.key
+        }
+        
+        // Multi-criteria tie-breaking system
+        
+        var traitScores: [(trait: PersonalityTrait, score: Double)] = []
+        
+        for (trait, _) in topTraits {
+            var tieBreakScore = 0.0
+            
+            // Criteria 1: Raw accumulator precision (weight: 40%)
+            let rawScore = traitAccumulators[trait, default: 0.0]
+            tieBreakScore += rawScore * 0.4
+            
+            // Criteria 2: Evidence diversity (weight: 30%)
+            // Count different sources of evidence for this trait
+            var evidenceSources = 0
+            
+            // Check predefined categories
+            for category in input.habitCategories where category.isPredefined {
+                if let weights = category.personalityWeights,
+                   let weight = weights[trait.rawValue],
+                   abs(weight) > 0.001 {
+                    evidenceSources += 1
+                }
+            }
+            
+            // Check custom categories
+            for category in input.customCategories {
+                let categoryHabits = input.customHabits.filter { $0.categoryId == category.id }
+                if !categoryHabits.isEmpty {
+                    evidenceSources += 1
+                }
+            }
+            
+            // Check behavioral bonuses
+            if trait == .conscientiousness && !input.completionRates.isEmpty {
+                evidenceSources += 1
+            }
+            if trait == .openness && input.habitCategories.count > 1 {
+                evidenceSources += 1
+            }
+            if trait == .extraversion && !input.customHabits.isEmpty {
+                evidenceSources += 1
+            }
+            
+            let diversityScore = Double(evidenceSources) / 10.0 // Normalize
+            tieBreakScore += diversityScore * 0.3
+            
+            // Criteria 3: Trait stability preference (weight: 20%)
+            // Prefer traits that are generally more stable/foundational
+            let stabilityScore = traitStabilityWeight(trait)
+            tieBreakScore += stabilityScore * 0.2
+            
+            // Criteria 4: Data recency bonus (weight: 10%)
+            // Prefer traits with more recent evidence
+            let recencyBonus = trait == .conscientiousness ? 0.1 : 0.0 // Completion data is most recent
+            tieBreakScore += recencyBonus * 0.1
+            
+            traitScores.append((trait: trait, score: tieBreakScore))
+            
+        }
+        
+        // Sort by final tie-break score
+        traitScores.sort { $0.score > $1.score }
+        
+        let winner = traitScores.first!.trait
+        return winner
+    }
+    
+    /// Returns stability weight for personality traits (higher = more foundational)
+    private func traitStabilityWeight(_ trait: PersonalityTrait) -> Double {
+        switch trait {
+        case .conscientiousness: return 0.9  // Most stable - relates to habits directly
+        case .openness: return 0.8           // Stable - intellectual openness
+        case .neuroticism: return 0.7        // Moderately stable - emotional patterns
+        case .agreeableness: return 0.6      // Less stable - social context dependent  
+        case .extraversion: return 0.5       // Least stable - varies by situation
+        }
+    }
+    
     public func calculateConfidence(from metadata: AnalysisMetadata) -> ConfidenceLevel {
         let dataPoints = Double(metadata.dataPointsAnalyzed)
         
+        
         // Confidence based on amount of data analyzed
+        // Updated thresholds to reflect enhanced individual habit completion rate analysis
         switch dataPoints {
-        case 0..<50:
+        case 0..<30:
             return .low
-        case 50..<150:
+        case 30..<75:
             return .medium
-        case 150..<300:
+        case 75..<150:
             return .high
         default:
-            return .high
+            return .veryHigh
         }
+    }
+    
+    /// Infers personality weights for custom categories based on behavior patterns
+    private func inferPersonalityWeights(for category: Category, habits: [Habit], allLogs: [Double]) -> [String: Double] {
+        // Start with neutral baseline - using consistent ordering to prevent fluctuations
+        var weights: [String: Double] = [
+            "openness": 0.05,
+            "conscientiousness": 0.05,  
+            "extraversion": 0.05,
+            "agreeableness": 0.05,
+            "neuroticism": 0.05
+        ]
+        
+        // Behavior-based inference
+        if !habits.isEmpty {
+            // High consistency = Conscientiousness
+            let avgCompletionRate = allLogs.reduce(0.0, +) / Double(max(allLogs.count, 1))
+            if avgCompletionRate > 0.7 {
+                weights["conscientiousness"] = 0.3
+            } else if avgCompletionRate < 0.3 {
+                weights["neuroticism"] = 0.2
+            }
+            
+            // Social keywords = Extraversion
+            let socialHabits = habits.filter { habit in
+                habit.name.localizedCaseInsensitiveContains("social") ||
+                habit.name.localizedCaseInsensitiveContains("friend") ||
+                habit.name.localizedCaseInsensitiveContains("meet") ||
+                habit.name.localizedCaseInsensitiveContains("call") ||
+                habit.name.localizedCaseInsensitiveContains("visit")
+            }
+            if !socialHabits.isEmpty {
+                weights["extraversion"] = 0.4
+            }
+            
+            // Variety of different habits = Openness
+            let uniqueHabitTypes = Set(habits.map { $0.name.prefix(3) })
+            if uniqueHabitTypes.count >= 3 && habits.count >= 3 {
+                weights["openness"] = 0.25
+            }
+            
+            // Relationship/care keywords = Agreeableness
+            let careHabits = habits.filter { habit in
+                habit.name.localizedCaseInsensitiveContains("love") ||
+                habit.name.localizedCaseInsensitiveContains("care") ||
+                habit.name.localizedCaseInsensitiveContains("help") ||
+                habit.name.localizedCaseInsensitiveContains("family") ||
+                habit.name.localizedCaseInsensitiveContains("relationship")
+            }
+            if !careHabits.isEmpty {
+                weights["agreeableness"] = 0.5
+            }
+        }
+        
+        return weights
+    }
+    
+    /// Calculate habit-specific modifiers based on individual habit characteristics
+    private func calculateHabitSpecificModifiers(habit: Habit, input: HabitAnalysisInput) -> [PersonalityTrait: Double] {
+        var modifiers: [PersonalityTrait: Double] = [:]
+        
+        // 1. Habit name analysis for personality indicators
+        let habitName = habit.name.lowercased()
+        
+        // Conscientiousness indicators
+        if habitName.contains("daily") || habitName.contains("routine") || habitName.contains("schedule") {
+            modifiers[.conscientiousness] = 1.2  // +20% boost
+        }
+        if habitName.contains("organize") || habitName.contains("plan") || habitName.contains("prepare") {
+            modifiers[.conscientiousness] = 1.3  // +30% boost
+        }
+        
+        // Openness indicators  
+        if habitName.contains("learn") || habitName.contains("study") || habitName.contains("explore") {
+            modifiers[.openness] = 1.2
+        }
+        if habitName.contains("creative") || habitName.contains("art") || habitName.contains("music") {
+            modifiers[.openness] = 1.4  // Strong creativity boost
+        }
+        if habitName.contains("new") || habitName.contains("try") || habitName.contains("experiment") {
+            modifiers[.openness] = 1.3
+        }
+        
+        // Extraversion indicators
+        if habitName.contains("social") || habitName.contains("people") || habitName.contains("friend") {
+            modifiers[.extraversion] = 1.3
+        }
+        if habitName.contains("call") || habitName.contains("meet") || habitName.contains("visit") {
+            modifiers[.extraversion] = 1.2
+        }
+        if habitName.contains("party") || habitName.contains("event") || habitName.contains("gathering") {
+            modifiers[.extraversion] = 1.4
+        }
+        
+        // Agreeableness indicators
+        if habitName.contains("help") || habitName.contains("volunteer") || habitName.contains("support") {
+            modifiers[.agreeableness] = 1.3
+        }
+        if habitName.contains("family") || habitName.contains("love") || habitName.contains("care") {
+            modifiers[.agreeableness] = 1.2
+        }
+        if habitName.contains("donate") || habitName.contains("charity") || habitName.contains("give") {
+            modifiers[.agreeableness] = 1.4
+        }
+        
+        // Neuroticism modifiers (these are often inverse - stress reduction activities)
+        if habitName.contains("meditat") || habitName.contains("calm") || habitName.contains("relax") {
+            modifiers[.neuroticism] = 0.7  // -30% (less neurotic)
+        }
+        if habitName.contains("mindful") || habitName.contains("breath") || habitName.contains("zen") {
+            modifiers[.neuroticism] = 0.6  // -40% (significant calm effect)
+        }
+        if habitName.contains("stress") || habitName.contains("anxiety") || habitName.contains("worry") {
+            // If explicitly addressing stress/anxiety, this suggests some neuroticism but also coping
+            modifiers[.neuroticism] = 0.8  // -20%
+            modifiers[.conscientiousness] = 1.1  // +10% for addressing the issue
+        }
+        
+        // 2. Habit frequency analysis
+        switch habit.schedule {
+        case .daily:
+            // Daily habits show higher conscientiousness
+            modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.1
+        case .daysOfWeek(let days):
+            // Specific day patterns show planning (conscientiousness) and some flexibility (openness)
+            modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.05
+            if days.count <= 3 {
+                // Selective days suggest thoughtful planning
+                modifiers[.openness] = (modifiers[.openness] ?? 1.0) * 1.05
+            }
+        case .timesPerWeek(let times):
+            // Flexible frequency suggests adaptability
+            modifiers[.openness] = (modifiers[.openness] ?? 1.0) * 1.1
+            if times >= 5 {
+                // High frequency suggests discipline
+                modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.05
+            }
+        }
+        
+        // 3. Habit type analysis
+        switch habit.kind {
+        case .binary:
+            // Binary habits are often more straightforward - slight conscientiousness boost
+            modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.02
+        case .numeric:
+            // Numeric tracking shows more detailed approach - conscientiousness boost
+            modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.05
+        }
+        
+        // 4. Reminder analysis - more reminders suggest need for external structure
+        let reminderCount = habit.reminders.count
+        if reminderCount >= 3 {
+            // High reminder count suggests need for structure but lower natural conscientiousness
+            modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 0.95
+            modifiers[.neuroticism] = (modifiers[.neuroticism] ?? 1.0) * 1.1
+        } else if reminderCount == 0 {
+            // No reminders suggests self-discipline
+            modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.1
+        }
+        
+        // 5. Daily target analysis - check if habit has high daily targets
+        if let dailyTarget = habit.dailyTarget, dailyTarget > 5 {
+            // High targets suggest ambition and conscientiousness
+            modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.1
+        }
+        
+        return modifiers
+    }
+    
+    /// Get the completion rate for a specific habit from the analysis input
+    private func getCompletionRateForHabit(habit: Habit, input: HabitAnalysisInput) -> Double {
+        // Find the index of this habit in the activeHabits array
+        guard let habitIndex = input.activeHabits.firstIndex(where: { $0.id == habit.id }) else {
+            return 0.0 // Habit not found in active habits
+        }
+        
+        // Check if we have a completion rate for this index
+        guard habitIndex < input.completionRates.count else {
+            return 0.0 // No completion rate data for this habit
+        }
+        
+        return input.completionRates[habitIndex]
     }
 }
