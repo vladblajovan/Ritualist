@@ -83,9 +83,17 @@ public struct OverviewV2View: View {
                     }
                 )
                 
-                // Smart contextual insights
+                // Smart contextual insights (basic habit patterns)
                 if vm.shouldShowInsights {
                     SmartInsightsCard(insights: vm.smartInsights)
+                }
+                
+                // Personality-based insights (separate card)
+                if vm.shouldShowPersonalityInsights {
+                    PersonalityInsightsCard(
+                        insights: vm.personalityInsights,
+                        dominantTrait: vm.dominantPersonalityTrait
+                    )
                 }
                 
                 Spacer(minLength: 100) // Tab bar padding

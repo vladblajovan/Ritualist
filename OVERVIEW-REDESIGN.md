@@ -104,14 +104,31 @@ Transform the Overview page from a dense, calendar-focused layout into a modern 
 │ [Mini bar chart of daily %]     │
 └─────────────────────────────────┘
 ```
-**Purpose**: Real personality-based pattern recognition and suggestions
-**Show When**: User has personality analysis enabled OR sufficient data for basic insights
-**Data Source**: Personality analysis system with auto-generation fallback
+**Purpose**: Basic habit pattern recognition and suggestions
+**Show When**: User has ≥1 week of habit tracking data
+**Data Source**: Basic habit pattern analysis (completion rates, best days, streaks)
 
-**Note**: Smart Insights are now powered by **real personality analysis** rather than mock data:
-- **If personality analysis enabled**: Shows curated insights from full personality profile (conscientiousness, openness, etc.)
-- **If analysis disabled/insufficient**: Falls back to basic habit pattern analysis
-- **Relationship to full analysis**: Overview shows 3-4 curated insights while Settings → Personality Analysis → "Insights for Habit Building" shows complete analysis with all recommendations
+#### 7. **Personality Insights Card** (Conditional)
+```
+┌─────────────────────────────────┐
+│ 🧠 Personality Insights         │
+│ Based on your conscientiousness │
+│                                 │
+│ "Strong discipline pattern"     │
+│ "Try structured routines"       │  
+│ "Build on natural consistency"  │
+│                        [→ More] │
+└─────────────────────────────────┘
+```
+**Purpose**: Personality-based habit recommendations and insights
+**Show When**: User has personality analysis enabled AND sufficient data
+**Data Source**: Real personality analysis system with auto-generation
+
+**Two-Card System Benefits**:
+- **Clear separation**: Basic habit patterns vs personality-based insights
+- **Always available**: Smart Insights work without personality analysis
+- **Enhanced experience**: Personality insights add deeper personalization when enabled
+- **Conditional display**: Personality card only shows when analysis is available and sufficient
 
 ## 🏗️ Technical Implementation
 

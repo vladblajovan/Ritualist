@@ -108,7 +108,9 @@ public final class OverviewV2ViewModel: ObservableObject {
     @Published public var weeklyProgress: WeeklyProgress?
     @Published public var activeStreaks: [StreakInfo] = []
     @Published public var smartInsights: [SmartInsight] = []
-    @Published public var calendarData: [Date: [Habit]] = [:]
+    @Published public var personalityInsights: [OverviewPersonalityInsight] = []
+    @Published public var shouldShowPersonalityInsights = false
+    @Published public var dominantPersonalityTrait: String? = nil
     @Published public var selectedDate: Date = Date()
     @Published public var isCalendarExpanded: Bool = false
     @Published public var viewingDate: Date = Date() // The date being viewed in Today's Progress card
@@ -227,6 +229,7 @@ public final class OverviewV2ViewModel: ObservableObject {
     @Injected(\.getPersonalityProfileUseCase) private var getPersonalityProfileUseCase
     @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
     @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
+    @Injected(\.personalityAnalysisRepository) private var personalityAnalysisRepository
     
     private var userId: UUID { 
         userService.currentProfile.id 
@@ -250,24 +253,26 @@ public final class OverviewV2ViewModel: ObservableObject {
             async let weeklyProgressTask = loadWeeklyProgress()
             async let activeStreaksTask = loadActiveStreaks()
             async let insightsTask = loadSmartInsights()
-            async let calendarTask = loadCalendarData()
             async let monthlyDataTask = loadMonthlyCompletionData()
             
-            let (todaySummary, weeklyProgress, streaks, insights, calendar, monthlyData) = try await (
+            let (todaySummary, weeklyProgress, streaks, insights, monthlyData) = try await (
                 todaySummaryTask,
                 weeklyProgressTask,
                 activeStreaksTask,
                 insightsTask,
-                calendarTask,
                 monthlyDataTask
             )
+            
+            // Load personality insights separately (non-blocking)
+            Task {
+                await loadPersonalityInsights()
+            }
             
             await MainActor.run {
                 self.todaysSummary = todaySummary
                 self.weeklyProgress = weeklyProgress
                 self.activeStreaks = streaks
                 self.smartInsights = insights
-                self.calendarData = calendar
                 self.monthlyCompletionData = monthlyData
                 
                 // Check if we should show inspiration card contextually
@@ -647,67 +652,117 @@ public final class OverviewV2ViewModel: ObservableObject {
     }
     
     private func loadSmartInsights() async throws -> [SmartInsight] {
-        // Check if user has a personality profile
+        // Smart Insights now only contains basic habit pattern analysis
+        return try await generateBasicHabitInsights()
+    }
+    
+    private func loadPersonalityInsights() async {
         do {
+            // Check if personality analysis is enabled and sufficient data exists
+            let isEligible = try await checkPersonalityAnalysisEligibility()
+            
+            await MainActor.run {
+                shouldShowPersonalityInsights = isEligible
+            }
+            
+            guard isEligible else {
+                await MainActor.run {
+                    personalityInsights = []
+                }
+                return
+            }
+            
+            // Try to get existing personality profile
             var personalityProfile = try await getPersonalityProfileUseCase.execute(for: userId)
             
-            // If no profile exists but user might be eligible, auto-generate one
+            // If no profile exists but user is eligible, auto-generate one
             if personalityProfile == nil {
-                // Try to generate a new personality analysis
-                print("DEBUG: No personality profile found. Attempting to auto-generate...")
                 do {
                     let newProfile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
                     personalityProfile = newProfile
-                    print("DEBUG: Successfully auto-generated personality profile with dominantTrait: \(newProfile.dominantTrait)")
+                    print("DEBUG: Auto-generated personality profile for insights card")
                 } catch {
-                    print("DEBUG: Auto-generation failed: \(error). Falling back to basic insights.")
-                    return try await generateBasicHabitInsights()
+                    print("DEBUG: Failed to auto-generate personality profile: \(error)")
+                    await MainActor.run {
+                        shouldShowPersonalityInsights = false
+                        personalityInsights = []
+                    }
+                    return
                 }
             }
             
             guard let profile = personalityProfile else {
-                // Still no profile after auto-generation attempt
-                return try await generateBasicHabitInsights()
+                await MainActor.run {
+                    shouldShowPersonalityInsights = false
+                    personalityInsights = []
+                }
+                return
             }
             
             // Get personality-based insights
-            let personalityInsights = getPersonalityInsightsUseCase.getAllInsights(for: profile)
+            let insights = getPersonalityInsightsUseCase.getAllInsights(for: profile)
             
-            // Convert PersonalityInsight to SmartInsight and limit to 3-4 insights for overview
-            var smartInsights: [SmartInsight] = []
+            // Convert to OverviewPersonalityInsight format for the new card
+            var cardInsights: [OverviewPersonalityInsight] = []
             
-            // Add pattern insights first (most relevant for overview)
-            for insight in personalityInsights.patternInsights.prefix(2) {
-                smartInsights.append(SmartInsight(
+            // Add pattern insights
+            for insight in insights.patternInsights.prefix(2) {
+                cardInsights.append(OverviewPersonalityInsight(
                     title: insight.title,
                     message: insight.description,
                     type: .pattern
                 ))
             }
             
+            // Add habit recommendations
+            for insight in insights.habitRecommendations.prefix(2) {
+                cardInsights.append(OverviewPersonalityInsight(
+                    title: insight.title,
+                    message: insight.actionable,
+                    type: .recommendation
+                ))
+            }
+            
             // Add one motivational insight
-            if let motivationalInsight = personalityInsights.motivationalInsights.first {
-                smartInsights.append(SmartInsight(
+            if let motivationalInsight = insights.motivationalInsights.first {
+                cardInsights.append(OverviewPersonalityInsight(
                     title: motivationalInsight.title,
                     message: motivationalInsight.actionable,
-                    type: .suggestion
+                    type: .motivation
                 ))
             }
             
-            // Add one habit recommendation if space allows
-            if smartInsights.count < 3, let recommendationInsight = personalityInsights.habitRecommendations.first {
-                smartInsights.append(SmartInsight(
-                    title: recommendationInsight.title,
-                    message: recommendationInsight.actionable,
-                    type: .celebration
-                ))
+            await MainActor.run {
+                personalityInsights = cardInsights
+                dominantPersonalityTrait = profile.dominantTrait.displayName
             }
-            
-            return smartInsights
             
         } catch {
-            // If personality analysis fails, fallback to basic insights
-            return try await generateBasicHabitInsights()
+            print("DEBUG: Failed to load personality insights: \(error)")
+            await MainActor.run {
+                shouldShowPersonalityInsights = false
+                personalityInsights = []
+            }
+        }
+    }
+    
+    private func checkPersonalityAnalysisEligibility() async throws -> Bool {
+        // Use the proper repository validation instead of simplified checks
+        do {
+            // Check if personality analysis service is enabled for this user
+            let isEnabled = try await personalityAnalysisRepository.isPersonalityAnalysisEnabled(for: userId)
+            
+            guard isEnabled else {
+                return false
+            }
+            
+            // Use the proper eligibility validation from the repository
+            let eligibility = try await personalityAnalysisRepository.validateAnalysisEligibility(for: userId)
+            return eligibility.isEligible
+            
+        } catch {
+            print("DEBUG: Failed to check personality analysis eligibility: \(error)")
+            return false
         }
     }
     
@@ -801,21 +856,6 @@ public final class OverviewV2ViewModel: ObservableObject {
         return insights
     }
     
-    private func loadCalendarData() async throws -> [Date: [Habit]] {
-        // Load calendar data for the current month
-        let calendar = Calendar.current
-        let today = Date()
-        
-        guard let monthInterval = calendar.dateInterval(of: .month, for: today) else {
-            return [:]
-        }
-        
-        var calendarData: [Date: [Habit]] = [:]
-        _ = try await habitRepository.fetchAllHabits().filter { $0.isActive }
-        
-        // For now, return mock data
-        return calendarData
-    }
     
     private func loadMonthlyCompletionData() async throws -> [Date: Double] {
         let calendar = Calendar.current

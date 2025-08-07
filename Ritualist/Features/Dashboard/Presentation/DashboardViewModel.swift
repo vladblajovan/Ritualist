@@ -25,8 +25,12 @@ public final class DashboardViewModel: ObservableObject {
     
     @Injected(\.personalityAnalysisRepository) private var repository
     @Injected(\.categoryRepository) private var categoryRepository
+    @Injected(\.userService) private var userService
+    @Injected(\.logRepository) private var logRepository
     
-    private let userId = UUID() // For now, using a default UUID
+    private var userId: UUID { 
+        userService.currentProfile.id 
+    }
     
     public init() {}
     
@@ -222,21 +226,23 @@ public final class DashboardViewModel: ObservableObject {
             var performanceData: [HabitPerformance] = []
             
             for habit in habits {
-                // Calculate individual habit completion rate
-                _ = try await repository.getHabitCompletionStats(
-                    for: userId,
-                    from: range.start,
-                    to: range.end
-                )
+                // Calculate real individual habit completion rate
+                let habitLogs = try await logRepository.logs(for: habit.id)
+                let logsInRange = habitLogs.filter { log in
+                    log.date >= range.start && log.date <= range.end
+                }
                 
-                // For individual habit analysis, we would need a different method
-                // For now, we'll simulate with some mock data based on the habit
-                let completionRate = Double.random(in: 0.3...0.95) // Mock data
+                // Calculate expected days for this habit based on its schedule
+                let calendar = Calendar.current
+                let expectedDays = calculateExpectedDaysForHabit(habit, from: range.start, to: range.end, calendar: calendar)
+                
+                // Calculate completion rate
+                let completionRate = expectedDays > 0 ? Double(logsInRange.count) / Double(expectedDays) : 0.0
                 
                 let performance = HabitPerformance(
                     habitName: habit.name,
                     emoji: habit.emoji ?? "📊",
-                    completionRate: completionRate
+                    completionRate: min(completionRate, 1.0) // Cap at 100%
                 )
                 
                 performanceData.append(performance)
@@ -357,6 +363,7 @@ public final class DashboardViewModel: ObservableObject {
         do {
             let range = selectedTimePeriod.dateRange
             let logs = try await repository.getUserHabitLogs(for: userId, from: range.start, to: range.end)
+            let habits = try await repository.getUserHabits(for: userId)
             
             let calendar = Calendar.current
             let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
@@ -369,16 +376,23 @@ public final class DashboardViewModel: ObservableObject {
             
             let sortedDates = logsByDate.keys.sorted()
             
-            for (index, date) in sortedDates.enumerated() {
+            for (_, date) in sortedDates.enumerated() {
                 let dayLogs = logsByDate[date] ?? []
                 
-                // Consider a day "complete" if there are any logs (simplified)
+                // Calculate expected habits for this day
+                let expectedHabitsForDay = habits.filter { habit in
+                    isHabitExpectedOnDate(habit: habit, date: date, calendar: calendar)
+                }
+                
+                let completionRateForDay = expectedHabitsForDay.isEmpty ? 0.0 : Double(dayLogs.count) / Double(expectedHabitsForDay.count)
+                
+                // Consider a day "complete" if there are any logs
                 if !dayLogs.isEmpty {
                     tempStreak += 1
                     longestStreak = max(longestStreak, tempStreak)
                     
-                    // Assume full completion if 80% of expected logs (simplified)
-                    if dayLogs.count >= 4 { // Mock threshold
+                    // Day has full completion if 80% or more of expected habits were completed
+                    if completionRateForDay >= 0.8 {
                         daysWithFullCompletion += 1
                     }
                     
@@ -392,7 +406,7 @@ public final class DashboardViewModel: ObservableObject {
                 }
             }
             
-            // Determine trend (simplified)
+            // Determine trend based on actual completion data
             let totalDays = max(1, calendar.dateComponents([.day], from: range.start, to: range.end).day ?? 1)
             let consistencyScore = Double(daysWithFullCompletion) / Double(totalDays)
             
@@ -451,8 +465,8 @@ public final class DashboardViewModel: ObservableObject {
                 let categoryColor = "#007AFF" // Default color since Category doesn't have colorHex
                 let categoryEmoji = category?.emoji
                 
-                // Calculate completion rate for this category (simplified)
-                let completionRate = Double.random(in: 0.4...0.95) // Mock data for now
+                // Calculate real completion rate for this category
+                let completionRate = await calculateCategoryCompletionRate(habits: categoryHabits, from: range.start, to: range.end)
                 
                 let performance = CategoryPerformance(
                     categoryName: categoryName,
@@ -473,6 +487,89 @@ public final class DashboardViewModel: ObservableObject {
             }
         } catch {
             print("Failed to load category breakdown: \(error)")
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func calculateCategoryCompletionRate(habits: [Habit], from startDate: Date, to endDate: Date) async -> Double {
+        guard !habits.isEmpty else { return 0.0 }
+        
+        do {
+            var totalExpectedDays = 0
+            var totalCompletedDays = 0
+            let calendar = Calendar.current
+            
+            for habit in habits {
+                let habitLogs = try await logRepository.logs(for: habit.id)
+                let logsInRange = habitLogs.filter { log in
+                    log.date >= startDate && log.date <= endDate
+                }
+                
+                let expectedDays = calculateExpectedDaysForHabit(habit, from: startDate, to: endDate, calendar: calendar)
+                totalExpectedDays += expectedDays
+                totalCompletedDays += logsInRange.count
+            }
+            
+            return totalExpectedDays > 0 ? min(Double(totalCompletedDays) / Double(totalExpectedDays), 1.0) : 0.0
+            
+        } catch {
+            print("Failed to calculate category completion rate: \(error)")
+            return 0.0
+        }
+    }
+    
+    private func calculateExpectedDaysForHabit(_ habit: Habit, from startDate: Date, to endDate: Date, calendar: Calendar) -> Int {
+        var expectedDays = 0
+        var currentDate = calendar.startOfDay(for: startDate)
+        let end = calendar.startOfDay(for: endDate)
+        
+        while currentDate <= end {
+            defer {
+                currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+            }
+            
+            // Skip if habit wasn't active yet
+            if currentDate < calendar.startOfDay(for: habit.startDate) {
+                continue
+            }
+            
+            // Skip if habit ended before this date
+            if let habitEndDate = habit.endDate, currentDate > calendar.startOfDay(for: habitEndDate) {
+                continue
+            }
+            
+            // Check if habit was expected on this day based on schedule
+            let isExpected = isHabitExpectedOnDate(habit: habit, date: currentDate, calendar: calendar)
+            if isExpected {
+                expectedDays += 1
+            }
+        }
+        
+        return expectedDays
+    }
+    
+    private func isHabitExpectedOnDate(habit: Habit, date: Date, calendar: Calendar) -> Bool {
+        let weekday = calendar.component(.weekday, from: date)
+        
+        switch habit.schedule {
+        case .daily:
+            return true
+            
+        case .daysOfWeek(let days):
+            // Convert Calendar weekday (Sunday=1) to HabitSchedule format (Monday=1)
+            let habitWeekday: Int
+            if weekday == 1 { // Sunday
+                habitWeekday = 7
+            } else { // Monday=2 -> 1, Tuesday=3 -> 2, etc.
+                habitWeekday = weekday - 1
+            }
+            return days.contains(habitWeekday)
+            
+        case .timesPerWeek(_):
+            // For times per week, we consider the habit expected every day
+            // The actual completion rate calculation will handle the flexible nature
+            return true
         }
     }
 }
