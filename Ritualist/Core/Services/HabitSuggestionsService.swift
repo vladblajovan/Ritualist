@@ -10,6 +10,7 @@ import Foundation
 public protocol HabitSuggestionsService {
     func getSuggestions() -> [HabitSuggestion]
     func getSuggestions(for categoryId: String) -> [HabitSuggestion]
+    func getSuggestion(by id: String) -> HabitSuggestion?
 }
 
 // swiftlint:disable type_body_length
@@ -552,5 +553,9 @@ public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
     
     public func getSuggestions(for categoryId: String) -> [HabitSuggestion] {
         suggestions.filter { $0.categoryId == categoryId }
+    }
+    
+    public func getSuggestion(by id: String) -> HabitSuggestion? {
+        suggestions.first { $0.id == id }
     }
 }

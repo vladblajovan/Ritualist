@@ -114,11 +114,7 @@ public enum PersonalityTrait: String, CaseIterable, Codable, Hashable {
 
 /// Confidence level for personality analysis
 public enum ConfidenceLevel: String, CaseIterable, Codable {
-    case insufficient = "insufficient"
-    case low = "low"
-    case medium = "medium"
-    case high = "high"
-    case veryHigh = "veryHigh"
+    case insufficient, low, medium, high, veryHigh
     
     /// Numeric confidence score (0.0 - 1.0)
     public var score: Double {

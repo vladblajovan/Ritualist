@@ -91,7 +91,7 @@ public final class PersonalityProfileModel {
     
     /// Create SwiftData model from domain entity
     public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityProfileModel {
-        return PersonalityProfileModel(
+        PersonalityProfileModel(
             id: entity.id.uuidString,
             userId: entity.userId.uuidString,
             analysisDate: entity.analysisMetadata.analysisDate,

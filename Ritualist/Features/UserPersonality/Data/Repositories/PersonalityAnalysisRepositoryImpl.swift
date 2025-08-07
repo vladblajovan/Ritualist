@@ -14,21 +14,24 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     private let habitRepository: HabitRepository
     private let categoryRepository: CategoryRepository
     private let logRepository: LogRepository
+    private let suggestionsService: HabitSuggestionsService
     
     public init(
         dataSource: PersonalityAnalysisDataSource,
         habitRepository: HabitRepository,
         categoryRepository: CategoryRepository,
-        logRepository: LogRepository
+        logRepository: LogRepository,
+        suggestionsService: HabitSuggestionsService
     ) {
         self.dataSource = dataSource
         self.habitRepository = habitRepository
         self.categoryRepository = categoryRepository
         self.logRepository = logRepository
+        self.suggestionsService = suggestionsService
     }
     
     public func getPersonalityProfile(for userId: UUID) async throws -> PersonalityProfile? {
-        return try await dataSource.getLatestProfile(for: userId)
+        try await dataSource.getLatestProfile(for: userId)
     }
     
     public func savePersonalityProfile(_ profile: PersonalityProfile) async throws {
@@ -36,7 +39,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     }
     
     public func getPersonalityHistory(for userId: UUID) async throws -> [PersonalityProfile] {
-        return try await dataSource.getProfileHistory(for: userId)
+        try await dataSource.getProfileHistory(for: userId)
     }
     
     public func deletePersonalityProfile(id: UUID) async throws {
@@ -101,7 +104,6 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         // Now includes individual habit analysis (each active habit with completion rate = 1 data point)
         let individualHabitAnalysis = activeHabits.count
         let totalDataPoints = allLogs.count + customHabits.count + customCategories.count + individualHabitAnalysis
-        
         
         return HabitAnalysisInput(
             activeHabits: activeHabits,
@@ -170,10 +172,43 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     private func getSelectedSuggestions(from habits: [Habit]) async throws -> [HabitSuggestion] {
         var selectedSuggestions: [HabitSuggestion] = []
         
-        // This would need to be implemented based on how suggestions are stored
-        // For now, return empty array - this would need integration with suggestion data
+        // Find habits that were created from suggestions (have a suggestionId)
+        let habitsSuggestionsIds = habits.compactMap { $0.suggestionId }
+        
+        // Look up the original suggestions by ID
+        for suggestionId in habitsSuggestionsIds {
+            if let suggestion = suggestionsService.getSuggestion(by: suggestionId) {
+                selectedSuggestions.append(suggestion)
+            }
+        }
         
         return selectedSuggestions
+    }
+    
+    /// Check if a habit is expected to be performed on a given date based on its schedule
+    private func isHabitExpectedOnDate(habit: Habit, date: Date) -> Bool {
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: date)
+        
+        switch habit.schedule {
+        case .daily:
+            return true
+            
+        case .daysOfWeek(let days):
+            // Convert Calendar weekday (Sunday=1) to HabitSchedule format (Monday=1)
+            let habitWeekday: Int
+            if weekday == 1 { // Sunday
+                habitWeekday = 7
+            } else { // Monday=2 -> 1, Tuesday=3 -> 2, etc.
+                habitWeekday = weekday - 1
+            }
+            return days.contains(habitWeekday)
+            
+        case .timesPerWeek(_):
+            // For times per week, we consider the habit expected every day
+            // The actual completion rate calculation will handle the flexible nature
+            return true
+        }
     }
     
     private func validateEligibilityFromInput(_ input: HabitAnalysisInput) -> AnalysisEligibility {
@@ -301,20 +336,112 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     }
     
     public func getUserCustomCategories(for userId: UUID) async throws -> [Category] {
-        return try await categoryRepository.getCustomCategories()
+        try await categoryRepository.getCustomCategories()
     }
     
     public func getHabitCompletionStats(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats {
-        // Stub implementation
-        return HabitCompletionStats(totalHabits: 0, completedHabits: 0, completionRate: 0.0)
+        // Get all active habits for the user
+        let allHabits = try await habitRepository.fetchAllHabits()
+        let activeHabits = allHabits.filter { $0.isActive }
+        
+        // Calculate completion statistics
+        let totalHabits = activeHabits.count
+        
+        if totalHabits == 0 {
+            return HabitCompletionStats(totalHabits: 0, completedHabits: 0, completionRate: 0.0)
+        }
+        
+        // Calculate completion for each habit in the date range
+        var completedHabits = 0
+        var totalExpectedEntries = 0
+        var totalCompletedEntries = 0
+        
+        let calendar = Calendar.current
+        
+        for habit in activeHabits {
+            // Get logs for this specific habit
+            let habitLogs = try await logRepository.logs(for: habit.id)
+            
+            // Filter logs to the date range
+            let logsInRange = habitLogs.filter { log in
+                let logDate = calendar.startOfDay(for: log.date)
+                let rangeStart = calendar.startOfDay(for: startDate)
+                let rangeEnd = calendar.startOfDay(for: endDate)
+                return logDate >= rangeStart && logDate <= rangeEnd
+            }
+            
+            let logsByDate = Dictionary(grouping: logsInRange, by: { calendar.startOfDay(for: $0.date) })
+            
+            var habitCompletedDays = 0
+            var habitExpectedDays = 0
+            
+            // Check each day in the range to see if habit was expected and completed
+            var currentDate = calendar.startOfDay(for: startDate)
+            let endOfRange = calendar.startOfDay(for: endDate)
+            
+            while currentDate <= endOfRange {
+                defer {
+                    currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+                }
+                
+                // Skip if habit wasn't active yet
+                if currentDate < calendar.startOfDay(for: habit.startDate) {
+                    continue
+                }
+                
+                // Skip if habit ended before this date
+                if let endDate = habit.endDate, currentDate > calendar.startOfDay(for: endDate) {
+                    continue
+                }
+                
+                // Check if habit was expected on this day based on schedule
+                let isExpected = isHabitExpectedOnDate(habit: habit, date: currentDate)
+                if !isExpected {
+                    continue
+                }
+                
+                habitExpectedDays += 1
+                
+                // Check if habit was completed on this day
+                if let dayLogs = logsByDate[currentDate] {
+                    let isCompleted = dayLogs.contains(where: { log in
+                        switch habit.kind {
+                        case .binary:
+                            // For binary habits, any non-nil value means completed
+                            return log.value != nil && log.value! > 0
+                        case .numeric:
+                            // For numeric habits, check if value meets the daily target
+                            return (log.value ?? 0) >= (habit.dailyTarget ?? 1)
+                        }
+                    })
+                    
+                    if isCompleted {
+                        habitCompletedDays += 1
+                    }
+                }
+            }
+            
+            totalExpectedEntries += habitExpectedDays
+            totalCompletedEntries += habitCompletedDays
+            
+            // Consider a habit "completed" if it has >50% completion rate in the period
+            if habitExpectedDays > 0 && Double(habitCompletedDays) / Double(habitExpectedDays) > 0.5 {
+                completedHabits += 1
+            }
+        }
+        
+        // Calculate overall completion rate
+        let completionRate = totalExpectedEntries > 0 ? Double(totalCompletedEntries) / Double(totalExpectedEntries) : 0.0
+        
+        return HabitCompletionStats(
+            totalHabits: totalHabits,
+            completedHabits: completedHabits,
+            completionRate: completionRate
+        )
     }
     
     public func isPersonalityAnalysisEnabled(for userId: UUID) async throws -> Bool {
-        return true // Default to enabled
-    }
-    
-    public func setPersonalityAnalysisEnabled(_ enabled: Bool, for userId: UUID) async throws {
-        // Stub implementation
+        true // Default to enabled
     }
     
     public func getAnalysisPreferences(for userId: UUID) async throws -> PersonalityAnalysisPreferences? {

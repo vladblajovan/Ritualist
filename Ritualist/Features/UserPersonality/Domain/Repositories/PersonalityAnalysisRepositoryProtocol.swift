@@ -57,9 +57,6 @@ public protocol PersonalityAnalysisRepositoryProtocol {
     /// Check if personality analysis is enabled for a user
     func isPersonalityAnalysisEnabled(for userId: UUID) async throws -> Bool
     
-    /// Enable or disable personality analysis for a user
-    func setPersonalityAnalysisEnabled(_ enabled: Bool, for userId: UUID) async throws
-    
     /// Get user's analysis preferences
     func getAnalysisPreferences(for userId: UUID) async throws -> PersonalityAnalysisPreferences?
     

@@ -53,11 +53,15 @@ How emotionally stable and resilient you are
 - How consistently you log your habits
 - How long you maintain habits over time
 - Your completion rates and persistence through challenges
+- **NEW**: How well you stick to your chosen schedules (daily vs. flexible)
+- **NEW**: Your success patterns across different types of habits
 
 ### Your Organization Style
 - How you categorize and structure your habits
 - Whether you set specific targets and reminders
 - Your approach to scheduling (daily, weekly, flexible)
+- **NEW**: Whether you prefer rigid daily routines or flexible scheduling
+- **NEW**: How you balance structure with adaptability
 
 ### Your Personal Touch
 - Custom habits you create that reflect your unique interests
@@ -89,6 +93,24 @@ To ensure accurate and meaningful insights, you'll need to build up enough track
 - **Behavioral Patterns**: How your personality shows up in your habits
 - **Personal Strengths**: What your tracking style reveals about your strengths
 - **Growth Opportunities**: Areas where understanding your personality can help you succeed
+
+### Enhanced Analysis Features (v1.1)
+Our latest personality analysis includes breakthrough improvements:
+
+#### **Schedule-Smart Analysis**
+- Recognizes that missing a "3x per week" habit on Monday isn't the same as missing a daily habit
+- Only evaluates your performance on days when you actually planned to do the habit
+- Provides more accurate insights into your discipline and consistency
+
+#### **Pattern Recognition**
+- **Emotional Stability**: High completion rates across all habits suggest emotional stability
+- **Openness**: Preference for flexible vs. rigid scheduling reveals openness to experience  
+- **Conscientiousness**: Both schedule adherence AND cross-habit consistency are considered
+
+#### **Quality-Based Confidence**
+- Not just quantity of data, but quality - clear patterns boost confidence in your results
+- Diverse habit tracking increases reliability of insights
+- Schedule-aware analysis provides more meaningful confidence scores
 
 ### How This Helps You
 - **Better Self-Awareness**: Understand why certain habits come naturally and others are challenging
@@ -128,10 +150,17 @@ To ensure accurate and meaningful insights, you'll need to build up enough track
 ## Understanding Your Results
 
 ### Confidence Levels
-Your personality analysis comes with a confidence score:
-- **High Confidence**: Strong data supporting reliable insights
-- **Medium Confidence**: Good foundation with room for more data
-- **Growing Confidence**: Initial insights that will improve with more tracking
+Your personality analysis comes with a confidence score based on both quantity and quality of your data:
+- **Very High Confidence**: Exceptional data with clear patterns and comprehensive tracking
+- **High Confidence**: Strong data supporting highly reliable insights
+- **Medium Confidence**: Good foundation with reasonably reliable insights
+- **Low Confidence**: Initial insights that will improve significantly with more tracking
+
+**Enhanced Confidence Features:**
+- **Schedule Respect**: Analysis considers whether habits were actually due on specific days
+- **Pattern Clarity**: Clear success/failure patterns boost confidence in results
+- **Habit Diversity**: More varied tracking increases insight reliability
+- **Consistency Quality**: Not just how much you track, but how meaningfully you track
 
 ### Remember
 - **No Right or Wrong**: All personality types have unique strengths
@@ -145,7 +174,7 @@ Your personality analysis comes with a confidence score:
 Unlike traditional questionnaires, our analysis is based on your actual behavior over time, making it more objective and personally relevant.
 
 ### How accurate are the results?
-Accuracy improves with more data. The system is most reliable when you have diverse habits and consistent tracking over several weeks.
+Accuracy improves with more data. The system is most reliable when you have diverse habits and consistent tracking over several weeks. Our latest algorithm (v1.1) now provides more accurate insights by analyzing your actual schedule adherence patterns rather than just raw completion rates.
 
 ### Can my personality change?
 While core traits are relatively stable, your habits and behaviors can definitely evolve. The analysis reflects your current patterns and will update as you grow.

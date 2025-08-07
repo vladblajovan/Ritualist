@@ -13,7 +13,8 @@ extension Container {
                 dataSource: self.personalityAnalysisDataSource(),
                 habitRepository: self.habitRepository(),
                 categoryRepository: self.categoryRepository(),
-                logRepository: self.logRepository()
+                logRepository: self.logRepository(),
+                suggestionsService: self.habitSuggestionsService()
             ) 
         }
         .singleton

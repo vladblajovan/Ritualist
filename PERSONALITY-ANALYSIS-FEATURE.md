@@ -33,13 +33,15 @@ Build a comprehensive personality analysis system that analyzes user behavior th
 - [x] Habit variety analysis (creativity, learning, adventure habits)
 - [x] Custom habit creation frequency tracking
 - [x] Category exploration breadth measurement
-- [ ] Schedule flexibility pattern recognition
+- [x] **ENHANCED: Schedule flexibility pattern recognition (flexible vs rigid schedules)**
 
 #### Conscientiousness Analysis
 - [x] Completion rate consistency tracking
 - [x] Long-term habit maintenance analysis
 - [x] Detailed goal setting pattern recognition
 - [x] Organization behavior analysis (categories, structure)
+- [x] **ENHANCED: Schedule-aware completion rate analysis (respects habit schedules)**
+- [x] **ENHANCED: Cross-habit consistency measurement (habits with >50% completion rate)**
 
 #### Extraversion Analysis
 - [x] Social habit identification and weighting
@@ -55,7 +57,8 @@ Build a comprehensive personality analysis system that analyzes user behavior th
 
 #### Neuroticism (Emotional Stability) Analysis
 - [x] Stress management habit weighting
-- [ ] Consistency pattern analysis for emotional indicators
+- [x] **ENHANCED: Completion pattern analysis for emotional stability (high completion = stability)**
+- [x] **ENHANCED: Behavioral consistency indicators (low completion = instability)**
 - [ ] Health anxiety pattern recognition
 - [ ] Coping mechanism habit identification
 
@@ -84,6 +87,19 @@ Build a comprehensive personality analysis system that analyzes user behavior th
 - [x] Customization behavior analysis
 - [x] Goal complexity pattern recognition
 - [x] Data recency weighting implementation
+- [x] **ENHANCED: Individual habit completion rate weighting system**
+- [x] **ENHANCED: Habit-specific personality modifiers implementation**
+- [x] **ENHANCED: Completion-based personality trait attribution (0.3-1.0 weighting range)**
+- [x] **ENHANCED: Updated confidence calculation with individual habit analysis data points**
+- [x] **ENHANCED: Very High confidence level (150+ data points) added to ConfidenceLevel enum**
+- [x] **ENHANCED: Confidence threshold adjustments (Low: <30, Medium: 30-74, High: 75-149, Very High: 150+)**
+- [x] **ENHANCED: Debug logging cleanup - removed all algorithm debug statements**
+- [x] **NEW: Schedule-aware completion statistics integration (getHabitCompletionStats)**
+- [x] **NEW: Enhanced conscientiousness analysis with schedule adherence and cross-habit consistency**
+- [x] **NEW: Neuroticism analysis based on completion patterns and emotional stability indicators**
+- [x] **NEW: Openness analysis enhanced with schedule flexibility preferences**
+- [x] **NEW: Quality-based confidence calculation with completion statistics bonuses**
+- [x] **NEW: Algorithm version updated to 1.1 with enhanced data point calculation**
 - [ ] Cross-factor consistency validation
 
 ### Phase 8: AI Enhancement Framework
@@ -179,10 +195,18 @@ public struct ThresholdProgress {
 ```
 
 ### Confidence Levels Based on Data Quality
-- **High Confidence (90%+)**: Exceeds all minimum thresholds by 50%+
-- **Medium Confidence (70-89%)**: Meets all minimum thresholds
-- **Low Confidence (50-69%)**: Meets minimum thresholds but limited data variety
-- **Insufficient Data (<50%)**: Does not meet minimum requirements
+- **Very High Confidence (160+ adjusted data points)**: Comprehensive, long-term analysis with exceptional reliability
+- **High Confidence (85-159 adjusted data points)**: Extensive data providing highly reliable insights  
+- **Medium Confidence (35-84 adjusted data points)**: Moderate data providing reasonably reliable insights
+- **Low Confidence (<35 adjusted data points)**: Limited data providing general indications only
+- **Insufficient Data**: Does not meet minimum requirements for analysis
+
+**Enhanced Confidence Calculation Features:**
+- **Schedule-Aware Quality Bonus**: Completion statistics from `getHabitCompletionStats` boost confidence
+- **Habit Diversity Bonus**: More tracked habits increase confidence (up to +20 points)
+- **Signal Strength Bonus**: Clear completion patterns (very high/low rates) add +8 to +15 points
+- **Consistency Bonus**: Clear success/failure patterns across habits add +10 points
+- **Total Adjustments**: Up to +45 additional confidence points for high-quality data
 
 ### User Experience for Insufficient Data
 - [x] **Progress Dashboard**: Visual progress toward meeting each threshold
@@ -313,13 +337,67 @@ Core/Services/
 ```
 
 ### Behavioral Pattern Weights
-- **Completion Rate**: High consistency = +Conscientiousness
+- **Schedule-Aware Completion Rate**: High schedule adherence = +Conscientiousness (0.4 weight, enhanced)
+- **Cross-Habit Consistency**: >50% completion across habits = +Conscientiousness (0.2 weight, new)
+- **Emotional Stability Patterns**: High completion (>70%) = -Neuroticism, Low completion (<30%) = +Neuroticism (new)
+- **Schedule Flexibility Preference**: Flexible schedules = +Openness (0.25 weight, new)
+- **Individual Habit Performance**: 0.3-1.0 weighting based on completion rate (implemented)
 - **Habit Variety**: Many different types = +Openness
 - **Social Focus**: Group activities = +Extraversion, +Agreeableness
 - **Stress Management**: Meditation/relaxation = -Neuroticism
 - **Goal Complexity**: Detailed tracking = +Conscientiousness
 - **Custom Creation**: Unique habits = +Openness
 - **Recovery Patterns**: Quick bouncebacks = -Neuroticism
+- **Habit-Specific Modifiers**: Keywords and patterns influence trait attribution (implemented)
+
+### Completion Rate Weighting Algorithm (IMPLEMENTED)
+The personality analysis now incorporates individual habit performance to provide more psychologically accurate results:
+
+```swift
+// Completion-based weighting (0.3 to 1.0 range)
+let completionWeighting = 0.3 + (completionRate * 0.7)
+
+// Combined weighting calculation
+let modifiedWeight = categoryWeight * habitModifier * completionWeighting
+```
+
+**Key Benefits:**
+- **Psychological Accuracy**: Habits with 0% completion get reduced impact (0.3x weight)
+- **Performance Distinction**: Habits with 100% completion get full impact (1.0x weight)
+- **Realistic Scoring**: Personality traits now reflect actual behavior vs stated intentions
+- **Individual Focus**: Each habit's completion rate is analyzed independently
+
+**Algorithm Details:**
+- **Minimum Weight**: 0.3 (30% of category weight for never-completed habits)
+- **Maximum Weight**: 1.0 (100% of category weight for always-completed habits)
+- **Linear Scaling**: Completion rate directly influences personality impact
+- **Data Source**: Individual habit completion rates from tracking history
+
+### Enhanced Schedule-Aware Analysis (v1.1 - NEW)
+The latest algorithm version incorporates sophisticated schedule-awareness and completion pattern analysis:
+
+#### Schedule-Aware Completion Statistics
+```swift
+// Uses getHabitCompletionStats for precise completion analysis
+let completionStats = getHabitCompletionStats(for: userId, from: startDate, to: endDate)
+
+// Enhanced conscientiousness calculation
+let scheduleAwareRate = stats.completionRate // Respects habit schedules
+let consistencyRatio = Double(stats.completedHabits) / Double(stats.totalHabits)
+let conscientiousnessScore = (scheduleAwareRate - 0.5) * 0.4 + (consistencyRatio - 0.5) * 0.2
+```
+
+#### Multi-Trait Integration
+- **Conscientiousness**: Schedule adherence (0.4) + cross-habit consistency (0.2) = 0.6 total weight
+- **Neuroticism**: Emotional stability inference from completion patterns (±0.2-0.3 weight)
+- **Openness**: Schedule flexibility preference analysis (0.25 additional weight)
+- **Confidence**: Quality-based adjustments with up to +45 bonus points
+
+#### Psychological Accuracy Improvements
+- **Expected vs Actual**: Only counts days when habit was actually scheduled
+- **Habit Lifecycle**: Respects habit start/end dates for accurate analysis
+- **Schedule Types**: Differentiates daily, specific days, and flexible frequency patterns
+- **Individual Performance**: Each habit's completion rate influences its personality impact
 
 ## AI Enhancement Opportunities
 

@@ -35,8 +35,16 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         // Get input data for analysis
         let input = try await repository.getHabitAnalysisInput(for: userId)
         
-        // Calculate personality scores
-        let (traitScores, accumulators, weights) = calculatePersonalityScoresWithDetails(from: input)
+        // Get enhanced completion statistics with schedule-aware calculations
+        let endDate = Date()
+        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
+        let completionStats = try await repository.getHabitCompletionStats(for: userId, from: startDate, to: endDate)
+        
+        // Calculate personality scores with enhanced data
+        let (traitScores, accumulators, weights) = calculatePersonalityScoresWithDetails(
+            from: input, 
+            completionStats: completionStats
+        )
         
         // Determine dominant trait with intelligent tie-breaking
         let dominantTrait = determineDominantTraitWithTieBreaking(
@@ -46,16 +54,17 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             input: input
         )
         
-        // Create metadata
+        // Create metadata with enhanced data points
+        let enhancedDataPoints = input.totalDataPoints + (completionStats.totalHabits > 0 ? 10 : 0)
         let metadata = AnalysisMetadata(
             analysisDate: Date(),
-            dataPointsAnalyzed: input.totalDataPoints,
+            dataPointsAnalyzed: enhancedDataPoints,
             timeRangeAnalyzed: input.analysisTimeRange,
-            version: "1.0"
+            version: "1.1"
         )
         
-        // Calculate confidence
-        let confidence = calculateConfidence(from: metadata)
+        // Calculate confidence with enhanced completion data
+        let confidence = calculateConfidenceWithCompletionStats(from: metadata, completionStats: completionStats)
         
         // Create profile
         let profile = PersonalityProfile(
@@ -71,12 +80,15 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     }
     
     public func calculatePersonalityScores(from input: HabitAnalysisInput) -> [PersonalityTrait: Double] {
-        let (scores, _, _) = calculatePersonalityScoresWithDetails(from: input)
+        let (scores, _, _) = calculatePersonalityScoresWithDetails(from: input, completionStats: nil)
         return scores
     }
     
     // swiftlint:disable function_body_length cyclomatic_complexity empty_count
-    public func calculatePersonalityScoresWithDetails(from input: HabitAnalysisInput) -> (
+    public func calculatePersonalityScoresWithDetails(
+        from input: HabitAnalysisInput, 
+        completionStats: HabitCompletionStats? = nil
+    ) -> (
         scores: [PersonalityTrait: Double],
         accumulators: [PersonalityTrait: Double],
         totalWeights: [PersonalityTrait: Double]
@@ -192,17 +204,77 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             }
         }
         
-        // Analyze completion rates (high conscientiousness for consistent tracking)
-        let avgCompletionRate = input.completionRates.reduce(0.0, +) / Double(max(input.completionRates.count, 1))
-        let conscientiousnessBonus = (avgCompletionRate - 0.5) * 0.3 // Scale to -0.15 to 0.15
-        traitAccumulators[.conscientiousness, default: 0.0] += conscientiousnessBonus
-        totalWeights[.conscientiousness, default: 0.0] += 0.3
+        // Analyze completion rates with enhanced schedule-aware statistics
+        if let stats = completionStats, stats.totalHabits > 0 {
+            // Use enhanced schedule-aware completion rate
+            let scheduleAwareCompletionRate = stats.completionRate
+            let conscientiousnessBonus = (scheduleAwareCompletionRate - 0.5) * 0.4 // Enhanced weight
+            
+            // Additional bonus for cross-habit consistency (habits with >50% completion)
+            let consistencyRatio = Double(stats.completedHabits) / Double(stats.totalHabits)
+            let consistencyBonus = (consistencyRatio - 0.5) * 0.2
+            
+            traitAccumulators[.conscientiousness, default: 0.0] += conscientiousnessBonus + consistencyBonus
+            totalWeights[.conscientiousness, default: 0.0] += 0.6 // Increased weight for enhanced data
+            
+            // Neuroticism analysis: High completion suggests emotional stability
+            if scheduleAwareCompletionRate > 0.7 {
+                let stabilityBonus = -0.2 // Negative neuroticism (more stable)
+                traitAccumulators[.neuroticism, default: 0.0] += stabilityBonus
+                totalWeights[.neuroticism, default: 0.0] += 0.2
+            } else if scheduleAwareCompletionRate < 0.3 {
+                let instabilityPenalty = 0.3 // Higher neuroticism
+                traitAccumulators[.neuroticism, default: 0.0] += instabilityPenalty
+                totalWeights[.neuroticism, default: 0.0] += 0.3
+            }
+            
+        } else {
+            // Fallback to original completion rate analysis
+            let avgCompletionRate = input.completionRates.reduce(0.0, +) / Double(max(input.completionRates.count, 1))
+            let conscientiousnessBonus = (avgCompletionRate - 0.5) * 0.3
+            traitAccumulators[.conscientiousness, default: 0.0] += conscientiousnessBonus
+            totalWeights[.conscientiousness, default: 0.0] += 0.3
+        }
         
-        // Analyze habit diversity (openness to experience)
+        // Analyze habit diversity and schedule flexibility (openness to experience)
         let diversityScore = Double(input.habitCategories.count) / 10.0 // Normalize to 0-1+ range
         let opennessBonus = min(diversityScore, 1.0) * 0.2
-        traitAccumulators[.openness, default: 0.0] += opennessBonus
-        totalWeights[.openness, default: 0.0] += 0.2
+        
+        // Enhanced openness analysis: schedule flexibility preferences
+        if let stats = completionStats, stats.totalHabits > 0 {
+            // Analyze schedule pattern preferences from active habits
+            var flexibleScheduleCount = 0
+            var rigidScheduleCount = 0
+            
+            for habit in input.activeHabits {
+                switch habit.schedule {
+                case .daily:
+                    rigidScheduleCount += 1
+                case .daysOfWeek(let days):
+                    if days.count <= 3 {
+                        flexibleScheduleCount += 1 // Selective days = flexibility
+                    } else {
+                        rigidScheduleCount += 1
+                    }
+                case .timesPerWeek(_):
+                    flexibleScheduleCount += 1 // Times per week = high flexibility
+                }
+            }
+            
+            let totalScheduledHabits = flexibleScheduleCount + rigidScheduleCount
+            if totalScheduledHabits > 0 {
+                let flexibilityRatio = Double(flexibleScheduleCount) / Double(totalScheduledHabits)
+                let flexibilityBonus = (flexibilityRatio - 0.5) * 0.25 // Bonus for preferring flexibility
+                traitAccumulators[.openness, default: 0.0] += opennessBonus + flexibilityBonus
+                totalWeights[.openness, default: 0.0] += 0.45
+            } else {
+                traitAccumulators[.openness, default: 0.0] += opennessBonus
+                totalWeights[.openness, default: 0.0] += 0.2
+            }
+        } else {
+            traitAccumulators[.openness, default: 0.0] += opennessBonus
+            totalWeights[.openness, default: 0.0] += 0.2
+        }
         
         // Analyze scheduling patterns (extraversion for social/evening habits)
         let socialHabits = input.customHabits.filter { habit in
@@ -360,7 +432,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     public func calculateConfidence(from metadata: AnalysisMetadata) -> ConfidenceLevel {
         let dataPoints = Double(metadata.dataPointsAnalyzed)
         
-        
         // Confidence based on amount of data analyzed
         // Updated thresholds to reflect enhanced individual habit completion rate analysis
         switch dataPoints {
@@ -369,6 +440,49 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         case 30..<75:
             return .medium
         case 75..<150:
+            return .high
+        default:
+            return .veryHigh
+        }
+    }
+    
+    /// Enhanced confidence calculation that considers completion statistics quality
+    public func calculateConfidenceWithCompletionStats(from metadata: AnalysisMetadata, completionStats: HabitCompletionStats) -> ConfidenceLevel {
+        let baseDataPoints = Double(metadata.dataPointsAnalyzed)
+        
+        // Adjust confidence based on completion statistics quality
+        var adjustedDataPoints = baseDataPoints
+        
+        // Schedule-aware completion data is higher quality - boost confidence
+        if completionStats.totalHabits > 0 {
+            // Bonus for having habit diversity
+            let diversityBonus = min(Double(completionStats.totalHabits) * 2.0, 20.0)
+            adjustedDataPoints += diversityBonus
+            
+            // Bonus for completion rate quality (very high or very low rates are more informative)
+            let completionRate = completionStats.completionRate
+            if completionRate > 0.8 || completionRate < 0.2 {
+                adjustedDataPoints += 15.0 // Strong signal bonus
+            } else if completionRate > 0.6 || completionRate < 0.4 {
+                adjustedDataPoints += 8.0 // Moderate signal bonus
+            }
+            
+            // Bonus for habit consistency (some habits are clearly successful vs unsuccessful)
+            if completionStats.totalHabits > 0 {
+                let consistencyRatio = Double(completionStats.completedHabits) / Double(completionStats.totalHabits)
+                if consistencyRatio > 0.7 || consistencyRatio < 0.3 {
+                    adjustedDataPoints += 10.0 // Clear patterns bonus
+                }
+            }
+        }
+        
+        // Enhanced confidence thresholds
+        switch adjustedDataPoints {
+        case 0..<35:
+            return .low
+        case 35..<85:
+            return .medium
+        case 85..<160:
             return .high
         default:
             return .veryHigh
