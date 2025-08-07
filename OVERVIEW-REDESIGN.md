@@ -334,12 +334,20 @@ ScrollView {
 
 ### Phase 3 Tasks:
 
-#### 3.1 Implement SmartInsightsCard
-- [ ] Create pattern detection algorithms
-- [ ] Add day-of-week performance analysis  
-- [ ] Implement suggestion generation
-- [ ] Create mini visualization components
+#### 3.1 Implement SmartInsightsCard ✅ *COMPLETED*
+- [x] **Integrated real personality analysis system** ✅
+- [x] **Auto-generation of missing personality profiles** ✅
+- [x] **Curated insight filtering for Overview (3-4 insights max)** ✅
+- [x] **Graceful fallback to basic habit insights** ✅
+- [x] **Two-tier insight system documentation** ✅
+- [ ] Add mini visualization components
 - [ ] Add insight refresh logic
+
+**Implementation Notes**:
+- **Data Flow**: `GetPersonalityInsightsUseCase.getAllInsights()` → Filtered in `loadSmartInsights()`
+- **Auto-Generation**: Missing personality profiles automatically created via `UpdatePersonalityAnalysisUseCase`
+- **Two Locations**: Overview (curated) vs Settings → "Insights for Habit Building" (complete)
+- **Fallback System**: Basic habit pattern analysis when personality analysis unavailable
 
 #### 3.2 Add Motivational Messaging System
 - [ ] Create message templates for different scenarios
