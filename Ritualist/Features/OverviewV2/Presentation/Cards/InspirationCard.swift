@@ -121,7 +121,7 @@ struct InspirationCard: View {
                     
                     // Dismiss button
                     Button(action: onDismiss) {
-                        Image(systemName: "xmark")
+                        Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                     }

@@ -2,10 +2,13 @@ import SwiftUI
 
 struct QuickActionsCard: View {
     let incompleteHabits: [Habit]
+    let completedHabits: [Habit]
     let currentSlogan: String?
     let timeOfDay: TimeOfDay
     let completionPercentage: Double
     let onHabitComplete: (Habit) -> Void
+    
+    @State private var animatingHabitId: UUID? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -33,126 +36,42 @@ struct QuickActionsCard: View {
                     )
             }
             
-            if incompleteHabits.isEmpty {
-                perfectDayState
-            } else {
-                // Horizontal Scrolling Habit Chips
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(incompleteHabits, id: \.id) { habit in
-                            habitChip(for: habit)
-                        }
+            // Always show Horizontal Scrolling Habit Chips
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    // Incomplete habits first
+                    ForEach(incompleteHabits, id: \.id) { habit in
+                        habitChip(for: habit, isCompleted: false)
+                            .opacity(animatingHabitId == habit.id ? 0.0 : 1.0)
+                            .animation(.easeOut(duration: 0.3), value: animatingHabitId)
                     }
-                    .padding(.horizontal, 2) // Small padding for shadow
+                    
+                    // Completed habits at the end
+                    ForEach(completedHabits, id: \.id) { habit in
+                        habitChip(for: habit, isCompleted: true)
+                    }
                 }
+                .padding(.horizontal, 2) // Small padding for shadow
             }
         }
         .cardStyle()
     }
     
     @ViewBuilder
-    private var perfectDayState: some View {
-        VStack(spacing: 16) {
-            // Time-aware celebration
-            VStack(spacing: 8) {
-                celebrationIcon
-                    .font(.system(size: 36))
-                    .scaleEffect(1.0)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8).repeatCount(1), value: incompleteHabits.isEmpty)
+    private func habitChip(for habit: Habit, isCompleted: Bool) -> some View {
+        Button {
+            if !isCompleted {
+                // Start fade animation before calling completion
+                withAnimation(.easeOut(duration: 0.3)) {
+                    animatingHabitId = habit.id
+                }
                 
-                Text(celebrationTitle)
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundColor(.primary)
-            }
-            
-            // Inspirational message based on time of day and slogan
-            if let slogan = currentSlogan {
-                Text(slogan)
-                    .font(.system(size: 15, weight: .medium, design: .rounded))
-                    .foregroundColor(celebrationColor)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .italic()
-            } else {
-                Text(fallbackCelebrationMessage)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            
-            // Subtle animation elements
-            HStack(spacing: 8) {
-                ForEach(0..<5, id: \.self) { index in
-                    Circle()
-                        .fill(celebrationColor.opacity(0.6))
-                        .frame(width: 4, height: 4)
-                        .scaleEffect(1.0)
-                        .animation(
-                            .easeInOut(duration: 1.2)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(index) * 0.15),
-                            value: incompleteHabits.isEmpty
-                        )
+                // Delay the completion callback to allow fade animation
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    onHabitComplete(habit)
+                    animatingHabitId = nil
                 }
             }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-        .background(
-            celebrationColor.opacity(0.08)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-        )
-    }
-    
-    private var celebrationIcon: Text {
-        switch timeOfDay {
-        case .morning:
-            return Text("🌅") // sunrise
-        case .noon:
-            return Text("✨") // sparkles
-        case .evening:
-            return Text("🎆") // fireworks
-        }
-    }
-    
-    private var celebrationTitle: String {
-        switch timeOfDay {
-        case .morning:
-            return "Perfect Morning!"
-        case .noon:
-            return "Crushing It!"
-        case .evening:
-            return "Day Complete!"
-        }
-    }
-    
-    private var celebrationColor: Color {
-        switch timeOfDay {
-        case .morning:
-            return .orange
-        case .noon:
-            return .green
-        case .evening:
-            return .purple
-        }
-    }
-    
-    private var fallbackCelebrationMessage: String {
-        switch timeOfDay {
-        case .morning:
-            return "All morning habits completed! Ready to conquer the day ahead."
-        case .noon:
-            return "Fantastic progress! You're staying consistent throughout the day."
-        case .evening:
-            return "Perfect finish! You've successfully completed all your habits today."
-        }
-    }
-    
-    @ViewBuilder
-    private func habitChip(for habit: Habit) -> some View {
-        Button {
-            onHabitComplete(habit)
         } label: {
             HStack(spacing: 12) {
                 // Habit Emoji
@@ -164,38 +83,39 @@ struct QuickActionsCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(habit.name)
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.primary)
+                        .foregroundColor(isCompleted ? .primary.opacity(0.8) : .primary)
                         .lineLimit(1)
                     
                     if habit.kind == .numeric, let unitLabel = habit.unitLabel {
                         Text("\(Int(habit.dailyTarget ?? 1.0)) \(unitLabel)")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(isCompleted ? .secondary.opacity(0.7) : .secondary)
                     } else {
-                        Text("Tap to complete")
+                        Text(isCompleted ? "Completed" : "Tap to complete")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(isCompleted ? .green : .secondary)
                     }
                 }
                 
                 // Complete Icon
-                Image(systemName: "plus.circle.fill")
+                Image(systemName: isCompleted ? "checkmark.circle.fill" : "plus.circle.fill")
                     .font(.title3)
-                    .foregroundColor(AppColors.brand)
+                    .foregroundColor(isCompleted ? .green : AppColors.brand)
             }
             .padding(.vertical, 14)
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemBackground))
+                    .fill(isCompleted ? Color.green.opacity(0.15) : Color(.systemBackground))
                     .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(CardDesign.secondaryBackground, lineWidth: 1)
+                    .stroke(isCompleted ? Color.green.opacity(0.3) : CardDesign.secondaryBackground, lineWidth: 1)
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .disabled(isCompleted)
         .scaleEffect(1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: incompleteHabits.count)
     }
@@ -203,7 +123,7 @@ struct QuickActionsCard: View {
 
 #Preview {
     VStack(spacing: 20) {
-        // With incomplete habits
+        // With incomplete and completed habits
         QuickActionsCard(
             incompleteHabits: [
                 Habit(
@@ -229,7 +149,9 @@ struct QuickActionsCard: View {
                     isActive: true,
                     categoryId: nil,
                     suggestionId: nil
-                ),
+                )
+            ],
+            completedHabits: [
                 Habit(
                     id: UUID(),
                     name: "Water Intake",
@@ -252,6 +174,7 @@ struct QuickActionsCard: View {
         // Perfect day state
         QuickActionsCard(
             incompleteHabits: [],
+            completedHabits: [],
             currentSlogan: "End strong, dream bigger.",
             timeOfDay: .evening,
             completionPercentage: 1.0,

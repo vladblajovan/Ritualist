@@ -441,7 +441,10 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     }
     
     public func isPersonalityAnalysisEnabled(for userId: UUID) async throws -> Bool {
-        true // Default to enabled
+        if let preferences = try await getAnalysisPreferences(for: userId) {
+            return preferences.isCurrentlyActive
+        }
+        return true // Default to enabled if no preferences exist
     }
     
     public func getAnalysisPreferences(for userId: UUID) async throws -> PersonalityAnalysisPreferences? {

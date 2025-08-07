@@ -28,7 +28,7 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            if showWelcomeMessage, let action = action {
+            if showWelcomeMessage, let action = action, !isDirectNavigation(action) {
                 WelcomeMessageView(action: action)
                     .padding()
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -73,6 +73,10 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
             case .checkAnalysis:
                 // Trigger an analysis check
                 await viewModel.triggerManualAnalysisCheck()
+                
+            case .directNavigation:
+                // Load the personality insights (same as openAnalysis but without notification context)
+                await viewModel.loadPersonalityInsights()
             }
         }
     }
@@ -80,6 +84,13 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
     private func handleDismiss() {
         onDismiss()
         dismiss()
+    }
+    
+    private func isDirectNavigation(_ action: PersonalityDeepLinkCoordinator.PersonalityNotificationAction) -> Bool {
+        if case .directNavigation = action {
+            return true
+        }
+        return false
     }
 }
 
@@ -122,6 +133,8 @@ private struct WelcomeMessageView: View {
             return "🌱"
         case .checkAnalysis:
             return "🔍"
+        case .directNavigation:
+            return "📊"
         }
     }
     
@@ -133,6 +146,8 @@ private struct WelcomeMessageView: View {
             return .orange
         case .checkAnalysis:
             return .purple
+        case .directNavigation:
+            return .blue
         }
     }
     
@@ -148,6 +163,8 @@ private struct WelcomeMessageView: View {
             return "Keep building those habits!"
         case .checkAnalysis:
             return "Checking your latest patterns..."
+        case .directNavigation:
+            return "Your personality insights"
         }
     }
     
@@ -159,6 +176,8 @@ private struct WelcomeMessageView: View {
             return "You're on track to unlock personality insights"
         case .checkAnalysis:
             return "Analyzing your recent habit data"
+        case .directNavigation:
+            return "Discover what your habits reveal about you"
         }
     }
 }

@@ -7,27 +7,29 @@ import FactoryKit
 // MARK: - Data Models
 
 public struct TodaysSummary {
-    public let completedHabits: Int
+    public let completedHabitsCount: Int
+    public let completedHabits: [Habit]
     public let totalHabits: Int
     public let completionPercentage: Double
     public let motivationalMessage: String
     public let incompleteHabits: [Habit]
     
-    public init(completedHabits: Int, totalHabits: Int, incompleteHabits: [Habit]) {
+    public init(completedHabitsCount: Int, completedHabits: [Habit], totalHabits: Int, incompleteHabits: [Habit]) {
+        self.completedHabitsCount = completedHabitsCount
         self.completedHabits = completedHabits
         self.totalHabits = totalHabits
-        self.completionPercentage = totalHabits > 0 ? Double(completedHabits) / Double(totalHabits) : 0.0
+        self.completionPercentage = totalHabits > 0 ? Double(completedHabitsCount) / Double(totalHabits) : 0.0
         self.incompleteHabits = incompleteHabits
         
         // Generate motivational message based on progress
         if completionPercentage >= 1.0 {
             self.motivationalMessage = "Perfect day! All habits completed! 🎉"
         } else if completionPercentage >= 0.8 {
-            let remaining = totalHabits - completedHabits
+            let remaining = totalHabits - completedHabitsCount
             self.motivationalMessage = "Great work! \(remaining) habit\(remaining == 1 ? "" : "s") left"
         } else if completionPercentage >= 0.5 {
             self.motivationalMessage = "Keep going! You're halfway there"
-        } else if completedHabits > 0 {
+        } else if completedHabitsCount > 0 {
             self.motivationalMessage = "Good start! Let's build momentum"
         } else {
             self.motivationalMessage = "Ready to start your day?"
@@ -129,10 +131,14 @@ public final class OverviewV2ViewModel: ObservableObject {
         todaysSummary?.incompleteHabits ?? []
     }
     
+    public var completedHabits: [Habit] {
+        todaysSummary?.completedHabits ?? []
+    }
+    
     public var shouldShowQuickActions: Bool {
-        // Only show QuickActions when there are incomplete habits
+        // Show QuickActions when there are incomplete habits OR completed habits to display
         guard isViewingToday else { return false }
-        return !incompleteHabits.isEmpty
+        return !incompleteHabits.isEmpty || !completedHabits.isEmpty
     }
     
     public var shouldShowActiveStreaks: Bool {
@@ -293,6 +299,16 @@ public final class OverviewV2ViewModel: ObservableObject {
     
     public func refresh() async {
         await loadData()
+    }
+    
+    public func openPersonalityAnalysis() {
+        Task { @MainActor in
+            PersonalityDeepLinkCoordinator.shared.showPersonalityAnalysisDirectly()
+        }
+    }
+    
+    public func refreshPersonalityInsights() async {
+        await loadPersonalityInsights()
     }
     
     public func completeHabit(_ habit: Habit) async {
@@ -472,7 +488,7 @@ public final class OverviewV2ViewModel: ObservableObject {
             triggers.append(.strongFinish)
         } else if completionRate >= 0.5 {
             triggers.append(.halfwayPoint)
-        } else if completionRate > 0.0 && summary.completedHabits == 1 {
+        } else if completionRate > 0.0 && summary.completedHabitsCount == 1 {
             triggers.append(.firstHabitComplete)
         }
         
@@ -566,7 +582,20 @@ public final class OverviewV2ViewModel: ObservableObject {
             allTargetDateLogs.append(contentsOf: targetDateLogs)
         }
         
-        let completedHabits = allTargetDateLogs.count
+        let completedHabitsCount = allTargetDateLogs.count
+        
+        // Create completed habits array (sorted by completion time)
+        let completedHabits = habits.filter { habit in
+            allTargetDateLogs.contains { $0.habitID == habit.id }
+        }.sorted { habit1, habit2 in
+            // Sort by latest log time for each habit (most recent at end)
+            let habit1Logs = allTargetDateLogs.filter { $0.habitID == habit1.id }
+            let habit2Logs = allTargetDateLogs.filter { $0.habitID == habit2.id }
+            let habit1LatestTime = habit1Logs.map { $0.date }.max() ?? Date.distantPast
+            let habit2LatestTime = habit2Logs.map { $0.date }.max() ?? Date.distantPast
+            return habit1LatestTime < habit2LatestTime
+        }
+        
         let incompleteHabits = habits.filter { habit in
             // Only show as incomplete if not completed AND not a future date
             let hasLog = allTargetDateLogs.contains { $0.habitID == habit.id }
@@ -574,6 +603,7 @@ public final class OverviewV2ViewModel: ObservableObject {
         }
         
         return TodaysSummary(
+            completedHabitsCount: completedHabitsCount,
             completedHabits: completedHabits,
             totalHabits: habits.count,
             incompleteHabits: incompleteHabits

@@ -44,9 +44,12 @@ public enum OverviewPersonalityInsightType: CaseIterable {
 struct PersonalityInsightsCard: View {
     let insights: [OverviewPersonalityInsight]
     let dominantTrait: String?
+    let onOpenAnalysis: () -> Void
+    
+    @State private var isExpanded = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             // Header
             HStack {
                 Image(systemName: "brain.head.profile")
@@ -68,9 +71,7 @@ struct PersonalityInsightsCard: View {
                 Spacer()
                 
                 // Link to full analysis
-                Button(action: {
-                    // TODO: Navigate to full personality analysis
-                }) {
+                Button(action: onOpenAnalysis) {
                     Image(systemName: "arrow.up.right")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -91,36 +92,42 @@ struct PersonalityInsightsCard: View {
                 }
                 .padding(.vertical, 8)
             } else {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(insights.prefix(3)) { insight in
+                VStack(spacing: 16) {
+                    ForEach(Array(insights.prefix(isExpanded ? insights.count : 3).enumerated()), id: \.element.id) { index, insight in
                         InsightRow(insight: insight)
+                        
+                        if index < min(insights.count, isExpanded ? insights.count : 3) - 1 {
+                            Divider()
+                                .opacity(0.3)
+                        }
                     }
                     
-                    // Show more indicator if there are additional insights
+                    // Show more/less indicator if there are additional insights
                     if insights.count > 3 {
                         HStack {
-                            Text("View \(insights.count - 3) more insights")
+                            Text(isExpanded ? "Show less" : "View \(insights.count - 3) more insights")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
                             Spacer()
                             
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    isExpanded.toggle()
+                                }
+                            } label: {
+                                Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
                         .padding(.top, 4)
-                        .onTapGesture {
-                            // TODO: Navigate to full personality analysis
-                        }
                     }
                 }
             }
         }
-        .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .cardStyle()
     }
 }
 
@@ -128,26 +135,40 @@ private struct InsightRow: View {
     let insight: OverviewPersonalityInsight
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: insight.type.icon)
-                .font(.body)
-                .foregroundColor(insight.type.color)
-                .frame(width: 20)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(insight.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                // Insight Icon
+                Image(systemName: insight.type.icon)
+                    .font(.title3)
+                    .frame(width: 32, height: 32)
+                    .background(insight.type.color.opacity(0.1))
+                    .foregroundColor(insight.type.color)
+                    .clipShape(Circle())
                 
-                Text(insight.message)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                // Insight Content
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(insight.title)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    
+                    Text(insight.message)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                Spacer()
+                
+                // Type indicator
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(insight.type.color.opacity(0.2))
+                    .frame(width: 4, height: 32)
             }
-            
-            Spacer()
         }
+        .padding(.vertical, 2)
     }
 }
 
@@ -176,13 +197,15 @@ struct PersonalityInsightsCard_Previews: PreviewProvider {
                             type: .motivation
                         )
                     ],
-                    dominantTrait: "Conscientiousness"
+                    dominantTrait: "Conscientiousness",
+                    onOpenAnalysis: { }
                 )
                 
                 // Empty state
                 PersonalityInsightsCard(
                     insights: [],
-                    dominantTrait: nil
+                    dominantTrait: nil,
+                    onOpenAnalysis: { }
                 )
             }
             .padding()

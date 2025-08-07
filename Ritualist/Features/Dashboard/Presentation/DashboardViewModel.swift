@@ -15,18 +15,21 @@ public final class DashboardViewModel: ObservableObject {
         }
     }
     @Published public var completionStats: HabitCompletionStats?
-    @Published public var habitPerformanceData: [HabitPerformance]?
-    @Published public var progressChartData: [ChartDataPoint]?
-    @Published public var weeklyPatterns: WeeklyPatterns?
-    @Published public var streakAnalysis: StreakAnalysis?
-    @Published public var categoryBreakdown: [CategoryPerformance]?
+    @Published public var habitPerformanceData: [HabitPerformanceViewModel]?
+    @Published public var progressChartData: [ChartDataPointViewModel]?
+    @Published public var weeklyPatterns: WeeklyPatternsViewModel?
+    @Published public var streakAnalysis: StreakAnalysisViewModel?
+    @Published public var categoryBreakdown: [CategoryPerformanceViewModel]?
     @Published public var isLoading = false
     @Published public var error: Error?
     
-    @Injected(\.personalityAnalysisRepository) private var repository
-    @Injected(\.categoryRepository) private var categoryRepository
+    @Injected(\.habitAnalyticsService) private var habitAnalyticsService
     @Injected(\.userService) private var userService
-    @Injected(\.logRepository) private var logRepository
+    @Injected(\.calculateHabitPerformanceUseCase) private var calculateHabitPerformanceUseCase
+    @Injected(\.generateProgressChartDataUseCase) private var generateProgressChartDataUseCase
+    @Injected(\.analyzeWeeklyPatternsUseCase) private var analyzeWeeklyPatternsUseCase
+    @Injected(\.calculateStreakAnalysisUseCase) private var calculateStreakAnalysisUseCase
+    @Injected(\.aggregateCategoryPerformanceUseCase) private var aggregateCategoryPerformanceUseCase
     
     private var userId: UUID { 
         userService.currentProfile.id 
@@ -82,76 +85,88 @@ public final class DashboardViewModel: ObservableObject {
         }
     }
     
-    public struct HabitPerformance: Identifiable {
-        public let id: String
-        public let habitName: String
+    // MARK: - Presentation Models
+    
+    /// UI-specific model for habit performance display
+    public struct HabitPerformanceViewModel: Identifiable {
+        public let id: UUID
+        public let name: String
         public let emoji: String
         public let completionRate: Double
+        public let completedDays: Int
+        public let expectedDays: Int
         
-        public init(habitName: String, emoji: String, completionRate: Double) {
-            self.id = habitName
-            self.habitName = habitName
-            self.emoji = emoji
-            self.completionRate = completionRate
+        init(from domain: HabitPerformanceResult) {
+            self.id = domain.habitId
+            self.name = domain.habitName
+            self.emoji = domain.emoji
+            self.completionRate = domain.completionRate
+            self.completedDays = domain.completedDays
+            self.expectedDays = domain.expectedDays
         }
     }
     
-    public struct ChartDataPoint: Identifiable {
+    /// UI-specific model for chart data display
+    public struct ChartDataPointViewModel: Identifiable {
         public let id = UUID()
         public let date: Date
         public let completionRate: Double
         
-        public init(date: Date, completionRate: Double) {
-            self.date = date
-            self.completionRate = completionRate
+        init(from domain: ProgressChartDataPoint) {
+            self.date = domain.date
+            self.completionRate = domain.completionRate
         }
     }
     
-    public struct WeeklyPatterns {
-        public let dayOfWeekPerformance: [DayOfWeekPerformance]
+    /// UI-specific model for weekly patterns display
+    public struct WeeklyPatternsViewModel {
+        public let dayOfWeekPerformance: [DayOfWeekPerformanceViewModel]
         public let bestDay: String
         public let worstDay: String
         public let averageWeeklyCompletion: Double
         
-        public init(dayOfWeekPerformance: [DayOfWeekPerformance], bestDay: String, worstDay: String, averageWeeklyCompletion: Double) {
-            self.dayOfWeekPerformance = dayOfWeekPerformance
-            self.bestDay = bestDay
-            self.worstDay = worstDay
-            self.averageWeeklyCompletion = averageWeeklyCompletion
+        init(from domain: WeeklyPatternsResult) {
+            self.dayOfWeekPerformance = domain.dayOfWeekPerformance.map(DayOfWeekPerformanceViewModel.init)
+            self.bestDay = domain.bestDay
+            self.worstDay = domain.worstDay
+            self.averageWeeklyCompletion = domain.averageWeeklyCompletion
         }
     }
     
-    public struct DayOfWeekPerformance: Identifiable {
+    /// UI-specific model for day of week performance display
+    public struct DayOfWeekPerformanceViewModel: Identifiable {
         public let id: String
         public let dayName: String
         public let completionRate: Double
         public let averageHabitsCompleted: Int
         
-        public init(dayName: String, completionRate: Double, averageHabitsCompleted: Int) {
-            self.id = dayName
-            self.dayName = dayName
-            self.completionRate = completionRate
-            self.averageHabitsCompleted = averageHabitsCompleted
+        init(from domain: DayOfWeekPerformanceResult) {
+            self.id = domain.dayName
+            self.dayName = domain.dayName
+            self.completionRate = domain.completionRate
+            self.averageHabitsCompleted = domain.averageHabitsCompleted
         }
     }
     
-    public struct StreakAnalysis {
+    /// UI-specific model for streak analysis display
+    public struct StreakAnalysisViewModel {
         public let currentStreak: Int
         public let longestStreak: Int
-        public let streakTrend: String // "improving", "declining", "stable"
+        public let streakTrend: String
         public let daysWithFullCompletion: Int
-        public let consistencyScore: Double // 0-1
+        public let consistencyScore: Double
         
-        public init(currentStreak: Int, longestStreak: Int, streakTrend: String, daysWithFullCompletion: Int, consistencyScore: Double) {
-            self.currentStreak = currentStreak
-            self.longestStreak = longestStreak
-            self.streakTrend = streakTrend
-            self.daysWithFullCompletion = daysWithFullCompletion
-            self.consistencyScore = consistencyScore
+        init(from domain: StreakAnalysisResult) {
+            self.currentStreak = domain.currentStreak
+            self.longestStreak = domain.longestStreak
+            self.streakTrend = domain.streakTrend
+            self.daysWithFullCompletion = domain.daysWithFullCompletion
+            self.consistencyScore = domain.consistencyScore
         }
     }
     
-    public struct CategoryPerformance: Identifiable {
+    /// UI-specific model for category performance display
+    public struct CategoryPerformanceViewModel: Identifiable {
         public let id: String
         public let categoryName: String
         public let completionRate: Double
@@ -159,13 +174,13 @@ public final class DashboardViewModel: ObservableObject {
         public let color: String
         public let emoji: String?
         
-        public init(categoryName: String, completionRate: Double, habitCount: Int, color: String, emoji: String? = nil) {
-            self.id = categoryName
-            self.categoryName = categoryName
-            self.completionRate = completionRate
-            self.habitCount = habitCount
-            self.color = color
-            self.emoji = emoji
+        init(from domain: CategoryPerformanceResult) {
+            self.id = domain.categoryId
+            self.categoryName = domain.categoryName
+            self.completionRate = domain.completionRate
+            self.habitCount = domain.habitCount
+            self.color = domain.color
+            self.emoji = domain.emoji
         }
     }
     
@@ -180,7 +195,7 @@ public final class DashboardViewModel: ObservableObject {
         do {
             // Load completion statistics
             let range = selectedTimePeriod.dateRange
-            let stats = try await repository.getHabitCompletionStats(
+            let stats = try await habitAnalyticsService.getHabitCompletionStats(
                 for: userId,
                 from: range.start,
                 to: range.end
@@ -219,40 +234,16 @@ public final class DashboardViewModel: ObservableObject {
     
     private func loadHabitPerformanceData() async {
         do {
-            // Get all habits to analyze individual performance
-            let habits = try await repository.getUserHabits(for: userId)
             let range = selectedTimePeriod.dateRange
+            let results = try await calculateHabitPerformanceUseCase.execute(
+                for: userId,
+                from: range.start,
+                to: range.end
+            )
             
-            var performanceData: [HabitPerformance] = []
-            
-            for habit in habits {
-                // Calculate real individual habit completion rate
-                let habitLogs = try await logRepository.logs(for: habit.id)
-                let logsInRange = habitLogs.filter { log in
-                    log.date >= range.start && log.date <= range.end
-                }
-                
-                // Calculate expected days for this habit based on its schedule
-                let calendar = Calendar.current
-                let expectedDays = calculateExpectedDaysForHabit(habit, from: range.start, to: range.end, calendar: calendar)
-                
-                // Calculate completion rate
-                let completionRate = expectedDays > 0 ? Double(logsInRange.count) / Double(expectedDays) : 0.0
-                
-                let performance = HabitPerformance(
-                    habitName: habit.name,
-                    emoji: habit.emoji ?? "📊",
-                    completionRate: min(completionRate, 1.0) // Cap at 100%
-                )
-                
-                performanceData.append(performance)
-            }
-            
-            // Sort by completion rate (highest first)
-            performanceData.sort { $0.completionRate > $1.completionRate }
-            
+            let viewModels = results.map(HabitPerformanceViewModel.init)
             await MainActor.run {
-                self.habitPerformanceData = performanceData
+                self.habitPerformanceData = viewModels
             }
             
         } catch {
@@ -263,33 +254,15 @@ public final class DashboardViewModel: ObservableObject {
     private func loadProgressChartData() async {
         do {
             let range = selectedTimePeriod.dateRange
-            let calendar = Calendar.current
+            let results = try await generateProgressChartDataUseCase.execute(
+                for: userId,
+                from: range.start,
+                to: range.end
+            )
             
-            var chartData: [ChartDataPoint] = []
-            var currentDate = range.start
-            
-            // Generate daily completion rates for the chart
-            while currentDate <= range.end {
-                let dayEnd = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
-                
-                let dayStats = try await repository.getHabitCompletionStats(
-                    for: userId,
-                    from: currentDate,
-                    to: dayEnd
-                )
-                
-                let dataPoint = ChartDataPoint(
-                    date: currentDate,
-                    completionRate: dayStats.completionRate
-                )
-                
-                chartData.append(dataPoint)
-                
-                currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
-            }
-            
+            let viewModels = results.map(ChartDataPointViewModel.init)
             await MainActor.run {
-                self.progressChartData = chartData
+                self.progressChartData = viewModels
             }
             
         } catch {
@@ -300,58 +273,15 @@ public final class DashboardViewModel: ObservableObject {
     private func loadWeeklyPatterns() async {
         do {
             let range = selectedTimePeriod.dateRange
-            let habits = try await repository.getUserHabits(for: userId)
-            let logs = try await repository.getUserHabitLogs(for: userId, from: range.start, to: range.end)
-            
-            let calendar = Calendar.current
-            
-            // Group logs by day of week
-            var dayPerformance: [String: (completed: Int, total: Int)] = [
-                "Sunday": (0, 0),
-                "Monday": (0, 0),
-                "Tuesday": (0, 0),
-                "Wednesday": (0, 0),
-                "Thursday": (0, 0),
-                "Friday": (0, 0),
-                "Saturday": (0, 0)
-            ]
-            
-            let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
-            
-            for (date, dayLogs) in logsByDate {
-                let dayName = DateFormatter().weekdaySymbols[calendar.component(.weekday, from: date) - 1]
-                
-                // Calculate completion for this day
-                let habitsForDay = habits.count
-                let completedForDay = dayLogs.count // Simplified - in reality would need proper completion logic
-                
-                dayPerformance[dayName]?.completed += completedForDay
-                dayPerformance[dayName]?.total += habitsForDay
-            }
-            
-            // Create day of week performance array
-            let dayOfWeekPerformance = dayPerformance.map { (dayName, performance) in
-                let completionRate = performance.total > 0 ? Double(performance.completed) / Double(performance.total) : 0.0
-                return DayOfWeekPerformance(
-                    dayName: dayName,
-                    completionRate: completionRate,
-                    averageHabitsCompleted: performance.total > 0 ? performance.completed / max(1, performance.total / habits.count) : 0
-                )
-            }.sorted { $0.completionRate > $1.completionRate }
-            
-            let bestDay = dayOfWeekPerformance.first?.dayName ?? "Monday"
-            let worstDay = dayOfWeekPerformance.last?.dayName ?? "Monday"
-            let averageCompletion = dayOfWeekPerformance.map { $0.completionRate }.reduce(0, +) / Double(dayOfWeekPerformance.count)
-            
-            let weeklyPatterns = WeeklyPatterns(
-                dayOfWeekPerformance: dayOfWeekPerformance,
-                bestDay: bestDay,
-                worstDay: worstDay,
-                averageWeeklyCompletion: averageCompletion
+            let result = try await analyzeWeeklyPatternsUseCase.execute(
+                for: userId,
+                from: range.start,
+                to: range.end
             )
             
+            let viewModel = WeeklyPatternsViewModel(from: result)
             await MainActor.run {
-                self.weeklyPatterns = weeklyPatterns
+                self.weeklyPatterns = viewModel
             }
             
         } catch {
@@ -362,66 +292,15 @@ public final class DashboardViewModel: ObservableObject {
     private func loadStreakAnalysis() async {
         do {
             let range = selectedTimePeriod.dateRange
-            let logs = try await repository.getUserHabitLogs(for: userId, from: range.start, to: range.end)
-            let habits = try await repository.getUserHabits(for: userId)
-            
-            let calendar = Calendar.current
-            let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
-            
-            // Calculate streaks and consistency
-            var currentStreak = 0
-            var longestStreak = 0
-            var tempStreak = 0
-            var daysWithFullCompletion = 0
-            
-            let sortedDates = logsByDate.keys.sorted()
-            
-            for (_, date) in sortedDates.enumerated() {
-                let dayLogs = logsByDate[date] ?? []
-                
-                // Calculate expected habits for this day
-                let expectedHabitsForDay = habits.filter { habit in
-                    isHabitExpectedOnDate(habit: habit, date: date, calendar: calendar)
-                }
-                
-                let completionRateForDay = expectedHabitsForDay.isEmpty ? 0.0 : Double(dayLogs.count) / Double(expectedHabitsForDay.count)
-                
-                // Consider a day "complete" if there are any logs
-                if !dayLogs.isEmpty {
-                    tempStreak += 1
-                    longestStreak = max(longestStreak, tempStreak)
-                    
-                    // Day has full completion if 80% or more of expected habits were completed
-                    if completionRateForDay >= 0.8 {
-                        daysWithFullCompletion += 1
-                    }
-                    
-                    // If this is the last day or yesterday, it counts toward current streak
-                    let isRecent = calendar.dateComponents([.day], from: date, to: Date()).day ?? 0 <= 1
-                    if isRecent {
-                        currentStreak = tempStreak
-                    }
-                } else {
-                    tempStreak = 0
-                }
-            }
-            
-            // Determine trend based on actual completion data
-            let totalDays = max(1, calendar.dateComponents([.day], from: range.start, to: range.end).day ?? 1)
-            let consistencyScore = Double(daysWithFullCompletion) / Double(totalDays)
-            
-            let trend = consistencyScore > 0.7 ? "improving" : consistencyScore > 0.4 ? "stable" : "declining"
-            
-            let streakAnalysis = StreakAnalysis(
-                currentStreak: currentStreak,
-                longestStreak: longestStreak,
-                streakTrend: trend,
-                daysWithFullCompletion: daysWithFullCompletion,
-                consistencyScore: consistencyScore
+            let result = try await calculateStreakAnalysisUseCase.execute(
+                for: userId,
+                from: range.start,
+                to: range.end
             )
             
+            let viewModel = StreakAnalysisViewModel(from: result)
             await MainActor.run {
-                self.streakAnalysis = streakAnalysis
+                self.streakAnalysis = viewModel
             }
             
         } catch {
@@ -431,145 +310,19 @@ public final class DashboardViewModel: ObservableObject {
     
     private func loadCategoryBreakdown() async {
         do {
-            let habits = try await repository.getUserHabits(for: userId)
-            let categories = try await categoryRepository.getActiveCategories()
             let range = selectedTimePeriod.dateRange
+            let results = try await aggregateCategoryPerformanceUseCase.execute(
+                for: userId,
+                from: range.start,
+                to: range.end
+            )
             
-            // Group habits by category, handling suggestions properly
-            let habitsByCategory = Dictionary(grouping: habits) { habit in
-                // For habits from suggestions, use the actual categoryId
-                // For custom habits, use categoryId or "uncategorized"
-                if let categoryId = habit.categoryId, categories.contains(where: { $0.id == categoryId }) {
-                    return categoryId
-                } else if habit.suggestionId != nil {
-                    // This is a habit from suggestion but categoryId doesn't match a real category
-                    // This shouldn't happen, but if it does, group as "suggestion-unknown"
-                    return "suggestion-unknown"
-                } else {
-                    return "uncategorized"
-                }
-            }
-            
-            var categoryPerformance: [CategoryPerformance] = []
-            
-            for (categoryId, categoryHabits) in habitsByCategory {
-                // Skip the suggestion-unknown group as it indicates a data issue
-                if categoryId == "suggestion-unknown" {
-                    print("WARNING: Found habits from suggestions with invalid categoryId")
-                    continue
-                }
-                
-                // Find category info
-                let category = categories.first { $0.id == categoryId }
-                let categoryName = category?.displayName ?? "Uncategorized"
-                let categoryColor = "#007AFF" // Default color since Category doesn't have colorHex
-                let categoryEmoji = category?.emoji
-                
-                // Calculate real completion rate for this category
-                let completionRate = await calculateCategoryCompletionRate(habits: categoryHabits, from: range.start, to: range.end)
-                
-                let performance = CategoryPerformance(
-                    categoryName: categoryName,
-                    completionRate: completionRate,
-                    habitCount: categoryHabits.count,
-                    color: categoryColor,
-                    emoji: categoryEmoji
-                )
-                
-                categoryPerformance.append(performance)
-            }
-            
-            // Sort by completion rate
-            categoryPerformance.sort { $0.completionRate > $1.completionRate }
-            
+            let viewModels = results.map(CategoryPerformanceViewModel.init)
             await MainActor.run {
-                self.categoryBreakdown = categoryPerformance
+                self.categoryBreakdown = viewModels
             }
         } catch {
             print("Failed to load category breakdown: \(error)")
-        }
-    }
-    
-    // MARK: - Helper Methods
-    
-    private func calculateCategoryCompletionRate(habits: [Habit], from startDate: Date, to endDate: Date) async -> Double {
-        guard !habits.isEmpty else { return 0.0 }
-        
-        do {
-            var totalExpectedDays = 0
-            var totalCompletedDays = 0
-            let calendar = Calendar.current
-            
-            for habit in habits {
-                let habitLogs = try await logRepository.logs(for: habit.id)
-                let logsInRange = habitLogs.filter { log in
-                    log.date >= startDate && log.date <= endDate
-                }
-                
-                let expectedDays = calculateExpectedDaysForHabit(habit, from: startDate, to: endDate, calendar: calendar)
-                totalExpectedDays += expectedDays
-                totalCompletedDays += logsInRange.count
-            }
-            
-            return totalExpectedDays > 0 ? min(Double(totalCompletedDays) / Double(totalExpectedDays), 1.0) : 0.0
-            
-        } catch {
-            print("Failed to calculate category completion rate: \(error)")
-            return 0.0
-        }
-    }
-    
-    private func calculateExpectedDaysForHabit(_ habit: Habit, from startDate: Date, to endDate: Date, calendar: Calendar) -> Int {
-        var expectedDays = 0
-        var currentDate = calendar.startOfDay(for: startDate)
-        let end = calendar.startOfDay(for: endDate)
-        
-        while currentDate <= end {
-            defer {
-                currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
-            }
-            
-            // Skip if habit wasn't active yet
-            if currentDate < calendar.startOfDay(for: habit.startDate) {
-                continue
-            }
-            
-            // Skip if habit ended before this date
-            if let habitEndDate = habit.endDate, currentDate > calendar.startOfDay(for: habitEndDate) {
-                continue
-            }
-            
-            // Check if habit was expected on this day based on schedule
-            let isExpected = isHabitExpectedOnDate(habit: habit, date: currentDate, calendar: calendar)
-            if isExpected {
-                expectedDays += 1
-            }
-        }
-        
-        return expectedDays
-    }
-    
-    private func isHabitExpectedOnDate(habit: Habit, date: Date, calendar: Calendar) -> Bool {
-        let weekday = calendar.component(.weekday, from: date)
-        
-        switch habit.schedule {
-        case .daily:
-            return true
-            
-        case .daysOfWeek(let days):
-            // Convert Calendar weekday (Sunday=1) to HabitSchedule format (Monday=1)
-            let habitWeekday: Int
-            if weekday == 1 { // Sunday
-                habitWeekday = 7
-            } else { // Monday=2 -> 1, Tuesday=3 -> 2, etc.
-                habitWeekday = weekday - 1
-            }
-            return days.contains(habitWeekday)
-            
-        case .timesPerWeek(_):
-            // For times per week, we consider the habit expected every day
-            // The actual completion rate calculation will handle the flexible nature
-            return true
         }
     }
 }

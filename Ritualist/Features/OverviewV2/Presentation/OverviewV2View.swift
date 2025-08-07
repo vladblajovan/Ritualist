@@ -12,6 +12,23 @@ public struct OverviewV2View: View {
         ScrollView {
             LazyVStack(spacing: CardDesign.cardSpacing) {
                 // Always show core cards
+                // Inspiration card moved to top position
+                if vm.shouldShowInspirationCard {
+                    InspirationCard(
+                        message: vm.currentInspirationMessage,
+                        slogan: vm.currentSlogan,
+                        timeOfDay: vm.currentTimeOfDay,
+                        completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
+                        shouldShow: vm.showInspirationCard,
+                        onDismiss: {
+                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                vm.hideInspiration()
+                            }
+                        }
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                
                 TodaysSummaryCard(
                     summary: vm.todaysSummary,
                     viewingDate: vm.viewingDate,
@@ -35,27 +52,11 @@ public struct OverviewV2View: View {
                     }
                 )
                 
-                // Floating inspiration card (right after Today's Progress)
-                if vm.shouldShowInspirationCard {
-                    InspirationCard(
-                        message: vm.currentInspirationMessage,
-                        slogan: vm.currentSlogan,
-                        timeOfDay: vm.currentTimeOfDay,
-                        completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
-                        shouldShow: vm.showInspirationCard,
-                        onDismiss: {
-                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                                vm.hideInspiration()
-                            }
-                        }
-                    )
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                
                 // Conditional cards based on user state
                 if vm.shouldShowQuickActions {
                     QuickActionsCard(
                         incompleteHabits: vm.incompleteHabits,
+                        completedHabits: vm.completedHabits,
                         currentSlogan: vm.currentSlogan,
                         timeOfDay: vm.currentTimeOfDay,
                         completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
@@ -92,7 +93,10 @@ public struct OverviewV2View: View {
                 if vm.shouldShowPersonalityInsights {
                     PersonalityInsightsCard(
                         insights: vm.personalityInsights,
-                        dominantTrait: vm.dominantPersonalityTrait
+                        dominantTrait: vm.dominantPersonalityTrait,
+                        onOpenAnalysis: {
+                            vm.openPersonalityAnalysis()
+                        }
                     )
                 }
                 
@@ -106,6 +110,11 @@ public struct OverviewV2View: View {
         }
         .task {
             await vm.loadData()
+        }
+        .onAppear {
+            Task {
+                await vm.refreshPersonalityInsights()
+            }
         }
     }
 }

@@ -181,7 +181,7 @@ public struct DashboardView: View {
     }
     
     @ViewBuilder
-    private func habitPerformanceSection(performance: [DashboardViewModel.HabitPerformance]) -> some View {
+    private func habitPerformanceSection(performance: [DashboardViewModel.HabitPerformanceViewModel]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "star.fill")
@@ -197,7 +197,7 @@ public struct DashboardView: View {
             
             ForEach(performance.prefix(3)) { habit in
                 HabitPerformanceRow(
-                    name: habit.habitName,
+                    name: habit.name,
                     completionRate: habit.completionRate,
                     emoji: habit.emoji
                 )
@@ -210,7 +210,7 @@ public struct DashboardView: View {
     }
     
     @ViewBuilder
-    private func progressChartSection(data: [DashboardViewModel.ChartDataPoint]) -> some View {
+    private func progressChartSection(data: [DashboardViewModel.ChartDataPointViewModel]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "chart.line.uptrend.xyaxis")
@@ -270,7 +270,7 @@ public struct DashboardView: View {
     }
     
     @ViewBuilder
-    private func weeklyPatternsSection(patterns: DashboardViewModel.WeeklyPatterns) -> some View {
+    private func weeklyPatternsSection(patterns: DashboardViewModel.WeeklyPatternsViewModel) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "calendar.circle.fill")
@@ -341,7 +341,7 @@ public struct DashboardView: View {
     }
     
     @ViewBuilder
-    private func streakAnalysisSection(analysis: DashboardViewModel.StreakAnalysis) -> some View {
+    private func streakAnalysisSection(analysis: DashboardViewModel.StreakAnalysisViewModel) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "flame.fill")
@@ -412,7 +412,7 @@ public struct DashboardView: View {
     }
     
     @ViewBuilder
-    private func categoryBreakdownSection(categories: [DashboardViewModel.CategoryPerformance]) -> some View {
+    private func categoryBreakdownSection(categories: [DashboardViewModel.CategoryPerformanceViewModel]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "square.grid.3x3.fill")

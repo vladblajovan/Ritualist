@@ -16,6 +16,7 @@ public final class PersonalityDeepLinkCoordinator: ObservableObject {
     
     @Published public var shouldShowPersonalityAnalysis = false
     @Published public var pendingNotificationAction: PersonalityNotificationAction?
+    @Published public var shouldNavigateToSettings = true // Controls whether to switch to Settings tab
     
     // MARK: - Types
     
@@ -23,6 +24,7 @@ public final class PersonalityDeepLinkCoordinator: ObservableObject {
         case openAnalysis(dominantTrait: PersonalityTrait?, confidence: ConfidenceLevel?)
         case openRequirements
         case checkAnalysis
+        case directNavigation // For direct navigation without notification context
     }
     
     // MARK: - Singleton
@@ -53,6 +55,7 @@ public final class PersonalityDeepLinkCoordinator: ObservableObject {
         // Force reset state to ensure SwiftUI detects changes
         shouldShowPersonalityAnalysis = false
         pendingNotificationAction = nil
+        shouldNavigateToSettings = true // Notifications should navigate to Settings
         
         // Use async dispatch with small delay to make the dismiss/reopen visually apparent
         Task { @MainActor in
@@ -87,6 +90,15 @@ public final class PersonalityDeepLinkCoordinator: ObservableObject {
     @MainActor
     public func navigateToPersonalityAnalysis() {
         pendingNotificationAction = .openAnalysis(dominantTrait: nil, confidence: nil)
+        shouldNavigateToSettings = true
+        shouldShowPersonalityAnalysis = true
+    }
+    
+    /// Directly shows personality analysis sheet without navigating to Settings
+    @MainActor
+    public func showPersonalityAnalysisDirectly() {
+        pendingNotificationAction = .directNavigation
+        shouldNavigateToSettings = false
         shouldShowPersonalityAnalysis = true
     }
     
@@ -95,6 +107,7 @@ public final class PersonalityDeepLinkCoordinator: ObservableObject {
     public func clearPendingNavigation() {
         pendingNotificationAction = nil
         shouldShowPersonalityAnalysis = false
+        shouldNavigateToSettings = true // Reset to default
     }
     
     /// Checks if there's a pending navigation that should trigger

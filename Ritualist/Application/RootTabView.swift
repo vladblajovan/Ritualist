@@ -72,14 +72,19 @@ public struct RootTabView: View {
                 // Handle dismissal
                 showingPersonalityAnalysis = false
             } else if shouldShow {
-                // Navigate to settings tab first
-                navigationService.selectedTab = .settings
-                // Small delay to ensure tab switch completes
-                Task {
-                    try? await Task.sleep(for: .milliseconds(100))
-                    await MainActor.run {
-                        showingPersonalityAnalysis = true
+                if deepLinkCoordinator.shouldNavigateToSettings {
+                    // Navigate to settings tab first (for notifications)
+                    navigationService.selectedTab = .settings
+                    // Small delay to ensure tab switch completes
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(100))
+                        await MainActor.run {
+                            showingPersonalityAnalysis = true
+                        }
                     }
+                } else {
+                    // Show directly without tab navigation (for direct calls)
+                    showingPersonalityAnalysis = true
                 }
             }
         }

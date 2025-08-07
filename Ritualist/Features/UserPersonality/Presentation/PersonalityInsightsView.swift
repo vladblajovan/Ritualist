@@ -427,7 +427,7 @@ private struct ConfidenceBadge: View {
                 Image(systemName: "checkmark.seal.fill")
                     .foregroundColor(confidence.color)
                 
-                Text(confidence.rawValue.capitalized)
+                Text("Confidence level: \(confidence.displayName)")
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
@@ -529,7 +529,17 @@ private extension ConfidenceLevel {
         case .low: return .red
         case .medium: return .orange
         case .high: return .green
-        case .veryHigh: return .purple
+        case .veryHigh: return Color(red: 0.0, green: 0.8, blue: 0.2) // Vibrant green
+        }
+    }
+    
+    var displayName: String {
+        switch self {
+        case .insufficient: return "Insufficient"
+        case .low: return "Low"
+        case .medium: return "Medium"
+        case .high: return "High"
+        case .veryHigh: return "Very High"
         }
     }
     

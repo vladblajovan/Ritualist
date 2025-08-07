@@ -136,29 +136,29 @@ struct TodaysSummaryCard: View {
                             LazyVGrid(columns: Array(repeating: GridItem(.adaptive(minimum: 14, maximum: 18), spacing: 10), count: 12), spacing: 8) {
                                 ForEach(0..<summary.totalHabits, id: \.self) { index in
                                     Circle()
-                                        .fill(index < summary.completedHabits ? 
+                                        .fill(index < summary.completedHabitsCount ? 
                                               progressColor(for: summary.completionPercentage) : 
                                               CardDesign.secondaryBackground)
                                         .frame(width: 14, height: 14)
-                                        .scaleEffect(index < summary.completedHabits ? 1.0 : 0.85)
-                                        .shadow(color: index < summary.completedHabits ? 
+                                        .scaleEffect(index < summary.completedHabitsCount ? 1.0 : 0.85)
+                                        .shadow(color: index < summary.completedHabitsCount ? 
                                                progressColor(for: summary.completionPercentage).opacity(0.3) : 
                                                Color.clear, 
                                                radius: 2, x: 0, y: 1)
                                         .overlay(
                                             Circle()
-                                                .stroke(index < summary.completedHabits ? 
+                                                .stroke(index < summary.completedHabitsCount ? 
                                                        progressColor(for: summary.completionPercentage).opacity(0.2) :
                                                        Color.clear, 
                                                        lineWidth: 0.5)
                                         )
-                                        .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0).delay(Double(index) * 0.1), value: summary.completedHabits)
+                                        .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0).delay(Double(index) * 0.1), value: summary.completedHabitsCount)
                                 }
                             }
                         }
                         
                         // Habit Count Text
-                        Text("\(summary.completedHabits)/\(summary.totalHabits) habits completed")
+                        Text("\(summary.completedHabitsCount)/\(summary.totalHabits) habits completed")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.primary)
                             .lineLimit(nil)
@@ -182,7 +182,6 @@ struct TodaysSummaryCard: View {
                 if !summary.incompleteHabits.isEmpty, let nextHabit = summary.incompleteHabits.first {
                     quickActionButton(for: nextHabit)
                 }
-                
             } else {
                 // Loading State
                 loadingView
@@ -273,7 +272,8 @@ struct TodaysSummaryCard: View {
         // Today state
         TodaysSummaryCard(
             summary: TodaysSummary(
-                completedHabits: 4,
+                completedHabitsCount: 4,
+                completedHabits: [],
                 totalHabits: 5,
                 incompleteHabits: [
                     Habit(
@@ -304,7 +304,8 @@ struct TodaysSummaryCard: View {
         // Past day state
         TodaysSummaryCard(
             summary: TodaysSummary(
-                completedHabits: 2,
+                completedHabitsCount: 2,
+                completedHabits: [],
                 totalHabits: 5,
                 incompleteHabits: [
                     Habit(
