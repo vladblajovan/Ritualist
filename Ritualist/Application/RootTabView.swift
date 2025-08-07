@@ -28,7 +28,7 @@ public struct RootTabView: View {
                 TabView(selection: $navigationService.selectedTab) {
                     Tab(Strings.Navigation.overview, systemImage: "calendar", value: RootTab.overview) {
                             NavigationStack {
-                                OverviewRoot()
+                                OverviewV2Root()
                                     .id(overviewKey)
                             }
                         }
