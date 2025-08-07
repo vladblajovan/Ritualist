@@ -102,6 +102,7 @@ public enum Strings {
         public static let unitRequired = String(localized: "validationUnitRequired")
         public static let targetGreaterThanZero = String(localized: "validationTargetGreaterThanZero")
         public static let selectAtLeastOneDay = String(localized: "validationSelectAtLeastOneDay")
+        public static let categoryRequired = String(localized: "validationCategoryRequired")
     }
     
     // MARK: - Settings
@@ -153,8 +154,14 @@ public enum Strings {
         
         // Dynamic strings with pluralization
         public static func dayPlural(_ count: Int) -> String {
-            String(localized: "overviewDayPlural", defaultValue: "\(count) day(s)")
+            String.localizedStringWithFormat(
+                NSLocalizedString("overviewDayPlural", comment: "Streak count with proper pluralization"),
+                count
+            )
         }
+        
+        public static let daySingular = String(localized: "overviewDaySingular")
+        public static let dayPlural = String(localized: "overviewDayPluralStatic")
     }
     
     // MARK: - Calendar

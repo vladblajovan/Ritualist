@@ -124,6 +124,31 @@ Chart(data) { point in
 }
 ```
 
+### Repository Dependencies
+```swift
+@Injected(\.personalityAnalysisRepository) private var repository
+@Injected(\.categoryRepository) private var categoryRepository
+```
+- **Dual Repository Pattern**: Uses both personality and category repositories
+- **Clean Separation**: Habit data from personality repo, category data from category repo
+- **Proper Categorization**: Handles both predefined and custom categories
+
+### Category Handling Logic
+```swift
+let habitsByCategory = Dictionary(grouping: habits) { habit in
+    if let categoryId = habit.categoryId, categories.contains(where: { $0.id == categoryId }) {
+        return categoryId
+    } else if habit.suggestionId != nil {
+        return "suggestion-unknown" // Data integrity issue
+    } else {
+        return "uncategorized"
+    }
+}
+```
+- **Smart Grouping**: Properly distinguishes between custom habits and habits from suggestions
+- **Data Integrity**: Detects and handles edge cases where suggestion habits have invalid categories
+- **Proper Categorization**: Uses `getActiveCategories()` to include both predefined and custom categories
+
 ### Color Coding System
 - **Progress Indicators**: Green (>80%), Orange (50-80%), Red (<50%)
 - **Brand Colors**: Uses `AppColors.brand` for primary elements
@@ -246,6 +271,57 @@ public func navigateToDashboard() {
 - **Base Memory**: ~15MB for dashboard components
 - **Chart Data**: ~1MB for 30-day dataset
 - **Image Assets**: Minimal (system icons only)
+
+## Recent Bug Fixes & Improvements
+
+### Category Loading in Edit Mode (Fixed)
+**Issue**: Category list was empty when editing habits, preventing users from changing categories.
+**Root Cause**: `loadCategories()` was only called from UI's `.task {}` modifier, which wasn't working reliably in edit mode.
+**Solution**: Added `loadCategories()` call directly in ViewModel's `init()` method.
+```swift
+public init(habit: Habit? = nil) {
+    // ... existing initialization ...
+    
+    // Load categories for both new and edit mode
+    Task {
+        await loadCategories()
+    }
+}
+```
+
+### Suggestion Habits Showing as Uncategorized (Fixed)
+**Issue**: Habits from assistant suggestions appeared as "Uncategorized" in dashboard despite having proper categories.
+**Root Cause**: Dashboard was using `getUserCustomCategories()` which only loads user-created categories, not predefined categories that suggestions use.
+**Solution**: 
+1. Added category repository injection to dashboard
+2. Changed to use `getActiveCategories()` which includes both predefined and custom categories
+3. Enhanced category grouping logic to properly handle suggestion vs custom habits
+
+```swift
+@Injected(\.categoryRepository) private var categoryRepository
+
+// In loadCategoryBreakdown():
+let categories = try await categoryRepository.getActiveCategories()
+```
+
+### Data Model Identifiable Conformance (Fixed)
+**Issue**: SwiftUI Chart complained about missing `Identifiable` conformance for data models.
+**Solution**: Added `Identifiable` conformance to all dashboard data structures:
+- `ChartDataPoint`: Uses `UUID()` for unique identification
+- `DayOfWeekPerformance`: Uses `dayName` as ID
+- `CategoryPerformance`: Uses `categoryName` as ID
+- `HabitPerformance`: Uses `habitName` as ID
+
+### SwiftLint Violations (Fixed)
+**Issue**: Type body length violation on DashboardView due to multiple UI sections.
+**Solution**: Added appropriate SwiftLint disable/enable comments:
+```swift
+// swiftlint:disable type_body_length
+public struct DashboardView: View {
+    // ... implementation ...
+}
+// swiftlint:enable type_body_length
+```
 
 ---
 

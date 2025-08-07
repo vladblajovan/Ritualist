@@ -61,12 +61,18 @@ public final class HabitDetailViewModel {
         if let habit = habit {
             loadHabitData(habit)
         }
+        
+        // Load categories for both new and edit mode
+        Task {
+            await loadCategories()
+        }
     }
     
     public var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         (selectedKind == .binary || (dailyTarget > 0 && !unitLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)) &&
         (selectedSchedule != .daysOfWeek || !selectedDaysOfWeek.isEmpty) &&
+        selectedCategory != nil &&
         !isDuplicateHabit
     }
     
@@ -85,6 +91,10 @@ public final class HabitDetailViewModel {
     
     public var isScheduleValid: Bool {
         selectedSchedule != .daysOfWeek || !selectedDaysOfWeek.isEmpty
+    }
+    
+    public var isCategoryValid: Bool {
+        selectedCategory != nil
     }
     
     public func save() async -> Bool {
@@ -196,11 +206,9 @@ public final class HabitDetailViewModel {
             
             // Set selected category if editing and habit has a category
             if isEditMode, let originalHabit = originalHabit, 
-               originalHabit.categoryId != nil {
-                // For habits from suggestions, categoryId contains suggestion ID, not category ID
-                // For custom categories, categoryId will be nil
-                // For now, we'll handle this in the UI display logic
-                selectedCategory = nil
+               let categoryId = originalHabit.categoryId {
+                // Find the matching category from loaded categories
+                selectedCategory = categories.first { $0.id == categoryId }
             }
         } catch {
             categoriesError = error

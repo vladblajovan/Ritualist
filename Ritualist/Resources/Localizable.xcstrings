@@ -3045,6 +3045,42 @@
         }
       }
     },
+    "overviewDaySingular" : {
+      "comment" : "Displays 'day' in singular form for stats sections in overview screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "day"
+          }
+        }
+      }
+    },
+    "overviewDayPluralStatic" : {
+      "comment" : "Static plural form of 'days' for stats sections in overview screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tage"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "days"
+          }
+        }
+      }
+    },
     "overviewInstructions" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3949,6 +3985,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Please select at least one day"
+          }
+        }
+      }
+    },
+    "validationCategoryRequired" : {
+      "comment" : "Error message shown when user tries to save a habit without selecting a category. Should encourage category selection.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte wähle eine Kategorie aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please select a category"
           }
         }
       }

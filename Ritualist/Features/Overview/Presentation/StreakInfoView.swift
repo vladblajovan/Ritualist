@@ -66,7 +66,7 @@ public struct StreakInfoView: View {
                                 .font(.caption)
                                 .foregroundColor(currentStreak > 0 ? .orange : .secondary)
                             
-                            Text(String(format: String(localized: "overview.day_plural"), currentStreak))
+                            Text(Strings.Overview.dayPlural(currentStreak))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -107,7 +107,7 @@ public struct StreakInfoView: View {
                                 .font(.caption)
                                 .foregroundColor(bestStreak > 0 ? .yellow : .secondary)
                             
-                            Text(String(format: String(localized: "overview.day_plural"), bestStreak))
+                            Text(Strings.Overview.dayPlural(bestStreak))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

@@ -342,6 +342,15 @@ private struct CategorySection: View {
                     .font(.caption)
                     .foregroundColor(.red)
             }
+            
+            // Category validation feedback
+            if !vm.isCategoryValid && vm.selectedCategory == nil && !vm.categories.isEmpty && !vm.isLoadingCategories {
+                Text(Strings.Validation.categoryRequired)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.leading, 4)
+                    .transition(.opacity)
+            }
         }
         .sheet(isPresented: $showingAddCustomCategory) {
             AddCustomCategorySheet { name, emoji in

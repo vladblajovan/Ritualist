@@ -23,6 +23,7 @@ public final class DashboardViewModel: ObservableObject {
     @Published public var error: Error?
     
     @Injected(\.personalityAnalysisRepository) private var repository
+    @Injected(\.categoryRepository) private var categoryRepository
     
     private let userId = UUID() // For now, using a default UUID
     
@@ -403,15 +404,33 @@ public final class DashboardViewModel: ObservableObject {
     private func loadCategoryBreakdown() async {
         do {
             let habits = try await repository.getUserHabits(for: userId)
-            let categories = try await repository.getUserCustomCategories(for: userId)
+            let categories = try await categoryRepository.getActiveCategories()
             let range = selectedTimePeriod.dateRange
             
-            // Group habits by category
-            let habitsByCategory = Dictionary(grouping: habits, by: { $0.categoryId ?? "uncategorized" })
+            // Group habits by category, handling suggestions properly
+            let habitsByCategory = Dictionary(grouping: habits) { habit in
+                // For habits from suggestions, use the actual categoryId
+                // For custom habits, use categoryId or "uncategorized"
+                if let categoryId = habit.categoryId, categories.contains(where: { $0.id == categoryId }) {
+                    return categoryId
+                } else if habit.suggestionId != nil {
+                    // This is a habit from suggestion but categoryId doesn't match a real category
+                    // This shouldn't happen, but if it does, group as "suggestion-unknown"
+                    return "suggestion-unknown"
+                } else {
+                    return "uncategorized"
+                }
+            }
             
             var categoryPerformance: [CategoryPerformance] = []
             
             for (categoryId, categoryHabits) in habitsByCategory {
+                // Skip the suggestion-unknown group as it indicates a data issue
+                if categoryId == "suggestion-unknown" {
+                    print("WARNING: Found habits from suggestions with invalid categoryId")
+                    continue
+                }
+                
                 // Find category info
                 let category = categories.first { $0.id == categoryId }
                 let categoryName = category?.displayName ?? "Uncategorized"
@@ -438,7 +457,6 @@ public final class DashboardViewModel: ObservableObject {
             await MainActor.run {
                 self.categoryBreakdown = categoryPerformance
             }
-            
         } catch {
             print("Failed to load category breakdown: \(error)")
         }
