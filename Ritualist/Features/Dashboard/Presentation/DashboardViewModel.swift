@@ -2,9 +2,10 @@ import SwiftUI
 import Foundation
 import FactoryKit
 
+// swiftlint:disable type_body_length
 @MainActor
 public final class DashboardViewModel: ObservableObject {
-    @Published public var selectedTimePeriod: TimePeriod = .last30Days {
+    @Published public var selectedTimePeriod: TimePeriod = .thisMonth {
         didSet {
             if oldValue != selectedTimePeriod {
                 Task {
@@ -33,14 +34,18 @@ public final class DashboardViewModel: ObservableObject {
     
     public enum TimePeriod: CaseIterable {
         case thisWeek
-        case thisMonth  
-        case last30Days
+        case thisMonth
+        case last6Months
+        case lastYear
+        case allTime
         
         public var displayName: String {
             switch self {
             case .thisWeek: return Strings.Dashboard.thisWeek
             case .thisMonth: return Strings.Dashboard.thisMonth
-            case .last30Days: return Strings.Dashboard.last30Days
+            case .last6Months: return Strings.Dashboard.last6Months
+            case .lastYear: return Strings.Dashboard.lastYear
+            case .allTime: return Strings.Dashboard.allTime
             }
         }
         
@@ -57,9 +62,18 @@ public final class DashboardViewModel: ObservableObject {
                 let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
                 return (start: startOfMonth, end: now)
                 
-            case .last30Days:
-                let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: now) ?? now
-                return (start: thirtyDaysAgo, end: now)
+            case .last6Months:
+                let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: now) ?? now
+                return (start: sixMonthsAgo, end: now)
+                
+            case .lastYear:
+                let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: now) ?? now
+                return (start: oneYearAgo, end: now)
+                
+            case .allTime:
+                // Use a date far in the past to capture all available data
+                let allTimeStart = calendar.date(byAdding: .year, value: -10, to: now) ?? now
+                return (start: allTimeStart, end: now)
             }
         }
     }
@@ -462,3 +476,4 @@ public final class DashboardViewModel: ObservableObject {
         }
     }
 }
+// swiftlint:enable type_body_length

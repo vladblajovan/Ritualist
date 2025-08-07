@@ -33,7 +33,9 @@ Dashboard/
 ### 1. Time Period Selection
 - **This Week**: Shows data from start of current week
 - **This Month**: Shows data from start of current month  
-- **Last 30 Days**: Shows rolling 30-day window
+- **Last 6 Months**: Shows rolling 6-month window
+- **Last Year**: Shows rolling 12-month window
+- **All Time**: Shows all available habit data (up to 10 years back)
 - **Reactive Updates**: Data automatically refreshes when period changes
 
 ### 2. Statistics Cards
@@ -83,7 +85,7 @@ Dashboard/
 ### TimePeriod Enum
 ```swift
 public enum TimePeriod: CaseIterable {
-    case thisWeek, thisMonth, last30Days
+    case thisWeek, thisMonth, last6Months, lastYear, allTime
     
     var dateRange: (start: Date, end: Date)
     var displayName: String
@@ -103,7 +105,7 @@ All data structures conform to `Identifiable` for SwiftUI compatibility.
 
 ### State Management
 ```swift
-@Published var selectedTimePeriod: TimePeriod = .last30Days {
+@Published var selectedTimePeriod: TimePeriod = .thisMonth {
     didSet {
         if oldValue != selectedTimePeriod {
             Task { await loadData() }
@@ -178,6 +180,10 @@ Currently uses mock data generation for demonstration:
 ### String Keys
 All user-facing text uses localized string keys:
 - `Strings.Dashboard.thisWeek`
+- `Strings.Dashboard.thisMonth`
+- `Strings.Dashboard.last6Months`
+- `Strings.Dashboard.lastYear`
+- `Strings.Dashboard.allTime`
 - `Strings.Dashboard.totalHabits`
 - `Strings.Dashboard.noDataAvailable`
 - etc.
@@ -322,6 +328,23 @@ public struct DashboardView: View {
 }
 // swiftlint:enable type_body_length
 ```
+
+### Time Period Options Updated (Latest)
+**Change**: Replaced original time periods with more comprehensive options for better analytics coverage.
+**Previous Options**: This Week, This Month, Last 30 Days
+**New Options**: This Week, This Month, Last 6 Months, Last Year, All Time
+**Implementation**:
+1. **DashboardViewModel.swift**: Updated `TimePeriod` enum and date range calculations
+2. **Strings.swift**: Added new localized string constants
+3. **Localizable.xcstrings**: Added English translations for new time periods
+4. **Default Selection**: Changed from "Last 30 Days" to "This Month"
+5. **All Time Logic**: Uses 10-year lookback to capture all available data without requiring repository changes
+
+**Benefits**:
+- Better long-term trend analysis with 6-month and yearly views
+- All-time statistics for comprehensive habit tracking insights
+- More intuitive default selection (This Month vs Last 30 Days)
+- Scalable implementation that works with existing repository interface
 
 ---
 

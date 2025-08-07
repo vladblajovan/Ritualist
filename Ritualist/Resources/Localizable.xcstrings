@@ -781,13 +781,35 @@
         }
       }
     },
-    "dashboardLast30Days" : {
+    "dashboardLast6Months" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Last 30 Days"
+            "value" : "Last 6 Months"
+          }
+        }
+      }
+    },
+    "dashboardLastYear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last Year"
+          }
+        }
+      }
+    },
+    "dashboardAllTime" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Time"
           }
         }
       }

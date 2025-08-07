@@ -44,16 +44,14 @@ public struct CategoryManagementView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack {
-                        Button("Add") {
-                            showingAddCategory = true
-                        }
-                        .disabled(vm.isLoading)
-                        
-                        EditButton()
-                            .disabled(vm.customCategories.isEmpty)
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    EditButton()
+                        .disabled(vm.customCategories.isEmpty)
+                    
+                    Button("Add") {
+                        showingAddCategory = true
                     }
+                    .disabled(vm.isLoading)
                 }
             }
             .onChange(of: editMode?.wrappedValue.isEditing) { _, isEditing in

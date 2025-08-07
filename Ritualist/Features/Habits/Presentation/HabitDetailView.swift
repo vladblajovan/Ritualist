@@ -382,15 +382,60 @@ private struct AppearanceSection: View {
     @Bindable var vm: HabitDetailViewModel
     
     private let colors = [
-        "#2DA9E3", "#FF6B6B", "#4ECDC4", "#45B7D1",
-        "#96CEB4", "#FFEAA7", "#DDA0DD", "#FF9F43",
-        "#6C5CE7", "#A29BFE", "#FD79A8", "#FDCB6E"
+        // Reds
+        "#FF1744", "#DD2C00", "#F50057", "#FF6B6B",
+        "#E91E63", "#FF4081",
+        
+        // Oranges 
+        "#FF5722", "#FF6D00", "#FFAB00", "#FF9800",
+        "#FF9F43", "#FFC107",
+        
+        // Yellows
+        "#FFD600", "#FFFF00", "#FFEB3B", "#EEFF41",
+        "#FFEAA7", "#FDCB6E",
+        
+        // Greens
+        "#CDDC39", "#B2FF59", "#8BC34A", "#4CAF50",
+        "#69F0AE", "#96CEB4", "#009688",
+        
+        // Teals/Cyans
+        "#64FFDA", "#18FFFF", "#4ECDC4", "#00BCD4",
+        
+        // Blues
+        "#2196F3", "#448AFF", "#2DA9E3", "#45B7D1",
+        "#3F51B5",
+        
+        // Purples
+        "#7C4DFF", "#6C5CE7", "#9C27B0", "#673AB7",
+        "#A29BFE", "#D500F9",
+        
+        // Pinks/Magentas
+        "#DDA0DD", "#FD79A8",
+        
+        // Neutrals
+        "#795548", "#607D8B"
     ]
     
     private let emojis = [
-        "💪", "🏃", "📚", "💧", "🧘", "🎯",
-        "⭐", "🔥", "📝", "🎵", "🌱", "☀️",
-        "🍎", "💤", "🏠", "❤️", "🧠", "✨"
+        // Fitness & Health
+        "💪", "🏃", "🏋️", "🚴", "🏊", "🧘",
+        "💧", "🍎", "🥗", "🥛", "💤", "❤️",
+        
+        // Learning & Productivity
+        "📚", "📖", "🧠", "📝", "💻", "⏰",
+        "📊", "🎯", "✅", "💡", "🗓️", "📈",
+        
+        // Creative & Hobbies
+        "🎨", "🎵", "🎸", "📸", "✍️", "🧵",
+        
+        // Sports & Activities
+        "⚽", "🎾", "🏀", "🏸", "⛰️", "🚶",
+        
+        // Wellness & Mindfulness
+        "🌱", "☀️", "🧘‍♀️", "🛁", "🕯️", "🙏",
+        
+        // Goals & Achievement
+        "⭐", "🔥", "🏆", "🎖️", "🏅", "📍"
     ]
     
     var body: some View {
@@ -431,7 +476,7 @@ private struct AppearanceSection: View {
                                 vm.selectedColorHex = colorHex
                             } label: {
                                 Circle()
-                                    .fill(AppColors.brand ?? AppColors.brand)
+                                    .fill(Color(hex: colorHex) ?? AppColors.brand)
                                     .frame(width: 31, height: 33)
                                     .overlay(
                                         Circle()
@@ -458,7 +503,7 @@ private struct DeleteSection: View {
     
     var body: some View {
         Section {
-            Button(Strings.Dialog.deleteHabit) {
+            Button(Strings.Button.delete) {
                 showingDeleteAlert = true
             }
             .foregroundColor(.red)

@@ -279,7 +279,9 @@ public enum Strings {
         // Time period selectors
         public static let thisWeek = String(localized: "dashboardThisWeek")
         public static let thisMonth = String(localized: "dashboardThisMonth")
-        public static let last30Days = String(localized: "dashboardLast30Days")
+        public static let last6Months = String(localized: "dashboardLast6Months")
+        public static let lastYear = String(localized: "dashboardLastYear")
+        public static let allTime = String(localized: "dashboardAllTime")
     }
     
     // MARK: - Paywall
