@@ -78,7 +78,10 @@ extension Container {
     var userService: Factory<UserService> {
         self { @MainActor in
             #if DEBUG
-            return MockUserService()
+            return MockUserService(
+                loadProfile: self.loadProfile(), 
+                saveProfile: self.saveProfile()
+            )
             #else
             return ICloudUserService()
             #endif

@@ -14,17 +14,51 @@ public struct OverviewV2View: View {
                 // Always show core cards
                 TodaysSummaryCard(
                     summary: vm.todaysSummary,
+                    viewingDate: vm.viewingDate,
+                    isViewingToday: vm.isViewingToday,
+                    canGoToPrevious: vm.canGoToPreviousDay,
+                    canGoToNext: vm.canGoToNextDay,
+                    currentSlogan: vm.isViewingToday ? vm.currentSlogan : nil,
                     onQuickAction: { habit in
                         Task {
                             await vm.completeHabit(habit)
                         }
+                    },
+                    onPreviousDay: {
+                        vm.goToPreviousDay()
+                    },
+                    onNextDay: {
+                        vm.goToNextDay()
+                    },
+                    onGoToToday: {
+                        vm.goToToday()
                     }
                 )
+                
+                // Floating inspiration card (right after Today's Progress)
+                if vm.shouldShowInspirationCard {
+                    InspirationCard(
+                        message: vm.currentInspirationMessage,
+                        slogan: vm.currentSlogan,
+                        timeOfDay: vm.currentTimeOfDay,
+                        completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
+                        shouldShow: vm.showInspirationCard,
+                        onDismiss: {
+                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                vm.hideInspiration()
+                            }
+                        }
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
                 
                 // Conditional cards based on user state
                 if vm.shouldShowQuickActions {
                     QuickActionsCard(
                         incompleteHabits: vm.incompleteHabits,
+                        currentSlogan: vm.currentSlogan,
+                        timeOfDay: vm.currentTimeOfDay,
+                        completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
                         onHabitComplete: { habit in
                             Task {
                                 await vm.completeHabit(habit)
@@ -43,7 +77,7 @@ public struct OverviewV2View: View {
                 // Expandable calendar section
                 MonthlyCalendarCard(
                     isExpanded: $vm.isCalendarExpanded,
-                    calendar: vm.calendarData,
+                    monthlyData: vm.isCalendarExpanded ? vm.monthlyCompletionData : vm.weeklyCompletionData,
                     onDateSelect: { date in
                         vm.selectedDate = date
                     }

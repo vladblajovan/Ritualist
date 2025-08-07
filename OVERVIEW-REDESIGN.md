@@ -104,8 +104,14 @@ Transform the Overview page from a dense, calendar-focused layout into a modern 
 │ [Mini bar chart of daily %]     │
 └─────────────────────────────────┘
 ```
-**Purpose**: AI-like pattern recognition and suggestions
-**Show When**: User has ≥2 weeks of data
+**Purpose**: Real personality-based pattern recognition and suggestions
+**Show When**: User has personality analysis enabled OR sufficient data for basic insights
+**Data Source**: Personality analysis system with auto-generation fallback
+
+**Note**: Smart Insights are now powered by **real personality analysis** rather than mock data:
+- **If personality analysis enabled**: Shows curated insights from full personality profile (conscientiousness, openness, etc.)
+- **If analysis disabled/insufficient**: Falls back to basic habit pattern analysis
+- **Relationship to full analysis**: Overview shows 3-4 curated insights while Settings → Personality Analysis → "Insights for Habit Building" shows complete analysis with all recommendations
 
 ## 🏗️ Technical Implementation
 
@@ -229,18 +235,18 @@ ScrollView {
 - [x] **1.5** Implement base card styling system ✅
 - [x] **1.6** Integrate OverviewV2 into navigation (RootTabView) ✅
 
-### Phase 2: Conditional & Interactive Cards ⏳  
-- [ ] **2.1** Create QuickActionsCard with horizontal habit chips
-- [ ] **2.2** Implement ActiveStreaksCard with flame indicators
-- [ ] **2.3** Add card visibility logic to ViewModel
-- [ ] **2.4** Build expandable MonthlyCalendarCard
-- [ ] **2.5** Add card interaction animations
+### Phase 2: Conditional & Interactive Cards ✅ *COMPLETED*
+- [x] **2.1** Create QuickActionsCard with horizontal habit chips ✅
+- [x] **2.2** Implement ActiveStreaksCard with flame indicators ✅
+- [x] **2.3** Add card visibility logic to ViewModel ✅
+- [x] **2.4** Build expandable MonthlyCalendarCard ✅
+- [x] **2.5** Add card interaction animations ✅
 
 ### Phase 3: Smart Features & Polish ⏳
-- [ ] **3.1** Implement SmartInsightsCard with pattern detection
-- [ ] **3.2** Add motivational messaging system
-- [ ] **3.3** Create habit completion animations
-- [ ] **3.4** Implement proper loading and error states
+- [x] **3.1** Implement SmartInsightsCard with pattern detection ✅
+- [x] **3.2** Add motivational messaging system ✅ *INTEGRATED*
+- [x] **3.3** Create habit completion animations ✅ *INTEGRATED*
+- [x] **3.4** Implement proper loading and error states ✅ *INTEGRATED*
 - [ ] **3.5** Add comprehensive accessibility support
 
 ### Phase 4: Testing & Refinement ⏳

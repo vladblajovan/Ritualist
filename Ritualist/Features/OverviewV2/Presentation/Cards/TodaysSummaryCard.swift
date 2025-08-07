@@ -2,23 +2,109 @@ import SwiftUI
 
 struct TodaysSummaryCard: View {
     let summary: TodaysSummary?
+    let viewingDate: Date
+    let isViewingToday: Bool
+    let canGoToPrevious: Bool
+    let canGoToNext: Bool
+    let currentSlogan: String?
     let onQuickAction: (Habit) -> Void
+    let onPreviousDay: () -> Void
+    let onNextDay: () -> Void
+    let onGoToToday: () -> Void
     
-    init(summary: TodaysSummary?, onQuickAction: @escaping (Habit) -> Void) {
+    init(summary: TodaysSummary?, 
+         viewingDate: Date,
+         isViewingToday: Bool,
+         canGoToPrevious: Bool,
+         canGoToNext: Bool,
+         currentSlogan: String? = nil,
+         onQuickAction: @escaping (Habit) -> Void,
+         onPreviousDay: @escaping () -> Void,
+         onNextDay: @escaping () -> Void,
+         onGoToToday: @escaping () -> Void) {
         self.summary = summary
+        self.viewingDate = viewingDate
+        self.isViewingToday = isViewingToday
+        self.canGoToPrevious = canGoToPrevious
+        self.canGoToNext = canGoToNext
+        self.currentSlogan = currentSlogan
         self.onQuickAction = onQuickAction
+        self.onPreviousDay = onPreviousDay
+        self.onNextDay = onNextDay
+        self.onGoToToday = onGoToToday
+    }
+    
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        return formatter
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Card Header
-            HStack {
-                Text("🎯 Today's Progress")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+            // Card Header with Date Navigation
+            VStack(spacing: 12) {
+                HStack {
+                    // Previous Day Button
+                    Button(action: onPreviousDay) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(canGoToPrevious ? .primary : .secondary)
+                    }
+                    .disabled(!canGoToPrevious)
+                    
+                    Spacer()
+                    
+                    // Date and Title
+                    VStack(spacing: 4) {
+                        Text(isViewingToday ? "🎯 Today's Progress" : "📅 Past Day Review")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        
+                        if !isViewingToday {
+                            Text(dateFormatter.string(from: viewingDate))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Next Day Button or Today Button
+                    if !isViewingToday && canGoToNext {
+                        Button(action: onNextDay) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.primary)
+                        }
+                    } else if !isViewingToday {
+                        Button(action: onGoToToday) {
+                            Text("Today")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(AppColors.brand)
+                        }
+                    } else {
+                        // Invisible placeholder for alignment
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.clear)
+                    }
+                }
                 
-                Spacer()
+                // Show retroactive hint for past days
+                if !isViewingToday {
+                    HStack {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("You can complete missed habits retroactively")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 4)
+                }
             }
             
             if let summary = summary {
@@ -44,27 +130,30 @@ struct TodaysSummaryCard: View {
                     
                     // Progress Details
                     VStack(alignment: .leading, spacing: 12) {
-                        // Habit Progress Dots - Flexible Grid for multiple lines
-                        LazyVGrid(columns: Array(repeating: GridItem(.adaptive(minimum: 14, maximum: 18), spacing: 10), count: 12), spacing: 8) {
-                            ForEach(0..<summary.totalHabits, id: \.self) { index in
-                                Circle()
-                                    .fill(index < summary.completedHabits ? 
-                                          progressColor(for: summary.completionPercentage) : 
-                                          CardDesign.secondaryBackground)
-                                    .frame(width: 14, height: 14)
-                                    .scaleEffect(index < summary.completedHabits ? 1.0 : 0.85)
-                                    .shadow(color: index < summary.completedHabits ? 
-                                           progressColor(for: summary.completionPercentage).opacity(0.3) : 
-                                           Color.clear, 
-                                           radius: 2, x: 0, y: 1)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(index < summary.completedHabits ? 
-                                                   progressColor(for: summary.completionPercentage).opacity(0.2) :
-                                                   Color.clear, 
-                                                   lineWidth: 0.5)
-                                    )
-                                    .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0).delay(Double(index) * 0.1), value: summary.completedHabits)
+                        // Show bullet dots only if not all habits are completed
+                        if summary.completionPercentage < 1.0 {
+                            // Habit Progress Dots - Flexible Grid for multiple lines
+                            LazyVGrid(columns: Array(repeating: GridItem(.adaptive(minimum: 14, maximum: 18), spacing: 10), count: 12), spacing: 8) {
+                                ForEach(0..<summary.totalHabits, id: \.self) { index in
+                                    Circle()
+                                        .fill(index < summary.completedHabits ? 
+                                              progressColor(for: summary.completionPercentage) : 
+                                              CardDesign.secondaryBackground)
+                                        .frame(width: 14, height: 14)
+                                        .scaleEffect(index < summary.completedHabits ? 1.0 : 0.85)
+                                        .shadow(color: index < summary.completedHabits ? 
+                                               progressColor(for: summary.completionPercentage).opacity(0.3) : 
+                                               Color.clear, 
+                                               radius: 2, x: 0, y: 1)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(index < summary.completedHabits ? 
+                                                       progressColor(for: summary.completionPercentage).opacity(0.2) :
+                                                       Color.clear, 
+                                                       lineWidth: 0.5)
+                                        )
+                                        .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0).delay(Double(index) * 0.1), value: summary.completedHabits)
+                                }
                             }
                         }
                         
@@ -75,13 +164,15 @@ struct TodaysSummaryCard: View {
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                         
-                        // Motivational Message
-                        Text(summary.motivationalMessage)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(nil)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .multilineTextAlignment(.leading)
+                        // Motivational Message (hide when day is complete)
+                        if summary.completionPercentage < 1.0 {
+                            Text(summary.motivationalMessage)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .multilineTextAlignment(.leading)
+                        }
                     }
                     
                     Spacer()
@@ -179,7 +270,7 @@ struct TodaysSummaryCard: View {
 
 #Preview {
     VStack(spacing: 20) {
-        // Completed state
+        // Today state
         TodaysSummaryCard(
             summary: TodaysSummary(
                 completedHabits: 4,
@@ -199,23 +290,46 @@ struct TodaysSummaryCard: View {
                     )
                 ]
             ),
-            onQuickAction: { _ in }
+            viewingDate: Date(),
+            isViewingToday: true,
+            canGoToPrevious: true,
+            canGoToNext: false,
+            currentSlogan: "Rise with purpose, rule your day.",
+            onQuickAction: { _ in },
+            onPreviousDay: { },
+            onNextDay: { },
+            onGoToToday: { }
         )
         
-        // Perfect day state
+        // Past day state
         TodaysSummaryCard(
             summary: TodaysSummary(
-                completedHabits: 5,
+                completedHabits: 2,
                 totalHabits: 5,
-                incompleteHabits: []
+                incompleteHabits: [
+                    Habit(
+                        id: UUID(),
+                        name: "Morning Workout",
+                        emoji: "💪",
+                        kind: .binary,
+                        unitLabel: nil,
+                        dailyTarget: 1.0,
+                        schedule: .daily,
+                        isActive: true,
+                        categoryId: nil,
+                        suggestionId: nil
+                    )
+                ]
             ),
-            onQuickAction: { _ in }
-        )
-        
-        // Loading state
-        TodaysSummaryCard(
-            summary: nil,
-            onQuickAction: { _ in }
+            viewingDate: Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date(),
+            isViewingToday: false,
+            canGoToPrevious: true,
+            canGoToNext: true,
+            currentSlogan: nil,
+            onQuickAction: { _ in },
+            onPreviousDay: { },
+            onNextDay: { },
+            onGoToToday: { }
         )
     }
     .padding()

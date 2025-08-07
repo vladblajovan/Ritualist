@@ -31,6 +31,8 @@ public protocol UserService {
 @MainActor @Observable
 public final class MockUserService: UserService {
     private var _currentProfile = UserProfile()
+    private let loadProfile: LoadProfileUseCase?
+    private let saveProfile: SaveProfileUseCase?
     
     // Store different test subscription states for easy switching
     private let testSubscriptionStates: [String: (SubscriptionPlan, Date?)] = [
@@ -39,9 +41,30 @@ public final class MockUserService: UserService {
         "annual": (.annual, Calendar.current.date(byAdding: .year, value: 1, to: Date()))
     ]
     
-    public init() {
-        // Initialize with free user profile
+    public init(loadProfile: LoadProfileUseCase? = nil, saveProfile: SaveProfileUseCase? = nil) {
+        self.loadProfile = loadProfile
+        self.saveProfile = saveProfile
+        
+        // Initialize with default profile - will be loaded from repository if available
         _currentProfile = UserProfile(name: "", subscriptionPlan: .free)
+        
+        // Load actual profile data from repository
+        Task {
+            await loadInitialProfile()
+        }
+    }
+    
+    private func loadInitialProfile() async {
+        guard let loadProfile = loadProfile else { return }
+        
+        do {
+            let profile = try await loadProfile.execute()
+            _currentProfile = profile
+            print("DEBUG: MockUserService loaded profile from repository - name: '\(profile.name)'")
+        } catch {
+            print("DEBUG: MockUserService failed to load profile: \(error)")
+            // Keep the default profile if loading fails
+        }
     }
     
     public var currentProfile: UserProfile {
@@ -63,6 +86,17 @@ public final class MockUserService: UserService {
         
         _currentProfile = profile
         _currentProfile.updatedAt = Date()
+        
+        // Sync back to repository to maintain consistency
+        if let saveProfile = saveProfile {
+            do {
+                try await saveProfile.execute(_currentProfile)
+                print("DEBUG: MockUserService synced profile back to repository - name: '\(_currentProfile.name)'")
+            } catch {
+                print("DEBUG: MockUserService failed to sync profile: \(error)")
+                // Continue anyway since this is just a sync operation
+            }
+        }
         
         // TODO: In production, also sync to iCloud here
     }

@@ -8,7 +8,7 @@ public struct OverviewV2Root: View {
     
     public var body: some View {
         OverviewV2View(vm: vm)
-            .navigationTitle(Strings.Navigation.overview)
+            .navigationTitle("Ritualist")
             .navigationBarTitleDisplayMode(.large)
     }
 }
