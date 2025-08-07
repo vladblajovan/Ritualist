@@ -32,6 +32,15 @@ public final class NavigationService: ObservableObject {
         }
     }
     
+    public func navigateToDashboard() {
+        let previousTab = tabName(selectedTab)
+        selectedTab = .dashboard
+        
+        if previousTab != tabName(selectedTab) {
+            trackingService?.track(.tabSwitched(from: previousTab, to: tabName(selectedTab)))
+        }
+    }
+    
     public func navigateToSettings() {
         let previousTab = tabName(selectedTab)
         selectedTab = .settings
@@ -45,6 +54,7 @@ public final class NavigationService: ObservableObject {
         switch tab {
         case .overview: return "overview"
         case .habits: return "habits"
+        case .dashboard: return "dashboard"
         case .settings: return "settings"
         }
     }

@@ -14,6 +14,7 @@ public enum Strings {
     public enum Navigation {
         public static let overview = String(localized: "navigationOverview")
         public static let habits = String(localized: "navigationHabits")
+        public static let dashboard = String(localized: "navigationDashboard")
         public static let settings = String(localized: "navigationSettings")
         public static let editHabit = String(localized: "navigationEditHabit")
         public static let newHabit = String(localized: "navigationNewHabit")
@@ -251,6 +252,27 @@ public enum Strings {
         public static let consistencyDescription = String(localized: "tips.consistency_description")
         public static let trackImmediatelyTitle = String(localized: "tips.track_immediately_title")
         public static let trackImmediatelyDescription = String(localized: "tips.track_immediately_description")
+    }
+    
+    // MARK: - Dashboard
+    public enum Dashboard {
+        public static let title = String(localized: "dashboardTitle")
+        public static let completionStats = String(localized: "dashboardCompletionStats")
+        public static let totalHabits = String(localized: "dashboardTotalHabits")
+        public static let completedHabits = String(localized: "dashboardCompletedHabits")
+        public static let overallCompletion = String(localized: "dashboardOverallCompletion")
+        public static let weeklyProgress = String(localized: "dashboardWeeklyProgress")
+        public static let monthlyProgress = String(localized: "dashboardMonthlyProgress")
+        public static let consistencyScore = String(localized: "dashboardConsistencyScore")
+        public static let topPerformers = String(localized: "dashboardTopPerformers")
+        public static let needsImprovement = String(localized: "dashboardNeedsImprovement")
+        public static let noDataAvailable = String(localized: "dashboardNoDataAvailable")
+        public static let startTrackingMessage = String(localized: "dashboardStartTrackingMessage")
+        
+        // Time period selectors
+        public static let thisWeek = String(localized: "dashboardThisWeek")
+        public static let thisMonth = String(localized: "dashboardThisMonth")
+        public static let last30Days = String(localized: "dashboardLast30Days")
     }
     
     // MARK: - Paywall

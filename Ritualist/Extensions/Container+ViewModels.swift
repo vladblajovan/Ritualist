@@ -130,6 +130,16 @@ extension Container {
         }
     }
     
+    // MARK: - Dashboard ViewModels
+    
+    @MainActor
+    var dashboardViewModel: Factory<DashboardViewModel> {
+        self { @MainActor in
+            DashboardViewModel()
+        }
+        .singleton
+    }
+    
     // MARK: - Personality ViewModels
     
     @MainActor

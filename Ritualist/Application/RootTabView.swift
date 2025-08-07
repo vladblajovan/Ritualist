@@ -2,7 +2,7 @@ import SwiftUI
 import FactoryKit
 
 public enum RootTab: Hashable {
-    case overview, habits, settings
+    case overview, habits, dashboard, settings
 }
 
 public struct RootTabView: View {
@@ -36,6 +36,12 @@ public struct RootTabView: View {
                         Tab(Strings.Navigation.habits, systemImage: "checklist", value: RootTab.habits) {
                             NavigationStack {
                                 HabitsRoot()
+                            }
+                        }
+
+                        Tab(Strings.Navigation.dashboard, systemImage: "chart.bar.fill", value: RootTab.dashboard) {
+                            NavigationStack {
+                                DashboardRoot()
                             }
                         }
 
