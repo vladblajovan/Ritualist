@@ -11,6 +11,7 @@ public final class SettingsViewModel {
     private let userService: UserService
     @ObservationIgnored @Injected(\.paywallService) var paywallService
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
+    @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
 
     public var profile = UserProfile()
     public private(set) var isLoading = false
@@ -198,5 +199,19 @@ public final class SettingsViewModel {
     public func refreshPremiumStatus() {
         // Since UserService is @Observable, accessing isPremiumUser will trigger UI updates
         _ = userService.isPremiumUser
+    }
+    
+    /// Update the app appearance based on the appearance setting
+    public func updateAppearance(_ appearance: Int) async {
+        await MainActor.run {
+            // Update the profile appearance setting
+            profile.appearance = appearance
+            
+            // Apply the appearance change to the appearance manager
+            appearanceManager.updateFromProfile(profile)
+            
+            // Track appearance change
+            userActionTracker.track(.profileUpdated(field: "appearance"))
+        }
     }
 }

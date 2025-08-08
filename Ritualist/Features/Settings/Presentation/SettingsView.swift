@@ -309,11 +309,8 @@ private struct SettingsFormView: View {
         // Also update the user service name
         await vm.updateUserName(name)
         
-        // TODO: Update app appearance via SettingsViewModel instead of direct access
-        // The ViewModel should handle appearance updates internally
-        // await MainActor.run {
-        //     appContainer.appearanceManager.updateFromProfile(vm.profile)
-        // }
+        // Update app appearance after saving profile
+        await vm.updateAppearance(appearance)
         
         // Update local state to reflect saved values
         updateLocalState()

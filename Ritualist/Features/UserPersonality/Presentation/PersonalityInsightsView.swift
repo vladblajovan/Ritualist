@@ -21,28 +21,35 @@ public struct PersonalityInsightsView: View {
     
     public var body: some View {
         NavigationView {
-            VStack {
-                // Status Banner
-                HStack {
-                    Image(systemName: viewModel.isAnalysisEnabled ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundColor(viewModel.isAnalysisEnabled ? .green : .red)
-                    
-                    Text(viewModel.isAnalysisEnabled ? "Analysis is enabled" : "Analysis is disabled")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    
-                    Spacer()
-                }
-                .padding()
-                .background(viewModel.isAnalysisEnabled ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
-                .cornerRadius(8)
-                .padding(.horizontal)
-                
-                // Main Content
-                Group {
-                    if !viewModel.isAnalysisEnabled {
-                        // Disabled State
+            Group {
+                if !viewModel.isAnalysisEnabled {
+                    // Disabled State with status banner
+                    ScrollView {
                         VStack(spacing: 20) {
+                            // Status Banner
+                            HStack {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.red)
+                                
+                                Text("Analysis is disabled")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                
+                                Spacer()
+                                
+                                Button("Enable") {
+                                    Task {
+                                        await viewModel.toggleAnalysis()
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                            .padding()
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(8)
+                            .padding(.horizontal)
+                            
                             Image(systemName: "person.crop.circle.badge.xmark")
                                 .font(.system(size: 60))
                                 .foregroundColor(.secondary)
@@ -55,32 +62,204 @@ public struct PersonalityInsightsView: View {
                                 .font(.body)
                                 .multilineTextAlignment(.center)
                                 .foregroundColor(.secondary)
+                                .padding(.horizontal)
                         }
-                        .padding()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        // Enabled State - Show normal content
-                        switch viewModel.viewState {
-                        case .loading:
-                            ProgressView("Analyzing your personality...")
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.vertical)
+                    }
+                } else {
+                    // Enabled State - Show normal content
+                    switch viewModel.viewState {
+                    case .loading:
+                        VStack {
+                            // Status Banner for loading state
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                
+                                Text("Analysis is enabled")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                
+                                Spacer()
+                                
+                                HStack(spacing: 8) {
+                                    if viewModel.preferences?.analysisFrequency == .manual {
+                                        Button {
+                                            Task {
+                                                await viewModel.triggerManualAnalysisCheck()
+                                            }
+                                        } label: {
+                                            Image(systemName: "arrow.clockwise")
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                        .disabled(viewModel.isLoading)
+                                    }
+                                    
+                                    Button("Disable") {
+                                        Task {
+                                            await viewModel.toggleAnalysis()
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
+                                }
+                            }
+                            .padding()
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(8)
+                            .padding(.horizontal)
                             
-                        case .insufficientData(let requirements, let estimatedDays):
-                            ScrollView {
+                            Spacer()
+                            ProgressView("Analyzing your personality...")
+                            Spacer()
+                        }
+                        
+                    case .insufficientData(let requirements, let estimatedDays):
+                        ScrollView {
+                            VStack(spacing: 20) {
+                                // Status Banner
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                    
+                                    Text("Analysis is enabled")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    
+                                    Spacer()
+                                    
+                                    HStack(spacing: 8) {
+                                        if viewModel.preferences?.analysisFrequency == .manual {
+                                            Button {
+                                                Task {
+                                                    await viewModel.triggerManualAnalysisCheck()
+                                                }
+                                            } label: {
+                                                Image(systemName: "arrow.clockwise")
+                                            }
+                                            .buttonStyle(.bordered)
+                                            .controlSize(.small)
+                                            .disabled(viewModel.isLoading)
+                                        }
+                                        
+                                        Button("Disable") {
+                                            Task {
+                                                await viewModel.toggleAnalysis()
+                                            }
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                    }
+                                }
+                                .padding()
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(8)
+                                .padding(.horizontal)
+                                
                                 DataThresholdPlaceholderView(
                                     requirements: requirements,
                                     estimatedDays: estimatedDays
                                 )
-                                .padding()
+                                .padding(.horizontal)
                             }
+                            .padding(.vertical)
+                        }
+                        
+                    case .ready(let profile):
+                        ScrollView {
+                            VStack(spacing: 24) {
+                                // Status Banner
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                    
+                                    Text("Analysis is enabled")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    
+                                    Spacer()
+                                    
+                                    HStack(spacing: 8) {
+                                        if viewModel.preferences?.analysisFrequency == .manual {
+                                            Button {
+                                                Task {
+                                                    await viewModel.triggerManualAnalysisCheck()
+                                                }
+                                            } label: {
+                                                Image(systemName: "arrow.clockwise")
+                                            }
+                                            .buttonStyle(.bordered)
+                                            .controlSize(.small)
+                                            .disabled(viewModel.isLoading)
+                                        }
+                                        
+                                        Button("Disable") {
+                                            Task {
+                                                await viewModel.toggleAnalysis()
+                                            }
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                    }
+                                }
+                                .padding()
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(8)
+                                .padding(.horizontal)
+                                
+                                // Personality Profile Content
+                                PersonalityProfileView(profile: profile)
+                            }
+                            .padding(.vertical)
+                        }
+                        
+                    case .error(let error):
+                        VStack {
+                            // Status Banner
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                
+                                Text("Analysis is enabled")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                
+                                Spacer()
+                                
+                                HStack(spacing: 8) {
+                                    if viewModel.preferences?.analysisFrequency == .manual {
+                                        Button {
+                                            Task {
+                                                await viewModel.triggerManualAnalysisCheck()
+                                            }
+                                        } label: {
+                                            Image(systemName: "arrow.clockwise")
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                        .disabled(viewModel.isLoading)
+                                    }
+                                    
+                                    Button("Disable") {
+                                        Task {
+                                            await viewModel.toggleAnalysis()
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
+                                }
+                            }
+                            .padding()
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(8)
+                            .padding(.horizontal)
                             
-                        case .ready(let profile):
-                            PersonalityProfileView(profile: profile)
-                            
-                        case .error(let error):
+                            Spacer()
                             PersonalityErrorView(error: error) {
                                 await viewModel.refresh()
                             }
+                            Spacer()
                         }
                     }
                 }
@@ -88,34 +267,16 @@ public struct PersonalityInsightsView: View {
             .navigationTitle("Personality Insights")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack {
-                        // Show Refresh button when analysis is enabled
-                        if viewModel.isAnalysisEnabled {
-                            Button("Refresh") {
-                                Task {
-                                    await viewModel.triggerManualAnalysisCheck()
-                                }
-                            }
-                            .disabled(viewModel.isLoading)
-                        }
-                        
-                        Button("Privacy") {
-                            showingPrivacy = true
-                        }
-                        .disabled(!viewModel.isAnalysisEnabled)
-                        
-                        Button("Done") {
-                            dismiss()
-                        }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Privacy") {
+                        showingPrivacy = true
                     }
+                    .disabled(!viewModel.isAnalysisEnabled)
                 }
                 
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(viewModel.isAnalysisEnabled ? "Disable" : "Enable") {
-                        Task {
-                            await viewModel.toggleAnalysis()
-                        }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
                     }
                 }
             }

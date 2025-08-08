@@ -60,6 +60,11 @@ extension Container {
             .singleton
     }
     
+    var scheduleAwareCompletionCalculator: Factory<ScheduleAwareCompletionCalculator> {
+        self { DefaultScheduleAwareCompletionCalculator() }
+            .singleton
+    }
+    
     // MARK: - User & Analytics Services
     
     var userActionTracker: Factory<UserActionTrackerService> {

@@ -7,6 +7,8 @@ public enum RootTab: Hashable {
 
 public struct RootTabView: View {
     @Injected(\.getOnboardingState) var getOnboardingState
+    @Injected(\.appearanceManager) var appearanceManager
+    @Injected(\.loadProfile) var loadProfile
     @StateObject private var navigationService = Container.shared.navigationService()
     @StateObject private var deepLinkCoordinator = PersonalityDeepLinkCoordinator.shared
     @State private var showOnboarding = false
@@ -52,10 +54,12 @@ public struct RootTabView: View {
                         }
                 }
                 .tabBarMinimizeBehavior(.onScrollDown)
+                .preferredColorScheme(appearanceManager.colorScheme)
             }
         }
         .task {
             await checkOnboardingStatus()
+            await loadUserAppearancePreference()
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingFlowView(onComplete: {
@@ -117,6 +121,18 @@ public struct RootTabView: View {
                 showOnboarding = true
                 isCheckingOnboarding = false
             }
+        }
+    }
+    
+    private func loadUserAppearancePreference() async {
+        do {
+            let profile = try await loadProfile.execute()
+            await MainActor.run {
+                appearanceManager.updateFromProfile(profile)
+            }
+        } catch {
+            print("Failed to load user appearance preference: \(error)")
+            // Continue with default appearance (follow system)
         }
     }
 }

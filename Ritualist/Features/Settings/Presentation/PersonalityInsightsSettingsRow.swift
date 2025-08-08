@@ -27,19 +27,22 @@ struct PersonalityInsightsSettingsRow: View {
                         .frame(width: 24)
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Personality Analysis")
-                            .font(.headline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                        
-                        HStack(spacing: 4) {
+                        HStack(spacing: 8) {
+                            Text("Personality Analysis")
+                                .font(.headline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                            
                             Image(systemName: isEnabled ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .font(.caption)
                                 .foregroundColor(isEnabled ? .green : .red)
-                            
-                            Text(isEnabled ? "Analysis enabled - Tap to view insights" : "Analysis disabled - Tap to enable")
+                        }
+                        
+                        if isEnabled {
+                            Text("Tap to view insights")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
+                                .padding(.leading, 0) // Align with title above
                         }
                     }
                     

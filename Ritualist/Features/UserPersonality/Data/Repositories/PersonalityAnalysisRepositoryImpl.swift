@@ -15,19 +15,22 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     private let categoryRepository: CategoryRepository
     private let logRepository: LogRepository
     private let suggestionsService: HabitSuggestionsService
+    private let completionCalculator: ScheduleAwareCompletionCalculator
     
     public init(
         dataSource: PersonalityAnalysisDataSource,
         habitRepository: HabitRepository,
         categoryRepository: CategoryRepository,
         logRepository: LogRepository,
-        suggestionsService: HabitSuggestionsService
+        suggestionsService: HabitSuggestionsService,
+        completionCalculator: ScheduleAwareCompletionCalculator = DefaultScheduleAwareCompletionCalculator()
     ) {
         self.dataSource = dataSource
         self.habitRepository = habitRepository
         self.categoryRepository = categoryRepository
         self.logRepository = logRepository
         self.suggestionsService = suggestionsService
+        self.completionCalculator = completionCalculator
     }
     
     public func getPersonalityProfile(for userId: UUID) async throws -> PersonalityProfile? {
@@ -61,9 +64,16 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     }
     
     public func getHabitAnalysisInput(for userId: UUID) async throws -> HabitAnalysisInput {
+        print("\n📥 [Repository] Getting habit analysis input for user: \(userId)")
+        
         // Get all active habits
         let allHabits = try await habitRepository.fetchAllHabits()
         let activeHabits = allHabits.filter { $0.isActive }
+        
+        print("🏃 [Repository] Found \(activeHabits.count) active habits:")
+        for habit in activeHabits {
+            print("   📝 '\(habit.name)' - \(habit.kind) - \(habit.schedule) - Target: \(habit.dailyTarget?.description ?? "nil")")
+        }
         
         // Get all habit logs for the last 30 days
         let endDate = Date()
@@ -80,8 +90,15 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
             allLogs.append(contentsOf: filteredLogs)
         }
         
-        // Calculate completion rates per habit
-        let completionRates = calculateCompletionRates(habits: activeHabits, logs: allLogs)
+        // Calculate completion rates per habit using schedule-aware logic
+        let completionRates = activeHabits.map { habit in
+            completionCalculator.calculateCompletionRate(
+                for: habit,
+                logs: allLogs,
+                startDate: startDate,
+                endDate: endDate
+            )
+        }
         
         // Get custom habits (non-suggested habits)
         let customHabits = activeHabits.filter { $0.suggestionId == nil }
@@ -119,30 +136,6 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     }
     
     // MARK: - Private Helpers
-    
-    private func calculateCompletionRates(habits: [Habit], logs: [HabitLog]) -> [Double] {
-        let logsByHabit = Dictionary(grouping: logs, by: { $0.habitID })
-        
-        return habits.map { habit in
-            let habitLogs = logsByHabit[habit.id] ?? []
-            let completedLogs = habitLogs.filter { log in
-                switch habit.kind {
-                case .binary:
-                    return true // For binary habits, existence of log means completion
-                case .numeric:
-                    // For numeric habits, check if value meets target (if target exists)
-                    if let target = habit.dailyTarget, let value = log.value {
-                        return value >= target
-                    } else {
-                        return log.value != nil
-                    }
-                }
-            }
-            
-            guard !habitLogs.isEmpty else { return 0.0 }
-            return Double(completedLogs.count) / Double(habitLogs.count)
-        }
-    }
     
     private func calculateConsecutiveTrackingDays(logs: [HabitLog]) -> Int {
         // Group logs by date
@@ -185,31 +178,6 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         return selectedSuggestions
     }
     
-    /// Check if a habit is expected to be performed on a given date based on its schedule
-    private func isHabitExpectedOnDate(habit: Habit, date: Date) -> Bool {
-        let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: date)
-        
-        switch habit.schedule {
-        case .daily:
-            return true
-            
-        case .daysOfWeek(let days):
-            // Convert Calendar weekday (Sunday=1) to HabitSchedule format (Monday=1)
-            let habitWeekday: Int
-            if weekday == 1 { // Sunday
-                habitWeekday = 7
-            } else { // Monday=2 -> 1, Tuesday=3 -> 2, etc.
-                habitWeekday = weekday - 1
-            }
-            return days.contains(habitWeekday)
-            
-        case .timesPerWeek(_):
-            // For times per week, we consider the habit expected every day
-            // The actual completion rate calculation will handle the flexible nature
-            return true
-        }
-    }
     
     private func validateEligibilityFromInput(_ input: HabitAnalysisInput) -> AnalysisEligibility {
         let requirements = buildThresholdRequirements(from: input)
@@ -344,99 +312,23 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         let allHabits = try await habitRepository.fetchAllHabits()
         let activeHabits = allHabits.filter { $0.isActive }
         
-        // Calculate completion statistics
-        let totalHabits = activeHabits.count
-        
-        if totalHabits == 0 {
+        if activeHabits.isEmpty {
             return HabitCompletionStats(totalHabits: 0, completedHabits: 0, completionRate: 0.0)
         }
         
-        // Calculate completion for each habit in the date range
-        var completedHabits = 0
-        var totalExpectedEntries = 0
-        var totalCompletedEntries = 0
-        
-        let calendar = Calendar.current
-        
+        // Get all habit logs for the date range
+        var allLogs: [HabitLog] = []
         for habit in activeHabits {
-            // Get logs for this specific habit
             let habitLogs = try await logRepository.logs(for: habit.id)
-            
-            // Filter logs to the date range
-            let logsInRange = habitLogs.filter { log in
-                let logDate = calendar.startOfDay(for: log.date)
-                let rangeStart = calendar.startOfDay(for: startDate)
-                let rangeEnd = calendar.startOfDay(for: endDate)
-                return logDate >= rangeStart && logDate <= rangeEnd
-            }
-            
-            let logsByDate = Dictionary(grouping: logsInRange, by: { calendar.startOfDay(for: $0.date) })
-            
-            var habitCompletedDays = 0
-            var habitExpectedDays = 0
-            
-            // Check each day in the range to see if habit was expected and completed
-            var currentDate = calendar.startOfDay(for: startDate)
-            let endOfRange = calendar.startOfDay(for: endDate)
-            
-            while currentDate <= endOfRange {
-                defer {
-                    currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
-                }
-                
-                // Skip if habit wasn't active yet
-                if currentDate < calendar.startOfDay(for: habit.startDate) {
-                    continue
-                }
-                
-                // Skip if habit ended before this date
-                if let endDate = habit.endDate, currentDate > calendar.startOfDay(for: endDate) {
-                    continue
-                }
-                
-                // Check if habit was expected on this day based on schedule
-                let isExpected = isHabitExpectedOnDate(habit: habit, date: currentDate)
-                if !isExpected {
-                    continue
-                }
-                
-                habitExpectedDays += 1
-                
-                // Check if habit was completed on this day
-                if let dayLogs = logsByDate[currentDate] {
-                    let isCompleted = dayLogs.contains(where: { log in
-                        switch habit.kind {
-                        case .binary:
-                            // For binary habits, any non-nil value means completed
-                            return log.value != nil && log.value! > 0
-                        case .numeric:
-                            // For numeric habits, check if value meets the daily target
-                            return (log.value ?? 0) >= (habit.dailyTarget ?? 1)
-                        }
-                    })
-                    
-                    if isCompleted {
-                        habitCompletedDays += 1
-                    }
-                }
-            }
-            
-            totalExpectedEntries += habitExpectedDays
-            totalCompletedEntries += habitCompletedDays
-            
-            // Consider a habit "completed" if it has >50% completion rate in the period
-            if habitExpectedDays > 0 && Double(habitCompletedDays) / Double(habitExpectedDays) > 0.5 {
-                completedHabits += 1
-            }
+            allLogs.append(contentsOf: habitLogs)
         }
         
-        // Calculate overall completion rate
-        let completionRate = totalExpectedEntries > 0 ? Double(totalCompletedEntries) / Double(totalExpectedEntries) : 0.0
-        
-        return HabitCompletionStats(
-            totalHabits: totalHabits,
-            completedHabits: completedHabits,
-            completionRate: completionRate
+        // Use the schedule-aware completion calculator
+        return completionCalculator.calculateCompletionStats(
+            for: activeHabits,
+            logs: allLogs,
+            startDate: startDate,
+            endDate: endDate
         )
     }
     
