@@ -30,9 +30,9 @@ public final class CalculateCurrentStreak: CalculateCurrentStreakUseCase {
         var date = DateUtils.startOfDay(asOf)
         
         while true {
-            let weekKey = DateUtils.weekKey(for: date, firstWeekday: 2)
+            let weekKey = DateUtils.weekKey(for: date, firstWeekday: calendar.firstWeekday)
             let logsThisWeek = logs.filter { log in
-                let logWeekKey = DateUtils.weekKey(for: log.date, firstWeekday: 2)
+                let logWeekKey = DateUtils.weekKey(for: log.date, firstWeekday: calendar.firstWeekday)
                 return logWeekKey.year == weekKey.year && logWeekKey.week == weekKey.week
                     && isLogCompliant(log, for: habit)
             }
@@ -83,7 +83,7 @@ public final class CalculateCurrentStreak: CalculateCurrentStreakUseCase {
         case .daily:
             return true
         case .daysOfWeek(let days):
-            let habitWeekday = calendarWeekday == 1 ? 7 : calendarWeekday - 1
+            let habitWeekday = DateUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
             return days.contains(habitWeekday)
         case .timesPerWeek:
             return true

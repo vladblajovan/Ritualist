@@ -1,0 +1,4734 @@
+@startuml
+' STYLE START
+hide empty members
+skinparam shadowing false
+' STYLE END
+set namespaceSeparator none
+
+
+class "ScheduleAwareCompletionCalculator" as ScheduleAwareCompletionCalculator << (P, GoldenRod) protocol >> { 
+  +calculateCompletionRate(for:logs:startDate:endDate:)
+  +isHabitCompleted(habit:logs:date:)
+  +calculateExpectedDays(for:startDate:endDate:)
+  +calculateCompletionStats(for:logs:startDate:endDate:) 
+}
+class "SecureSubscriptionService" as SecureSubscriptionService << (P, GoldenRod) protocol >> { 
+  +validatePurchase(_:)
+  +restorePurchases()
+  +isPremiumUser()
+  +getValidPurchases()
+  +mockPurchase(_:)
+  +clearPurchases() 
+}
+class "UserService" as UserService << (P, GoldenRod) protocol >> { 
+  +currentProfile : UserProfile
+  +isPremiumUser : Bool
+  +updateProfile(_:)
+  +updateSubscription(plan:expiryDate:)
+  +syncWithiCloud() 
+}
+class "FeatureGatingService" as FeatureGatingService << (P, GoldenRod) protocol >> { 
+  +maxHabitsAllowed : Int
+  +canCreateMoreHabits(currentCount:)
+  +hasAdvancedAnalytics : Bool
+  +hasCustomReminders : Bool
+  +hasDataExport : Bool
+  +hasPremiumThemes : Bool
+  +hasPrioritySupport : Bool
+  +getFeatureBlockedMessage(for:)
+  +isFeatureAvailable(_:) 
+}
+class "NotificationService" as NotificationService << (P, GoldenRod) protocol >> { 
+  +requestAuthorizationIfNeeded()
+  +checkAuthorizationStatus()
+  +schedule(for:times:)
+  +scheduleWithActions(for:habitName:times:)
+  +cancel(for:)
+  +sendImmediate(title:body:)
+  +setupNotificationCategories() 
+}
+class "DataThresholdValidator" as DataThresholdValidator << (P, GoldenRod) protocol >> { 
+  +validateEligibility(for:)
+  +getThresholdProgress(for:)
+  +checkRequirement(_:for:) 
+}
+class "PersonalityAnalysisService" as PersonalityAnalysisService << (P, GoldenRod) protocol >> { 
+  +analyzePersonality(for:)
+  +calculatePersonalityScores(from:)
+  +determineDominantTrait(from:)
+  +calculateConfidence(from:) 
+}
+class "SlogansServiceProtocol" as SlogansServiceProtocol << (P, GoldenRod) protocol >> { 
+  +getCurrentSlogan()
+  +getSlogan(for:)
+  +getCurrentTimeOfDay()
+  +getTimeOfDay(for:) 
+}
+class "UserActionTrackerService" as UserActionTrackerService << (P, GoldenRod) protocol >> { 
+  +track(_:)
+  +track(_:context:)
+  +setUserProperty(key:value:)
+  +identifyUser(userId:properties:)
+  +resetUser()
+  +setTrackingEnabled(_:)
+  +flush() 
+}
+class "HabitSuggestionsService" as HabitSuggestionsService << (P, GoldenRod) protocol >> { 
+  +getSuggestions()
+  +getSuggestions(for:)
+  +getSuggestion(by:) 
+}
+class "BuildConfigurationService" as BuildConfigurationService << (P, GoldenRod) protocol >> { 
+  +buildConfiguration : BuildConfiguration
+  +allFeaturesEnabled : Bool
+  +subscriptionGatingEnabled : Bool
+  +shouldShowPaywalls : Bool 
+}
+class "PaywallService" as PaywallService << (P, GoldenRod) protocol >> { 
+  +purchaseState : PurchaseState
+  +loadProducts()
+  +purchase(_:)
+  +restorePurchases()
+  +isProductPurchased(_:)
+  +resetPurchaseState()
+  +clearPurchases() 
+}
+class "AnalyzeWeeklyPatternsUseCaseProtocol" as AnalyzeWeeklyPatternsUseCaseProtocol << (P, GoldenRod) protocol >> { 
+  +execute(for:from:to:) 
+}
+class "GenerateProgressChartDataUseCaseProtocol" as GenerateProgressChartDataUseCaseProtocol << (P, GoldenRod) protocol >> { 
+  +execute(for:from:to:) 
+}
+class "CalculateStreakAnalysisUseCaseProtocol" as CalculateStreakAnalysisUseCaseProtocol << (P, GoldenRod) protocol >> { 
+  +execute(for:from:to:) 
+}
+class "CalculateHabitPerformanceUseCaseProtocol" as CalculateHabitPerformanceUseCaseProtocol << (P, GoldenRod) protocol >> { 
+  +execute(for:from:to:) 
+}
+class "AggregateCategoryPerformanceUseCaseProtocol" as AggregateCategoryPerformanceUseCaseProtocol << (P, GoldenRod) protocol >> { 
+  +execute(for:from:to:) 
+}
+class "PerformanceAnalysisService" as PerformanceAnalysisService << (P, GoldenRod) protocol >> { 
+  +calculateHabitPerformance(habits:logs:from:to:)
+  +generateProgressChartData(completionStats:)
+  +analyzeWeeklyPatterns(habits:logs:from:to:)
+  +calculateStreakAnalysis(habits:logs:from:to:)
+  +aggregateCategoryPerformance(habits:categories:logs:from:to:) 
+}
+class "HabitAnalyticsService" as HabitAnalyticsService << (P, GoldenRod) protocol >> { 
+  +getActiveHabits(for:)
+  +getHabitLogs(for:from:to:)
+  +getHabitCompletionStats(for:from:to:) 
+}
+class "HabitScheduleAnalyzerProtocol" as HabitScheduleAnalyzerProtocol << (P, GoldenRod) protocol >> { 
+  +calculateExpectedDays(for:from:to:)
+  +isHabitExpectedOnDate(habit:date:) 
+}
+class "OverviewCardData" as OverviewCardData << (P, GoldenRod) protocol >> { 
+  ~shouldShow : Bool 
+}
+class "PersonalityAnalysisDataSource" as PersonalityAnalysisDataSource << (P, GoldenRod) protocol >> { 
+  +getLatestProfile(for:)
+  +saveProfile(_:)
+  +getProfileHistory(for:)
+  +deleteProfile(profileId:)
+  +deleteAllProfiles(for:) 
+}
+class "PersonalityAnalysisRepositoryProtocol" as PersonalityAnalysisRepositoryProtocol << (P, GoldenRod) protocol >> { 
+  +getPersonalityProfile(for:)
+  +savePersonalityProfile(_:)
+  +getPersonalityHistory(for:)
+  +deletePersonalityProfile(id:)
+  +deleteAllPersonalityProfiles(for:)
+  +validateAnalysisEligibility(for:)
+  +getThresholdProgress(for:)
+  +getHabitAnalysisInput(for:)
+  +getUserHabits(for:)
+  +getUserHabitLogs(for:from:to:)
+  +getUserCustomCategories(for:)
+  +getHabitCompletionStats(for:from:to:)
+  +isPersonalityAnalysisEnabled(for:)
+  +getAnalysisPreferences(for:)
+  +saveAnalysisPreferences(_:) 
+}
+class "ValidateAnalysisDataUseCase" as ValidateAnalysisDataUseCase << (P, GoldenRod) protocol >> { 
+  +execute(for:)
+  +getProgressDetails(for:)
+  +getEstimatedDaysToEligibility(for:) 
+}
+class "GetPersonalityInsightsUseCase" as GetPersonalityInsightsUseCase << (P, GoldenRod) protocol >> { 
+  +getHabitRecommendations(for:)
+  +getPatternInsights(for:)
+  +getMotivationalInsights(for:)
+  +getAllInsights(for:) 
+}
+class "GetPersonalityProfileUseCase" as GetPersonalityProfileUseCase << (P, GoldenRod) protocol >> { 
+  +execute(for:)
+  +getHistory(for:)
+  +hasProfiles(for:) 
+}
+class "AnalyzePersonalityUseCase" as AnalyzePersonalityUseCase << (P, GoldenRod) protocol >> { 
+  +execute(for:)
+  +canPerformAnalysis(for:) 
+}
+class "UpdatePersonalityAnalysisUseCase" as UpdatePersonalityAnalysisUseCase << (P, GoldenRod) protocol >> { 
+  +execute(for:)
+  +regenerateAnalysis(for:)
+  +shouldUpdateAnalysis(for:) 
+}
+class "LogLocalDataSourceProtocol" as LogLocalDataSourceProtocol << (P, GoldenRod) protocol >> { 
+  +logs(for:)
+  +upsert(_:)
+  +delete(id:) 
+}
+class "TipLocalDataSourceProtocol" as TipLocalDataSourceProtocol << (P, GoldenRod) protocol >> { 
+  +getAllTips()
+  +getFeaturedTips()
+  +getTip(by:)
+  +getTips(by:) 
+}
+class "OnboardingLocalDataSourceProtocol" as OnboardingLocalDataSourceProtocol << (P, GoldenRod) protocol >> { 
+  +load()
+  +save(_:) 
+}
+class "HabitLocalDataSourceProtocol" as HabitLocalDataSourceProtocol << (P, GoldenRod) protocol >> { 
+  +fetchAll()
+  +upsert(_:)
+  +delete(id:) 
+}
+class "CategoryLocalDataSourceProtocol" as CategoryLocalDataSourceProtocol << (P, GoldenRod) protocol >> { 
+  +getAllCategories()
+  +getCategory(by:)
+  +getActiveCategories()
+  +getPredefinedCategories()
+  +getCustomCategories()
+  +createCustomCategory(_:)
+  +updateCategory(_:)
+  +deleteCategory(id:)
+  +categoryExists(id:)
+  +categoryExists(name:) 
+}
+class "ProfileLocalDataSourceProtocol" as ProfileLocalDataSourceProtocol << (P, GoldenRod) protocol >> { 
+  +load()
+  +save(_:) 
+}
+class "LogRepository" as LogRepository << (P, GoldenRod) protocol >> { 
+  +logs(for:)
+  +upsert(_:)
+  +deleteLog(id:) 
+}
+class "TipRepository" as TipRepository << (P, GoldenRod) protocol >> { 
+  +getAllTips()
+  +getFeaturedTips()
+  +getTip(by:)
+  +getTips(by:) 
+}
+class "ProfileRepository" as ProfileRepository << (P, GoldenRod) protocol >> { 
+  +loadProfile()
+  +saveProfile(_:) 
+}
+class "CategoryRepository" as CategoryRepository << (P, GoldenRod) protocol >> { 
+  +getAllCategories()
+  +getCategory(by:)
+  +getActiveCategories()
+  +getPredefinedCategories()
+  +getCustomCategories()
+  +createCustomCategory(_:)
+  +updateCategory(_:)
+  +deleteCategory(id:)
+  +categoryExists(id:)
+  +categoryExists(name:) 
+}
+class "HabitRepository" as HabitRepository << (P, GoldenRod) protocol >> { 
+  +fetchAllHabits()
+  +create(_:)
+  +update(_:)
+  +delete(id:) 
+}
+class "OnboardingRepository" as OnboardingRepository << (P, GoldenRod) protocol >> { 
+  +getOnboardingState()
+  +saveOnboardingState(_:)
+  +markOnboardingCompleted(userName:hasNotifications:) 
+}
+class "CalculateCurrentStreakUseCase" as CalculateCurrentStreakUseCase << (P, GoldenRod) protocol >> { 
+  +execute(habit:logs:asOf:) 
+}
+class "CalculateBestStreakUseCase" as CalculateBestStreakUseCase << (P, GoldenRod) protocol >> { 
+  +execute(habit:logs:) 
+}
+class "GetHabitsFromSuggestionsUseCase" as GetHabitsFromSuggestionsUseCase << (P, GoldenRod) protocol >> { 
+  +execute(existingHabits:suggestionIds:) 
+}
+class "PersonalityAnalysisSchedulerProtocol" as PersonalityAnalysisSchedulerProtocol << (P, GoldenRod) protocol >> { 
+  +startScheduling(for:)
+  +stopScheduling(for:)
+  +triggerAnalysisCheck(for:)
+  +forceManualAnalysis(for:)
+  +shouldRunAnalysis(for:)
+  +updateScheduling(for:preferences:)
+  +getNextScheduledAnalysis(for:) 
+}
+class "ScheduleHabitRemindersUseCase" as ScheduleHabitRemindersUseCase << (P, GoldenRod) protocol >> { 
+  +execute(habit:) 
+}
+class "LogHabitFromNotificationUseCase" as LogHabitFromNotificationUseCase << (P, GoldenRod) protocol >> { 
+  +execute(habitId:date:value:) 
+}
+class "SnoozeHabitReminderUseCase" as SnoozeHabitReminderUseCase << (P, GoldenRod) protocol >> { 
+  +execute(habitId:habitName:originalTime:) 
+}
+class "HandleNotificationActionUseCase" as HandleNotificationActionUseCase << (P, GoldenRod) protocol >> { 
+  +execute(action:habitId:habitName:reminderTime:) 
+}
+class "CancelHabitRemindersUseCase" as CancelHabitRemindersUseCase << (P, GoldenRod) protocol >> { 
+  +execute(habitId:) 
+}
+class "CreateHabitUseCase" as CreateHabitUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "GetActiveHabitsUseCase" as GetActiveHabitsUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "GetAllHabitsUseCase" as GetAllHabitsUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "UpdateHabitUseCase" as UpdateHabitUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "DeleteHabitUseCase" as DeleteHabitUseCase << (P, GoldenRod) protocol >> { 
+  +execute(id:) 
+}
+class "ToggleHabitActiveStatusUseCase" as ToggleHabitActiveStatusUseCase << (P, GoldenRod) protocol >> { 
+  +execute(id:) 
+}
+class "ReorderHabitsUseCase" as ReorderHabitsUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "ValidateHabitUniquenessUseCase" as ValidateHabitUniquenessUseCase << (P, GoldenRod) protocol >> { 
+  +execute(name:categoryId:excludeId:) 
+}
+class "GetHabitsByCategoryUseCase" as GetHabitsByCategoryUseCase << (P, GoldenRod) protocol >> { 
+  +execute(categoryId:) 
+}
+class "OrphanHabitsFromCategoryUseCase" as OrphanHabitsFromCategoryUseCase << (P, GoldenRod) protocol >> { 
+  +execute(categoryId:) 
+}
+class "GetLogsUseCase" as GetLogsUseCase << (P, GoldenRod) protocol >> { 
+  +execute(for:since:until:) 
+}
+class "LogHabitUseCase" as LogHabitUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "DeleteLogUseCase" as DeleteLogUseCase << (P, GoldenRod) protocol >> { 
+  +execute(id:) 
+}
+class "GetLogForDateUseCase" as GetLogForDateUseCase << (P, GoldenRod) protocol >> { 
+  +execute(habitID:date:) 
+}
+class "LoadProfileUseCase" as LoadProfileUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "SaveProfileUseCase" as SaveProfileUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "GenerateCalendarDaysUseCase" as GenerateCalendarDaysUseCase << (P, GoldenRod) protocol >> { 
+  +execute(for:userProfile:) 
+}
+class "GenerateCalendarGridUseCase" as GenerateCalendarGridUseCase << (P, GoldenRod) protocol >> { 
+  +execute(for:userProfile:) 
+}
+class "ToggleHabitLogUseCase" as ToggleHabitLogUseCase << (P, GoldenRod) protocol >> { 
+  +execute(date:habit:currentLoggedDates:currentHabitLogValues:) 
+}
+class "GetAllTipsUseCase" as GetAllTipsUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "GetFeaturedTipsUseCase" as GetFeaturedTipsUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "GetTipByIdUseCase" as GetTipByIdUseCase << (P, GoldenRod) protocol >> { 
+  +execute(id:) 
+}
+class "GetTipsByCategoryUseCase" as GetTipsByCategoryUseCase << (P, GoldenRod) protocol >> { 
+  +execute(category:) 
+}
+class "GetAllCategoriesUseCase" as GetAllCategoriesUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "GetCategoryByIdUseCase" as GetCategoryByIdUseCase << (P, GoldenRod) protocol >> { 
+  +execute(id:) 
+}
+class "GetActiveCategoriesUseCase" as GetActiveCategoriesUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "GetPredefinedCategoriesUseCase" as GetPredefinedCategoriesUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "GetCustomCategoriesUseCase" as GetCustomCategoriesUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "CreateCustomCategoryUseCase" as CreateCustomCategoryUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "UpdateCategoryUseCase" as UpdateCategoryUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "DeleteCategoryUseCase" as DeleteCategoryUseCase << (P, GoldenRod) protocol >> { 
+  +execute(id:) 
+}
+class "ValidateCategoryNameUseCase" as ValidateCategoryNameUseCase << (P, GoldenRod) protocol >> { 
+  +execute(name:) 
+}
+class "GetOnboardingStateUseCase" as GetOnboardingStateUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "SaveOnboardingStateUseCase" as SaveOnboardingStateUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "CompleteOnboardingUseCase" as CompleteOnboardingUseCase << (P, GoldenRod) protocol >> { 
+  +execute(userName:hasNotifications:) 
+}
+class "GetCurrentSloganUseCase" as GetCurrentSloganUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "RequestNotificationPermissionUseCase" as RequestNotificationPermissionUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "CheckNotificationStatusUseCase" as CheckNotificationStatusUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "CheckFeatureAccessUseCase" as CheckFeatureAccessUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "CheckHabitCreationLimitUseCase" as CheckHabitCreationLimitUseCase << (P, GoldenRod) protocol >> { 
+  +execute(currentCount:) 
+}
+class "GetPaywallMessageUseCase" as GetPaywallMessageUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "TrackUserActionUseCase" as TrackUserActionUseCase << (P, GoldenRod) protocol >> { 
+  +execute(action:context:) 
+}
+class "TrackHabitLoggedUseCase" as TrackHabitLoggedUseCase << (P, GoldenRod) protocol >> { 
+  +execute(habitId:habitName:date:logType:value:) 
+}
+class "LoadPaywallProductsUseCase" as LoadPaywallProductsUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "PurchaseProductUseCase" as PurchaseProductUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "RestorePurchasesUseCase" as RestorePurchasesUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "CheckProductPurchasedUseCase" as CheckProductPurchasedUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "ResetPurchaseStateUseCase" as ResetPurchaseStateUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "GetPurchaseStateUseCase" as GetPurchaseStateUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "ValidateHabitScheduleUseCase" as ValidateHabitScheduleUseCase << (P, GoldenRod) protocol >> { 
+  +execute(date:habit:) 
+}
+class "CheckWeeklyTargetUseCase" as CheckWeeklyTargetUseCase << (P, GoldenRod) protocol >> { 
+  +execute(date:habit:habitLogValues:userProfile:) 
+}
+class "UpdateProfileSubscriptionUseCase" as UpdateProfileSubscriptionUseCase << (P, GoldenRod) protocol >> { 
+  +execute(product:) 
+}
+class "GetHabitCountUseCase" as GetHabitCountUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "CreateHabitFromSuggestionUseCase" as CreateHabitFromSuggestionUseCase << (P, GoldenRod) protocol >> { 
+  +execute(_:) 
+}
+class "CheckPremiumStatusUseCase" as CheckPremiumStatusUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "GetCurrentUserProfileUseCase" as GetCurrentUserProfileUseCase << (P, GoldenRod) protocol >> { 
+  +execute() 
+}
+class "AppearanceManager" as AppearanceManager << (C, DarkSeaGreen) >> { 
+  +currentAppearance : Int
+  +colorScheme : ColorScheme?
+  +init()
+  -updateColorScheme()
+  +updateFromProfile(_:)
+  +{static} getSystemAppearance() 
+}
+class "NumberUtils" as NumberUtils << (E, LightSteelBlue) enum >> { 
+  +{static} habitValueFormatter()
+  +{static} formatHabitValue(_:)
+  +{static} formatHabitValueWithUnit(_:unit:)
+  +{static} parseHabitValue(_:)
+  +{static} percentageFormatter()
+  +{static} formatPercentage(_:) 
+}
+class "DateUtils" as DateUtils << (E, LightSteelBlue) enum >> { 
+  +{static} now : Date
+  +{static} startOfDay(_:calendar:)
+  +{static} isSameDay(_:_:calendar:)
+  +{static} daysBetween(_:_:calendar:)
+  +{static} weekKey(for:firstWeekday:calendar:)
+  +{static} userCalendar()
+  +{static} orderedWeekdaySymbols(style:)
+  +{static} calendarWeekdayToHabitWeekday(_:)
+  +{static} habitWeekdayToCalendarWeekday(_:) 
+}
+class "WeekdaySymbolStyle" as DateUtils.WeekdaySymbolStyle << (E, LightSteelBlue) enum >> { 
+  +veryShort 
+}
+class "LogLevel" as LogLevel << (E, LightSteelBlue) enum >> { 
+  +debug
+  +info
+  +warning
+  +error
+  +critical
+  ~osLogType : OSLogType 
+}
+class "LogCategory" as LogCategory << (E, LightSteelBlue) enum >> { 
+  +userAction
+  +authentication
+  +subscription
+  +stateManagement
+  +errorRecovery
+  +healthMonitoring
+  +dataIntegrity
+  +performance
+  +network
+  +ui
+  +system 
+}
+class "DebugLogger" as DebugLogger << (C, DarkSeaGreen) >> { 
+  -osLog : OSLog
+  -isProductionBuild : Bool
+  -logBuffer : [LogEntry]
+  -maxBufferSize
+  -bufferLock
+  +init(subsystem:category:)
+  +log(_:level:category:metadata:file:function:line:)
+  +log(_:)
+  +logPerformance(operation:duration:metadata:)
+  +logStateTransition(from:to:context:)
+  +logError(_:context:recoveryAttempted:recoverySuccessful:metadata:)
+  +logAuth(event:userId:success:metadata:)
+  +logSubscription(event:plan:success:metadata:)
+  +logHealth(status:component:details:)
+  +logDataIntegrity(check:passed:issues:metadata:)
+  +logEvent(name:properties:userId:userProperties:)
+  +logUserProperty(key:value:)
+  +logUserIdentified(userId:properties:)
+  +logUserReset()
+  +logTrackingStateChanged(enabled:)
+  +logFlushRequested()
+  +getRecentLogs(limit:level:category:)
+  +exportLogs(level:category:)
+  +clearLogs()
+  +getLogStatistics()
+  -addToBuffer(_:)
+  -emojiForLevel(_:) 
+}
+class "LogEntry" as DebugLogger.LogEntry << (S, SkyBlue) struct >> { 
+  ~timestamp : Date
+  ~level : LogLevel
+  ~category : LogCategory
+  ~message : String
+  ~metadata : [String: Any]?
+  ~formattedMessage : String 
+}
+class "UserActionEventMapper" as UserActionEventMapper << (C, DarkSeaGreen) >> { 
+  +init()
+  +eventName(for:)
+  +eventProperties(for:) 
+}
+class "LocalizationTesting" as LocalizationTesting << (E, LightSteelBlue) enum >> { 
+  +{static} testLocales : [Locale]
+  +{static} pseudoLocalize(_:) 
+}
+class "TestStrings" as LocalizationTesting.TestStrings << (E, LightSteelBlue) enum >> { 
+  +{static} short
+  +{static} medium
+  +{static} long
+  +{static} veryLong
+  +{static} longGerman
+  +{static} veryLongGerman 
+}
+class "LayoutValidator" as LayoutValidator << (S, SkyBlue) struct >> { 
+  +{static} validateString(_:for:)
+  +{static} validateTextFits(_:maxWidth:font:)
+  +{static} validateAllStrings()
+  +{static} generateValidationReport() 
+}
+class "ComponentConstraints" as LayoutValidator.ComponentConstraints << (E, LightSteelBlue) enum >> { 
+  +{static} tabBarLabel : CGFloat
+  +{static} buttonLabel : CGFloat
+  +{static} formLabel : CGFloat
+  +{static} cardTitle : CGFloat
+  +{static} alertMessage : CGFloat
+  +{static} accessibilityLabel : Int 
+}
+class "StringConstraints" as LayoutValidator.StringConstraints << (E, LightSteelBlue) enum >> { 
+  +tabBarLabel
+  +buttonLabel
+  +formFieldLabel
+  +validationMessage
+  +accessibilityLabel
+  +cardTitle
+  +alertMessage
+  +characterLimit : Int
+  +pixelWidth : CGFloat 
+}
+class "ValidationResult" as ValidationResult << (S, SkyBlue) struct >> { 
+  +text : String
+  +component : LayoutValidator.StringConstraints
+  +isValid : Bool
+  +issues : [String]
+  +severity : Severity 
+}
+class "Severity" as ValidationResult.Severity << (E, LightSteelBlue) enum >> { 
+  +pass
+  +emoji : String 
+}
+class "Typography" as Typography << (E, LightSteelBlue) enum >> { 
+  +{static} heroIcon : CGFloat
+  +{static} largeIcon : CGFloat
+  +{static} mediumIcon : CGFloat
+  +{static} calendarDayNumber : CGFloat
+  +{static} calendarDaySmall : CGFloat
+  +{static} calendarProgress : CGFloat
+  +{static} calendarTiny : CGFloat
+  +{static} formLabel : CGFloat
+  +{static} badgeText : CGFloat 
+}
+class "ScaleFactors" as ScaleFactors << (E, LightSteelBlue) enum >> { 
+  +{static} tiny : CGFloat
+  +{static} small : CGFloat
+  +{static} smallMedium : CGFloat
+  +{static} large : CGFloat 
+}
+class "ShadowTokens" as ShadowTokens << (E, LightSteelBlue) enum >> { 
+  +{static} lightRadius : CGFloat
+  +{static} lightOffset
+  +{static} mediumRadius : CGFloat
+  +{static} mediumOffset
+  +{static} largeRadius : CGFloat
+  +{static} largeOffset 
+}
+class "AnimationDuration" as AnimationDuration << (E, LightSteelBlue) enum >> { 
+  +{static} fast : Double
+  +{static} medium : Double
+  +{static} slow : Double
+  +{static} verySlow : Double 
+}
+class "SpringAnimation" as SpringAnimation << (E, LightSteelBlue) enum >> { 
+  +{static} fastResponse : Double
+  +{static} slowResponse : Double
+  +{static} standardDamping : Double 
+}
+class "Spacing" as Spacing << (E, LightSteelBlue) enum >> { 
+  +{static} none : CGFloat
+  +{static} xxsmall : CGFloat
+  +{static} xsmall : CGFloat
+  +{static} small : CGFloat
+  +{static} medium : CGFloat
+  +{static} large : CGFloat
+  +{static} extraLarge : CGFloat
+  +{static} xlarge : CGFloat
+  +{static} xxlarge : CGFloat
+  +{static} xxxlarge : CGFloat
+  +{static} xxxxlarge : CGFloat 
+}
+class "CornerRadius" as CornerRadius << (E, LightSteelBlue) enum >> { 
+  +{static} none : CGFloat
+  +{static} xsmall : CGFloat
+  +{static} small : CGFloat
+  +{static} medium : CGFloat
+  +{static} large : CGFloat
+  +{static} xlarge : CGFloat
+  +{static} xxlarge : CGFloat
+  +{static} xxxlarge : CGFloat 
+}
+class "AppColors" as AppColors << (E, LightSteelBlue) enum >> { 
+  +{static} brand
+  +{static} accentYellow
+  +{static} surface
+  +{static} background
+  +{static} secondaryBackground
+  +{static} textPrimary
+  +{static} textSecondary
+  +{static} separator
+  +{static} systemGray
+  +{static} systemGray2
+  +{static} systemGray3
+  +{static} systemGray4
+  +{static} systemGray5
+  +{static} systemGray6 
+}
+class "RTLSupport" as RTLSupport << (E, LightSteelBlue) enum >> { 
+  +{static} chevronLeading(_:)
+  +{static} chevronTrailing(_:) 
+}
+class "IconSize" as IconSize << (E, LightSteelBlue) enum >> { 
+  +{static} xsmall : CGFloat
+  +{static} small : CGFloat
+  +{static} medium : CGFloat
+  +{static} large : CGFloat
+  +{static} xlarge : CGFloat
+  +{static} xxlarge : CGFloat
+  +{static} xxxlarge : CGFloat
+  +{static} xxxxlarge : CGFloat 
+}
+class "ComponentSize" as ComponentSize << (E, LightSteelBlue) enum >> { 
+  +{static} touchTarget : CGFloat
+  +{static} buttonHeight : CGFloat
+  +{static} textFieldHeight : CGFloat
+  +{static} calendarDay : CGFloat
+  +{static} avatarSmall : CGFloat
+  +{static} avatarMedium : CGFloat
+  +{static} avatarLarge : CGFloat
+  +{static} tipCardWidth : CGFloat
+  +{static} tipCardHeight : CGFloat
+  +{static} drawerHandle : CGFloat
+  +{static} drawerHandleHeight : CGFloat
+  +{static} iconMedium : CGFloat
+  +{static} progressIndicator : CGFloat
+  +{static} badgeIndicator : CGFloat
+  +{static} smallIndicator : CGFloat
+  +{static} separatorThin : CGFloat
+  +{static} separatorThick : CGFloat
+  +{static} separatorHairline : CGFloat
+  +{static} progressHeight : CGFloat 
+}
+class "DefaultScheduleAwareCompletionCalculator" as DefaultScheduleAwareCompletionCalculator << (C, DarkSeaGreen) >> { 
+  -calendar
+  +init()
+  +calculateCompletionRate(for:logs:startDate:endDate:)
+  +isHabitCompleted(habit:logs:date:)
+  +calculateExpectedDays(for:startDate:endDate:)
+  +calculateCompletionStats(for:logs:startDate:endDate:)
+  -isLogCompleted(log:habit:)
+  -calculateDailyCompletionRate(habit:logs:startDate:endDate:)
+  -calculateDaysOfWeekCompletionRate(habit:logs:scheduledDays:startDate:endDate:)
+  -calculateTimesPerWeekCompletionRate(habit:logs:weeklyTarget:startDate:endDate:)
+  -calculateExpectedDaysForSchedule(scheduledDays:startDate:endDate:)
+  -calculateWeekOverlap(weekStart:weekEnd:habitStart:habitEnd:) 
+}
+class "PersonalityAnalysisScheduler" as PersonalityAnalysisScheduler << (C, DarkSeaGreen) >> { 
+  -personalityRepository : PersonalityAnalysisRepositoryProtocol
+  -analyzePersonalityUseCase : AnalyzePersonalityUseCase
+  -validateAnalysisDataUseCase : ValidateAnalysisDataUseCase
+  -notificationCenter : UNUserNotificationCenter
+  -scheduledUsers : Set<UUID>
+  -lastAnalysisDates : [UUID: Date]
+  -lastDataHashes : [UUID: String]
+  -{static} schedulerIdentifierPrefix
+  -{static} minimumDataChangeThreshold
+  +init(personalityRepository:analyzePersonalityUseCase:validateAnalysisDataUseCase:notificationCenter:)
+  +startScheduling(for:)
+  +stopScheduling(for:)
+  +triggerAnalysisCheck(for:)
+  +forceManualAnalysis(for:)
+  +shouldRunAnalysis(for:)
+  +updateScheduling(for:preferences:)
+  +getNextScheduledAnalysis(for:)
+  -scheduleNextAnalysis(for:preferences:)
+  -calculateNextAnalysisDate(from:frequency:)
+  -isFrequencyTimeMet(for:frequency:)
+  -hasSignificantDataChange(for:)
+  -createDataHash(from:)
+  -performAnalysis(for:)
+  -sendAnalysisCompletedNotification(for:profile:)
+  -scheduleNotification(for:at:frequency:)
+  -saveSchedulerState()
+  -loadSchedulerState() 
+}
+class "MockSecureSubscriptionService" as MockSecureSubscriptionService << (C, DarkSeaGreen) >> { 
+  -validatedPurchases : Set<String>
+  -mockStorageKey
+  +init()
+  +validatePurchase(_:)
+  +restorePurchases()
+  +isPremiumUser()
+  +getValidPurchases()
+  +mockPurchase(_:)
+  +clearPurchases()
+  -loadMockPurchases()
+  -saveMockPurchases() 
+}
+class "MockUserService" as MockUserService << (C, DarkSeaGreen) >> { 
+  -_currentProfile
+  -loadProfile : LoadProfileUseCase?
+  -saveProfile : SaveProfileUseCase?
+  -testSubscriptionStates : [String: (SubscriptionPlan, Date?)]
+  +init(loadProfile:saveProfile:)
+  -loadInitialProfile()
+  +currentProfile : UserProfile
+  +isPremiumUser : Bool
+  +updateProfile(_:)
+  +updateSubscription(plan:expiryDate:)
+  +syncWithiCloud()
+  +switchToTestSubscription(_:) 
+}
+class "ICloudUserService" as ICloudUserService << (C, DarkSeaGreen) >> { 
+  -_currentProfile
+  +init()
+  +currentProfile : UserProfile
+  +isPremiumUser : Bool
+  +updateProfile(_:)
+  +updateSubscription(plan:expiryDate:)
+  +syncWithiCloud() 
+}
+class "NoOpUserService" as NoOpUserService << (C, DarkSeaGreen) >> { 
+  +currentProfile
+  +isPremiumUser
+  +init()
+  +updateProfile(_:)
+  +updateSubscription(plan:expiryDate:)
+  +syncWithiCloud() 
+}
+class "PersonalityNotificationContentGenerator" as PersonalityNotificationContentGenerator << (S, SkyBlue) struct >> { 
+  +{static} generateContent(for:)
+  +{static} generateInsufficientDataContent()
+  +{static} generateAnalysisAvailableContent()
+  -{static} generateTitleAndBody(for:confidence:)
+  -{static} getConfidenceEmoji(for:)
+  -{static} getCategoryIdentifier(for:) 
+}
+class "FeatureType" as FeatureType << (E, LightSteelBlue) enum >> { 
+  +unlimitedHabits
+  +advancedAnalytics
+  +customReminders
+  +dataExport
+  +premiumThemes
+  +prioritySupport
+  ~displayName : String 
+}
+class "DefaultFeatureGatingService" as DefaultFeatureGatingService << (C, DarkSeaGreen) >> { 
+  -userService : UserService
+  -{static} freeMaxHabits
+  +init(userService:)
+  +maxHabitsAllowed : Int
+  +canCreateMoreHabits(currentCount:)
+  +hasAdvancedAnalytics : Bool
+  +hasCustomReminders : Bool
+  +hasDataExport : Bool
+  +hasPremiumThemes : Bool
+  +hasPrioritySupport : Bool
+  +getFeatureBlockedMessage(for:)
+  +isFeatureAvailable(_:)
+  -isPremiumUser : Bool 
+}
+class "MockFeatureGatingService" as MockFeatureGatingService << (C, DarkSeaGreen) >> { 
+  +init()
+  +maxHabitsAllowed : Int
+  +canCreateMoreHabits(currentCount:)
+  +hasAdvancedAnalytics : Bool
+  +hasCustomReminders : Bool
+  +hasDataExport : Bool
+  +hasPremiumThemes : Bool
+  +hasPrioritySupport : Bool
+  +getFeatureBlockedMessage(for:)
+  +isFeatureAvailable(_:) 
+}
+class "FeatureGating" as FeatureGating << (S, SkyBlue) struct >> { 
+  +{static} habitLimitReachedMessage(current:limit:)
+  +{static} shouldShowPaywallForHabits(currentCount:maxAllowed:)
+  +{static} shouldShowPaywallUI()
+  +{static} premiumFeatures : [String] 
+}
+class "LocalNotificationService" as LocalNotificationService << (C, DarkSeaGreen) >> { 
+  -{static} habitReminderCategory
+  +actionHandler : ((NotificationAction, UUID, String?, ReminderTime?) async throws -> Void)?
+  +trackingService : UserActionTrackerService?
+  +init()
+  +requestAuthorizationIfNeeded()
+  +checkAuthorizationStatus()
+  +schedule(for:times:)
+  +scheduleWithActions(for:habitName:times:)
+  +cancel(for:)
+  +sendImmediate(title:body:) 
+}
+class "PersonalityDeepLinkCoordinator" as PersonalityDeepLinkCoordinator << (C, DarkSeaGreen) >> { 
+  +shouldShowPersonalityAnalysis
+  +pendingNotificationAction : PersonalityNotificationAction?
+  +shouldNavigateToSettings
+  +{static} shared
+  -init()
+  +handleNotificationResponse(_:)
+  +navigateToPersonalityAnalysis()
+  +showPersonalityAnalysisDirectly()
+  +clearPendingNavigation()
+  +processPendingNavigation()
+  +clearAllPersonalityNotifications() 
+}
+class "PersonalityNotificationAction" as PersonalityDeepLinkCoordinator.PersonalityNotificationAction << (E, LightSteelBlue) enum >> { 
+  +openAnalysis(dominantTrait:confidence:)
+  +openRequirements
+  +checkAnalysis
+  +directNavigation 
+}
+class "DefaultDataThresholdValidator" as DefaultDataThresholdValidator << (C, DarkSeaGreen) >> { 
+  -repository : PersonalityAnalysisRepositoryProtocol
+  +init(repository:)
+  +validateEligibility(for:)
+  +getThresholdProgress(for:)
+  +checkRequirement(_:for:)
+  -calculateEstimatedDays(from:) 
+}
+class "Thresholds" as DefaultDataThresholdValidator.Thresholds << (S, SkyBlue) struct >> { 
+  ~{static} minActiveHabits
+  ~{static} minTrackingDays
+  ~{static} minCustomCategories
+  ~{static} minCustomHabits
+  ~{static} minCompletionRate 
+}
+class "DefaultPersonalityAnalysisService" as DefaultPersonalityAnalysisService << (C, DarkSeaGreen) >> { 
+  -repository : PersonalityAnalysisRepositoryProtocol
+  +init(repository:)
+  +analyzePersonality(for:)
+  +calculatePersonalityScores(from:)
+  +calculatePersonalityScoresWithDetails(from:completionStats:)
+  +determineDominantTrait(from:)
+  +determineDominantTraitWithTieBreaking(from:traitAccumulators:totalWeights:input:)
+  -traitStabilityWeight(_:)
+  +calculateConfidence(from:)
+  +calculateConfidenceWithCompletionStats(from:completionStats:)
+  -inferPersonalityWeights(for:habits:allLogs:)
+  -calculateHabitSpecificModifiers(habit:input:)
+  -getCompletionRateForHabit(habit:input:) 
+}
+class "TimeOfDay" as TimeOfDay << (E, LightSteelBlue) enum >> { 
+  +morning
+  +noon
+  +evening 
+}
+class "SlogansService" as SlogansService << (C, DarkSeaGreen) >> { 
+  -morningSlogans
+  -noonSlogans
+  -eveningSlogans
+  +init()
+  +getCurrentSlogan()
+  +getSlogan(for:)
+  +getCurrentTimeOfDay()
+  +getTimeOfDay(for:)
+  -getSlogans(for:) 
+}
+class "MockSlogansService" as MockSlogansService << (C, DarkSeaGreen) >> { 
+  -fixedSlogan : String
+  -fixedTimeOfDay : TimeOfDay
+  +init(fixedSlogan:fixedTimeOfDay:)
+  +getCurrentSlogan()
+  +getSlogan(for:)
+  +getCurrentTimeOfDay()
+  +getTimeOfDay(for:) 
+}
+class "UserActionEvent" as UserActionEvent << (E, LightSteelBlue) enum >> { 
+  +onboardingStarted
+  +onboardingCompleted
+  +onboardingSkipped
+  +onboardingPageViewed(page:pageName:)
+  +onboardingPageNext(fromPage:toPage:)
+  +onboardingPageBack(fromPage:toPage:)
+  +onboardingUserNameEntered(hasName:)
+  +onboardingNotificationPermissionRequested
+  +onboardingNotificationPermissionGranted
+  +onboardingNotificationPermissionDenied
+  +habitsAssistantOpened(source:)
+  +habitsAssistantClosed
+  +habitsAssistantCategorySelected(category:)
+  +habitsAssistantHabitSuggestionViewed(habitId:category:)
+  +habitsAssistantHabitAdded(habitId:habitName:category:)
+  +habitsAssistantHabitAddFailed(habitId:error:)
+  +habitsAssistantHabitRemoved(habitId:habitName:category:)
+  +habitsAssistantHabitRemoveFailed(habitId:error:)
+  +habitCreated(habitId:habitName:habitType:)
+  +habitUpdated(habitId:habitName:)
+  +habitDeleted(habitId:habitName:)
+  +habitArchived(habitId:habitName:)
+  +habitRestored(habitId:habitName:)
+  +habitLogged(habitId:habitName:date:logType:value:)
+  +habitLogDeleted(habitId:habitName:date:)
+  +habitLogUpdated(habitId:habitName:date:oldValue:newValue:)
+  +habitStreakAchieved(habitId:habitName:streakLength:)
+  +screenViewed(screen:)
+  +tabSwitched(from:to:)
+  +notificationPermissionRequested
+  +notificationPermissionGranted
+  +notificationPermissionDenied
+  +notificationReceived(habitId:habitName:source:)
+  +notificationActionTapped(action:habitId:habitName:source:)
+  +notificationScheduled(habitId:habitName:reminderCount:)
+  +notificationCancelled(habitId:habitName:reason:)
+  +categoryCreated(categoryId:categoryName:emoji:)
+  +categoryUpdated(categoryId:categoryName:)
+  +categoryDeleted(categoryId:categoryName:habitsCount:)
+  +categoryReordered(categoryId:fromOrder:toOrder:)
+  +categoryManagementOpened
+  +paywallShown(source:trigger:)
+  +paywallDismissed(source:duration:)
+  +productSelected(productId:productName:price:)
+  +purchaseAttempted(productId:productName:price:)
+  +purchaseCompleted(productId:productName:price:duration:)
+  +purchaseFailed(productId:error:)
+  +purchaseRestoreAttempted
+  +purchaseRestoreCompleted(productId:productName:)
+  +purchaseRestoreFailed(error:)
+  +tipsCarouselViewed
+  +tipViewed(tipId:tipTitle:category:source:)
+  +tipDetailOpened(tipId:tipTitle:category:isFeatured:)
+  +tipDetailClosed(tipId:tipTitle:timeSpent:)
+  +tipsBottomSheetOpened(source:)
+  +tipsBottomSheetClosed(timeSpent:)
+  +tipsCategoryFilterApplied(category:)
+  +settingsOpened
+  +profileUpdated(field:)
+  +notificationSettingsChanged(enabled:)
+  +appearanceChanged(theme:)
+  +errorOccurred(error:context:)
+  +crashReported(error:)
+  +performanceMetric(metric:value:unit:)
+  +custom(event:parameters:) 
+}
+class "HabitsAssistantSource" as HabitsAssistantSource << (E, LightSteelBlue) enum >> { 
+  +onboarding
+  +habitsPage
+  +emptyState 
+}
+class "NoOpUserActionTrackerService" as NoOpUserActionTrackerService << (C, DarkSeaGreen) >> { 
+  +init()
+  +track(_:)
+  +track(_:context:)
+  +setUserProperty(key:value:)
+  +identifyUser(userId:properties:)
+  +resetUser()
+  +setTrackingEnabled(_:)
+  +flush() 
+}
+class "DebugUserActionTrackerService" as DebugUserActionTrackerService << (C, DarkSeaGreen) >> { 
+  -isTrackingEnabled
+  -userProperties : [String: Any]
+  -currentUserId : String?
+  -eventMapper
+  -logger
+  +init()
+  +track(_:)
+  +track(_:context:)
+  +setUserProperty(key:value:)
+  +identifyUser(userId:properties:)
+  +resetUser()
+  +setTrackingEnabled(_:)
+  +flush() 
+}
+class "DefaultHabitSuggestionsService" as DefaultHabitSuggestionsService << (C, DarkSeaGreen) >> { 
+  -suggestions : [HabitSuggestion]
+  +init()
+  +getSuggestions()
+  +getSuggestions(for:)
+  +getSuggestion(by:) 
+}
+class "BuildConfigFeatureGatingService" as BuildConfigFeatureGatingService << (C, DarkSeaGreen) >> { 
+  -buildConfigService : BuildConfigurationService
+  -standardFeatureGating : FeatureGatingService
+  +init(buildConfigService:standardFeatureGating:)
+  +maxHabitsAllowed : Int
+  +canCreateMoreHabits(currentCount:)
+  +hasAdvancedAnalytics : Bool
+  +hasCustomReminders : Bool
+  +hasDataExport : Bool
+  +hasPremiumThemes : Bool
+  +hasPrioritySupport : Bool
+  +getFeatureBlockedMessage(for:)
+  +isFeatureAvailable(_:) 
+}
+class "BuildConfiguration" as BuildConfiguration << (E, LightSteelBlue) enum >> { 
+  +allFeaturesEnabled
+  +subscriptionBased
+  +{static} current : BuildConfiguration 
+}
+class "DefaultBuildConfigurationService" as DefaultBuildConfigurationService << (C, DarkSeaGreen) >> { 
+  +init()
+  +buildConfiguration : BuildConfiguration
+  +allFeaturesEnabled : Bool
+  +subscriptionGatingEnabled : Bool
+  +shouldShowPaywalls : Bool 
+}
+class "BuildConfig" as BuildConfig << (S, SkyBlue) struct >> { 
+  +{static} current : BuildConfiguration
+  +{static} allFeaturesEnabled : Bool
+  +{static} subscriptionGatingEnabled : Bool
+  +{static} shouldShowPaywalls : Bool
+  +{static} debugInfo : String 
+}
+class "NavigationService" as NavigationService << (C, DarkSeaGreen) >> { 
+  +selectedTab : RootTab
+  +shouldRefreshOverview
+  +trackingService : UserActionTrackerService?
+  +init()
+  +navigateToOverview(shouldRefresh:)
+  +navigateToHabits()
+  +navigateToDashboard()
+  +navigateToSettings()
+  -tabName(_:)
+  +didRefreshOverview() 
+}
+class "MockPaywallService" as MockPaywallService << (C, DarkSeaGreen) >> { 
+  +purchaseState : PurchaseState
+  -subscriptionService : SecureSubscriptionService
+  -mockProducts : [Product]
+  +simulatePurchaseDelay : TimeInterval
+  +simulateFailureRate : Double
+  +simulateNetworkError : Bool
+  +simulateUserCancellation : Bool
+  +currentTestingScenario : TestingScenario
+  +init(subscriptionService:testingScenario:)
+  +loadProducts()
+  +purchase(_:)
+  +restorePurchases()
+  +isProductPurchased(_:)
+  +resetPurchaseState()
+  +clearPurchases()
+  +configure(scenario:delay:failureRate:)
+  +simulatePurchase(productId:)
+  +getTestProducts()
+  +hasPremiumPurchase : Bool 
+}
+class "TestingScenario" as MockPaywallService.TestingScenario << (E, LightSteelBlue) enum >> { 
+  +alwaysSucceed
+  +alwaysFail
+  +randomResults
+  +networkError
+  +userCancellation 
+}
+class "NoOpPaywallService" as NoOpPaywallService << (C, DarkSeaGreen) >> { 
+  +purchaseState : PurchaseState
+  +init()
+  +loadProducts()
+  +purchase(_:)
+  +restorePurchases()
+  +isProductPurchased(_:)
+  +resetPurchaseState()
+  +clearPurchases() 
+}
+class "StoreKitPaywallService" as StoreKitPaywallService << (C, DarkSeaGreen) >> { 
+  +purchaseState : PurchaseState
+  -productIdentifiers
+  +init()
+  +loadProducts()
+  +purchase(_:)
+  +restorePurchases()
+  +isProductPurchased(_:)
+  +resetPurchaseState()
+  +clearPurchases() 
+}
+class "SimplePaywallService" as SimplePaywallService << (C, DarkSeaGreen) >> { 
+  +purchaseState : PurchaseState
+  +init()
+  +loadProducts()
+  +purchase(_:)
+  +restorePurchases()
+  +isProductPurchased(_:)
+  +resetPurchaseState()
+  +clearPurchases() 
+}
+class "Strings" as Strings << (E, LightSteelBlue) enum >> {  
+}
+class "App" as Strings.App << (E, LightSteelBlue) enum >> { 
+  +{static} name 
+}
+class "Navigation" as Strings.Navigation << (E, LightSteelBlue) enum >> { 
+  +{static} overview
+  +{static} habits
+  +{static} dashboard
+  +{static} settings
+  +{static} editHabit
+  +{static} newHabit 
+}
+class "Button" as Strings.Button << (E, LightSteelBlue) enum >> { 
+  +{static} save
+  +{static} cancel
+  +{static} delete
+  +{static} retry
+  +{static} done
+  +{static} activate
+  +{static} deactivate 
+}
+class "Loading" as Strings.Loading << (E, LightSteelBlue) enum >> { 
+  +{static} initializing
+  +{static} habits
+  +{static} settings
+  +{static} habit
+  +{static} saving
+  +{static} calculatingStreaks
+  +{static} processingImage 
+}
+class "Status" as Strings.Status << (E, LightSteelBlue) enum >> { 
+  +{static} creating
+  +{static} updating
+  +{static} deleting
+  +{static} active
+  +{static} inactive 
+}
+class "Error" as Strings.Error << (E, LightSteelBlue) enum >> { 
+  +{static} failedInitialize
+  +{static} failedLoadHabits
+  +{static} failedLoadSettings
+  +{static} failedLoadHabit
+  +{static} unableSetupOverview
+  +{static} unableSetupHabits
+  +{static} unableSetupSettings 
+}
+class "EmptyState" as Strings.EmptyState << (E, LightSteelBlue) enum >> { 
+  +{static} noActiveHabits
+  +{static} createHabitsToStart
+  +{static} noHabitsYet
+  +{static} tapPlusToCreate
+  +{static} noHabitSelected
+  +{static} tapHabitToView 
+}
+class "Form" as Strings.Form << (E, LightSteelBlue) enum >> { 
+  +{static} basicInformation
+  +{static} schedule
+  +{static} appearance
+  +{static} name
+  +{static} habitName
+  +{static} type
+  +{static} yesNo
+  +{static} count
+  +{static} unit
+  +{static} unitPlaceholder
+  +{static} dailyTarget
+  +{static} target
+  +{static} frequency
+  +{static} daily
+  +{static} specificDays
+  +{static} timesPerWeek
+  +{static} timesPerWeekLabel
+  +{static} selectDays
+  +{static} emoji
+  +{static} color 
+}
+class "Validation" as Strings.Validation << (E, LightSteelBlue) enum >> { 
+  +{static} nameRequired
+  +{static} unitRequired
+  +{static} targetGreaterThanZero
+  +{static} selectAtLeastOneDay
+  +{static} categoryRequired 
+}
+class "Settings" as Strings.Settings << (E, LightSteelBlue) enum >> { 
+  +{static} profile
+  +{static} firstDayOfWeek
+  +{static} appearanceSetting
+  +{static} followSystem
+  +{static} light
+  +{static} dark
+  +{static} settingsSaved
+  +{static} notifications
+  +{static} notificationPermission
+  +{static} notificationsEnabled
+  +{static} notificationsDisabled
+  +{static} enable
+  +{static} openSettings 
+}
+class "DayOfWeek" as Strings.DayOfWeek << (E, LightSteelBlue) enum >> { 
+  +{static} monday
+  +{static} tuesday
+  +{static} wednesday
+  +{static} thursday
+  +{static} friday
+  +{static} saturday
+  +{static} sunday
+  +{static} unknown
+  +{static} mon
+  +{static} tue
+  +{static} wed
+  +{static} thu
+  +{static} fri
+  +{static} sat
+  +{static} sun 
+}
+class "Overview" as Strings.Overview << (E, LightSteelBlue) enum >> { 
+  +{static} instructions
+  +{static} yourHabits
+  +{static} calendar
+  +{static} stats
+  +{static} current
+  +{static} best
+  +{static} dayPlural(_:)
+  +{static} daySingular
+  +{static} dayPlural 
+}
+class "Calendar" as Strings.Calendar << (E, LightSteelBlue) enum >> { 
+  +{static} today 
+}
+class "Dialog" as Strings.Dialog << (E, LightSteelBlue) enum >> { 
+  +{static} deleteHabit
+  +{static} cannotUndo
+  +{static} deleteHabitMessage(_:) 
+}
+class "Avatar" as Strings.Avatar << (E, LightSteelBlue) enum >> { 
+  +{static} profilePhoto
+  +{static} chooseFromPhotos
+  +{static} removePhoto 
+}
+class "Notification" as Strings.Notification << (E, LightSteelBlue) enum >> { 
+  +{static} title
+  +{static} body 
+}
+class "Accessibility" as Strings.Accessibility << (E, LightSteelBlue) enum >> { 
+  +{static} previousMonth
+  +{static} nextMonth
+  +{static} addHabit
+  +{static} goToToday
+  +{static} calendarDay(_:)
+  +{static} habitLogged(_:)
+  +{static} habitNotLogged(_:)
+  +{static} habitChip(_:)
+  +{static} monthHeader(_:)
+  +{static} deleteHabit(_:)
+  +{static} habitStatus(_:_:)
+  +{static} streakInfo(_:_:) 
+}
+class "Format" as Strings.Format << (E, LightSteelBlue) enum >> { 
+  +{static} habitValueWithUnit(_:_:)
+  +{static} progressPercentage(_:) 
+}
+class "Tips" as Strings.Tips << (E, LightSteelBlue) enum >> { 
+  +{static} carouselTitle
+  +{static} showMore
+  +{static} allTipsTitle
+  +{static} tipDetailTitle
+  +{static} startSmallTitle
+  +{static} startSmallDescription
+  +{static} consistencyTitle
+  +{static} consistencyDescription
+  +{static} trackImmediatelyTitle
+  +{static} trackImmediatelyDescription 
+}
+class "Dashboard" as Strings.Dashboard << (E, LightSteelBlue) enum >> { 
+  +{static} title
+  +{static} completionStats
+  +{static} totalHabits
+  +{static} completedHabits
+  +{static} overallCompletion
+  +{static} weeklyProgress
+  +{static} monthlyProgress
+  +{static} consistencyScore
+  +{static} topPerformers
+  +{static} needsImprovement
+  +{static} noDataAvailable
+  +{static} startTrackingMessage
+  +{static} thisWeek
+  +{static} thisMonth
+  +{static} last6Months
+  +{static} lastYear
+  +{static} allTime 
+}
+class "Paywall" as Strings.Paywall << (E, LightSteelBlue) enum >> { 
+  +{static} unlockAdvancedStats
+  +{static} statsBlockedMessage
+  +{static} proLabel
+  +{static} upgrade 
+}
+class "SettingsRoot" as SettingsRoot << (S, SkyBlue) struct >> { 
+  ~vm
+  +init()
+  +body : some View 
+}
+class "SettingsContentView" as SettingsContentView << (S, SkyBlue) struct >> { 
+  ~vm : SettingsViewModel
+  ~body : some View 
+}
+class "SettingsFormView" as SettingsFormView << (S, SkyBlue) struct >> { 
+  ~vm : SettingsViewModel
+  -isNameFieldFocused : Bool
+  -showingImagePicker
+  -selectedImageData : Data?
+  -paywallItem : PaywallItem?
+  ~paywallViewModel
+  -name
+  -appearance
+  ~body : some View
+  -showPaywall()
+  -displayName : String
+  -hasChanges : Bool
+  -updateLocalState()
+  -updateUserName()
+  -saveChanges()
+  -appearanceName(_:) 
+}
+class "SettingsSavedConfirmationView" as SettingsSavedConfirmationView << (S, SkyBlue) struct >> { 
+  ~message : String
+  ~onDismiss : () -> Void
+  ~body : some View 
+}
+class "PersonalityInsightsSettingsRow" as PersonalityInsightsSettingsRow << (S, SkyBlue) struct >> { 
+  -showingPersonalityInsights
+  -personalityVM
+  ~body : some View
+  -privacyStatusText : String 
+}
+class "SettingsViewModel" as SettingsViewModel << (C, DarkSeaGreen) >> { 
+  -loadProfile : LoadProfileUseCase
+  -saveProfile : SaveProfileUseCase
+  -requestNotificationPermission : RequestNotificationPermissionUseCase
+  -checkNotificationStatus : CheckNotificationStatusUseCase
+  -userService : UserService
+  ~paywallService
+  ~userActionTracker
+  ~appearanceManager
+  +profile
+  +isLoading
+  +isSaving
+  +error : Error?
+  +saveSuccess
+  +autoSaveMessage : String?
+  +hasNotificationPermission
+  +isRequestingNotifications
+  +isCancellingSubscription
+  +isUpdatingUser
+  +isPremiumUser : Bool
+  +init(loadProfile:saveProfile:requestNotificationPermission:checkNotificationStatus:userService:)
+  +load()
+  +save()
+  +retry()
+  +clearSaveSuccess()
+  +autoSave()
+  +dismissAutoSaveMessage()
+  +requestNotifications()
+  +refreshNotificationStatus()
+  +updateUserName(_:)
+  +cancelSubscription()
+  +refreshPremiumStatus()
+  +updateAppearance(_:) 
+}
+class "AvatarView" as AvatarView << (S, SkyBlue) struct >> { 
+  +name : String
+  +imageData : Data?
+  +size : CGFloat
+  +showEditBadge : Bool
+  +onEditTapped : () -> Void
+  +init(name:imageData:size:showEditBadge:onEditTapped:)
+  +body : some View
+  -backgroundColor : Color
+  -initials : String
+  -initialsBackgroundColor : Color 
+}
+class "AvatarImagePicker" as AvatarImagePicker << (S, SkyBlue) struct >> { 
+  +selectedImageData : Data?
+  -selectedItem : PhotosPickerItem?
+  -isLoading
+  +name : String
+  +currentImageData : Data?
+  +onImageSelected : (Data?) -> Void
+  +onDismiss : () -> Void
+  +init(name:currentImageData:selectedImageData:onImageSelected:onDismiss:)
+  +body : some View
+  -loadImageData(from:)
+  -resizeImageData(_:maxSize:) 
+}
+class "CategoryManagementView" as CategoryManagementView << (S, SkyBlue) struct >> { 
+  -dismiss
+  ~vm : CategoryManagementViewModel
+  -showingAddCategory
+  -selectedCategoryIds : Set<String>
+  -editMode
+  +init(vm:)
+  +body : some View
+  -categoryList : some View
+  -deleteCategories(offsets:)
+  -moveCategories(from:to:)
+  -bottomToolbar : some View
+  -selectedCategoriesArePredefined : Bool
+  -hasActiveSelectedCategories : Bool
+  -hasInactiveSelectedCategories : Bool
+  -activateSelectedCategories()
+  -deactivateSelectedCategories()
+  -deleteSelectedCategories() 
+}
+class "CategoryRowView" as CategoryRowView << (S, SkyBlue) struct >> { 
+  ~category : Category
+  ~body : some View 
+}
+class "CategoryManagementViewModel" as CategoryManagementViewModel << (C, DarkSeaGreen) >> { 
+  -getAllCategoriesUseCase : GetAllCategoriesUseCase
+  -createCustomCategoryUseCase : CreateCustomCategoryUseCase
+  -updateCategoryUseCase : UpdateCategoryUseCase
+  -deleteCategoryUseCase : DeleteCategoryUseCase
+  -getHabitsByCategoryUseCase : GetHabitsByCategoryUseCase
+  -orphanHabitsFromCategoryUseCase : OrphanHabitsFromCategoryUseCase
+  ~userActionTracker
+  +categories : [Category]
+  +isLoading
+  +error : Error?
+  +customCategories : [Category]
+  +predefinedCategories : [Category]
+  +init(getAllCategoriesUseCase:createCustomCategoryUseCase:updateCategoryUseCase:deleteCategoryUseCase:getHabitsByCategoryUseCase:orphanHabitsFromCategoryUseCase:)
+  +load()
+  +trackCategoryManagementOpened()
+  +createCategory(_:)
+  +createCustomCategory(name:emoji:)
+  +updateCategory(_:)
+  +deleteCategories(at:)
+  +getHabitsCount(for:)
+  +moveCategories(from:to:)
+  +clearError()
+  +deleteCategory(_:) 
+}
+class "HabitDetailView" as HabitDetailView << (S, SkyBlue) struct >> { 
+  -dismiss
+  ~vm : HabitDetailViewModel
+  ~categoryManagementVM
+  +init(vm:)
+  +body : some View
+  -saveHabit() 
+}
+class "HabitFormView" as HabitFormView << (S, SkyBlue) struct >> { 
+  ~vm : HabitDetailViewModel
+  ~body : some View 
+}
+class "BasicInfoSection" as BasicInfoSection << (S, SkyBlue) struct >> { 
+  ~vm : HabitDetailViewModel
+  -focusedField : FormField?
+  ~body : some View 
+}
+class "FormField" as BasicInfoSection.FormField << (E, LightSteelBlue) enum >> { 
+  ~name
+  ~unitLabel
+  ~dailyTarget 
+}
+class "ScheduleSection" as ScheduleSection << (S, SkyBlue) struct >> { 
+  ~vm : HabitDetailViewModel
+  ~body : some View 
+}
+class "DaysOfWeekSelector" as DaysOfWeekSelector << (S, SkyBlue) struct >> { 
+  ~selectedDays : Set<Int>
+  -weekdays
+  ~body : some View 
+}
+class "CategorySection" as CategorySection << (S, SkyBlue) struct >> { 
+  ~vm : HabitDetailViewModel
+  -showingAddCustomCategory
+  -showingCategoryManagement
+  ~categoryManagementVM
+  ~body : some View
+  -categoryManagementSheet : some View 
+}
+class "AppearanceSection" as AppearanceSection << (S, SkyBlue) struct >> { 
+  ~vm : HabitDetailViewModel
+  -colors
+  -emojis
+  ~body : some View 
+}
+class "DeleteSection" as DeleteSection << (S, SkyBlue) struct >> { 
+  -dismiss
+  ~vm : HabitDetailViewModel
+  -showingDeleteAlert
+  ~body : some View 
+}
+class "ActiveStatusSection" as ActiveStatusSection << (S, SkyBlue) struct >> { 
+  ~vm : HabitDetailViewModel
+  ~body : some View 
+}
+class "ScheduleType" as ScheduleType << (E, LightSteelBlue) enum >> { 
+  +daily
+  +daysOfWeek
+  +timesPerWeek 
+}
+class "HabitDetailViewModel" as HabitDetailViewModel << (C, DarkSeaGreen) >> { 
+  ~createHabit
+  ~updateHabit
+  ~deleteHabit
+  ~toggleHabitActiveStatus
+  ~getActiveCategories
+  ~createCustomCategory
+  ~validateCategoryName
+  ~validateHabitUniqueness
+  ~scheduleHabitReminders
+  +name
+  +selectedKind : HabitKind
+  +unitLabel
+  +dailyTarget : Double
+  +selectedSchedule : ScheduleType
+  +selectedDaysOfWeek : Set<Int>
+  +timesPerWeek
+  +selectedEmoji
+  +selectedColorHex
+  +reminders : [ReminderTime]
+  +isActive
+  +selectedCategory : Category?
+  +categories : [Category]
+  +isLoadingCategories
+  +categoriesError : Error?
+  +isDuplicateHabit
+  +isValidatingDuplicate
+  +isLoading
+  +isSaving
+  +isDeleting
+  +error : Error?
+  +isEditMode : Bool
+  +originalHabit : Habit?
+  +init(habit:)
+  +isFormValid : Bool
+  +isNameValid : Bool
+  +isUnitLabelValid : Bool
+  +isDailyTargetValid : Bool
+  +isScheduleValid : Bool
+  +isCategoryValid : Bool
+  +save()
+  +delete()
+  +toggleActiveStatus()
+  +retry()
+  +addReminder(hour:minute:)
+  +removeReminder(at:)
+  +removeReminder(_:)
+  +loadCategories()
+  +selectCategory(_:)
+  +createCustomCategory(name:emoji:)
+  +validateForDuplicates()
+  -loadHabitData(_:)
+  -createHabitFromForm() 
+}
+class "ReminderSection" as ReminderSection << (S, SkyBlue) struct >> { 
+  ~vm : HabitDetailViewModel
+  -showingAddReminder
+  +body : some View 
+}
+class "ReminderTimeRow" as ReminderTimeRow << (S, SkyBlue) struct >> { 
+  ~reminder : ReminderTime
+  ~onDelete : () -> Void
+  +body : some View
+  -formatTime(_:) 
+}
+class "AddReminderSheet" as AddReminderSheet << (S, SkyBlue) struct >> { 
+  -dismiss
+  ~vm : HabitDetailViewModel
+  -selectedTime
+  +body : some View 
+}
+class "HabitsRoot" as HabitsRoot << (S, SkyBlue) struct >> { 
+  ~vm
+  +init()
+  +body : some View 
+}
+class "HabitsContentView" as HabitsContentView << (S, SkyBlue) struct >> { 
+  ~vm : HabitsViewModel
+  ~categoryManagementVM
+  ~body : some View
+  -categoryManagementSheet : some View 
+}
+class "HabitsListView" as HabitsListView << (S, SkyBlue) struct >> { 
+  -editMode
+  ~vm : HabitsViewModel
+  -showingDeleteConfirmation
+  -habitToDelete : Habit?
+  -selection : Set<UUID>
+  ~body : some View
+  -editModeToolbar : some View
+  -hasActiveSelectedHabits : Bool
+  -hasInactiveSelectedHabits : Bool
+  -activateSelectedHabits()
+  -deactivateSelectedHabits()
+  -deleteSelectedHabits()
+  -deleteHabit(_:)
+  -handleMove(from:to:) 
+}
+class "HabitRowView" as HabitRowView << (S, SkyBlue) struct >> { 
+  ~habit : Habit
+  ~onTap : () -> Void
+  ~body : some View 
+}
+class "OperationStatusView" as OperationStatusView << (S, SkyBlue) struct >> { 
+  ~isCreating : Bool
+  ~isUpdating : Bool
+  ~isDeleting : Bool
+  ~body : some View 
+}
+class "HabitsViewModel" as HabitsViewModel << (C, DarkSeaGreen) >> { 
+  ~getAllHabits
+  ~createHabit
+  ~updateHabit
+  ~deleteHabit
+  ~toggleHabitActiveStatus
+  ~reorderHabits
+  ~checkHabitCreationLimit
+  ~createHabitFromSuggestionUseCase
+  ~getActiveCategories
+  ~habitSuggestionsService
+  ~userActionTracker
+  ~paywallViewModel
+  ~habitsAssistantViewModelInjected
+  +items : [Habit]
+  +isLoading
+  +error : Error?
+  +isCreating
+  +isUpdating
+  +isDeleting
+  +categories : [Category]
+  +isLoadingCategories
+  +categoriesError : Error?
+  +selectedFilterCategory : Category?
+  +showingCreateHabit
+  +showingHabitAssistant
+  +showingCategoryManagement
+  +selectedHabit : Habit?
+  +paywallItem : PaywallItem?
+  +shouldReopenAssistantAfterPaywall
+  +isHandlingPaywallDismissal
+  +habitsAssistantViewModel : HabitsAssistantViewModel
+  +canCreateMoreHabits : Bool
+  +filteredHabits : [Habit]
+  +init()
+  +load()
+  +create(_:)
+  +update(_:)
+  +delete(id:)
+  +toggleActiveStatus(id:)
+  +reorderHabits(_:)
+  +retry()
+  -setupRefreshObservation()
+  +makeHabitDetailViewModel(for:)
+  +createHabitFromSuggestion(_:)
+  +handleCreateHabitTap()
+  +handleAssistantTap(source:)
+  +handleCategoryManagementTap()
+  +showPaywall()
+  +showPaywallFromAssistant()
+  +handlePaywallDismissal()
+  +handleCreateHabitDismissal()
+  +handleAssistantDismissal()
+  +handleHabitDetailDismissal()
+  +handleCategoryManagementDismissal()
+  +selectHabit(_:)
+  -loadCategories()
+  +selectFilterCategory(_:) 
+}
+class "HorizontalCarousel" as HorizontalCarousel<T: Identifiable\nContent: View> << (S, SkyBlue) struct >> { 
+  ~items : [T]
+  ~selectedItem : T?
+  ~onItemTap : (T) async -> Void
+  ~onItemLongPress : ((T) -> Void)?
+  ~content : (T, Bool) -> Content
+  ~showPageIndicator : Bool
+  ~itemSpacing : CGFloat
+  ~horizontalPadding : CGFloat
+  ~pageIndicatorThreshold : Int
+  +init(items:selectedItem:onItemTap:onItemLongPress:showPageIndicator:itemSpacing:horizontalPadding:pageIndicatorThreshold:content:)
+  +body : some View 
+}
+class "Chip" as Chip << (S, SkyBlue) struct >> { 
+  ~text : String
+  ~emoji : String?
+  ~color : Color?
+  ~isSelected : Bool
+  +init(text:emoji:color:isSelected:)
+  +body : some View 
+}
+class "ConfirmationDialog" as ConfirmationDialog << (S, SkyBlue) struct >> { 
+  +title : String
+  +message : String
+  +confirmTitle : String
+  +cancelTitle : String
+  +isDestructive : Bool
+  +onConfirm : () async -> Void
+  +onCancel : () -> Void
+  +init(title:message:confirmTitle:cancelTitle:isDestructive:onConfirm:onCancel:)
+  +body : some View 
+}
+class "CategoryFilterCarousel" as CategoryFilterCarousel << (S, SkyBlue) struct >> { 
+  ~selectedCategory : Category?
+  ~categories : [Category]
+  ~isLoading : Bool
+  ~onCategorySelect : (Category?) -> Void
+  ~onManageCategories : (() -> Void)?
+  ~onAddHabit : (() -> Void)?
+  ~onAssistant : (() -> Void)?
+  +init(selectedCategory:categories:isLoading:onCategorySelect:onManageCategories:onAddHabit:onAssistant:)
+  +body : some View 
+}
+class "CategorySelectionView" as CategorySelectionView << (S, SkyBlue) struct >> { 
+  ~selectedCategory : Category?
+  ~categories : [Category]
+  ~isLoading : Bool
+  ~onCategorySelect : (Category) -> Void
+  ~onAddCustomCategory : () -> Void
+  ~onManageCategories : (() -> Void)?
+  ~showAddCustomOption : Bool
+  +init(selectedCategory:categories:isLoading:showAddCustomOption:onCategorySelect:onAddCustomCategory:onManageCategories:)
+  +body : some View 
+}
+class "AddCustomCategorySheet" as AddCustomCategorySheet << (S, SkyBlue) struct >> { 
+  -dismiss
+  -categoryName : String
+  -selectedEmoji : String
+  -isLoading : Bool
+  -errorMessage : String?
+  ~onSave : (String, String) async -> Bool
+  -emojiOptions
+  +init(onSave:)
+  +body : some View
+  -isFormInvalid : Bool
+  -saveCategory() 
+}
+class "ErrorView" as ErrorView << (S, SkyBlue) struct >> { 
+  ~title : String
+  ~message : String
+  ~retryAction : () async -> Void
+  +init(title:message:retryAction:)
+  +body : some View 
+}
+class "AnalyzeWeeklyPatternsUseCase" as AnalyzeWeeklyPatternsUseCase << (C, DarkSeaGreen) >> { 
+  -habitAnalyticsService : HabitAnalyticsService
+  -performanceAnalysisService : PerformanceAnalysisService
+  +init(habitAnalyticsService:performanceAnalysisService:)
+  +execute(for:from:to:) 
+}
+class "GenerateProgressChartDataUseCase" as GenerateProgressChartDataUseCase << (C, DarkSeaGreen) >> { 
+  -habitAnalyticsService : HabitAnalyticsService
+  -performanceAnalysisService : PerformanceAnalysisService
+  -calendar : Calendar
+  +init(habitAnalyticsService:performanceAnalysisService:calendar:)
+  +execute(for:from:to:) 
+}
+class "CalculateStreakAnalysisUseCase" as CalculateStreakAnalysisUseCase << (C, DarkSeaGreen) >> { 
+  -habitAnalyticsService : HabitAnalyticsService
+  -performanceAnalysisService : PerformanceAnalysisService
+  +init(habitAnalyticsService:performanceAnalysisService:)
+  +execute(for:from:to:) 
+}
+class "CalculateHabitPerformanceUseCase" as CalculateHabitPerformanceUseCase << (C, DarkSeaGreen) >> { 
+  -habitAnalyticsService : HabitAnalyticsService
+  -performanceAnalysisService : PerformanceAnalysisService
+  +init(habitAnalyticsService:performanceAnalysisService:)
+  +execute(for:from:to:) 
+}
+class "AggregateCategoryPerformanceUseCase" as AggregateCategoryPerformanceUseCase << (C, DarkSeaGreen) >> { 
+  -habitAnalyticsService : HabitAnalyticsService
+  -performanceAnalysisService : PerformanceAnalysisService
+  -categoryRepository : CategoryRepository
+  +init(habitAnalyticsService:performanceAnalysisService:categoryRepository:)
+  +execute(for:from:to:) 
+}
+class "PerformanceAnalysisServiceImpl" as PerformanceAnalysisServiceImpl << (C, DarkSeaGreen) >> { 
+  -scheduleAnalyzer : HabitScheduleAnalyzerProtocol
+  -calendar : Calendar
+  +init(scheduleAnalyzer:calendar:)
+  +calculateHabitPerformance(habits:logs:from:to:)
+  +generateProgressChartData(completionStats:)
+  +analyzeWeeklyPatterns(habits:logs:from:to:)
+  +calculateStreakAnalysis(habits:logs:from:to:)
+  +aggregateCategoryPerformance(habits:categories:logs:from:to:)
+  -getDayCount(weekday:from:to:)
+  -calculateCategoryCompletionRate(habits:logs:from:to:) 
+}
+class "HabitAnalyticsServiceImpl" as HabitAnalyticsServiceImpl << (C, DarkSeaGreen) >> { 
+  -habitRepository : HabitRepository
+  -logRepository : LogRepository
+  -scheduleAnalyzer : HabitScheduleAnalyzerProtocol
+  -calendar : Calendar
+  +init(habitRepository:logRepository:scheduleAnalyzer:calendar:)
+  +getActiveHabits(for:)
+  +getHabitLogs(for:from:to:)
+  +getHabitCompletionStats(for:from:to:) 
+}
+class "HabitScheduleAnalyzer" as HabitScheduleAnalyzer << (C, DarkSeaGreen) >> { 
+  -calendar : Calendar
+  +init(calendar:)
+  +calculateExpectedDays(for:from:to:)
+  +isHabitExpectedOnDate(habit:date:) 
+}
+class "HabitPerformanceResult" as HabitPerformanceResult << (S, SkyBlue) struct >> { 
+  +habitId : UUID
+  +habitName : String
+  +emoji : String
+  +completionRate : Double
+  +completedDays : Int
+  +expectedDays : Int
+  +init(habitId:habitName:emoji:completionRate:completedDays:expectedDays:) 
+}
+class "ProgressChartDataPoint" as ProgressChartDataPoint << (S, SkyBlue) struct >> { 
+  +date : Date
+  +completionRate : Double
+  +init(date:completionRate:) 
+}
+class "WeeklyPatternsResult" as WeeklyPatternsResult << (S, SkyBlue) struct >> { 
+  +dayOfWeekPerformance : [DayOfWeekPerformanceResult]
+  +bestDay : String
+  +worstDay : String
+  +averageWeeklyCompletion : Double
+  +init(dayOfWeekPerformance:bestDay:worstDay:averageWeeklyCompletion:) 
+}
+class "DayOfWeekPerformanceResult" as DayOfWeekPerformanceResult << (S, SkyBlue) struct >> { 
+  +dayName : String
+  +completionRate : Double
+  +averageHabitsCompleted : Int
+  +init(dayName:completionRate:averageHabitsCompleted:) 
+}
+class "StreakAnalysisResult" as StreakAnalysisResult << (S, SkyBlue) struct >> { 
+  +currentStreak : Int
+  +longestStreak : Int
+  +streakTrend : String
+  +daysWithFullCompletion : Int
+  +consistencyScore : Double
+  +init(currentStreak:longestStreak:streakTrend:daysWithFullCompletion:consistencyScore:) 
+}
+class "CategoryPerformanceResult" as CategoryPerformanceResult << (S, SkyBlue) struct >> { 
+  +categoryId : String
+  +categoryName : String
+  +completionRate : Double
+  +habitCount : Int
+  +color : String
+  +emoji : String?
+  +init(categoryId:categoryName:completionRate:habitCount:color:emoji:) 
+}
+class "DashboardView" as DashboardView << (S, SkyBlue) struct >> { 
+  ~vm : DashboardViewModel
+  +init(vm:)
+  +body : some View
+  -timePeriodSelector : some View
+  -loadingView : some View
+  -emptyStateView : some View
+  -statsCardsSection(stats:)
+  -habitPerformanceSection(performance:)
+  -progressChartSection(data:)
+  -weeklyPatternsSection(patterns:)
+  -streakAnalysisSection(analysis:)
+  -categoryBreakdownSection(categories:) 
+}
+class "DashboardRoot" as DashboardRoot << (S, SkyBlue) struct >> { 
+  ~vm
+  +init()
+  +body : some View 
+}
+class "HabitPerformanceRow" as HabitPerformanceRow << (S, SkyBlue) struct >> { 
+  ~name : String
+  ~completionRate : Double
+  ~emoji : String
+  +init(name:completionRate:emoji:)
+  +body : some View
+  -progressColor : Color 
+}
+class "CircularProgressView" as CircularProgressView << (S, SkyBlue) struct >> { 
+  ~progress : Double
+  ~color : Color
+  ~lineWidth : CGFloat
+  ~showPercentage : Bool
+  +init(progress:color:lineWidth:showPercentage:)
+  +body : some View 
+}
+class "StatsCard" as StatsCard << (S, SkyBlue) struct >> { 
+  ~title : String
+  ~value : String
+  ~icon : String
+  ~color : Color
+  +init(title:value:icon:color:)
+  +body : some View 
+}
+class "DashboardViewModel" as DashboardViewModel << (C, DarkSeaGreen) >> { 
+  +selectedTimePeriod : TimePeriod
+  +completionStats : HabitCompletionStats?
+  +habitPerformanceData : [HabitPerformanceViewModel]?
+  +progressChartData : [ChartDataPointViewModel]?
+  +weeklyPatterns : WeeklyPatternsViewModel?
+  +streakAnalysis : StreakAnalysisViewModel?
+  +categoryBreakdown : [CategoryPerformanceViewModel]?
+  +isLoading
+  +error : Error?
+  -habitAnalyticsService
+  -userService
+  -calculateHabitPerformanceUseCase
+  -generateProgressChartDataUseCase
+  -analyzeWeeklyPatternsUseCase
+  -calculateStreakAnalysisUseCase
+  -aggregateCategoryPerformanceUseCase
+  -userId : UUID
+  +init()
+  +loadData()
+  +refresh()
+  -loadHabitPerformanceData()
+  -loadProgressChartData()
+  -loadWeeklyPatterns()
+  -loadStreakAnalysis()
+  -loadCategoryBreakdown() 
+}
+class "TimePeriod" as DashboardViewModel.TimePeriod << (E, LightSteelBlue) enum >> { 
+  +thisWeek
+  +thisMonth
+  +last6Months
+  +lastYear
+  +allTime
+  +displayName : String
+  +dateRange : (start: Date, end: Date) 
+}
+class "HabitPerformanceViewModel" as DashboardViewModel.HabitPerformanceViewModel << (S, SkyBlue) struct >> { 
+  +id : UUID
+  +name : String
+  +emoji : String
+  +completionRate : Double
+  +completedDays : Int
+  +expectedDays : Int
+  ~init(from:) 
+}
+class "ChartDataPointViewModel" as DashboardViewModel.ChartDataPointViewModel << (S, SkyBlue) struct >> { 
+  +id
+  +date : Date
+  +completionRate : Double
+  ~init(from:) 
+}
+class "WeeklyPatternsViewModel" as DashboardViewModel.WeeklyPatternsViewModel << (S, SkyBlue) struct >> { 
+  +dayOfWeekPerformance : [DayOfWeekPerformanceViewModel]
+  +bestDay : String
+  +worstDay : String
+  +averageWeeklyCompletion : Double
+  ~init(from:) 
+}
+class "DayOfWeekPerformanceViewModel" as DashboardViewModel.DayOfWeekPerformanceViewModel << (S, SkyBlue) struct >> { 
+  +id : String
+  +dayName : String
+  +completionRate : Double
+  +averageHabitsCompleted : Int
+  ~init(from:) 
+}
+class "StreakAnalysisViewModel" as DashboardViewModel.StreakAnalysisViewModel << (S, SkyBlue) struct >> { 
+  +currentStreak : Int
+  +longestStreak : Int
+  +streakTrend : String
+  +daysWithFullCompletion : Int
+  +consistencyScore : Double
+  ~init(from:) 
+}
+class "CategoryPerformanceViewModel" as DashboardViewModel.CategoryPerformanceViewModel << (S, SkyBlue) struct >> { 
+  +id : String
+  +categoryName : String
+  +completionRate : Double
+  +habitCount : Int
+  +color : String
+  +emoji : String?
+  ~init(from:) 
+}
+class "HabitsAssistantViewModel" as HabitsAssistantViewModel << (C, DarkSeaGreen) >> { 
+  -getPredefinedCategoriesUseCase : GetPredefinedCategoriesUseCase
+  -getHabitsFromSuggestionsUseCase : GetHabitsFromSuggestionsUseCase
+  -suggestionsService : HabitSuggestionsService
+  -userActionTracker : UserActionTrackerService?
+  +categories : [Category]
+  +selectedCategory : Category?
+  +isLoadingCategories
+  +categoriesError : Error?
+  +addedSuggestionIds : Set<String>
+  +suggestionToHabitMappings : [String: UUID]
+  +init(getPredefinedCategoriesUseCase:getHabitsFromSuggestionsUseCase:suggestionsService:userActionTracker:)
+  +loadCategories()
+  +selectCategory(_:)
+  +getSuggestions()
+  +initializeWithExistingHabits(_:)
+  +markSuggestionAsAdded(_:habitId:)
+  +markSuggestionAsRemoved(_:)
+  +trackHabitSuggestionViewed(habitId:category:)
+  +trackHabitAdded(habitId:habitName:category:)
+  +trackHabitAddFailed(habitId:error:)
+  +trackHabitRemoved(habitId:habitName:category:)
+  +trackHabitRemoveFailed(habitId:error:) 
+}
+class "HabitsAssistantView" as HabitsAssistantView << (S, SkyBlue) struct >> { 
+  ~vm : HabitsAssistantViewModel
+  -isCreatingHabit
+  -isDeletingHabit
+  -existingHabits : [Habit]
+  -onHabitCreate : (HabitSuggestion) async -> CreateHabitFromSuggestionResult
+  -onHabitRemove : (UUID) async -> Bool
+  -onShowPaywall : () -> Void
+  +init(vm:existingHabits:onHabitCreate:onHabitRemove:onShowPaywall:)
+  -suggestions : [HabitSuggestion]
+  +body : some View
+  -addHabit(_:)
+  -removeHabit(_:) 
+}
+class "HabitSuggestionRow" as HabitSuggestionRow << (S, SkyBlue) struct >> { 
+  ~suggestion : HabitSuggestion
+  ~isAdded : Bool
+  ~isCreating : Bool
+  ~isDeleting : Bool
+  ~onAdd : () async -> Void
+  ~onRemove : () async -> Void
+  -scheduleText : String
+  -targetText : String?
+  ~body : some View 
+}
+class "HabitsAssistantSheet" as HabitsAssistantSheet << (S, SkyBlue) struct >> { 
+  -dismiss
+  -vm : HabitsAssistantViewModel
+  -existingHabits : [Habit]
+  -onHabitCreate : (HabitSuggestion) async -> CreateHabitFromSuggestionResult
+  -onHabitRemove : (UUID) async -> Bool
+  -onShowPaywall : () -> Void
+  +init(vm:existingHabits:onHabitCreate:onHabitRemove:onShowPaywall:)
+  +body : some View 
+}
+class "CardHeightPreferenceKey" as CardHeightPreferenceKey << (S, SkyBlue) struct >> { 
+  ~{static} defaultValue : CGFloat
+  ~{static} reduce(value:nextValue:) 
+}
+class "TipsCarouselView" as TipsCarouselView << (S, SkyBlue) struct >> { 
+  ~tips : [Tip]
+  ~isLoading : Bool
+  ~onTipTap : (Tip) -> Void
+  ~onShowMoreTap : () -> Void
+  -maxCardHeight : CGFloat
+  +init(tips:isLoading:onTipTap:onShowMoreTap:)
+  +body : some View 
+}
+class "TipCard" as TipCard << (S, SkyBlue) struct >> { 
+  ~tip : Tip
+  ~targetHeight : CGFloat
+  ~onTap : () -> Void
+  -horizontalSizeClass
+  -cardWidth : CGFloat
+  ~body : some View 
+}
+class "ShowMoreTipCard" as ShowMoreTipCard << (S, SkyBlue) struct >> { 
+  ~targetHeight : CGFloat
+  ~onTap : () -> Void
+  -horizontalSizeClass
+  -cardWidth : CGFloat
+  ~body : some View 
+}
+class "TipCardPlaceholder" as TipCardPlaceholder << (S, SkyBlue) struct >> { 
+  -horizontalSizeClass
+  -cardWidth : CGFloat
+  ~body : some View 
+}
+class "TipsViewModel" as TipsViewModel << (C, DarkSeaGreen) >> { 
+  -getAllTips : GetAllTipsUseCase
+  -getFeaturedTips : GetFeaturedTipsUseCase
+  -getTipById : GetTipByIdUseCase
+  -getTipsByCategory : GetTipsByCategoryUseCase
+  ~userActionTracker
+  +allTips : [Tip]
+  +featuredTips : [Tip]
+  +isLoading
+  +error : Error?
+  +showingAllTipsSheet
+  +selectedTip : Tip?
+  +showingTipDetail
+  -bottomSheetOpenedTime : Date?
+  -tipDetailOpenedTime : Date?
+  +tipsByCategory : [(category: TipCategory, tips: [Tip])]
+  +tipsForBottomSheet : [Tip]
+  +init(getAllTips:getFeaturedTips:getTipById:getTipsByCategory:)
+  +load()
+  +showAllTipsSheet()
+  +showAllTipsSheet(source:)
+  +hideAllTipsSheet()
+  +selectTip(_:)
+  +hideTipDetail()
+  +retry()
+  +trackTipViewed(_:source:)
+  +trackCategoryFilterApplied(_:)
+  +getTip(by:) 
+}
+class "TipDetailView" as TipDetailView << (S, SkyBlue) struct >> { 
+  ~tip : Tip
+  ~onDismiss : () -> Void
+  +init(tip:onDismiss:)
+  +body : some View
+  -headerSection : some View
+  -contentSection : some View
+  -metadataSection : some View
+  -categoryDisplayName(_:) 
+}
+class "TipDetailView_Previews" as TipDetailView_Previews << (S, SkyBlue) struct >> { 
+  ~{static} previews : some View 
+}
+class "TipsBottomSheet" as TipsBottomSheet << (S, SkyBlue) struct >> { 
+  ~tips : [Tip]
+  ~onTipTap : (Tip) -> Void
+  ~onDismiss : () -> Void
+  +init(tips:onTipTap:onDismiss:)
+  +body : some View
+  -categoryDisplayName(_:) 
+}
+class "TipListRow" as TipListRow << (S, SkyBlue) struct >> { 
+  ~tip : Tip
+  ~onTap : () -> Void
+  ~body : some View 
+}
+class "TipListRowContent" as TipListRowContent << (S, SkyBlue) struct >> { 
+  ~tip : Tip
+  ~body : some View 
+}
+class "TipDetailContentView" as TipDetailContentView << (S, SkyBlue) struct >> { 
+  ~tip : Tip
+  ~body : some View
+  -headerSection : some View
+  -contentSection : some View
+  -metadataSection : some View
+  -categoryDisplayName(_:) 
+}
+class "OverviewV2Root" as OverviewV2Root << (S, SkyBlue) struct >> { 
+  -vm
+  +init()
+  +body : some View 
+}
+class "WeeklyOverviewCard" as WeeklyOverviewCard << (S, SkyBlue) struct >> { 
+  ~progress : WeeklyProgress?
+  -weekdays : [String]
+  ~body : some View
+  -dayBackgroundColor(for:progress:)
+  -weeklyColor(for:) 
+}
+class "SmartInsightsCard" as SmartInsightsCard << (S, SkyBlue) struct >> { 
+  ~insights : [SmartInsight]
+  ~body : some View
+  -insightRow(for:index:)
+  -insightIcon(for:)
+  -insightColor(for:) 
+}
+class "OverviewPersonalityInsight" as OverviewPersonalityInsight << (S, SkyBlue) struct >> { 
+  +id
+  +title : String
+  +message : String
+  +type : OverviewPersonalityInsightType
+  +init(title:message:type:) 
+}
+class "OverviewPersonalityInsightType" as OverviewPersonalityInsightType << (E, LightSteelBlue) enum >> { 
+  +pattern
+  +recommendation
+  +motivation
+  +icon : String
+  +color : Color 
+}
+class "PersonalityInsightsCard" as PersonalityInsightsCard << (S, SkyBlue) struct >> { 
+  ~insights : [OverviewPersonalityInsight]
+  ~dominantTrait : String?
+  ~onOpenAnalysis : () -> Void
+  -isExpanded
+  ~body : some View 
+}
+class "InsightRow" as InsightRow << (S, SkyBlue) struct >> { 
+  ~insight : OverviewPersonalityInsight
+  ~body : some View 
+}
+class "PersonalityInsightsCard_Previews" as PersonalityInsightsCard_Previews << (S, SkyBlue) struct >> { 
+  ~{static} previews : some View 
+}
+class "MonthlyCalendarCard" as MonthlyCalendarCard << (S, SkyBlue) struct >> { 
+  ~isExpanded : Bool
+  ~monthlyData : [Date: Double]
+  ~onDateSelect : (Date) -> Void
+  -currentDate
+  -calendar : Calendar
+  -monthFormatter : DateFormatter
+  ~body : some View
+  -currentWeekView : some View
+  -calendarGrid : some View
+  -dayIndicator(for:size:)
+  -dayBackgroundColor(for:completionRate:)
+  -dayTextColor(for:)
+  -dayFormatter : DateFormatter
+  -changeMonth(by:)
+  -getCurrentWeekDays()
+  -weekdayHeaders()
+  -getMonthDays(for:) 
+}
+class "QuickActionsCard" as QuickActionsCard << (S, SkyBlue) struct >> { 
+  ~incompleteHabits : [Habit]
+  ~completedHabits : [Habit]
+  ~currentSlogan : String?
+  ~timeOfDay : TimeOfDay
+  ~completionPercentage : Double
+  ~onHabitComplete : (Habit) -> Void
+  -animatingHabitId : UUID?
+  ~body : some View
+  -habitChip(for:isCompleted:) 
+}
+class "ActiveStreaksCard" as ActiveStreaksCard << (S, SkyBlue) struct >> { 
+  ~streaks : [StreakInfo]
+  ~body : some View
+  -streakColor(for:) 
+}
+class "CardStyle" as CardStyle << (S, SkyBlue) struct >> { 
+  ~body(content:) 
+}
+class "CardDesign" as CardDesign << (S, SkyBlue) struct >> { 
+  ~{static} cornerRadius : CGFloat
+  ~{static} shadowColor
+  ~{static} shadowRadius : CGFloat
+  ~{static} cardPadding : CGFloat
+  ~{static} cardSpacing : CGFloat
+  ~{static} progressGreen
+  ~{static} progressOrange
+  ~{static} progressRed
+  ~{static} cardBackground
+  ~{static} secondaryBackground 
+}
+class "TodaysSummaryCard" as TodaysSummaryCard << (S, SkyBlue) struct >> { 
+  ~summary : TodaysSummary?
+  ~viewingDate : Date
+  ~isViewingToday : Bool
+  ~canGoToPrevious : Bool
+  ~canGoToNext : Bool
+  ~currentSlogan : String?
+  ~onQuickAction : (Habit) -> Void
+  ~onPreviousDay : () -> Void
+  ~onNextDay : () -> Void
+  ~onGoToToday : () -> Void
+  ~init(summary:viewingDate:isViewingToday:canGoToPrevious:canGoToNext:currentSlogan:onQuickAction:onPreviousDay:onNextDay:onGoToToday:)
+  -dateFormatter : DateFormatter
+  ~body : some View
+  -quickActionButton(for:)
+  -loadingView : some View
+  -progressColor(for:) 
+}
+class "InspirationCard" as InspirationCard << (S, SkyBlue) struct >> { 
+  ~message : String
+  ~slogan : String
+  ~timeOfDay : TimeOfDay
+  ~completionPercentage : Double
+  ~shouldShow : Bool
+  ~onDismiss : () -> Void
+  ~init(message:slogan:timeOfDay:completionPercentage:shouldShow:onDismiss:)
+  -contextualStyle : (gradient: LinearGradient, icon: String, color: Color)
+  -backgroundGradient : LinearGradient
+  -iconName : String
+  -iconColor : Color
+  -contextualMessage : String
+  ~body : some View 
+}
+class "OverviewV2View" as OverviewV2View << (S, SkyBlue) struct >> { 
+  ~vm : OverviewV2ViewModel
+  +init(vm:)
+  +body : some View 
+}
+class "TodaysSummary" as TodaysSummary << (S, SkyBlue) struct >> { 
+  +completedHabitsCount : Int
+  +completedHabits : [Habit]
+  +totalHabits : Int
+  +completionPercentage : Double
+  +motivationalMessage : String
+  +incompleteHabits : [Habit]
+  +init(completedHabitsCount:completedHabits:totalHabits:incompleteHabits:) 
+}
+class "WeeklyProgress" as WeeklyProgress << (S, SkyBlue) struct >> { 
+  +daysCompleted : [Bool]
+  +weeklyCompletionRate : Double
+  +currentDayIndex : Int
+  +weekDescription : String
+  +init(daysCompleted:currentDayIndex:) 
+}
+class "StreakInfo" as StreakInfo << (S, SkyBlue) struct >> { 
+  +id : String
+  +habitName : String
+  +emoji : String
+  +currentStreak : Int
+  +isActive : Bool
+  +flameCount : Int
+  +flameEmoji : String
+  +init(id:habitName:emoji:currentStreak:isActive:) 
+}
+class "SmartInsight" as SmartInsight << (S, SkyBlue) struct >> { 
+  +title : String
+  +message : String
+  +type : InsightType
+  +init(title:message:type:) 
+}
+class "InsightType" as SmartInsight.InsightType << (E, LightSteelBlue) enum >> { 
+  +pattern
+  +suggestion
+  +celebration
+  +warning 
+}
+class "OverviewV2ViewModel" as OverviewV2ViewModel << (C, DarkSeaGreen) >> { 
+  +todaysSummary : TodaysSummary?
+  +weeklyProgress : WeeklyProgress?
+  +activeStreaks : [StreakInfo]
+  +smartInsights : [SmartInsight]
+  +personalityInsights : [OverviewPersonalityInsight]
+  +shouldShowPersonalityInsights
+  +dominantPersonalityTrait : String?
+  +selectedDate : Date
+  +isCalendarExpanded : Bool
+  +viewingDate : Date
+  +showInspirationCard : Bool
+  -lastShownInspirationTrigger : InspirationTrigger?
+  -sessionStartTime : Date
+  -dismissedTriggersToday : Set<InspirationTrigger>
+  +isLoading : Bool
+  +error : Error?
+  +incompleteHabits : [Habit]
+  +completedHabits : [Habit]
+  +shouldShowQuickActions : Bool
+  +shouldShowActiveStreaks : Bool
+  +shouldShowInsights : Bool
+  +canGoToPreviousDay : Bool
+  +canGoToNextDay : Bool
+  +isViewingToday : Bool
+  +currentSlogan : String
+  +currentTimeOfDay : TimeOfDay
+  +shouldShowInspirationCard : Bool
+  +weeklyCompletionData : [Date: Double]
+  +monthlyCompletionData : [Date: Double]
+  -habitRepository
+  -logRepository
+  -slogansService
+  -userService
+  -calculateCurrentStreakUseCase
+  -getPersonalityProfileUseCase
+  -getPersonalityInsightsUseCase
+  -updatePersonalityAnalysisUseCase
+  -personalityAnalysisRepository
+  -userId : UUID
+  +init()
+  +loadData()
+  +refresh()
+  +openPersonalityAnalysis()
+  +refreshPersonalityInsights()
+  +completeHabit(_:)
+  +goToPreviousDay()
+  +goToNextDay()
+  +goToToday()
+  +showInspiration()
+  +triggerMotivation()
+  -checkForComebackStory(currentCompletion:)
+  +hideInspiration()
+  -checkAndShowInspirationCard()
+  -evaluateInspirationTriggers(summary:)
+  -selectBestTrigger(from:)
+  -showInspirationWithTrigger(_:)
+  +currentInspirationMessage : String
+  -loadTodaysSummary()
+  -loadWeeklyProgress()
+  -loadActiveStreaks()
+  -calculateCurrentStreak(for:)
+  -loadSmartInsights()
+  -loadPersonalityInsights()
+  -checkPersonalityAnalysisEligibility()
+  -generateBasicHabitInsights()
+  -loadMonthlyCompletionData()
+  -resetDismissedTriggersIfNewDay()
+  -saveDismissedTriggers()
+  -getPersonalizedMessage(for:)
+  -userName : String?
+  -getSessionStartMessage()
+  -getMorningMotivationMessage()
+  -getFirstHabitMessage()
+  -getHalfwayPointMessage()
+  -getStrugglingMidDayMessage()
+  -getAfternoonPushMessage()
+  -getStrongFinishMessage()
+  -getPerfectDayMessage()
+  -getEveningReflectionMessage()
+  -getWeekendMotivationMessage()
+  -getComebackStoryMessage() 
+}
+class "InspirationTrigger" as OverviewV2ViewModel.InspirationTrigger << (E, LightSteelBlue) enum >> { 
+  ~sessionStart
+  ~morningMotivation
+  ~firstHabitComplete
+  ~halfwayPoint
+  ~strugglingMidDay
+  ~afternoonPush
+  ~strongFinish
+  ~perfectDay
+  ~eveningReflection
+  ~weekendMotivation
+  ~comebackStory
+  ~cooldownMinutes : Int 
+}
+class "MonthlyCalendarView" as MonthlyCalendarView << (S, SkyBlue) struct >> { 
+  ~selectedHabit : Habit
+  ~currentMonth : Date
+  ~fullCalendarDays : [CalendarDay]
+  ~loggedDates : Set<Date>
+  ~isLoggingDate : (Date) -> Bool
+  ~isViewingCurrentMonth : Bool
+  ~getHabitValueForDate : (Date) -> Double
+  ~isDateSchedulable : (Date) -> Bool
+  ~isWeeklyTargetMet : (Date) -> Bool
+  ~onMonthChange : (Int) async -> Void
+  ~onDateTap : (Date) async -> Void
+  ~onTodayTap : () async -> Void
+  -calendar
+  -dateFormatter : DateFormatter
+  +body : some View 
+}
+class "CalendarGridView" as CalendarGridView << (S, SkyBlue) struct >> { 
+  ~habit : Habit
+  ~fullCalendarDays : [CalendarDay]
+  ~loggedDates : Set<Date>
+  ~isLoggingDate : (Date) -> Bool
+  ~getHabitValueForDate : (Date) -> Double
+  ~isDateSchedulable : (Date) -> Bool
+  ~isWeeklyTargetMet : (Date) -> Bool
+  ~onDateTap : (Date) async -> Void
+  -calendar : Calendar
+  -columns
+  -weekdayHeaders : [String]
+  +body : some View 
+}
+class "CalendarDayView" as CalendarDayView << (S, SkyBlue) struct >> { 
+  ~date : Date
+  ~habit : Habit
+  ~isCurrentMonth : Bool
+  ~isLogged : Bool
+  ~currentValue : Double
+  ~isLoggingHabit : Bool
+  ~isSchedulable : Bool
+  ~isWeeklyTargetMet : Bool
+  ~onTap : () async -> Void
+  ~onLongPressToReset : (() async -> Void)?
+  -showingResetConfirmation
+  -calendar
+  -isWeeklyStyleHabit : Bool
+  -isCompleted : Bool
+  +body : some View
+  -accessibilityDescription : String
+  -isToday : Bool
+  -isFutureDate : Bool
+  -isTargetReached : Bool
+  -circleBackgroundColor : Color
+  -dayTextColor : Color
+  -countTextColor : Color 
+}
+class "CelebrationAnimationConfig" as CelebrationAnimationConfig << (S, SkyBlue) struct >> { 
+  +duration : Double
+  +scaleEffect : Double
+  +glowRadius : Double
+  +glowColor : Color
+  +confettiCount : Int
+  +confettiColors : [Color]
+  +hapticFeedback : Bool
+  +hapticStyle : UIImpactFeedbackGenerator.FeedbackStyle
+  +init(duration:scaleEffect:glowRadius:glowColor:confettiCount:confettiColors:hapticFeedback:hapticStyle:)
+  +{static} bestStreak
+  +{static} levelUp
+  +{static} achievement
+  +{static} milestone
+  +{static} subtle 
+}
+class "CelebrationAnimationModifier" as CelebrationAnimationModifier << (S, SkyBlue) struct >> { 
+  -isAnimating
+  -showConfetti
+  -glowIntensity : Double
+  -scaleValue : Double
+  -isTriggered : Bool
+  -config : CelebrationAnimationConfig
+  -onAnimationComplete : (() -> Void)?
+  +init(isTriggered:config:onAnimationComplete:)
+  +body(content:)
+  -startAnimation() 
+}
+class "ConfettiParticle" as ConfettiParticle << (S, SkyBlue) struct >> { 
+  -offset
+  -rotation : Double
+  -opacity : Double
+  -isVisible : Bool
+  -delay : Double
+  -angle : Double
+  -colors : [Color]
+  ~init(isVisible:delay:angle:colors:)
+  ~body : some View
+  -startParticleAnimation()
+  -resetParticle() 
+}
+class "OverviewViewModel" as OverviewViewModel << (C, DarkSeaGreen) >> { 
+  -getActiveHabits : GetActiveHabitsUseCase
+  -getLogs : GetLogsUseCase
+  -getLogForDate : GetLogForDateUseCase
+  -calculateCurrentStreak : CalculateCurrentStreakUseCase
+  -calculateBestStreak : CalculateBestStreakUseCase
+  -loadProfile : LoadProfileUseCase
+  -trackUserAction : TrackUserActionUseCase
+  -trackHabitLogged : TrackHabitLoggedUseCase
+  -checkFeatureAccess : CheckFeatureAccessUseCase
+  -checkHabitCreationLimit : CheckHabitCreationLimitUseCase
+  -getPaywallMessage : GetPaywallMessageUseCase
+  -generateCalendarDays : GenerateCalendarDaysUseCase
+  -generateCalendarGrid : GenerateCalendarGridUseCase
+  -toggleHabitLog : ToggleHabitLogUseCase
+  -getCurrentSlogan : GetCurrentSloganUseCase
+  -validateHabitSchedule : ValidateHabitScheduleUseCase
+  -checkWeeklyTarget : CheckWeeklyTargetUseCase
+  +habits : [Habit]
+  +selectedHabit : Habit?
+  +currentMonth
+  +isLoading
+  +error : Error?
+  +loggingDate : Date?
+  +currentSlogan : String
+  +monthDays : [Date]
+  +fullCalendarDays : [CalendarDay]
+  +loggedDates : Set<Date>
+  +habitLogValues : [Date: Double]
+  +currentStreak : Int
+  +bestStreak : Int
+  +isLoadingStreaks
+  +shouldAnimateBestStreak
+  -previousBestStreak : Int
+  -userProfile : UserProfile?
+  +hasAdvancedAnalytics : Bool
+  +getStatsBlockedMessage()
+  +canCreateMoreHabits : Bool
+  +init(getActiveHabits:getLogs:getLogForDate:calculateCurrentStreak:calculateBestStreak:loadProfile:generateCalendarDays:generateCalendarGrid:toggleHabitLog:getCurrentSlogan:trackUserAction:trackHabitLogged:checkFeatureAccess:checkHabitCreationLimit:getPaywallMessage:validateHabitSchedule:checkWeeklyTarget:)
+  -setupRefreshObservation()
+  +load()
+  +selectHabit(_:)
+  +navigateToMonth(_:)
+  +navigateToDate(_:)
+  +navigateToToday()
+  +isViewingCurrentMonth : Bool
+  +incrementHabitForDate(_:)
+  +retry()
+  +getHabitValueForDate(_:)
+  +isLoggingDate(_:)
+  +isDateSchedulable(_:)
+  +isWeeklyTargetMet(for:)
+  -updateCalendarDays()
+  -loadLogsForSelectedHabit()
+  -calculateStreaks(isInitialLoad:)
+  +resetBestStreakAnimation()
+  -loadLogsForDates(habit:dates:) 
+}
+class "StreakInfoView" as StreakInfoView << (S, SkyBlue) struct >> { 
+  ~habit : Habit
+  ~currentStreak : Int
+  ~bestStreak : Int
+  ~isLoading : Bool
+  ~shouldAnimateBestStreak : Bool
+  ~onAnimationComplete : () -> Void
+  -animationTrigger
+  -showingCurrentStreakInfo
+  -showingBestStreakInfo
+  +init(habit:currentStreak:bestStreak:isLoading:shouldAnimateBestStreak:onAnimationComplete:)
+  +body : some View 
+}
+class "OverviewRoot" as OverviewRoot << (S, SkyBlue) struct >> { 
+  ~vm
+  ~navigationService
+  -showingAddHabit
+  -paywallItem : PaywallItem?
+  -selectedHabitForEdit : Habit?
+  ~paywallViewModel
+  +init()
+  +body : some View
+  -handleCreateHabitTap() 
+}
+class "OverviewContentView" as OverviewContentView << (S, SkyBlue) struct >> { 
+  ~vm : OverviewViewModel
+  ~showingAddHabit : Bool
+  ~paywallItem : PaywallItem?
+  ~selectedHabitForEdit : Habit?
+  ~body : some View 
+}
+class "OverviewListView" as OverviewListView << (S, SkyBlue) struct >> { 
+  ~vm : OverviewViewModel
+  ~showingAddHabit : Bool
+  ~paywallItem : PaywallItem?
+  ~selectedHabitForEdit : Habit?
+  ~tipsVM
+  ~paywallViewModel
+  ~body : some View 
+}
+class "SwiftDataPersonalityAnalysisDataSource" as SwiftDataPersonalityAnalysisDataSource << (C, DarkSeaGreen) >> { 
+  -modelContext : ModelContext
+  +init(modelContext:)
+  +getLatestProfile(for:)
+  +saveProfile(_:)
+  +getProfileHistory(for:)
+  +deleteProfile(profileId:)
+  +deleteAllProfiles(for:) 
+}
+class "PersonalityAnalysisRepositoryImpl" as PersonalityAnalysisRepositoryImpl << (C, DarkSeaGreen) >> { 
+  -dataSource : PersonalityAnalysisDataSource
+  -habitRepository : HabitRepository
+  -categoryRepository : CategoryRepository
+  -logRepository : LogRepository
+  -suggestionsService : HabitSuggestionsService
+  -completionCalculator : ScheduleAwareCompletionCalculator
+  +init(dataSource:habitRepository:categoryRepository:logRepository:suggestionsService:completionCalculator:)
+  +getPersonalityProfile(for:)
+  +savePersonalityProfile(_:)
+  +getPersonalityHistory(for:)
+  +deletePersonalityProfile(id:)
+  +deleteAllPersonalityProfiles(for:)
+  +validateAnalysisEligibility(for:)
+  +getThresholdProgress(for:)
+  +getHabitAnalysisInput(for:)
+  -calculateConsecutiveTrackingDays(logs:)
+  -getSelectedSuggestions(from:)
+  -validateEligibilityFromInput(_:)
+  -buildThresholdRequirements(from:)
+  -calculateEstimatedDays(from:)
+  +getUserHabits(for:)
+  +getUserHabitLogs(for:from:to:)
+  +getUserCustomCategories(for:)
+  +getHabitCompletionStats(for:from:to:)
+  +isPersonalityAnalysisEnabled(for:)
+  +getAnalysisPreferences(for:)
+  +saveAnalysisPreferences(_:) 
+}
+class "SDPersonalityProfile" as SDPersonalityProfile << (C, DarkSeaGreen) >> { 
+  +id : String
+  +userId : String
+  +analysisDate : Date
+  +dominantTraitRawValue : String
+  +confidenceRawValue : String
+  +version : String
+  +dataPointsAnalyzed : Int
+  +timeRangeAnalyzed : Int
+  +opennessScore : Double
+  +conscientiousnessScore : Double
+  +extraversionScore : Double
+  +agreeablenessScore : Double
+  +neuroticismScore : Double
+  +init(id:userId:analysisDate:dominantTraitRawValue:confidenceRawValue:version:dataPointsAnalyzed:timeRangeAnalyzed:opennessScore:conscientiousnessScore:extraversionScore:agreeablenessScore:neuroticismScore:)
+  +toEntity()
+  +{static} fromEntity(_:) 
+}
+class "DefaultValidateAnalysisDataUseCase" as DefaultValidateAnalysisDataUseCase << (C, DarkSeaGreen) >> { 
+  -repository : PersonalityAnalysisRepositoryProtocol
+  -thresholdValidator : DataThresholdValidator
+  +init(repository:thresholdValidator:)
+  +execute(for:)
+  +getProgressDetails(for:)
+  +getEstimatedDaysToEligibility(for:) 
+}
+class "DefaultGetPersonalityInsightsUseCase" as DefaultGetPersonalityInsightsUseCase << (C, DarkSeaGreen) >> { 
+  +init()
+  +getHabitRecommendations(for:)
+  +getPatternInsights(for:)
+  +getMotivationalInsights(for:)
+  +getAllInsights(for:) 
+}
+class "PersonalityInsight" as PersonalityInsight << (S, SkyBlue) struct >> { 
+  +id : String
+  +category : InsightCategory
+  +trait : PersonalityTrait?
+  +title : String
+  +description : String
+  +actionable : String
+  +confidence : ConfidenceLevel 
+}
+class "InsightCategory" as PersonalityInsight.InsightCategory << (E, LightSteelBlue) enum >> { 
+  +habitRecommendation
+  +patternAnalysis
+  +motivation
+  +warning
+  +celebration 
+}
+class "PersonalityInsightCollection" as PersonalityInsightCollection << (S, SkyBlue) struct >> { 
+  +habitRecommendations : [PersonalityInsight]
+  +patternInsights : [PersonalityInsight]
+  +motivationalInsights : [PersonalityInsight]
+  +generatedDate : Date
+  +profileId : String
+  +allInsights : [PersonalityInsight]
+  +insightCount : Int 
+}
+class "DefaultGetPersonalityProfileUseCase" as DefaultGetPersonalityProfileUseCase << (C, DarkSeaGreen) >> { 
+  -repository : PersonalityAnalysisRepositoryProtocol
+  +init(repository:)
+  +execute(for:)
+  +getHistory(for:)
+  +hasProfiles(for:) 
+}
+class "DefaultAnalyzePersonalityUseCase" as DefaultAnalyzePersonalityUseCase << (C, DarkSeaGreen) >> { 
+  -personalityService : PersonalityAnalysisService
+  -thresholdValidator : DataThresholdValidator
+  -repository : PersonalityAnalysisRepositoryProtocol
+  +init(personalityService:thresholdValidator:repository:)
+  +execute(for:)
+  +canPerformAnalysis(for:) 
+}
+class "DefaultUpdatePersonalityAnalysisUseCase" as DefaultUpdatePersonalityAnalysisUseCase << (C, DarkSeaGreen) >> { 
+  -repository : PersonalityAnalysisRepositoryProtocol
+  -analysisService : PersonalityAnalysisService
+  -analysisValidityPeriod : TimeInterval
+  +init(repository:analysisService:)
+  +execute(for:)
+  +regenerateAnalysis(for:)
+  +shouldUpdateAnalysis(for:) 
+}
+class "PersonalityProfile" as PersonalityProfile << (S, SkyBlue) struct >> { 
+  +id : UUID
+  +userId : UUID
+  +traitScores : [PersonalityTrait: Double]
+  +dominantTrait : PersonalityTrait
+  +confidence : ConfidenceLevel
+  +analysisMetadata : AnalysisMetadata
+  +init(id:userId:traitScores:dominantTrait:confidence:analysisMetadata:)
+  +score(for:)
+  +confidence(for:)
+  +traitsByScore : [(trait: PersonalityTrait, score: Double)]
+  +traits(above:)
+  +secondaryTrait : PersonalityTrait?
+  +isRecent(within:)
+  +summary : String 
+}
+class "AnalysisMetadata" as AnalysisMetadata << (S, SkyBlue) struct >> { 
+  +analysisDate : Date
+  +dataPointsAnalyzed : Int
+  +timeRangeAnalyzed : Int
+  +version : String
+  +init(analysisDate:dataPointsAnalyzed:timeRangeAnalyzed:version:) 
+}
+class "ThresholdRequirement" as ThresholdRequirement << (S, SkyBlue) struct >> { 
+  +id : UUID
+  +name : String
+  +description : String
+  +currentValue : Int
+  +requiredValue : Int
+  +category : RequirementCategory
+  +isMet : Bool
+  +progress : Double
+  +init(id:name:description:currentValue:requiredValue:category:) 
+}
+class "RequirementCategory" as RequirementCategory << (E, LightSteelBlue) enum >> { 
+  +habits
+  +tracking
+  +customization
+  +diversity
+  +displayName : String
+  +emoji : String 
+}
+class "ProgressStatus" as ProgressStatus << (S, SkyBlue) struct >> { 
+  +current : Int
+  +required : Int
+  +isMet : Bool
+  +progress : Double
+  +init(current:required:)
+  +displayString : String 
+}
+class "AnalysisEligibility" as AnalysisEligibility << (S, SkyBlue) struct >> { 
+  +isEligible : Bool
+  +missingRequirements : [ThresholdRequirement]
+  +overallProgress : Double
+  +estimatedDaysToEligibility : Int?
+  +init(isEligible:missingRequirements:overallProgress:estimatedDaysToEligibility:)
+  +metRequirementsCount : Int
+  +totalRequirementsCount : Int 
+}
+class "HabitAnalysisInput" as HabitAnalysisInput << (S, SkyBlue) struct >> { 
+  +activeHabits : [Habit]
+  +completionRates : [Double]
+  +customHabits : [Habit]
+  +customCategories : [Category]
+  +habitCategories : [Category]
+  +selectedSuggestions : [HabitSuggestion]
+  +trackingDays : Int
+  +analysisTimeRange : Int
+  +totalDataPoints : Int
+  +init(activeHabits:completionRates:customHabits:customCategories:habitCategories:selectedSuggestions:trackingDays:analysisTimeRange:totalDataPoints:) 
+}
+class "HabitCompletionStats" as HabitCompletionStats << (S, SkyBlue) struct >> { 
+  +totalHabits : Int
+  +completedHabits : Int
+  +completionRate : Double
+  +init(totalHabits:completedHabits:completionRate:) 
+}
+class "PersonalityAnalysisPreferences" as PersonalityAnalysisPreferences << (S, SkyBlue) struct >> { 
+  +id : UUID
+  +userId : UUID
+  +isEnabled : Bool
+  +analysisFrequency : AnalysisFrequency
+  +dataRetentionDays : Int
+  +allowDataCollection : Bool
+  +pausedUntil : Date?
+  +enabledTraits : Set<PersonalityTrait>
+  +sensitivityLevel : AnalysisSensitivity
+  +shareInsights : Bool
+  +allowFutureEnhancements : Bool
+  +showDataUsage : Bool
+  +createdAt : Date
+  +updatedAt : Date
+  +lastAnalysisDate : Date?
+  +init(id:userId:isEnabled:analysisFrequency:dataRetentionDays:allowDataCollection:pausedUntil:enabledTraits:sensitivityLevel:shareInsights:allowFutureEnhancements:showDataUsage:createdAt:updatedAt:lastAnalysisDate:)
+  +isCurrentlyActive : Bool
+  +shouldRetainData(analysisDate:)
+  +updated(isEnabled:analysisFrequency:dataRetentionDays:allowDataCollection:pausedUntil:enabledTraits:sensitivityLevel:shareInsights:allowFutureEnhancements:showDataUsage:) 
+}
+class "AnalysisFrequency" as AnalysisFrequency << (E, LightSteelBlue) enum >> { 
+  +daily
+  +weekly
+  +monthly
+  +manual
+  +displayName : String
+  +description : String 
+}
+class "AnalysisSensitivity" as AnalysisSensitivity << (E, LightSteelBlue) enum >> { 
+  +minimal
+  +standard
+  +detailed
+  +displayName : String
+  +description : String
+  +confidenceThreshold : Double 
+}
+class "PersonalityTrait" as PersonalityTrait << (E, LightSteelBlue) enum >> { 
+  +openness
+  +conscientiousness
+  +extraversion
+  +agreeableness
+  +neuroticism
+  +displayName : String
+  +shortDescription : String
+  +highScoreDescription : String
+  +lowScoreDescription : String
+  +emoji : String
+  +colorHex : String 
+}
+class "ConfidenceLevel" as ConfidenceLevel << (E, LightSteelBlue) enum >> { 
+  +insufficient
+  +score : Double
+  +description : String
+  +colorHex : String 
+}
+class "PersonalityAnalysisError" as PersonalityAnalysisError << (E, LightSteelBlue) enum >> { 
+  +insufficientData
+  +invalidUserId
+  +noHabitsFound
+  +noLogsFound
+  +analysisDisabled
+  +dataCorrupted
+  +networkError
+  +unknownError(_:)
+  +errorDescription : String?
+  +recoverySuggestion : String?
+  +isRecoverable : Bool
+  +category : String 
+}
+class "PersonalityIndicator" as PersonalityIndicator << (S, SkyBlue) struct >> { 
+  +traitWeights : [PersonalityTrait: Double]
+  +category : IndicatorCategory
+  +description : String
+  +notes : String?
+  +init(traitWeights:category:description:notes:)
+  +weight(for:)
+  +dominantTrait : PersonalityTrait?
+  +influenceStrength : Double 
+}
+class "IndicatorCategory" as IndicatorCategory << (E, LightSteelBlue) enum >> { 
+  +habitType
+  +habitSchedule
+  +categoryPreference
+  +engagementPattern
+  +customizationBehavior
+  +goalComplexity
+  +socialAspect
+  +consistencyPattern
+  +displayName : String
+  +description : String 
+}
+class "PersonalityPrivacySettingsView" as PersonalityPrivacySettingsView << (S, SkyBlue) struct >> { 
+  -dismiss
+  -viewModel
+  -showingDeleteConfirmation
+  -showingDataUsageInfo
+  -isEnabled
+  -analysisFrequency : AnalysisFrequency
+  -dataRetentionDays
+  -allowDataCollection
+  -enabledTraits : Set<PersonalityTrait>
+  -sensitivityLevel : AnalysisSensitivity
+  -shareInsights
+  -allowFutureEnhancements
+  -showDataUsage
+  +body : some View
+  -personalityAnalysisSection : some View
+  -dataControlSection : some View
+  -analysisCustomizationSection : some View
+  -privacyTransparencySection : some View
+  -dataManagementSection : some View
+  -hasChanges : Bool
+  -dataRetentionDescription : String
+  -toggleTrait(_:)
+  -loadPreferences()
+  -savePreferences()
+  -deleteAllData() 
+}
+class "DataUsageInfoView" as DataUsageInfoView << (S, SkyBlue) struct >> { 
+  -dismiss
+  ~body : some View 
+}
+class "PersonalityInsightsView" as PersonalityInsightsView << (S, SkyBlue) struct >> { 
+  -viewModel : PersonalityInsightsViewModel
+  -dismiss
+  -showingPrivacy
+  +init(viewModel:)
+  +body : some View 
+}
+class "BasicPrivacyView" as BasicPrivacyView << (S, SkyBlue) struct >> { 
+  -dismiss
+  -viewModel : PersonalityInsightsViewModel
+  -allowDataCollection
+  -analysisFrequency : AnalysisFrequency
+  -hasLoaded
+  ~body : some View
+  -load()
+  -save() 
+}
+class "PersonalityProfileView" as PersonalityProfileView << (S, SkyBlue) struct >> { 
+  ~profile : PersonalityProfile
+  -showingConfidenceInfo
+  ~body : some View
+  -dominantTraitSection : some View
+  -allTraitsSection : some View
+  -analysisDetailsSection : some View
+  -insightsSection : some View
+  -personalityInsights : [String] 
+}
+class "TraitRowView" as TraitRowView << (S, SkyBlue) struct >> { 
+  ~trait : PersonalityTrait
+  ~score : Double
+  ~isDominant : Bool
+  ~body : some View 
+}
+class "ConfidenceBadge" as ConfidenceBadge << (S, SkyBlue) struct >> { 
+  ~confidence : ConfidenceLevel
+  ~onInfoTap : (() -> Void)?
+  ~init(confidence:onInfoTap:)
+  ~body : some View 
+}
+class "AnalysisDetailRow" as AnalysisDetailRow << (S, SkyBlue) struct >> { 
+  ~label : String
+  ~value : String
+  ~body : some View 
+}
+class "InsightRowView" as InsightRowView << (S, SkyBlue) struct >> { 
+  ~insight : String
+  ~body : some View 
+}
+class "PersonalityErrorView" as PersonalityErrorView << (S, SkyBlue) struct >> { 
+  ~error : PersonalityAnalysisError
+  ~onRetry : () async -> Void
+  ~body : some View 
+}
+class "FrequencySelectionView" as FrequencySelectionView << (S, SkyBlue) struct >> { 
+  ~selectedFrequency : AnalysisFrequency
+  -dismiss
+  ~body : some View 
+}
+class "ConfidenceInfoSheet" as ConfidenceInfoSheet << (S, SkyBlue) struct >> { 
+  ~confidence : ConfidenceLevel
+  -dismiss
+  ~body : some View
+  -confidenceLevelRow(_:_:) 
+}
+class "DataThresholdPlaceholderView" as DataThresholdPlaceholderView << (S, SkyBlue) struct >> { 
+  ~requirements : [ThresholdRequirement]
+  ~estimatedDays : Int?
+  +init(requirements:estimatedDays:)
+  +body : some View
+  -headerSection : some View
+  -requirementsSection : some View
+  -estimatedTimeSection(days:)
+  -motivationSection : some View
+  -daysText(for:) 
+}
+class "RequirementRowView" as RequirementRowView << (S, SkyBlue) struct >> { 
+  ~requirement : ThresholdRequirement
+  ~body : some View
+  -progressText : String 
+}
+class "PersonalityAnalysisDeepLinkSheet" as PersonalityAnalysisDeepLinkSheet << (S, SkyBlue) struct >> { 
+  ~action : PersonalityDeepLinkCoordinator.PersonalityNotificationAction?
+  ~onDismiss : () -> Void
+  -viewModel : PersonalityInsightsViewModel
+  -dismiss
+  -showWelcomeMessage
+  +init(action:onDismiss:)
+  +body : some View
+  -handleNotificationAction()
+  -handleDismiss()
+  -isDirectNavigation(_:) 
+}
+class "WelcomeMessageView" as WelcomeMessageView << (S, SkyBlue) struct >> { 
+  ~action : PersonalityDeepLinkCoordinator.PersonalityNotificationAction
+  ~body : some View
+  -iconName : String
+  -iconColor : Color
+  -title : String
+  -subtitle : String 
+}
+class "PersonalityInsightsViewModel" as PersonalityInsightsViewModel << (C, DarkSeaGreen) >> { 
+  +viewState : ViewState
+  +preferences : PersonalityAnalysisPreferences?
+  +isLoadingPreferences
+  +isSavingPreferences
+  -analyzePersonalityUseCase : AnalyzePersonalityUseCase
+  -getPersonalityProfileUseCase : GetPersonalityProfileUseCase
+  -validateAnalysisDataUseCase : ValidateAnalysisDataUseCase
+  -personalityRepository : PersonalityAnalysisRepositoryProtocol
+  -scheduler : PersonalityAnalysisSchedulerProtocol
+  -loadProfile : LoadProfileUseCase
+  -currentUserId : UUID?
+  +init(analyzePersonalityUseCase:getPersonalityProfileUseCase:validateAnalysisDataUseCase:personalityRepository:scheduler:loadProfile:)
+  +loadPersonalityInsights()
+  +refresh()
+  +regenerateAnalysis()
+  +isLoading : Bool
+  +hasProfile : Bool
+  +requiresMoreData : Bool
+  +errorMessage : String?
+  +currentProfile : PersonalityProfile?
+  +progressRequirements : [ThresholdRequirement]?
+  +loadPreferences()
+  +savePreferences(_:)
+  +deleteAllPersonalityData()
+  +pauseAnalysisUntil(_:)
+  +resumeAnalysis()
+  +toggleAnalysis()
+  +isAnalysisEnabled : Bool
+  +isAnalysisCurrentlyActive : Bool
+  +analysisFrequency : AnalysisFrequency
+  +shouldShowDataUsage : Bool
+  +getNextScheduledAnalysisDate()
+  +triggerManualAnalysisCheck()
+  -getCurrentUserId() 
+}
+class "ViewState" as PersonalityInsightsViewModel.ViewState << (E, LightSteelBlue) enum >> { 
+  +loading
+  +insufficientData(requirements:estimatedDays:)
+  +ready(profile:)
+  +error(_:) 
+}
+class "PaywallItem" as PaywallItem << (S, SkyBlue) struct >> { 
+  +id
+  +viewModel : PaywallViewModel
+  +init(viewModel:)
+  +{static} ==(_:_:) 
+}
+class "PaywallView" as PaywallView << (S, SkyBlue) struct >> { 
+  -dismiss
+  ~vm : PaywallViewModel
+  -showingError
+  +init(vm:)
+  +body : some View
+  -headerSection : some View
+  -benefitsSection : some View
+  -pricingSection : some View
+  -purchaseSection : some View
+  -purchaseButtonText : String
+  -trialInfoText : String?
+  -horizontalSizeClass
+  -adaptiveColumnCount : Int
+  -restoreSection : some View 
+}
+class "BenefitCard" as BenefitCard << (S, SkyBlue) struct >> { 
+  ~benefit : PaywallBenefit
+  ~body : some View 
+}
+class "PricingCard" as PricingCard << (S, SkyBlue) struct >> { 
+  ~product : Product
+  ~isSelected : Bool
+  ~onTap : () -> Void
+  ~body : some View 
+}
+class "PaywallViewModel" as PaywallViewModel << (C, DarkSeaGreen) >> { 
+  -loadPaywallProducts : LoadPaywallProductsUseCase
+  -purchaseProduct : PurchaseProductUseCase
+  -restorePurchases : RestorePurchasesUseCase
+  -checkProductPurchased : CheckProductPurchasedUseCase
+  -resetPurchaseState : ResetPurchaseStateUseCase
+  -getPurchaseState : GetPurchaseStateUseCase
+  -updateProfileSubscription : UpdateProfileSubscriptionUseCase
+  -userService : UserService
+  ~userActionTracker
+  +products : [Product]
+  +benefits : [PaywallBenefit]
+  +isLoading
+  +error : Error?
+  +purchaseState : PurchaseState
+  +selectedProduct : Product?
+  +isUpdatingUser
+  -paywallShownTime : Date?
+  -paywallSource : String
+  -paywallTrigger : String
+  +isPurchasing : Bool
+  +hasError : Bool
+  +errorMessage : String?
+  +init(loadPaywallProducts:purchaseProduct:restorePurchases:checkProductPurchased:resetPurchaseState:getPurchaseState:updateProfileSubscription:userService:)
+  -handleUserSubscriptionUpdate(_:)
+  -syncPurchaseState()
+  +load()
+  +trackPaywallShown(source:trigger:)
+  +trackPaywallDismissed()
+  -resetPurchaseState()
+  +selectProduct(_:)
+  +purchase()
+  +restorePurchases()
+  +dismissError()
+  -handleRestoredPurchases() 
+}
+class "OnboardingPage1View" as OnboardingPage1View << (S, SkyBlue) struct >> { 
+  ~viewModel : OnboardingViewModel
+  -isTextFieldFocused : Bool
+  ~body : some View
+  -adaptiveSpacing(for:)
+  -adaptivePadding(for:) 
+}
+class "OnboardingFlowView" as OnboardingFlowView << (S, SkyBlue) struct >> { 
+  ~viewModel
+  -onComplete : () -> Void
+  +init(onComplete:)
+  +body : some View 
+}
+class "OnboardingContentView" as OnboardingContentView << (S, SkyBlue) struct >> { 
+  ~viewModel : OnboardingViewModel
+  ~onComplete : () -> Void
+  ~body : some View 
+}
+class "OnboardingProgressView" as OnboardingProgressView << (S, SkyBlue) struct >> { 
+  ~currentPage : Int
+  ~totalPages : Int
+  ~body : some View 
+}
+class "OnboardingNavigationView" as OnboardingNavigationView << (S, SkyBlue) struct >> { 
+  ~viewModel : OnboardingViewModel
+  ~onComplete : () -> Void
+  ~body : some View 
+}
+class "OnboardingPage2View" as OnboardingPage2View << (S, SkyBlue) struct >> { 
+  ~viewModel : OnboardingViewModel
+  ~body : some View
+  -personalizedGreeting : String
+  -adaptiveSpacing(for:)
+  -adaptivePadding(for:) 
+}
+class "FeatureHighlight" as FeatureHighlight << (S, SkyBlue) struct >> { 
+  ~icon : String
+  ~title : String
+  ~description : String
+  ~body : some View 
+}
+class "OnboardingPage4View" as OnboardingPage4View << (S, SkyBlue) struct >> { 
+  ~body : some View
+  -adaptiveSpacing(for:)
+  -adaptivePadding(for:) 
+}
+class "TipHighlight" as TipHighlight << (S, SkyBlue) struct >> { 
+  ~icon : String
+  ~title : String
+  ~description : String
+  ~body : some View
+  -adaptiveSpacing(for:)
+  -adaptivePadding(for:) 
+}
+class "OnboardingPage3View" as OnboardingPage3View << (S, SkyBlue) struct >> { 
+  ~body : some View
+  -adaptiveSpacing(for:)
+  -adaptivePadding(for:) 
+}
+class "CustomizationHighlight" as CustomizationHighlight << (S, SkyBlue) struct >> { 
+  ~icon : String
+  ~title : String
+  ~description : String
+  ~body : some View
+  -adaptiveSpacing(for:)
+  -adaptivePadding(for:) 
+}
+class "OnboardingPage5View" as OnboardingPage5View << (S, SkyBlue) struct >> { 
+  ~viewModel : OnboardingViewModel
+  ~body : some View
+  -adaptiveSpacing(for:)
+  -adaptivePadding(for:) 
+}
+class "NotificationBenefit" as NotificationBenefit << (S, SkyBlue) struct >> { 
+  ~icon : String
+  ~title : String
+  ~description : String
+  ~body : some View
+  -adaptiveSpacing(for:)
+  -adaptivePadding(for:) 
+}
+class "OnboardingViewModel" as OnboardingViewModel << (C, DarkSeaGreen) >> { 
+  -getOnboardingState : GetOnboardingState
+  -saveOnboardingState : SaveOnboardingState
+  -completeOnboarding : CompleteOnboarding
+  -requestNotificationPermission : RequestNotificationPermissionUseCase
+  -checkNotificationStatus : CheckNotificationStatusUseCase
+  ~userActionTracker
+  +currentPage : Int
+  +userName : String
+  +hasGrantedNotifications : Bool
+  +isCompleted : Bool
+  +isLoading : Bool
+  +errorMessage : String?
+  +totalPages
+  +init(getOnboardingState:saveOnboardingState:completeOnboarding:requestNotificationPermission:checkNotificationStatus:)
+  +loadOnboardingState()
+  +nextPage()
+  +previousPage()
+  +goToPage(_:)
+  +updateUserName(_:)
+  +requestNotificationPermission()
+  +finishOnboarding()
+  +canProceedFromCurrentPage : Bool
+  +isFirstPage : Bool
+  +isLastPage : Bool
+  +dismissError()
+  -pageNameFor(_:) 
+}
+class "RootTab" as RootTab << (E, LightSteelBlue) enum >> { 
+  +overview 
+}
+class "RootTabView" as RootTabView << (S, SkyBlue) struct >> { 
+  ~getOnboardingState
+  ~appearanceManager
+  ~loadProfile
+  -navigationService
+  -deepLinkCoordinator
+  -showOnboarding
+  -isCheckingOnboarding
+  -overviewKey
+  -showingPersonalityAnalysis
+  -glassUnionNamespace
+  +init()
+  +body : some View
+  -checkOnboardingStatus()
+  -loadUserAppearancePreference() 
+}
+class "RitualistApp" as RitualistApp << (S, SkyBlue) struct >> { 
+  ~appDelegate
+  ~body : some Scene
+  -setupNotifications() 
+}
+class "AppDelegate" as AppDelegate << (C, DarkSeaGreen) >> { 
+  ~application(_:didFinishLaunchingWithOptions:)
+  ~userNotificationCenter(_:didReceive:withCompletionHandler:)
+  ~userNotificationCenter(_:willPresent:withCompletionHandler:) 
+}
+class "RootAppView" as RootAppView << (S, SkyBlue) struct >> { 
+  ~body : some View 
+}
+class "CategoryDataSourceError" as CategoryDataSourceError << (E, LightSteelBlue) enum >> { 
+  +categoryAlreadyExists
+  +categoryNotFound 
+}
+class "HabitLocalDataSource" as HabitLocalDataSource << (C, DarkSeaGreen) >> { 
+  -context : ModelContext?
+  +init(context:)
+  +fetchAll()
+  +upsert(_:)
+  +delete(id:) 
+}
+class "LogLocalDataSource" as LogLocalDataSource << (C, DarkSeaGreen) >> { 
+  -context : ModelContext?
+  +init(context:)
+  +logs(for:)
+  +upsert(_:)
+  +delete(id:) 
+}
+class "ProfileLocalDataSource" as ProfileLocalDataSource << (C, DarkSeaGreen) >> { 
+  -context : ModelContext?
+  +init(context:)
+  +load()
+  +save(_:) 
+}
+class "TipLocalDataSource" as TipLocalDataSource << (C, DarkSeaGreen) >> { 
+  +init()
+  -predefinedTips : [Tip]
+  +getAllTips()
+  +getFeaturedTips()
+  +getTip(by:)
+  +getTips(by:) 
+}
+class "OnboardingLocalDataSource" as OnboardingLocalDataSource << (C, DarkSeaGreen) >> { 
+  -context : ModelContext?
+  +init(context:)
+  +load()
+  +save(_:) 
+}
+class "SwiftDataCategoryLocalDataSource" as SwiftDataCategoryLocalDataSource << (C, DarkSeaGreen) >> { 
+  -context : ModelContext?
+  +init(context:)
+  -predefinedCategories : [Category]
+  -getStoredCategories()
+  +getAllCategories()
+  +getCategory(by:)
+  +getActiveCategories()
+  +getPredefinedCategories()
+  +getCustomCategories()
+  +createCustomCategory(_:)
+  +updateCategory(_:)
+  +deleteCategory(id:)
+  +categoryExists(id:)
+  +categoryExists(name:) 
+}
+class "MockCategoryLocalDataSource" as MockCategoryLocalDataSource << (C, DarkSeaGreen) >> { 
+  +init()
+  -predefinedCategories : [Category]
+  -customCategories : [Category]
+  +getAllCategories()
+  +getCategory(by:)
+  +getActiveCategories()
+  +getPredefinedCategories()
+  +getCustomCategories()
+  +createCustomCategory(_:)
+  +updateCategory(_:)
+  +deleteCategory(id:)
+  +categoryExists(id:)
+  +categoryExists(name:) 
+}
+class "CategoryLocalDataSource" as CategoryLocalDataSource << (C, DarkSeaGreen) >> { 
+  +init()
+  +getAllCategories()
+  +getCategory(by:)
+  +getActiveCategories()
+  +getPredefinedCategories()
+  +getCustomCategories()
+  +createCustomCategory(_:)
+  +updateCategory(_:)
+  +deleteCategory(id:)
+  +categoryExists(id:)
+  +categoryExists(name:) 
+}
+class "SwiftDataStack" as SwiftDataStack << (C, DarkSeaGreen) >> { 
+  +container : ModelContainer
+  +context : ModelContext
+  +init() 
+}
+class "HabitRepositoryImpl" as HabitRepositoryImpl << (C, DarkSeaGreen) >> { 
+  -local : HabitLocalDataSourceProtocol
+  +init(local:)
+  +fetchAllHabits()
+  +create(_:)
+  +update(_:)
+  +delete(id:) 
+}
+class "OnboardingRepositoryImpl" as OnboardingRepositoryImpl << (C, DarkSeaGreen) >> { 
+  -local : OnboardingLocalDataSourceProtocol
+  +init(local:)
+  +getOnboardingState()
+  +saveOnboardingState(_:)
+  +markOnboardingCompleted(userName:hasNotifications:) 
+}
+class "LogRepositoryImpl" as LogRepositoryImpl << (C, DarkSeaGreen) >> { 
+  -local : LogLocalDataSourceProtocol
+  +init(local:)
+  +logs(for:)
+  +upsert(_:)
+  +deleteLog(id:) 
+}
+class "CategoryRepositoryImpl" as CategoryRepositoryImpl << (C, DarkSeaGreen) >> { 
+  -localDataSource : CategoryLocalDataSourceProtocol
+  +init(local:)
+  +getAllCategories()
+  +getCategory(by:)
+  +getActiveCategories()
+  +getPredefinedCategories()
+  +getCustomCategories()
+  +createCustomCategory(_:)
+  +updateCategory(_:)
+  +deleteCategory(id:)
+  +categoryExists(id:)
+  +categoryExists(name:) 
+}
+class "ProfileRepositoryImpl" as ProfileRepositoryImpl << (C, DarkSeaGreen) >> { 
+  -local : ProfileLocalDataSourceProtocol
+  +init(local:)
+  +loadProfile()
+  +saveProfile(_:) 
+}
+class "TipRepositoryImpl" as TipRepositoryImpl << (C, DarkSeaGreen) >> { 
+  -local : TipLocalDataSourceProtocol
+  +init(local:)
+  +getAllTips()
+  +getFeaturedTips()
+  +getTip(by:)
+  +getTips(by:) 
+}
+class "SDHabitLog" as SDHabitLog << (C, DarkSeaGreen) >> { 
+  +id : UUID
+  +habitID : UUID
+  +date : Date
+  +value : Double?
+  +init(id:habitID:date:value:) 
+}
+class "SDHabit" as SDHabit << (C, DarkSeaGreen) >> { 
+  +id : UUID
+  +name : String
+  +colorHex : String
+  +emoji : String?
+  +kindRaw : Int
+  +unitLabel : String?
+  +dailyTarget : Double?
+  +scheduleData : Data
+  +remindersData : Data
+  +startDate : Date
+  +endDate : Date?
+  +isActive : Bool
+  +displayOrder : Int
+  +categoryId : String?
+  +suggestionId : String?
+  +init(id:name:colorHex:emoji:kindRaw:unitLabel:dailyTarget:scheduleData:remindersData:startDate:endDate:isActive:displayOrder:categoryId:suggestionId:) 
+}
+class "SDOnboardingState" as SDOnboardingState << (C, DarkSeaGreen) >> { 
+  +id : UUID
+  +isCompleted : Bool
+  +completedDate : Date?
+  +userName : String?
+  +hasGrantedNotifications : Bool
+  +init(id:isCompleted:completedDate:userName:hasGrantedNotifications:) 
+}
+class "SDCategory" as SDCategory << (C, DarkSeaGreen) >> { 
+  +id : String
+  +name : String
+  +displayName : String
+  +emoji : String
+  +order : Int
+  +isActive : Bool
+  +isPredefined : Bool
+  +init(id:name:displayName:emoji:order:isActive:isPredefined:) 
+}
+class "SDUserProfile" as SDUserProfile << (C, DarkSeaGreen) >> { 
+  +id : UUID
+  +name : String
+  +avatarImageData : Data?
+  +appearance : Int
+  +subscriptionPlan : String
+  +subscriptionExpiryDate : Date?
+  +createdAt : Date
+  +updatedAt : Date
+  +init(id:name:avatarImageData:appearance:subscriptionPlan:subscriptionExpiryDate:createdAt:updatedAt:) 
+}
+class "HabitMapper" as HabitMapper << (E, LightSteelBlue) enum >> { 
+  +{static} toSD(_:)
+  +{static} fromSD(_:) 
+}
+class "HabitLogMapper" as HabitLogMapper << (E, LightSteelBlue) enum >> { 
+  +{static} toSD(_:)
+  +{static} fromSD(_:) 
+}
+class "ProfileMapper" as ProfileMapper << (E, LightSteelBlue) enum >> { 
+  +{static} toSD(_:)
+  +{static} fromSD(_:) 
+}
+class "CategoryMapper" as CategoryMapper << (E, LightSteelBlue) enum >> { 
+  +{static} toSD(_:)
+  +{static} fromSD(_:) 
+}
+class "OnboardingMapper" as OnboardingMapper << (E, LightSteelBlue) enum >> { 
+  +{static} toSD(_:)
+  +{static} fromSD(_:) 
+}
+class "PurchaseState" as PurchaseState << (E, LightSteelBlue) enum >> { 
+  +idle
+  +purchasing(_:)
+  +success(_:)
+  +failed(_:)
+  +cancelled
+  +isPurchasing : Bool
+  +errorMessage : String? 
+}
+class "AuthError" as AuthError << (E, LightSteelBlue) enum >> { 
+  +invalidCredentials
+  +userNotFound
+  +networkError
+  +unknown(_:)
+  +errorDescription : String? 
+}
+class "PaywallError" as PaywallError << (E, LightSteelBlue) enum >> { 
+  +productsNotAvailable
+  +purchaseFailed(_:)
+  +userCancelled
+  +networkError
+  +unknown(_:)
+  +errorDescription : String? 
+}
+class "ProductDuration" as ProductDuration << (E, LightSteelBlue) enum >> { 
+  +monthly
+  +annual
+  +displayName : String 
+}
+class "SubscriptionPlan" as SubscriptionPlan << (E, LightSteelBlue) enum >> { 
+  +free
+  +monthly
+  +annual
+  +displayName : String
+  +price : String 
+}
+class "HabitSchedule" as HabitSchedule << (E, LightSteelBlue) enum >> { 
+  +daily
+  +daysOfWeek(_:)
+  +timesPerWeek(_:) 
+}
+class "TipCategory" as TipCategory << (E, LightSteelBlue) enum >> { 
+  +gettingStarted
+  +tracking
+  +motivation
+  +advanced 
+}
+class "HabitKind" as HabitKind << (E, LightSteelBlue) enum >> { 
+  +binary 
+}
+class "CalculateCurrentStreak" as CalculateCurrentStreak << (C, DarkSeaGreen) >> { 
+  +init()
+  +execute(habit:logs:asOf:)
+  -calculateWeeklyStreak(for:logs:target:asOf:)
+  -calculateDailyStreak(for:logs:asOf:)
+  -isDateScheduled(_:for:)
+  -isLogCompliant(_:for:) 
+}
+class "CalculateBestStreak" as CalculateBestStreak << (C, DarkSeaGreen) >> { 
+  +init()
+  +execute(habit:logs:) 
+}
+class "GetHabitsFromSuggestions" as GetHabitsFromSuggestions << (C, DarkSeaGreen) >> { 
+  +init()
+  +execute(existingHabits:suggestionIds:) 
+}
+class "ScheduleHabitReminders" as ScheduleHabitReminders << (C, DarkSeaGreen) >> { 
+  -habitRepository : HabitRepository
+  -notificationService : NotificationService
+  +init(habitRepository:notificationService:)
+  +execute(habit:) 
+}
+class "LogHabitFromNotification" as LogHabitFromNotification << (C, DarkSeaGreen) >> { 
+  -habitRepository : HabitRepository
+  -logRepository : LogRepository
+  -getLogForDate : GetLogForDateUseCase
+  -logHabit : LogHabitUseCase
+  +init(habitRepository:logRepository:getLogForDate:logHabit:)
+  +execute(habitId:date:value:) 
+}
+class "SnoozeHabitReminder" as SnoozeHabitReminder << (C, DarkSeaGreen) >> { 
+  -notificationService : NotificationService
+  +init(notificationService:)
+  +execute(habitId:habitName:originalTime:) 
+}
+class "HandleNotificationAction" as HandleNotificationAction << (C, DarkSeaGreen) >> { 
+  -logHabitFromNotification : LogHabitFromNotificationUseCase
+  -snoozeHabitReminder : SnoozeHabitReminderUseCase
+  +init(logHabitFromNotification:snoozeHabitReminder:)
+  +execute(action:habitId:habitName:reminderTime:) 
+}
+class "CancelHabitReminders" as CancelHabitReminders << (C, DarkSeaGreen) >> { 
+  -notificationService : NotificationService
+  +init(notificationService:)
+  +execute(habitId:) 
+}
+class "CategoryError" as CategoryError << (E, LightSteelBlue) enum >> { 
+  +categoryAlreadyExists
+  +categoryNotFound
+  +invalidCategoryName 
+}
+class "CreateHabit" as CreateHabit << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute(_:) 
+}
+class "GetActiveHabits" as GetActiveHabits << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute() 
+}
+class "GetAllHabits" as GetAllHabits << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute() 
+}
+class "UpdateHabit" as UpdateHabit << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute(_:) 
+}
+class "DeleteHabit" as DeleteHabit << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute(id:) 
+}
+class "ToggleHabitActiveStatus" as ToggleHabitActiveStatus << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute(id:) 
+}
+class "ReorderHabits" as ReorderHabits << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute(_:) 
+}
+class "ValidateHabitUniqueness" as ValidateHabitUniqueness << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute(name:categoryId:excludeId:) 
+}
+class "GetHabitsByCategory" as GetHabitsByCategory << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute(categoryId:) 
+}
+class "OrphanHabitsFromCategory" as OrphanHabitsFromCategory << (C, DarkSeaGreen) >> { 
+  -repo : HabitRepository
+  +init(repo:)
+  +execute(categoryId:) 
+}
+class "LoadProfile" as LoadProfile << (C, DarkSeaGreen) >> { 
+  -repo : ProfileRepository
+  +init(repo:)
+  +execute() 
+}
+class "SaveProfile" as SaveProfile << (C, DarkSeaGreen) >> { 
+  -repo : ProfileRepository
+  +init(repo:)
+  +execute(_:) 
+}
+class "GetLogs" as GetLogs << (C, DarkSeaGreen) >> { 
+  -repo : LogRepository
+  +init(repo:)
+  +execute(for:since:until:) 
+}
+class "LogHabit" as LogHabit << (C, DarkSeaGreen) >> { 
+  -repo : LogRepository
+  +init(repo:)
+  +execute(_:) 
+}
+class "DeleteLog" as DeleteLog << (C, DarkSeaGreen) >> { 
+  -repo : LogRepository
+  +init(repo:)
+  +execute(id:) 
+}
+class "GetLogForDate" as GetLogForDate << (C, DarkSeaGreen) >> { 
+  -repo : LogRepository
+  +init(repo:)
+  +execute(habitID:date:) 
+}
+class "GetAllTips" as GetAllTips << (C, DarkSeaGreen) >> { 
+  -repo : TipRepository
+  +init(repo:)
+  +execute() 
+}
+class "GetFeaturedTips" as GetFeaturedTips << (C, DarkSeaGreen) >> { 
+  -repo : TipRepository
+  +init(repo:)
+  +execute() 
+}
+class "GetTipById" as GetTipById << (C, DarkSeaGreen) >> { 
+  -repo : TipRepository
+  +init(repo:)
+  +execute(id:) 
+}
+class "GetTipsByCategory" as GetTipsByCategory << (C, DarkSeaGreen) >> { 
+  -repo : TipRepository
+  +init(repo:)
+  +execute(category:) 
+}
+class "GetAllCategories" as GetAllCategories << (C, DarkSeaGreen) >> { 
+  -repo : CategoryRepository
+  +init(repo:)
+  +execute() 
+}
+class "GetCategoryById" as GetCategoryById << (C, DarkSeaGreen) >> { 
+  -repo : CategoryRepository
+  +init(repo:)
+  +execute(id:) 
+}
+class "GetActiveCategories" as GetActiveCategories << (C, DarkSeaGreen) >> { 
+  -repo : CategoryRepository
+  +init(repo:)
+  +execute() 
+}
+class "GetPredefinedCategories" as GetPredefinedCategories << (C, DarkSeaGreen) >> { 
+  -repo : CategoryRepository
+  +init(repo:)
+  +execute() 
+}
+class "GetCustomCategories" as GetCustomCategories << (C, DarkSeaGreen) >> { 
+  -repo : CategoryRepository
+  +init(repo:)
+  +execute() 
+}
+class "CreateCustomCategory" as CreateCustomCategory << (C, DarkSeaGreen) >> { 
+  -repo : CategoryRepository
+  +init(repo:)
+  +execute(_:) 
+}
+class "UpdateCategory" as UpdateCategory << (C, DarkSeaGreen) >> { 
+  -repo : CategoryRepository
+  +init(repo:)
+  +execute(_:) 
+}
+class "DeleteCategory" as DeleteCategory << (C, DarkSeaGreen) >> { 
+  -repo : CategoryRepository
+  +init(repo:)
+  +execute(id:) 
+}
+class "ValidateCategoryName" as ValidateCategoryName << (C, DarkSeaGreen) >> { 
+  -repo : CategoryRepository
+  +init(repo:)
+  +execute(name:) 
+}
+class "GetOnboardingState" as GetOnboardingState << (C, DarkSeaGreen) >> { 
+  -repo : OnboardingRepository
+  +init(repo:)
+  +execute() 
+}
+class "SaveOnboardingState" as SaveOnboardingState << (C, DarkSeaGreen) >> { 
+  -repo : OnboardingRepository
+  +init(repo:)
+  +execute(_:) 
+}
+class "CompleteOnboarding" as CompleteOnboarding << (C, DarkSeaGreen) >> { 
+  -onboardingRepo : OnboardingRepository
+  -profileRepo : ProfileRepository
+  +init(repo:profileRepo:)
+  +execute(userName:hasNotifications:) 
+}
+class "UpdateProfileSubscription" as UpdateProfileSubscription << (C, DarkSeaGreen) >> { 
+  -userService : UserService
+  -paywallService : PaywallService
+  +init(userService:paywallService:)
+  +execute(product:) 
+}
+class "GenerateCalendarDays" as GenerateCalendarDays << (C, DarkSeaGreen) >> { 
+  +init()
+  +execute(for:userProfile:) 
+}
+class "GenerateCalendarGrid" as GenerateCalendarGrid << (C, DarkSeaGreen) >> { 
+  +init()
+  +execute(for:userProfile:) 
+}
+class "ToggleHabitLog" as ToggleHabitLog << (C, DarkSeaGreen) >> { 
+  -getLogForDate : GetLogForDateUseCase
+  -logHabit : LogHabitUseCase
+  -deleteLog : DeleteLogUseCase
+  +init(getLogForDate:logHabit:deleteLog:)
+  +execute(date:habit:currentLoggedDates:currentHabitLogValues:) 
+}
+class "GetCurrentSlogan" as GetCurrentSlogan << (C, DarkSeaGreen) >> { 
+  -slogansService : SlogansServiceProtocol
+  +init(slogansService:)
+  +execute() 
+}
+class "RequestNotificationPermission" as RequestNotificationPermission << (C, DarkSeaGreen) >> { 
+  -notificationService : NotificationService
+  +init(notificationService:)
+  +execute() 
+}
+class "CheckNotificationStatus" as CheckNotificationStatus << (C, DarkSeaGreen) >> { 
+  -notificationService : NotificationService
+  +init(notificationService:)
+  +execute() 
+}
+class "CheckFeatureAccess" as CheckFeatureAccess << (C, DarkSeaGreen) >> { 
+  -featureGatingService : FeatureGatingService
+  +init(featureGatingService:)
+  +execute() 
+}
+class "CheckHabitCreationLimit" as CheckHabitCreationLimit << (C, DarkSeaGreen) >> { 
+  -featureGatingService : FeatureGatingService
+  +init(featureGatingService:)
+  +execute(currentCount:) 
+}
+class "GetPaywallMessage" as GetPaywallMessage << (C, DarkSeaGreen) >> { 
+  -featureGatingService : FeatureGatingService
+  +init(featureGatingService:)
+  +execute() 
+}
+class "TrackUserAction" as TrackUserAction << (C, DarkSeaGreen) >> { 
+  -userActionTracker : UserActionTrackerService
+  +init(userActionTracker:)
+  +execute(action:context:) 
+}
+class "TrackHabitLogged" as TrackHabitLogged << (C, DarkSeaGreen) >> { 
+  -userActionTracker : UserActionTrackerService
+  +init(userActionTracker:)
+  +execute(habitId:habitName:date:logType:value:) 
+}
+class "LoadPaywallProducts" as LoadPaywallProducts << (C, DarkSeaGreen) >> { 
+  -paywallService : PaywallService
+  +init(paywallService:)
+  +execute() 
+}
+class "PurchaseProduct" as PurchaseProduct << (C, DarkSeaGreen) >> { 
+  -paywallService : PaywallService
+  +init(paywallService:)
+  +execute(_:) 
+}
+class "RestorePurchases" as RestorePurchases << (C, DarkSeaGreen) >> { 
+  -paywallService : PaywallService
+  +init(paywallService:)
+  +execute() 
+}
+class "CheckProductPurchased" as CheckProductPurchased << (C, DarkSeaGreen) >> { 
+  -paywallService : PaywallService
+  +init(paywallService:)
+  +execute(_:) 
+}
+class "ResetPurchaseState" as ResetPurchaseState << (C, DarkSeaGreen) >> { 
+  -paywallService : PaywallService
+  +init(paywallService:)
+  +execute() 
+}
+class "GetPurchaseState" as GetPurchaseState << (C, DarkSeaGreen) >> { 
+  -paywallService : PaywallService
+  +init(paywallService:)
+  +execute() 
+}
+class "GetHabitCount" as GetHabitCount << (C, DarkSeaGreen) >> { 
+  -habitRepository : HabitRepository
+  +init(habitRepository:)
+  +execute() 
+}
+class "CreateHabitFromSuggestionResult" as CreateHabitFromSuggestionResult << (E, LightSteelBlue) enum >> { 
+  +success(habitId:)
+  +limitReached(message:)
+  +error(_:) 
+}
+class "CreateHabitFromSuggestion" as CreateHabitFromSuggestion << (C, DarkSeaGreen) >> { 
+  -createHabit : CreateHabitUseCase
+  -getHabitCount : GetHabitCountUseCase
+  -checkHabitCreationLimit : CheckHabitCreationLimitUseCase
+  -featureGatingService : FeatureGatingService
+  +init(createHabit:getHabitCount:checkHabitCreationLimit:featureGatingService:)
+  +execute(_:) 
+}
+class "CheckPremiumStatus" as CheckPremiumStatus << (C, DarkSeaGreen) >> { 
+  -userService : UserService
+  +init(userService:)
+  +execute() 
+}
+class "GetCurrentUserProfile" as GetCurrentUserProfile << (C, DarkSeaGreen) >> { 
+  -userService : UserService
+  +init(userService:)
+  +execute() 
+}
+class "ValidateHabitSchedule" as ValidateHabitSchedule << (C, DarkSeaGreen) >> { 
+  +init()
+  +execute(date:habit:) 
+}
+class "CheckWeeklyTarget" as CheckWeeklyTarget << (C, DarkSeaGreen) >> { 
+  +init()
+  +execute(date:habit:habitLogValues:userProfile:) 
+}
+class "HabitLog" as HabitLog << (S, SkyBlue) struct >> { 
+  +id : UUID
+  +habitID : UUID
+  +date : Date
+  +value : Double?
+  +init(id:habitID:date:value:) 
+}
+class "HabitSuggestion" as HabitSuggestion << (S, SkyBlue) struct >> { 
+  +id : String
+  +name : String
+  +emoji : String
+  +colorHex : String
+  +categoryId : String
+  +kind : HabitKind
+  +unitLabel : String?
+  +dailyTarget : Double?
+  +schedule : HabitSchedule
+  +description : String
+  +personalityWeights : [String: Double]?
+  +init(id:name:emoji:colorHex:categoryId:kind:unitLabel:dailyTarget:schedule:description:personalityWeights:)
+  +toHabit() 
+}
+class "Tip" as Tip << (S, SkyBlue) struct >> { 
+  +id : UUID
+  +title : String
+  +description : String
+  +content : String
+  +category : TipCategory
+  +order : Int
+  +isFeaturedInCarousel : Bool
+  +icon : String?
+  +init(id:title:description:content:category:order:isFeaturedInCarousel:icon:) 
+}
+class "HabitNotification" as HabitNotification << (S, SkyBlue) struct >> { 
+  +id : String
+  +habitId : UUID
+  +habitName : String
+  +reminderTime : ReminderTime
+  +scheduledDate : Date
+  +actions : [NotificationAction]
+  +init(id:habitId:habitName:reminderTime:scheduledDate:actions:)
+  +notificationIdentifier : String
+  +title : String
+  +body : String 
+}
+class "ReminderTime" as ReminderTime << (S, SkyBlue) struct >> { 
+  +hour : Int
+  +minute : Int
+  +init(hour:minute:) 
+}
+class "UserProfile" as UserProfile << (S, SkyBlue) struct >> { 
+  +id : UUID
+  +name : String
+  +avatarImageData : Data?
+  +appearance : Int
+  +subscriptionPlan : SubscriptionPlan
+  +subscriptionExpiryDate : Date?
+  +createdAt : Date
+  +updatedAt : Date
+  +init(id:name:avatarImageData:appearance:subscriptionPlan:subscriptionExpiryDate:createdAt:updatedAt:)
+  +hasActiveSubscription : Bool
+  +isPremiumUser : Bool 
+}
+class "CalendarDay" as CalendarDay << (S, SkyBlue) struct >> { 
+  +date : Date
+  +isCurrentMonth : Bool
+  +init(date:isCurrentMonth:) 
+}
+class "Category" as Category << (S, SkyBlue) struct >> { 
+  +id : String
+  +name : String
+  +displayName : String
+  +emoji : String
+  +order : Int
+  +isActive : Bool
+  +isPredefined : Bool
+  +personalityWeights : [String: Double]?
+  +init(id:name:displayName:emoji:order:isActive:isPredefined:personalityWeights:) 
+}
+class "Product" as Product << (S, SkyBlue) struct >> { 
+  +id : String
+  +name : String
+  +description : String
+  +price : String
+  +localizedPrice : String
+  +subscriptionPlan : SubscriptionPlan
+  +duration : ProductDuration
+  +features : [String]
+  +isPopular : Bool
+  +discount : String?
+  +init(id:name:description:price:localizedPrice:subscriptionPlan:duration:features:isPopular:discount:) 
+}
+class "OnboardingState" as OnboardingState << (S, SkyBlue) struct >> { 
+  +isCompleted : Bool
+  +completedDate : Date?
+  +userName : String?
+  +hasGrantedNotifications : Bool
+  +init(isCompleted:completedDate:userName:hasGrantedNotifications:) 
+}
+class "NotificationAction" as NotificationAction << (E, LightSteelBlue) enum >> { 
+  +log
+  +remindLater
+  +dismiss
+  +title : String
+  +systemImage : String
+  +isDestructive : Bool 
+}
+class "PaywallBenefit" as PaywallBenefit << (S, SkyBlue) struct >> { 
+  +id : String
+  +title : String
+  +description : String
+  +icon : String
+  +isHighlighted : Bool
+  +init(id:title:description:icon:isHighlighted:)
+  +{static} defaultBenefits : [PaywallBenefit] 
+}
+class "Habit" as Habit << (S, SkyBlue) struct >> { 
+  +id : UUID
+  +name : String
+  +colorHex : String
+  +emoji : String?
+  +kind : HabitKind
+  +unitLabel : String?
+  +dailyTarget : Double?
+  +schedule : HabitSchedule
+  +reminders : [ReminderTime]
+  +startDate : Date
+  +endDate : Date?
+  +isActive : Bool
+  +displayOrder : Int
+  +categoryId : String?
+  +suggestionId : String?
+  +init(id:name:colorHex:emoji:kind:unitLabel:dailyTarget:schedule:reminders:startDate:endDate:isActive:displayOrder:categoryId:suggestionId:) 
+}
+class "UserActionTrackerService" as UserActionTrackerService0 << (X, Orchid) extension >> { 
+  +trackError(_:context:additionalProperties:)
+  +trackPerformance(metric:value:unit:additionalProperties:)
+  +trackCrash(_:additionalProperties:) 
+}
+class "Color" as Color << (X, Orchid) extension >> { 
+  ~init(hex:) 
+}
+class "UserActionEventMapper" as UserActionEventMapper1 << (X, Orchid) extension >> { 
+  -onboardingEventName(for:)
+  -assistantEventName(for:)
+  -habitEventName(for:)
+  -navigationEventName(for:)
+  -notificationEventName(for:)
+  -categoryEventName(for:)
+  -paywallEventName(for:)
+  -tipsEventName(for:)
+  -settingsEventName(for:)
+  -systemEventName(for:) 
+}
+class "UserActionEventMapper" as UserActionEventMapper2 << (X, Orchid) extension >> { 
+  -onboardingEventProperties(for:)
+  -assistantEventProperties(for:)
+  -habitEventProperties(for:)
+  -navigationEventProperties(for:)
+  -notificationEventProperties(for:)
+  -categoryEventProperties(for:)
+  -paywallEventProperties(for:)
+  -tipsEventProperties(for:)
+  -settingsEventProperties(for:)
+  -systemEventProperties(for:)
+  -habitLoggedProperties(habitId:habitName:date:logType:value:)
+  -habitLogDeletedProperties(habitId:habitName:date:)
+  -habitLogUpdatedProperties(habitId:habitName:date:oldValue:newValue:) 
+}
+class "View" as View << (X, Orchid) extension >> { 
+  +localizationPreview()
+  +pseudoLocalized()
+  +debugLayout() 
+}
+class "View" as View3 << (X, Orchid) extension >> { 
+  +dynamicTypePreview()
+  +accessibilityPreview() 
+}
+class "View" as View4 << (X, Orchid) extension >> { 
+  +rtlAware()
+  +leadingAlignment(_:) 
+}
+class "SecureSubscriptionService" as SecureSubscriptionService5 << (X, Orchid) extension >> { 
+  ~hasAnnualSubscription()
+  ~hasMonthlySubscription() 
+}
+class "PersonalityTrait" as PersonalityTrait6 << (X, Orchid) extension >> { 
+  -displayEmoji : String
+  -insightPreview : String 
+}
+class "LocalNotificationService" as LocalNotificationService7 << (X, Orchid) extension >> { 
+  +userNotificationCenter(_:willPresent:withCompletionHandler:)
+  +userNotificationCenter(_:didReceive:withCompletionHandler:)
+  +setupNotificationCategories()
+  -handleNotificationResponse(_:) 
+}
+class "PersonalityTrait" as PersonalityTrait8 << (X, Orchid) extension >> { 
+  -init(fromString:) 
+}
+class "ConfidenceLevel" as ConfidenceLevel9 << (X, Orchid) extension >> { 
+  -init(fromString:) 
+}
+class "BuildConfigFeatureGatingService" as BuildConfigFeatureGatingService10 << (X, Orchid) extension >> { 
+  +{static} create(userService:) 
+}
+class "Text" as Text << (X, Orchid) extension >> { 
+  +init(localizedKey:) 
+}
+class "String" as String << (X, Orchid) extension >> { 
+  +init(localized:defaultValue:) 
+}
+class "View" as View11 << (X, Orchid) extension >> { 
+  +confirmationDialog(isPresented:content:) 
+}
+class "SmartInsight" as SmartInsight12 << (X, Orchid) extension >> { 
+  ~{static} sampleInsights : [SmartInsight] 
+}
+class "Calendar" as Calendar << (X, Orchid) extension >> { 
+  ~generateDates(inside:matching:) 
+}
+class "View" as View13 << (X, Orchid) extension >> { 
+  ~cardStyle() 
+}
+class "View" as View14 << (X, Orchid) extension >> { 
+  +celebrationAnimation(isTriggered:config:onAnimationComplete:)
+  +bestStreakAnimation(isTriggered:config:onAnimationComplete:) 
+}
+class "PersonalityIndicator" as PersonalityIndicator15 << (X, Orchid) extension >> { 
+  +{static} habitTypeIndicators : [String: PersonalityIndicator]
+  +{static} engagementIndicators : [String: PersonalityIndicator] 
+}
+class "DateFormatter" as DateFormatter << (X, Orchid) extension >> { 
+  -{static} mediumDateFormatter : DateFormatter 
+}
+class "ConfidenceLevel" as ConfidenceLevel16 << (X, Orchid) extension >> { 
+  -color : Color
+  -displayName : String
+  -explanation : String
+  -improvementTip : String 
+}
+class "DateFormatter" as DateFormatter17 << (X, Orchid) extension >> { 
+  -{static} mediumDateFormatter : DateFormatter 
+}
+class "PersonalityTrait" as PersonalityTrait18 << (X, Orchid) extension >> { 
+  -displayEmoji : String 
+}
+class "PaywallViewModel" as PaywallViewModel19 << (X, Orchid) extension >> { 
+  +formattedPrice(for:)
+  +savingsText(for:)
+  +recommendedProduct : Product?
+  +isSelected(_:)
+  +benefits(for:) 
+}
+class "Container" as Container << (X, Orchid) extension >> { 
+  ~getOnboardingState : Factory<GetOnboardingState>
+  ~saveOnboardingState : Factory<SaveOnboardingState>
+  ~completeOnboarding : Factory<CompleteOnboarding> 
+}
+class "Container" as Container20 << (X, Orchid) extension >> { 
+  ~saveProfile : Factory<SaveProfile>
+  ~requestNotificationPermission : Factory<RequestNotificationPermission>
+  ~checkNotificationStatus : Factory<CheckNotificationStatus> 
+}
+class "Container" as Container21 << (X, Orchid) extension >> { 
+  ~habitScheduleAnalyzer : Factory<HabitScheduleAnalyzerProtocol>
+  ~habitAnalyticsService : Factory<HabitAnalyticsService>
+  ~performanceAnalysisService : Factory<PerformanceAnalysisService>
+  ~calculateHabitPerformanceUseCase : Factory<CalculateHabitPerformanceUseCaseProtocol>
+  ~generateProgressChartDataUseCase : Factory<GenerateProgressChartDataUseCaseProtocol>
+  ~analyzeWeeklyPatternsUseCase : Factory<AnalyzeWeeklyPatternsUseCaseProtocol>
+  ~calculateStreakAnalysisUseCase : Factory<CalculateStreakAnalysisUseCaseProtocol>
+  ~aggregateCategoryPerformanceUseCase : Factory<AggregateCategoryPerformanceUseCaseProtocol> 
+}
+class "Container" as Container22 << (X, Orchid) extension >> { 
+  ~scheduleHabitReminders : Factory<ScheduleHabitRemindersUseCase>
+  ~logHabitFromNotification : Factory<LogHabitFromNotificationUseCase>
+  ~snoozeHabitReminder : Factory<SnoozeHabitReminderUseCase>
+  ~handleNotificationAction : Factory<HandleNotificationActionUseCase>
+  ~cancelHabitReminders : Factory<CancelHabitRemindersUseCase> 
+}
+class "Container" as Container23 << (X, Orchid) extension >> { 
+  ~habitsViewModel : Factory<HabitsViewModel>
+  ~habitsAssistantViewModel : Factory<HabitsAssistantViewModel>
+  ~habitDetailViewModel(for:)
+  ~categoryManagementViewModel : Factory<CategoryManagementViewModel>
+  ~overviewViewModel : Factory<OverviewViewModel>
+  ~tipsViewModel : Factory<TipsViewModel>
+  ~paywallViewModel : Factory<PaywallViewModel>
+  ~settingsViewModel : Factory<SettingsViewModel>
+  ~onboardingViewModel : Factory<OnboardingViewModel>
+  ~dashboardViewModel : Factory<DashboardViewModel>
+  ~personalityInsightsViewModel : Factory<PersonalityInsightsViewModel> 
+}
+class "Container" as Container24 << (X, Orchid) extension >> { 
+  ~getAllTips : Factory<GetAllTips>
+  ~getFeaturedTips : Factory<GetFeaturedTips>
+  ~getTipById : Factory<GetTipById>
+  ~getTipsByCategory : Factory<GetTipsByCategory> 
+}
+class "Container" as Container25 << (X, Orchid) extension >> { 
+  ~loadPaywallProducts : Factory<LoadPaywallProductsUseCase>
+  ~purchaseProduct : Factory<PurchaseProductUseCase>
+  ~restorePurchases : Factory<RestorePurchasesUseCase>
+  ~checkProductPurchased : Factory<CheckProductPurchasedUseCase>
+  ~resetPurchaseState : Factory<ResetPurchaseStateUseCase>
+  ~getPurchaseState : Factory<GetPurchaseStateUseCase>
+  ~updateProfileSubscription : Factory<UpdateProfileSubscriptionUseCase> 
+}
+class "Container" as Container26 << (X, Orchid) extension >> { 
+  ~personalityAnalysisRepository : Factory<PersonalityAnalysisRepositoryProtocol> 
+}
+class "Container" as Container27 << (X, Orchid) extension >> { 
+  ~personalityAnalysisService : Factory<PersonalityAnalysisService>
+  ~dataThresholdValidator : Factory<DataThresholdValidator>
+  ~personalityAnalysisScheduler : Factory<PersonalityAnalysisSchedulerProtocol> 
+}
+class "Container" as Container28 << (X, Orchid) extension >> { 
+  ~getAllCategories : Factory<GetAllCategories>
+  ~getActiveCategories : Factory<GetActiveCategories>
+  ~createCustomCategory : Factory<CreateCustomCategory>
+  ~updateCategory : Factory<UpdateCategory>
+  ~deleteCategory : Factory<DeleteCategory>
+  ~validateCategoryName : Factory<ValidateCategoryName>
+  ~getHabitsByCategory : Factory<GetHabitsByCategory>
+  ~orphanHabitsFromCategory : Factory<OrphanHabitsFromCategory> 
+}
+class "Container" as Container29 << (X, Orchid) extension >> { 
+  ~swiftDataStack : Factory<SwiftDataStack?>
+  ~habitDataSource : Factory<HabitLocalDataSource>
+  ~logDataSource : Factory<LogLocalDataSource>
+  ~profileDataSource : Factory<ProfileLocalDataSource>
+  ~tipDataSource : Factory<TipLocalDataSource>
+  ~onboardingDataSource : Factory<OnboardingLocalDataSource>
+  ~categoryDataSource : Factory<SwiftDataCategoryLocalDataSource> 
+}
+class "Container" as Container30 << (X, Orchid) extension >> { 
+  ~navigationService : Factory<NavigationService>
+  ~notificationService : Factory<NotificationService>
+  ~appearanceManager : Factory<AppearanceManager>
+  ~habitSuggestionsService : Factory<HabitSuggestionsService>
+  ~slogansService : Factory<SlogansServiceProtocol>
+  ~scheduleAwareCompletionCalculator : Factory<ScheduleAwareCompletionCalculator>
+  ~userActionTracker : Factory<UserActionTrackerService>
+  ~userService : Factory<UserService>
+  ~secureSubscriptionService : Factory<SecureSubscriptionService>
+  ~paywallService : Factory<PaywallService>
+  ~featureGatingService : Factory<FeatureGatingService> 
+}
+class "Container" as Container31 << (X, Orchid) extension >> { 
+  ~testService : Factory<String> 
+}
+class "Container" as Container32 << (X, Orchid) extension >> { 
+  ~analyzePersonalityUseCase : Factory<AnalyzePersonalityUseCase>
+  ~getPersonalityProfileUseCase : Factory<GetPersonalityProfileUseCase>
+  ~validateAnalysisDataUseCase : Factory<ValidateAnalysisDataUseCase>
+  ~updatePersonalityAnalysisUseCase : Factory<UpdatePersonalityAnalysisUseCase>
+  ~getPersonalityInsightsUseCase : Factory<GetPersonalityInsightsUseCase> 
+}
+class "Container" as Container33 << (X, Orchid) extension >> { 
+  ~createHabit : Factory<CreateHabit>
+  ~updateHabit : Factory<UpdateHabit>
+  ~deleteHabit : Factory<DeleteHabit>
+  ~getAllHabits : Factory<GetAllHabits>
+  ~getHabitCount : Factory<GetHabitCount>
+  ~toggleHabitActiveStatus : Factory<ToggleHabitActiveStatus>
+  ~reorderHabits : Factory<ReorderHabits>
+  ~validateHabitUniqueness : Factory<ValidateHabitUniqueness>
+  ~createHabitFromSuggestionUseCase : Factory<CreateHabitFromSuggestionUseCase> 
+}
+class "Container" as Container34 << (X, Orchid) extension >> { 
+  ~getPredefinedCategoriesUseCase : Factory<GetPredefinedCategoriesUseCase>
+  ~getHabitsFromSuggestionsUseCase : Factory<GetHabitsFromSuggestionsUseCase> 
+}
+class "Container" as Container35 << (X, Orchid) extension >> { 
+  ~checkHabitCreationLimit : Factory<CheckHabitCreationLimit> 
+}
+class "Container" as Container36 << (X, Orchid) extension >> { 
+  ~getActiveHabits : Factory<GetActiveHabits>
+  ~getLogs : Factory<GetLogs>
+  ~getLogForDate : Factory<GetLogForDate>
+  ~logHabit : Factory<LogHabit>
+  ~deleteLog : Factory<DeleteLog>
+  ~toggleHabitLog : Factory<ToggleHabitLog>
+  ~loadProfile : Factory<LoadProfile>
+  ~generateCalendarDays : Factory<GenerateCalendarDays>
+  ~generateCalendarGrid : Factory<GenerateCalendarGrid>
+  ~validateHabitSchedule : Factory<ValidateHabitSchedule>
+  ~checkWeeklyTarget : Factory<CheckWeeklyTarget>
+  ~calculateCurrentStreak : Factory<CalculateCurrentStreak>
+  ~calculateBestStreak : Factory<CalculateBestStreak>
+  ~getCurrentSlogan : Factory<GetCurrentSlogan>
+  ~trackUserAction : Factory<TrackUserAction>
+  ~trackHabitLogged : Factory<TrackHabitLogged>
+  ~checkFeatureAccess : Factory<CheckFeatureAccess>
+  ~getPaywallMessage : Factory<GetPaywallMessage> 
+}
+class "Container" as Container37 << (X, Orchid) extension >> { 
+  ~habitRepository : Factory<HabitRepository>
+  ~logRepository : Factory<LogRepository>
+  ~profileRepository : Factory<ProfileRepository>
+  ~tipRepository : Factory<TipRepository>
+  ~onboardingRepository : Factory<OnboardingRepository>
+  ~categoryRepository : Factory<CategoryRepository> 
+}
+class "Container" as Container38 << (X, Orchid) extension >> {  
+}
+class "Container" as Container39 << (X, Orchid) extension >> { 
+  ~personalityAnalysisDataSource : Factory<PersonalityAnalysisDataSource> 
+}
+String -- LogLevel : inherits
+CaseIterable -- LogLevel : inherits
+String -- LogCategory : inherits
+CaseIterable -- LogCategory : inherits
+ScheduleAwareCompletionCalculator <|.. DefaultScheduleAwareCompletionCalculator : conforms to
+PersonalityAnalysisSchedulerProtocol <|.. PersonalityAnalysisScheduler : conforms to
+SecureSubscriptionService <|.. MockSecureSubscriptionService : conforms to
+UserService <|.. MockUserService : conforms to
+UserService <|.. ICloudUserService : conforms to
+UserService <|.. NoOpUserService : conforms to
+String -- FeatureType : inherits
+CaseIterable -- FeatureType : inherits
+FeatureGatingService <|.. DefaultFeatureGatingService : conforms to
+FeatureGatingService <|.. MockFeatureGatingService : conforms to
+NSObject <|-- LocalNotificationService : inherits
+NotificationService <|.. LocalNotificationService : conforms to
+ObservableObject <|-- PersonalityDeepLinkCoordinator : inherits
+DataThresholdValidator <|.. DefaultDataThresholdValidator : conforms to
+PersonalityAnalysisService <|.. DefaultPersonalityAnalysisService : conforms to
+CaseIterable -- TimeOfDay : inherits
+SlogansServiceProtocol <|.. SlogansService : conforms to
+SlogansServiceProtocol <|.. MockSlogansService : conforms to
+String -- HabitsAssistantSource : inherits
+CaseIterable -- HabitsAssistantSource : inherits
+UserActionTrackerService <|.. NoOpUserActionTrackerService : conforms to
+UserActionTrackerService <|.. DebugUserActionTrackerService : conforms to
+HabitSuggestionsService <|.. DefaultHabitSuggestionsService : conforms to
+FeatureGatingService <|.. BuildConfigFeatureGatingService : conforms to
+BuildConfigurationService <|.. DefaultBuildConfigurationService : conforms to
+ObservableObject <|-- NavigationService : inherits
+PaywallService <|.. MockPaywallService : conforms to
+PaywallService <|.. NoOpPaywallService : conforms to
+PaywallService <|.. StoreKitPaywallService : conforms to
+PaywallService <|.. SimplePaywallService : conforms to
+View <|-- SettingsRoot : inherits
+View <|-- SettingsContentView : inherits
+View <|-- SettingsFormView : inherits
+View <|-- SettingsSavedConfirmationView : inherits
+View <|-- PersonalityInsightsSettingsRow : inherits
+View <|-- AvatarView : inherits
+View <|-- AvatarImagePicker : inherits
+View <|-- CategoryManagementView : inherits
+View <|-- CategoryRowView : inherits
+View <|-- HabitDetailView : inherits
+View <|-- HabitFormView : inherits
+View <|-- BasicInfoSection : inherits
+Hashable -- BasicInfoSection.FormField : inherits
+View <|-- ScheduleSection : inherits
+View <|-- DaysOfWeekSelector : inherits
+View <|-- CategorySection : inherits
+View <|-- AppearanceSection : inherits
+View <|-- DeleteSection : inherits
+View <|-- ActiveStatusSection : inherits
+CaseIterable -- ScheduleType : inherits
+View <|-- ReminderSection : inherits
+View <|-- ReminderTimeRow : inherits
+View <|-- AddReminderSheet : inherits
+View <|-- HabitsRoot : inherits
+View <|-- HabitsContentView : inherits
+View <|-- HabitsListView : inherits
+View <|-- HabitRowView : inherits
+View <|-- OperationStatusView : inherits
+View <|-- HorizontalCarousel : inherits
+View <|-- Chip : inherits
+View <|-- ConfirmationDialog : inherits
+View <|-- CategoryFilterCarousel : inherits
+View <|-- CategorySelectionView : inherits
+View <|-- AddCustomCategorySheet : inherits
+View <|-- ErrorView : inherits
+AnalyzeWeeklyPatternsUseCaseProtocol <|.. AnalyzeWeeklyPatternsUseCase : conforms to
+GenerateProgressChartDataUseCaseProtocol <|.. GenerateProgressChartDataUseCase : conforms to
+CalculateStreakAnalysisUseCaseProtocol <|.. CalculateStreakAnalysisUseCase : conforms to
+CalculateHabitPerformanceUseCaseProtocol <|.. CalculateHabitPerformanceUseCase : conforms to
+AggregateCategoryPerformanceUseCaseProtocol <|.. AggregateCategoryPerformanceUseCase : conforms to
+PerformanceAnalysisService <|.. PerformanceAnalysisServiceImpl : conforms to
+HabitAnalyticsService <|.. HabitAnalyticsServiceImpl : conforms to
+HabitScheduleAnalyzerProtocol <|.. HabitScheduleAnalyzer : conforms to
+View <|-- DashboardView : inherits
+View <|-- DashboardRoot : inherits
+View <|-- HabitPerformanceRow : inherits
+View <|-- CircularProgressView : inherits
+View <|-- StatsCard : inherits
+ObservableObject <|-- DashboardViewModel : inherits
+CaseIterable -- DashboardViewModel.TimePeriod : inherits
+Identifiable <|-- DashboardViewModel.HabitPerformanceViewModel : inherits
+Identifiable <|-- DashboardViewModel.ChartDataPointViewModel : inherits
+Identifiable <|-- DashboardViewModel.DayOfWeekPerformanceViewModel : inherits
+Identifiable <|-- DashboardViewModel.CategoryPerformanceViewModel : inherits
+View <|-- HabitsAssistantView : inherits
+View <|-- HabitSuggestionRow : inherits
+View <|-- HabitsAssistantSheet : inherits
+PreferenceKey <|-- CardHeightPreferenceKey : inherits
+View <|-- TipsCarouselView : inherits
+View <|-- TipCard : inherits
+View <|-- ShowMoreTipCard : inherits
+View <|-- TipCardPlaceholder : inherits
+View <|-- TipDetailView : inherits
+PreviewProvider <|-- TipDetailView_Previews : inherits
+View <|-- TipsBottomSheet : inherits
+View <|-- TipListRow : inherits
+View <|-- TipListRowContent : inherits
+View <|-- TipDetailContentView : inherits
+View <|-- OverviewV2Root : inherits
+View <|-- WeeklyOverviewCard : inherits
+View <|-- SmartInsightsCard : inherits
+Identifiable <|-- OverviewPersonalityInsight : inherits
+Hashable <|-- OverviewPersonalityInsight : inherits
+CaseIterable -- OverviewPersonalityInsightType : inherits
+View <|-- PersonalityInsightsCard : inherits
+View <|-- InsightRow : inherits
+PreviewProvider <|-- PersonalityInsightsCard_Previews : inherits
+View <|-- MonthlyCalendarCard : inherits
+View <|-- QuickActionsCard : inherits
+View <|-- ActiveStreaksCard : inherits
+ViewModifier <|-- CardStyle : inherits
+View <|-- TodaysSummaryCard : inherits
+View <|-- InspirationCard : inherits
+View <|-- OverviewV2View : inherits
+Identifiable <|-- StreakInfo : inherits
+ObservableObject <|-- OverviewV2ViewModel : inherits
+CaseIterable -- OverviewV2ViewModel.InspirationTrigger : inherits
+Hashable -- OverviewV2ViewModel.InspirationTrigger : inherits
+View <|-- MonthlyCalendarView : inherits
+View <|-- CalendarGridView : inherits
+View <|-- CalendarDayView : inherits
+ViewModifier <|-- CelebrationAnimationModifier : inherits
+View <|-- ConfettiParticle : inherits
+View <|-- StreakInfoView : inherits
+View <|-- OverviewRoot : inherits
+View <|-- OverviewContentView : inherits
+View <|-- OverviewListView : inherits
+PersonalityAnalysisDataSource <|.. SwiftDataPersonalityAnalysisDataSource : conforms to
+PersonalityAnalysisRepositoryProtocol <|.. PersonalityAnalysisRepositoryImpl : conforms to
+ValidateAnalysisDataUseCase <|.. DefaultValidateAnalysisDataUseCase : conforms to
+GetPersonalityInsightsUseCase <|.. DefaultGetPersonalityInsightsUseCase : conforms to
+Identifiable <|-- PersonalityInsight : inherits
+Codable <|-- PersonalityInsight : inherits
+String -- PersonalityInsight.InsightCategory : inherits
+CaseIterable -- PersonalityInsight.InsightCategory : inherits
+Codable -- PersonalityInsight.InsightCategory : inherits
+Codable <|-- PersonalityInsightCollection : inherits
+GetPersonalityProfileUseCase <|.. DefaultGetPersonalityProfileUseCase : conforms to
+AnalyzePersonalityUseCase <|.. DefaultAnalyzePersonalityUseCase : conforms to
+UpdatePersonalityAnalysisUseCase <|.. DefaultUpdatePersonalityAnalysisUseCase : conforms to
+Identifiable <|-- PersonalityProfile : inherits
+Codable <|-- PersonalityProfile : inherits
+Hashable <|-- PersonalityProfile : inherits
+Codable <|-- AnalysisMetadata : inherits
+Hashable <|-- AnalysisMetadata : inherits
+Identifiable <|-- ThresholdRequirement : inherits
+Codable <|-- ThresholdRequirement : inherits
+Hashable <|-- ThresholdRequirement : inherits
+String -- RequirementCategory : inherits
+CaseIterable -- RequirementCategory : inherits
+Codable -- RequirementCategory : inherits
+Codable <|-- ProgressStatus : inherits
+Hashable <|-- ProgressStatus : inherits
+Codable <|-- AnalysisEligibility : inherits
+Hashable <|-- AnalysisEligibility : inherits
+Codable <|-- HabitCompletionStats : inherits
+Identifiable <|-- PersonalityAnalysisPreferences : inherits
+Codable <|-- PersonalityAnalysisPreferences : inherits
+Hashable <|-- PersonalityAnalysisPreferences : inherits
+String -- AnalysisFrequency : inherits
+CaseIterable -- AnalysisFrequency : inherits
+Codable -- AnalysisFrequency : inherits
+String -- AnalysisSensitivity : inherits
+CaseIterable -- AnalysisSensitivity : inherits
+Codable -- AnalysisSensitivity : inherits
+String -- PersonalityTrait : inherits
+CaseIterable -- PersonalityTrait : inherits
+Codable -- PersonalityTrait : inherits
+Hashable -- PersonalityTrait : inherits
+String -- ConfidenceLevel : inherits
+CaseIterable -- ConfidenceLevel : inherits
+Codable -- ConfidenceLevel : inherits
+Error -- PersonalityAnalysisError : inherits
+LocalizedError -- PersonalityAnalysisError : inherits
+Equatable -- PersonalityAnalysisError : inherits
+Codable <|-- PersonalityIndicator : inherits
+Hashable <|-- PersonalityIndicator : inherits
+String -- IndicatorCategory : inherits
+CaseIterable -- IndicatorCategory : inherits
+Codable -- IndicatorCategory : inherits
+View <|-- PersonalityPrivacySettingsView : inherits
+View <|-- DataUsageInfoView : inherits
+View <|-- PersonalityInsightsView : inherits
+View <|-- BasicPrivacyView : inherits
+View <|-- PersonalityProfileView : inherits
+View <|-- TraitRowView : inherits
+View <|-- ConfidenceBadge : inherits
+View <|-- AnalysisDetailRow : inherits
+View <|-- InsightRowView : inherits
+View <|-- PersonalityErrorView : inherits
+View <|-- FrequencySelectionView : inherits
+View <|-- ConfidenceInfoSheet : inherits
+View <|-- DataThresholdPlaceholderView : inherits
+View <|-- RequirementRowView : inherits
+View <|-- PersonalityAnalysisDeepLinkSheet : inherits
+View <|-- WelcomeMessageView : inherits
+ObservableObject <|-- PersonalityInsightsViewModel : inherits
+Identifiable <|-- PaywallItem : inherits
+Equatable <|-- PaywallItem : inherits
+View <|-- PaywallView : inherits
+View <|-- BenefitCard : inherits
+View <|-- PricingCard : inherits
+View <|-- OnboardingPage1View : inherits
+View <|-- OnboardingFlowView : inherits
+View <|-- OnboardingContentView : inherits
+View <|-- OnboardingProgressView : inherits
+View <|-- OnboardingNavigationView : inherits
+View <|-- OnboardingPage2View : inherits
+View <|-- FeatureHighlight : inherits
+View <|-- OnboardingPage4View : inherits
+View <|-- TipHighlight : inherits
+View <|-- OnboardingPage3View : inherits
+View <|-- CustomizationHighlight : inherits
+View <|-- OnboardingPage5View : inherits
+View <|-- NotificationBenefit : inherits
+Hashable -- RootTab : inherits
+View <|-- RootTabView : inherits
+App <|-- RitualistApp : inherits
+NSObject <|-- AppDelegate : inherits
+UIApplicationDelegate <|-- AppDelegate : inherits
+UNUserNotificationCenterDelegate <|-- AppDelegate : inherits
+View <|-- RootAppView : inherits
+Error -- CategoryDataSourceError : inherits
+HabitLocalDataSourceProtocol <|.. HabitLocalDataSource : conforms to
+LogLocalDataSourceProtocol <|.. LogLocalDataSource : conforms to
+ProfileLocalDataSourceProtocol <|.. ProfileLocalDataSource : conforms to
+TipLocalDataSourceProtocol <|.. TipLocalDataSource : conforms to
+OnboardingLocalDataSourceProtocol <|.. OnboardingLocalDataSource : conforms to
+CategoryLocalDataSourceProtocol <|.. SwiftDataCategoryLocalDataSource : conforms to
+CategoryLocalDataSourceProtocol <|.. MockCategoryLocalDataSource : conforms to
+CategoryLocalDataSourceProtocol <|.. CategoryLocalDataSource : conforms to
+HabitRepository <|.. HabitRepositoryImpl : conforms to
+OnboardingRepository <|.. OnboardingRepositoryImpl : conforms to
+LogRepository <|.. LogRepositoryImpl : conforms to
+CategoryRepository <|.. CategoryRepositoryImpl : conforms to
+ProfileRepository <|.. ProfileRepositoryImpl : conforms to
+TipRepository <|.. TipRepositoryImpl : conforms to
+"@unchecked Sendable" <|-- SDHabitLog : inherits
+"@unchecked Sendable" <|-- SDHabit : inherits
+"@unchecked Sendable" <|-- SDOnboardingState : inherits
+"@unchecked Sendable" <|-- SDCategory : inherits
+"@unchecked Sendable" <|-- SDUserProfile : inherits
+Equatable -- PurchaseState : inherits
+Error -- AuthError : inherits
+LocalizedError -- AuthError : inherits
+Error -- PaywallError : inherits
+LocalizedError -- PaywallError : inherits
+String -- ProductDuration : inherits
+Codable -- ProductDuration : inherits
+CaseIterable -- ProductDuration : inherits
+String -- SubscriptionPlan : inherits
+Codable -- SubscriptionPlan : inherits
+CaseIterable -- SubscriptionPlan : inherits
+Codable -- HabitSchedule : inherits
+Equatable -- HabitSchedule : inherits
+Hashable -- HabitSchedule : inherits
+String -- TipCategory : inherits
+Codable -- TipCategory : inherits
+CaseIterable -- TipCategory : inherits
+Codable -- HabitKind : inherits
+Equatable -- HabitKind : inherits
+Hashable -- HabitKind : inherits
+CalculateCurrentStreakUseCase <|.. CalculateCurrentStreak : conforms to
+CalculateBestStreakUseCase <|.. CalculateBestStreak : conforms to
+GetHabitsFromSuggestionsUseCase <|.. GetHabitsFromSuggestions : conforms to
+ScheduleHabitRemindersUseCase <|.. ScheduleHabitReminders : conforms to
+LogHabitFromNotificationUseCase <|.. LogHabitFromNotification : conforms to
+SnoozeHabitReminderUseCase <|.. SnoozeHabitReminder : conforms to
+HandleNotificationActionUseCase <|.. HandleNotificationAction : conforms to
+CancelHabitRemindersUseCase <|.. CancelHabitReminders : conforms to
+Error -- CategoryError : inherits
+CreateHabitUseCase <|.. CreateHabit : conforms to
+GetActiveHabitsUseCase <|.. GetActiveHabits : conforms to
+GetAllHabitsUseCase <|.. GetAllHabits : conforms to
+UpdateHabitUseCase <|.. UpdateHabit : conforms to
+DeleteHabitUseCase <|.. DeleteHabit : conforms to
+ToggleHabitActiveStatusUseCase <|.. ToggleHabitActiveStatus : conforms to
+ReorderHabitsUseCase <|.. ReorderHabits : conforms to
+ValidateHabitUniquenessUseCase <|.. ValidateHabitUniqueness : conforms to
+GetHabitsByCategoryUseCase <|.. GetHabitsByCategory : conforms to
+OrphanHabitsFromCategoryUseCase <|.. OrphanHabitsFromCategory : conforms to
+LoadProfileUseCase <|.. LoadProfile : conforms to
+SaveProfileUseCase <|.. SaveProfile : conforms to
+GetLogsUseCase <|.. GetLogs : conforms to
+LogHabitUseCase <|.. LogHabit : conforms to
+DeleteLogUseCase <|.. DeleteLog : conforms to
+GetLogForDateUseCase <|.. GetLogForDate : conforms to
+GetAllTipsUseCase <|.. GetAllTips : conforms to
+GetFeaturedTipsUseCase <|.. GetFeaturedTips : conforms to
+GetTipByIdUseCase <|.. GetTipById : conforms to
+GetTipsByCategoryUseCase <|.. GetTipsByCategory : conforms to
+GetAllCategoriesUseCase <|.. GetAllCategories : conforms to
+GetCategoryByIdUseCase <|.. GetCategoryById : conforms to
+GetActiveCategoriesUseCase <|.. GetActiveCategories : conforms to
+GetPredefinedCategoriesUseCase <|.. GetPredefinedCategories : conforms to
+GetCustomCategoriesUseCase <|.. GetCustomCategories : conforms to
+CreateCustomCategoryUseCase <|.. CreateCustomCategory : conforms to
+UpdateCategoryUseCase <|.. UpdateCategory : conforms to
+DeleteCategoryUseCase <|.. DeleteCategory : conforms to
+ValidateCategoryNameUseCase <|.. ValidateCategoryName : conforms to
+GetOnboardingStateUseCase <|.. GetOnboardingState : conforms to
+SaveOnboardingStateUseCase <|.. SaveOnboardingState : conforms to
+CompleteOnboardingUseCase <|.. CompleteOnboarding : conforms to
+UpdateProfileSubscriptionUseCase <|.. UpdateProfileSubscription : conforms to
+GenerateCalendarDaysUseCase <|.. GenerateCalendarDays : conforms to
+GenerateCalendarGridUseCase <|.. GenerateCalendarGrid : conforms to
+ToggleHabitLogUseCase <|.. ToggleHabitLog : conforms to
+GetCurrentSloganUseCase <|.. GetCurrentSlogan : conforms to
+RequestNotificationPermissionUseCase <|.. RequestNotificationPermission : conforms to
+CheckNotificationStatusUseCase <|.. CheckNotificationStatus : conforms to
+CheckFeatureAccessUseCase <|.. CheckFeatureAccess : conforms to
+CheckHabitCreationLimitUseCase <|.. CheckHabitCreationLimit : conforms to
+GetPaywallMessageUseCase <|.. GetPaywallMessage : conforms to
+TrackUserActionUseCase <|.. TrackUserAction : conforms to
+TrackHabitLoggedUseCase <|.. TrackHabitLogged : conforms to
+LoadPaywallProductsUseCase <|.. LoadPaywallProducts : conforms to
+PurchaseProductUseCase <|.. PurchaseProduct : conforms to
+RestorePurchasesUseCase <|.. RestorePurchases : conforms to
+CheckProductPurchasedUseCase <|.. CheckProductPurchased : conforms to
+ResetPurchaseStateUseCase <|.. ResetPurchaseState : conforms to
+GetPurchaseStateUseCase <|.. GetPurchaseState : conforms to
+GetHabitCountUseCase <|.. GetHabitCount : conforms to
+CreateHabitFromSuggestionUseCase <|.. CreateHabitFromSuggestion : conforms to
+CheckPremiumStatusUseCase <|.. CheckPremiumStatus : conforms to
+GetCurrentUserProfileUseCase <|.. GetCurrentUserProfile : conforms to
+ValidateHabitScheduleUseCase <|.. ValidateHabitSchedule : conforms to
+CheckWeeklyTargetUseCase <|.. CheckWeeklyTarget : conforms to
+Identifiable <|-- HabitLog : inherits
+Codable <|-- HabitLog : inherits
+Hashable <|-- HabitLog : inherits
+Identifiable <|-- HabitSuggestion : inherits
+Hashable <|-- HabitSuggestion : inherits
+Identifiable <|-- Tip : inherits
+Codable <|-- Tip : inherits
+Hashable <|-- Tip : inherits
+Identifiable <|-- HabitNotification : inherits
+Codable <|-- HabitNotification : inherits
+Hashable <|-- HabitNotification : inherits
+Codable <|-- ReminderTime : inherits
+Hashable <|-- ReminderTime : inherits
+Identifiable <|-- UserProfile : inherits
+Codable <|-- UserProfile : inherits
+Hashable <|-- UserProfile : inherits
+Identifiable <|-- Category : inherits
+Hashable <|-- Category : inherits
+Codable <|-- Category : inherits
+Identifiable <|-- Product : inherits
+Codable <|-- Product : inherits
+Hashable <|-- Product : inherits
+Codable <|-- OnboardingState : inherits
+Hashable <|-- OnboardingState : inherits
+String -- NotificationAction : inherits
+CaseIterable -- NotificationAction : inherits
+Codable -- NotificationAction : inherits
+Identifiable <|-- PaywallBenefit : inherits
+Hashable <|-- PaywallBenefit : inherits
+Identifiable <|-- Habit : inherits
+Codable <|-- Habit : inherits
+Hashable <|-- Habit : inherits
+UNUserNotificationCenterDelegate <|-- LocalNotificationService : inherits
+DateUtils +-- DateUtils.WeekdaySymbolStyle
+DebugLogger +-- DebugLogger.LogEntry
+LocalizationTesting +-- LocalizationTesting.TestStrings
+LayoutValidator +-- LayoutValidator.ComponentConstraints
+LayoutValidator +-- LayoutValidator.StringConstraints
+ValidationResult +-- ValidationResult.Severity
+PersonalityDeepLinkCoordinator +-- PersonalityDeepLinkCoordinator.PersonalityNotificationAction
+DefaultDataThresholdValidator +-- DefaultDataThresholdValidator.Thresholds
+MockPaywallService +-- MockPaywallService.TestingScenario
+Strings +-- Strings.App
+Strings +-- Strings.Navigation
+Strings +-- Strings.Button
+Strings +-- Strings.Loading
+Strings +-- Strings.Status
+Strings +-- Strings.Error
+Strings +-- Strings.EmptyState
+Strings +-- Strings.Form
+Strings +-- Strings.Validation
+Strings +-- Strings.Settings
+Strings +-- Strings.DayOfWeek
+Strings +-- Strings.Overview
+Strings +-- Strings.Calendar
+Strings +-- Strings.Dialog
+Strings +-- Strings.Avatar
+Strings +-- Strings.Notification
+Strings +-- Strings.Accessibility
+Strings +-- Strings.Format
+Strings +-- Strings.Tips
+Strings +-- Strings.Dashboard
+Strings +-- Strings.Paywall
+BasicInfoSection +-- BasicInfoSection.FormField
+DashboardViewModel +-- DashboardViewModel.TimePeriod
+DashboardViewModel +-- DashboardViewModel.HabitPerformanceViewModel
+DashboardViewModel +-- DashboardViewModel.ChartDataPointViewModel
+DashboardViewModel +-- DashboardViewModel.WeeklyPatternsViewModel
+DashboardViewModel +-- DashboardViewModel.DayOfWeekPerformanceViewModel
+DashboardViewModel +-- DashboardViewModel.StreakAnalysisViewModel
+DashboardViewModel +-- DashboardViewModel.CategoryPerformanceViewModel
+SmartInsight +-- SmartInsight.InsightType
+OverviewV2ViewModel +-- OverviewV2ViewModel.InspirationTrigger
+PersonalityInsight +-- PersonalityInsight.InsightCategory
+PersonalityInsightsViewModel +-- PersonalityInsightsViewModel.ViewState
+UserActionTrackerService <.. UserActionTrackerService0 : ext
+UserActionEventMapper <.. UserActionEventMapper1 : ext
+UserActionEventMapper <.. UserActionEventMapper2 : ext
+SecureSubscriptionService <.. SecureSubscriptionService5 : ext
+PersonalityTrait <.. PersonalityTrait6 : ext
+LocalNotificationService <.. LocalNotificationService7 : ext
+PersonalityTrait <.. PersonalityTrait8 : ext
+ConfidenceLevel <.. ConfidenceLevel9 : ext
+BuildConfigFeatureGatingService <.. BuildConfigFeatureGatingService10 : ext
+SmartInsight <.. SmartInsight12 : ext
+PersonalityIndicator <.. PersonalityIndicator15 : ext
+ConfidenceLevel <.. ConfidenceLevel16 : ext
+PersonalityTrait <.. PersonalityTrait18 : ext
+PaywallViewModel <.. PaywallViewModel19 : ext
+@enduml

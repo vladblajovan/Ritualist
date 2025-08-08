@@ -20,13 +20,16 @@ public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
     
     private let personalityService: PersonalityAnalysisService
     private let thresholdValidator: DataThresholdValidator
+    private let repository: PersonalityAnalysisRepositoryProtocol
     
     public init(
         personalityService: PersonalityAnalysisService,
-        thresholdValidator: DataThresholdValidator
+        thresholdValidator: DataThresholdValidator,
+        repository: PersonalityAnalysisRepositoryProtocol
     ) {
         self.personalityService = personalityService
         self.thresholdValidator = thresholdValidator
+        self.repository = repository
     }
     
     public func execute(for userId: UUID) async throws -> PersonalityProfile {
@@ -38,6 +41,10 @@ public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
         
         // Perform the analysis using the service
         let profile = try await personalityService.analyzePersonality(for: userId)
+        
+        // CRITICAL: Save the profile to the database!
+        try await repository.savePersonalityProfile(profile)
+        print("✅ [AnalyzePersonalityUseCase] Personality profile saved to database")
         
         return profile
     }

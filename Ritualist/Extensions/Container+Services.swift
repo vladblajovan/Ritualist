@@ -94,6 +94,13 @@ extension Container {
         .singleton
     }
     
+    // MARK: - Subscription Service
+    
+    var secureSubscriptionService: Factory<SecureSubscriptionService> {
+        self { MockSecureSubscriptionService() }
+        .singleton
+    }
+    
     // MARK: - Paywall Service
     
     // PaywallService requires MainActor isolation
@@ -101,7 +108,10 @@ extension Container {
     var paywallService: Factory<PaywallService> {
         self { @MainActor in
             #if DEBUG
-            let mockPaywall = MockPaywallService(testingScenario: .randomResults)
+            let mockPaywall = MockPaywallService(
+                subscriptionService: self.secureSubscriptionService(),
+                testingScenario: .randomResults
+            )
             mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
             return mockPaywall
             #else

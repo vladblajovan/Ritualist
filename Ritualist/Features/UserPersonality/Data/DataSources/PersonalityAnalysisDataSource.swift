@@ -36,8 +36,8 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
     
     public func getLatestProfile(for userId: UUID) async throws -> PersonalityProfile? {
         let userIdString = userId.uuidString
-        let descriptor = FetchDescriptor<PersonalityProfileModel>(
-            predicate: #Predicate<PersonalityProfileModel> { profile in
+        let descriptor = FetchDescriptor<SDPersonalityProfile>(
+            predicate: #Predicate<SDPersonalityProfile> { profile in
                 profile.userId == userIdString
             },
             sortBy: [SortDescriptor(\.analysisDate, order: .reverse)]
@@ -48,15 +48,15 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
     }
     
     public func saveProfile(_ profile: PersonalityProfile) async throws {
-        let model = PersonalityProfileModel.fromEntity(profile)
+        let model = SDPersonalityProfile.fromEntity(profile)
         modelContext.insert(model)
         try modelContext.save()
     }
     
     public func getProfileHistory(for userId: UUID) async throws -> [PersonalityProfile] {
         let userIdString = userId.uuidString
-        let descriptor = FetchDescriptor<PersonalityProfileModel>(
-            predicate: #Predicate<PersonalityProfileModel> { profile in
+        let descriptor = FetchDescriptor<SDPersonalityProfile>(
+            predicate: #Predicate<SDPersonalityProfile> { profile in
                 profile.userId == userIdString
             },
             sortBy: [SortDescriptor(\.analysisDate, order: .reverse)]
@@ -67,8 +67,8 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
     }
     
     public func deleteProfile(profileId: String) async throws {
-        let descriptor = FetchDescriptor<PersonalityProfileModel>(
-            predicate: #Predicate<PersonalityProfileModel> { profile in
+        let descriptor = FetchDescriptor<SDPersonalityProfile>(
+            predicate: #Predicate<SDPersonalityProfile> { profile in
                 profile.id == profileId
             }
         )
@@ -82,8 +82,8 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
     
     public func deleteAllProfiles(for userId: UUID) async throws {
         let userIdString = userId.uuidString
-        let descriptor = FetchDescriptor<PersonalityProfileModel>(
-            predicate: #Predicate<PersonalityProfileModel> { profile in
+        let descriptor = FetchDescriptor<SDPersonalityProfile>(
+            predicate: #Predicate<SDPersonalityProfile> { profile in
                 profile.userId == userIdString
             }
         )

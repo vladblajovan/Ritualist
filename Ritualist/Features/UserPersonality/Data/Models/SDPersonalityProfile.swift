@@ -1,5 +1,5 @@
 //
-//  PersonalityProfileModel.swift
+//  SDPersonalityProfile.swift
 //  Ritualist
 //
 //  Created by Claude on 06.08.2025.
@@ -10,7 +10,7 @@ import SwiftData
 
 /// SwiftData model for storing personality profiles
 @Model
-public final class PersonalityProfileModel {
+public final class SDPersonalityProfile {
     @Attribute(.unique) public var id: String
     public var userId: String
     public var analysisDate: Date
@@ -90,8 +90,8 @@ public final class PersonalityProfileModel {
     }
     
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityProfileModel {
-        PersonalityProfileModel(
+    public static func fromEntity(_ entity: PersonalityProfile) -> SDPersonalityProfile {
+        SDPersonalityProfile(
             id: entity.id.uuidString,
             userId: entity.userId.uuidString,
             analysisDate: entity.analysisMetadata.analysisDate,

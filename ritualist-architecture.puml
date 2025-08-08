@@ -1,0 +1,298 @@
+@startuml Ritualist iOS Architecture
+
+!theme aws-orange
+skinparam backgroundColor white
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+title Ritualist iOS App - Clean Architecture Overview
+
+' ==== Application Layer ====
+package "Application Layer" as AppLayer {
+    component "RitualistApp" as RitualistApp
+    note right of RitualistApp: Entry point\nSetup notifications\nDelegate handling
+    
+    component "RootTabView" as RootTabView
+    note right of RootTabView: Tab navigation\nOnboarding flow\nAppearance management
+    
+    component "AppDelegate" as AppDelegate
+    note right of AppDelegate: Notification handling\nPersonality deep links
+}
+
+' ==== Features Layer ====
+package "Features Layer" as FeaturesLayer {
+    package "Habits Feature" as HabitsFeature {
+        component "HabitsView" as HabitsView
+        component "HabitsViewModel" as HabitsViewModel
+        component "HabitDetailView" as HabitDetailView
+        component "HabitDetailViewModel" as HabitDetailViewModel
+    }
+    
+    package "Overview Feature" as OverviewFeature {
+        component "OverviewV2View" as OverviewV2View
+        component "OverviewV2ViewModel" as OverviewV2ViewModel
+        component "MonthlyCalendarCard" as MonthlyCalendarCard
+        component "PersonalityInsightsCard" as PersonalityInsightsCard
+    }
+    
+    package "Dashboard Feature" as DashboardFeature {
+        component "DashboardView" as DashboardView
+        component "DashboardViewModel" as DashboardViewModel
+        component "HabitAnalyticsService" as HabitAnalyticsService
+    }
+    
+    package "Settings Feature" as SettingsFeature {
+        component "SettingsView" as SettingsView
+        component "SettingsViewModel" as SettingsViewModel
+    }
+    
+    package "Paywall Feature" as PaywallFeature {
+        component "PaywallView" as PaywallView
+        component "PaywallViewModel" as PaywallViewModel
+    }
+    
+    package "User Personality Feature" as PersonalityFeature {
+        component "PersonalityInsightsView" as PersonalityInsightsView
+        component "PersonalityInsightsViewModel" as PersonalityInsightsViewModel
+        component "PersonalityAnalysisService" as PersonalityAnalysisService
+    }
+}
+
+' ==== Domain Layer ====
+package "Domain Layer" as DomainLayer {
+    package "Entities" as DomainEntities {
+        component "Habit" as HabitEntity
+        component "HabitLog" as HabitLogEntity
+        component "UserProfile" as UserProfileEntity
+        component "Category" as CategoryEntity
+        component "PersonalityProfile" as PersonalityProfileEntity
+    }
+    
+    package "Use Cases" as UseCases {
+        component "CreateHabit" as CreateHabitUC
+        component "GetActiveHabits" as GetActiveHabitsUC
+        component "LogHabit" as LogHabitUC
+        component "ToggleHabitLog" as ToggleHabitLogUC
+        component "LoadProfile" as LoadProfileUC
+        component "AnalyzePersonality" as AnalyzePersonalityUC
+        component "CreateHabitFromSuggestion" as CreateHabitFromSuggestionUC
+    }
+    
+    package "Repository Protocols" as RepoProtocols {
+        interface "HabitRepository" as IHabitRepository
+        interface "LogRepository" as ILogRepository
+        interface "ProfileRepository" as IProfileRepository
+        interface "CategoryRepository" as ICategoryRepository
+        interface "PersonalityRepository" as IPersonalityRepository
+    }
+}
+
+' ==== Data Layer ====
+package "Data Layer" as DataLayer {
+    package "SwiftData Models" as SDModels {
+        component "SDHabit" as SDHabit
+        component "SDHabitLog" as SDHabitLog
+        component "SDUserProfile" as SDUserProfile
+        component "SDCategory" as SDCategory
+        component "SDPersonalityProfile" as SDPersonalityProfile
+    }
+    
+    package "Repository Implementations" as RepoImpl {
+        component "HabitRepositoryImpl" as HabitRepoImpl
+        component "LogRepositoryImpl" as LogRepoImpl
+        component "ProfileRepositoryImpl" as ProfileRepoImpl
+        component "CategoryRepositoryImpl" as CategoryRepoImpl
+        component "PersonalityRepositoryImpl" as PersonalityRepoImpl
+    }
+    
+    package "Data Sources" as DataSources {
+        component "SwiftDataStack" as SwiftDataStack
+        component "LocalDataSources" as LocalDataSources
+    }
+    
+    package "Mappers" as Mappers {
+        component "Entity ↔ Model Mappers" as EntityMappers
+    }
+}
+
+' ==== Core Layer ====
+package "Core Layer" as CoreLayer {
+    package "Services" as Services {
+        component "FeatureGatingService" as FeatureGatingService
+        component "PaywallService" as PaywallService
+        component "SecureSubscriptionService" as SecureSubscriptionService
+        component "UserService" as UserService
+        component "NotificationService" as NotificationService
+        component "NavigationService" as NavigationService
+        component "UserActionTrackerService" as UserActionTrackerService
+        component "AppearanceManager" as AppearanceManager
+        component "BuildConfigFeatureGatingService" as BuildConfigFeatureGatingService
+    }
+    
+    package "Utilities" as Utilities {
+        component "DateUtils" as DateUtils
+        component "NumberUtils" as NumberUtils
+        component "DebugLogger" as DebugLogger
+    }
+    
+    package "Design System" as DesignSystem {
+        component "Colors" as Colors
+        component "Typography" as Typography
+        component "Spacing" as Spacing
+        component "Animations" as Animations
+    }
+}
+
+' ==== Dependency Injection ====
+package "Dependency Injection" as DILayer {
+    component "Container (FactoryKit)" as Container
+    note right of Container: Factory-based DI\nSingleton management\nMainActor isolation
+    
+    package "Container Extensions" as ContainerExt {
+        component "Container+Services" as ContainerServices
+        component "Container+HabitUseCases" as ContainerHabits
+        component "Container+ViewModels" as ContainerViewModels
+        component "Container+Repositories" as ContainerRepos
+        component "Container+DataSources" as ContainerDataSources
+    }
+}
+
+' ==== External Dependencies ====
+package "External Systems" as ExternalSystems {
+    component "SwiftData" as SwiftData
+    component "UserNotifications" as UserNotifications
+    component "StoreKit" as StoreKit
+    component "FactoryKit" as FactoryKit
+}
+
+' ===== RELATIONSHIPS =====
+
+' Application Layer Relationships
+RitualistApp --> RootTabView : creates
+RootTabView --> AppDelegate : uses
+RootTabView --> HabitsFeature : navigates to
+RootTabView --> OverviewFeature : navigates to
+RootTabView --> DashboardFeature : navigates to
+RootTabView --> SettingsFeature : navigates to
+
+' Features to ViewModels
+HabitsView --> HabitsViewModel : observes
+HabitDetailView --> HabitDetailViewModel : observes
+OverviewV2View --> OverviewV2ViewModel : observes
+DashboardView --> DashboardViewModel : observes
+SettingsView --> SettingsViewModel : observes
+PaywallView --> PaywallViewModel : observes
+PersonalityInsightsView --> PersonalityInsightsViewModel : observes
+
+' ViewModels to Use Cases
+HabitsViewModel --> CreateHabitUC : calls
+HabitsViewModel --> GetActiveHabitsUC : calls
+HabitsViewModel --> CreateHabitFromSuggestionUC : calls
+OverviewV2ViewModel --> ToggleHabitLogUC : calls
+OverviewV2ViewModel --> LoadProfileUC : calls
+PersonalityInsightsViewModel --> AnalyzePersonalityUC : calls
+
+' Use Cases to Repository Protocols
+CreateHabitUC --> IHabitRepository : uses
+GetActiveHabitsUC --> IHabitRepository : uses
+LogHabitUC --> ILogRepository : uses
+LoadProfileUC --> IProfileRepository : uses
+AnalyzePersonalityUC --> IPersonalityRepository : uses
+
+' Repository Implementations
+HabitRepoImpl .up.|> IHabitRepository : implements
+LogRepoImpl .up.|> ILogRepository : implements
+ProfileRepoImpl .up.|> IProfileRepository : implements
+CategoryRepoImpl .up.|> ICategoryRepository : implements
+PersonalityRepoImpl .up.|> IPersonalityRepository : implements
+
+' Data Layer Relationships
+HabitRepoImpl --> SwiftDataStack : uses
+LogRepoImpl --> SwiftDataStack : uses
+ProfileRepoImpl --> SwiftDataStack : uses
+CategoryRepoImpl --> SwiftDataStack : uses
+PersonalityRepoImpl --> SwiftDataStack : uses
+
+' SwiftData Models
+SwiftDataStack --> SDHabit : manages
+SwiftDataStack --> SDHabitLog : manages
+SwiftDataStack --> SDUserProfile : manages
+SwiftDataStack --> SDCategory : manages
+SwiftDataStack --> SDPersonalityProfile : manages
+
+' Entity Mapping
+EntityMappers --> HabitEntity : maps to/from SDHabit
+EntityMappers --> HabitLogEntity : maps to/from SDHabitLog
+EntityMappers --> UserProfileEntity : maps to/from SDUserProfile
+EntityMappers --> CategoryEntity : maps to/from SDCategory
+EntityMappers --> PersonalityProfileEntity : maps to/from SDPersonalityProfile
+
+' Core Services Relationships
+PaywallService --> SecureSubscriptionService : uses
+FeatureGatingService --> UserService : uses
+BuildConfigFeatureGatingService --> FeatureGatingService : wraps
+UserService --> IProfileRepository : uses
+PersonalityAnalysisService --> IPersonalityRepository : uses
+
+' Dependency Injection Relationships
+Container --> ContainerServices : extends
+Container --> ContainerHabits : extends
+Container --> ContainerViewModels : extends
+Container --> ContainerRepos : extends
+Container --> ContainerDataSources : extends
+
+ContainerServices --> Services : creates
+ContainerHabits --> UseCases : creates
+ContainerViewModels --> HabitsViewModel : creates
+ContainerViewModels --> OverviewV2ViewModel : creates
+ContainerViewModels --> PaywallViewModel : creates
+ContainerRepos --> RepoImpl : creates
+ContainerDataSources --> DataSources : creates
+
+' ViewModels inject via FactoryKit
+HabitsViewModel --> Container : @Injected
+OverviewV2ViewModel --> Container : @Injected
+PaywallViewModel --> Container : @Injected
+PersonalityInsightsViewModel --> Container : @Injected
+
+' External Dependencies
+SwiftDataStack --> SwiftData : uses
+NotificationService --> UserNotifications : uses
+PaywallService --> StoreKit : uses
+Container --> FactoryKit : uses
+
+' Security Layer (Subscription)
+PaywallViewModel --> PaywallService : uses
+PaywallService --> SecureSubscriptionService : validates purchases
+FeatureGatingService --> SecureSubscriptionService : checks premium status
+
+' Build Configuration Integration
+BuildConfigFeatureGatingService --> FeatureGatingService : conditional wrapping
+note on link : #if ALL_FEATURES_ENABLED\nuses MockFeatureGatingService\n#else uses DefaultFeatureGatingService
+
+' Data Flow Arrows (Clean Architecture)
+AppLayer -down-> FeaturesLayer : user interaction
+FeaturesLayer -down-> DomainLayer : business logic
+DomainLayer -down-> DataLayer : data persistence
+CoreLayer -right-> FeaturesLayer : services
+DILayer -up-> FeaturesLayer : injection
+DILayer -up-> DomainLayer : injection
+DILayer -up-> DataLayer : injection
+
+' Notes
+note top of DomainLayer : **Domain Layer**\n- Pure business logic\n- No external dependencies\n- Repository protocols only
+note top of DataLayer : **Data Layer**\n- SwiftData persistence\n- Entity ↔ Model mapping\n- Repository implementations
+note top of CoreLayer : **Core Layer**\n- Shared services\n- Utilities & extensions\n- Design system
+note top of DILayer : **Dependency Injection**\n- FactoryKit-based\n- MainActor isolation\n- Singleton management
+
+' Legend
+legend right
+  |Color| Type |
+  |<#lightblue>| View Layer |
+  |<#lightgreen>| Domain Layer |
+  |<#lightyellow>| Data Layer |
+  |<#lightgray>| Core Services |
+  |<#lightpink>| Dependency Injection |
+endlegend
+
+@enduml

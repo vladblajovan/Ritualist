@@ -99,9 +99,6 @@ public protocol TrackHabitLoggedUseCase {
 }
 
 // MARK: - Auth Use Cases
-public protocol SignOutUserUseCase {
-    func execute() async throws
-}
 
 // MARK: - Paywall Use Cases
 public protocol LoadPaywallProductsUseCase {
@@ -535,67 +532,9 @@ public final class CompleteOnboarding: CompleteOnboardingUseCase {
 
 // MARK: - User Management Use Cases
 
-public protocol UpdateUserUseCase {
-    func execute(_ user: User) async throws -> User
-}
-
-public protocol UpdateUserSubscriptionUseCase {
-    func execute(user: User, product: Product) async throws -> User
-}
-
-// New UserService-based subscription update
+// UserService-based subscription update
 public protocol UpdateProfileSubscriptionUseCase {
     func execute(product: Product) async throws
-}
-
-public final class UpdateUser: UpdateUserUseCase {
-    private let userSession: any UserSessionProtocol
-    
-    public init(userSession: any UserSessionProtocol) {
-        self.userSession = userSession
-    }
-    
-    public func execute(_ user: User) async throws -> User {
-        try await userSession.updateUser(user)
-        return user
-    }
-}
-
-public final class UpdateUserSubscription: UpdateUserSubscriptionUseCase {
-    private let userSession: any UserSessionProtocol
-    private let paywallService: PaywallService
-    
-    public init(userSession: any UserSessionProtocol, paywallService: PaywallService) {
-        self.userSession = userSession
-        self.paywallService = paywallService
-    }
-    
-    public func execute(user: User, product: Product) async throws -> User {
-        // Business logic: Create updated user with subscription details
-        var updatedUser = user
-        updatedUser.subscriptionPlan = product.subscriptionPlan
-        
-        // Calculate expiry date based on product duration
-        let calendar = Calendar.current
-        switch product.duration {
-        case .monthly:
-            updatedUser.subscriptionExpiryDate = calendar.date(byAdding: .month, value: 1, to: Date())
-        case .annual:
-            updatedUser.subscriptionExpiryDate = calendar.date(byAdding: .year, value: 1, to: Date())
-        }
-        
-        // Update user through user session
-        _ = try await userSession.updateUser(updatedUser)
-        
-        // Update purchase state in paywall service
-        if let mockService = paywallService as? MockPaywallService {
-            await MainActor.run {
-                mockService.purchaseState = .success(product)
-            }
-        }
-        
-        return updatedUser
-    }
 }
 
 @MainActor
@@ -883,19 +822,6 @@ public final class TrackHabitLogged: TrackHabitLoggedUseCase {
     }
 }
 
-// MARK: - Auth Use Case Implementations
-
-public final class SignOutUser: SignOutUserUseCase {
-    private let userSession: any UserSessionProtocol
-    
-    public init(userSession: any UserSessionProtocol) {
-        self.userSession = userSession
-    }
-    
-    public func execute() async throws {
-        try await userSession.signOut()
-    }
-}
 
 // MARK: - Paywall Use Case Implementations
 

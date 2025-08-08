@@ -85,4 +85,14 @@ public enum DateUtils {
     public enum WeekdaySymbolStyle {
         case veryShort, short, standalone
     }
+    
+    /// Converts Calendar weekday (1=Sunday, 2=Monday...7=Saturday) to Habit weekday format (1=Monday, 2=Tuesday...7=Sunday)
+    public static func calendarWeekdayToHabitWeekday(_ calendarWeekday: Int) -> Int {
+        return calendarWeekday == 1 ? 7 : calendarWeekday - 1
+    }
+    
+    /// Converts Habit weekday format (1=Monday, 2=Tuesday...7=Sunday) to Calendar weekday (1=Sunday, 2=Monday...7=Saturday)
+    public static func habitWeekdayToCalendarWeekday(_ habitWeekday: Int) -> Int {
+        return habitWeekday == 7 ? 1 : habitWeekday + 1
+    }
 }

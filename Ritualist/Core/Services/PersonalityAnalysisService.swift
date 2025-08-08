@@ -86,7 +86,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             analysisDate: Date(),
             dataPointsAnalyzed: enhancedDataPoints,
             timeRangeAnalyzed: input.analysisTimeRange,
-            version: "1.1"
+            version: "1.6"
         )
         
         // Calculate confidence with enhanced completion data

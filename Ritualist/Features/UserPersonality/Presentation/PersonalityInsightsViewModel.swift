@@ -33,7 +33,8 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     private let validateAnalysisDataUseCase: ValidateAnalysisDataUseCase
     private let personalityRepository: PersonalityAnalysisRepositoryProtocol
     private let scheduler: PersonalityAnalysisSchedulerProtocol
-    private let currentUserId: UUID // In real app, this would come from user session
+    private let loadProfile: LoadProfileUseCase
+    private var currentUserId: UUID?
     
     // MARK: - Initialization
     
@@ -43,20 +44,27 @@ public final class PersonalityInsightsViewModel: ObservableObject {
         validateAnalysisDataUseCase: ValidateAnalysisDataUseCase,
         personalityRepository: PersonalityAnalysisRepositoryProtocol,
         scheduler: PersonalityAnalysisSchedulerProtocol,
-        currentUserId: UUID = UUID()
+        loadProfile: LoadProfileUseCase
     ) {
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
         self.getPersonalityProfileUseCase = getPersonalityProfileUseCase
         self.validateAnalysisDataUseCase = validateAnalysisDataUseCase
         self.personalityRepository = personalityRepository
         self.scheduler = scheduler
-        self.currentUserId = currentUserId
+        self.loadProfile = loadProfile
+        self.currentUserId = nil
     }
     
     // MARK: - Public Methods
     
     public func loadPersonalityInsights() async {
         viewState = .loading
+        
+        // Load user ID first
+        guard let userId = await getCurrentUserId() else {
+            viewState = .error(.unknownError("Failed to load user profile"))
+            return
+        }
         
         // Always load preferences first to get current analysis state
         await loadPreferences()
@@ -70,22 +78,26 @@ public final class PersonalityInsightsViewModel: ObservableObject {
         do {
             
             // First check if user has existing profile
-            if let existingProfile = try await getPersonalityProfileUseCase.execute(for: currentUserId) {
+            print("🔍 [ViewModel] Looking for existing personality profile for user: \(userId)")
+            if let existingProfile = try await getPersonalityProfileUseCase.execute(for: userId) {
+                print("✅ [ViewModel] Found existing profile with version: \(existingProfile.analysisMetadata.version)")
                 viewState = .ready(profile: existingProfile)
                 return
+            } else {
+                print("❌ [ViewModel] No existing profile found, will create new analysis")
             }
             
             // Check if user has sufficient data for analysis
-            let eligibility = try await validateAnalysisDataUseCase.execute(for: currentUserId)
+            let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
             
             if eligibility.isEligible {
                 // User has sufficient data, perform analysis
-                let profile = try await analyzePersonalityUseCase.execute(for: currentUserId)
+                let profile = try await analyzePersonalityUseCase.execute(for: userId)
                 viewState = .ready(profile: profile)
             } else {
                 // User doesn't have sufficient data
-                let requirements = try await validateAnalysisDataUseCase.getProgressDetails(for: currentUserId)
-                let estimatedDays = try await validateAnalysisDataUseCase.getEstimatedDaysToEligibility(for: currentUserId)
+                let requirements = try await validateAnalysisDataUseCase.getProgressDetails(for: userId)
+                let estimatedDays = try await validateAnalysisDataUseCase.getEstimatedDaysToEligibility(for: userId)
                 viewState = .insufficientData(requirements: requirements, estimatedDays: estimatedDays)
             }
             
@@ -103,10 +115,15 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     public func regenerateAnalysis() async {
         guard case .ready = viewState else { return }
         
+        guard let userId = await getCurrentUserId() else {
+            viewState = .error(.unknownError("Failed to load user profile"))
+            return
+        }
+        
         viewState = .loading
         
         do {
-            let profile = try await analyzePersonalityUseCase.execute(for: currentUserId)
+            let profile = try await analyzePersonalityUseCase.execute(for: userId)
             viewState = .ready(profile: profile)
         } catch let error as PersonalityAnalysisError {
             viewState = .error(error)
@@ -166,8 +183,15 @@ public final class PersonalityInsightsViewModel: ObservableObject {
             isLoadingPreferences = true
         }
         
+        guard let userId = await getCurrentUserId() else {
+            await MainActor.run {
+                isLoadingPreferences = false
+            }
+            return
+        }
+        
         do {
-            let loadedPreferences = try await personalityRepository.getAnalysisPreferences(for: currentUserId)
+            let loadedPreferences = try await personalityRepository.getAnalysisPreferences(for: userId)
             
             if let loadedPreferences = loadedPreferences {
                 await MainActor.run {
@@ -176,7 +200,7 @@ public final class PersonalityInsightsViewModel: ObservableObject {
                 }
             } else {
                 // Create default preferences
-                let defaultPreferences = PersonalityAnalysisPreferences(userId: currentUserId)
+                let defaultPreferences = PersonalityAnalysisPreferences(userId: userId)
                 
                 // Save defaults immediately to persist them
                 try? await personalityRepository.saveAnalysisPreferences(defaultPreferences)
@@ -187,20 +211,25 @@ public final class PersonalityInsightsViewModel: ObservableObject {
                 }
                 
                 // Start scheduling with default preferences
-                await scheduler.startScheduling(for: currentUserId)
+                await scheduler.startScheduling(for: userId)
             }
             
             // Start scheduling if analysis is enabled
             if let prefs = preferences, prefs.isCurrentlyActive {
-                await scheduler.startScheduling(for: currentUserId)
+                await scheduler.startScheduling(for: userId)
             }
-            
         } catch {
             print("Error loading preferences: \(error)")
-            await MainActor.run {
-                // Create default preferences on error
-                preferences = PersonalityAnalysisPreferences(userId: currentUserId)
-                isLoadingPreferences = false
+            // Create default preferences on error
+            if let userId = await getCurrentUserId() {
+                await MainActor.run {
+                    preferences = PersonalityAnalysisPreferences(userId: userId)
+                    isLoadingPreferences = false
+                }
+            } else {
+                await MainActor.run {
+                    isLoadingPreferences = false
+                }
             }
         }
     }
@@ -219,7 +248,9 @@ public final class PersonalityInsightsViewModel: ObservableObject {
             }
             
             // Update scheduler based on new preferences
-            await scheduler.updateScheduling(for: currentUserId, preferences: newPreferences)
+            if let userId = await getCurrentUserId() {
+                await scheduler.updateScheduling(for: userId, preferences: newPreferences)
+            }
             
             // If analysis was disabled, we might need to update the view state
             if !newPreferences.isCurrentlyActive {
@@ -234,9 +265,11 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     }
     
     public func deleteAllPersonalityData() async {
+        guard let userId = await getCurrentUserId() else { return }
+        
         do {
             // Delete all personality profiles
-            try await personalityRepository.deleteAllPersonalityProfiles(for: currentUserId)
+            try await personalityRepository.deleteAllPersonalityProfiles(for: userId)
             
             // Reset view state to trigger fresh analysis
             await loadPersonalityInsights()
@@ -293,21 +326,27 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     // MARK: - Scheduling Helper Properties
     
     public func getNextScheduledAnalysisDate() async -> Date? {
-        return await scheduler.getNextScheduledAnalysis(for: currentUserId)
+        guard let userId = await getCurrentUserId() else { return nil }
+        return await scheduler.getNextScheduledAnalysis(for: userId)
     }
     
     public func triggerManualAnalysisCheck() async {
         let timestamp = Date().timeIntervalSince1970
         print("🔄 Manual refresh triggered at \(timestamp)")
         
+        guard let userId = await getCurrentUserId() else {
+            print("🔄 Failed to get current user ID")
+            return
+        }
+        
         // Check if user is in manual mode - if so, force analysis
         if let prefs = preferences, prefs.analysisFrequency == .manual {
             print("🔄 Using forceManualAnalysis for manual mode")
-            await scheduler.forceManualAnalysis(for: currentUserId)
+            await scheduler.forceManualAnalysis(for: userId)
         } else {
             print("🔄 Using regular triggerAnalysisCheck")
             // For other frequencies, use regular check
-            await scheduler.triggerAnalysisCheck(for: currentUserId)
+            await scheduler.triggerAnalysisCheck(for: userId)
         }
         
         print("🔄 Analysis check completed, refreshing view state")
@@ -316,6 +355,25 @@ public final class PersonalityInsightsViewModel: ObservableObject {
         
         let endTimestamp = Date().timeIntervalSince1970
         print("🔄 Manual refresh completed at \(endTimestamp), duration: \(endTimestamp - timestamp)s")
+    }
+    
+    // MARK: - Private Helpers
+    
+    private func getCurrentUserId() async -> UUID? {
+        if let cachedUserId = currentUserId {
+            print("🔄 [ViewModel] Using cached user ID: \(cachedUserId)")
+            return cachedUserId
+        }
+        
+        do {
+            let profile = try await loadProfile.execute()
+            currentUserId = profile.id
+            print("🆔 [ViewModel] Loaded user ID from profile: \(profile.id)")
+            return profile.id
+        } catch {
+            print("⚠️ Failed to load user profile: \(error)")
+            return nil
+        }
     }
     
 }

@@ -31,6 +31,9 @@ public protocol PaywallService {
 public final class MockPaywallService: PaywallService {
     public var purchaseState: PurchaseState = .idle
     
+    // MARK: - Dependencies
+    private let subscriptionService: SecureSubscriptionService
+    
     // Enhanced mock products with realistic pricing and features
     private let mockProducts: [Product] = [
         Product(
@@ -107,9 +110,6 @@ public final class MockPaywallService: PaywallService {
         )
     ]
     
-    // Track purchased products
-    private var purchasedProductIds: Set<String> = []
-    
     // Enhanced testing configuration
     public var simulatePurchaseDelay: TimeInterval = 2.0
     public var simulateFailureRate: Double = 0.2 // 20% failure rate by default
@@ -127,12 +127,9 @@ public final class MockPaywallService: PaywallService {
     
     public var currentTestingScenario: TestingScenario = .randomResults
     
-    public init(testingScenario: TestingScenario = .randomResults) {
+    public init(subscriptionService: SecureSubscriptionService, testingScenario: TestingScenario = .randomResults) {
+        self.subscriptionService = subscriptionService
         self.currentTestingScenario = testingScenario
-        
-        // Load any persisted purchases on init
-        let purchased = UserDefaults.standard.stringArray(forKey: "purchased_products") ?? []
-        purchasedProductIds = Set(purchased)
     }
     
     public func loadProducts() async throws -> [Product] {
@@ -169,15 +166,9 @@ public final class MockPaywallService: PaywallService {
         }
         
         if shouldSucceed {
-            purchasedProductIds.insert(product.id)
+            // Use secure subscription service to validate purchase
+            try await subscriptionService.mockPurchase(product.id)
             purchaseState = .success(product)
-            
-            // Store purchase in UserDefaults for persistence
-            var purchased = UserDefaults.standard.stringArray(forKey: "purchased_products") ?? []
-            if !purchased.contains(product.id) {
-                purchased.append(product.id)
-                UserDefaults.standard.set(purchased, forKey: "purchased_products")
-            }
             
             return true
         } else {
@@ -210,19 +201,16 @@ public final class MockPaywallService: PaywallService {
             purchaseState = .failed("Unable to restore purchases. Please try again later.")
             return false
         default:
-            // Restore from UserDefaults
-            let purchased = UserDefaults.standard.stringArray(forKey: "purchased_products") ?? []
-            purchasedProductIds = Set(purchased)
+            // Restore using secure subscription service
+            let restoredPurchases = await subscriptionService.restorePurchases()
             
             purchaseState = .idle
-            return !purchasedProductIds.isEmpty
+            return !restoredPurchases.isEmpty
         }
     }
     
     public func isProductPurchased(_ productId: String) async -> Bool {
-        // Also check UserDefaults for persistence
-        let purchased = UserDefaults.standard.stringArray(forKey: "purchased_products") ?? []
-        return purchasedProductIds.contains(productId) || purchased.contains(productId)
+        return await subscriptionService.validatePurchase(productId)
     }
     
     public func resetPurchaseState() {
@@ -230,8 +218,9 @@ public final class MockPaywallService: PaywallService {
     }
     
     public func clearPurchases() {
-        purchasedProductIds.removeAll()
-        UserDefaults.standard.removeObject(forKey: "purchased_products")
+        Task {
+            try await subscriptionService.clearPurchases()
+        }
         purchaseState = .idle
     }
     
@@ -246,11 +235,8 @@ public final class MockPaywallService: PaywallService {
     
     /// Simulate purchasing a specific product (for testing)
     public func simulatePurchase(productId: String) {
-        purchasedProductIds.insert(productId)
-        var purchased = UserDefaults.standard.stringArray(forKey: "purchased_products") ?? []
-        if !purchased.contains(productId) {
-            purchased.append(productId)
-            UserDefaults.standard.set(purchased, forKey: "purchased_products")
+        Task {
+            try await subscriptionService.mockPurchase(productId)
         }
     }
     
@@ -261,7 +247,7 @@ public final class MockPaywallService: PaywallService {
     
     /// Check if any premium product is purchased (useful for testing subscription status)
     public var hasPremiumPurchase: Bool {
-        !purchasedProductIds.isEmpty
+        subscriptionService.isPremiumUser()
     }
 }
 

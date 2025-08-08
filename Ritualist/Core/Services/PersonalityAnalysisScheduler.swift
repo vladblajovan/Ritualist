@@ -270,6 +270,11 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
         do {
             
             let profile = try await analyzePersonalityUseCase.execute(for: userId)
+            
+            // CRITICAL: Save the profile to the database!
+            try await personalityRepository.savePersonalityProfile(profile)
+            print("✅ [Scheduler] Personality profile saved to database")
+            
             lastAnalysisDates[userId] = Date()
             saveSchedulerState()
             

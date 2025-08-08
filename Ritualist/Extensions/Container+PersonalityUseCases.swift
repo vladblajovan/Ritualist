@@ -11,7 +11,8 @@ extension Container {
         self { 
             DefaultAnalyzePersonalityUseCase(
                 personalityService: self.personalityAnalysisService(),
-                thresholdValidator: self.dataThresholdValidator()
+                thresholdValidator: self.dataThresholdValidator(),
+                repository: self.personalityAnalysisRepository()
             ) 
         }
     }
