@@ -60,9 +60,7 @@ public final class MockUserService: UserService {
         do {
             let profile = try await loadProfile.execute()
             _currentProfile = profile
-            print("DEBUG: MockUserService loaded profile from repository - name: '\(profile.name)'")
         } catch {
-            print("DEBUG: MockUserService failed to load profile: \(error)")
             // Keep the default profile if loading fails
         }
     }
@@ -91,9 +89,7 @@ public final class MockUserService: UserService {
         if let saveProfile = saveProfile {
             do {
                 try await saveProfile.execute(_currentProfile)
-                print("DEBUG: MockUserService synced profile back to repository - name: '\(_currentProfile.name)'")
             } catch {
-                print("DEBUG: MockUserService failed to sync profile: \(error)")
                 // Continue anyway since this is just a sync operation
             }
         }

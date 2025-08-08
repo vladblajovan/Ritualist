@@ -14,9 +14,6 @@ public final class PersistenceContainer {
     /// - Simple ModelContainer setup without versioning complexity
     /// - Single ModelContext instance shared across the app for data consistency
     public init() throws {
-        #if DEBUG
-        print("🔍 [PERSISTENCE] Using simple schema (non-versioned)")
-        #endif
         
         // Use simple direct models without versioning
         container = try ModelContainer(

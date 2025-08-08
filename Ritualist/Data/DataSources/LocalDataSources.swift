@@ -10,33 +10,21 @@ public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
     private let context: ModelContext?
     public init(context: ModelContext?) { 
         self.context = context 
-        print("🔄 [HABITS] HabitLocalDataSource initialized with context: \(context != nil ? "✅ Available" : "❌ NIL")")
     }
     @MainActor
     public func fetchAll() async throws -> [SDHabit] {
-        print("🔄 [HABITS] Fetching all habits...")
-        guard let context else { 
-            print("❌ [HABITS] Context is NIL - returning empty array")
-            return [] 
-        }
+        guard let context else { return [] }
         
         let descriptor = FetchDescriptor<SDHabit>(
             sortBy: [SortDescriptor(\.displayOrder)]
         )
-        let result = try context.fetch(descriptor)
-        print("✅ [HABITS] Fetched \(result.count) habits")
-        return result
+        return try context.fetch(descriptor)
     }
     @MainActor
     public func upsert(_ habit: SDHabit) async throws {
-        print("🔄 [HABITS] Attempting to upsert habit: \(habit.name)")
-        guard let context else { 
-            print("❌ [HABITS] Context is NIL - cannot save habit")
-            return 
-        }
+        guard let context else { return }
         context.insert(habit)
         try context.save()
-        print("✅ [HABITS] Habit saved successfully: \(habit.name)")
     }
     @MainActor
     public func delete(id: UUID) async throws {
@@ -244,48 +232,33 @@ public final class OnboardingLocalDataSource: OnboardingLocalDataSourceProtocol 
     private let context: ModelContext?
     public init(context: ModelContext?) { 
         self.context = context 
-        print("🔄 [ONBOARDING] OnboardingLocalDataSource initialized with context: \(context != nil ? "✅ Available" : "❌ NIL")")
     }
     
     @MainActor
     public func load() async throws -> SDOnboardingState? {
-        print("🔄 [ONBOARDING] Loading onboarding state...")
-        guard let context else { 
-            print("❌ [ONBOARDING] Context is NIL - cannot load onboarding state")
-            return nil 
-        }
-        
+        guard let context else { return nil }
         let descriptor = FetchDescriptor<SDOnboardingState>()
-        let result = try context.fetch(descriptor).first
-        print("✅ [ONBOARDING] Loaded onboarding state: \(result != nil ? "Found" : "Not found")")
-        return result
+        return try context.fetch(descriptor).first
     }
     
     @MainActor
     public func save(_ state: SDOnboardingState) async throws {
-        print("🔄 [ONBOARDING] Saving onboarding state: isCompleted=\(state.isCompleted)")
-        guard let context else { 
-            print("❌ [ONBOARDING] Context is NIL - cannot save onboarding state")
-            return 
-        }
+        guard let context else { return }
         
         // Check if onboarding state already exists (there should only be one)
         let descriptor = FetchDescriptor<SDOnboardingState>()
         if let existing = try context.fetch(descriptor).first {
-            print("✅ [ONBOARDING] Updating existing onboarding state")
             // Update existing state
             existing.isCompleted = state.isCompleted
             existing.completedDate = state.completedDate
             existing.userName = state.userName
             existing.hasGrantedNotifications = state.hasGrantedNotifications
         } else {
-            print("✅ [ONBOARDING] Inserting new onboarding state")
             // Insert new state
             context.insert(state)
         }
         
         try context.save()
-        print("✅ [ONBOARDING] Onboarding state saved successfully")
     }
 }
 

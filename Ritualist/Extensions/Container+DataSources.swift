@@ -8,14 +8,9 @@ extension Container {
     // MARK: - Persistence Container
     var persistenceContainer: Factory<PersistenceContainer?> {
         self { 
-            print("🔄 [PERSISTENCE] Attempting to initialize PersistenceContainer...")
             do {
-                let container = try PersistenceContainer()
-                print("✅ [PERSISTENCE] PersistenceContainer initialized successfully")
-                print("✅ [PERSISTENCE] ModelContext available: \(container.context)")
-                return container
+                return try PersistenceContainer()
             } catch {
-                print("❌ [PERSISTENCE] Failed to initialize PersistenceContainer: \(error)")
                 return nil
             }
         }
