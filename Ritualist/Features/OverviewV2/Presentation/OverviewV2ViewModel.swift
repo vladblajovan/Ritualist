@@ -797,7 +797,12 @@ public final class OverviewV2ViewModel: ObservableObject {
         var insights: [SmartInsight] = []
         let calendar = Calendar.current
         let today = Date()
-        let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        
+        // Get the proper week interval that respects user's first day of week preference
+        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else {
+            return insights
+        }
+        let startOfWeek = weekInterval.start
         
         // Get user's active habits and recent logs
         let habits = try await habitRepository.fetchAllHabits().filter { $0.isActive }
@@ -812,14 +817,14 @@ public final class OverviewV2ViewModel: ObservableObject {
         for habit in habits {
             let logs = try await logRepository.logs(for: habit.id)
             let recentLogs = logs.filter { log in
-                log.date >= sevenDaysAgo && log.date <= today
+                log.date >= startOfWeek && log.date < weekInterval.end
             }
             
             totalCompletions += recentLogs.count
             
             // Count completions per day
             for log in recentLogs {
-                let daysSinceStart = calendar.dateComponents([.day], from: sevenDaysAgo, to: log.date).day ?? 0
+                let daysSinceStart = calendar.dateComponents([.day], from: startOfWeek, to: log.date).day ?? 0
                 if daysSinceStart >= 0 && daysSinceStart < 7 {
                     dailyCompletions[daysSinceStart] += 1
                 }
@@ -858,9 +863,15 @@ public final class OverviewV2ViewModel: ObservableObject {
         
         // Find best performing day
         if let bestDayIndex = dailyCompletions.enumerated().max(by: { $0.element < $1.element })?.offset {
-            let dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-            let startDayIndex = calendar.component(.weekday, from: sevenDaysAgo) - 1
-            let bestDayName = dayNames[(startDayIndex + bestDayIndex) % 7]
+            // Get the actual date for the best performing day
+            guard let bestDate = calendar.date(byAdding: .day, value: bestDayIndex, to: startOfWeek) else {
+                return insights
+            }
+            
+            // Get the day name using the proper date
+            let dayFormatter = DateFormatter()
+            dayFormatter.dateFormat = "EEEE"
+            let bestDayName = dayFormatter.string(from: bestDate)
             
             if dailyCompletions[bestDayIndex] > 0 {
                 insights.append(SmartInsight(
