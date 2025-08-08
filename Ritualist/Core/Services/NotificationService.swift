@@ -207,7 +207,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         let center = UNUserNotificationCenter.current()
         await center.setNotificationCategories([habitReminderCategory])
         
-        print("Notification categories setup complete")
+        print("TODO: Look into how this is used: Notification categories setup complete")
     }
     
     // MARK: - Notification Response Handling

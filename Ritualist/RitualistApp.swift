@@ -13,13 +13,27 @@ import UserNotifications
 @main struct RitualistApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @Injected(\.notificationService) private var notificationService
+    @Injected(\.persistenceContainer) private var persistenceContainer
     
     var body: some Scene {
         WindowGroup {
             RootAppView()
+                .modelContainer(persistenceContainer?.container ?? createFallbackContainer())
                 .task {
                     await setupNotifications()
                 }
+        }
+    }
+    
+    // Fallback container if dependency injection fails
+    private func createFallbackContainer() -> ModelContainer {
+        do {
+            return try ModelContainer(
+                for: SDHabit.self, SDHabitLog.self, SDUserProfile.self, 
+                    SDCategory.self, SDOnboardingState.self, SDPersonalityProfile.self
+            )
+        } catch {
+            fatalError("Failed to create ModelContainer: \(error)")
         }
     }
     
