@@ -17,8 +17,6 @@ public final class SettingsViewModel {
     public private(set) var isLoading = false
     public private(set) var isSaving = false
     public private(set) var error: Error?
-    public private(set) var saveSuccess = false
-    public private(set) var autoSaveMessage: String?
     public private(set) var hasNotificationPermission = false
     public private(set) var isRequestingNotifications = false
     public private(set) var isCancellingSubscription = false
@@ -59,11 +57,9 @@ public final class SettingsViewModel {
     public func save() async -> Bool {
         isSaving = true
         error = nil
-        saveSuccess = false
         
         do {
             try await saveProfile.execute(profile)
-            saveSuccess = true
             
             // Track profile update
             userActionTracker.track(.profileUpdated(field: "general_settings"))
@@ -88,46 +84,6 @@ public final class SettingsViewModel {
         await load()
     }
 
-    public func clearSaveSuccess() {
-        saveSuccess = false
-    }
-
-    public func autoSave() async {
-        // Don't auto-save if already saving or loading
-        guard !isSaving && !isLoading else { return }
-
-        error = nil
-        autoSaveMessage = nil
-
-        do {
-            try await saveProfile.execute(profile)
-            autoSaveMessage = "Settings saved"
-            
-            // Send notification after successful auto-save
-            // try? await notificationService.sendImmediate(
-            //     title: "Settings Auto-Saved",
-            //     body: "Your preferences have been automatically updated."
-            // )
-
-            // Auto-dismiss message after 3 seconds
-            Task {
-                try await Task.sleep(nanoseconds: 3_000_000_000)
-                await MainActor.run {
-                    if autoSaveMessage == "Settings saved" {
-                        autoSaveMessage = nil
-                    }
-                }
-            }
-        } catch {
-            self.error = error
-            userActionTracker.trackError(error, context: "settings_auto_save")
-        }
-    }
-    
-    public func dismissAutoSaveMessage() {
-        autoSaveMessage = nil
-    }
-    
     public func requestNotifications() async {
         isRequestingNotifications = true
         error = nil

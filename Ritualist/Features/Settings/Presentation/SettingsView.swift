@@ -232,14 +232,6 @@ private struct SettingsFormView: View {
                         .disabled(!hasChanges || vm.isSaving)
                     }
                 }
-                .safeAreaInset(edge: .top) {
-                    if vm.saveSuccess {
-                        SettingsSavedConfirmationView(message: Strings.Settings.settingsSaved) {
-                            vm.clearSaveSuccess()
-                        }
-                        .padding(.top, Spacing.small)
-                    }
-                }
                 .sheet(isPresented: $showingImagePicker) {
                     AvatarImagePicker(
                         name: displayName,
@@ -327,40 +319,6 @@ private struct SettingsFormView: View {
     }
 }
 
-private struct SettingsSavedConfirmationView: View {
-    let message: String
-    let onDismiss: () -> Void
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
-            Text(message)
-                .font(.subheadline)
-                .fontWeight(.medium)
-            Spacer()
-            Button {
-                onDismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.horizontal, Spacing.large)
-        .padding(.vertical, Spacing.medium)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-        .padding(.horizontal, Spacing.large)
-        .transition(.move(edge: .top).combined(with: .opacity))
-        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: message)
-        .task {
-            // Auto-dismiss after 3 seconds
-            try? await Task.sleep(for: .seconds(3))
-            onDismiss()
-        }
-    }
-}
 
 #Preview {
     SettingsRoot()

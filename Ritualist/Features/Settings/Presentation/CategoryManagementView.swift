@@ -45,8 +45,9 @@ public struct CategoryManagementView: View {
                 }
                 
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    EditButton()
-                        .disabled(vm.customCategories.isEmpty)
+                    if !vm.customCategories.isEmpty {
+                        EditButton()
+                    }
                     
                     Button("Add") {
                         showingAddCategory = true
