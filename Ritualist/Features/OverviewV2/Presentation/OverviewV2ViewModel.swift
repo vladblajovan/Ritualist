@@ -711,9 +711,7 @@ public final class OverviewV2ViewModel: ObservableObject {
                 do {
                     let newProfile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
                     personalityProfile = newProfile
-                    print("DEBUG: Auto-generated personality profile for insights card")
                 } catch {
-                    print("DEBUG: Failed to auto-generate personality profile: \(error)")
                     await MainActor.run {
                         shouldShowPersonalityInsights = false
                         personalityInsights = []
@@ -769,7 +767,6 @@ public final class OverviewV2ViewModel: ObservableObject {
             }
             
         } catch {
-            print("DEBUG: Failed to load personality insights: \(error)")
             await MainActor.run {
                 shouldShowPersonalityInsights = false
                 personalityInsights = []
@@ -792,7 +789,6 @@ public final class OverviewV2ViewModel: ObservableObject {
             return eligibility.isEligible
             
         } catch {
-            print("DEBUG: Failed to check personality analysis eligibility: \(error)")
             return false
         }
     }
