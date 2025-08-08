@@ -9,23 +9,23 @@ import Foundation
 import SwiftData
 
 @Model public final class SDUserProfile: @unchecked Sendable {
-    @Attribute(.unique) public var id: UUID
-    public var name: String
+    @Attribute(.unique) public var id: String // TODO: Remove .unique when enabling CloudKit
+    public var name: String = "" // CloudKit requires default values
     public var avatarImageData: Data?
-    public var appearance: Int
+    public var appearance: String = "followSystem" // CloudKit requires default values
     
     // Subscription info (consolidated from User entity)
-    public var subscriptionPlan: String // Raw value of SubscriptionPlan enum
+    public var subscriptionPlan: String = "free" // CloudKit requires default values
     public var subscriptionExpiryDate: Date?
     
     // Metadata
-    public var createdAt: Date
-    public var updatedAt: Date
+    public var createdAt: Date = Date() // CloudKit requires default values
+    public var updatedAt: Date = Date() // CloudKit requires default values
     
-    public init(id: UUID, 
+    public init(id: String, 
                 name: String, 
                 avatarImageData: Data?, 
-                appearance: Int,
+                appearance: String,
                 subscriptionPlan: String = "free",
                 subscriptionExpiryDate: Date? = nil,
                 createdAt: Date = Date(),

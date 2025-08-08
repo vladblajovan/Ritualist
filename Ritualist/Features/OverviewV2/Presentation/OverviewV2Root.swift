@@ -2,7 +2,7 @@ import SwiftUI
 import FactoryKit
 
 public struct OverviewV2Root: View {
-    @StateObject private var vm = OverviewV2ViewModel()
+    @Injected(\.overviewV2ViewModel) var vm
     
     public init() {}
     

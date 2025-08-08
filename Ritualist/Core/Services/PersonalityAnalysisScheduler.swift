@@ -63,7 +63,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             
             
         } catch {
-            print("❌ Failed to start scheduling for user \(userId): \(error)")
+            // Failed to start scheduling - preferences might not be set
         }
     }
     
@@ -91,7 +91,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             await performAnalysis(for: userId)
             
         } catch {
-            print("❌ Error during analysis check for user \(userId): \(error)")
+            // Error during analysis check
         }
     }
     
@@ -117,10 +117,10 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             await performAnalysis(for: userId)
             
             let endTimestamp = Date().timeIntervalSince1970
-            print("✅ forceManualAnalysis completed at \(endTimestamp), duration: \(endTimestamp - timestamp)s")
+            // Force manual analysis completed
             
         } catch {
-            print("❌ Error during forced manual analysis for user \(userId): \(error)")
+            // Error during forced manual analysis
         }
     }
     
@@ -176,7 +176,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             return calculateNextAnalysisDate(from: lastAnalysis, frequency: preferences.analysisFrequency)
             
         } catch {
-            print("❌ Error getting next scheduled analysis for user \(userId): \(error)")
+            // Error getting next scheduled analysis
             return nil
         }
     }
@@ -244,7 +244,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             return hasChanged
             
         } catch {
-            print("❌ Error checking data changes for user \(userId): \(error)")
+            // Error checking data changes
             return false
         }
     }
@@ -273,7 +273,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             
             // CRITICAL: Save the profile to the database!
             try await personalityRepository.savePersonalityProfile(profile)
-            print("✅ [Scheduler] Personality profile saved to database")
+            // Personality profile saved to database
             
             lastAnalysisDates[userId] = Date()
             saveSchedulerState()
@@ -288,7 +288,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             }
             
         } catch {
-            print("❌ Failed automatic personality analysis for user \(userId): \(error)")
+            // Failed automatic personality analysis
         }
     }
     
@@ -305,7 +305,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
         do {
             try await notificationCenter.add(request)
         } catch {
-            print("❌ Failed to send analysis notification for user \(userId): \(error)")
+            // Failed to send analysis notification
         }
     }
     
@@ -336,7 +336,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
         do {
             try await notificationCenter.add(request)
         } catch {
-            print("❌ Failed to schedule notification for user \(userId): \(error)")
+            // Failed to schedule notification
         }
     }
     

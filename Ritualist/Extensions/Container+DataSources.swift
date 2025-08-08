@@ -5,41 +5,52 @@ import FactoryKit
 
 extension Container {
     
-    // MARK: - SwiftData Context
-    var swiftDataStack: Factory<SwiftDataStack?> {
-        self { try? SwiftDataStack() }
-            .singleton
+    // MARK: - Persistence Container
+    var persistenceContainer: Factory<PersistenceContainer?> {
+        self { 
+            print("🔄 [PERSISTENCE] Attempting to initialize PersistenceContainer...")
+            do {
+                let container = try PersistenceContainer()
+                print("✅ [PERSISTENCE] PersistenceContainer initialized successfully")
+                print("✅ [PERSISTENCE] ModelContext available: \(container.context)")
+                return container
+            } catch {
+                print("❌ [PERSISTENCE] Failed to initialize PersistenceContainer: \(error)")
+                return nil
+            }
+        }
+        .singleton
     }
     
     // MARK: - Local Data Sources
     
-    var habitDataSource: Factory<HabitLocalDataSource> {
-        self { HabitLocalDataSource(context: self.swiftDataStack()?.context) }
+    var habitDataSource: Factory<HabitLocalDataSourceProtocol> {
+        self { HabitLocalDataSource(context: self.persistenceContainer()?.context) }
             .singleton
     }
     
-    var logDataSource: Factory<LogLocalDataSource> {
-        self { LogLocalDataSource(context: self.swiftDataStack()?.context) }
+    var logDataSource: Factory<LogLocalDataSourceProtocol> {
+        self { LogLocalDataSource(context: self.persistenceContainer()?.context) }
             .singleton
     }
     
-    var profileDataSource: Factory<ProfileLocalDataSource> {
-        self { ProfileLocalDataSource(context: self.swiftDataStack()?.context) }
+    var profileDataSource: Factory<ProfileLocalDataSourceProtocol> {
+        self { ProfileLocalDataSource(context: self.persistenceContainer()?.context) }
             .singleton
     }
     
-    var tipDataSource: Factory<TipLocalDataSource> {
-        self { TipLocalDataSource() }
+    var tipDataSource: Factory<TipLocalDataSourceProtocol> {
+        self { TipStaticDataSource() }
             .singleton
     }
     
-    var onboardingDataSource: Factory<OnboardingLocalDataSource> {
-        self { OnboardingLocalDataSource(context: self.swiftDataStack()?.context) }
+    var onboardingDataSource: Factory<OnboardingLocalDataSourceProtocol> {
+        self { OnboardingLocalDataSource(context: self.persistenceContainer()?.context) }
             .singleton
     }
     
-    var categoryDataSource: Factory<SwiftDataCategoryLocalDataSource> {
-        self { SwiftDataCategoryLocalDataSource(context: self.swiftDataStack()?.context) }
+    var categoryDataSource: Factory<CategoryLocalDataSourceProtocol> {
+        self { CategoryStaticDataSource() }
             .singleton
     }
 }

@@ -236,6 +236,7 @@ public final class OverviewV2ViewModel: ObservableObject {
     @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
     @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
     @Injected(\.personalityAnalysisRepository) private var personalityAnalysisRepository
+    @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     
     private var userId: UUID { 
         userService.currentProfile.id 
@@ -303,7 +304,7 @@ public final class OverviewV2ViewModel: ObservableObject {
     
     public func openPersonalityAnalysis() {
         Task { @MainActor in
-            PersonalityDeepLinkCoordinator.shared.showPersonalityAnalysisDirectly()
+            personalityDeepLinkCoordinator.showPersonalityAnalysisDirectly()
         }
     }
     

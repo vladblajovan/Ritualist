@@ -9,13 +9,17 @@ import Foundation
 import SwiftData
 
 @Model public final class SDCategory: @unchecked Sendable {
-    @Attribute(.unique) public var id: String
-    public var name: String
-    public var displayName: String
-    public var emoji: String
-    public var order: Int
-    public var isActive: Bool
-    public var isPredefined: Bool
+    @Attribute(.unique) public var id: String // TODO: Remove .unique when enabling CloudKit
+    public var name: String = "" // CloudKit requires default values
+    public var displayName: String = "" // CloudKit requires default values
+    public var emoji: String = "📂" // CloudKit requires default values
+    public var order: Int = 0 // CloudKit requires default values
+    public var isActive: Bool = true // CloudKit requires default values
+    public var isPredefined: Bool = false // CloudKit requires default values
+    
+    // MARK: - SwiftData Relationships
+    @Relationship(deleteRule: .nullify)
+    var habits = [SDHabit]()
     
     public init(
         id: String,

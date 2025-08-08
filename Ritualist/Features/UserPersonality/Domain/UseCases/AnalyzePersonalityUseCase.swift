@@ -42,9 +42,8 @@ public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
         // Perform the analysis using the service
         let profile = try await personalityService.analyzePersonality(for: userId)
         
-        // CRITICAL: Save the profile to the database!
+        // Save the profile to the database
         try await repository.savePersonalityProfile(profile)
-        print("✅ [AnalyzePersonalityUseCase] Personality profile saved to database")
         
         return profile
     }

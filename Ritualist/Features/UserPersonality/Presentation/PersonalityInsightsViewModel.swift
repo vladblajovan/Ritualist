@@ -78,13 +78,9 @@ public final class PersonalityInsightsViewModel: ObservableObject {
         do {
             
             // First check if user has existing profile
-            print("🔍 [ViewModel] Looking for existing personality profile for user: \(userId)")
             if let existingProfile = try await getPersonalityProfileUseCase.execute(for: userId) {
-                print("✅ [ViewModel] Found existing profile with version: \(existingProfile.analysisMetadata.version)")
                 viewState = .ready(profile: existingProfile)
                 return
-            } else {
-                print("❌ [ViewModel] No existing profile found, will create new analysis")
             }
             
             // Check if user has sufficient data for analysis

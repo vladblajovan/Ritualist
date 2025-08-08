@@ -64,16 +64,9 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     }
     
     public func getHabitAnalysisInput(for userId: UUID) async throws -> HabitAnalysisInput {
-        print("\n📥 [Repository] Getting habit analysis input for user: \(userId)")
-        
         // Get all active habits
         let allHabits = try await habitRepository.fetchAllHabits()
         let activeHabits = allHabits.filter { $0.isActive }
-        
-        print("🏃 [Repository] Found \(activeHabits.count) active habits:")
-        for habit in activeHabits {
-            print("   📝 '\(habit.name)' - \(habit.kind) - \(habit.schedule) - Target: \(habit.dailyTarget?.description ?? "nil")")
-        }
         
         // Get all habit logs for the last 30 days
         let endDate = Date()

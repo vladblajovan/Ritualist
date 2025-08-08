@@ -50,27 +50,15 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
     ) -> Double {
         let habitLogs = logs.filter { $0.habitID == habit.id }
         
-        print("🔍 [ScheduleCalculator] Calculating completion for habit: '\(habit.name)'")
-        print("   📅 Schedule: \(habit.schedule)")
-        print("   🎯 Kind: \(habit.kind)")
-        print("   🎯 Daily Target: \(habit.dailyTarget?.description ?? "nil")")
-        print("   📊 Total logs found: \(habitLogs.count)")
-        print("   📅 Date range: \(startDate) to \(endDate)")
-        
         let completionRate: Double
         switch habit.schedule {
         case .daily:
             completionRate = calculateDailyCompletionRate(habit: habit, logs: habitLogs, startDate: startDate, endDate: endDate)
         case .daysOfWeek(let days):
-            print("   🗓️ Scheduled days: \(days)")
             completionRate = calculateDaysOfWeekCompletionRate(habit: habit, logs: habitLogs, scheduledDays: days, startDate: startDate, endDate: endDate)
         case .timesPerWeek(let count):
-            print("   📊 Weekly target: \(count) times")
             completionRate = calculateTimesPerWeekCompletionRate(habit: habit, logs: habitLogs, weeklyTarget: count, startDate: startDate, endDate: endDate)
         }
-        
-        print("   ✅ Final completion rate: \(String(format: "%.2f", completionRate * 100))%")
-        print("")
         
         return completionRate
     }
@@ -243,10 +231,7 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         let habitStartDate = max(habit.startDate, startDate)
         let habitEndDate = min(habit.endDate ?? endDate, endDate)
         
-        print("      🗓️ [TimesPerWeek] Habit active period: \(habitStartDate) to \(habitEndDate)")
-        
         guard habitStartDate <= habitEndDate else { 
-            print("      ❌ [TimesPerWeek] Invalid date range!")
             return 0.0 
         }
         
@@ -258,13 +243,9 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
             return logDate
         }
         
-        print("      📊 [TimesPerWeek] Completed dates: \(completedDates.count) total")
-        
         let completionsByWeek = Dictionary(grouping: completedDates) { date in
             calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? date
         }
-        
-        print("      📈 [TimesPerWeek] Completions by week: \(completionsByWeek.count) weeks")
         
         // Calculate weekly completion rates
         var totalWeeklyTargets = 0
@@ -287,8 +268,6 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
             let weekTarget = Int(ceil(Double(weeklyTarget) * weekOverlap))
             let weekCompletions = min(completionsByWeek[currentWeekStart]?.count ?? 0, weekTarget)
             
-            print("      📊 Week \(weekIndex + 1): Target=\(weekTarget), Completions=\(weekCompletions), Overlap=\(String(format: "%.2f", weekOverlap))")
-            
             totalWeeklyTargets += weekTarget
             totalWeeklyCompletions += weekCompletions
             
@@ -297,7 +276,6 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         }
         
         let finalRate = totalWeeklyTargets > 0 ? Double(totalWeeklyCompletions) / Double(totalWeeklyTargets) : 0.0
-        print("      🎯 [TimesPerWeek] Final: \(totalWeeklyCompletions)/\(totalWeeklyTargets) = \(String(format: "%.2f", finalRate * 100))%")
         
         return finalRate
     }

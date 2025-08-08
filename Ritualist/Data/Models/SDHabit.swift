@@ -9,30 +9,36 @@ import Foundation
 import SwiftData
 
 @Model public final class SDHabit: @unchecked Sendable {
-    @Attribute(.unique) public var id: UUID
-    public var name: String
-    public var colorHex: String
+    @Attribute(.unique) public var id: UUID // TODO: Remove .unique when enabling CloudKit
+    public var name: String = "" // CloudKit requires default values
+    public var colorHex: String = "#007AFF" // CloudKit requires default values
     public var emoji: String?
-    public var kindRaw: Int // 0 binary, 1 numeric
+    public var kindRaw: Int = 0 // CloudKit requires default values (0 = binary)
     public var unitLabel: String?
     public var dailyTarget: Double?
-    public var scheduleData: Data // encoded HabitSchedule
-    public var remindersData: Data // encoded [ReminderTime]
-    public var startDate: Date
+    public var scheduleData: Data = Data() // CloudKit requires default values
+    public var remindersData: Data = Data() // CloudKit requires default values
+    public var startDate: Date = Date() // CloudKit requires default values
     public var endDate: Date?
-    public var isActive: Bool
-    public var displayOrder: Int
-    public var categoryId: String?
+    public var isActive: Bool = true // CloudKit requires default values
+    public var displayOrder: Int = 0 // CloudKit requires default values
     public var suggestionId: String?
+    
+    // MARK: - SwiftData Relationships
+    @Relationship(deleteRule: .cascade) 
+    var logs = [SDHabitLog]()
+    
+    @Relationship(deleteRule: .nullify)
+    var category: SDCategory?
     public init(id: UUID, name: String, colorHex: String, emoji: String?, kindRaw: Int,
                 unitLabel: String?, dailyTarget: Double?, scheduleData: Data,
                 remindersData: Data, startDate: Date, endDate: Date?, isActive: Bool, displayOrder: Int,
-                categoryId: String?, suggestionId: String?) {
+                category: SDCategory? = nil, suggestionId: String?) {
         self.id = id; self.name = name; self.colorHex = colorHex; self.emoji = emoji
         self.kindRaw = kindRaw; self.unitLabel = unitLabel; self.dailyTarget = dailyTarget
         self.scheduleData = scheduleData; self.remindersData = remindersData
         self.startDate = startDate; self.endDate = endDate; self.isActive = isActive
-        self.displayOrder = displayOrder
-        self.categoryId = categoryId; self.suggestionId = suggestionId
+        self.displayOrder = displayOrder; self.suggestionId = suggestionId
+        self.category = category
     }
 }

@@ -12,6 +12,7 @@ import UserNotifications
 
 @main struct RitualistApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @Injected(\.notificationService) private var notificationService
     
     var body: some Scene {
         WindowGroup {
@@ -24,7 +25,6 @@ import UserNotifications
     
     private func setupNotifications() async {
         // Setup notification categories on app launch
-        let notificationService = Container.shared.notificationService()
         await notificationService.setupNotificationCategories()
         
         // Set up notification delegate
@@ -37,9 +37,12 @@ import UserNotifications
 // MARK: - App Delegate for Notification Handling
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        
+        
         return true
     }
     
@@ -48,7 +51,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         // Handle personality analysis notifications on main actor
         Task { @MainActor in
-            PersonalityDeepLinkCoordinator.shared.handleNotificationResponse(response)
+            personalityDeepLinkCoordinator.handleNotificationResponse(response)
         }
         
         completionHandler()

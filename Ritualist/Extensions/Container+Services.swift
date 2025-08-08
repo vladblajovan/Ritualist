@@ -134,4 +134,14 @@ extension Container {
         }
         .singleton
     }
+    
+    
+    // MARK: - Deep Link Coordination
+    
+    @MainActor
+    var personalityDeepLinkCoordinator: Factory<PersonalityDeepLinkCoordinator> {
+        self { @MainActor in PersonalityDeepLinkCoordinator.shared }
+        .singleton
+    }
+
 }

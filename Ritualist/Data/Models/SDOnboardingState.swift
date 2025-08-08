@@ -9,11 +9,11 @@ import Foundation
 import SwiftData
 
 @Model public final class SDOnboardingState: @unchecked Sendable {
-    @Attribute(.unique) public var id: UUID
-    public var isCompleted: Bool
+    @Attribute(.unique) public var id: UUID // TODO: Remove .unique when enabling CloudKit
+    public var isCompleted: Bool = false // CloudKit requires default values
     public var completedDate: Date?
     public var userName: String?
-    public var hasGrantedNotifications: Bool
+    public var hasGrantedNotifications: Bool = false // CloudKit requires default values
     
     public init(id: UUID = UUID(), isCompleted: Bool = false, completedDate: Date? = nil,
                 userName: String? = nil, hasGrantedNotifications: Bool = false) {

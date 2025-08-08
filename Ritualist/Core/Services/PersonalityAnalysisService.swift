@@ -32,43 +32,19 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     }
     
     public func analyzePersonality(for userId: UUID) async throws -> PersonalityProfile {
-        print("\n🧠 [PersonalityAnalysis] Starting personality analysis for user: \(userId)")
-        
         // Get input data for analysis
         let input = try await repository.getHabitAnalysisInput(for: userId)
-        
-        print("📊 [PersonalityAnalysis] Input data:")
-        print("   🏃 Active habits: \(input.activeHabits.count)")
-        print("   📝 Custom habits: \(input.customHabits.count)")
-        print("   📂 Custom categories: \(input.customCategories.count)")
-        print("   🏷️ Habit categories: \(input.habitCategories.count)")
-        print("   💡 Selected suggestions: \(input.selectedSuggestions.count)")
-        print("   📅 Tracking days: \(input.trackingDays)")
-        print("   📈 Total data points: \(input.totalDataPoints)")
         
         // Get enhanced completion statistics with schedule-aware calculations
         let endDate = Date()
         let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
         let completionStats = try await repository.getHabitCompletionStats(for: userId, from: startDate, to: endDate)
         
-        print("📊 [PersonalityAnalysis] Completion stats (30-day):")
-        print("   🎯 Total habits: \(completionStats.totalHabits)")
-        print("   ✅ Completed habits: \(completionStats.completedHabits)")
-        print("   📈 Completion rate: \(String(format: "%.2f", completionStats.completionRate * 100))%")
-        
         // Calculate personality scores with enhanced data
         let (traitScores, accumulators, weights) = calculatePersonalityScoresWithDetails(
             from: input, 
             completionStats: completionStats
         )
-        
-        print("🎯 [PersonalityAnalysis] Trait scores:")
-        for trait in PersonalityTrait.allCases {
-            let score = traitScores[trait] ?? 0.0
-            let accumulator = accumulators[trait] ?? 0.0
-            let weight = weights[trait] ?? 0.0
-            print("   \(trait.displayName): Score=\(String(format: "%.3f", score)) (Raw=\(String(format: "%.3f", accumulator)), Weight=\(String(format: "%.3f", weight)))")
-        }
         
         // Determine dominant trait with intelligent tie-breaking
         let dominantTrait = determineDominantTraitWithTieBreaking(
@@ -77,8 +53,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             totalWeights: weights,
             input: input
         )
-        
-        print("👑 [PersonalityAnalysis] Dominant trait: \(dominantTrait.displayName)")
         
         // Create metadata with enhanced data points
         let enhancedDataPoints = input.totalDataPoints + (completionStats.totalHabits > 0 ? 10 : 0)
@@ -92,9 +66,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         // Calculate confidence with enhanced completion data
         let confidence = calculateConfidenceWithCompletionStats(from: metadata, completionStats: completionStats)
         
-        print("🎖️ [PersonalityAnalysis] Confidence level: \(confidence.rawValue)")
-        print("📊 [PersonalityAnalysis] Metadata: \(enhancedDataPoints) data points, \(metadata.timeRangeAnalyzed) days")
-        
         // Create profile
         let profile = PersonalityProfile(
             id: UUID(),
@@ -104,10 +75,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             confidence: confidence,
             analysisMetadata: metadata
         )
-        
-        print("✅ [PersonalityAnalysis] Profile created successfully!")
-        print("📝 [PersonalityAnalysis] Summary: \(profile.summary)")
-        print("")
         
         return profile
     }

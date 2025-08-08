@@ -9,10 +9,7 @@ extension Container {
     
     var personalityAnalysisDataSource: Factory<PersonalityAnalysisDataSource> {
         self { 
-            guard let context = self.swiftDataStack()?.context else {
-                fatalError("SwiftData context not available")
-            }
-            return SwiftDataPersonalityAnalysisDataSource(modelContext: context)
+            SwiftDataPersonalityAnalysisDataSource(modelContext: self.persistenceContainer()?.context)
         }
         .singleton
     }

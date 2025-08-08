@@ -16,6 +16,14 @@ extension Container {
     }
     
     @MainActor
+    var overviewV2ViewModel: Factory<OverviewV2ViewModel> {
+        self { @MainActor in
+            OverviewV2ViewModel()
+        }
+        .singleton
+    }
+    
+    @MainActor
     var habitsAssistantViewModel: Factory<HabitsAssistantViewModel> {
         self { @MainActor in
             HabitsAssistantViewModel(

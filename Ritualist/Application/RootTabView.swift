@@ -9,8 +9,8 @@ public struct RootTabView: View {
     @Injected(\.getOnboardingState) var getOnboardingState
     @Injected(\.appearanceManager) var appearanceManager
     @Injected(\.loadProfile) var loadProfile
-    @StateObject private var navigationService = Container.shared.navigationService()
-    @StateObject private var deepLinkCoordinator = PersonalityDeepLinkCoordinator.shared
+    @InjectedObject(\.navigationService) var navigationService
+    @InjectedObject(\.personalityDeepLinkCoordinator) var deepLinkCoordinator
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var overviewKey = 0

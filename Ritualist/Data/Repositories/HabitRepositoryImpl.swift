@@ -6,10 +6,15 @@
 //
 
 import Foundation
+import SwiftData
 
 public final class HabitRepositoryImpl: HabitRepository {
     private let local: HabitLocalDataSourceProtocol
-    public init(local: HabitLocalDataSourceProtocol) { self.local = local }
+    private let context: ModelContext?
+    public init(local: HabitLocalDataSourceProtocol, context: ModelContext? = nil) { 
+        self.local = local
+        self.context = context
+    }
     public func fetchAllHabits() async throws -> [Habit] {
         let sds = try await local.fetchAll()
         return try sds.map { try HabitMapper.fromSD($0) }
@@ -18,7 +23,7 @@ public final class HabitRepositoryImpl: HabitRepository {
         try await update(habit)
     }
     public func update(_ habit: Habit) async throws {
-        let sd = try HabitMapper.toSD(habit)
+        let sd = try HabitMapper.toSD(habit, context: context)
         try await local.upsert(sd)
     }
     public func delete(id: UUID) async throws {

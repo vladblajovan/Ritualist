@@ -28,13 +28,14 @@ public protocol PersonalityAnalysisDataSource {
 
 public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDataSource {
     
-    private let modelContext: ModelContext
+    private let modelContext: ModelContext?
     
-    public init(modelContext: ModelContext) {
+    public init(modelContext: ModelContext?) {
         self.modelContext = modelContext
     }
     
     public func getLatestProfile(for userId: UUID) async throws -> PersonalityProfile? {
+        guard let modelContext else { return nil }
         let userIdString = userId.uuidString
         let descriptor = FetchDescriptor<SDPersonalityProfile>(
             predicate: #Predicate<SDPersonalityProfile> { profile in
@@ -48,12 +49,14 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
     }
     
     public func saveProfile(_ profile: PersonalityProfile) async throws {
+        guard let modelContext else { return }
         let model = SDPersonalityProfile.fromEntity(profile)
         modelContext.insert(model)
         try modelContext.save()
     }
     
     public func getProfileHistory(for userId: UUID) async throws -> [PersonalityProfile] {
+        guard let modelContext else { return [] }
         let userIdString = userId.uuidString
         let descriptor = FetchDescriptor<SDPersonalityProfile>(
             predicate: #Predicate<SDPersonalityProfile> { profile in
@@ -67,6 +70,7 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
     }
     
     public func deleteProfile(profileId: String) async throws {
+        guard let modelContext else { return }
         let descriptor = FetchDescriptor<SDPersonalityProfile>(
             predicate: #Predicate<SDPersonalityProfile> { profile in
                 profile.id == profileId
@@ -81,6 +85,7 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
     }
     
     public func deleteAllProfiles(for userId: UUID) async throws {
+        guard let modelContext else { return }
         let userIdString = userId.uuidString
         let descriptor = FetchDescriptor<SDPersonalityProfile>(
             predicate: #Predicate<SDPersonalityProfile> { profile in

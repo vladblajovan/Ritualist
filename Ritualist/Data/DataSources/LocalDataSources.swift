@@ -8,20 +8,35 @@ public enum CategoryDataSourceError: Error {
 
 public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
     private let context: ModelContext?
-    public init(context: ModelContext?) { self.context = context }
+    public init(context: ModelContext?) { 
+        self.context = context 
+        print("🔄 [HABITS] HabitLocalDataSource initialized with context: \(context != nil ? "✅ Available" : "❌ NIL")")
+    }
     @MainActor
     public func fetchAll() async throws -> [SDHabit] {
-        guard let context else { return [] }
+        print("🔄 [HABITS] Fetching all habits...")
+        guard let context else { 
+            print("❌ [HABITS] Context is NIL - returning empty array")
+            return [] 
+        }
+        
         let descriptor = FetchDescriptor<SDHabit>(
             sortBy: [SortDescriptor(\.displayOrder)]
         )
-        return try context.fetch(descriptor)
+        let result = try context.fetch(descriptor)
+        print("✅ [HABITS] Fetched \(result.count) habits")
+        return result
     }
     @MainActor
     public func upsert(_ habit: SDHabit) async throws {
-        guard let context else { return }
+        print("🔄 [HABITS] Attempting to upsert habit: \(habit.name)")
+        guard let context else { 
+            print("❌ [HABITS] Context is NIL - cannot save habit")
+            return 
+        }
         context.insert(habit)
         try context.save()
+        print("✅ [HABITS] Habit saved successfully: \(habit.name)")
     }
     @MainActor
     public func delete(id: UUID) async throws {
@@ -40,12 +55,13 @@ public final class LogLocalDataSource: LogLocalDataSourceProtocol {
     @MainActor
     public func logs(for habitID: UUID) async throws -> [SDHabitLog] {
         guard let context else { return [] }
-        let descriptor = FetchDescriptor<SDHabitLog>(predicate: #Predicate { $0.habitID == habitID })
+        let descriptor = FetchDescriptor<SDHabitLog>(predicate: #Predicate { $0.habit?.id == habitID })
         return try context.fetch(descriptor)
     }
     @MainActor
     public func upsert(_ log: SDHabitLog) async throws {
         guard let context else { return }
+        
         context.insert(log)
         try context.save()
     }
@@ -92,14 +108,7 @@ public final class ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
     }
 }
 
-public protocol TipLocalDataSourceProtocol {
-    func getAllTips() async throws -> [Tip]
-    func getFeaturedTips() async throws -> [Tip]
-    func getTip(by id: UUID) async throws -> Tip?
-    func getTips(by category: TipCategory) async throws -> [Tip]
-}
-
-public final class TipLocalDataSource: TipLocalDataSourceProtocol {
+public final class TipStaticDataSource: TipLocalDataSourceProtocol {
     public init() {}
     
     private lazy var predefinedTips: [Tip] = {
@@ -231,44 +240,56 @@ public final class TipLocalDataSource: TipLocalDataSourceProtocol {
     }
 }
 
-public protocol OnboardingLocalDataSourceProtocol {
-    @MainActor func load() async throws -> SDOnboardingState?
-    @MainActor func save(_ state: SDOnboardingState) async throws
-}
-
 public final class OnboardingLocalDataSource: OnboardingLocalDataSourceProtocol {
     private let context: ModelContext?
-    public init(context: ModelContext?) { self.context = context }
+    public init(context: ModelContext?) { 
+        self.context = context 
+        print("🔄 [ONBOARDING] OnboardingLocalDataSource initialized with context: \(context != nil ? "✅ Available" : "❌ NIL")")
+    }
     
     @MainActor
     public func load() async throws -> SDOnboardingState? {
-        guard let context else { return nil }
+        print("🔄 [ONBOARDING] Loading onboarding state...")
+        guard let context else { 
+            print("❌ [ONBOARDING] Context is NIL - cannot load onboarding state")
+            return nil 
+        }
+        
         let descriptor = FetchDescriptor<SDOnboardingState>()
-        return try context.fetch(descriptor).first
+        let result = try context.fetch(descriptor).first
+        print("✅ [ONBOARDING] Loaded onboarding state: \(result != nil ? "Found" : "Not found")")
+        return result
     }
     
     @MainActor
     public func save(_ state: SDOnboardingState) async throws {
-        guard let context else { return }
+        print("🔄 [ONBOARDING] Saving onboarding state: isCompleted=\(state.isCompleted)")
+        guard let context else { 
+            print("❌ [ONBOARDING] Context is NIL - cannot save onboarding state")
+            return 
+        }
         
         // Check if onboarding state already exists (there should only be one)
         let descriptor = FetchDescriptor<SDOnboardingState>()
         if let existing = try context.fetch(descriptor).first {
+            print("✅ [ONBOARDING] Updating existing onboarding state")
             // Update existing state
             existing.isCompleted = state.isCompleted
             existing.completedDate = state.completedDate
             existing.userName = state.userName
             existing.hasGrantedNotifications = state.hasGrantedNotifications
         } else {
+            print("✅ [ONBOARDING] Inserting new onboarding state")
             // Insert new state
             context.insert(state)
         }
         
         try context.save()
+        print("✅ [ONBOARDING] Onboarding state saved successfully")
     }
 }
 
-public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProtocol {
+public final class PersistenceCategoryDataSource: CategoryLocalDataSourceProtocol {
     private let context: ModelContext?
     
     public init(context: ModelContext?) { 
@@ -446,7 +467,7 @@ public final class SwiftDataCategoryLocalDataSource: CategoryLocalDataSourceProt
     }
 }
 
-public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol {
+public final class CategoryStaticDataSource: CategoryLocalDataSourceProtocol {
     public init() {}
     
     private lazy var predefinedCategories: [Category] = {
@@ -583,7 +604,7 @@ public final class MockCategoryLocalDataSource: CategoryLocalDataSourceProtocol 
     }
 }
 
-public final class CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
+public final class CategoryRemoteDataSource: CategoryLocalDataSourceProtocol {
     public init() {}
     
     // TODO: Implement backend integration when available
