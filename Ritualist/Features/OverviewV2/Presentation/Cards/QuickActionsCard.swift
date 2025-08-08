@@ -7,8 +7,12 @@ struct QuickActionsCard: View {
     let timeOfDay: TimeOfDay
     let completionPercentage: Double
     let onHabitComplete: (Habit) -> Void
+    let getCurrentProgress: (Habit) -> Double // New callback to get current progress
+    let onNumericHabitUpdate: (Habit, Double) -> Void // New callback for numeric habit updates
     
     @State private var animatingHabitId: UUID? = nil
+    @State private var showingNumericSheet = false
+    @State private var selectedHabit: Habit?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -55,21 +59,39 @@ struct QuickActionsCard: View {
             }
         }
         .cardStyle()
+        .sheet(isPresented: $showingNumericSheet) {
+            if let habit = selectedHabit, habit.kind == .numeric {
+                NumericHabitLogSheet(
+                    habit: habit,
+                    currentValue: getCurrentProgress(habit),
+                    onSave: { newValue in
+                        onNumericHabitUpdate(habit, newValue)
+                    },
+                    onCancel: {
+                        // Sheet dismisses automatically
+                    }
+                )
+            }
+        }
     }
     
     @ViewBuilder
     private func habitChip(for habit: Habit, isCompleted: Bool) -> some View {
         Button {
             if !isCompleted {
-                // Start fade animation before calling completion
-                withAnimation(.easeOut(duration: 0.3)) {
-                    animatingHabitId = habit.id
-                }
-                
-                // Delay the completion callback to allow fade animation
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    onHabitComplete(habit)
-                    animatingHabitId = nil
+                if habit.kind == .numeric {
+                    selectedHabit = habit
+                    showingNumericSheet = true
+                } else {
+                    // For binary habits, use the original animation and completion flow
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        animatingHabitId = habit.id
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        onHabitComplete(habit)
+                        animatingHabitId = nil
+                    }
                 }
             }
         } label: {
@@ -87,9 +109,17 @@ struct QuickActionsCard: View {
                         .lineLimit(1)
                     
                     if habit.kind == .numeric, let unitLabel = habit.unitLabel {
-                        Text("\(Int(habit.dailyTarget ?? 1.0)) \(unitLabel)")
-                            .font(.caption)
-                            .foregroundColor(isCompleted ? .secondary.opacity(0.7) : .secondary)
+                        if isCompleted {
+                            Text("\(Int(habit.dailyTarget ?? 1.0)) \(unitLabel) - Completed")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        } else {
+                            let currentValue = getCurrentProgress(habit)
+                            let target = habit.dailyTarget ?? 1.0
+                            Text("\(Int(currentValue))/\(Int(target)) \(unitLabel)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     } else {
                         Text(isCompleted ? "Completed" : "Tap to complete")
                             .font(.caption)
@@ -168,7 +198,9 @@ struct QuickActionsCard: View {
             currentSlogan: "Rise with purpose, rule your day.",
             timeOfDay: .morning,
             completionPercentage: 0.6,
-            onHabitComplete: { _ in }
+            onHabitComplete: { _ in },
+            getCurrentProgress: { _ in 3.0 }, // Mock progress
+            onNumericHabitUpdate: { _, _ in }
         )
         
         // Perfect day state
@@ -178,7 +210,9 @@ struct QuickActionsCard: View {
             currentSlogan: "End strong, dream bigger.",
             timeOfDay: .evening,
             completionPercentage: 1.0,
-            onHabitComplete: { _ in }
+            onHabitComplete: { _ in },
+            getCurrentProgress: { _ in 0.0 },
+            onNumericHabitUpdate: { _, _ in }
         )
     }
     .padding()

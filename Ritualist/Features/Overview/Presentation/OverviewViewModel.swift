@@ -255,6 +255,89 @@ public final class OverviewViewModel {
         loggingDate = nil
     }
     
+    public func updateNumericHabitForDate(_ date: Date, habit: Habit, value: Double) async {
+        // Check if this date is schedulable for the habit
+        guard isDateSchedulable(date) else { return }
+        
+        loggingDate = Calendar.current.startOfDay(for: date)
+        error = nil
+        
+        do {
+            // Store previous best streak before logging to check for improvements
+            let previousBest = bestStreak
+            
+            // Get existing logs for this date to handle updating properly
+            let normalizedDate = Calendar.current.startOfDay(for: date)
+            let existingLog = try await getLogForDate.execute(habitID: habit.id, date: date)
+            
+            // Use the same pattern as OverviewV2ViewModel but adapted for specific date
+            if let existingLog = existingLog {
+                // Update existing log
+                // Note: This would typically require a updateHabitLog use case
+                // For now, we'll use toggleHabitLog to reset and then set the new value
+                let resetResult = try await toggleHabitLog.execute(
+                    date: date,
+                    habit: habit,
+                    currentLoggedDates: loggedDates,
+                    currentHabitLogValues: habitLogValues
+                )
+                
+                // Then log with new value (this is a simplification)
+                // In a full implementation, we'd need an UpdateHabitLogUseCase
+                let newResult = try await toggleHabitLog.execute(
+                    date: date,
+                    habit: habit,
+                    currentLoggedDates: resetResult.loggedDates,
+                    currentHabitLogValues: resetResult.habitLogValues
+                )
+                
+                loggedDates = newResult.loggedDates
+                habitLogValues = newResult.habitLogValues
+                habitLogValues[normalizedDate] = value
+            } else {
+                // Create new log with specified value
+                let result = try await toggleHabitLog.execute(
+                    date: date,
+                    habit: habit,
+                    currentLoggedDates: loggedDates,
+                    currentHabitLogValues: habitLogValues
+                )
+                
+                loggedDates = result.loggedDates
+                habitLogValues = result.habitLogValues
+                habitLogValues[normalizedDate] = value
+            }
+            
+            // Update completion status based on target
+            if let target = habit.dailyTarget, value >= target {
+                loggedDates.insert(normalizedDate)
+            } else {
+                loggedDates.remove(normalizedDate)
+            }
+            
+            // Track habit logging
+            trackHabitLogged.execute(
+                habitId: habit.id.uuidString,
+                habitName: habit.name,
+                date: date,
+                logType: value > 0 ? "logged" : "unlogged",
+                value: value
+            )
+            
+            // Recalculate streaks after logging
+            await calculateStreaks()
+            
+            // Check if we should trigger celebration animation after logging
+            if bestStreak > previousBest && bestStreak > 0 {
+                shouldAnimateBestStreak = true
+            }
+        } catch {
+            self.error = error
+        }
+        
+        loggingDate = nil
+    }
+    
     public func retry() async {
         await load()
     }

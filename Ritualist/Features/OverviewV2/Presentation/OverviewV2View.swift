@@ -41,6 +41,10 @@ public struct OverviewV2View: View {
                             await vm.completeHabit(habit)
                         }
                     },
+                    onNumericHabitUpdate: { habit, newValue in
+                        await vm.updateNumericHabit(habit, value: newValue)
+                    },
+                    getCurrentProgress: vm.getCurrentProgress,
                     onPreviousDay: {
                         vm.goToPreviousDay()
                     },
@@ -63,6 +67,14 @@ public struct OverviewV2View: View {
                         onHabitComplete: { habit in
                             Task {
                                 await vm.completeHabit(habit)
+                            }
+                        },
+                        getCurrentProgress: { habit in
+                            vm.getCurrentProgress(for: habit)
+                        },
+                        onNumericHabitUpdate: { habit, newValue in
+                            Task {
+                                await vm.updateNumericHabit(habit, value: newValue)
                             }
                         }
                     )

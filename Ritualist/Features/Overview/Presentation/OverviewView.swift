@@ -196,6 +196,9 @@ private struct OverviewListView: View {
                                 },
                                 onTodayTap: {
                                     await vm.navigateToToday()
+                                },
+                                onNumericHabitUpdate: { date, habit, value in
+                                    await vm.updateNumericHabitForDate(date, habit: habit, value: value)
                                 }
                             )
                         }

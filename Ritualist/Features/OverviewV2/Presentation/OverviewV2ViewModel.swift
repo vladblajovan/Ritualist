@@ -107,6 +107,14 @@ public struct SmartInsight {
 public final class OverviewV2ViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published public var todaysSummary: TodaysSummary?
+    
+    // Cache for current day's habit progress (habit ID -> current value)
+    // This stores the actual aggregated log values for the viewing date
+    @Published private var currentHabitProgress: [UUID: Double] = [:]
+    
+    // Cache for current day's habit logs (habit ID -> [HabitLog])
+    // This stores the raw logs so we can properly handle updates
+    private var currentHabitLogs: [UUID: [HabitLog]] = [:]
     @Published public var weeklyProgress: WeeklyProgress?
     @Published public var activeStreaks: [StreakInfo] = []
     @Published public var smartInsights: [SmartInsight] = []
@@ -314,23 +322,120 @@ public final class OverviewV2ViewModel: ObservableObject {
     
     public func completeHabit(_ habit: Habit) async {
         do {
-            // Create habit log for the viewing date (could be today or retroactive)
-            let log = HabitLog(
-                id: UUID(),
-                habitID: habit.id,
-                date: viewingDate,
-                value: habit.kind == .numeric ? habit.dailyTarget ?? 1.0 : 1.0
-            )
-            
-            try await logRepository.upsert(log)
-            
-            // Refresh data to show updated progress
-            await loadData()
+            if habit.kind == .numeric {
+                // For numeric habits, set to daily target (this should primarily be used for binary habits)
+                // Most numeric habit interactions should go through updateNumericHabit instead
+                await updateNumericHabit(habit, value: habit.dailyTarget ?? 1.0)
+            } else {
+                // Binary habit - just create a log with value 1.0
+                let log = HabitLog(
+                    id: UUID(),
+                    habitID: habit.id,
+                    date: viewingDate,
+                    value: 1.0
+                )
+                
+                try await logRepository.upsert(log)
+                
+                // Update caches
+                currentHabitProgress[habit.id] = 1.0
+                currentHabitLogs[habit.id] = [log]
+                
+                // Refresh data to show updated progress
+                await loadData()
+            }
             
         } catch {
             await MainActor.run {
                 self.error = error
                 print("Failed to complete habit: \(error)")
+            }
+        }
+    }
+    
+    public func getCurrentProgress(for habit: Habit) -> Double {
+        if let cached = currentHabitProgress[habit.id] {
+            return cached
+        }
+        
+        // If not in cache, try to get from current logs cache
+        if let logs = currentHabitLogs[habit.id] {
+            if habit.kind == .numeric {
+                return logs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+            } else {
+                return logs.isEmpty ? 0.0 : 1.0
+            }
+        }
+        
+        return 0.0
+    }
+    
+    public func updateNumericHabit(_ habit: Habit, value: Double) async {
+        do {
+            // Update the cache immediately for responsive UI
+            currentHabitProgress[habit.id] = value
+            
+            // Get existing logs for this habit on the viewing date
+            let allLogs = try await logRepository.logs(for: habit.id)
+            let existingLogsForDate = allLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
+            
+            if existingLogsForDate.isEmpty {
+                // No existing log for this date - create new one
+                let log = HabitLog(
+                    id: UUID(),
+                    habitID: habit.id,
+                    date: viewingDate,
+                    value: value
+                )
+                try await logRepository.upsert(log)
+                
+                // Update our cache
+                currentHabitLogs[habit.id] = [log]
+                
+            } else if existingLogsForDate.count == 1 {
+                // Single existing log - update it
+                var updatedLog = existingLogsForDate[0]
+                updatedLog.value = value
+                try await logRepository.upsert(updatedLog)
+                
+                // Update our cache
+                currentHabitLogs[habit.id] = [updatedLog]
+                
+            } else {
+                // Multiple logs exist for this date - this shouldn't happen for our UI
+                // But let's handle it properly: delete all existing logs and create one new log
+                for existingLog in existingLogsForDate {
+                    try await logRepository.deleteLog(id: existingLog.id)
+                }
+                
+                let log = HabitLog(
+                    id: UUID(),
+                    habitID: habit.id,
+                    date: viewingDate,
+                    value: value
+                )
+                try await logRepository.upsert(log)
+                
+                // Update our cache
+                currentHabitLogs[habit.id] = [log]
+            }
+            
+            // Refresh data to show updated progress and completion status
+            await loadData()
+            
+        } catch {
+            // Revert the optimistic cache update on error
+            await MainActor.run {
+                // Restore previous cached value if possible
+                if let existingLogs = currentHabitLogs[habit.id] {
+                    let totalValue = existingLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+                    currentHabitProgress[habit.id] = totalValue
+                } else {
+                    currentHabitProgress[habit.id] = 0.0
+                }
+                
+                self.error = error
+                print("Failed to update numeric habit: \(error)")
             }
         }
     }
@@ -577,17 +682,48 @@ public final class OverviewV2ViewModel: ObservableObject {
         let habits = try await habitRepository.fetchAllHabits().filter { $0.isActive }
         
         var allTargetDateLogs: [HabitLog] = []
+        var progressCache: [UUID: Double] = [:]
+        var logsCache: [UUID: [HabitLog]] = [:]
+        
         for habit in habits {
             let habitLogs = try await logRepository.logs(for: habit.id)
             let targetDateLogs = habitLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: targetDate) }
             allTargetDateLogs.append(contentsOf: targetDateLogs)
+            
+            // Store logs in cache for proper handling
+            logsCache[habit.id] = targetDateLogs
+            
+            // Calculate progress for both numeric and binary habits
+            if habit.kind == .numeric {
+                let totalValue = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+                progressCache[habit.id] = totalValue
+            } else {
+                // Binary habits: 1.0 if logged, 0.0 if not
+                progressCache[habit.id] = targetDateLogs.isEmpty ? 0.0 : 1.0
+            }
         }
         
-        let completedHabitsCount = allTargetDateLogs.count
+        // Update the caches on main thread
+        await MainActor.run {
+            self.currentHabitProgress = progressCache
+            self.currentHabitLogs = logsCache
+        }
+        
+        // Count will be calculated based on the completed habits array
         
         // Create completed habits array (sorted by completion time)
         let completedHabits = habits.filter { habit in
-            allTargetDateLogs.contains { $0.habitID == habit.id }
+            let habitLogs = allTargetDateLogs.filter { $0.habitID == habit.id }
+            
+            if habit.kind == .binary {
+                // Binary habits: completed if any log exists
+                return !habitLogs.isEmpty
+            } else {
+                // Numeric habits: completed if total value >= daily target
+                let totalValue = habitLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+                let target = habit.dailyTarget ?? 1.0
+                return totalValue >= target
+            }
         }.sorted { habit1, habit2 in
             // Sort by latest log time for each habit (most recent at end)
             let habit1Logs = allTargetDateLogs.filter { $0.habitID == habit1.id }
@@ -599,12 +735,25 @@ public final class OverviewV2ViewModel: ObservableObject {
         
         let incompleteHabits = habits.filter { habit in
             // Only show as incomplete if not completed AND not a future date
-            let hasLog = allTargetDateLogs.contains { $0.habitID == habit.id }
-            return !hasLog && targetDate <= Date()
+            let habitLogs = allTargetDateLogs.filter { $0.habitID == habit.id }
+            
+            if targetDate > Date() {
+                return false // Don't show future dates as incomplete
+            }
+            
+            if habit.kind == .binary {
+                // Binary habits: incomplete if no log exists
+                return habitLogs.isEmpty
+            } else {
+                // Numeric habits: incomplete if total value < daily target
+                let totalValue = habitLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+                let target = habit.dailyTarget ?? 1.0
+                return totalValue < target
+            }
         }
         
         return TodaysSummary(
-            completedHabitsCount: completedHabitsCount,
+            completedHabitsCount: completedHabits.count,
             completedHabits: completedHabits,
             totalHabits: habits.count,
             incompleteHabits: incompleteHabits

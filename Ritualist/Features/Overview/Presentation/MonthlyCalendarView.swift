@@ -13,6 +13,7 @@ public struct MonthlyCalendarView: View {
     let onMonthChange: (Int) async -> Void
     let onDateTap: (Date) async -> Void
     let onTodayTap: () async -> Void
+    let onNumericHabitUpdate: ((Date, Habit, Double) async -> Void)?
     
     private let calendar = Calendar.current
     private let dateFormatter: DateFormatter = {
@@ -84,7 +85,8 @@ public struct MonthlyCalendarView: View {
                 getHabitValueForDate: getHabitValueForDate,
                 isDateSchedulable: isDateSchedulable,
                 isWeeklyTargetMet: isWeeklyTargetMet,
-                onDateTap: onDateTap
+                onDateTap: onDateTap,
+                onNumericHabitUpdate: onNumericHabitUpdate
             )
         }
         .padding(.bottom, Spacing.large)
@@ -102,6 +104,7 @@ public struct CalendarGridView: View {
     let isDateSchedulable: (Date) -> Bool
     let isWeeklyTargetMet: (Date) -> Bool
     let onDateTap: (Date) async -> Void
+    let onNumericHabitUpdate: ((Date, Habit, Double) async -> Void)?
     
     private var calendar: Calendar {
         DateUtils.userCalendar()
@@ -147,6 +150,9 @@ public struct CalendarGridView: View {
                                     },
                                     onLongPressToReset: {
                                         await onDateTap(calendarDay.date)
+                                    },
+                                    onNumericHabitUpdate: { habit, newValue in
+                                        await onNumericHabitUpdate?(calendarDay.date, habit, newValue)
                                     }
                                 )
                                 .frame(maxWidth: .infinity)

@@ -8,9 +8,14 @@ struct TodaysSummaryCard: View {
     let canGoToNext: Bool
     let currentSlogan: String?
     let onQuickAction: (Habit) -> Void
+    let onNumericHabitUpdate: ((Habit, Double) async -> Void)?
+    let getCurrentProgress: ((Habit) -> Double)?
     let onPreviousDay: () -> Void
     let onNextDay: () -> Void
     let onGoToToday: () -> Void
+    
+    @State private var selectedHabit: Habit?
+    @State private var showingNumericSheet = false
     
     init(summary: TodaysSummary?, 
          viewingDate: Date,
@@ -19,6 +24,8 @@ struct TodaysSummaryCard: View {
          canGoToNext: Bool,
          currentSlogan: String? = nil,
          onQuickAction: @escaping (Habit) -> Void,
+         onNumericHabitUpdate: ((Habit, Double) async -> Void)? = nil,
+         getCurrentProgress: ((Habit) -> Double)? = nil,
          onPreviousDay: @escaping () -> Void,
          onNextDay: @escaping () -> Void,
          onGoToToday: @escaping () -> Void) {
@@ -29,6 +36,8 @@ struct TodaysSummaryCard: View {
         self.canGoToNext = canGoToNext
         self.currentSlogan = currentSlogan
         self.onQuickAction = onQuickAction
+        self.onNumericHabitUpdate = onNumericHabitUpdate
+        self.getCurrentProgress = getCurrentProgress
         self.onPreviousDay = onPreviousDay
         self.onNextDay = onNextDay
         self.onGoToToday = onGoToToday
@@ -188,30 +197,69 @@ struct TodaysSummaryCard: View {
             }
         }
         .cardStyle()
+        .sheet(isPresented: $showingNumericSheet) {
+            if let habit = selectedHabit, habit.kind == .numeric {
+                NumericHabitLogSheet(
+                    habit: habit,
+                    currentValue: getCurrentProgress?(habit) ?? 0.0,
+                    onSave: { newValue in
+                        Task {
+                            await onNumericHabitUpdate?(habit, newValue)
+                        }
+                    },
+                    onCancel: {
+                        // Sheet dismisses automatically
+                    }
+                )
+            }
+        }
     }
     
     @ViewBuilder
     private func quickActionButton(for habit: Habit) -> some View {
         Button {
-            onQuickAction(habit)
+            if habit.kind == .numeric {
+                selectedHabit = habit
+                showingNumericSheet = true
+            } else {
+                onQuickAction(habit)
+            }
         } label: {
             HStack(spacing: 12) {
                 Text(habit.emoji ?? "📊")
                     .font(.title2)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Next: \(habit.name)")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.primary)
-                    
-                    Text("Tap to complete")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if habit.kind == .numeric {
+                        let currentValue = getCurrentProgress?(habit) ?? 0.0
+                        let target = habit.dailyTarget ?? 1.0
+                        Text("Next: \(habit.name)")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                        
+                        if currentValue > 0 {
+                            Text("\(Int(currentValue))/\(Int(target)) \(habit.unitLabel ?? "units")")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("Tap to log progress")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } else {
+                        Text("Next: \(habit.name)")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                        
+                        Text("Tap to complete")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 Spacer()
                 
-                Image(systemName: "plus.circle.fill")
+                Image(systemName: habit.kind == .numeric ? "plus.circle.fill" : "plus.circle.fill")
                     .font(.title2)
                     .foregroundColor(AppColors.brand)
             }
@@ -296,6 +344,8 @@ struct TodaysSummaryCard: View {
             canGoToNext: false,
             currentSlogan: "Rise with purpose, rule your day.",
             onQuickAction: { _ in },
+            onNumericHabitUpdate: { _, _ in },
+            getCurrentProgress: { _ in 0.0 },
             onPreviousDay: { },
             onNextDay: { },
             onGoToToday: { }
@@ -328,6 +378,8 @@ struct TodaysSummaryCard: View {
             canGoToNext: true,
             currentSlogan: nil,
             onQuickAction: { _ in },
+            onNumericHabitUpdate: { _, _ in },
+            getCurrentProgress: { _ in 0.0 },
             onPreviousDay: { },
             onNextDay: { },
             onGoToToday: { }

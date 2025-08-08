@@ -11,8 +11,10 @@ public struct CalendarDayView: View {
     let isWeeklyTargetMet: Bool
     let onTap: () async -> Void
     let onLongPressToReset: (() async -> Void)?
+    let onNumericHabitUpdate: ((Habit, Double) async -> Void)?
     
     @State private var showingResetConfirmation = false
+    @State private var showingNumericSheet = false
     
     private let calendar = Calendar.current
     
@@ -48,7 +50,11 @@ public struct CalendarDayView: View {
             // Allow tap only if: not future, schedulable, and not completed
             // This prevents accidental taps on completed habits (they need long press)
             if !isFutureDate && isSchedulable && !isCompleted {
-                Task { await onTap() }
+                if habit.kind == .numeric {
+                    showingNumericSheet = true
+                } else {
+                    Task { await onTap() }
+                }
             }
         } label: {
             ZStack {
@@ -148,6 +154,22 @@ public struct CalendarDayView: View {
         }
         .accessibilityLabel(accessibilityDescription)
         .accessibilityAddTraits(isLogged ? [.isSelected, .isButton] : .isButton)
+        .sheet(isPresented: $showingNumericSheet) {
+            if habit.kind == .numeric {
+                NumericHabitLogSheet(
+                    habit: habit,
+                    currentValue: currentValue,
+                    onSave: { newValue in
+                        Task {
+                            await onNumericHabitUpdate?(habit, newValue)
+                        }
+                    },
+                    onCancel: {
+                        // Sheet dismisses automatically
+                    }
+                )
+            }
+        }
     }
     
     private var accessibilityDescription: String {
