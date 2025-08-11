@@ -148,61 +148,56 @@ private struct SettingsFormView: View {
                     }
                     
                     Section(Strings.Settings.notifications) {
-                        VStack(alignment: .leading, spacing: Spacing.medium) {
-                            HStack(spacing: Spacing.medium) {
-                                Image(systemName: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill")
-                                    .foregroundColor(vm.hasNotificationPermission ? .green : .orange)
-                                    .font(.title2)
-                                    .frame(width: IconSize.large)
+                        HStack(spacing: Spacing.medium) {
+                            Image(systemName: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill")
+                                .foregroundColor(vm.hasNotificationPermission ? .green : .orange)
+                                .font(.title2)
+                                .frame(width: IconSize.large)
+                            
+                            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                                Text(Strings.Settings.notificationPermission)
+                                    .font(.headline)
+                                    .fontWeight(.medium)
                                 
-                                VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                                    Text(Strings.Settings.notificationPermission)
-                                        .font(.headline)
-                                        .fontWeight(.medium)
-                                    
-                                    Text(vm.hasNotificationPermission ? 
-                                         Strings.Settings.notificationsEnabled :
-                                         Strings.Settings.notificationsDisabled)
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                Spacer()
+                                Text(vm.hasNotificationPermission ? 
+                                     Strings.Settings.notificationsEnabled :
+                                     Strings.Settings.notificationsDisabled)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            HStack {
-                                Spacer()
-                                    .frame(width: 24 + Spacing.medium)
-                                
-                                if !vm.hasNotificationPermission {
-                                    Button(Strings.Settings.enable) {
-                                        Task {
-                                            await vm.requestNotifications()
-                                        }
+                            
+                            Spacer()
+                            
+                            // Action button on the right
+                            if vm.isRequestingNotifications {
+                                ProgressView()
+                                    .scaleEffect(ScaleFactors.smallMedium)
+                            } else if !vm.hasNotificationPermission {
+                                Button {
+                                    Task {
+                                        await vm.requestNotifications()
                                     }
-                                    .disabled(vm.isRequestingNotifications)
-                                    .buttonStyle(.borderedProminent)
-                                    .controlSize(.regular)
-                                    .overlay {
-                                        if vm.isRequestingNotifications {
-                                            ProgressView()
-                                                .scaleEffect(ScaleFactors.smallMedium)
-                                                .foregroundColor(.white)
-                                        }
-                                    }
-                                } else {
-                                    Button(Strings.Settings.openSettings) {
-                                        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                                            UIApplication.shared.open(settingsUrl)
-                                        }
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .controlSize(.regular)
+                                } label: {
+                                    Image(systemName: "bell.badge")
+                                        .font(.title3)
+                                        .foregroundColor(.blue)
                                 }
-                                Spacer()
+                            } else {
+                                Button {
+                                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(settingsUrl)
+                                    }
+                                } label: {
+                                    Image(systemName: "gearshape.fill")
+                                        .font(.title3)
+                                        .foregroundColor(.gray)
+                                }
                             }
                         }
                         .padding(.vertical, Spacing.small)
                     }
+                    
                 }
                 .refreshable {
                     await vm.load()
