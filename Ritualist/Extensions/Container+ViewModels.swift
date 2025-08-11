@@ -8,6 +8,18 @@ extension Container {
     // MARK: - Main ViewModels
     
     @MainActor
+    var rootTabViewModel: Factory<RootTabViewModel> {
+        self { @MainActor in
+            RootTabViewModel(
+                getOnboardingState: self.getOnboardingState(),
+                loadProfile: self.loadProfile(),
+                appearanceManager: self.appearanceManager()
+            )
+        }
+        .singleton
+    }
+    
+    @MainActor
     var habitsViewModel: Factory<HabitsViewModel> {
         self { @MainActor in
             HabitsViewModel()

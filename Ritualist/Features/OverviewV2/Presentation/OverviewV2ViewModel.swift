@@ -235,8 +235,10 @@ public final class OverviewV2ViewModel: ObservableObject {
     @Published public var monthlyCompletionData: [Date: Double] = [:]
     
     // MARK: - Dependencies
-    @Injected(\.habitRepository) private var habitRepository
-    @Injected(\.logRepository) private var logRepository
+    @Injected(\.getActiveHabits) private var getActiveHabits
+    @Injected(\.getLogs) private var getLogs
+    @Injected(\.logHabit) private var logHabit
+    @Injected(\.deleteLog) private var deleteLog
     @Injected(\.slogansService) private var slogansService
     @Injected(\.userService) private var userService
     @Injected(\.calculateCurrentStreak) private var calculateCurrentStreakUseCase
@@ -335,7 +337,7 @@ public final class OverviewV2ViewModel: ObservableObject {
                     value: 1.0
                 )
                 
-                try await logRepository.upsert(log)
+                try await logHabit.execute(log)
                 
                 // Update caches
                 currentHabitProgress[habit.id] = 1.0
@@ -376,7 +378,7 @@ public final class OverviewV2ViewModel: ObservableObject {
             currentHabitProgress[habit.id] = value
             
             // Get existing logs for this habit on the viewing date
-            let allLogs = try await logRepository.logs(for: habit.id)
+            let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
             let existingLogsForDate = allLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
             
             if existingLogsForDate.isEmpty {
@@ -387,16 +389,15 @@ public final class OverviewV2ViewModel: ObservableObject {
                     date: viewingDate,
                     value: value
                 )
-                try await logRepository.upsert(log)
+                try await logHabit.execute(log)
                 
                 // Update our cache
                 currentHabitLogs[habit.id] = [log]
-                
             } else if existingLogsForDate.count == 1 {
                 // Single existing log - update it
                 var updatedLog = existingLogsForDate[0]
                 updatedLog.value = value
-                try await logRepository.upsert(updatedLog)
+                try await logHabit.execute(updatedLog)
                 
                 // Update our cache
                 currentHabitLogs[habit.id] = [updatedLog]
@@ -405,7 +406,7 @@ public final class OverviewV2ViewModel: ObservableObject {
                 // Multiple logs exist for this date - this shouldn't happen for our UI
                 // But let's handle it properly: delete all existing logs and create one new log
                 for existingLog in existingLogsForDate {
-                    try await logRepository.deleteLog(id: existingLog.id)
+                    try await deleteLog.execute(id: existingLog.id)
                 }
                 
                 let log = HabitLog(
@@ -414,7 +415,7 @@ public final class OverviewV2ViewModel: ObservableObject {
                     date: viewingDate,
                     value: value
                 )
-                try await logRepository.upsert(log)
+                try await logHabit.execute(log)
                 
                 // Update our cache
                 currentHabitLogs[habit.id] = [log]
@@ -505,11 +506,11 @@ public final class OverviewV2ViewModel: ObservableObject {
         guard let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) else { return false }
         
         do {
-            let yesterdayHabits = try await habitRepository.fetchAllHabits().filter { $0.isActive }
+            let yesterdayHabits = try await getActiveHabits.execute()
             var yesterdayCompletedCount = 0
             
             for habit in yesterdayHabits {
-                let logs = try await logRepository.logs(for: habit.id)
+                let logs = try await getLogs.execute(for: habit.id, since: yesterday, until: yesterday)
                 if logs.contains(where: { calendar.isDate($0.date, inSameDayAs: yesterday) }) {
                     yesterdayCompletedCount += 1
                 }
@@ -679,14 +680,25 @@ public final class OverviewV2ViewModel: ObservableObject {
     
     private func loadTodaysSummary() async throws -> TodaysSummary {
         let targetDate = viewingDate
-        let habits = try await habitRepository.fetchAllHabits().filter { $0.isActive }
+        let allActiveHabits = try await getActiveHabits.execute()
+        
+        print("\n📊 [OVERVIEW] Loading summary for \(DateFormatter.localizedString(from: targetDate, dateStyle: .medium, timeStyle: .none))")
+        print("📊 [OVERVIEW] Found \(allActiveHabits.count) active habits total")
+        
+        let habits = allActiveHabits.filter { habit in
+            let isScheduled = habit.schedule.isActiveOn(date: targetDate)
+            print("📊 [OVERVIEW] Habit '\(habit.name)': \(isScheduled ? "INCLUDED" : "FILTERED OUT")")
+            return isScheduled
+        }
+        
+        print("📊 [OVERVIEW] Final result: \(habits.count) habits scheduled for today")
         
         var allTargetDateLogs: [HabitLog] = []
         var progressCache: [UUID: Double] = [:]
         var logsCache: [UUID: [HabitLog]] = [:]
         
         for habit in habits {
-            let habitLogs = try await logRepository.logs(for: habit.id)
+            let habitLogs = try await getLogs.execute(for: habit.id, since: targetDate, until: targetDate)
             let targetDateLogs = habitLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: targetDate) }
             allTargetDateLogs.append(contentsOf: targetDateLogs)
             
@@ -778,11 +790,12 @@ public final class OverviewV2ViewModel: ObservableObject {
         // Check each day of the week
         for dayOffset in 0..<7 {
             if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: weekInterval.start) {
-                let habits = try await habitRepository.fetchAllHabits().filter { $0.isActive }
+                let allActiveHabits = try await getActiveHabits.execute()
+                let habits = allActiveHabits.filter { $0.schedule.isActiveOn(date: dayDate) }
                 
                 var dayLogs: [HabitLog] = []
                 for habit in habits {
-                    let habitLogs = try await logRepository.logs(for: habit.id)
+                    let habitLogs = try await getLogs.execute(for: habit.id, since: dayDate, until: dayDate)
                     let logsForDay = habitLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: dayDate) }
                     dayLogs.append(contentsOf: logsForDay)
                 }
@@ -799,7 +812,7 @@ public final class OverviewV2ViewModel: ObservableObject {
     }
     
     private func loadActiveStreaks() async throws -> [StreakInfo] {
-        let habits = try await habitRepository.fetchAllHabits().filter { $0.isActive }
+        let habits = try await getActiveHabits.execute()
         var streaks: [StreakInfo] = []
         
         for habit in habits {
@@ -823,8 +836,8 @@ public final class OverviewV2ViewModel: ObservableObject {
     }
     
     private func calculateCurrentStreak(for habit: Habit) async throws -> Int {
-        // Get all logs for this habit
-        let logs = try await logRepository.logs(for: habit.id)
+        // Get all logs for this habit (needed for streak calculation)
+        let logs = try await getLogs.execute(for: habit.id, since: nil, until: nil)
         
         // Use the real streak calculation use case
         let today = Date()
@@ -954,7 +967,7 @@ public final class OverviewV2ViewModel: ObservableObject {
         let startOfWeek = weekInterval.start
         
         // Get user's active habits and recent logs
-        let habits = try await habitRepository.fetchAllHabits().filter { $0.isActive }
+        let habits = try await getActiveHabits.execute()
         guard !habits.isEmpty else {
             return []
         }
@@ -964,7 +977,7 @@ public final class OverviewV2ViewModel: ObservableObject {
         var dailyCompletions: [Int] = Array(repeating: 0, count: 7)
         
         for habit in habits {
-            let logs = try await logRepository.logs(for: habit.id)
+            let logs = try await getLogs.execute(for: habit.id, since: startOfWeek, until: weekInterval.end)
             let recentLogs = logs.filter { log in
                 log.date >= startOfWeek && log.date < weekInterval.end
             }
@@ -1049,7 +1062,7 @@ public final class OverviewV2ViewModel: ObservableObject {
         let today = Date()
         
         // Get all active habits
-        let habits = try await habitRepository.fetchAllHabits().filter { $0.isActive }
+        let habits = try await getActiveHabits.execute()
         guard !habits.isEmpty else { return [:] }
         
         var completionData: [Date: Double] = [:]
@@ -1062,7 +1075,7 @@ public final class OverviewV2ViewModel: ObservableObject {
                 // Get all logs for this date
                 var completedCount = 0
                 for habit in habits {
-                    let logs = try await logRepository.logs(for: habit.id)
+                    let logs = try await getLogs.execute(for: habit.id, since: startOfDay, until: startOfDay)
                     let dateLog = logs.first { log in
                         calendar.isDate(log.date, inSameDayAs: startOfDay)
                     }

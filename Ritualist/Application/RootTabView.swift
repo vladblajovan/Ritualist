@@ -6,9 +6,8 @@ public enum RootTab: Hashable {
 }
 
 public struct RootTabView: View {
-    @Injected(\.getOnboardingState) var getOnboardingState
+    @Injected(\.rootTabViewModel) var viewModel
     @Injected(\.appearanceManager) var appearanceManager
-    @Injected(\.loadProfile) var loadProfile
     @InjectedObject(\.navigationService) var navigationService
     @InjectedObject(\.personalityDeepLinkCoordinator) var deepLinkCoordinator
     @State private var showOnboarding = false
@@ -59,7 +58,7 @@ public struct RootTabView: View {
         }
         .task {
             await checkOnboardingStatus()
-            await loadUserAppearancePreference()
+            await viewModel.loadUserAppearancePreference()
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingFlowView(onComplete: {
@@ -109,32 +108,11 @@ public struct RootTabView: View {
     }
     
     private func checkOnboardingStatus() async {
-        do {
-            let state = try await getOnboardingState.execute()
-            await MainActor.run {
-                showOnboarding = !state.isCompleted
-                isCheckingOnboarding = false
-            }
-        } catch {
-            print("Failed to check onboarding status: \(error)")
-            await MainActor.run {
-                showOnboarding = true
-                isCheckingOnboarding = false
-            }
-        }
+        await viewModel.checkOnboardingStatus()
+        showOnboarding = viewModel.showOnboarding
+        isCheckingOnboarding = viewModel.isCheckingOnboarding
     }
     
-    private func loadUserAppearancePreference() async {
-        do {
-            let profile = try await loadProfile.execute()
-            await MainActor.run {
-                appearanceManager.updateFromProfile(profile)
-            }
-        } catch {
-            print("Failed to load user appearance preference: \(error)")
-            // Continue with default appearance (follow system)
-        }
-    }
 }
 
 #Preview {
