@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 import UserNotifications
 
 /// Service responsible for scheduling automatic personality analysis based on user preferences

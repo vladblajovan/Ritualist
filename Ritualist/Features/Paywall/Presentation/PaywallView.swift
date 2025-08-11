@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 // MARK: - PaywallItem
 public struct PaywallItem: Identifiable, Equatable {

@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct StreakInfoView: View {
     let habit: Habit

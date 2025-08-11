@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 struct TodaysSummaryCard: View {
     let summary: TodaysSummary?

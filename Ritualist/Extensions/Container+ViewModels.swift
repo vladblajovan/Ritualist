@@ -1,4 +1,5 @@
 import Foundation
+import RitualistCore
 import FactoryKit
 
 // MARK: - ViewModels Container Extensions

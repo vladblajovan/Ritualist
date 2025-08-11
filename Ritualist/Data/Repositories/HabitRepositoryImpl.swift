@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import RitualistCore
 
 public final class HabitRepositoryImpl: HabitRepository {
     private let local: HabitLocalDataSourceProtocol

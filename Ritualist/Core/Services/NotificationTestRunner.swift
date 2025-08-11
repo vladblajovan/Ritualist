@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 #if DEBUG
 /// Simple test runner for notification systems

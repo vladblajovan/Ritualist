@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 public protocol HabitScheduleAnalyzerProtocol {
     func calculateExpectedDays(for habit: Habit, from startDate: Date, to endDate: Date) -> Int

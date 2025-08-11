@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import RitualistCore
 
 // swiftlint:disable type_body_length
 public struct DashboardView: View {

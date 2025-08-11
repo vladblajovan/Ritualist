@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 public protocol LogRepository {
     func logs(for habitID: UUID) async throws -> [HabitLog]

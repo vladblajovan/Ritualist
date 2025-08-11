@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Service responsible for calculating accurate completion rates based on habit schedules and types
 public protocol ScheduleAwareCompletionCalculator {

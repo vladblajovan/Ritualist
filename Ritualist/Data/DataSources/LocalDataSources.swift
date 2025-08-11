@@ -1,4 +1,5 @@
 import Foundation
+import RitualistCore
 import SwiftData
 
 public enum CategoryDataSourceError: Error {

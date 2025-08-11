@@ -1,5 +1,6 @@
 import SwiftUI
 import FactoryKit
+import RitualistCore
 
 public struct HabitDetailView: View {
     @Environment(\.dismiss) private var dismiss

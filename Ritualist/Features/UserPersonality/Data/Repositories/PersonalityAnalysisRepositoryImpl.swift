@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 import SwiftData
 
 public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisRepositoryProtocol {

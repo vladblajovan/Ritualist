@@ -1,4 +1,5 @@
 import Foundation
+import RitualistCore
 
 public protocol TipLocalDataSourceProtocol {
     func getAllTips() async throws -> [Tip]

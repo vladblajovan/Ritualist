@@ -1,4 +1,8 @@
 import Foundation
+import RitualistCore
+
+// Resolve naming conflict with system Category type
+public typealias Category = RitualistCore.Category
 
 public enum CategoryError: Error {
     case categoryAlreadyExists

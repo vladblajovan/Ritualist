@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 // Shared view modifier for handling numeric habit sheet presentation
 public struct NumericHabitSheetHandler: ViewModifier {

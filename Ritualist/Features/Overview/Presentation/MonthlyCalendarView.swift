@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct MonthlyCalendarView: View {
     let selectedHabit: Habit

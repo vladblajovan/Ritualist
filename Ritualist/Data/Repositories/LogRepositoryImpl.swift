@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import RitualistCore
 
 public final class LogRepositoryImpl: LogRepository {
     private let local: LogLocalDataSourceProtocol

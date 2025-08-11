@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 @Observable
 public final class AppearanceManager {

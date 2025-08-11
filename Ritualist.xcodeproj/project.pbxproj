@@ -10,6 +10,7 @@
 		911237F92E41210800A57BFC /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 911237F82E41210800A57BFC /* Factory */; };
 		911237FB2E41210800A57BFC /* FactoryKit in Frameworks */ = {isa = PBXBuildFile; productRef = 911237FA2E41210800A57BFC /* FactoryKit */; };
 		911237FD2E41210800A57BFC /* FactoryTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 911237FC2E41210800A57BFC /* FactoryTesting */; };
+		91C9ACD92E4A887C0077EF5C /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C9ACD82E4A887C0077EF5C /* RitualistCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91C9ACD92E4A887C0077EF5C /* RitualistCore in Frameworks */,
 				911237FB2E41210800A57BFC /* FactoryKit in Frameworks */,
 				911237F92E41210800A57BFC /* Factory in Frameworks */,
 			);
@@ -124,6 +126,7 @@
 			packageProductDependencies = (
 				911237F82E41210800A57BFC /* Factory */,
 				911237FA2E41210800A57BFC /* FactoryKit */,
+				91C9ACD82E4A887C0077EF5C /* RitualistCore */,
 			);
 			productName = Ritualist;
 			productReference = 91B730E92E38E4BC0050A48A /* Ritualist.app */;
@@ -210,6 +213,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				911237F72E41210800A57BFC /* XCRemoteSwiftPackageReference "Factory" */,
+				91C9ACD72E4A887C0077EF5C /* XCLocalSwiftPackageReference "RitualistCore" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 91B730EA2E38E4BC0050A48A /* Products */;
@@ -1168,6 +1172,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		91C9ACD72E4A887C0077EF5C /* XCLocalSwiftPackageReference "RitualistCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = RitualistCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		911237F72E41210800A57BFC /* XCRemoteSwiftPackageReference "Factory" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -1194,6 +1205,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 911237F72E41210800A57BFC /* XCRemoteSwiftPackageReference "Factory" */;
 			productName = FactoryTesting;
+		};
+		91C9ACD82E4A887C0077EF5C /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

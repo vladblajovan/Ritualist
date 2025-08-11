@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import FactoryKit
+import RitualistCore
 
 public struct OverviewRoot: View {
     @Injected(\.overviewViewModel) var vm

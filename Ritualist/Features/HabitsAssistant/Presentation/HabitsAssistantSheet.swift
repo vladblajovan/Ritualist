@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import RitualistCore
 
 public struct HabitsAssistantSheet: View {
     @Environment(\.dismiss) private var dismiss

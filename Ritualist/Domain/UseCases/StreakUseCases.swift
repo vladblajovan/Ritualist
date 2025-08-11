@@ -1,4 +1,5 @@
 import Foundation
+import RitualistCore
 
 // MARK: - Streak Calculation Use Cases
 

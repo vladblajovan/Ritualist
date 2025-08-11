@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 // MARK: - Reminder Configuration Components
 

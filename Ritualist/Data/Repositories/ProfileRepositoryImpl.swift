@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 public final class ProfileRepositoryImpl: ProfileRepository {
     private let local: ProfileLocalDataSourceProtocol

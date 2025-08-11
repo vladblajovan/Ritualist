@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Domain service responsible for performance analysis and calculations
 public protocol PerformanceAnalysisService {

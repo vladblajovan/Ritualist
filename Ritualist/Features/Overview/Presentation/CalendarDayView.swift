@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct CalendarDayView: View {
     let date: Date

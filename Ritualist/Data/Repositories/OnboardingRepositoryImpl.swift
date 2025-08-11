@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 public final class OnboardingRepositoryImpl: OnboardingRepository {
     private let local: OnboardingLocalDataSourceProtocol

@@ -1,6 +1,7 @@
 import SwiftUI
 import Foundation
 import FactoryKit
+import RitualistCore
 
 // swiftlint:disable type_body_length
 @MainActor

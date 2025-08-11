@@ -1,4 +1,5 @@
 import Foundation
+import RitualistCore
 
 /// Maps UserActionEvent cases to event names and properties for tracking
 public final class UserActionEventMapper {

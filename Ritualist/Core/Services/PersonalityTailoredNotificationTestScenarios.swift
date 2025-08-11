@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 import UserNotifications
 
 // Import all necessary domain entities

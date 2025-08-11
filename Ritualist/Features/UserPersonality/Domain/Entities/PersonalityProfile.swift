@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Represents a user's personality analysis profile
 public struct PersonalityProfile: Identifiable, Codable, Hashable {

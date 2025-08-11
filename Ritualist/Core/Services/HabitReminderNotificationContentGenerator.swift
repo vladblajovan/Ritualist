@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 import UserNotifications
 
 /// Service for generating rich, persistent notification content for habit reminders

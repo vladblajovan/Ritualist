@@ -1,5 +1,6 @@
 import Foundation
 import FactoryKit
+import RitualistCore
 
 @MainActor @Observable
 public final class PaywallViewModel {

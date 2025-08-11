@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import RitualistCore
 
 public enum HabitMapper {
     public static func toSD(_ habit: Habit, context: ModelContext? = nil) throws -> SDHabit {

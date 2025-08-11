@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Service responsible for analyzing user behavior and calculating personality traits
 public protocol PersonalityAnalysisService {

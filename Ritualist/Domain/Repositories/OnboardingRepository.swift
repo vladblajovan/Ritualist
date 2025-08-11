@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 public protocol OnboardingRepository {
     func getOnboardingState() async throws -> OnboardingState

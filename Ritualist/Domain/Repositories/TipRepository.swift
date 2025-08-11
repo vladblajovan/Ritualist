@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 public protocol TipRepository {
     func getAllTips() async throws -> [Tip]

@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 // MARK: - Height Preference Key
 private struct CardHeightPreferenceKey: PreferenceKey {

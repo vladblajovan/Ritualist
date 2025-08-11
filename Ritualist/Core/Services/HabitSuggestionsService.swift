@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 public protocol HabitSuggestionsService {
     func getSuggestions() -> [HabitSuggestion]

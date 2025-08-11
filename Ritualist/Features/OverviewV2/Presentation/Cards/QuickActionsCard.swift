@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 struct QuickActionsCard: View {
     let incompleteHabits: [Habit]

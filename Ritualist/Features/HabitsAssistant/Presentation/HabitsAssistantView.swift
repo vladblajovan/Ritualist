@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import RitualistCore
 
 public struct HabitsAssistantView: View {
     @Bindable var vm: HabitsAssistantViewModel

@@ -1,5 +1,6 @@
 import SwiftUI
 import FactoryKit
+import RitualistCore
 
 public struct HabitsRoot: View {
     @Injected(\.habitsViewModel) var vm

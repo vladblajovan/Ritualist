@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 public protocol ProfileRepository {
     func loadProfile() async throws -> UserProfile

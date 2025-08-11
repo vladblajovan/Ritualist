@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Repository protocol for personality analysis data operations
 public protocol PersonalityAnalysisRepositoryProtocol {

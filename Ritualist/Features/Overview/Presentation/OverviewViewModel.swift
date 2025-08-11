@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import RitualistCore
 
 @MainActor @Observable
 public final class OverviewViewModel {

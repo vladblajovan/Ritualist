@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Domain service responsible for habit data access and retrieval
 public protocol HabitAnalyticsService {

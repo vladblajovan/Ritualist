@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import RitualistCore
 
 public protocol NotificationService {
     func requestAuthorizationIfNeeded() async throws -> Bool

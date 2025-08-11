@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct TipDetailView: View {
     let tip: Tip

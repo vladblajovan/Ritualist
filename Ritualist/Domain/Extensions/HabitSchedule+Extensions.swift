@@ -1,4 +1,5 @@
 import Foundation
+import RitualistCore
 
 public extension HabitSchedule {
     func isActiveOn(date: Date) -> Bool {

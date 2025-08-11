@@ -1,4 +1,5 @@
 import Foundation
+import RitualistCore
 
 // MARK: - Notification Use Case Protocols
 
