@@ -7,6 +7,7 @@ public protocol NotificationService {
     func schedule(for habitID: UUID, times: [ReminderTime]) async throws
     func scheduleWithActions(for habitID: UUID, habitName: String, times: [ReminderTime]) async throws
     func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws
+    func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws
     func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws
     func cancel(for habitID: UUID) async
     func sendImmediate(title: String, body: String) async throws
@@ -158,6 +159,63 @@ public final class LocalNotificationService: NSObject, NotificationService {
         ))
     }
     
+    public func schedulePersonalityTailoredReminders(
+        for habitID: UUID,
+        habitName: String,
+        habitCategory: String?,
+        currentStreak: Int,
+        personalityProfile: PersonalityProfile,
+        times: [ReminderTime]
+    ) async throws {
+        let center = UNUserNotificationCenter.current()
+        
+        // Check if personality analysis is recent (within 30 days)
+        guard PersonalityTailoredNotificationContentGenerator.hasRecentAnalysis(personalityProfile) else {
+            // Fall back to rich reminders if personality analysis is outdated
+            return try await scheduleRichReminders(
+                for: habitID,
+                habitName: habitName,
+                habitCategory: habitCategory,
+                currentStreak: currentStreak,
+                times: times
+            )
+        }
+        
+        // Check if it's weekend for contextual messaging
+        let calendar = Calendar.current
+        let isWeekend = calendar.isDateInWeekend(Date())
+        
+        for time in times {
+            // Generate personality-tailored notification content
+            let content = PersonalityTailoredNotificationContentGenerator.generateTailoredContent(
+                for: habitID,
+                habitName: habitName,
+                reminderTime: time,
+                personalityProfile: personalityProfile,
+                habitCategory: habitCategory,
+                currentStreak: currentStreak,
+                isWeekend: isWeekend
+            )
+            
+            var date = DateComponents()
+            date.hour = time.hour
+            date.minute = time.minute
+            let trigger = UNCalendarNotificationTrigger(dateMatching: date, repeats: true)
+            
+            let id = "tailored_\(habitID.uuidString)-\(time.hour)-\(time.minute)"
+            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+            
+            try await center.add(request)
+        }
+        
+        // Track personality-tailored notification scheduling
+        trackingService?.track(.notificationScheduled(
+            habitId: habitID.uuidString,
+            habitName: habitName,
+            reminderCount: times.count
+        ))
+    }
+    
     public func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws {
         let center = UNUserNotificationCenter.current()
         
@@ -180,15 +238,18 @@ public final class LocalNotificationService: NSObject, NotificationService {
         let prefix = habitID.uuidString
         let pending = await center.pendingNotificationRequests()
         
-        // Cancel all notifications that match the habit ID (including rich_ prefixed ones)
+        // Cancel all notifications that match the habit ID (including rich_, tailored_, and streak_ prefixed ones)
         let ids = pending.map { $0.identifier }.filter { id in
-            id.hasPrefix(prefix) || id.hasPrefix("rich_\(prefix)") || id.hasPrefix("streak_milestone_\(prefix)")
+            id.hasPrefix(prefix) || 
+            id.hasPrefix("rich_\(prefix)") || 
+            id.hasPrefix("tailored_\(prefix)") || 
+            id.hasPrefix("streak_milestone_\(prefix)")
         }
         
         // Extract habit name from pending notifications for tracking
         let habitName = pending.first(where: { notification in
             let id = notification.identifier
-            return id.hasPrefix(prefix) || id.hasPrefix("rich_\(prefix)")
+            return id.hasPrefix(prefix) || id.hasPrefix("rich_\(prefix)") || id.hasPrefix("tailored_\(prefix)")
         })?.content.userInfo["habitName"] as? String ?? "Unknown Habit"
         
         center.removePendingNotificationRequests(withIdentifiers: ids)
