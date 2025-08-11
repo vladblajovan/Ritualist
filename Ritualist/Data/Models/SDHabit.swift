@@ -3,7 +3,7 @@
 //  Ritualist
 //
 //  Created by Vlad Blajovan on 01.08.2025.
-//
+//ioen
 
 import Foundation
 import SwiftData
@@ -23,22 +23,22 @@ import SwiftData
     public var isActive: Bool = true // CloudKit requires default values
     public var displayOrder: Int = 0 // CloudKit requires default values
     public var suggestionId: String?
+    public var categoryId: String? // CloudKit requires default values - explicit foreign key
     
     // MARK: - SwiftData Relationships
-    @Relationship(deleteRule: .cascade) 
+    @Relationship(deleteRule: .cascade, inverse: \SDHabitLog.habit) 
     var logs = [SDHabitLog]()
     
-    @Relationship(deleteRule: .nullify)
     var category: SDCategory?
     public init(id: UUID, name: String, colorHex: String, emoji: String?, kindRaw: Int,
                 unitLabel: String?, dailyTarget: Double?, scheduleData: Data,
                 remindersData: Data, startDate: Date, endDate: Date?, isActive: Bool, displayOrder: Int,
-                category: SDCategory? = nil, suggestionId: String?) {
+                categoryId: String? = nil, category: SDCategory? = nil, suggestionId: String?) {
         self.id = id; self.name = name; self.colorHex = colorHex; self.emoji = emoji
         self.kindRaw = kindRaw; self.unitLabel = unitLabel; self.dailyTarget = dailyTarget
         self.scheduleData = scheduleData; self.remindersData = remindersData
         self.startDate = startDate; self.endDate = endDate; self.isActive = isActive
-        self.displayOrder = displayOrder; self.suggestionId = suggestionId
+        self.displayOrder = displayOrder; self.categoryId = categoryId; self.suggestionId = suggestionId
         self.category = category
     }
 }

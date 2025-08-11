@@ -45,7 +45,7 @@ extension Container {
     }
     
     var categoryDataSource: Factory<CategoryLocalDataSourceProtocol> {
-        self { CategoryStaticDataSource() }
+        self { PersistenceCategoryDataSource(context: self.persistenceContainer()?.context) }
             .singleton
     }
 }

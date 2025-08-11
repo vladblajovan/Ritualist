@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 
 public protocol LogLocalDataSourceProtocol {
-    func logs(for habitID: UUID) async throws -> [SDHabitLog]
-    func upsert(_ log: SDHabitLog) async throws
-    func delete(id: UUID) async throws
+    @MainActor func logs(for habitID: UUID) async throws -> [SDHabitLog]
+    @MainActor func upsert(_ log: SDHabitLog) async throws
+    @MainActor func delete(id: UUID) async throws
 }

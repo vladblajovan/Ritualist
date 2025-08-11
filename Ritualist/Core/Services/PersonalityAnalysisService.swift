@@ -31,6 +31,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         self.repository = repository
     }
     
+    @MainActor
     public func analyzePersonality(for userId: UUID) async throws -> PersonalityProfile {
         // Get input data for analysis
         let input = try await repository.getHabitAnalysisInput(for: userId)

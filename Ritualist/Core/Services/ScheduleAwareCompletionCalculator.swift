@@ -88,7 +88,9 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         
         switch habit.schedule {
         case .daily:
-            return calendar.dateComponents([.day], from: habitStartDate, to: habitEndDate).day ?? 0
+            let daysDifference = calendar.dateComponents([.day], from: habitStartDate, to: habitEndDate).day ?? 0
+            // Fix: If start and end are on the same day, count it as 1 day
+            return max(1, daysDifference + 1)
             
         case .daysOfWeek(let days):
             return calculateExpectedDaysForSchedule(scheduledDays: days, startDate: habitStartDate, endDate: habitEndDate)

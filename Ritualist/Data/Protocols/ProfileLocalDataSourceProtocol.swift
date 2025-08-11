@@ -9,6 +9,6 @@ import Foundation
 import SwiftData
 
 public protocol ProfileLocalDataSourceProtocol {
-    func load() async throws -> SDUserProfile?
-    func save(_ profile: SDUserProfile) async throws
+    @MainActor func load() async throws -> SDUserProfile?
+    @MainActor func save(_ profile: SDUserProfile) async throws
 }

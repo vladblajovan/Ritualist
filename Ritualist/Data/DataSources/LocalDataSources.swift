@@ -43,13 +43,15 @@ public final class LogLocalDataSource: LogLocalDataSourceProtocol {
     @MainActor
     public func logs(for habitID: UUID) async throws -> [SDHabitLog] {
         guard let context else { return [] }
-        let descriptor = FetchDescriptor<SDHabitLog>(predicate: #Predicate { $0.habit?.id == habitID })
+        // Use both relationship and habitID field for maximum compatibility
+        let descriptor = FetchDescriptor<SDHabitLog>(predicate: #Predicate { 
+            $0.habit?.id == habitID || $0.habitID == habitID 
+        })
         return try context.fetch(descriptor)
     }
     @MainActor
     public func upsert(_ log: SDHabitLog) async throws {
         guard let context else { return }
-        
         context.insert(log)
         try context.save()
     }

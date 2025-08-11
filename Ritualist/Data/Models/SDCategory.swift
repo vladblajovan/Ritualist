@@ -18,7 +18,7 @@ import SwiftData
     public var isPredefined: Bool = false // CloudKit requires default values
     
     // MARK: - SwiftData Relationships
-    @Relationship(deleteRule: .nullify)
+    @Relationship(deleteRule: .nullify, inverse: \SDHabit.category)
     var habits = [SDHabit]()
     
     public init(

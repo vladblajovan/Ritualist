@@ -145,7 +145,6 @@ public final class OverviewV2ViewModel: ObservableObject {
     
     public var shouldShowQuickActions: Bool {
         // Show QuickActions when there are incomplete habits OR completed habits to display
-        guard isViewingToday else { return false }
         return !incompleteHabits.isEmpty || !completedHabits.isEmpty
     }
     
@@ -237,6 +236,7 @@ public final class OverviewV2ViewModel: ObservableObject {
     // MARK: - Dependencies
     @Injected(\.getActiveHabits) private var getActiveHabits
     @Injected(\.getLogs) private var getLogs
+    @Injected(\.getBatchLogs) private var getBatchLogs
     @Injected(\.logHabit) private var logHabit
     @Injected(\.deleteLog) private var deleteLog
     @Injected(\.slogansService) private var slogansService
@@ -681,8 +681,12 @@ public final class OverviewV2ViewModel: ObservableObject {
         var progressCache: [UUID: Double] = [:]
         var logsCache: [UUID: [HabitLog]] = [:]
         
+        // OPTIMIZATION: Batch load logs for all habits to avoid N+1 queries
+        let habitIds = habits.map(\.id)
+        let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: targetDate, until: targetDate)
+        
         for habit in habits {
-            let habitLogs = try await getLogs.execute(for: habit.id, since: targetDate, until: targetDate)
+            let habitLogs = logsByHabitId[habit.id] ?? []
             let targetDateLogs = habitLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: targetDate) }
             allTargetDateLogs.append(contentsOf: targetDateLogs)
             
@@ -775,9 +779,13 @@ public final class OverviewV2ViewModel: ObservableObject {
                 let allActiveHabits = try await getActiveHabits.execute()
                 let habits = allActiveHabits.filter { $0.schedule.isActiveOn(date: dayDate) }
                 
+                // OPTIMIZATION: Batch load logs for all habits to avoid N+1 queries
+                let habitIds = habits.map(\.id)
+                let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: dayDate, until: dayDate)
+                
                 var dayLogs: [HabitLog] = []
                 for habit in habits {
-                    let habitLogs = try await getLogs.execute(for: habit.id, since: dayDate, until: dayDate)
+                    let habitLogs = logsByHabitId[habit.id] ?? []
                     let logsForDay = habitLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: dayDate) }
                     dayLogs.append(contentsOf: logsForDay)
                 }
@@ -797,9 +805,15 @@ public final class OverviewV2ViewModel: ObservableObject {
         let habits = try await getActiveHabits.execute()
         var streaks: [StreakInfo] = []
         
+        // OPTIMIZATION: Batch load all logs for all habits to avoid N+1 queries
+        let habitIds = habits.map(\.id)
+        let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: nil, until: nil)
+        
         for habit in habits {
-            // Calculate current streak (simplified)
-            let currentStreak = try await calculateCurrentStreak(for: habit)
+            // Calculate current streak using cached logs
+            let logs = logsByHabitId[habit.id] ?? []
+            let today = Date()
+            let currentStreak = calculateCurrentStreakUseCase.execute(habit: habit, logs: logs, asOf: today)
             
             if currentStreak >= 3 { // Only show streaks of 3+ days
                 let streakInfo = StreakInfo(
@@ -817,14 +831,6 @@ public final class OverviewV2ViewModel: ObservableObject {
         return streaks.sorted { $0.currentStreak > $1.currentStreak }
     }
     
-    private func calculateCurrentStreak(for habit: Habit) async throws -> Int {
-        // Get all logs for this habit (needed for streak calculation)
-        let logs = try await getLogs.execute(for: habit.id, since: nil, until: nil)
-        
-        // Use the real streak calculation use case
-        let today = Date()
-        return calculateCurrentStreakUseCase.execute(habit: habit, logs: logs, asOf: today)
-    }
     
     private func loadSmartInsights() async throws -> [SmartInsight] {
         // Smart Insights now only contains basic habit pattern analysis
@@ -946,8 +952,12 @@ public final class OverviewV2ViewModel: ObservableObject {
         var totalCompletions = 0
         var dailyCompletions: [Int] = Array(repeating: 0, count: 7)
         
+        // OPTIMIZATION: Batch load logs for all habits to avoid N+1 queries
+        let habitIds = habits.map(\.id)
+        let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: startOfWeek, until: weekInterval.end)
+        
         for habit in habits {
-            let logs = try await getLogs.execute(for: habit.id, since: startOfWeek, until: weekInterval.end)
+            let logs = logsByHabitId[habit.id] ?? []
             let recentLogs = logs.filter { log in
                 log.date >= startOfWeek && log.date < weekInterval.end
             }
@@ -1043,9 +1053,13 @@ public final class OverviewV2ViewModel: ObservableObject {
                 let startOfDay = calendar.startOfDay(for: date)
                 
                 // Get all logs for this date
+                // OPTIMIZATION: Batch load logs for all habits to avoid N+1 queries
+                let habitIds = habits.map(\.id)
+                let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: startOfDay, until: startOfDay)
+                
                 var completedCount = 0
                 for habit in habits {
-                    let logs = try await getLogs.execute(for: habit.id, since: startOfDay, until: startOfDay)
+                    let logs = logsByHabitId[habit.id] ?? []
                     let dateLog = logs.first { log in
                         calendar.isDate(log.date, inSameDayAs: startOfDay)
                     }

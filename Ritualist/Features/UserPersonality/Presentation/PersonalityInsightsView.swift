@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FactoryKit
+import UserNotifications
 
 /// Main view for displaying personality insights in Settings
 public struct PersonalityInsightsView: View {
@@ -111,7 +112,24 @@ public struct PersonalityInsightsView: View {
                             .padding(.horizontal)
                             
                             Spacer()
-                            ProgressView("Analyzing your personality...")
+                            VStack(spacing: 12) {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                
+                                VStack(spacing: 4) {
+                                    Text("Analyzing your personality...")
+                                        .font(.headline)
+                                    
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "calendar")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Text("Based on your last 30 days")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
                             Spacer()
                         }
                         
@@ -283,6 +301,10 @@ public struct PersonalityInsightsView: View {
         }
         .task {
             await viewModel.loadPersonalityInsights()
+        }
+        .onAppear {
+            // Clear any personality analysis notification badges when user opens insights
+            UNUserNotificationCenter.current().setBadgeCount(0)
         }
         .sheet(isPresented: $showingPrivacy) {
             BasicPrivacyView()
@@ -463,10 +485,23 @@ private struct PersonalityProfileView: View {
                     value: "\(profile.analysisMetadata.dataPointsAnalyzed)"
                 )
                 
-                AnalysisDetailRow(
-                    label: "Time Range",
-                    value: "\(profile.analysisMetadata.timeRangeAnalyzed) days"
-                )
+                HStack {
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        Text("Analysis Period")
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Text("Last \(profile.analysisMetadata.timeRangeAnalyzed) days")
+                            .fontWeight(.medium)
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                }
                 
                 AnalysisDetailRow(
                     label: "Analysis Version",

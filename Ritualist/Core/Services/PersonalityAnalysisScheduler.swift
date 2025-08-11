@@ -288,7 +288,8 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             }
             
         } catch {
-            // Failed automatic personality analysis
+            // Failed automatic personality analysis - fail silently
+            // No notifications for insufficient data scenarios
         }
     }
     
@@ -298,8 +299,8 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
         // Generate rich notification content based on the analysis results
         let content = PersonalityNotificationContentGenerator.generateContent(for: profile)
         
-        // Immediate delivery
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        // Minimal delay to ensure proper notification center persistence (iOS requirement)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         
         do {
@@ -308,6 +309,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             // Failed to send analysis notification
         }
     }
+    
     
     private func scheduleNotification(for userId: UUID, at date: Date, frequency: AnalysisFrequency) async {
         let identifier = Self.schedulerIdentifierPrefix + userId.uuidString

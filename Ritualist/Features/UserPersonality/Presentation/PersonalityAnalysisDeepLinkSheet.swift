@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FactoryKit
+import UserNotifications
 
 /// Sheet that handles deep linking to personality analysis from notifications
 public struct PersonalityAnalysisDeepLinkSheet: View {
@@ -39,6 +40,7 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
         }
         .onAppear {
             handleNotificationAction()
+            clearNotificationBadge()
             
             // Show welcome message briefly
             withAnimation(.easeInOut(duration: 0.5)) {
@@ -92,6 +94,11 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
         }
         return false
     }
+    
+    private func clearNotificationBadge() {
+        // Clear the app badge when user opens the notification
+        UNUserNotificationCenter.current().setBadgeCount(0)
+    }
 }
 
 // MARK: - Welcome Message View
@@ -128,13 +135,13 @@ private struct WelcomeMessageView: View {
     private var iconName: String {
         switch action {
         case .openAnalysis(let trait, _):
-            return trait?.displayEmoji ?? "✨"
+            return trait?.systemIconName ?? "sparkles"
         case .openRequirements:
-            return "🌱"
+            return "leaf"
         case .checkAnalysis:
-            return "🔍"
+            return "magnifyingglass"
         case .directNavigation:
-            return "📊"
+            return "chart.bar"
         }
     }
     
@@ -192,6 +199,16 @@ private extension PersonalityTrait {
         case .extraversion: return "🌟"
         case .agreeableness: return "💝"
         case .neuroticism: return "🧘"
+        }
+    }
+    
+    var systemIconName: String {
+        switch self {
+        case .openness: return "paintpalette"
+        case .conscientiousness: return "target"
+        case .extraversion: return "person.2"
+        case .agreeableness: return "heart"
+        case .neuroticism: return "figure.mind.and.body"
         }
     }
 }

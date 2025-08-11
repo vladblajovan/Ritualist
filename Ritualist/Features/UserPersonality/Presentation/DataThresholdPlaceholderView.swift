@@ -39,7 +39,7 @@ public struct DataThresholdPlaceholderView: View {
     }
     
     private var headerSection: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             Image(systemName: "person.crop.circle.badge.questionmark")
                 .font(.system(size: 48))
                 .foregroundColor(.blue)
@@ -53,6 +53,24 @@ public struct DataThresholdPlaceholderView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+            
+            // 30-day context badge
+            HStack(spacing: 6) {
+                Image(systemName: "calendar")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                
+                Text("Analysis based on last 30 days of habit data")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.blue.opacity(0.1))
+            )
         }
     }
     
@@ -108,6 +126,12 @@ public struct DataThresholdPlaceholderView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+            
+            Text("We analyze your habit patterns over 30-day periods to ensure accurate, meaningful personality insights.")
+                .font(.caption2)
+                .foregroundColor(Color(.tertiaryLabel))
+                .multilineTextAlignment(.center)
+                .padding(.top, 4)
         }
         .padding(.top, 8)
     }

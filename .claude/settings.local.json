@@ -12,7 +12,16 @@
       "Bash(swift:*)",
       "Bash(git checkout:*)",
       "Bash(sed:*)",
-      "WebFetch(domain:en.wikipedia.org)"
+      "WebFetch(domain:en.wikipedia.org)",
+      "Bash(xcrun simctl uninstall:*)",
+      "Bash(xcrun simctl shutdown:*)",
+      "Bash(xcrun simctl boot:*)",
+      "Bash(xcrun simctl launch:*)",
+      "Bash(xcrun simctl install:*)",
+      "Bash(xcrun simctl terminate:*)",
+      "Bash(xcrun simctl spawn:*)",
+      "Bash(open:*)",
+      "Bash(xcrun simctl list:*)"
     ],
     "deny": []
   }

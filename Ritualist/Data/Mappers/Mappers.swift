@@ -7,44 +7,44 @@ public enum HabitMapper {
         let reminders = try JSONEncoder().encode(habit.reminders)
         let kindRaw = (habit.kind == .binary) ? 0 : 1
         
-        // Find the category if categoryId is provided
+        // Store both categoryId (for CloudKit) and relationship (for local queries)
         var category: SDCategory?
         if let categoryId = habit.categoryId, let context = context {
             let descriptor = FetchDescriptor<SDCategory>(predicate: #Predicate { $0.id == categoryId })
-            category = try context.fetch(descriptor).first
+            category = try? context.fetch(descriptor).first
         }
         
         return SDHabit(id: habit.id, name: habit.name, colorHex: habit.colorHex, emoji: habit.emoji,
                        kindRaw: kindRaw, unitLabel: habit.unitLabel, dailyTarget: habit.dailyTarget,
                        scheduleData: schedule, remindersData: reminders, startDate: habit.startDate,
                        endDate: habit.endDate, isActive: habit.isActive, displayOrder: habit.displayOrder,
-                       category: category, suggestionId: habit.suggestionId)
+                       categoryId: habit.categoryId, category: category, suggestionId: habit.suggestionId)
     }
     public static func fromSD(_ sd: SDHabit) throws -> Habit {
         let schedule = try JSONDecoder().decode(HabitSchedule.self, from: sd.scheduleData)
         let reminders = try JSONDecoder().decode([ReminderTime].self, from: sd.remindersData)
         let kind: HabitKind = (sd.kindRaw == 0) ? .binary : .numeric
-        let categoryId = sd.category?.id // Extract categoryId from relationship
+        // Use explicit categoryId field (CloudKit compatible) - no fallback needed after DB reset
         return Habit(id: sd.id, name: sd.name, colorHex: sd.colorHex, emoji: sd.emoji, kind: kind,
                      unitLabel: sd.unitLabel, dailyTarget: sd.dailyTarget, schedule: schedule,
                      reminders: reminders, startDate: sd.startDate, endDate: sd.endDate, isActive: sd.isActive,
-                     displayOrder: sd.displayOrder, categoryId: categoryId, suggestionId: sd.suggestionId)
+                     displayOrder: sd.displayOrder, categoryId: sd.categoryId, suggestionId: sd.suggestionId)
     }
 }
 
 public enum HabitLogMapper {
     public static func toSD(_ log: HabitLog, context: ModelContext? = nil) -> SDHabitLog {
-        // Find the habit if habitID is provided and context is available
+        // Store both habitID (for CloudKit) and relationship (for local queries)
         var habit: SDHabit?
         if let context = context {
             let descriptor = FetchDescriptor<SDHabit>(predicate: #Predicate { $0.id == log.habitID })
             habit = try? context.fetch(descriptor).first
         }
-        return SDHabitLog(id: log.id, habit: habit, date: log.date, value: log.value)
+        return SDHabitLog(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value)
     }
     public static func fromSD(_ sd: SDHabitLog) -> HabitLog {
-        let habitID = sd.habit?.id ?? UUID() // Fallback to empty UUID if relationship is nil
-        return HabitLog(id: sd.id, habitID: habitID, date: sd.date, value: sd.value)
+        // Use explicit habitID field (CloudKit compatible) - no fallback needed after DB reset
+        return HabitLog(id: sd.id, habitID: sd.habitID, date: sd.date, value: sd.value)
     }
 }
 

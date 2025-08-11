@@ -6,6 +6,8 @@ public protocol NotificationService {
     func checkAuthorizationStatus() async -> Bool
     func schedule(for habitID: UUID, times: [ReminderTime]) async throws
     func scheduleWithActions(for habitID: UUID, habitName: String, times: [ReminderTime]) async throws
+    func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws
+    func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws
     func cancel(for habitID: UUID) async
     func sendImmediate(title: String, body: String) async throws
     func setupNotificationCategories() async
@@ -13,6 +15,17 @@ public protocol NotificationService {
 
 public final class LocalNotificationService: NSObject, NotificationService {
     private static let habitReminderCategory = "HABIT_REMINDER"
+    private static let habitStreakMilestoneCategory = "HABIT_STREAK_MILESTONE"
+    
+    // Personality Analysis Categories
+    private static let personalityAnalysisCategories = [
+        "PERSONALITY_ANALYSIS_OPENNESS",
+        "PERSONALITY_ANALYSIS_CONSCIENTIOUSNESS", 
+        "PERSONALITY_ANALYSIS_EXTRAVERSION",
+        "PERSONALITY_ANALYSIS_AGREEABLENESS",
+        "PERSONALITY_ANALYSIS_NEUROTICISM",
+        "PERSONALITY_ANALYSIS_INSUFFICIENT_DATA"
+    ]
     
     // Delegate handler for notification actions
     public var actionHandler: ((NotificationAction, UUID, String?, ReminderTime?) async throws -> Void)?
@@ -101,14 +114,82 @@ public final class LocalNotificationService: NSObject, NotificationService {
             reminderCount: times.count
         ))
     }
+    
+    public func scheduleRichReminders(
+        for habitID: UUID,
+        habitName: String,
+        habitCategory: String?,
+        currentStreak: Int,
+        times: [ReminderTime]
+    ) async throws {
+        let center = UNUserNotificationCenter.current()
+        
+        // Check if it's weekend for contextual messaging
+        let calendar = Calendar.current
+        let isWeekend = calendar.isDateInWeekend(Date())
+        
+        for time in times {
+            // Generate rich notification content
+            let content = HabitReminderNotificationContentGenerator.generateContent(
+                for: habitID,
+                habitName: habitName,
+                reminderTime: time,
+                habitCategory: habitCategory,
+                currentStreak: currentStreak,
+                isWeekend: isWeekend
+            )
+            
+            var date = DateComponents()
+            date.hour = time.hour
+            date.minute = time.minute
+            let trigger = UNCalendarNotificationTrigger(dateMatching: date, repeats: true)
+            
+            let id = "rich_\(habitID.uuidString)-\(time.hour)-\(time.minute)"
+            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+            
+            try await center.add(request)
+        }
+        
+        // Track rich notification scheduling
+        trackingService?.track(.notificationScheduled(
+            habitId: habitID.uuidString,
+            habitName: habitName,
+            reminderCount: times.count
+        ))
+    }
+    
+    public func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws {
+        let center = UNUserNotificationCenter.current()
+        
+        // Generate streak milestone content
+        let content = HabitReminderNotificationContentGenerator.generateStreakMilestoneContent(
+            for: habitID,
+            habitName: habitName,
+            streakDays: streakDays
+        )
+        
+        // Immediate delivery for celebrations
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        let identifier = "streak_milestone_\(habitID.uuidString)_\(streakDays)"
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        
+        try await center.add(request)
+    }
     public func cancel(for habitID: UUID) async {
         let center = UNUserNotificationCenter.current()
         let prefix = habitID.uuidString
         let pending = await center.pendingNotificationRequests()
-        let ids = pending.map { $0.identifier }.filter { $0.hasPrefix(prefix) }
+        
+        // Cancel all notifications that match the habit ID (including rich_ prefixed ones)
+        let ids = pending.map { $0.identifier }.filter { id in
+            id.hasPrefix(prefix) || id.hasPrefix("rich_\(prefix)") || id.hasPrefix("streak_milestone_\(prefix)")
+        }
         
         // Extract habit name from pending notifications for tracking
-        let habitName = pending.first(where: { $0.identifier.hasPrefix(prefix) })?.content.userInfo["habitName"] as? String ?? "Unknown Habit"
+        let habitName = pending.first(where: { notification in
+            let id = notification.identifier
+            return id.hasPrefix(prefix) || id.hasPrefix("rich_\(prefix)")
+        })?.content.userInfo["habitName"] as? String ?? "Unknown Habit"
         
         center.removePendingNotificationRequests(withIdentifiers: ids)
         
@@ -201,11 +282,32 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
             identifier: Self.habitReminderCategory,
             actions: [logAction, remindLaterAction, dismissAction],
             intentIdentifiers: [],
-            options: []
+            options: [.customDismissAction] // Enable persistence tracking
         )
         
+        // Streak milestone category (no actions - just celebratory)
+        let habitStreakMilestoneCategory = UNNotificationCategory(
+            identifier: Self.habitStreakMilestoneCategory,
+            actions: [],
+            intentIdentifiers: [],
+            options: [.customDismissAction] // Enable persistence tracking
+        )
+        
+        // Create personality analysis categories with basic options for persistence
+        var allCategories: Set<UNNotificationCategory> = [habitReminderCategory, habitStreakMilestoneCategory]
+        
+        for categoryId in Self.personalityAnalysisCategories {
+            let personalityCategory = UNNotificationCategory(
+                identifier: categoryId,
+                actions: [], // No actions for personality notifications - just informational
+                intentIdentifiers: [],
+                options: [.customDismissAction] // Allow custom dismiss tracking
+            )
+            allCategories.insert(personalityCategory)
+        }
+        
         let center = UNUserNotificationCenter.current()
-        await center.setNotificationCategories([habitReminderCategory])
+        await center.setNotificationCategories(allCategories)
     }
     
     // MARK: - Notification Response Handling

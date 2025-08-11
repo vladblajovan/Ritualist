@@ -63,6 +63,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         return buildThresholdRequirements(from: input)
     }
     
+    @MainActor
     public func getHabitAnalysisInput(for userId: UUID) async throws -> HabitAnalysisInput {
         // Get all active habits
         let allHabits = try await habitRepository.fetchAllHabits()
@@ -300,6 +301,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         try await categoryRepository.getCustomCategories()
     }
     
+    @MainActor
     public func getHabitCompletionStats(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats {
         // Get all active habits for the user
         let allHabits = try await habitRepository.fetchAllHabits()
@@ -309,11 +311,15 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
             return HabitCompletionStats(totalHabits: 0, completedHabits: 0, completionRate: 0.0)
         }
         
-        // Get all habit logs for the date range
+        // Get all habit logs for the date range (match the working pattern from getHabitAnalysisInput)
         var allLogs: [HabitLog] = []
         for habit in activeHabits {
             let habitLogs = try await logRepository.logs(for: habit.id)
-            allLogs.append(contentsOf: habitLogs)
+            // Filter logs to the date range
+            let filteredLogs = habitLogs.filter { log in
+                log.date >= startDate && log.date <= endDate
+            }
+            allLogs.append(contentsOf: filteredLogs)
         }
         
         // Use the schedule-aware completion calculator

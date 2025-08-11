@@ -20,6 +20,7 @@ public protocol OrphanHabitsFromCategoryUseCase { func execute(categoryId: Strin
 
 // MARK: - Log Use Cases
 public protocol GetLogsUseCase { func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog] }
+public protocol GetBatchLogsUseCase { func execute(for habitIDs: [UUID], since: Date?, until: Date?) async throws -> [UUID: [HabitLog]] }
 public protocol LogHabitUseCase { func execute(_ log: HabitLog) async throws }
 public protocol DeleteLogUseCase { func execute(id: UUID) async throws }
 public protocol GetLogForDateUseCase { func execute(habitID: UUID, date: Date) async throws -> HabitLog? }
@@ -349,10 +350,53 @@ public final class GetLogs: GetLogsUseCase {
 
         // Business logic: Filter by date range
         return allLogs.filter { log in
-            if let since, log.date < since { return false }
-            if let until, log.date > until { return false }
+            let calendar = Calendar.current
+            if let since {
+                let sinceStart = calendar.startOfDay(for: since)
+                let logStart = calendar.startOfDay(for: log.date)
+                if logStart < sinceStart { return false }
+            }
+            if let until {
+                let untilStart = calendar.startOfDay(for: until)
+                let logStart = calendar.startOfDay(for: log.date)
+                if logStart > untilStart { return false }
+            }
             return true
         }
+    }
+}
+
+public final class GetBatchLogs: GetBatchLogsUseCase {
+    private let repo: LogRepository
+    public init(repo: LogRepository) { self.repo = repo }
+    public func execute(for habitIDs: [UUID], since: Date?, until: Date?) async throws -> [UUID: [HabitLog]] {
+        // Batch load all logs for all habits to optimize N+1 queries
+        var result: [UUID: [HabitLog]] = [:]
+        
+        // Use single UseCase per habit but batch the processing
+        for habitID in habitIDs {
+            let logs = try await repo.logs(for: habitID)
+            
+            // Apply same date filtering logic as single GetLogs UseCase
+            let filteredLogs = logs.filter { log in
+                let calendar = Calendar.current
+                if let since {
+                    let sinceStart = calendar.startOfDay(for: since)
+                    let logStart = calendar.startOfDay(for: log.date)
+                    if logStart < sinceStart { return false }
+                }
+                if let until {
+                    let untilStart = calendar.startOfDay(for: until)
+                    let logStart = calendar.startOfDay(for: log.date)
+                    if logStart > untilStart { return false }
+                }
+                return true
+            }
+            
+            result[habitID] = filteredLogs
+        }
+        
+        return result
     }
 }
 

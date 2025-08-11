@@ -123,7 +123,12 @@ struct InspirationCard: View {
                     Button(action: onDismiss) {
                         Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
+                            .frame(width: 28, height: 28)
+                            .background(
+                                Circle()
+                                    .fill(iconColor)
+                            )
                     }
                     .buttonStyle(PlainButtonStyle())
                 }

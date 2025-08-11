@@ -36,8 +36,10 @@ public struct PersonalityNotificationContentGenerator {
             "confidence": confidence.rawValue
         ]
         
-        // Add rich content
+        // Add rich content for notification center persistence
         content.categoryIdentifier = getCategoryIdentifier(for: dominantTrait)
+        content.threadIdentifier = "personality_analysis"
+        content.relevanceScore = 1.0
         
         return content
     }
@@ -54,6 +56,11 @@ public struct PersonalityNotificationContentGenerator {
             "type": "personality_analysis",
             "action": "open_requirements"
         ]
+        
+        // Add persistence settings
+        content.categoryIdentifier = "PERSONALITY_ANALYSIS_INSUFFICIENT_DATA"
+        content.threadIdentifier = "personality_analysis"
+        content.relevanceScore = 0.8
         
         return content
     }
