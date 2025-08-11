@@ -21,7 +21,6 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
     
     // MARK: - FeatureGatingService Implementation
     
-    @MainActor
     public var maxHabitsAllowed: Int {
         if buildConfigService.allFeaturesEnabled {
             return Int.max
@@ -29,7 +28,6 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         return standardFeatureGating.maxHabitsAllowed
     }
     
-    @MainActor
     public func canCreateMoreHabits(currentCount: Int) -> Bool {
         if buildConfigService.allFeaturesEnabled {
             return true
@@ -37,7 +35,6 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         return standardFeatureGating.canCreateMoreHabits(currentCount: currentCount)
     }
     
-    @MainActor
     public var hasAdvancedAnalytics: Bool {
         if buildConfigService.allFeaturesEnabled {
             return true
@@ -45,7 +42,6 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         return standardFeatureGating.hasAdvancedAnalytics
     }
     
-    @MainActor
     public var hasCustomReminders: Bool {
         if buildConfigService.allFeaturesEnabled {
             return true
@@ -53,7 +49,6 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         return standardFeatureGating.hasCustomReminders
     }
     
-    @MainActor
     public var hasDataExport: Bool {
         if buildConfigService.allFeaturesEnabled {
             return true
@@ -61,7 +56,6 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         return standardFeatureGating.hasDataExport
     }
     
-    @MainActor
     public var hasPremiumThemes: Bool {
         if buildConfigService.allFeaturesEnabled {
             return true
@@ -69,7 +63,6 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         return standardFeatureGating.hasPremiumThemes
     }
     
-    @MainActor
     public var hasPrioritySupport: Bool {
         if buildConfigService.allFeaturesEnabled {
             return true
@@ -84,7 +77,6 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         return standardFeatureGating.getFeatureBlockedMessage(for: feature)
     }
     
-    @MainActor
     public func isFeatureAvailable(_ feature: FeatureType) -> Bool {
         if buildConfigService.allFeaturesEnabled {
             return true

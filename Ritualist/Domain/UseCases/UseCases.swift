@@ -537,7 +537,6 @@ public protocol UpdateProfileSubscriptionUseCase {
     func execute(product: Product) async throws
 }
 
-@MainActor
 public final class UpdateProfileSubscription: UpdateProfileSubscriptionUseCase {
     private let userService: UserService
     private let paywallService: PaywallService
@@ -880,7 +879,6 @@ public final class ResetPurchaseState: ResetPurchaseStateUseCase {
         self.paywallService = paywallService
     }
     
-    @MainActor
     public func execute() {
         paywallService.resetPurchaseState()
     }
@@ -893,7 +891,6 @@ public final class GetPurchaseState: GetPurchaseStateUseCase {
         self.paywallService = paywallService
     }
     
-    @MainActor
     public func execute() -> PurchaseState {
         paywallService.purchaseState
     }
@@ -987,7 +984,6 @@ public protocol GetCurrentUserProfileUseCase {
 
 // MARK: - User Use Case Implementations
 
-@MainActor
 public final class CheckPremiumStatus: CheckPremiumStatusUseCase {
     private let userService: UserService
     
@@ -1000,7 +996,6 @@ public final class CheckPremiumStatus: CheckPremiumStatusUseCase {
     }
 }
 
-@MainActor
 public final class GetCurrentUserProfile: GetCurrentUserProfileUseCase {
     private let userService: UserService
     

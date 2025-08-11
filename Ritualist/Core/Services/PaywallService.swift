@@ -2,7 +2,6 @@ import Foundation
 
 // MARK: - PaywallService Protocol
 
-@MainActor
 public protocol PaywallService {
     var purchaseState: PurchaseState { get }
     

@@ -6,7 +6,6 @@ import Observation
 /// Simplified user service that manages the single UserProfile entity
 /// No authentication required - designed for iCloud sync
 /// Acts as a bridge between local ProfileRepository and cloud storage
-@MainActor
 public protocol UserService {
     /// Current user profile (includes subscription info) - delegates to ProfileRepository
     var currentProfile: UserProfile { get }
@@ -28,7 +27,7 @@ public protocol UserService {
 
 // MARK: - Mock User Service
 
-@MainActor @Observable
+@Observable
 public final class MockUserService: UserService {
     private var _currentProfile = UserProfile()
     private let loadProfile: LoadProfileUseCase?
@@ -128,7 +127,7 @@ public final class MockUserService: UserService {
 
 // MARK: - iCloud User Service Stub
 
-@MainActor @Observable
+@Observable
 public final class ICloudUserService: UserService {
     private var _currentProfile = UserProfile()
     

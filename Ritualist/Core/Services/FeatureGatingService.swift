@@ -66,37 +66,30 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
         self.userService = userService
     }
     
-    @MainActor
     public var maxHabitsAllowed: Int {
         isPremiumUser ? Int.max : Self.freeMaxHabits
     }
     
-    @MainActor
     public func canCreateMoreHabits(currentCount: Int) -> Bool {
         isPremiumUser || currentCount < Self.freeMaxHabits
     }
     
-    @MainActor
     public var hasAdvancedAnalytics: Bool {
         isPremiumUser
     }
     
-    @MainActor
     public var hasCustomReminders: Bool {
         isPremiumUser
     }
     
-    @MainActor
     public var hasDataExport: Bool {
         isPremiumUser
     }
     
-    @MainActor
     public var hasPremiumThemes: Bool {
         isPremiumUser
     }
     
-    @MainActor
     public var hasPrioritySupport: Bool {
         isPremiumUser
     }
@@ -118,7 +111,6 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
         }
     }
     
-    @MainActor
     public func isFeatureAvailable(_ feature: FeatureType) -> Bool {
         switch feature {
         case .unlimitedHabits:
@@ -136,7 +128,6 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
         }
     }
     
-    @MainActor
     private var isPremiumUser: Bool {
         userService.isPremiumUser
     }

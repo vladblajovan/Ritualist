@@ -7,8 +7,7 @@ extension Container {
     
     // MARK: - Feature Gating Operations
     
-    @MainActor
     var checkHabitCreationLimit: Factory<CheckHabitCreationLimit> {
-        self { @MainActor in CheckHabitCreationLimit(featureGatingService: self.featureGatingService()) }
+        self { CheckHabitCreationLimit(featureGatingService: self.featureGatingService()) }
     }
 }

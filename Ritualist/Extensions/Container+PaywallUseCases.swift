@@ -7,39 +7,32 @@ extension Container {
     
     // MARK: - Paywall Operations
     
-    @MainActor
     var loadPaywallProducts: Factory<LoadPaywallProductsUseCase> {
-        self { @MainActor in LoadPaywallProducts(paywallService: self.paywallService()) }
+        self { LoadPaywallProducts(paywallService: self.paywallService()) }
     }
     
-    @MainActor
     var purchaseProduct: Factory<PurchaseProductUseCase> {
-        self { @MainActor in PurchaseProduct(paywallService: self.paywallService()) }
+        self { PurchaseProduct(paywallService: self.paywallService()) }
     }
     
-    @MainActor
     var restorePurchases: Factory<RestorePurchasesUseCase> {
-        self { @MainActor in RestorePurchases(paywallService: self.paywallService()) }
+        self { RestorePurchases(paywallService: self.paywallService()) }
     }
     
-    @MainActor
     var checkProductPurchased: Factory<CheckProductPurchasedUseCase> {
-        self { @MainActor in CheckProductPurchased(paywallService: self.paywallService()) }
+        self { CheckProductPurchased(paywallService: self.paywallService()) }
     }
     
-    @MainActor
     var resetPurchaseState: Factory<ResetPurchaseStateUseCase> {
-        self { @MainActor in ResetPurchaseState(paywallService: self.paywallService()) }
+        self { ResetPurchaseState(paywallService: self.paywallService()) }
     }
     
-    @MainActor
     var getPurchaseState: Factory<GetPurchaseStateUseCase> {
-        self { @MainActor in GetPurchaseState(paywallService: self.paywallService()) }
+        self { GetPurchaseState(paywallService: self.paywallService()) }
     }
     
-    @MainActor
     var updateProfileSubscription: Factory<UpdateProfileSubscriptionUseCase> {
-        self { @MainActor in
+        self {
             UpdateProfileSubscription(
                 userService: self.userService(),
                 paywallService: self.paywallService()

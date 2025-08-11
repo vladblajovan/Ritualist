@@ -87,13 +87,11 @@ extension Container {
         self { TrackHabitLogged(userActionTracker: self.userActionTracker()) }
     }
     
-    @MainActor
     var checkFeatureAccess: Factory<CheckFeatureAccess> {
-        self { @MainActor in CheckFeatureAccess(featureGatingService: self.featureGatingService()) }
+        self { CheckFeatureAccess(featureGatingService: self.featureGatingService()) }
     }
     
-    @MainActor
     var getPaywallMessage: Factory<GetPaywallMessage> {
-        self { @MainActor in GetPaywallMessage(featureGatingService: self.featureGatingService()) }
+        self { GetPaywallMessage(featureGatingService: self.featureGatingService()) }
     }
 }

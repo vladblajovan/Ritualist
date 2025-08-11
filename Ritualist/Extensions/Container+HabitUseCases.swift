@@ -43,9 +43,8 @@ extension Container {
     
     // MARK: - Complex Habit Operations
     
-    @MainActor
     var createHabitFromSuggestionUseCase: Factory<CreateHabitFromSuggestionUseCase> {
-        self { @MainActor in
+        self {
             CreateHabitFromSuggestion(
                 createHabit: self.createHabit(),
                 getHabitCount: self.getHabitCount(),

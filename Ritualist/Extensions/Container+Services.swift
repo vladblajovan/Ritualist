@@ -34,8 +34,10 @@ extension Container {
                 
                 // Navigate to Overview page after logging habit
                 if action == .log {
-                    Task { @MainActor in
-                        self.navigationService().navigateToOverview(shouldRefresh: true)
+                    Task {
+                        await MainActor.run {
+                            self.navigationService().navigateToOverview(shouldRefresh: true)
+                        }
                     }
                 }
             }
@@ -78,10 +80,8 @@ extension Container {
         .singleton
     }
     
-    // UserService requires MainActor isolation
-    @MainActor
     var userService: Factory<UserService> {
-        self { @MainActor in
+        self {
             #if DEBUG
             return MockUserService(
                 loadProfile: self.loadProfile(), 
@@ -103,10 +103,8 @@ extension Container {
     
     // MARK: - Paywall Service
     
-    // PaywallService requires MainActor isolation
-    @MainActor
     var paywallService: Factory<PaywallService> {
-        self { @MainActor in
+        self {
             #if DEBUG
             let mockPaywall = MockPaywallService(
                 subscriptionService: self.secureSubscriptionService(),
@@ -123,9 +121,8 @@ extension Container {
     
     // MARK: - Feature Gating Service
     
-    @MainActor
     var featureGatingService: Factory<FeatureGatingService> {
-        self { @MainActor in
+        self {
             #if ALL_FEATURES_ENABLED
             return MockFeatureGatingService()
             #else
