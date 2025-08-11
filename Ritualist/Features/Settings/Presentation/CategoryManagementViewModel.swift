@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import FactoryKit
 
+@MainActor
 @Observable
 public final class CategoryManagementViewModel {
     
@@ -48,7 +49,6 @@ public final class CategoryManagementViewModel {
     
     // MARK: - Public Methods
     
-    @MainActor
     public func load() async {
         isLoading = true
         error = nil
@@ -66,7 +66,6 @@ public final class CategoryManagementViewModel {
         userActionTracker.track(.categoryManagementOpened)
     }
     
-    @MainActor
     public func createCategory(_ category: Category) async {
         error = nil
         
@@ -85,7 +84,6 @@ public final class CategoryManagementViewModel {
         }
     }
     
-    @MainActor
     public func createCustomCategory(name: String, emoji: String) async -> Bool {
         error = nil
         
@@ -117,7 +115,6 @@ public final class CategoryManagementViewModel {
         }
     }
     
-    @MainActor
     public func updateCategory(_ category: Category) async {
         error = nil
         
@@ -135,7 +132,6 @@ public final class CategoryManagementViewModel {
         }
     }
     
-    @MainActor
     public func deleteCategories(at offsets: IndexSet) async {
         error = nil
         
@@ -172,7 +168,6 @@ public final class CategoryManagementViewModel {
         }
     }
     
-    @MainActor
     public func getHabitsCount(for categoryId: String) async -> Int {
         do {
             let habits = try await getHabitsByCategoryUseCase.execute(categoryId: categoryId)
@@ -182,7 +177,6 @@ public final class CategoryManagementViewModel {
         }
     }
     
-    @MainActor
     public func moveCategories(from source: IndexSet, to destination: Int) async {
         error = nil
         
@@ -232,7 +226,6 @@ public final class CategoryManagementViewModel {
         error = nil
     }
     
-    @MainActor
     public func deleteCategory(_ categoryId: String) async {
         error = nil
         

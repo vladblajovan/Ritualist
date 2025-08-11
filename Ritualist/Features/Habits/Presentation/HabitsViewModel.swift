@@ -286,7 +286,7 @@ public final class HabitsViewModel {
     
     /// Show paywall
     public func showPaywall() {
-        Task { @MainActor in
+        Task {
             await paywallViewModel.load()
             paywallViewModel.trackPaywallShown(source: "habits", trigger: "habit_limit")
             paywallItem = PaywallItem(viewModel: paywallViewModel)
@@ -296,7 +296,7 @@ public final class HabitsViewModel {
     /// Show paywall from assistant (sets flag to reopen assistant after)
     public func showPaywallFromAssistant() {
         shouldReopenAssistantAfterPaywall = true
-        Task { @MainActor in
+        Task {
             await paywallViewModel.load()
             paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
             paywallItem = PaywallItem(viewModel: paywallViewModel)
