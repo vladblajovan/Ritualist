@@ -17,7 +17,7 @@ public struct HabitPerformanceRow: View {
             Text(emoji)
                 .font(.title2)
                 .frame(width: 32, height: 32)
-                .background(Color(.systemGray6))
+                .background(CardDesign.secondaryBackground)
                 .cornerRadius(8)
             
             // Habit name

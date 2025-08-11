@@ -32,11 +32,8 @@ public struct StatsCard: View {
                 .foregroundColor(.secondary)
                 .lineLimit(2)
         }
-        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .cardStyle()
     }
 }
 

@@ -77,7 +77,7 @@ public struct DashboardView: View {
                             .padding(.vertical, 12)
                             .background(
                                 RoundedRectangle(cornerRadius: 25)
-                                    .fill(vm.selectedTimePeriod == period ? AppColors.brand : Color(.systemBackground))
+                                    .fill(vm.selectedTimePeriod == period ? AppColors.brand : Color(.secondarySystemBackground))
                             )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -174,10 +174,7 @@ public struct DashboardView: View {
                 .frame(width: 60, height: 60)
             }
         }
-        .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .cardStyle()
     }
     
     @ViewBuilder
@@ -203,10 +200,7 @@ public struct DashboardView: View {
                 )
             }
         }
-        .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .cardStyle()
     }
     
     @ViewBuilder
@@ -263,10 +257,7 @@ public struct DashboardView: View {
                 }
             }
         }
-        .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .cardStyle()
     }
     
     @ViewBuilder
@@ -334,10 +325,7 @@ public struct DashboardView: View {
                 }
             }
         }
-        .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .cardStyle()
     }
     
     @ViewBuilder
@@ -405,10 +393,7 @@ public struct DashboardView: View {
                 Spacer()
             }
         }
-        .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .cardStyle()
     }
     
     @ViewBuilder
@@ -472,10 +457,7 @@ public struct DashboardView: View {
                 .padding(.vertical, 2)
             }
         }
-        .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .cardStyle()
     }
 }
 

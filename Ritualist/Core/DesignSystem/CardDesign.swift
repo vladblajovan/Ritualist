@@ -1,0 +1,54 @@
+import SwiftUI
+
+/// Unified design tokens for cards across the entire app
+/// Use this instead of duplicating card styling in different features
+public struct CardDesign {
+    // MARK: - Layout
+    public static let cornerRadius: CGFloat = 16
+    public static let cardPadding: CGFloat = 20
+    public static let cardSpacing: CGFloat = 16
+    public static let shadowRadius: CGFloat = 5
+    
+    // MARK: - Colors (Light/Dark Mode Adaptive)
+    public static let cardBackground = Color(.secondarySystemGroupedBackground)
+    public static let secondaryBackground = Color(.systemGray6)
+    public static let shadowColor = Color.primary.opacity(0.1)
+    
+    // MARK: - Progress Colors
+    public static let progressGreen = Color(hex: "#4CAF50") ?? .green
+    public static let progressOrange = Color(hex: "#FF9800") ?? .orange
+    public static let progressRed = Color(hex: "#F44336") ?? .red
+    
+    // MARK: - Progress Color Logic
+    public static func progressColor(for percentage: Double) -> Color {
+        if percentage >= 0.8 {
+            return progressGreen
+        } else if percentage >= 0.5 {
+            return progressOrange
+        } else {
+            return progressRed
+        }
+    }
+}
+
+/// Unified card style modifier
+public struct UnifiedCardStyle: ViewModifier {
+    public func body(content: Content) -> some View {
+        content
+            .padding(CardDesign.cardPadding)
+            .background(CardDesign.cardBackground)
+            .cornerRadius(CardDesign.cornerRadius)
+            .shadow(
+                color: CardDesign.shadowColor,
+                radius: CardDesign.shadowRadius,
+                x: 0,
+                y: 2
+            )
+    }
+}
+
+public extension View {
+    func cardStyle() -> some View {
+        modifier(UnifiedCardStyle())
+    }
+}
