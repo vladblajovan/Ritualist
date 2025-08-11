@@ -201,9 +201,7 @@ public final class DashboardViewModel: ObservableObject {
                 to: range.end
             )
             
-            await MainActor.run {
-                self.completionStats = stats
-            }
+            self.completionStats = stats
             
             // Load additional data if stats are available
             if stats.totalHabits > 0 {
@@ -215,15 +213,11 @@ public final class DashboardViewModel: ObservableObject {
             }
             
         } catch {
-            await MainActor.run {
-                self.error = error
-                print("Failed to load dashboard data: \(error)")
-            }
+            self.error = error
+            print("Failed to load dashboard data: \(error)")
         }
         
-        await MainActor.run {
-            self.isLoading = false
-        }
+        self.isLoading = false
     }
     
     public func refresh() async {
@@ -242,9 +236,7 @@ public final class DashboardViewModel: ObservableObject {
             )
             
             let viewModels = results.map(HabitPerformanceViewModel.init)
-            await MainActor.run {
-                self.habitPerformanceData = viewModels
-            }
+            self.habitPerformanceData = viewModels
             
         } catch {
             print("Failed to load habit performance data: \(error)")
@@ -261,9 +253,7 @@ public final class DashboardViewModel: ObservableObject {
             )
             
             let viewModels = results.map(ChartDataPointViewModel.init)
-            await MainActor.run {
-                self.progressChartData = viewModels
-            }
+            self.progressChartData = viewModels
             
         } catch {
             print("Failed to load progress chart data: \(error)")
@@ -280,9 +270,7 @@ public final class DashboardViewModel: ObservableObject {
             )
             
             let viewModel = WeeklyPatternsViewModel(from: result)
-            await MainActor.run {
-                self.weeklyPatterns = viewModel
-            }
+            self.weeklyPatterns = viewModel
             
         } catch {
             print("Failed to load weekly patterns: \(error)")
@@ -299,9 +287,7 @@ public final class DashboardViewModel: ObservableObject {
             )
             
             let viewModel = StreakAnalysisViewModel(from: result)
-            await MainActor.run {
-                self.streakAnalysis = viewModel
-            }
+            self.streakAnalysis = viewModel
             
         } catch {
             print("Failed to load streak analysis: \(error)")
@@ -318,9 +304,7 @@ public final class DashboardViewModel: ObservableObject {
             )
             
             let viewModels = results.map(CategoryPerformanceViewModel.init)
-            await MainActor.run {
-                self.categoryBreakdown = viewModels
-            }
+            self.categoryBreakdown = viewModels
         } catch {
             print("Failed to load category breakdown: \(error)")
         }

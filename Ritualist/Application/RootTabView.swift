@@ -81,9 +81,7 @@ public struct RootTabView: View {
                     // Small delay to ensure tab switch completes
                     Task {
                         try? await Task.sleep(for: .milliseconds(100))
-                        await MainActor.run {
-                            showingPersonalityAnalysis = true
-                        }
+                        showingPersonalityAnalysis = true
                     }
                 } else {
                     // Show directly without tab navigation (for direct calls)

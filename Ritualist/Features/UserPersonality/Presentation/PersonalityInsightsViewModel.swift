@@ -175,14 +175,10 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     // MARK: - Privacy Management
     
     public func loadPreferences() async {
-        await MainActor.run {
-            isLoadingPreferences = true
-        }
+        isLoadingPreferences = true
         
         guard let userId = await getCurrentUserId() else {
-            await MainActor.run {
-                isLoadingPreferences = false
-            }
+            isLoadingPreferences = false
             return
         }
         
@@ -190,10 +186,8 @@ public final class PersonalityInsightsViewModel: ObservableObject {
             let loadedPreferences = try await personalityRepository.getAnalysisPreferences(for: userId)
             
             if let loadedPreferences = loadedPreferences {
-                await MainActor.run {
-                    preferences = loadedPreferences
-                    isLoadingPreferences = false
-                }
+                preferences = loadedPreferences
+                isLoadingPreferences = false
             } else {
                 // Create default preferences
                 let defaultPreferences = PersonalityAnalysisPreferences(userId: userId)
@@ -201,10 +195,8 @@ public final class PersonalityInsightsViewModel: ObservableObject {
                 // Save defaults immediately to persist them
                 try? await personalityRepository.saveAnalysisPreferences(defaultPreferences)
                 
-                await MainActor.run {
-                    preferences = defaultPreferences
-                    isLoadingPreferences = false
-                }
+                preferences = defaultPreferences
+                isLoadingPreferences = false
                 
                 // Start scheduling with default preferences
                 await scheduler.startScheduling(for: userId)
@@ -218,30 +210,22 @@ public final class PersonalityInsightsViewModel: ObservableObject {
             print("Error loading preferences: \(error)")
             // Create default preferences on error
             if let userId = await getCurrentUserId() {
-                await MainActor.run {
-                    preferences = PersonalityAnalysisPreferences(userId: userId)
-                    isLoadingPreferences = false
-                }
+                preferences = PersonalityAnalysisPreferences(userId: userId)
+                isLoadingPreferences = false
             } else {
-                await MainActor.run {
-                    isLoadingPreferences = false
-                }
+                isLoadingPreferences = false
             }
         }
     }
     
     public func savePreferences(_ newPreferences: PersonalityAnalysisPreferences) async {
-        await MainActor.run {
-            isSavingPreferences = true
-        }
+        isSavingPreferences = true
         
         do {
             try await personalityRepository.saveAnalysisPreferences(newPreferences)
             
-            await MainActor.run {
-                preferences = newPreferences
-                isSavingPreferences = false
-            }
+            preferences = newPreferences
+            isSavingPreferences = false
             
             // Update scheduler based on new preferences
             if let userId = await getCurrentUserId() {
@@ -254,9 +238,7 @@ public final class PersonalityInsightsViewModel: ObservableObject {
             }
         } catch {
             print("Error saving preferences: \(error)")
-            await MainActor.run {
-                isSavingPreferences = false
-            }
+            isSavingPreferences = false
         }
     }
     

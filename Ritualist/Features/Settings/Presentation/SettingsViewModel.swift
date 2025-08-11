@@ -159,15 +159,13 @@ public final class SettingsViewModel {
     
     /// Update the app appearance based on the appearance setting
     public func updateAppearance(_ appearance: Int) async {
-        await MainActor.run {
-            // Update the profile appearance setting
-            profile.appearance = appearance
-            
-            // Apply the appearance change to the appearance manager
-            appearanceManager.updateFromProfile(profile)
-            
-            // Track appearance change
-            userActionTracker.track(.profileUpdated(field: "appearance"))
-        }
+        // Update the profile appearance setting
+        profile.appearance = appearance
+        
+        // Apply the appearance change to the appearance manager
+        appearanceManager.updateFromProfile(profile)
+        
+        // Track appearance change
+        userActionTracker.track(.profileUpdated(field: "appearance"))
     }
 }

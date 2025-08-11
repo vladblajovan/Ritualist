@@ -64,9 +64,7 @@ public struct OverviewRoot: View {
                         // Small delay to ensure database transaction is complete
                         try? await Task.sleep(for: .milliseconds(100))
                         await vm.load()
-                        await MainActor.run {
-                            navigationService.didRefreshOverview()
-                        }
+                        navigationService.didRefreshOverview()
                     }
                 }
             }
@@ -76,7 +74,7 @@ public struct OverviewRoot: View {
         if vm.canCreateMoreHabits {
             showingAddHabit = true
         } else {
-            Task { @MainActor in
+            Task {
                 await paywallViewModel.load()
                 paywallItem = PaywallItem(viewModel: paywallViewModel)
             }

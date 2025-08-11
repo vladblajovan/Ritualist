@@ -285,27 +285,21 @@ public final class OverviewV2ViewModel: ObservableObject {
                 await loadPersonalityInsights()
             }
             
-            await MainActor.run {
-                self.todaysSummary = todaySummary
-                self.weeklyProgress = weeklyProgress
-                self.activeStreaks = streaks
-                self.smartInsights = insights
-                self.monthlyCompletionData = monthlyData
-                
-                // Check if we should show inspiration card contextually
-                self.checkAndShowInspirationCard()
-            }
+            self.todaysSummary = todaySummary
+            self.weeklyProgress = weeklyProgress
+            self.activeStreaks = streaks
+            self.smartInsights = insights
+            self.monthlyCompletionData = monthlyData
+            
+            // Check if we should show inspiration card contextually
+            self.checkAndShowInspirationCard()
             
         } catch {
-            await MainActor.run {
-                self.error = error
-                print("Failed to load OverviewV2 data: \(error)")
-            }
+            self.error = error
+            print("Failed to load OverviewV2 data: \(error)")
         }
         
-        await MainActor.run {
-            self.isLoading = false
-        }
+        self.isLoading = false
     }
     
     public func refresh() async {
@@ -313,9 +307,7 @@ public final class OverviewV2ViewModel: ObservableObject {
     }
     
     public func openPersonalityAnalysis() {
-        Task { @MainActor in
-            personalityDeepLinkCoordinator.showPersonalityAnalysisDirectly()
-        }
+        personalityDeepLinkCoordinator.showPersonalityAnalysisDirectly()
     }
     
     public func refreshPersonalityInsights() async {
@@ -348,10 +340,8 @@ public final class OverviewV2ViewModel: ObservableObject {
             }
             
         } catch {
-            await MainActor.run {
-                self.error = error
-                print("Failed to complete habit: \(error)")
-            }
+            self.error = error
+            print("Failed to complete habit: \(error)")
         }
     }
     
@@ -426,18 +416,16 @@ public final class OverviewV2ViewModel: ObservableObject {
             
         } catch {
             // Revert the optimistic cache update on error
-            await MainActor.run {
-                // Restore previous cached value if possible
-                if let existingLogs = currentHabitLogs[habit.id] {
-                    let totalValue = existingLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
-                    currentHabitProgress[habit.id] = totalValue
-                } else {
-                    currentHabitProgress[habit.id] = 0.0
-                }
-                
-                self.error = error
-                print("Failed to update numeric habit: \(error)")
+            // Restore previous cached value if possible
+            if let existingLogs = currentHabitLogs[habit.id] {
+                let totalValue = existingLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+                currentHabitProgress[habit.id] = totalValue
+            } else {
+                currentHabitProgress[habit.id] = 0.0
             }
+            
+            self.error = error
+            print("Failed to update numeric habit: \(error)")
         }
     }
     
@@ -541,10 +529,8 @@ public final class OverviewV2ViewModel: ObservableObject {
         Task {
             let triggers = await evaluateInspirationTriggers(summary: summary)
             
-            await MainActor.run {
-                if let bestTrigger = selectBestTrigger(from: triggers) {
-                    showInspirationWithTrigger(bestTrigger)
-                }
+            if let bestTrigger = selectBestTrigger(from: triggers) {
+                showInspirationWithTrigger(bestTrigger)
             }
         }
     }
@@ -662,10 +648,8 @@ public final class OverviewV2ViewModel: ObservableObject {
         
         Task {
             try? await Task.sleep(for: .milliseconds(delay))
-            await MainActor.run {
-                self.lastShownInspirationTrigger = trigger
-                self.showInspirationCard = true
-            }
+            self.lastShownInspirationTrigger = trigger
+            self.showInspirationCard = true
         }
     }
     
@@ -715,11 +699,9 @@ public final class OverviewV2ViewModel: ObservableObject {
             }
         }
         
-        // Update the caches on main thread
-        await MainActor.run {
-            self.currentHabitProgress = progressCache
-            self.currentHabitLogs = logsCache
-        }
+        // Update the caches
+        self.currentHabitProgress = progressCache
+        self.currentHabitLogs = logsCache
         
         // Count will be calculated based on the completed habits array
         
@@ -854,14 +836,10 @@ public final class OverviewV2ViewModel: ObservableObject {
             // Check if personality analysis is enabled and sufficient data exists
             let isEligible = try await checkPersonalityAnalysisEligibility()
             
-            await MainActor.run {
-                shouldShowPersonalityInsights = isEligible
-            }
+            shouldShowPersonalityInsights = isEligible
             
             guard isEligible else {
-                await MainActor.run {
-                    personalityInsights = []
-                }
+                personalityInsights = []
                 return
             }
             
@@ -874,19 +852,15 @@ public final class OverviewV2ViewModel: ObservableObject {
                     let newProfile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
                     personalityProfile = newProfile
                 } catch {
-                    await MainActor.run {
-                        shouldShowPersonalityInsights = false
-                        personalityInsights = []
-                    }
+                    shouldShowPersonalityInsights = false
+                    personalityInsights = []
                     return
                 }
             }
             
             guard let profile = personalityProfile else {
-                await MainActor.run {
-                    shouldShowPersonalityInsights = false
-                    personalityInsights = []
-                }
+                shouldShowPersonalityInsights = false
+                personalityInsights = []
                 return
             }
             
@@ -923,16 +897,12 @@ public final class OverviewV2ViewModel: ObservableObject {
                 ))
             }
             
-            await MainActor.run {
-                personalityInsights = cardInsights
-                dominantPersonalityTrait = profile.dominantTrait.displayName
-            }
+            personalityInsights = cardInsights
+            dominantPersonalityTrait = profile.dominantTrait.displayName
             
         } catch {
-            await MainActor.run {
-                shouldShowPersonalityInsights = false
-                personalityInsights = []
-            }
+            shouldShowPersonalityInsights = false
+            personalityInsights = []
         }
     }
     

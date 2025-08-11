@@ -110,9 +110,7 @@ public struct PaywallView: View {
                     }
                     
                     // Now dismiss with the updated user state
-                    await MainActor.run {
-                        dismiss()
-                    }
+                    dismiss()
                 }
             }
         }
