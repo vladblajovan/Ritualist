@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import RitualistCore
 
 public struct AvatarView: View {
     public let name: String

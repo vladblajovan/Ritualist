@@ -1,12 +1,11 @@
 //
 //  TipRepository.swift
-//  Ritualist
+//  RitualistCore
 //
 //  Created by Vlad Blajovan on 01.08.2025.
 //
 
 import Foundation
-import RitualistCore
 
 public protocol TipRepository {
     func getAllTips() async throws -> [Tip]

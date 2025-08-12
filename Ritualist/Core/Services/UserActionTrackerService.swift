@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 // MARK: - User Action Events
 

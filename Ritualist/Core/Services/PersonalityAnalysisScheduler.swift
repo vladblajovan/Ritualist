@@ -61,8 +61,6 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             scheduledUsers.insert(userId)
             await scheduleNextAnalysis(for: userId, preferences: preferences)
             saveSchedulerState()
-            
-            
         } catch {
             // Failed to start scheduling - preferences might not be set
         }
@@ -80,7 +78,6 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
         
         saveSchedulerState()
-        
     }
     
     public func triggerAnalysisCheck(for userId: UUID) async {
@@ -90,7 +87,6 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             }
             
             await performAnalysis(for: userId)
-            
         } catch {
             // Error during analysis check
         }
@@ -99,15 +95,12 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
     /// Forces analysis to run for manual mode, bypassing frequency checks
     public func forceManualAnalysis(for userId: UUID) async {
         let timestamp = Date().timeIntervalSince1970
-        print("🔄 forceManualAnalysis called at \(timestamp) for user \(userId)")
-        
         do {
             // Get user preferences
             guard let preferences = try await personalityRepository.getAnalysisPreferences(for: userId),
                   preferences.isCurrentlyActive else {
                 return
             }
-            
             
             // Check if user has sufficient data
             let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
@@ -243,7 +236,6 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             }
             
             return hasChanged
-            
         } catch {
             // Error checking data changes
             return false
@@ -279,7 +271,6 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             lastAnalysisDates[userId] = Date()
             saveSchedulerState()
             
-            
             // Send rich notification about the completed analysis
             await sendAnalysisCompletedNotification(for: userId, profile: profile)
             
@@ -297,6 +288,13 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
     private func sendAnalysisCompletedNotification(for userId: UUID, profile: PersonalityProfile) async {
         let identifier = "personality_completed_\(userId.uuidString)"
         
+        // Check notification permissions first
+        let settings = await notificationCenter.notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+            print("🔔 Notification permissions not granted, skipping analysis completion notification")
+            return
+        }
+        
         // Generate rich notification content based on the analysis results
         let content = PersonalityNotificationContentGenerator.generateContent(for: profile)
         
@@ -306,14 +304,21 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
         
         do {
             try await notificationCenter.add(request)
+            print("🔔 Analysis completion notification sent successfully")
         } catch {
-            // Failed to send analysis notification
+            print("🔔 Failed to send analysis notification: \(error)")
         }
     }
     
     
     private func scheduleNotification(for userId: UUID, at date: Date, frequency: AnalysisFrequency) async {
         let identifier = Self.schedulerIdentifierPrefix + userId.uuidString
+        
+        // Check notification permissions first
+        let settings = await notificationCenter.notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+            return
+        }
         
         // Remove existing notification
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
@@ -339,7 +344,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
         do {
             try await notificationCenter.add(request)
         } catch {
-            // Failed to schedule notification
+            print("🔔 Failed to schedule notification: \(error)")
         }
     }
     

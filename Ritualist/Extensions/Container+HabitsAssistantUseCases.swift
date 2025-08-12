@@ -1,5 +1,6 @@
 import Foundation
 import FactoryKit
+import RitualistCore
 
 // MARK: - HabitsAssistant Use Cases Container Extensions
 

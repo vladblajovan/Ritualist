@@ -1,5 +1,6 @@
 import SwiftUI
 import FactoryKit
+import RitualistCore
 
 public struct OverviewV2View: View {
     @ObservedObject var vm: OverviewV2ViewModel

@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 struct ActiveStreaksCard: View {
     let streaks: [StreakInfo]

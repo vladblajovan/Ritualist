@@ -1,12 +1,11 @@
 //
 //  DateUtils.swift
-//  Ritualist
+//  RitualistCore
 //
 //  Created by Vlad Blajovan on 29.07.2025.
 //
 
 import Foundation
-import RitualistCore
 
 public enum DateUtils {
     

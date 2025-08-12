@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 /// Protocol defining the structure for Overview cards (simplified)
 protocol OverviewCardData {

@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import FactoryKit
+import RitualistCore
 
 public struct SettingsRoot: View {
     @Injected(\.settingsViewModel) var vm

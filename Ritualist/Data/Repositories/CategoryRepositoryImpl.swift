@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 public final class CategoryRepositoryImpl: CategoryRepository {
     private let localDataSource: CategoryLocalDataSourceProtocol

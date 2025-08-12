@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct Chip: View {
     let text: String

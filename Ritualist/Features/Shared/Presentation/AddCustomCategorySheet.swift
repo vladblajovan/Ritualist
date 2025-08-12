@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct AddCustomCategorySheet: View {
     @Environment(\.dismiss) private var dismiss

@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 struct WeeklyOverviewCard: View {
     let progress: WeeklyProgress?

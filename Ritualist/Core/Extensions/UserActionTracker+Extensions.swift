@@ -1,4 +1,5 @@
 import Foundation
+import RitualistCore
 
 public extension UserActionTrackerService {
     /// Convenience method to track errors with context

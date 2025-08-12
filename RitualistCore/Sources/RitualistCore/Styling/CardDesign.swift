@@ -1,7 +1,11 @@
+import Foundation
+
+#if canImport(SwiftUI)
 import SwiftUI
 
 /// Unified design tokens for cards across the entire app
 /// Use this instead of duplicating card styling in different features
+@available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
 public struct CardDesign {
     // MARK: - Layout
     public static let cornerRadius: CGFloat = 16
@@ -10,8 +14,22 @@ public struct CardDesign {
     public static let shadowRadius: CGFloat = 5
     
     // MARK: - Colors (Light/Dark Mode Adaptive)
-    public static let cardBackground = Color(.secondarySystemGroupedBackground)
-    public static let secondaryBackground = Color(.systemGray6)
+    #if canImport(UIKit)
+    @available(iOS 13.0, watchOS 6.0, *)
+    public static let cardBackground = Color(UIColor.secondarySystemGroupedBackground)
+    @available(iOS 13.0, watchOS 6.0, *)
+    public static let secondaryBackground = Color(UIColor.systemGray6)
+    #elseif canImport(AppKit)
+    @available(macOS 10.15, *)
+    public static let cardBackground = Color(NSColor.controlBackgroundColor)
+    @available(macOS 10.15, *)
+    public static let secondaryBackground = Color(NSColor.systemGray)
+    #else
+    // Fallback colors
+    public static let cardBackground = Color.gray.opacity(0.1)
+    public static let secondaryBackground = Color.gray.opacity(0.2)
+    #endif
+    
     public static let shadowColor = Color.primary.opacity(0.1)
     
     // MARK: - Progress Colors
@@ -32,7 +50,10 @@ public struct CardDesign {
 }
 
 /// Unified card style modifier
+@available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
 public struct UnifiedCardStyle: ViewModifier {
+    public init() {}
+    
     public func body(content: Content) -> some View {
         content
             .padding(CardDesign.cardPadding)
@@ -47,8 +68,11 @@ public struct UnifiedCardStyle: ViewModifier {
     }
 }
 
+@available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
 public extension View {
     func cardStyle() -> some View {
         modifier(UnifiedCardStyle())
     }
 }
+
+#endif

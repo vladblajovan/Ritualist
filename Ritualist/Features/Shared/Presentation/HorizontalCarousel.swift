@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct HorizontalCarousel<T: Identifiable, Content: View>: View {
     let items: [T]

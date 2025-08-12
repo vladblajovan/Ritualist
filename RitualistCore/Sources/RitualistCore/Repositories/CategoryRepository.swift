@@ -1,6 +1,6 @@
 //
 //  CategoryRepository.swift
-//  Ritualist
+//  RitualistCore
 //
 //  Created by Claude on 03.08.2025.
 //

@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct ConfirmationDialog: View {
     public let title: String

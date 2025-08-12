@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct StatsCard: View {
     let title: String

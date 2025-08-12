@@ -7,6 +7,7 @@
 
 import Foundation
 import UserNotifications
+import RitualistCore
 
 /// Service for generating engaging notification content based on personality analysis results
 public struct PersonalityNotificationContentGenerator {

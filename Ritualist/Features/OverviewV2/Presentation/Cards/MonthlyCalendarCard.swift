@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import RitualistCore
 
 struct MonthlyCalendarCard: View {
     @Binding var isExpanded: Bool

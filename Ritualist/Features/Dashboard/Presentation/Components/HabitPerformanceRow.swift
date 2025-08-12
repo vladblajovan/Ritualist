@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct HabitPerformanceRow: View {
     let name: String

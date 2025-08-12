@@ -1,6 +1,6 @@
 //
 //  NumberUtils.swift
-//  Ritualist
+//  RitualistCore
 //
 //  Created by Vlad Blajovan on 01.08.2025.
 //

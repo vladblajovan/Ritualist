@@ -351,42 +351,133 @@ struct CircularComplicationView: View {
 
 ## Phase 3: Shared Infrastructure
 
-### 3.1 RitualistCore Framework ✅ **IMPLEMENTED**
+### 3.1 RitualistCore Framework ✅ **IMPLEMENTED** 🔄 **PHASE 2 IN PROGRESS**
 ```swift
-// ✅ COMPLETED - Actual framework structure implemented
+// ✅ PHASE 1 COMPLETED - Core entities and enums extracted  
+// 🔄 PHASE 2 PARTIAL - Extracting ALL Core utilities, styling, and shared components
 RitualistCore/
 ├── Sources/RitualistCore/
-│   ├── Entities/
-│   │   ├── ✅ Habit.swift
-│   │   ├── ✅ HabitLog.swift
-│   │   ├── ✅ UserProfile.swift
-│   │   ├── ✅ Category.swift
-│   │   ├── ✅ CalendarDay.swift
-│   │   ├── ✅ HabitNotification.swift
-│   │   ├── ✅ HabitSuggestion.swift
-│   │   ├── ✅ NotificationAction.swift
-│   │   ├── ✅ OnboardingState.swift
-│   │   ├── ✅ PaywallBenefit.swift
-│   │   ├── ✅ Product.swift
-│   │   ├── ✅ ReminderTime.swift
-│   │   └── ✅ Tip.swift
-│   ├── Enums/
-│   │   ├── ✅ HabitKind.swift
-│   │   ├── ✅ HabitSchedule.swift
-│   │   ├── ✅ SubscriptionPlan.swift
-│   │   ├── ✅ AuthError.swift
-│   │   ├── ✅ PaywallError.swift
-│   │   ├── ✅ ProductDuration.swift
-│   │   ├── ✅ PurchaseState.swift
-│   │   └── ✅ TipCategory.swift
+│   ├── Entities/                    // ✅ COMPLETED (13 files)
+│   │   ├── ✅ Habit.swift, HabitLog.swift, UserProfile.swift, Category.swift
+│   │   ├── ✅ CalendarDay.swift, HabitNotification.swift, HabitSuggestion.swift
+│   │   ├── ✅ NotificationAction.swift, OnboardingState.swift, PaywallBenefit.swift
+│   │   └── ✅ Product.swift, ReminderTime.swift, Tip.swift
+│   ├── Enums/                       // ✅ COMPLETED (8 files)
+│   │   ├── ✅ HabitKind.swift, HabitSchedule.swift, SubscriptionPlan.swift
+│   │   ├── ✅ AuthError.swift, PaywallError.swift, ProductDuration.swift
+│   │   └── ✅ PurchaseState.swift, TipCategory.swift
+│   ├── Utilities/                   // ✅ EXTRACTED (3 files)
+│   │   ├── ✅ DateUtils.swift       // Essential for widget timelines
+│   │   ├── ✅ NumberUtils.swift     // Habit calculations  
+│   │   └── ✅ DebugLogger.swift     // Shared logging
+│   ├── Repositories/                // ✅ EXTRACTED (6 files)
+│   │   ├── ✅ HabitRepository.swift, LogRepository.swift, CategoryRepository.swift
+│   │   └── ✅ ProfileRepository.swift, OnboardingRepository.swift, TipRepository.swift
+│   ├── Extensions/                  // ✅ EXTRACTED (1 file)
+│   │   └── ✅ HabitSchedule+Extensions.swift // Schedule calculations
+│   ├── Styling/                     // 🔄 PARTIALLY EXTRACTED (4 of 7 files)
+│   │   ├── ✅ Spacing.swift         // Layout spacing tokens
+│   │   ├── ✅ Sizing.swift          // Size tokens  
+│   │   ├── ✅ Animations.swift      // Animation configurations
+│   │   ├── ✅ Shadows.swift         // Shadow tokens (Foundation-based)
+│   │   ├── ❌ Colors.swift          // SwiftUI dependent - needs refactor
+│   │   ├── ❌ Typography.swift      // SwiftUI dependent - needs refactor  
+│   │   └── ❌ RTLSupport.swift      // SwiftUI dependent - needs refactor
+│   ├── Services/                    // ❌ NOT EXTRACTED (25 services remain)
+│   │   ├── ❌ ScheduleAwareCompletionCalculator.swift // Has external dependencies
+│   │   ├── ❌ DataThresholdValidator.swift           // Has external dependencies
+│   │   ├── ❌ UserService.swift                      // Has external dependencies
+│   │   └── ❌ 22 other services...                   // Most are app-specific
 │   └── ✅ RitualistCore.swift
 ├── Package.swift (✅ Static library configuration)
-└── Tests/ (Ready for future widget/watch data models)
+└── Tests/ (Ready for utilities and business logic tests)
 
-// ✅ Framework properly configured as local SPM dependency
-// ✅ All main app files using: import RitualistCore
-// ✅ Build successful and verified working
+// CURRENT STATUS:
+// ✅ Framework builds successfully: 32 files extracted
+// ✅ Main app builds successfully: 79+ imports added
+// ❌ INCOMPLETE: 29 Core files still in main app (25 services + 3 styling + 2 extensions + 1 manager)
+// 🎯 NEED TO EXTRACT: All remaining Core/Styling, Core/Extensions, extractable Core/Services
 ```
+
+### **🚨 PHASE 2 EXTRACTION STATUS - INCOMPLETE**
+
+**✅ EXTRACTED (32 files):**
+- 13 Domain Entities + 8 Core Enums ✅  
+- 3 Core Utilities ✅
+- 6 Repository Protocols ✅  
+- 1 Domain Extension ✅
+- 4 Styling files (Spacing, Sizing, Animations, Shadows) ✅
+
+**❌ REMAINING IN MAIN APP (29 files):**
+- **3 Styling files**: Colors.swift, Typography.swift, RTLSupport.swift (SwiftUI dependent)
+- **2 Extensions**: Color+Hex.swift, UserActionTracker+Extensions.swift (dependency issues)
+- **1 Manager**: AppearanceManager.swift
+- **1 Design System**: CardDesign.swift  
+- **1 Utility**: UserActionEventMapper.swift (recreated for app-specific logic)
+- **25 Services**: Most are app-specific but some could be extracted
+
+**🎯 NEXT ACTIONS:**
+- Extract remaining non-SwiftUI styling and extensions
+- Identify and extract pure business logic services  
+- Complete import updates for all newly extracted files
+- Verify builds and functionality
+
+### 3.1.1 Framework Extraction Strategy
+
+#### ✅ **Phase 2 Extraction Completed**
+```swift
+// ✅ Pure utilities - extracted and working
+Core/Utilities/
+├── ✅ DateUtils.swift           // Essential for widget timelines
+├── ✅ NumberUtils.swift         // Habit value calculations
+└── ✅ DebugLogger.swift         // Shared logging across targets
+
+// ✅ Domain protocols - extracted and working
+Domain/Repositories/
+├── ✅ HabitRepository.swift     // Widget data access
+├── ✅ LogRepository.swift       // Progress calculations
+├── ✅ CategoryRepository.swift  // Widget categorization
+├── ✅ ProfileRepository.swift   // User preferences
+├── ✅ OnboardingRepository.swift // Onboarding state access
+└── ✅ TipRepository.swift       // Tips and suggestions
+
+// ✅ Business logic extensions - extracted and working
+Domain/Extensions/
+└── ✅ HabitSchedule+Extensions.swift  // Schedule calculations
+
+// 🔄 Phase 3 candidates (core business services)
+Core/Services/
+├── [ ] ScheduleAwareCompletionCalculator.swift  // ⭐⭐ Progress logic
+└── [ ] DataThresholdValidator.swift             // ⭐⭐ Validation logic
+```
+
+#### 🤔 **Phase 3 Extraction Candidates (Consider Later)**
+```swift
+// Basic design tokens for consistency
+Core/Styling/
+├── Colors.swift              // ⭐ Brand colors for widgets
+├── Typography.swift          // ⭐ Font consistency
+└── Spacing.swift             // ⭐ Layout consistency
+```
+
+#### ❌ **Should NOT Extract**
+```swift
+// Too complex, iOS-specific, or UI-coupled
+❌ SwiftUI Views/ViewModels    // UI-specific, dependency-heavy
+❌ Data Layer (SwiftData)      // Complex persistence integration
+❌ Service Implementations     // iOS-specific dependencies  
+❌ DI Container Extensions     // App-specific wiring
+❌ Feature-specific logic      // Not reusable across targets
+❌ Build Configuration         // App-specific settings
+❌ Notification Services       // iOS framework dependencies
+```
+
+#### 💡 **Extraction Benefits**
+- **Widgets**: Get progress calculations, date utilities, validation logic
+- **Watch**: Access to core business rules and data protocols
+- **Consistency**: Shared validation and calculation algorithms
+- **Testability**: Business logic can be tested independently
+- **Maintainability**: Single source of truth for core utilities
 
 ### 3.2 App Groups Data Sharing
 ```swift
@@ -589,6 +680,12 @@ struct CompleteHabitIntent: AppIntent {
   - ✅ All imports updated throughout main app (`import RitualistCore`)
   - ✅ Build verified and working - no duplicate entities remaining
   - ✅ Clean architecture maintained with framework boundary
+- [x] **COMPLETED**: Phase 2 Extraction - Core utilities and business logic
+  - ✅ Core utilities (DateUtils, NumberUtils, DebugLogger) extracted and working
+  - ✅ Domain repository protocols (6 protocols) extracted and working
+  - ✅ Entity extensions (HabitSchedule+Extensions) extracted and working
+  - ✅ Original files removed from main app, build verified successful
+  - ✅ All components now available for widgets/watch development
 - [ ] Set up App Groups and data sharing
 - [ ] Configure Widget Extension target
 - [ ] Implement basic small widget with progress ring

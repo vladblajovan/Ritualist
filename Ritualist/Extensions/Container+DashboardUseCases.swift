@@ -7,6 +7,7 @@
 
 import Foundation
 import FactoryKit
+import RitualistCore
 
 extension Container {
     

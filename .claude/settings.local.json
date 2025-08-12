@@ -21,7 +21,8 @@
       "Bash(xcrun simctl terminate:*)",
       "Bash(xcrun simctl spawn:*)",
       "Bash(open:*)",
-      "Bash(xcrun simctl list:*)"
+      "Bash(xcrun simctl list:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

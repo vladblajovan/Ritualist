@@ -666,18 +666,10 @@ public final class OverviewV2ViewModel: ObservableObject {
     private func loadTodaysSummary() async throws -> TodaysSummary {
         let targetDate = viewingDate
         let allActiveHabits = try await getActiveHabits.execute()
-        
-        print("\n📊 [OVERVIEW] Loading summary for \(DateFormatter.localizedString(from: targetDate, dateStyle: .medium, timeStyle: .none))")
-        print("📊 [OVERVIEW] Found \(allActiveHabits.count) active habits total")
-        
         let habits = allActiveHabits.filter { habit in
             let isScheduled = habit.schedule.isActiveOn(date: targetDate)
-            print("📊 [OVERVIEW] Habit '\(habit.name)': \(isScheduled ? "INCLUDED" : "FILTERED OUT")")
             return isScheduled
         }
-        
-        print("📊 [OVERVIEW] Final result: \(habits.count) habits scheduled for today")
-        
         var allTargetDateLogs: [HabitLog] = []
         var progressCache: [UUID: Double] = [:]
         var logsCache: [UUID: [HabitLog]] = [:]

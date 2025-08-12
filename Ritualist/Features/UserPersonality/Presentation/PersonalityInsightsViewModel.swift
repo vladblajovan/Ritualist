@@ -286,19 +286,19 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     // MARK: - Privacy Helper Properties
     
     public var isAnalysisEnabled: Bool {
-        return preferences?.isEnabled ?? true
+        preferences?.isEnabled ?? true
     }
     
     public var isAnalysisCurrentlyActive: Bool {
-        return preferences?.isCurrentlyActive ?? false
+        preferences?.isCurrentlyActive ?? false
     }
     
     public var analysisFrequency: AnalysisFrequency {
-        return preferences?.analysisFrequency ?? .weekly
+        preferences?.analysisFrequency ?? .weekly
     }
     
     public var shouldShowDataUsage: Bool {
-        return preferences?.showDataUsage ?? true
+        preferences?.showDataUsage ?? true
     }
     
     // MARK: - Scheduling Helper Properties
@@ -310,48 +310,34 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     
     public func triggerManualAnalysisCheck() async {
         let timestamp = Date().timeIntervalSince1970
-        print("🔄 Manual refresh triggered at \(timestamp)")
-        
         guard let userId = await getCurrentUserId() else {
-            print("🔄 Failed to get current user ID")
             return
         }
         
         // Check if user is in manual mode - if so, force analysis
         if let prefs = preferences, prefs.analysisFrequency == .manual {
-            print("🔄 Using forceManualAnalysis for manual mode")
             await scheduler.forceManualAnalysis(for: userId)
         } else {
-            print("🔄 Using regular triggerAnalysisCheck")
             // For other frequencies, use regular check
             await scheduler.triggerAnalysisCheck(for: userId)
         }
-        
-        print("🔄 Analysis check completed, refreshing view state")
         // Refresh view state after potential analysis
         await loadPersonalityInsights()
-        
         let endTimestamp = Date().timeIntervalSince1970
-        print("🔄 Manual refresh completed at \(endTimestamp), duration: \(endTimestamp - timestamp)s")
     }
     
     // MARK: - Private Helpers
     
     private func getCurrentUserId() async -> UUID? {
         if let cachedUserId = currentUserId {
-            print("🔄 [ViewModel] Using cached user ID: \(cachedUserId)")
             return cachedUserId
         }
-        
         do {
             let profile = try await loadProfile.execute()
             currentUserId = profile.id
-            print("🆔 [ViewModel] Loaded user ID from profile: \(profile.id)")
             return profile.id
         } catch {
-            print("⚠️ Failed to load user profile: \(error)")
             return nil
         }
     }
-    
 }

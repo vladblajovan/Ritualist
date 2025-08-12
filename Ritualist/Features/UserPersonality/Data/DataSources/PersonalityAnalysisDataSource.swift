@@ -11,19 +11,19 @@ import SwiftData
 /// Data source for personality analysis SwiftData operations
 public protocol PersonalityAnalysisDataSource {
     /// Get the latest personality profile for a user
-    func getLatestProfile(for userId: UUID) async throws -> PersonalityProfile?
+    @MainActor func getLatestProfile(for userId: UUID) async throws -> PersonalityProfile?
     
     /// Save a personality profile
-    func saveProfile(_ profile: PersonalityProfile) async throws
+    @MainActor func saveProfile(_ profile: PersonalityProfile) async throws
     
     /// Get profile history for a user
-    func getProfileHistory(for userId: UUID) async throws -> [PersonalityProfile]
+    @MainActor func getProfileHistory(for userId: UUID) async throws -> [PersonalityProfile]
     
     /// Delete a specific profile
-    func deleteProfile(profileId: String) async throws
+    @MainActor func deleteProfile(profileId: String) async throws
     
     /// Delete all profiles for a user
-    func deleteAllProfiles(for userId: UUID) async throws
+    @MainActor func deleteAllProfiles(for userId: UUID) async throws
 }
 
 public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDataSource {
@@ -34,7 +34,7 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
         self.modelContext = modelContext
     }
     
-    public func getLatestProfile(for userId: UUID) async throws -> PersonalityProfile? {
+    @MainActor public func getLatestProfile(for userId: UUID) async throws -> PersonalityProfile? {
         guard let modelContext else { return nil }
         let userIdString = userId.uuidString
         let descriptor = FetchDescriptor<SDPersonalityProfile>(
@@ -48,14 +48,14 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
         return models.first?.toEntity()
     }
     
-    public func saveProfile(_ profile: PersonalityProfile) async throws {
+    @MainActor public func saveProfile(_ profile: PersonalityProfile) async throws {
         guard let modelContext else { return }
         let model = SDPersonalityProfile.fromEntity(profile)
         modelContext.insert(model)
         try modelContext.save()
     }
     
-    public func getProfileHistory(for userId: UUID) async throws -> [PersonalityProfile] {
+    @MainActor public func getProfileHistory(for userId: UUID) async throws -> [PersonalityProfile] {
         guard let modelContext else { return [] }
         let userIdString = userId.uuidString
         let descriptor = FetchDescriptor<SDPersonalityProfile>(
@@ -69,7 +69,7 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
         return models.compactMap { $0.toEntity() }
     }
     
-    public func deleteProfile(profileId: String) async throws {
+    @MainActor public func deleteProfile(profileId: String) async throws {
         guard let modelContext else { return }
         let descriptor = FetchDescriptor<SDPersonalityProfile>(
             predicate: #Predicate<SDPersonalityProfile> { profile in
@@ -84,7 +84,7 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
         try modelContext.save()
     }
     
-    public func deleteAllProfiles(for userId: UUID) async throws {
+    @MainActor public func deleteAllProfiles(for userId: UUID) async throws {
         guard let modelContext else { return }
         let userIdString = userId.uuidString
         let descriptor = FetchDescriptor<SDPersonalityProfile>(

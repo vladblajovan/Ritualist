@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 struct OnboardingPage3View: View {
     var body: some View {

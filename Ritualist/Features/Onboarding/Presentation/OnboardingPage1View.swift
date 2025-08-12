@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 struct OnboardingPage1View: View {
     @Bindable var viewModel: OnboardingViewModel

@@ -1,4 +1,5 @@
 import SwiftUI
+import RitualistCore
 
 public struct CategoryFilterCarousel: View {
     @Binding var selectedCategory: Category?
@@ -136,7 +137,7 @@ public struct CategoryFilterCarousel: View {
         Category(id: "learning", name: "learning", displayName: "Learning", emoji: "📚", order: 3)
     ]
     
-    return VStack(spacing: Spacing.large) {
+    VStack(spacing: Spacing.large) {
         CategoryFilterCarousel(
             selectedCategory: .constant(nil),
             categories: sampleCategories,

@@ -1,7 +1,10 @@
-import SwiftUI
 import Foundation
 
-extension Color {
+#if canImport(SwiftUI)
+import SwiftUI
+
+@available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
+public extension Color {
     init?(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
@@ -27,3 +30,4 @@ extension Color {
         )
     }
 }
+#endif
