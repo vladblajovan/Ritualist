@@ -382,9 +382,9 @@ public final class PersistenceCategoryDataSource: CategoryLocalDataSourceProtoco
 **Reason**: Make consistent with data layer threading model
 
 #### **TASK TRACKING**
-- [ ] **NOT DONE** - Task 3.1: Remove @MainActor from PersonalityAnalysisDataSource protocol (5 method signatures)
-- [ ] **NOT DONE** - Task 3.2: Remove @MainActor from SwiftDataPersonalityAnalysisDataSource implementation (5 method implementations)
-- [ ] **NOT DONE** - Task 3.3: Build verification after PersonalityAnalysisDataSource revert (must compile without errors)
+- [x] **COMPLETED** - Task 3.1: Remove @MainActor from PersonalityAnalysisDataSource protocol (5 method signatures)
+- [x] **COMPLETED** - Task 3.2: Remove @MainActor from SwiftDataPersonalityAnalysisDataSource implementation (5 method implementations)
+- [x] **COMPLETED** - Task 3.3: Build verification after PersonalityAnalysisDataSource revert (BUILD SUCCESSFUL - zero errors)
 
 #### 3.1 Revert Option B Changes
 ```swift
@@ -421,10 +421,10 @@ public final class SwiftDataPersonalityAnalysisDataSource: PersonalityAnalysisDa
 **Decision Point**: Choose threading approach
 
 #### **TASK TRACKING**
-- [ ] **NOT DONE** - Task 4.1: **DECISION REQUIRED** - Choose Option 4A (simple shared context) or Option 4B (background context creation)
-- [ ] **NOT DONE** - Task 4.2: Implement chosen ModelContext threading strategy
-- [ ] **NOT DONE** - Task 4.3: Update Container+DataSources.swift if using Option 4B
-- [ ] **NOT DONE** - Task 4.4: Build verification after ModelContext changes (must compile without errors)
+- [x] **COMPLETED** - Task 4.1: **DECISION COMPLETED** - Choose Option 4B (background context creation)
+- [x] **COMPLETED** - Task 4.2: Implement chosen ModelContext threading strategy (PersistenceContainer updated)
+- [x] **COMPLETED** - Task 4.3: Update Container+DataSources.swift to use createBackgroundContext()
+- [x] **COMPLETED** - Task 4.4: Build verification after ModelContext changes (BUILD SUCCESSFUL - zero errors)
 
 #### Option 4A: Shared Context (Simple)
 ```swift
@@ -585,7 +585,7 @@ public func fetchAll() async throws -> [SDHabit] {
 
 ## 📊 PROGRESS TRACKING SUMMARY
 
-### **OVERALL PROGRESS: 12/24 TASKS COMPLETED (50%)**
+### **OVERALL PROGRESS: 19/24 TASKS COMPLETED (79%)**
 
 #### **Phase 1: Protocol Layer Cleanup (6/6 completed) ✅**
 - [x] 6 tasks COMPLETED - Protocol @MainActor removal + build verification
@@ -593,11 +593,11 @@ public func fetchAll() async throws -> [SDHabit] {
 #### **Phase 2: Implementation Layer Cleanup (6/6 completed) ✅**  
 - [x] 6 tasks COMPLETED - LocalDataSources @MainActor removal + build verification
 
-#### **Phase 3: PersonalityAnalysisDataSource Revert (0/3 completed)**
-- [ ] 3 tasks NOT DONE - Revert Option B changes for consistency
+#### **Phase 3: PersonalityAnalysisDataSource Revert (3/3 completed) ✅**
+- [x] 3 tasks COMPLETED - Revert Option B changes for consistency
 
-#### **Phase 4: ModelContext Threading Strategy (0/4 completed)**
-- [ ] 4 tasks NOT DONE - Threading strategy decision + implementation
+#### **Phase 4: ModelContext Threading Strategy (4/4 completed) ✅**
+- [x] 4 tasks COMPLETED - Threading strategy decision + implementation
 
 #### **Phase 5: Repository Layer Validation (0/6 completed)**
 - [ ] 6 tasks NOT DONE - Repository validation + build verification

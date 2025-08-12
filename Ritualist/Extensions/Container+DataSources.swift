@@ -20,17 +20,17 @@ extension Container {
     // MARK: - Local Data Sources
     
     var habitDataSource: Factory<HabitLocalDataSourceProtocol> {
-        self { HabitLocalDataSource(context: self.persistenceContainer()?.context) }
+        self { HabitLocalDataSource(context: self.persistenceContainer()?.createBackgroundContext()) }
             .singleton
     }
     
     var logDataSource: Factory<LogLocalDataSourceProtocol> {
-        self { LogLocalDataSource(context: self.persistenceContainer()?.context) }
+        self { LogLocalDataSource(context: self.persistenceContainer()?.createBackgroundContext()) }
             .singleton
     }
     
     var profileDataSource: Factory<ProfileLocalDataSourceProtocol> {
-        self { ProfileLocalDataSource(context: self.persistenceContainer()?.context) }
+        self { ProfileLocalDataSource(context: self.persistenceContainer()?.createBackgroundContext()) }
             .singleton
     }
     
@@ -40,12 +40,12 @@ extension Container {
     }
     
     var onboardingDataSource: Factory<OnboardingLocalDataSourceProtocol> {
-        self { OnboardingLocalDataSource(context: self.persistenceContainer()?.context) }
+        self { OnboardingLocalDataSource(context: self.persistenceContainer()?.createBackgroundContext()) }
             .singleton
     }
     
     var categoryDataSource: Factory<CategoryLocalDataSourceProtocol> {
-        self { PersistenceCategoryDataSource(context: self.persistenceContainer()?.context) }
+        self { PersistenceCategoryDataSource(context: self.persistenceContainer()?.createBackgroundContext()) }
             .singleton
     }
 }

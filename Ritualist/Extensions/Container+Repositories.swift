@@ -9,12 +9,12 @@ extension Container {
     // MARK: - Repository Implementations
     
     var habitRepository: Factory<HabitRepository> {
-        self { HabitRepositoryImpl(local: self.habitDataSource(), context: self.persistenceContainer()?.context) }
+        self { HabitRepositoryImpl(local: self.habitDataSource(), context: self.persistenceContainer()?.mainContext) }
             .singleton
     }
     
     var logRepository: Factory<LogRepository> {
-        self { LogRepositoryImpl(local: self.logDataSource(), context: self.persistenceContainer()?.context) }
+        self { LogRepositoryImpl(local: self.logDataSource(), context: self.persistenceContainer()?.mainContext) }
             .singleton
     }
     

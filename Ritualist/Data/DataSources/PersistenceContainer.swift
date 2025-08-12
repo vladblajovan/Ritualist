@@ -2,17 +2,17 @@ import Foundation
 import SwiftData
 
 /// Core persistence container for Ritualist app
-/// Manages SwiftData ModelContainer with simple, direct model approach
+/// Manages SwiftData ModelContainer with background context support
 public final class PersistenceContainer {
     public let container: ModelContainer
-    public let context: ModelContext
+    public let mainContext: ModelContext      // For main thread operations
     
     /// Initialize persistence container with direct SwiftData models
     /// 
     /// Architecture:
     /// - Uses direct model classes (SDHabit, SDHabitLog, etc.)
     /// - Simple ModelContainer setup without versioning complexity
-    /// - Single ModelContext instance shared across the app for data consistency
+    /// - Supports both main thread and background context creation for threading safety
     public init() throws {
         
         // Use simple direct models without versioning
@@ -21,8 +21,13 @@ public final class PersistenceContainer {
                 SDCategory.self, SDOnboardingState.self, SDPersonalityProfile.self
         )
         
-        // Create single ModelContext instance to prevent threading issues
-        // This context is shared across all repositories for data consistency
-        context = ModelContext(container)
+        // Create main context for main thread operations
+        mainContext = ModelContext(container)
+    }
+    
+    /// Create a new background context for background operations
+    /// Each background context is isolated and thread-safe
+    public func createBackgroundContext() -> ModelContext {
+        return ModelContext(container)
     }
 }

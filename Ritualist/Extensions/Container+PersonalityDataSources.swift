@@ -9,7 +9,7 @@ extension Container {
     
     var personalityAnalysisDataSource: Factory<PersonalityAnalysisDataSource> {
         self { 
-            SwiftDataPersonalityAnalysisDataSource(modelContext: self.persistenceContainer()?.context)
+            SwiftDataPersonalityAnalysisDataSource(modelContext: self.persistenceContainer()?.createBackgroundContext())
         }
         .singleton
     }
