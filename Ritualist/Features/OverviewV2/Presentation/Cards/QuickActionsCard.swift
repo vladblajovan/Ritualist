@@ -10,10 +10,13 @@ struct QuickActionsCard: View {
     let onHabitComplete: (Habit) -> Void
     let getCurrentProgress: (Habit) -> Double // New callback to get current progress
     let onNumericHabitUpdate: (Habit, Double) -> Void // New callback for numeric habit updates
+    let onDeleteHabitLog: (Habit) -> Void // New callback for deleting habit log
     
     @State private var animatingHabitId: UUID? = nil
     @State private var showingNumericSheet = false
     @State private var selectedHabit: Habit?
+    @State private var showingDeleteAlert = false
+    @State private var habitToDelete: Habit?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -72,6 +75,21 @@ struct QuickActionsCard: View {
                         // Sheet dismisses automatically
                     }
                 )
+            }
+        }
+        .alert("Delete Log Entry?", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) {
+                habitToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let habit = habitToDelete {
+                    onDeleteHabitLog(habit)
+                }
+                habitToDelete = nil
+            }
+        } message: {
+            if let habit = habitToDelete {
+                Text("This will remove the log entry for \"\(habit.name)\" from today. The habit itself will remain.")
             }
         }
     }
@@ -149,6 +167,12 @@ struct QuickActionsCard: View {
         .disabled(isCompleted)
         .scaleEffect(1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: incompleteHabits.count)
+        .onLongPressGesture {
+            if isCompleted {
+                habitToDelete = habit
+                showingDeleteAlert = true
+            }
+        }
     }
 }
 
@@ -201,7 +225,8 @@ struct QuickActionsCard: View {
             completionPercentage: 0.6,
             onHabitComplete: { _ in },
             getCurrentProgress: { _ in 3.0 }, // Mock progress
-            onNumericHabitUpdate: { _, _ in }
+            onNumericHabitUpdate: { _, _ in },
+            onDeleteHabitLog: { _ in }
         )
         
         // Perfect day state
@@ -213,7 +238,8 @@ struct QuickActionsCard: View {
             completionPercentage: 1.0,
             onHabitComplete: { _ in },
             getCurrentProgress: { _ in 0.0 },
-            onNumericHabitUpdate: { _, _ in }
+            onNumericHabitUpdate: { _, _ in },
+            onDeleteHabitLog: { _ in }
         )
     }
     .padding()

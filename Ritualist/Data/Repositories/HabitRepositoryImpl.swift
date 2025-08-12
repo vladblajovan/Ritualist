@@ -26,4 +26,7 @@ public final class HabitRepositoryImpl: HabitRepository {
     public func delete(id: UUID) async throws {
         try await local.delete(id: id)
     }
+    public func cleanupOrphanedHabits() async throws -> Int {
+        return try await local.cleanupOrphanedHabits()
+    }
 }

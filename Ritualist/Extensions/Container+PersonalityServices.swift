@@ -8,8 +8,13 @@ extension Container {
     // MARK: - Core Personality Services
     
     var personalityAnalysisService: Factory<PersonalityAnalysisService> {
-        self { DefaultPersonalityAnalysisService(repository: self.personalityAnalysisRepository()) }
-            .singleton
+        self { 
+            DefaultPersonalityAnalysisService(
+                repository: self.personalityAnalysisRepository(),
+                errorHandler: self.errorHandlingActor()
+            )
+        }
+        .singleton
     }
     
     var dataThresholdValidator: Factory<DataThresholdValidator> {
@@ -22,7 +27,8 @@ extension Container {
             PersonalityAnalysisScheduler(
                 personalityRepository: self.personalityAnalysisRepository(),
                 analyzePersonalityUseCase: self.analyzePersonalityUseCase(),
-                validateAnalysisDataUseCase: self.validateAnalysisDataUseCase()
+                validateAnalysisDataUseCase: self.validateAnalysisDataUseCase(),
+                errorHandler: self.errorHandlingActor()
             )
         }
         .singleton

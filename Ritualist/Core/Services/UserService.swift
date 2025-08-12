@@ -1,12 +1,34 @@
 import Foundation
 import Observation
+import FactoryKit
 import RitualistCore
 
-// MARK: - User Service Protocol
+// MARK: - User Business Service Protocol
+
+/// Thread-agnostic business logic for user profile operations
+public protocol UserBusinessService {
+    /// Get current user profile - delegates to ProfileRepository
+    func getCurrentProfile() async throws -> UserProfile
+    
+    /// Check if user has premium features
+    func isPremiumUser() async throws -> Bool
+    
+    /// Update user profile - syncs to both local and cloud
+    func updateProfile(_ profile: UserProfile) async throws
+    
+    /// Update subscription after purchase - syncs to both local and cloud
+    func updateSubscription(plan: SubscriptionPlan, expiryDate: Date?) async throws
+    
+    /// Sync with iCloud (future implementation)
+    func syncWithiCloud() async throws
+}
+
+// MARK: - User Service Protocol (Legacy)
 
 /// Simplified user service that manages the single UserProfile entity
 /// No authentication required - designed for iCloud sync
 /// Acts as a bridge between local ProfileRepository and cloud storage
+@available(*, deprecated, message: "Use UserUIService with UserBusinessService instead")
 public protocol UserService {
     /// Current user profile (includes subscription info) - delegates to ProfileRepository
     var currentProfile: UserProfile { get }
@@ -24,15 +46,15 @@ public protocol UserService {
     func syncWithiCloud() async throws
 }
 
-// MARK: - UserService Implementations
+// MARK: - Business Service Implementations
 
-// MARK: - Mock User Service
+// MARK: - Mock User Business Service
 
-@Observable
-public final class MockUserService: UserService {
+public final class MockUserBusinessService: UserBusinessService {
     private var _currentProfile = UserProfile()
     private let loadProfile: LoadProfileUseCase?
     private let saveProfile: SaveProfileUseCase?
+    private let errorHandler: ErrorHandlingActor?
     
     // Store different test subscription states for easy switching
     private let testSubscriptionStates: [String: (SubscriptionPlan, Date?)] = [
@@ -41,9 +63,198 @@ public final class MockUserService: UserService {
         "annual": (.annual, Calendar.current.date(byAdding: .year, value: 1, to: Date()))
     ]
     
-    public init(loadProfile: LoadProfileUseCase? = nil, saveProfile: SaveProfileUseCase? = nil) {
+    public init(
+        loadProfile: LoadProfileUseCase? = nil, 
+        saveProfile: SaveProfileUseCase? = nil,
+        errorHandler: ErrorHandlingActor? = nil
+    ) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
+        self.errorHandler = errorHandler
+        
+        // Initialize with default profile - will be loaded from repository if available
+        _currentProfile = UserProfile(name: "", subscriptionPlan: .free)
+        
+        // Load actual profile data from repository
+        Task {
+            await loadInitialProfile()
+        }
+    }
+    
+    public func getCurrentProfile() async throws -> UserProfile {
+        return _currentProfile
+    }
+    
+    public func isPremiumUser() async throws -> Bool {
+        // If all features are enabled at build time, always return true for mock service
+        #if ALL_FEATURES_ENABLED
+        return true
+        #else
+        return _currentProfile.isPremiumUser
+        #endif
+    }
+    
+    public func updateProfile(_ profile: UserProfile) async throws {
+        // Simulate network delay for mock
+        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        
+        _currentProfile = profile
+        _currentProfile.updatedAt = Date()
+        
+        // Sync back to repository to maintain consistency
+        if let saveProfile = saveProfile {
+            do {
+                try await saveProfile.execute(_currentProfile)
+            } catch {
+                // Log the sync error but continue
+                await errorHandler?.logError(
+                    error,
+                    context: ErrorContext.userInterface + "_profile_sync",
+                    additionalProperties: [
+                        "operation": "updateProfile_sync",
+                        "profile_name": profile.name ?? "unnamed"
+                    ]
+                )
+            }
+        }
+        
+        // TODO: In production, also sync to iCloud here
+    }
+    
+    public func updateSubscription(plan: SubscriptionPlan, expiryDate: Date?) async throws {
+        // Simulate network delay
+        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        
+        _currentProfile.subscriptionPlan = plan
+        _currentProfile.subscriptionExpiryDate = expiryDate
+        _currentProfile.updatedAt = Date()
+        
+        // TODO: In production, also sync to iCloud here
+    }
+    
+    public func syncWithiCloud() async throws {
+        // Mock implementation - just simulate delay
+        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+        // TODO: Implement iCloud sync
+    }
+    
+    // MARK: - Private Methods
+    
+    private func loadInitialProfile() async {
+        guard let loadProfile = loadProfile else { return }
+        
+        do {
+            let profile = try await loadProfile.execute()
+            _currentProfile = profile
+        } catch {
+            // Log the error but keep the default profile
+            await errorHandler?.logError(
+                error,
+                context: ErrorContext.userInterface + "_profile_load",
+                additionalProperties: ["operation": "loadInitialProfile"]
+            )
+        }
+    }
+    
+    // MARK: - Test Helpers
+    
+    /// Switch to a different test subscription state (for development)
+    public func switchToTestSubscription(_ type: String) {
+        guard let (plan, expiryDate) = testSubscriptionStates[type] else { return }
+        
+        _currentProfile.subscriptionPlan = plan
+        _currentProfile.subscriptionExpiryDate = expiryDate
+        _currentProfile.updatedAt = Date()
+    }
+}
+
+// MARK: - iCloud User Business Service
+
+public final class ICloudUserBusinessService: UserBusinessService {
+    private var _currentProfile = UserProfile()
+    private let errorHandler: ErrorHandlingActor?
+    
+    public init(errorHandler: ErrorHandlingActor? = nil) {
+        self.errorHandler = errorHandler
+        // Initialize with default profile
+        _currentProfile = UserProfile()
+        
+        // TODO: Implement CloudKit integration
+        // - Create CKRecord for user profile
+        // - Set up CloudKit subscriptions for real-time sync
+        // - Handle conflict resolution
+    }
+    
+    public func getCurrentProfile() async throws -> UserProfile {
+        return _currentProfile
+    }
+    
+    public func isPremiumUser() async throws -> Bool {
+        // If all features are enabled at build time, always return true
+        #if ALL_FEATURES_ENABLED
+        return true
+        #else
+        return _currentProfile.isPremiumUser
+        #endif
+    }
+    
+    public func updateProfile(_ profile: UserProfile) async throws {
+        _currentProfile = profile
+        _currentProfile.updatedAt = Date()
+        
+        // TODO: Save to CloudKit and handle sync conflicts
+    }
+    
+    public func updateSubscription(plan: SubscriptionPlan, expiryDate: Date?) async throws {
+        _currentProfile.subscriptionPlan = plan
+        _currentProfile.subscriptionExpiryDate = expiryDate
+        _currentProfile.updatedAt = Date()
+        
+        // TODO: Update subscription info in CloudKit
+    }
+    
+    public func syncWithiCloud() async throws {
+        // TODO: Implement CloudKit sync
+        // - Fetch latest from iCloud
+        // - Merge with local changes using updatedAt timestamps
+        // - Push updates
+        // - Handle conflict resolution (local vs cloud)
+    }
+}
+
+// MARK: - UI Service Layer Removed
+//
+// The UserUIService layer has been removed to maintain architectural consistency.
+// UI state management now belongs in ViewModels which directly use UserBusinessService.
+// This follows Clean Architecture: View → ViewModel → BusinessService → Repository
+
+// MARK: - Legacy Service Implementations (Deprecated)
+
+// MARK: - Mock User Service (Legacy)
+
+@available(*, deprecated, message: "Use UserUIService with MockUserBusinessService instead")
+@Observable
+public final class MockUserService: UserService {
+    private var _currentProfile = UserProfile()
+    private let loadProfile: LoadProfileUseCase?
+    private let saveProfile: SaveProfileUseCase?
+    private let errorHandler: ErrorHandlingActor?
+    
+    // Store different test subscription states for easy switching
+    private let testSubscriptionStates: [String: (SubscriptionPlan, Date?)] = [
+        "free": (.free, nil),
+        "monthly": (.monthly, Calendar.current.date(byAdding: .month, value: 1, to: Date())),
+        "annual": (.annual, Calendar.current.date(byAdding: .year, value: 1, to: Date()))
+    ]
+    
+    public init(
+        loadProfile: LoadProfileUseCase? = nil, 
+        saveProfile: SaveProfileUseCase? = nil,
+        errorHandler: ErrorHandlingActor? = nil
+    ) {
+        self.loadProfile = loadProfile
+        self.saveProfile = saveProfile
+        self.errorHandler = errorHandler
         
         // Initialize with default profile - will be loaded from repository if available
         _currentProfile = UserProfile(name: "", subscriptionPlan: .free)
@@ -61,7 +272,12 @@ public final class MockUserService: UserService {
             let profile = try await loadProfile.execute()
             _currentProfile = profile
         } catch {
-            // Keep the default profile if loading fails
+            // Log the error but keep the default profile
+            await errorHandler?.logError(
+                error,
+                context: ErrorContext.userInterface + "_profile_load",
+                additionalProperties: ["operation": "loadInitialProfile"]
+            )
         }
     }
     
@@ -90,7 +306,15 @@ public final class MockUserService: UserService {
             do {
                 try await saveProfile.execute(_currentProfile)
             } catch {
-                // Continue anyway since this is just a sync operation
+                // Log the sync error but continue
+                await errorHandler?.logError(
+                    error,
+                    context: ErrorContext.userInterface + "_profile_sync",
+                    additionalProperties: [
+                        "operation": "updateProfile_sync",
+                        "profile_name": profile.name ?? "unnamed"
+                    ]
+                )
             }
         }
         
@@ -131,8 +355,10 @@ public final class MockUserService: UserService {
 @Observable
 public final class ICloudUserService: UserService {
     private var _currentProfile = UserProfile()
+    private let errorHandler: ErrorHandlingActor?
     
-    public init() {
+    public init(errorHandler: ErrorHandlingActor? = nil) {
+        self.errorHandler = errorHandler
         // Initialize with default profile
         _currentProfile = UserProfile()
         

@@ -18,6 +18,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
     private let analyzePersonalityUseCase: AnalyzePersonalityUseCase
     private let validateAnalysisDataUseCase: ValidateAnalysisDataUseCase
     private let notificationCenter: UNUserNotificationCenter
+    private let errorHandler: ErrorHandlingActor?
     
     // MARK: - State
     
@@ -36,12 +37,14 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
         personalityRepository: PersonalityAnalysisRepositoryProtocol,
         analyzePersonalityUseCase: AnalyzePersonalityUseCase,
         validateAnalysisDataUseCase: ValidateAnalysisDataUseCase,
-        notificationCenter: UNUserNotificationCenter = .current()
+        notificationCenter: UNUserNotificationCenter = .current(),
+        errorHandler: ErrorHandlingActor? = nil
     ) {
         self.personalityRepository = personalityRepository
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
         self.validateAnalysisDataUseCase = validateAnalysisDataUseCase
         self.notificationCenter = notificationCenter
+        self.errorHandler = errorHandler
         
         loadSchedulerState()
     }
@@ -95,26 +98,41 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
     /// Forces analysis to run for manual mode, bypassing frequency checks
     public func forceManualAnalysis(for userId: UUID) async {
         let timestamp = Date().timeIntervalSince1970
+        print("🧠 [DEBUG] Starting force manual analysis for user: \(userId)")
+        
         do {
             // Get user preferences
             guard let preferences = try await personalityRepository.getAnalysisPreferences(for: userId),
                   preferences.isCurrentlyActive else {
+                print("🧠 [DEBUG] Analysis preferences not active - returning")
                 return
             }
+            print("🧠 [DEBUG] Preferences active: \(preferences.analysisFrequency)")
             
             // Check if user has sufficient data
             let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
-            guard eligibility.isEligible else {
+            print("🧠 [DEBUG] Analysis eligibility: \(eligibility.isEligible)")
+            
+            if !eligibility.isEligible {
+                print("🧠 [DEBUG] Not eligible for analysis - missing requirements:")
+                for requirement in eligibility.missingRequirements {
+                    print("🧠 [DEBUG]   ❌ \(requirement.name): \(requirement.currentValue)/\(requirement.requiredValue) (\(requirement.description))")
+                }
+                print("🧠 [DEBUG] Overall progress: \(eligibility.overallProgress)")
+                if let daysToEligibility = eligibility.estimatedDaysToEligibility {
+                    print("🧠 [DEBUG] Estimated days to eligibility: \(daysToEligibility)")
+                }
                 return
             }
             
+            print("🧠 [DEBUG] All requirements met - proceeding with analysis")
             await performAnalysis(for: userId)
             
             let endTimestamp = Date().timeIntervalSince1970
-            // Force manual analysis completed
+            print("🧠 [DEBUG] Force manual analysis completed in \(endTimestamp - timestamp)s")
             
         } catch {
-            // Error during forced manual analysis
+            print("🧠 [DEBUG] Error during forced manual analysis: \(error)")
         }
     }
     

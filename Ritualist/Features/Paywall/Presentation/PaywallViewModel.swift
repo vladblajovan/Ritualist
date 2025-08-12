@@ -4,21 +4,19 @@ import RitualistCore
 
 @MainActor @Observable
 public final class PaywallViewModel {
-    private let loadPaywallProducts: LoadPaywallProductsUseCase
-    private let purchaseProduct: PurchaseProductUseCase
-    private let restorePurchases: RestorePurchasesUseCase
-    private let checkProductPurchased: CheckProductPurchasedUseCase
-    private let resetPurchaseState: ResetPurchaseStateUseCase
-    private let getPurchaseState: GetPurchaseStateUseCase
+    private let paywallBusinessService: PaywallBusinessService
     private let updateProfileSubscription: UpdateProfileSubscriptionUseCase
     private let userService: UserService
+    private let errorHandler: ErrorHandlingActor?
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     
-    public var products: [Product] = []
-    public var benefits: [PaywallBenefit] = []
-    public private(set) var isLoading = false
-    public private(set) var error: Error?
+    // UI State - now managed directly in ViewModel
+    public private(set) var products: [Product] = []
     public private(set) var purchaseState: PurchaseState = .idle
+    public private(set) var isLoading = false
+    public private(set) var error: PaywallError?
+    
+    public var benefits: [PaywallBenefit] = []
     public private(set) var selectedProduct: Product?
     public private(set) var isUpdatingUser = false
     
@@ -27,7 +25,7 @@ public final class PaywallViewModel {
     private var paywallSource: String = "unknown"
     private var paywallTrigger: String = "unknown"
     
-    // Convenience computed properties
+    // Computed properties
     public var isPurchasing: Bool {
         purchaseState.isPurchasing
     }
@@ -41,23 +39,15 @@ public final class PaywallViewModel {
     }
     
     public init(
-        loadPaywallProducts: LoadPaywallProductsUseCase,
-        purchaseProduct: PurchaseProductUseCase,
-        restorePurchases: RestorePurchasesUseCase,
-        checkProductPurchased: CheckProductPurchasedUseCase,
-        resetPurchaseState: ResetPurchaseStateUseCase,
-        getPurchaseState: GetPurchaseStateUseCase,
+        paywallBusinessService: PaywallBusinessService,
         updateProfileSubscription: UpdateProfileSubscriptionUseCase,
+        errorHandler: ErrorHandlingActor? = nil,
         userService: UserService
     ) {
-        self.loadPaywallProducts = loadPaywallProducts
-        self.purchaseProduct = purchaseProduct
-        self.restorePurchases = restorePurchases
-        self.checkProductPurchased = checkProductPurchased
-        self.resetPurchaseState = resetPurchaseState
-        self.getPurchaseState = getPurchaseState
+        self.paywallBusinessService = paywallBusinessService
         self.updateProfileSubscription = updateProfileSubscription
         self.userService = userService
+        self.errorHandler = errorHandler
         self.benefits = PaywallBenefit.defaultBenefits
     }
     
@@ -68,45 +58,47 @@ public final class PaywallViewModel {
         try await updateProfileSubscription.execute(product: product)
     }
     
-    private func syncPurchaseState() {
-        // Manually sync purchase state from service
-        purchaseState = getPurchaseState.execute()
-    }
-    
     public func load() async {
         let startTime = Date()
-        isLoading = true
-        error = nil
         
         // Reset purchase state when paywall loads
-        // This prevents previous purchase success from immediately dismissing the paywall
-        await resetPurchaseState()
+        purchaseState = .idle
+        error = nil
+        
+        // Load products directly from business service
+        isLoading = true
         
         do {
-            let loadedProducts = try await loadPaywallProducts.execute()
+            products = try await paywallBusinessService.loadProducts()
+        } catch {
+            let paywallError = error as? PaywallError ?? PaywallError.productsNotAvailable
+            self.error = paywallError
             
-            products = loadedProducts
-            // Auto-select the popular product or first one
-            selectedProduct = products.first { $0.isPopular } ?? products.first
-            
-            // Sync purchase state after loading
-            syncPurchaseState()
-            isLoading = false
-            
-            // Track performance metrics
-            let loadTime = Date().timeIntervalSince(startTime)
-            userActionTracker.trackPerformance(
-                metric: "paywall_load_time",
-                value: loadTime * 1000, // Convert to milliseconds
-                unit: "ms",
+            // Log error to centralized handler
+            await errorHandler?.logError(
+                error,
+                context: ErrorContext.paywall("load_products"),
                 additionalProperties: ["products_count": products.count]
             )
-        } catch {
-            self.error = error
+        }
+        
+        isLoading = false
+        
+        // Auto-select the popular product or first one
+        selectedProduct = products.first { $0.isPopular } ?? products.first
+        
+        // Track performance metrics
+        let loadTime = Date().timeIntervalSince(startTime)
+        userActionTracker.trackPerformance(
+            metric: "paywall_load_time",
+            value: loadTime * 1000, // Convert to milliseconds
+            unit: "ms",
+            additionalProperties: ["products_count": products.count]
+        )
+        
+        // Track error if loading failed
+        if let error = error {
             userActionTracker.trackError(error, context: "paywall_load")
-            // Sync purchase state even on error
-            syncPurchaseState()
-            isLoading = false
         }
     }
     
@@ -123,12 +115,6 @@ public final class PaywallViewModel {
         userActionTracker.track(.paywallDismissed(source: paywallSource, duration: duration))
     }
     
-    private func resetPurchaseState() async {
-        // Reset the purchase state to idle when the paywall loads
-        // This prevents previous purchase success from immediately dismissing the paywall
-        resetPurchaseState.execute()
-    }
-    
     public func selectProduct(_ product: Product) {
         selectedProduct = product
         
@@ -143,8 +129,6 @@ public final class PaywallViewModel {
     public func purchase() async {
         guard let product = selectedProduct else { return }
         
-        error = nil
-        
         // Track purchase attempt
         userActionTracker.track(.purchaseAttempted(
             productId: product.id,
@@ -152,69 +136,100 @@ public final class PaywallViewModel {
             price: product.localizedPrice
         ))
         
+        // Perform purchase through business service
         do {
-            let success = try await purchaseProduct.execute(product)
-            // Sync purchase state after purchase attempt
-            syncPurchaseState()
+            purchaseState = .purchasing(product.id)
+            let success = try await paywallBusinessService.purchase(product)
             
             if success {
-                // Track successful purchase
-                userActionTracker.track(.purchaseCompleted(
-                    productId: product.id,
-                    productName: product.name,
-                    price: product.localizedPrice,
-                    duration: product.duration.rawValue
-                ))
-                
-                // Update user subscription after successful purchase
-                try await handleUserSubscriptionUpdate(product)
+                purchaseState = .success(product)
+            } else {
+                purchaseState = .failed("Purchase failed")
+                error = PaywallError.purchaseFailed("Purchase failed")
             }
         } catch {
+            let paywallError = error as? PaywallError ?? PaywallError.purchaseFailed(error.localizedDescription)
+            self.error = paywallError
+            purchaseState = .failed(paywallError.localizedDescription)
+            
+            // Log error to centralized handler
+            await errorHandler?.logError(
+                error,
+                context: ErrorContext.paywall("purchase"),
+                additionalProperties: ["product_id": product.id]
+            )
+        }
+        
+        // Check if purchase was successful
+        if case .success(let purchasedProduct) = purchaseState {
+            // Track successful purchase
+            userActionTracker.track(.purchaseCompleted(
+                productId: purchasedProduct.id,
+                productName: purchasedProduct.name,
+                price: purchasedProduct.localizedPrice,
+                duration: purchasedProduct.duration.rawValue
+            ))
+            
+            // Update user subscription after successful purchase
+            do {
+                try await handleUserSubscriptionUpdate(purchasedProduct)
+            } catch {
+                // Log the error but don't change purchase state
+                userActionTracker.trackError(error, context: "subscription_update_after_purchase")
+            }
+        } else if let error = error {
             // Track purchase failure
             userActionTracker.track(.purchaseFailed(
                 productId: product.id,
                 error: error.localizedDescription
             ))
-            
-            self.error = error
-            // Sync purchase state even on error
-            syncPurchaseState()
         }
     }
     
     public func restorePurchases() async {
-        error = nil
-        
         // Track restore attempt
         userActionTracker.track(.purchaseRestoreAttempted)
         
+        // Perform restore through business service
         do {
-            let restored = try await restorePurchases.execute()
-            // Sync purchase state after restore attempt
-            syncPurchaseState()
+            purchaseState = .purchasing("restore")
+            let success = try await paywallBusinessService.restorePurchases()
             
-            if restored {
-                // Handle restored purchases
-                await handleRestoredPurchases()
+            if success {
+                purchaseState = .idle
             } else {
-                // Track that restore was attempted but nothing was restored
-                userActionTracker.track(.purchaseRestoreCompleted(productId: nil, productName: nil))
+                purchaseState = .failed("No purchases to restore")
+                error = PaywallError.purchaseFailed("No purchases to restore")
             }
         } catch {
+            let paywallError = error as? PaywallError ?? PaywallError.purchaseFailed(error.localizedDescription)
+            self.error = paywallError
+            purchaseState = .failed(paywallError.localizedDescription)
+            
+            // Log error to centralized handler
+            await errorHandler?.logError(
+                error,
+                context: ErrorContext.paywall("restore"),
+                additionalProperties: [:]
+            )
+        }
+        
+        // Check results and handle accordingly
+        if case .idle = purchaseState, error == nil {
+            // Success - handle restored purchases
+            await handleRestoredPurchases()
+        } else if let error = error {
             // Track restore failure
             userActionTracker.track(.purchaseRestoreFailed(error: error.localizedDescription))
-            
-            self.error = error
-            // Sync purchase state even on error
-            syncPurchaseState()
+        } else {
+            // Track that restore was attempted but nothing was restored
+            userActionTracker.track(.purchaseRestoreCompleted(productId: nil, productName: nil))
         }
     }
     
     public func dismissError() {
         error = nil
-        if case .failed = purchaseState {
-            purchaseState = .idle
-        }
+        purchaseState = .idle
     }
     
     // MARK: - Private Methods
@@ -222,7 +237,7 @@ public final class PaywallViewModel {
     private func handleRestoredPurchases() async {
         // Check which products were restored and update user accordingly
         for product in products {
-            let isPurchased = await checkProductPurchased.execute(product.id)
+            let isPurchased = await paywallBusinessService.isProductPurchased(product.id)
             if isPurchased {
                 do {
                     isUpdatingUser = true

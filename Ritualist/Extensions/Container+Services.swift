@@ -8,6 +8,13 @@ extension Container {
     
     // MARK: - Core Services
     
+    var errorHandlingActor: Factory<ErrorHandlingActor> {
+        self { 
+            ErrorHandlingActor(maxLogSize: 1000, analyticsEnabled: true)
+        }
+        .singleton
+    }
+    
     @MainActor
     var navigationService: Factory<NavigationService> {
         self { @MainActor in 
@@ -20,7 +27,7 @@ extension Container {
     
     var notificationService: Factory<NotificationService> {
         self { 
-            let service = LocalNotificationService()
+            let service = LocalNotificationService(errorHandler: self.errorHandlingActor())
             service.trackingService = self.userActionTracker()
             
             // Configure the action handler to use dependency injection
@@ -81,15 +88,36 @@ extension Container {
         .singleton
     }
     
+    // MARK: - User Business Service
+    
+    var userBusinessService: Factory<UserBusinessService> {
+        self {
+            #if DEBUG
+            return MockUserBusinessService(
+                loadProfile: self.loadProfile(), 
+                saveProfile: self.saveProfile(),
+                errorHandler: self.errorHandlingActor()
+            )
+            #else
+            return ICloudUserBusinessService(errorHandler: self.errorHandlingActor())
+            #endif
+        }
+        .singleton
+    }
+    
+    // MARK: - Legacy User Service
+    
+    @available(*, deprecated, message: "Use userUIService instead")
     var userService: Factory<UserService> {
         self {
             #if DEBUG
             return MockUserService(
                 loadProfile: self.loadProfile(), 
-                saveProfile: self.saveProfile()
+                saveProfile: self.saveProfile(),
+                errorHandler: self.errorHandlingActor()
             )
             #else
-            return ICloudUserService()
+            return ICloudUserService(errorHandler: self.errorHandlingActor())
             #endif
         }
         .singleton
@@ -98,12 +126,31 @@ extension Container {
     // MARK: - Subscription Service
     
     var secureSubscriptionService: Factory<SecureSubscriptionService> {
-        self { MockSecureSubscriptionService() }
+        self { MockSecureSubscriptionService(errorHandler: self.errorHandlingActor()) }
         .singleton
     }
     
-    // MARK: - Paywall Service
+    // MARK: - Paywall Business Service
     
+    var paywallBusinessService: Factory<PaywallBusinessService> {
+        self {
+            #if DEBUG
+            let mockBusiness = MockPaywallBusinessService(
+                subscriptionService: self.secureSubscriptionService(),
+                testingScenario: .randomResults
+            )
+            mockBusiness.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
+            return mockBusiness
+            #else
+            return NoOpPaywallBusinessService() // TODO: Replace with StoreKit business service
+            #endif
+        }
+        .singleton
+    }
+    
+    // MARK: - Legacy Paywall Service (Deprecated)
+    
+    @available(*, deprecated, message: "Use paywallUIService instead")
     var paywallService: Factory<PaywallService> {
         self {
             #if DEBUG
@@ -122,12 +169,34 @@ extension Container {
     
     // MARK: - Feature Gating Service
     
+    // MARK: - Feature Gating Business Service
+    
+    var featureGatingBusinessService: Factory<FeatureGatingBusinessService> {
+        self {
+            #if ALL_FEATURES_ENABLED
+            return MockFeatureGatingBusinessService(errorHandler: self.errorHandlingActor())
+            #else
+            return BuildConfigFeatureGatingBusinessService.create(
+                userService: self.userService(),
+                errorHandler: self.errorHandlingActor()
+            )
+            #endif
+        }
+        .singleton
+    }
+    
+    // MARK: - Legacy Feature Gating Service
+    
+    @available(*, deprecated, message: "Use featureGatingUIService instead")
     var featureGatingService: Factory<FeatureGatingService> {
         self {
             #if ALL_FEATURES_ENABLED
-            return MockFeatureGatingService()
+            return MockFeatureGatingService(errorHandler: self.errorHandlingActor())
             #else
-            return BuildConfigFeatureGatingService.create(userService: self.userService())
+            return BuildConfigFeatureGatingService.create(
+                userService: self.userService(),
+                errorHandler: self.errorHandlingActor()
+            )
             #endif
         }
         .singleton

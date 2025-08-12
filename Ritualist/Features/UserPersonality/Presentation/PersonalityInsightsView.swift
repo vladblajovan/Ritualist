@@ -232,6 +232,70 @@ public struct PersonalityInsightsView: View {
                             .padding(.vertical)
                         }
                         
+                    case .readyWithInsufficientData(let profile, let requirements, let estimatedDays):
+                        ScrollView {
+                            VStack(spacing: 24) {
+                                // Status Banner
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                    
+                                    Text("Analysis is enabled")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    
+                                    Spacer()
+                                    
+                                    HStack(spacing: 8) {
+                                        if viewModel.preferences?.analysisFrequency == .manual {
+                                            Button {
+                                                Task {
+                                                    await viewModel.triggerManualAnalysisCheck()
+                                                }
+                                            } label: {
+                                                Image(systemName: "arrow.clockwise")
+                                            }
+                                            .buttonStyle(.bordered)
+                                            .controlSize(.small)
+                                            .disabled(viewModel.isLoading)
+                                        }
+                                        
+                                        Button("Disable") {
+                                            Task {
+                                                await viewModel.toggleAnalysis()
+                                            }
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                    }
+                                }
+                                .padding()
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(8)
+                                .padding(.horizontal)
+                                
+                                // Warning Banner
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                    
+                                    Text("This analysis is from your previous data. Create more habits to unlock updated analysis.")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(8)
+                                .padding(.horizontal)
+                                
+                                // Personality Profile Content
+                                PersonalityProfileView(profile: profile)
+                            }
+                            .padding(.vertical)
+                        }
+                        
                     case .error(let error):
                         VStack {
                             // Status Banner

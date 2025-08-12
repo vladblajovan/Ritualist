@@ -46,6 +46,18 @@ private struct HabitsContentView: View {
                         .buttonStyle(PlainButtonStyle())
                 }
                 
+                // DEBUG: Temporary cleanup button
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        Task {
+                            await vm.debugCleanupOrphanedHabits()
+                        }
+                    } label: {
+                        Text("🧹")
+                            .font(.title2)
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         vm.handleCreateHabitTap()

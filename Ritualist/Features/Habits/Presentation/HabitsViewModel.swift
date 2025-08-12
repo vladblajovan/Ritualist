@@ -19,6 +19,7 @@ public final class HabitsViewModel {
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
     @ObservationIgnored @Injected(\.habitsAssistantViewModel) var habitsAssistantViewModelInjected
+    @ObservationIgnored @Injected(\.cleanupOrphanedHabits) var cleanupOrphanedHabits
     
     // MARK: - Shared ViewModels
     
@@ -59,11 +60,24 @@ public final class HabitsViewModel {
     public var filteredHabits: [Habit] {
         let activeCategoryIds = Set(categories.map { $0.id })
         
+        print("🏷️ [DEBUG] filteredHabits: Total items: \(items.count)")
+        print("🏷️ [DEBUG] Active category IDs: \(activeCategoryIds)")
+        
+        for item in items {
+            print("🏷️ [DEBUG]   - \(item.name) (categoryId: \(item.categoryId ?? "nil"))")
+        }
+        
         // First filter to only habits from active categories or habits with no category
         let habitsFromActiveCategories = items.filter { habit in
             // Include habits with no category or habits from active categories
-            habit.categoryId == nil || activeCategoryIds.contains(habit.categoryId ?? "")
+            let isIncluded = habit.categoryId == nil || activeCategoryIds.contains(habit.categoryId ?? "")
+            if !isIncluded {
+                print("🏷️ [DEBUG] FILTERED OUT: \(habit.name) - categoryId '\(habit.categoryId ?? "nil")' not in active categories")
+            }
+            return isIncluded
         }
+        
+        print("🏷️ [DEBUG] After category filtering: \(habitsFromActiveCategories.count) habits")
         
         // Then apply category filter if one is selected
         guard let selectedFilterCategory = selectedFilterCategory else {
@@ -382,5 +396,17 @@ public final class HabitsViewModel {
     /// Handle category filter selection
     public func selectFilterCategory(_ category: Category?) {
         selectedFilterCategory = category
+    }
+    
+    /// DEBUG: Cleanup orphaned habits (temporary debug function)
+    public func debugCleanupOrphanedHabits() async {
+        do {
+            let cleanedCount = try await cleanupOrphanedHabits.execute()
+            print("🧹 [DEBUG] Cleaned up \(cleanedCount) orphaned habits")
+            await load() // Refresh the list
+        } catch {
+            print("🧹 [DEBUG] Error during cleanup: \(error)")
+            self.error = error
+        }
     }
 }

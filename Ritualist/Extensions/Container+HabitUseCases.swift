@@ -42,6 +42,10 @@ extension Container {
         self { ValidateHabitUniqueness(repo: self.habitRepository()) }
     }
     
+    var cleanupOrphanedHabits: Factory<CleanupOrphanedHabits> {
+        self { CleanupOrphanedHabits(repo: self.habitRepository()) }
+    }
+    
     // MARK: - Complex Habit Operations
     
     var createHabitFromSuggestionUseCase: Factory<CreateHabitFromSuggestionUseCase> {

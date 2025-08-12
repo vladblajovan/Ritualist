@@ -32,8 +32,10 @@ public final class LocalNotificationService: NSObject, NotificationService {
     // Delegate handler for notification actions
     public var actionHandler: ((NotificationAction, UUID, String?, ReminderTime?) async throws -> Void)?
     public var trackingService: UserActionTrackerService?
+    private let errorHandler: ErrorHandlingActor?
     
-    override public init() {
+    public init(errorHandler: ErrorHandlingActor? = nil) {
+        self.errorHandler = errorHandler
         super.init()
         // Set up the notification center delegate to handle foreground notifications
         UNUserNotificationCenter.current().delegate = self
@@ -407,7 +409,16 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         do {
             try await actionHandler?(action, habitId, habitName, reminderTime)
         } catch {
-            print("Error handling notification action: \(error)")
+            await errorHandler?.logError(
+                error,
+                context: ErrorContext.userInterface + "_notification_action",
+                additionalProperties: [
+                    "operation": "handleNotificationAction",
+                    "action": action.rawValue,
+                    "habit_id": habitId.uuidString,
+                    "habit_name": habitName ?? "unknown"
+                ]
+            )
         }
     }
 }

@@ -120,7 +120,9 @@ public final class OverviewV2ViewModel: ObservableObject {
     @Published public var activeStreaks: [StreakInfo] = []
     @Published public var smartInsights: [SmartInsight] = []
     @Published public var personalityInsights: [OverviewPersonalityInsight] = []
-    @Published public var shouldShowPersonalityInsights = false
+    @Published public var shouldShowPersonalityInsights = true // Always show the card
+    @Published public var isPersonalityDataSufficient = false // Track if data is sufficient for new analysis
+    @Published public var personalityThresholdRequirements: [ThresholdRequirement] = [] // Current requirements status
     @Published public var dominantPersonalityTrait: String? = nil
     @Published public var selectedDate: Date = Date()
     @Published public var isCalendarExpanded: Bool = false
@@ -246,6 +248,7 @@ public final class OverviewV2ViewModel: ObservableObject {
     @Injected(\.getPersonalityProfileUseCase) private var getPersonalityProfileUseCase
     @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
     @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
+    @Injected(\.validateAnalysisDataUseCase) private var validateAnalysisDataUseCase
     @Injected(\.personalityAnalysisRepository) private var personalityAnalysisRepository
     @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     
@@ -427,6 +430,30 @@ public final class OverviewV2ViewModel: ObservableObject {
             
             self.error = error
             print("Failed to update numeric habit: \(error)")
+        }
+    }
+    
+    public func deleteHabitLog(_ habit: Habit) async {
+        do {
+            // Get existing logs for this habit on the viewing date
+            let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
+            let existingLogsForDate = allLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
+            
+            // Delete all logs for this habit on this date
+            for log in existingLogsForDate {
+                try await deleteLog.execute(id: log.id)
+            }
+            
+            // Update cache to reflect deletion
+            currentHabitProgress[habit.id] = 0.0
+            currentHabitLogs[habit.id] = []
+            
+            // Refresh data to show updated UI
+            await loadData()
+            
+        } catch {
+            self.error = error
+            print("Failed to delete habit log: \(error)")
         }
     }
     
@@ -666,9 +693,20 @@ public final class OverviewV2ViewModel: ObservableObject {
     private func loadTodaysSummary() async throws -> TodaysSummary {
         let targetDate = viewingDate
         let allActiveHabits = try await getActiveHabits.execute()
+        
+        print("📊 [DEBUG] loadTodaysSummary: Found \(allActiveHabits.count) active habits:")
+        for habit in allActiveHabits {
+            print("📊 [DEBUG]   - \(habit.name) (ID: \(habit.id), active: \(habit.isActive))")
+        }
+        
         let habits = allActiveHabits.filter { habit in
             let isScheduled = habit.schedule.isActiveOn(date: targetDate)
             return isScheduled
+        }
+        
+        print("📊 [DEBUG] After filtering for schedule, \(habits.count) habits are scheduled for today:")
+        for habit in habits {
+            print("📊 [DEBUG]   - \(habit.name) (ID: \(habit.id))")
         }
         var allTargetDateLogs: [HabitLog] = []
         var progressCache: [UUID: Double] = [:]
@@ -832,76 +870,81 @@ public final class OverviewV2ViewModel: ObservableObject {
     
     private func loadPersonalityInsights() async {
         do {
-            // Check if personality analysis is enabled and sufficient data exists
-            let isEligible = try await checkPersonalityAnalysisEligibility()
+            // Always get eligibility and requirements info using the UseCase
+            let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
+            let requirements = try await validateAnalysisDataUseCase.getProgressDetails(for: userId)
             
-            shouldShowPersonalityInsights = isEligible
+            // Update state with eligibility info
+            isPersonalityDataSufficient = eligibility.isEligible
+            personalityThresholdRequirements = requirements
             
-            guard isEligible else {
-                personalityInsights = []
-                return
-            }
+            // Always show the card now - it will handle different states internally
+            shouldShowPersonalityInsights = true
             
-            // Try to get existing personality profile
+            // Get existing personality profile
             var personalityProfile = try await getPersonalityProfileUseCase.execute(for: userId)
             
-            // If no profile exists but user is eligible, auto-generate one
-            if personalityProfile == nil {
+            // If user is eligible but no profile exists, attempt to create one
+            if eligibility.isEligible && personalityProfile == nil {
                 do {
                     let newProfile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
                     personalityProfile = newProfile
                 } catch {
-                    shouldShowPersonalityInsights = false
+                    // If analysis fails, we still show the card but with error state
                     personalityInsights = []
+                    dominantPersonalityTrait = nil
                     return
                 }
             }
             
-            guard let profile = personalityProfile else {
-                shouldShowPersonalityInsights = false
+            // If we have a profile, get insights from it
+            if let profile = personalityProfile {
+                let insights = getPersonalityInsightsUseCase.getAllInsights(for: profile)
+                
+                // Convert to OverviewPersonalityInsight format for the new card
+                var cardInsights: [OverviewPersonalityInsight] = []
+                
+                // Add pattern insights
+                for insight in insights.patternInsights.prefix(2) {
+                    cardInsights.append(OverviewPersonalityInsight(
+                        title: insight.title,
+                        message: insight.description,
+                        type: .pattern
+                    ))
+                }
+                
+                // Add habit recommendations
+                for insight in insights.habitRecommendations.prefix(2) {
+                    cardInsights.append(OverviewPersonalityInsight(
+                        title: insight.title,
+                        message: insight.actionable,
+                        type: .recommendation
+                    ))
+                }
+                
+                // Add one motivational insight
+                if let motivationalInsight = insights.motivationalInsights.first {
+                    cardInsights.append(OverviewPersonalityInsight(
+                        title: motivationalInsight.title,
+                        message: motivationalInsight.actionable,
+                        type: .motivation
+                    ))
+                }
+                
+                personalityInsights = cardInsights
+                dominantPersonalityTrait = profile.dominantTrait.displayName
+            } else {
+                // No profile available (either data insufficient or analysis failed)
                 personalityInsights = []
-                return
+                dominantPersonalityTrait = nil
             }
-            
-            // Get personality-based insights
-            let insights = getPersonalityInsightsUseCase.getAllInsights(for: profile)
-            
-            // Convert to OverviewPersonalityInsight format for the new card
-            var cardInsights: [OverviewPersonalityInsight] = []
-            
-            // Add pattern insights
-            for insight in insights.patternInsights.prefix(2) {
-                cardInsights.append(OverviewPersonalityInsight(
-                    title: insight.title,
-                    message: insight.description,
-                    type: .pattern
-                ))
-            }
-            
-            // Add habit recommendations
-            for insight in insights.habitRecommendations.prefix(2) {
-                cardInsights.append(OverviewPersonalityInsight(
-                    title: insight.title,
-                    message: insight.actionable,
-                    type: .recommendation
-                ))
-            }
-            
-            // Add one motivational insight
-            if let motivationalInsight = insights.motivationalInsights.first {
-                cardInsights.append(OverviewPersonalityInsight(
-                    title: motivationalInsight.title,
-                    message: motivationalInsight.actionable,
-                    type: .motivation
-                ))
-            }
-            
-            personalityInsights = cardInsights
-            dominantPersonalityTrait = profile.dominantTrait.displayName
             
         } catch {
-            shouldShowPersonalityInsights = false
+            // Even on error, show the card but with empty state
             personalityInsights = []
+            dominantPersonalityTrait = nil
+            isPersonalityDataSufficient = false
+            personalityThresholdRequirements = []
         }
     }
     

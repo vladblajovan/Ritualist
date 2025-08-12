@@ -52,7 +52,7 @@ public struct RootTabView: View {
                             }
                         }
                 }
-                .tabBarMinimizeBehavior(.onScrollDown)
+                .modifier(TabBarMinimizeModifier())
                 .preferredColorScheme(appearanceManager.colorScheme)
             }
         }
@@ -110,7 +110,16 @@ public struct RootTabView: View {
         showOnboarding = viewModel.showOnboarding
         isCheckingOnboarding = viewModel.isCheckingOnboarding
     }
-    
+}
+
+private struct TabBarMinimizeModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            content
+        }
+    }
 }
 
 #Preview {

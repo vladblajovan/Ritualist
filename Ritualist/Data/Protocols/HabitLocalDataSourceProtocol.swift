@@ -12,4 +12,5 @@ public protocol HabitLocalDataSourceProtocol {
     func fetchAll() async throws -> [Habit]
     func upsert(_ habit: Habit) async throws
     func delete(id: UUID) async throws
+    func cleanupOrphanedHabits() async throws -> Int
 }

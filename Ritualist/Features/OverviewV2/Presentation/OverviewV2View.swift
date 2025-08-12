@@ -77,6 +77,11 @@ public struct OverviewV2View: View {
                             Task {
                                 await vm.updateNumericHabit(habit, value: newValue)
                             }
+                        },
+                        onDeleteHabitLog: { habit in
+                            Task {
+                                await vm.deleteHabitLog(habit)
+                            }
                         }
                     )
                 }
@@ -107,6 +112,8 @@ public struct OverviewV2View: View {
                     PersonalityInsightsCard(
                         insights: vm.personalityInsights,
                         dominantTrait: vm.dominantPersonalityTrait,
+                        isDataSufficient: vm.isPersonalityDataSufficient,
+                        thresholdRequirements: vm.personalityThresholdRequirements,
                         onOpenAnalysis: {
                             vm.openPersonalityAnalysis()
                         }

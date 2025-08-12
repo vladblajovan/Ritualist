@@ -27,9 +27,11 @@ public protocol PersonalityAnalysisService {
 public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService {
     
     private let repository: PersonalityAnalysisRepositoryProtocol
+    private let errorHandler: ErrorHandlingActor?
     
-    public init(repository: PersonalityAnalysisRepositoryProtocol) {
+    public init(repository: PersonalityAnalysisRepositoryProtocol, errorHandler: ErrorHandlingActor? = nil) {
         self.repository = repository
+        self.errorHandler = errorHandler
     }
     
     @MainActor
@@ -334,12 +336,12 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     }
     // swiftlint:enable function_body_length
     
-    public func determineDominantTrait(from scores: [PersonalityTrait: Double]) -> PersonalityTrait {
+    nonisolated public func determineDominantTrait(from scores: [PersonalityTrait: Double]) -> PersonalityTrait {
         return scores.max(by: { $0.value < $1.value })?.key ?? .conscientiousness
     }
     
     /// Determine dominant trait with sophisticated multi-criteria tie-breaking
-    public func determineDominantTraitWithTieBreaking(
+    nonisolated public func determineDominantTraitWithTieBreaking(
         from scores: [PersonalityTrait: Double],
         traitAccumulators: [PersonalityTrait: Double],
         totalWeights: [PersonalityTrait: Double],
@@ -431,7 +433,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         }
     }
     
-    public func calculateConfidence(from metadata: AnalysisMetadata) -> ConfidenceLevel {
+    nonisolated public func calculateConfidence(from metadata: AnalysisMetadata) -> ConfidenceLevel {
         let dataPoints = Double(metadata.dataPointsAnalyzed)
         
         // Confidence based on amount of data analyzed
@@ -449,7 +451,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     }
     
     /// Enhanced confidence calculation that considers completion statistics quality
-    public func calculateConfidenceWithCompletionStats(from metadata: AnalysisMetadata, completionStats: HabitCompletionStats) -> ConfidenceLevel {
+    nonisolated public func calculateConfidenceWithCompletionStats(from metadata: AnalysisMetadata, completionStats: HabitCompletionStats) -> ConfidenceLevel {
         let baseDataPoints = Double(metadata.dataPointsAnalyzed)
         
         // Adjust confidence based on completion statistics quality
@@ -547,7 +549,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     }
     
     /// Calculate habit-specific modifiers based on individual habit characteristics
-    private func calculateHabitSpecificModifiers(habit: Habit, input: HabitAnalysisInput) -> [PersonalityTrait: Double] {
+    nonisolated private func calculateHabitSpecificModifiers(habit: Habit, input: HabitAnalysisInput) -> [PersonalityTrait: Double] {
         var modifiers: [PersonalityTrait: Double] = [:]
         
         // 1. Habit name analysis for personality indicators
@@ -659,7 +661,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     }
     
     /// Get the completion rate for a specific habit from the analysis input
-    private func getCompletionRateForHabit(habit: Habit, input: HabitAnalysisInput) -> Double {
+    nonisolated private func getCompletionRateForHabit(habit: Habit, input: HabitAnalysisInput) -> Double {
         // Find the index of this habit in the activeHabits array
         guard let habitIndex = input.activeHabits.firstIndex(where: { $0.id == habit.id }) else {
             return 0.0 // Habit not found in active habits

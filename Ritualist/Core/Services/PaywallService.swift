@@ -1,8 +1,28 @@
 import Foundation
 import RitualistCore
 
-// MARK: - PaywallService Protocol
+// MARK: - Business Service Protocol (Thread-Agnostic)
 
+public protocol PaywallBusinessService {
+    /// Load available products from the App Store
+    func loadProducts() async throws -> [Product]
+    
+    /// Purchase a product
+    func purchase(_ product: Product) async throws -> Bool
+    
+    /// Restore previous purchases
+    func restorePurchases() async throws -> Bool
+    
+    /// Check if a specific product is purchased
+    func isProductPurchased(_ productId: String) async -> Bool
+    
+    /// Clear all purchases for a user (useful when subscription is cancelled)
+    func clearPurchases() async throws
+}
+
+// MARK: - Legacy PaywallService Protocol (Deprecated)
+
+@available(*, deprecated, message: "Use PaywallBusinessService + PaywallUIService instead")
 public protocol PaywallService {
     var purchaseState: PurchaseState { get }
     
@@ -25,7 +45,229 @@ public protocol PaywallService {
     func clearPurchases()
 }
 
-// MARK: - Mock PaywallService
+// MARK: - Business Service Implementations
+
+public final class MockPaywallBusinessService: PaywallBusinessService {
+    // MARK: - Dependencies
+    private let subscriptionService: SecureSubscriptionService
+    
+    // Enhanced mock products with realistic pricing and features
+    private let mockProducts: [Product] = [
+        Product(
+            id: "ritualist_weekly",
+            name: "Ritualist Pro",
+            description: "Weekly trial - Perfect to get started",
+            price: "$2.99",
+            localizedPrice: "$2.99/week",
+            subscriptionPlan: .monthly, // Using monthly for now as there's no weekly enum
+            duration: .monthly,
+            features: [
+                "Unlimited habits",
+                "Basic analytics",
+                "Custom reminders"
+            ],
+            isPopular: false
+        ),
+        Product(
+            id: "ritualist_monthly",
+            name: "Ritualist Pro",
+            description: "Most flexible option",
+            price: "$9.99",
+            localizedPrice: "$9.99/month",
+            subscriptionPlan: .monthly,
+            duration: .monthly,
+            features: [
+                "Unlimited habits",
+                "Advanced analytics & insights",
+                "Custom reminders & notifications",
+                "Data export (CSV, PDF)",
+                "Dark mode & themes",
+                "Priority support"
+            ],
+            isPopular: false
+        ),
+        Product(
+            id: "ritualist_annual",
+            name: "Ritualist Pro",
+            description: "Best value - Save 58%!",
+            price: "$49.99",
+            localizedPrice: "$49.99/year",
+            subscriptionPlan: .annual,
+            duration: .annual,
+            features: [
+                "Unlimited habits",
+                "Advanced analytics & insights",
+                "Custom reminders & notifications",
+                "Data export (CSV, PDF)",
+                "Dark mode & premium themes",
+                "Priority support",
+                "Early access to new features",
+                "Cloud backup & sync"
+            ],
+            isPopular: true,
+            discount: "Save 58%"
+        ),
+        Product(
+            id: "ritualist_lifetime",
+            name: "Ritualist Pro Lifetime",
+            description: "One-time purchase, lifetime access",
+            price: "$149.99",
+            localizedPrice: "$149.99 once",
+            subscriptionPlan: .monthly, // Using monthly as there's no lifetime enum
+            duration: .monthly,
+            features: [
+                "Everything in Pro",
+                "Lifetime updates",
+                "No recurring charges",
+                "Premium support forever",
+                "Exclusive lifetime features"
+            ],
+            isPopular: false,
+            discount: "Best Deal"
+        )
+    ]
+    
+    // Enhanced testing configuration
+    public var simulatePurchaseDelay: TimeInterval = 2.0
+    public var simulateFailureRate: Double = 0.2 // 20% failure rate by default
+    
+    // Testing scenarios
+    public enum TestingScenario {
+        case alwaysSucceed
+        case alwaysFail
+        case randomResults
+        case networkError
+        case userCancellation
+    }
+    
+    public var currentTestingScenario: TestingScenario = .randomResults
+    
+    public init(subscriptionService: SecureSubscriptionService, testingScenario: TestingScenario = .randomResults) {
+        self.subscriptionService = subscriptionService
+        self.currentTestingScenario = testingScenario
+    }
+    
+    public func loadProducts() async throws -> [Product] {
+        // If all features are enabled at build time, return empty products
+        #if ALL_FEATURES_ENABLED
+        return []
+        #else
+        return mockProducts
+        #endif
+    }
+    
+    public func purchase(_ product: Product) async throws -> Bool {
+        // Simulate realistic purchase delay
+        let delayNanoseconds = UInt64(simulatePurchaseDelay * 1_000_000_000)
+        try await Task.sleep(nanoseconds: delayNanoseconds)
+        
+        // Determine outcome based on testing scenario
+        let shouldSucceed: Bool
+        switch currentTestingScenario {
+        case .alwaysSucceed:
+            shouldSucceed = true
+        case .alwaysFail:
+            shouldSucceed = false
+        case .randomResults:
+            shouldSucceed = Double.random(in: 0...1) > simulateFailureRate
+        case .networkError:
+            throw PaywallError.networkError
+        case .userCancellation:
+            throw PaywallError.userCancelled
+        }
+        
+        if shouldSucceed {
+            // Use secure subscription service to validate purchase
+            try await subscriptionService.mockPurchase(product.id)
+            return true
+        } else {
+            throw PaywallError.purchaseFailed("Purchase failed")
+        }
+    }
+    
+    public func restorePurchases() async throws -> Bool {
+        // Simulate restore delay (typically faster than purchase)
+        let restoreDelay = simulatePurchaseDelay * 0.75
+        let delayNanoseconds = UInt64(restoreDelay * 1_000_000_000)
+        try await Task.sleep(nanoseconds: delayNanoseconds)
+        
+        // Handle different testing scenarios for restore
+        switch currentTestingScenario {
+        case .networkError:
+            throw PaywallError.networkError
+        case .alwaysFail:
+            return false
+        default:
+            // Restore using secure subscription service
+            let restoredPurchases = await subscriptionService.restorePurchases()
+            return !restoredPurchases.isEmpty
+        }
+    }
+    
+    public func isProductPurchased(_ productId: String) async -> Bool {
+        return await subscriptionService.validatePurchase(productId)
+    }
+    
+    public func clearPurchases() async throws {
+        try await subscriptionService.clearPurchases()
+    }
+    
+    // MARK: - Enhanced Testing Methods
+    
+    /// Configure mock service for specific testing needs
+    public func configure(scenario: TestingScenario, delay: TimeInterval = 2.0, failureRate: Double = 0.2) {
+        currentTestingScenario = scenario
+        simulatePurchaseDelay = delay
+        simulateFailureRate = failureRate
+    }
+    
+    /// Simulate purchasing a specific product (for testing)
+    public func simulatePurchase(productId: String) async throws {
+        try await subscriptionService.mockPurchase(productId)
+    }
+    
+    /// Get current product catalog for testing
+    public func getTestProducts() -> [Product] {
+        mockProducts
+    }
+    
+    /// Check if any premium product is purchased (useful for testing subscription status)
+    public var hasPremiumPurchase: Bool {
+        subscriptionService.isPremiumUser()
+    }
+}
+
+public final class NoOpPaywallBusinessService: PaywallBusinessService {
+    public init() {}
+    
+    public func loadProducts() async throws -> [Product] {
+        []
+    }
+    
+    public func purchase(_ product: Product) async throws -> Bool {
+        false
+    }
+    
+    public func restorePurchases() async throws -> Bool {
+        false
+    }
+    
+    public func isProductPurchased(_ productId: String) async -> Bool {
+        false
+    }
+    
+    public func clearPurchases() async throws {
+        // No-op implementation
+    }
+}
+
+// MARK: - UI Service Layer Removed
+//
+// The PaywallUIService layer has been removed to maintain architectural consistency.
+// UI state management now belongs in PaywallViewModel which directly uses PaywallBusinessService.
+// This follows Clean Architecture: View → ViewModel → BusinessService → Repository
+
+// MARK: - Legacy Mock PaywallService (Deprecated)
 
 @Observable
 public final class MockPaywallService: PaywallService {

@@ -23,6 +23,7 @@ public final class PersonalityInsightsViewModel: ObservableObject {
         case loading
         case insufficientData(requirements: [ThresholdRequirement], estimatedDays: Int?)
         case ready(profile: PersonalityProfile)
+        case readyWithInsufficientData(profile: PersonalityProfile, requirements: [ThresholdRequirement], estimatedDays: Int?)
         case error(PersonalityAnalysisError)
     }
     
@@ -79,7 +80,17 @@ public final class PersonalityInsightsViewModel: ObservableObject {
             
             // First check if user has existing profile
             if let existingProfile = try await getPersonalityProfileUseCase.execute(for: userId) {
-                viewState = .ready(profile: existingProfile)
+                // Even with existing profile, check if data is sufficient for new analysis
+                let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
+                
+                if eligibility.isEligible {
+                    viewState = .ready(profile: existingProfile)
+                } else {
+                    // User has old profile but insufficient data for new analysis
+                    let requirements = try await validateAnalysisDataUseCase.getProgressDetails(for: userId)
+                    let estimatedDays = try await validateAnalysisDataUseCase.getEstimatedDaysToEligibility(for: userId)
+                    viewState = .readyWithInsufficientData(profile: existingProfile, requirements: requirements, estimatedDays: estimatedDays)
+                }
                 return
             }
             
@@ -109,7 +120,12 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     }
     
     public func regenerateAnalysis() async {
-        guard case .ready = viewState else { return }
+        switch viewState {
+        case .ready, .readyWithInsufficientData:
+            break
+        default:
+            return
+        }
         
         guard let userId = await getCurrentUserId() else {
             viewState = .error(.unknownError("Failed to load user profile"))
@@ -138,10 +154,12 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     }
     
     public var hasProfile: Bool {
-        if case .ready = viewState {
+        switch viewState {
+        case .ready, .readyWithInsufficientData:
             return true
+        default:
+            return false
         }
-        return false
     }
     
     public var requiresMoreData: Bool {
@@ -159,17 +177,25 @@ public final class PersonalityInsightsViewModel: ObservableObject {
     }
     
     public var currentProfile: PersonalityProfile? {
-        if case .ready(let profile) = viewState {
+        switch viewState {
+        case .ready(let profile):
             return profile
+        case .readyWithInsufficientData(let profile, _, _):
+            return profile
+        default:
+            return nil
         }
-        return nil
     }
     
     public var progressRequirements: [ThresholdRequirement]? {
-        if case .insufficientData(let requirements, _) = viewState {
+        switch viewState {
+        case .insufficientData(let requirements, _):
             return requirements
+        case .readyWithInsufficientData(_, let requirements, _):
+            return requirements
+        default:
+            return nil
         }
-        return nil
     }
     
     // MARK: - Privacy Management

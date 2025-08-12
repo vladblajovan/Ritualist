@@ -44,9 +44,12 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
     /// In production, this would be replaced with App Store receipt validation
     private let mockStorageKey = "secure_mock_purchases"
     
+    private let errorHandler: ErrorHandlingActor?
+    
     // MARK: - Initialization
     
-    public init() {
+    public init(errorHandler: ErrorHandlingActor? = nil) {
+        self.errorHandler = errorHandler
         loadMockPurchases()
     }
     

@@ -12,6 +12,7 @@ public enum PaywallError: Error, LocalizedError {
     case purchaseFailed(String)
     case userCancelled
     case networkError
+    case noPurchasesToRestore
     case unknown(String)
     
     public var errorDescription: String? {
@@ -24,6 +25,8 @@ public enum PaywallError: Error, LocalizedError {
             return "Purchase was cancelled"
         case .networkError:
             return "Network connection error"
+        case .noPurchasesToRestore:
+            return "No purchases to restore"
         case .unknown(let message):
             return message
         }

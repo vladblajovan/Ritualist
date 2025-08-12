@@ -21,6 +21,7 @@ public protocol ReorderHabitsUseCase { func execute(_ habits: [Habit]) async thr
 public protocol ValidateHabitUniquenessUseCase { func execute(name: String, categoryId: String?, excludeId: UUID?) async throws -> Bool }
 public protocol GetHabitsByCategoryUseCase { func execute(categoryId: String) async throws -> [Habit] }
 public protocol OrphanHabitsFromCategoryUseCase { func execute(categoryId: String) async throws }
+public protocol CleanupOrphanedHabitsUseCase { func execute() async throws -> Int }
 
 // MARK: - Log Use Cases
 public protocol GetLogsUseCase { func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog] }
@@ -193,7 +194,10 @@ public final class UpdateHabit: UpdateHabitUseCase {
 public final class DeleteHabit: DeleteHabitUseCase {
     private let repo: HabitRepository
     public init(repo: HabitRepository) { self.repo = repo }
-    public func execute(id: UUID) async throws { try await repo.delete(id: id) }
+    public func execute(id: UUID) async throws { 
+        // SwiftData cascade delete will automatically remove associated logs
+        try await repo.delete(id: id) 
+    }
 }
 
 public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
@@ -328,6 +332,14 @@ public final class OrphanHabitsFromCategory: OrphanHabitsFromCategoryUseCase {
             )
             try await repo.update(orphanedHabit)
         }
+    }
+}
+
+public final class CleanupOrphanedHabits: CleanupOrphanedHabitsUseCase {
+    private let repo: HabitRepository
+    public init(repo: HabitRepository) { self.repo = repo }
+    public func execute() async throws -> Int {
+        return try await repo.cleanupOrphanedHabits()
     }
 }
 

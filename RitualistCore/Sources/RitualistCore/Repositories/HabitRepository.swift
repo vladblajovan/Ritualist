@@ -12,4 +12,5 @@ public protocol HabitRepository {
     func create(_ habit: Habit) async throws
     func update(_ habit: Habit) async throws
     func delete(id: UUID) async throws
+    func cleanupOrphanedHabits() async throws -> Int
 }

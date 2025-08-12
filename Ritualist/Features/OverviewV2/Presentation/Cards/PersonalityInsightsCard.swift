@@ -44,6 +44,8 @@ public enum OverviewPersonalityInsightType: CaseIterable {
 struct PersonalityInsightsCard: View {
     let insights: [OverviewPersonalityInsight]
     let dominantTrait: String?
+    let isDataSufficient: Bool
+    let thresholdRequirements: [ThresholdRequirement]
     let onOpenAnalysis: () -> Void
     
     @State private var isExpanded = false
@@ -78,56 +80,140 @@ struct PersonalityInsightsCard: View {
                 }
             }
             
-            // Insights List
-            if insights.isEmpty {
-                // Empty state (should rarely happen due to auto-generation)
-                HStack {
-                    Image(systemName: "brain.head.profile")
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                    
-                    Text("Personality insights will appear here once your analysis is complete")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+            // Content based on state
+            if !insights.isEmpty {
+                // Show existing insights (even if data is now insufficient for new analysis)
+                insightsContent
+                
+                // If data is now insufficient, show warning
+                if !isDataSufficient {
+                    warningBanner
                 }
-                .padding(.vertical, 8)
+            } else if !isDataSufficient {
+                // No insights and insufficient data - show requirements
+                insufficientDataContent
             } else {
-                VStack(spacing: 16) {
-                    ForEach(Array(insights.prefix(isExpanded ? insights.count : 3).enumerated()), id: \.element.id) { index, insight in
-                        InsightRow(insight: insight)
-                        
-                        if index < min(insights.count, isExpanded ? insights.count : 3) - 1 {
-                            Divider()
-                                .opacity(0.3)
-                        }
-                    }
-                    
-                    // Show more/less indicator if there are additional insights
-                    if insights.count > 3 {
-                        HStack {
-                            Text(isExpanded ? "Show less" : "View \(insights.count - 3) more insights")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    isExpanded.toggle()
-                                }
-                            } label: {
-                                Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                        .padding(.top, 4)
-                    }
-                }
+                // No insights but data is sufficient - show loading/error state
+                noInsightsContent
             }
         }
         .cardStyle()
+    }
+    
+    // MARK: - Content Views
+    
+    @ViewBuilder
+    private var insightsContent: some View {
+        VStack(spacing: 16) {
+            ForEach(Array(insights.prefix(isExpanded ? insights.count : 3).enumerated()), id: \.element.id) { index, insight in
+                InsightRow(insight: insight)
+                
+                if index < min(insights.count, isExpanded ? insights.count : 3) - 1 {
+                    Divider()
+                        .opacity(0.3)
+                }
+            }
+            
+            // Show more/less indicator if there are additional insights
+            if insights.count > 3 {
+                HStack {
+                    Text(isExpanded ? "Show less" : "View \(insights.count - 3) more insights")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isExpanded.toggle()
+                        }
+                    } label: {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var warningBanner: some View {
+        HStack {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundColor(.orange)
+            
+            Text("These insights are from your previous analysis. Create more habits to unlock new analysis.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(8)
+    }
+    
+    @ViewBuilder
+    private var insufficientDataContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "chart.bar")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+                
+                Text("Not enough data for personality analysis")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Text("Complete these requirements to unlock insights:")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            VStack(spacing: 8) {
+                ForEach(thresholdRequirements.prefix(3), id: \.id) { requirement in
+                    HStack {
+                        Image(systemName: requirement.isMet ? "checkmark.circle.fill" : "circle")
+                            .font(.caption)
+                            .foregroundColor(requirement.isMet ? .green : .secondary)
+                        
+                        Text(requirement.name)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Text("\(requirement.currentValue)/\(requirement.requiredValue)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                if thresholdRequirements.count > 3 {
+                    Text("+ \(thresholdRequirements.count - 3) more requirements")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+    }
+    
+    @ViewBuilder 
+    private var noInsightsContent: some View {
+        HStack {
+            Image(systemName: "brain.head.profile")
+                .font(.title3)
+                .foregroundColor(.secondary)
+            
+            Text("Analysis in progress... Check back soon!")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 8)
     }
 }
 
@@ -198,13 +284,20 @@ struct PersonalityInsightsCard_Previews: PreviewProvider {
                         )
                     ],
                     dominantTrait: "Conscientiousness",
+                    isDataSufficient: false, // Show warning banner
+                    thresholdRequirements: [],
                     onOpenAnalysis: { }
                 )
                 
-                // Empty state
+                // Insufficient data state
                 PersonalityInsightsCard(
                     insights: [],
                     dominantTrait: nil,
+                    isDataSufficient: false,
+                    thresholdRequirements: [
+                        ThresholdRequirement(name: "Active Habits", description: "Track at least 5 active habits", currentValue: 2, requiredValue: 5, category: .habits),
+                        ThresholdRequirement(name: "Consistent Tracking", description: "Log habits for 7 days", currentValue: 3, requiredValue: 7, category: .tracking)
+                    ],
                     onOpenAnalysis: { }
                 )
             }

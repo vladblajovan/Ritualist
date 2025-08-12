@@ -112,13 +112,9 @@ extension Container {
     var paywallViewModel: Factory<PaywallViewModel> {
         self { @MainActor in
             PaywallViewModel(
-                loadPaywallProducts: self.loadPaywallProducts(),
-                purchaseProduct: self.purchaseProduct(),
-                restorePurchases: self.restorePurchases(),
-                checkProductPurchased: self.checkProductPurchased(),
-                resetPurchaseState: self.resetPurchaseState(),
-                getPurchaseState: self.getPurchaseState(),
+                paywallBusinessService: self.paywallBusinessService(),
                 updateProfileSubscription: self.updateProfileSubscription(),
+                errorHandler: self.errorHandlingActor(),
                 userService: self.userService()
             )
         }
