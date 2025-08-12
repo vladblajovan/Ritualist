@@ -12,6 +12,7 @@ public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
     public init(context: ModelContext?) { 
         self.context = context 
     }
+    @MainActor
     public func fetchAll() async throws -> [SDHabit] {
         guard let context else { return [] }
         
@@ -20,11 +21,13 @@ public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
         )
         return try context.fetch(descriptor)
     }
+    @MainActor
     public func upsert(_ habit: SDHabit) async throws {
         guard let context else { return }
         context.insert(habit)
         try context.save()
     }
+    @MainActor
     public func delete(id: UUID) async throws {
         guard let context else { return }
         let descriptor = FetchDescriptor<SDHabit>(predicate: #Predicate { $0.id == id })
@@ -38,6 +41,7 @@ public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
 public final class LogLocalDataSource: LogLocalDataSourceProtocol {
     private let context: ModelContext?
     public init(context: ModelContext?) { self.context = context }
+    @MainActor
     public func logs(for habitID: UUID) async throws -> [SDHabitLog] {
         guard let context else { return [] }
         // Use both relationship and habitID field for maximum compatibility
@@ -46,11 +50,13 @@ public final class LogLocalDataSource: LogLocalDataSourceProtocol {
         })
         return try context.fetch(descriptor)
     }
+    @MainActor
     public func upsert(_ log: SDHabitLog) async throws {
         guard let context else { return }
         context.insert(log)
         try context.save()
     }
+    @MainActor
     public func delete(id: UUID) async throws {
         guard let context else { return }
         let descriptor = FetchDescriptor<SDHabitLog>(predicate: #Predicate { $0.id == id })
@@ -64,11 +70,13 @@ public final class LogLocalDataSource: LogLocalDataSourceProtocol {
 public final class ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
     private let context: ModelContext?
     public init(context: ModelContext?) { self.context = context }
+    @MainActor
     public func load() async throws -> SDUserProfile? {
         guard let context else { return nil }
         let descriptor = FetchDescriptor<SDUserProfile>()
         return try context.fetch(descriptor).first
     }
+    @MainActor
     public func save(_ profile: SDUserProfile) async throws {
         guard let context else { return }
         
@@ -229,12 +237,14 @@ public final class OnboardingLocalDataSource: OnboardingLocalDataSourceProtocol 
         self.context = context 
     }
     
+    @MainActor
     public func load() async throws -> SDOnboardingState? {
         guard let context else { return nil }
         let descriptor = FetchDescriptor<SDOnboardingState>()
         return try context.fetch(descriptor).first
     }
     
+    @MainActor
     public func save(_ state: SDOnboardingState) async throws {
         guard let context else { return }
         
