@@ -12,8 +12,8 @@ public final class ProfileRepositoryImpl: ProfileRepository {
     private let local: ProfileLocalDataSourceProtocol
     public init(local: ProfileLocalDataSourceProtocol) { self.local = local }
     public func loadProfile() async throws -> UserProfile {
-        if let sd = try await local.load() {
-            return ProfileMapper.fromSD(sd)
+        if let profile = try await local.load() {
+            return profile
         } else {
             // Create profile with system defaults
             let defaultProfile = UserProfile(
@@ -24,7 +24,6 @@ public final class ProfileRepositoryImpl: ProfileRepository {
         }
     }
     public func saveProfile(_ profile: UserProfile) async throws {
-        let sd = ProfileMapper.toSD(profile)
-        try await local.save(sd)
+        try await local.save(profile)
     }
 }

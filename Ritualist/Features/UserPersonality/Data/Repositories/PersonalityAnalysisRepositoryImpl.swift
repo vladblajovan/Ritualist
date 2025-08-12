@@ -64,7 +64,6 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         return buildThresholdRequirements(from: input)
     }
     
-    @MainActor
     public func getHabitAnalysisInput(for userId: UUID) async throws -> HabitAnalysisInput {
         // Get all active habits
         let allHabits = try await habitRepository.fetchAllHabits()
@@ -302,7 +301,6 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         try await categoryRepository.getCustomCategories()
     }
     
-    @MainActor
     public func getHabitCompletionStats(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats {
         // Get all active habits for the user
         let allHabits = try await habitRepository.fetchAllHabits()

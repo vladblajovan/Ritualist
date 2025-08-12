@@ -6,10 +6,10 @@
 //
 
 import Foundation
-import SwiftData
+import RitualistCore
 
 public protocol LogLocalDataSourceProtocol {
-    @MainActor func logs(for habitID: UUID) async throws -> [SDHabitLog]
-    @MainActor func upsert(_ log: SDHabitLog) async throws
-    @MainActor func delete(id: UUID) async throws
+    func logs(for habitID: UUID) async throws -> [HabitLog]
+    func upsert(_ log: HabitLog) async throws
+    func delete(id: UUID) async throws
 }

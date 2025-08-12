@@ -1,6 +1,7 @@
 import Foundation
+import RitualistCore
 
 public protocol OnboardingLocalDataSourceProtocol {
-    @MainActor func load() async throws -> SDOnboardingState?
-    @MainActor func save(_ state: SDOnboardingState) async throws
+    func load() async throws -> OnboardingState?
+    func save(_ state: OnboardingState) async throws
 }

@@ -9,7 +9,10 @@ extension Container {
     
     var personalityAnalysisDataSource: Factory<PersonalityAnalysisDataSource> {
         self { 
-            SwiftDataPersonalityAnalysisDataSource(modelContext: self.persistenceContainer()?.context)
+            guard let container = self.persistenceContainer()?.container else {
+                fatalError("Failed to get ModelContainer for PersonalityAnalysisDataSource")
+            }
+            return PersonalityAnalysisDataSourceActor(modelContainer: container)
         }
         .singleton
     }

@@ -11,21 +11,17 @@ import RitualistCore
 
 public final class HabitRepositoryImpl: HabitRepository {
     private let local: HabitLocalDataSourceProtocol
-    private let context: ModelContext?
-    public init(local: HabitLocalDataSourceProtocol, context: ModelContext? = nil) { 
+    public init(local: HabitLocalDataSourceProtocol) { 
         self.local = local
-        self.context = context
     }
     public func fetchAllHabits() async throws -> [Habit] {
-        let sds = try await local.fetchAll()
-        return try sds.map { try HabitMapper.fromSD($0) }
+        return try await local.fetchAll()
     }
     public func create(_ habit: Habit) async throws {
         try await update(habit)
     }
     public func update(_ habit: Habit) async throws {
-        let sd = try HabitMapper.toSD(habit, context: context)
-        try await local.upsert(sd)
+        try await local.upsert(habit)
     }
     public func delete(id: UUID) async throws {
         try await local.delete(id: id)

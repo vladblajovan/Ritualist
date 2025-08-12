@@ -6,9 +6,9 @@
 //
 
 import Foundation
-import SwiftData
+import RitualistCore
 
 public protocol ProfileLocalDataSourceProtocol {
-    @MainActor func load() async throws -> SDUserProfile?
-    @MainActor func save(_ profile: SDUserProfile) async throws
+    func load() async throws -> UserProfile?
+    func save(_ profile: UserProfile) async throws
 }

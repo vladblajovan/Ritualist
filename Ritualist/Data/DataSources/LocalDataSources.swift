@@ -7,97 +7,11 @@ public enum CategoryDataSourceError: Error {
     case categoryNotFound
 }
 
-public final class HabitLocalDataSource: HabitLocalDataSourceProtocol {
-    private let context: ModelContext?
-    public init(context: ModelContext?) { 
-        self.context = context 
-    }
-    @MainActor
-    public func fetchAll() async throws -> [SDHabit] {
-        guard let context else { return [] }
-        
-        let descriptor = FetchDescriptor<SDHabit>(
-            sortBy: [SortDescriptor(\.displayOrder)]
-        )
-        return try context.fetch(descriptor)
-    }
-    @MainActor
-    public func upsert(_ habit: SDHabit) async throws {
-        guard let context else { return }
-        context.insert(habit)
-        try context.save()
-    }
-    @MainActor
-    public func delete(id: UUID) async throws {
-        guard let context else { return }
-        let descriptor = FetchDescriptor<SDHabit>(predicate: #Predicate { $0.id == id })
-        if let found = try context.fetch(descriptor).first {
-            context.delete(found)
-            try context.save()
-        }
-    }
-}
+// HabitLocalDataSourceLegacy removed - using @ModelActor version
 
-public final class LogLocalDataSource: LogLocalDataSourceProtocol {
-    private let context: ModelContext?
-    public init(context: ModelContext?) { self.context = context }
-    @MainActor
-    public func logs(for habitID: UUID) async throws -> [SDHabitLog] {
-        guard let context else { return [] }
-        // Use both relationship and habitID field for maximum compatibility
-        let descriptor = FetchDescriptor<SDHabitLog>(predicate: #Predicate { 
-            $0.habit?.id == habitID || $0.habitID == habitID 
-        })
-        return try context.fetch(descriptor)
-    }
-    @MainActor
-    public func upsert(_ log: SDHabitLog) async throws {
-        guard let context else { return }
-        context.insert(log)
-        try context.save()
-    }
-    @MainActor
-    public func delete(id: UUID) async throws {
-        guard let context else { return }
-        let descriptor = FetchDescriptor<SDHabitLog>(predicate: #Predicate { $0.id == id })
-        if let found = try context.fetch(descriptor).first {
-            context.delete(found)
-            try context.save()
-        }
-    }
-}
+// LogLocalDataSourceLegacy removed - using @ModelActor version
 
-public final class ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
-    private let context: ModelContext?
-    public init(context: ModelContext?) { self.context = context }
-    @MainActor
-    public func load() async throws -> SDUserProfile? {
-        guard let context else { return nil }
-        let descriptor = FetchDescriptor<SDUserProfile>()
-        return try context.fetch(descriptor).first
-    }
-    @MainActor
-    public func save(_ profile: SDUserProfile) async throws {
-        guard let context else { return }
-        
-        // Check if profile already exists
-        let profileId = profile.id
-        let descriptor = FetchDescriptor<SDUserProfile>(predicate: #Predicate { userProfile in
-            userProfile.id == profileId
-        })
-        if let existing = try context.fetch(descriptor).first {
-            // Update existing profile
-            existing.name = profile.name
-            existing.avatarImageData = profile.avatarImageData
-            existing.appearance = profile.appearance
-        } else {
-            // Insert new profile
-            context.insert(profile)
-        }
-        
-        try context.save()
-    }
-}
+// ProfileLocalDataSourceLegacy removed - using @ModelActor version
 
 public final class TipStaticDataSource: TipLocalDataSourceProtocol {
     public init() {}
@@ -231,41 +145,9 @@ public final class TipStaticDataSource: TipLocalDataSourceProtocol {
     }
 }
 
-public final class OnboardingLocalDataSource: OnboardingLocalDataSourceProtocol {
-    private let context: ModelContext?
-    public init(context: ModelContext?) { 
-        self.context = context 
-    }
-    
-    @MainActor
-    public func load() async throws -> SDOnboardingState? {
-        guard let context else { return nil }
-        let descriptor = FetchDescriptor<SDOnboardingState>()
-        return try context.fetch(descriptor).first
-    }
-    
-    @MainActor
-    public func save(_ state: SDOnboardingState) async throws {
-        guard let context else { return }
-        
-        // Check if onboarding state already exists (there should only be one)
-        let descriptor = FetchDescriptor<SDOnboardingState>()
-        if let existing = try context.fetch(descriptor).first {
-            // Update existing state
-            existing.isCompleted = state.isCompleted
-            existing.completedDate = state.completedDate
-            existing.userName = state.userName
-            existing.hasGrantedNotifications = state.hasGrantedNotifications
-        } else {
-            // Insert new state
-            context.insert(state)
-        }
-        
-        try context.save()
-    }
-}
+// OnboardingLocalDataSourceLegacy removed - using @ModelActor version
 
-public final class PersistenceCategoryDataSource: CategoryLocalDataSourceProtocol {
+public final class PersistenceCategoryDataSourceLegacy: CategoryLocalDataSourceProtocol {
     private let context: ModelContext?
     
     public init(context: ModelContext?) { 

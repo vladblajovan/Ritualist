@@ -13,8 +13,8 @@ public final class OnboardingRepositoryImpl: OnboardingRepository {
     public init(local: OnboardingLocalDataSourceProtocol) { self.local = local }
     
     public func getOnboardingState() async throws -> OnboardingState {
-        if let sd = try await local.load() {
-            return OnboardingMapper.fromSD(sd)
+        if let state = try await local.load() {
+            return state
         } else {
             // Return default incomplete state
             return OnboardingState()
@@ -22,8 +22,7 @@ public final class OnboardingRepositoryImpl: OnboardingRepository {
     }
     
     public func saveOnboardingState(_ state: OnboardingState) async throws {
-        let sd = OnboardingMapper.toSD(state)
-        try await local.save(sd)
+        try await local.save(state)
     }
     
     public func markOnboardingCompleted(userName: String?, hasNotifications: Bool) async throws {

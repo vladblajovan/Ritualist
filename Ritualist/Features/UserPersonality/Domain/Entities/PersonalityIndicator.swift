@@ -42,17 +42,17 @@ public struct PersonalityIndicator: Codable, Hashable {
     
     /// Get the weight for a specific trait, returns 0.0 if not present
     public func weight(for trait: PersonalityTrait) -> Double {
-        return traitWeights[trait] ?? 0.0
+        traitWeights[trait] ?? 0.0
     }
     
     /// Get the strongest trait influence (highest absolute value)
     public var dominantTrait: PersonalityTrait? {
-        return traitWeights.max { abs($0.value) < abs($1.value) }?.key
+        traitWeights.max { abs($0.value) < abs($1.value) }?.key
     }
     
     /// Get the strength of influence (sum of absolute values)
     public var influenceStrength: Double {
-        return traitWeights.values.map(abs).reduce(0, +)
+        traitWeights.values.map(abs).reduce(0, +)
     }
 }
 
