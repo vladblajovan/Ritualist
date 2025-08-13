@@ -177,16 +177,6 @@ public struct ErrorStatistics {
     }
 }
 
-// MARK: - DateFormatter Extension
-
-private extension DateFormatter {
-    static let errorLogFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-        return formatter
-    }()
-}
-
 // MARK: - Error Context Constants
 
 public struct ErrorContext {
@@ -200,11 +190,4 @@ public struct ErrorContext {
     public static let notifications = "notifications"
     public static let sync = "sync"
     public static let personalityAnalysis = "personality_analysis"
-}
-
-// MARK: - Data Source Errors
-
-public enum CategoryDataSourceError: Error {
-    case categoryAlreadyExists
-    case categoryNotFound
 }

@@ -9,7 +9,7 @@ import Foundation
 
 /// Centralized business rules and constants for the Ritualist application.
 /// This ensures consistent behavior across all platforms (iOS, widgets, watch app).
-public struct BusinessRules {
+public struct BusinessConstants {
     
     // MARK: - Habit Limits
     

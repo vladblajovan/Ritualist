@@ -7,6 +7,6 @@
 
 import Foundation
 
-public enum RitualistPages: Hashable {
+public enum Pages: Hashable {
     case overview, habits, dashboard, settings
 }

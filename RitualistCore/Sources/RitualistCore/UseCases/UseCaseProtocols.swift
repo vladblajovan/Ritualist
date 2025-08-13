@@ -1,19 +1,5 @@
 import Foundation
 
-// MARK: - Domain Errors
-
-public enum CategoryError: Error {
-    case categoryAlreadyExists
-    case categoryNotFound
-    case invalidCategoryName
-}
-
-public enum CreateHabitFromSuggestionResult {
-    case success(habitId: UUID)
-    case limitReached(message: String)
-    case error(String)
-}
-
 // MARK: - Habit Use Cases
 
 public protocol CreateHabitUseCase { 

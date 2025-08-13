@@ -6,7 +6,7 @@ import RitualistCore
 
 @MainActor
 public final class NavigationService: ObservableObject {
-    @Published public var selectedTab: RitualistPages = .overview
+    @Published public var selectedTab: Pages = .overview
     @Published public var shouldRefreshOverview = false
     public var trackingService: UserActionTrackerService?
     
@@ -51,7 +51,7 @@ public final class NavigationService: ObservableObject {
         }
     }
     
-    private func tabName(_ tab: RitualistPages) -> String {
+    private func tabName(_ tab: Pages) -> String {
         switch tab {
         case .overview: return "overview"
         case .habits: return "habits"

@@ -24,26 +24,26 @@ public struct RootTabView: View {
                     .background(Color(.systemBackground))
             } else {
                 TabView(selection: $navigationService.selectedTab) {
-                    Tab(Strings.Navigation.overview, systemImage: "calendar", value: RitualistPages.overview) {
+                    Tab(Strings.Navigation.overview, systemImage: "calendar", value: Pages.overview) {
                             NavigationStack {
                                 OverviewV2Root()
                                     .id(overviewKey)
                             }
                         }
 
-                        Tab(Strings.Navigation.habits, systemImage: "checklist", value: RitualistPages.habits) {
+                        Tab(Strings.Navigation.habits, systemImage: "checklist", value: Pages.habits) {
                             NavigationStack {
                                 HabitsRoot()
                             }
                         }
 
-                        Tab(Strings.Navigation.dashboard, systemImage: "chart.bar.fill", value: RitualistPages.dashboard) {
+                        Tab(Strings.Navigation.dashboard, systemImage: "chart.bar.fill", value: Pages.dashboard) {
                             NavigationStack {
                                 DashboardRoot()
                             }
                         }
 
-                        Tab(Strings.Navigation.settings, systemImage: "gear", value: RitualistPages.settings) {
+                        Tab(Strings.Navigation.settings, systemImage: "gear", value: Pages.settings) {
                             NavigationStack {
                                 SettingsRoot()
                             }
