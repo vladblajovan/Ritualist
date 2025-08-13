@@ -1,12 +1,11 @@
 //
 //  PersonalityProfile.swift
-//  Ritualist
+//  RitualistCore
 //
 //  Created by Claude on 06.08.2025.
 //
 
 import Foundation
-import RitualistCore
 
 /// Represents a user's personality analysis profile
 public struct PersonalityProfile: Identifiable, Codable, Hashable {

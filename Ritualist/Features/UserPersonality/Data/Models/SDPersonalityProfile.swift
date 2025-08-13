@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import RitualistCore
 
 /// SwiftData model for storing personality profiles
 @Model

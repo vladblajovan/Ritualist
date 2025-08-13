@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import UserNotifications
+import RitualistCore
 
 /// Coordinates deep linking for personality analysis notifications
 public final class PersonalityDeepLinkCoordinator: ObservableObject {

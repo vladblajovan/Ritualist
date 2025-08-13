@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Use case for validating if user has sufficient data for personality analysis
 public protocol ValidateAnalysisDataUseCase {

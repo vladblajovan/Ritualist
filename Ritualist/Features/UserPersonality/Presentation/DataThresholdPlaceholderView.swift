@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import RitualistCore
 
 /// Placeholder view shown when user doesn't meet data requirements for personality analysis
 public struct DataThresholdPlaceholderView: View {

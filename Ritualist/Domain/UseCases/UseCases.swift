@@ -4,135 +4,7 @@ import RitualistCore
 // Resolve naming conflict with system Category type
 public typealias Category = RitualistCore.Category
 
-public enum CategoryError: Error {
-    case categoryAlreadyExists
-    case categoryNotFound
-    case invalidCategoryName
-}
 
-// MARK: - Habit Use Cases
-public protocol CreateHabitUseCase { func execute(_ habit: Habit) async throws -> Habit }
-public protocol GetActiveHabitsUseCase { func execute() async throws -> [Habit] }
-public protocol GetAllHabitsUseCase { func execute() async throws -> [Habit] }
-public protocol UpdateHabitUseCase { func execute(_ habit: Habit) async throws }
-public protocol DeleteHabitUseCase { func execute(id: UUID) async throws }
-public protocol ToggleHabitActiveStatusUseCase { func execute(id: UUID) async throws -> Habit }
-public protocol ReorderHabitsUseCase { func execute(_ habits: [Habit]) async throws }
-public protocol ValidateHabitUniquenessUseCase { func execute(name: String, categoryId: String?, excludeId: UUID?) async throws -> Bool }
-public protocol GetHabitsByCategoryUseCase { func execute(categoryId: String) async throws -> [Habit] }
-public protocol OrphanHabitsFromCategoryUseCase { func execute(categoryId: String) async throws }
-public protocol CleanupOrphanedHabitsUseCase { func execute() async throws -> Int }
-
-// MARK: - Log Use Cases
-public protocol GetLogsUseCase { func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog] }
-public protocol GetBatchLogsUseCase { func execute(for habitIDs: [UUID], since: Date?, until: Date?) async throws -> [UUID: [HabitLog]] }
-public protocol LogHabitUseCase { func execute(_ log: HabitLog) async throws }
-public protocol DeleteLogUseCase { func execute(id: UUID) async throws }
-public protocol GetLogForDateUseCase { func execute(habitID: UUID, date: Date) async throws -> HabitLog? }
-
-// MARK: - Profile Use Cases  
-public protocol LoadProfileUseCase { func execute() async throws -> UserProfile }
-public protocol SaveProfileUseCase { func execute(_ profile: UserProfile) async throws }
-
-// MARK: - Calendar Use Cases
-public protocol GenerateCalendarDaysUseCase { 
-    func execute(for month: Date, userProfile: UserProfile?) -> [Date] 
-}
-public protocol GenerateCalendarGridUseCase { 
-    func execute(for month: Date, userProfile: UserProfile?) -> [CalendarDay] 
-}
-
-// MARK: - Habit Logging Use Cases
-public protocol ToggleHabitLogUseCase {
-    func execute(
-        date: Date,
-        habit: Habit,
-        currentLoggedDates: Set<Date>,
-        currentHabitLogValues: [Date: Double]
-    ) async throws -> (loggedDates: Set<Date>, habitLogValues: [Date: Double])
-}
-
-// MARK: - Tip Use Cases
-public protocol GetAllTipsUseCase { func execute() async throws -> [Tip] }
-public protocol GetFeaturedTipsUseCase { func execute() async throws -> [Tip] }
-public protocol GetTipByIdUseCase { func execute(id: UUID) async throws -> Tip? }
-public protocol GetTipsByCategoryUseCase { func execute(category: TipCategory) async throws -> [Tip] }
-
-// MARK: - Category Use Cases
-public protocol GetAllCategoriesUseCase { func execute() async throws -> [Category] }
-public protocol GetCategoryByIdUseCase { func execute(id: String) async throws -> Category? }
-public protocol GetActiveCategoriesUseCase { func execute() async throws -> [Category] }
-public protocol GetPredefinedCategoriesUseCase { func execute() async throws -> [Category] }
-public protocol GetCustomCategoriesUseCase { func execute() async throws -> [Category] }
-public protocol CreateCustomCategoryUseCase { func execute(_ category: Category) async throws }
-public protocol UpdateCategoryUseCase { func execute(_ category: Category) async throws }
-public protocol DeleteCategoryUseCase { func execute(id: String) async throws }
-public protocol ValidateCategoryNameUseCase { func execute(name: String) async throws -> Bool }
-
-// MARK: - Onboarding Use Cases
-public protocol GetOnboardingStateUseCase { func execute() async throws -> OnboardingState }
-public protocol SaveOnboardingStateUseCase { func execute(_ state: OnboardingState) async throws }
-public protocol CompleteOnboardingUseCase { func execute(userName: String?, hasNotifications: Bool) async throws }
-
-// MARK: - Slogan Use Cases
-public protocol GetCurrentSloganUseCase { func execute() -> String }
-
-// MARK: - Notification Use Cases
-public protocol RequestNotificationPermissionUseCase { 
-    func execute() async throws -> Bool 
-}
-public protocol CheckNotificationStatusUseCase { 
-    func execute() async -> Bool 
-}
-
-// MARK: - Feature Gating Use Cases
-public protocol CheckFeatureAccessUseCase {
-    func execute() -> Bool
-}
-public protocol CheckHabitCreationLimitUseCase {
-    func execute(currentCount: Int) -> Bool
-}
-public protocol GetPaywallMessageUseCase {
-    func execute() -> String
-}
-
-// MARK: - User Action Use Cases
-public protocol TrackUserActionUseCase {
-    func execute(action: UserActionEvent, context: [String: String])
-}
-public protocol TrackHabitLoggedUseCase {
-    func execute(habitId: String, habitName: String, date: Date, logType: String, value: Double?)
-}
-
-// MARK: - Auth Use Cases
-
-// MARK: - Paywall Use Cases
-public protocol LoadPaywallProductsUseCase {
-    func execute() async throws -> [Product]
-}
-public protocol PurchaseProductUseCase {
-    func execute(_ product: Product) async throws -> Bool
-}
-public protocol RestorePurchasesUseCase {
-    func execute() async throws -> Bool
-}
-public protocol CheckProductPurchasedUseCase {
-    func execute(_ productId: String) async -> Bool
-}
-public protocol ResetPurchaseStateUseCase {
-    func execute()
-}
-public protocol GetPurchaseStateUseCase {
-    func execute() -> PurchaseState
-}
-
-// MARK: - Habit Schedule Use Cases
-public protocol ValidateHabitScheduleUseCase {
-    func execute(date: Date, habit: Habit) -> Bool
-}
-public protocol CheckWeeklyTargetUseCase {
-    func execute(date: Date, habit: Habit, habitLogValues: [Date: Double], userProfile: UserProfile?) -> Bool
-}
 
 // MARK: - Habit Use Case Implementations
 public final class CreateHabit: CreateHabitUseCase {
@@ -593,9 +465,6 @@ public final class CompleteOnboarding: CompleteOnboardingUseCase {
 // MARK: - User Management Use Cases
 
 // UserService-based subscription update
-public protocol UpdateProfileSubscriptionUseCase {
-    func execute(product: Product) async throws
-}
 
 public final class UpdateProfileSubscription: UpdateProfileSubscriptionUseCase {
     private let userService: UserService
@@ -956,11 +825,6 @@ public final class GetPurchaseState: GetPurchaseStateUseCase {
     }
 }
 
-// MARK: - Habit Count UseCase
-
-public protocol GetHabitCountUseCase {
-    func execute() async -> Int
-}
 
 public final class GetHabitCount: GetHabitCountUseCase {
     private let habitRepository: HabitRepository
@@ -980,17 +844,6 @@ public final class GetHabitCount: GetHabitCountUseCase {
     }
 }
 
-// MARK: - Habit Suggestion UseCase
-
-public protocol CreateHabitFromSuggestionUseCase {
-    func execute(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult
-}
-
-public enum CreateHabitFromSuggestionResult {
-    case success(habitId: UUID)
-    case limitReached(message: String)
-    case error(String)
-}
 
 public final class CreateHabitFromSuggestion: CreateHabitFromSuggestionUseCase {
     private let createHabit: CreateHabitUseCase
@@ -1030,16 +883,6 @@ public final class CreateHabitFromSuggestion: CreateHabitFromSuggestionUseCase {
             return .error("Failed to create habit: \(error.localizedDescription)")
         }
     }
-}
-
-// MARK: - User Use Cases
-
-public protocol CheckPremiumStatusUseCase {
-    func execute() async -> Bool
-}
-
-public protocol GetCurrentUserProfileUseCase {
-    func execute() async -> UserProfile
 }
 
 // MARK: - User Use Case Implementations

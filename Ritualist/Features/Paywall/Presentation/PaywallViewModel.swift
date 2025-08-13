@@ -77,7 +77,7 @@ public final class PaywallViewModel {
             // Log error to centralized handler
             await errorHandler?.logError(
                 error,
-                context: ErrorContext.paywall("load_products"),
+                context: ErrorContext.paywall,
                 additionalProperties: ["products_count": products.count]
             )
         }
@@ -155,7 +155,7 @@ public final class PaywallViewModel {
             // Log error to centralized handler
             await errorHandler?.logError(
                 error,
-                context: ErrorContext.paywall("purchase"),
+                context: ErrorContext.paywall,
                 additionalProperties: ["product_id": product.id]
             )
         }
@@ -209,7 +209,7 @@ public final class PaywallViewModel {
             // Log error to centralized handler
             await errorHandler?.logError(
                 error,
-                context: ErrorContext.paywall("restore"),
+                context: ErrorContext.paywall,
                 additionalProperties: [:]
             )
         }

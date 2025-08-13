@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Service for validating data thresholds required for personality analysis
 public protocol DataThresholdValidator {

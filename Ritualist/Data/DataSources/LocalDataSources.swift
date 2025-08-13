@@ -2,10 +2,7 @@ import Foundation
 import RitualistCore
 import SwiftData
 
-public enum CategoryDataSourceError: Error {
-    case categoryAlreadyExists
-    case categoryNotFound
-}
+// CategoryDataSourceError moved to RitualistCore
 
 // HabitLocalDataSourceLegacy removed - using @ModelActor version
 

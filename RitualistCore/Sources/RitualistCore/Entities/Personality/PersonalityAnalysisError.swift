@@ -1,6 +1,6 @@
 //
 //  PersonalityAnalysisError.swift
-//  Ritualist
+//  RitualistCore
 //
 //  Created by Claude on 06.08.2025.
 //

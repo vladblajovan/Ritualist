@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Protocol for scheduling automatic personality analysis based on user preferences
 public protocol PersonalityAnalysisSchedulerProtocol {

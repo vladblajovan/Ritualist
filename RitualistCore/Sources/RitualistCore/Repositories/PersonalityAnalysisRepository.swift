@@ -1,12 +1,11 @@
 //
-//  PersonalityAnalysisRepositoryProtocol.swift
-//  Ritualist
+//  PersonalityAnalysisRepository.swift
+//  RitualistCore
 //
 //  Created by Claude on 06.08.2025.
 //
 
 import Foundation
-import RitualistCore
 
 /// Repository protocol for personality analysis data operations
 public protocol PersonalityAnalysisRepositoryProtocol {

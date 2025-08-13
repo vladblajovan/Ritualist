@@ -8,10 +8,7 @@
 import Foundation
 import RitualistCore
 
-public protocol HabitScheduleAnalyzerProtocol {
-    func calculateExpectedDays(for habit: Habit, from startDate: Date, to endDate: Date) -> Int
-    func isHabitExpectedOnDate(habit: Habit, date: Date) -> Bool
-}
+// HabitScheduleAnalyzerProtocol moved to RitualistCore/Services/ServiceProtocols.swift
 
 public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
     private let calendar: Calendar

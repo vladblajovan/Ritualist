@@ -2,26 +2,7 @@ import Foundation
 import RitualistCore
 
 // MARK: - Notification Use Case Protocols
-
-public protocol ScheduleHabitRemindersUseCase {
-    func execute(habit: Habit) async throws
-}
-
-public protocol LogHabitFromNotificationUseCase {
-    func execute(habitId: UUID, date: Date, value: Double?) async throws
-}
-
-public protocol SnoozeHabitReminderUseCase {
-    func execute(habitId: UUID, habitName: String, originalTime: ReminderTime) async throws
-}
-
-public protocol HandleNotificationActionUseCase {
-    func execute(action: NotificationAction, habitId: UUID, habitName: String?, reminderTime: ReminderTime?) async throws
-}
-
-public protocol CancelHabitRemindersUseCase {
-    func execute(habitId: UUID) async
-}
+// All notification UseCase protocols moved to RitualistCore/UseCases/UseCaseProtocols.swift
 
 // MARK: - Notification Use Case Implementations
 

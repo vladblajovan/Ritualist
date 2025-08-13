@@ -1,11 +1,12 @@
 import SwiftUI
 import Combine
+import RitualistCore
 
 // MARK: - Navigation Service Implementation
 
 @MainActor
 public final class NavigationService: ObservableObject {
-    @Published public var selectedTab: RootTab = .overview
+    @Published public var selectedTab: RitualistPages = .overview
     @Published public var shouldRefreshOverview = false
     public var trackingService: UserActionTrackerService?
     
@@ -50,7 +51,7 @@ public final class NavigationService: ObservableObject {
         }
     }
     
-    private func tabName(_ tab: RootTab) -> String {
+    private func tabName(_ tab: RitualistPages) -> String {
         switch tab {
         case .overview: return "overview"
         case .habits: return "habits"

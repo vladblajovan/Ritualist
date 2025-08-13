@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import FactoryKit
+import RitualistCore
 
 @MainActor
 @Observable

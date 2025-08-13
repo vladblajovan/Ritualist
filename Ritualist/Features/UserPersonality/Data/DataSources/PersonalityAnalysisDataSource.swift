@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import RitualistCore
 
 /// Data source for personality analysis SwiftData operations
 public protocol PersonalityAnalysisDataSource {

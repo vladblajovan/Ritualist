@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import FactoryKit
+import RitualistCore
 
 @MainActor
 @Observable

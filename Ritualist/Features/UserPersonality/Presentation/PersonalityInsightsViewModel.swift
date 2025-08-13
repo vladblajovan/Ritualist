@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 @MainActor
 public final class PersonalityInsightsViewModel: ObservableObject {

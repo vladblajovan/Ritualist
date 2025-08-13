@@ -8,6 +8,7 @@
 import SwiftUI
 import FactoryKit
 import UserNotifications
+import RitualistCore
 
 /// Sheet that handles deep linking to personality analysis from notifications
 public struct PersonalityAnalysisDeepLinkSheet: View {

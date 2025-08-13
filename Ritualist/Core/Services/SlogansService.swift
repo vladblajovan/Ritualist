@@ -1,29 +1,7 @@
 import Foundation
 import RitualistCore
 
-// MARK: - Time of Day
-
-public enum TimeOfDay: CaseIterable {
-    case morning    // Until 11:00
-    case noon       // Between 11:00 and 16:00
-    case evening    // After 16:00
-}
-
-// MARK: - Slogans Service Protocol
-
-public protocol SlogansServiceProtocol {
-    /// Get a random slogan for the current time of day
-    func getCurrentSlogan() -> String
-    
-    /// Get a random slogan for a specific time of day
-    func getSlogan(for timeOfDay: TimeOfDay) -> String
-    
-    /// Get the current time of day based on current time
-    func getCurrentTimeOfDay() -> TimeOfDay
-    
-    /// Get the current time of day based on a specific date
-    func getTimeOfDay(for date: Date) -> TimeOfDay
-}
+// MARK: - Slogans Service (protocol moved to RitualistCore)
 
 // MARK: - Slogans Service Implementation
 

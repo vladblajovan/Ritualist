@@ -1,16 +1,6 @@
 import Foundation
 import RitualistCore
 
-// MARK: - Streak Calculation Use Cases
-
-public protocol CalculateCurrentStreakUseCase {
-    func execute(habit: Habit, logs: [HabitLog], asOf: Date) -> Int
-}
-
-public protocol CalculateBestStreakUseCase {
-    func execute(habit: Habit, logs: [HabitLog]) -> Int
-}
-
 // MARK: - Streak Use Case Implementations
 
 public final class CalculateCurrentStreak: CalculateCurrentStreakUseCase {

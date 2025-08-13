@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import RitualistCore
 
 // MARK: - Build Config Feature Gating Service
 

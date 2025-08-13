@@ -3,48 +3,7 @@ import Observation
 import FactoryKit
 import RitualistCore
 
-// MARK: - User Business Service Protocol
-
-/// Thread-agnostic business logic for user profile operations
-public protocol UserBusinessService {
-    /// Get current user profile - delegates to ProfileRepository
-    func getCurrentProfile() async throws -> UserProfile
-    
-    /// Check if user has premium features
-    func isPremiumUser() async throws -> Bool
-    
-    /// Update user profile - syncs to both local and cloud
-    func updateProfile(_ profile: UserProfile) async throws
-    
-    /// Update subscription after purchase - syncs to both local and cloud
-    func updateSubscription(plan: SubscriptionPlan, expiryDate: Date?) async throws
-    
-    /// Sync with iCloud (future implementation)
-    func syncWithiCloud() async throws
-}
-
-// MARK: - User Service Protocol (Legacy)
-
-/// Simplified user service that manages the single UserProfile entity
-/// No authentication required - designed for iCloud sync
-/// Acts as a bridge between local ProfileRepository and cloud storage
-@available(*, deprecated, message: "Use UserUIService with UserBusinessService instead")
-public protocol UserService {
-    /// Current user profile (includes subscription info) - delegates to ProfileRepository
-    var currentProfile: UserProfile { get }
-    
-    /// Check if user has premium features
-    var isPremiumUser: Bool { get }
-    
-    /// Update user profile - syncs to both local and cloud
-    func updateProfile(_ profile: UserProfile) async throws
-    
-    /// Update subscription after purchase - syncs to both local and cloud
-    func updateSubscription(plan: SubscriptionPlan, expiryDate: Date?) async throws
-    
-    /// Sync with iCloud (future implementation)
-    func syncWithiCloud() async throws
-}
+// MARK: - User Service (protocols moved to RitualistCore)
 
 // MARK: - Business Service Implementations
 

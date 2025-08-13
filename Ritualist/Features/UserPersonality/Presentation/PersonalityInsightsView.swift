@@ -8,6 +8,7 @@
 import SwiftUI
 import FactoryKit
 import UserNotifications
+import RitualistCore
 
 /// Main view for displaying personality insights in Settings
 public struct PersonalityInsightsView: View {

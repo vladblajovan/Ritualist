@@ -1,89 +1,9 @@
 import Foundation
 import Observation
 import Combine
+import RitualistCore
 
-// MARK: - Feature Gating Service
-
-public protocol FeatureGatingService {
-    /// Maximum number of habits allowed for the current user
-    var maxHabitsAllowed: Int { get }
-    
-    /// Whether the user can create more habits
-    func canCreateMoreHabits(currentCount: Int) -> Bool
-    
-    /// Whether advanced analytics are available
-    var hasAdvancedAnalytics: Bool { get }
-    
-    /// Whether custom reminders are available
-    var hasCustomReminders: Bool { get }
-    
-    /// Whether data export is available
-    var hasDataExport: Bool { get }
-    
-    /// Whether premium themes are available
-    var hasPremiumThemes: Bool { get }
-    
-    /// Whether priority support is available
-    var hasPrioritySupport: Bool { get }
-    
-    /// Get a user-friendly message when a feature is blocked
-    func getFeatureBlockedMessage(for feature: FeatureType) -> String
-    
-    /// Check if a specific feature is available
-    func isFeatureAvailable(_ feature: FeatureType) -> Bool
-}
-
-public enum FeatureType: String, CaseIterable {
-    case unlimitedHabits = "unlimited_habits"
-    case advancedAnalytics = "advanced_analytics"
-    case customReminders = "custom_reminders"
-    case dataExport = "data_export"
-    case premiumThemes = "premium_themes"
-    case prioritySupport = "priority_support"
-    
-    var displayName: String {
-        switch self {
-        case .unlimitedHabits: return "Unlimited Habits"
-        case .advancedAnalytics: return "Advanced Analytics"
-        case .customReminders: return "Custom Reminders"
-        case .dataExport: return "Data Export"
-        case .premiumThemes: return "Premium Themes"
-        case .prioritySupport: return "Priority Support"
-        }
-    }
-}
-
-// MARK: - Business Service Protocol
-
-/// Thread-agnostic business logic for feature gating
-public protocol FeatureGatingBusinessService {
-    /// Maximum number of habits allowed for the current user
-    var maxHabitsAllowed: Int { get async }
-    
-    /// Whether the user can create more habits
-    func canCreateMoreHabits(currentCount: Int) async -> Bool
-    
-    /// Whether advanced analytics are available
-    var hasAdvancedAnalytics: Bool { get async }
-    
-    /// Whether custom reminders are available
-    var hasCustomReminders: Bool { get async }
-    
-    /// Whether data export is available
-    var hasDataExport: Bool { get async }
-    
-    /// Whether premium themes are available
-    var hasPremiumThemes: Bool { get async }
-    
-    /// Whether priority support is available
-    var hasPrioritySupport: Bool { get async }
-    
-    /// Get a user-friendly message when a feature is blocked
-    func getFeatureBlockedMessage(for feature: FeatureType) -> String
-    
-    /// Check if a specific feature is available
-    func isFeatureAvailable(_ feature: FeatureType) async -> Bool
-}
+// MARK: - Feature Gating Service (protocols moved to RitualistCore)
 
 // MARK: - Business Implementation
 

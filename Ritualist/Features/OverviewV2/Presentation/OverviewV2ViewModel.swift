@@ -5,102 +5,7 @@ import RitualistCore
 
 // swiftlint:disable file_length type_body_length
 
-// MARK: - Data Models
-
-public struct TodaysSummary {
-    public let completedHabitsCount: Int
-    public let completedHabits: [Habit]
-    public let totalHabits: Int
-    public let completionPercentage: Double
-    public let motivationalMessage: String
-    public let incompleteHabits: [Habit]
-    
-    public init(completedHabitsCount: Int, completedHabits: [Habit], totalHabits: Int, incompleteHabits: [Habit]) {
-        self.completedHabitsCount = completedHabitsCount
-        self.completedHabits = completedHabits
-        self.totalHabits = totalHabits
-        self.completionPercentage = totalHabits > 0 ? Double(completedHabitsCount) / Double(totalHabits) : 0.0
-        self.incompleteHabits = incompleteHabits
-        
-        // Generate motivational message based on progress
-        if completionPercentage >= 1.0 {
-            self.motivationalMessage = "Perfect day! All habits completed! 🎉"
-        } else if completionPercentage >= 0.8 {
-            let remaining = totalHabits - completedHabitsCount
-            self.motivationalMessage = "Great work! \(remaining) habit\(remaining == 1 ? "" : "s") left"
-        } else if completionPercentage >= 0.5 {
-            self.motivationalMessage = "Keep going! You're halfway there"
-        } else if completedHabitsCount > 0 {
-            self.motivationalMessage = "Good start! Let's build momentum"
-        } else {
-            self.motivationalMessage = "Ready to start your day?"
-        }
-    }
-}
-
-public struct WeeklyProgress {
-    public let daysCompleted: [Bool] // 7 days, starting from user's week start day
-    public let weeklyCompletionRate: Double
-    public let currentDayIndex: Int
-    public let weekDescription: String
-    
-    public init(daysCompleted: [Bool], currentDayIndex: Int) {
-        self.daysCompleted = daysCompleted
-        self.currentDayIndex = currentDayIndex
-        
-        let completedDays = daysCompleted.filter { $0 }.count
-        self.weeklyCompletionRate = Double(completedDays) / 7.0
-        
-        let percentage = Int(weeklyCompletionRate * 100)
-        self.weekDescription = "\(completedDays) days completed • \(percentage)% weekly"
-    }
-}
-
-public struct StreakInfo: Identifiable {
-    public let id: String
-    public let habitName: String
-    public let emoji: String
-    public let currentStreak: Int
-    public let isActive: Bool
-    
-    public var flameCount: Int {
-        if currentStreak >= 30 { return 3 }
-        else if currentStreak >= 14 { return 2 }
-        else if currentStreak >= 7 { return 1 }
-        else { return 0 }
-    }
-    
-    public var flameEmoji: String {
-        String(repeating: "🔥", count: flameCount)
-    }
-    
-    public init(id: String, habitName: String, emoji: String, currentStreak: Int, isActive: Bool) {
-        self.id = id
-        self.habitName = habitName
-        self.emoji = emoji
-        self.currentStreak = currentStreak
-        self.isActive = isActive
-    }
-}
-
-public struct SmartInsight {
-    public let title: String
-    public let message: String
-    public let type: InsightType
-    
-    public enum InsightType {
-        case pattern
-        case suggestion
-        case celebration
-        case warning
-    }
-    
-    public init(title: String, message: String, type: InsightType) {
-        self.title = title
-        self.message = message
-        self.type = type
-    }
-}
+// MARK: - Data Models (moved to RitualistCore)
 
 // MARK: - ViewModel
 
@@ -188,32 +93,8 @@ public final class OverviewV2ViewModel {
         return showInspirationCard
     }
     
-    private enum InspirationTrigger: CaseIterable, Hashable {
-        case sessionStart          // First app open of the day
-        case morningMotivation     // 0% completion in morning
-        case firstHabitComplete    // Just completed first habit
-        case halfwayPoint         // Hit 50% completion
-        case strugglingMidDay     // <40% completion at noon
-        case afternoonPush        // <60% completion in afternoon (3-5pm)
-        case strongFinish         // Hit 75%+ completion
-        case perfectDay           // 100% completion
-        case eveningReflection    // Evening with good progress (>60%)
-        case weekendMotivation    // Weekend-specific encouragement
-        case comebackStory        // Improved from yesterday
-        
-        var cooldownMinutes: Int {
-            switch self {
-            case .sessionStart, .perfectDay:
-                return 0  // No cooldown
-            case .firstHabitComplete, .halfwayPoint, .strongFinish:
-                return 60 // 1 hour cooldown
-            case .morningMotivation, .strugglingMidDay, .afternoonPush:
-                return 120 // 2 hour cooldown
-            case .eveningReflection, .weekendMotivation, .comebackStory:
-                return 180 // 3 hour cooldown
-            }
-        }
-    }
+    // InspirationTrigger moved to RitualistCore/Enums/MotivationEnums.swift
+    private typealias InspirationTrigger = RitualistCore.InspirationTrigger
     
     public var weeklyCompletionData: [Date: Double] {
         // Return subset of monthly data for current week

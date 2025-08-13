@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Protocol for secure subscription validation and management
 /// Designed to be implemented with mock services during development

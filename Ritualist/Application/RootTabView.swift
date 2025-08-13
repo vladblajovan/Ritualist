@@ -1,9 +1,6 @@
 import SwiftUI
 import FactoryKit
-
-public enum RootTab: Hashable {
-    case overview, habits, dashboard, settings
-}
+import RitualistCore
 
 public struct RootTabView: View {
     @Injected(\.rootTabViewModel) var viewModel
@@ -27,26 +24,26 @@ public struct RootTabView: View {
                     .background(Color(.systemBackground))
             } else {
                 TabView(selection: $navigationService.selectedTab) {
-                    Tab(Strings.Navigation.overview, systemImage: "calendar", value: RootTab.overview) {
+                    Tab(Strings.Navigation.overview, systemImage: "calendar", value: RitualistPages.overview) {
                             NavigationStack {
                                 OverviewV2Root()
                                     .id(overviewKey)
                             }
                         }
 
-                        Tab(Strings.Navigation.habits, systemImage: "checklist", value: RootTab.habits) {
+                        Tab(Strings.Navigation.habits, systemImage: "checklist", value: RitualistPages.habits) {
                             NavigationStack {
                                 HabitsRoot()
                             }
                         }
 
-                        Tab(Strings.Navigation.dashboard, systemImage: "chart.bar.fill", value: RootTab.dashboard) {
+                        Tab(Strings.Navigation.dashboard, systemImage: "chart.bar.fill", value: RitualistPages.dashboard) {
                             NavigationStack {
                                 DashboardRoot()
                             }
                         }
 
-                        Tab(Strings.Navigation.settings, systemImage: "gear", value: RootTab.settings) {
+                        Tab(Strings.Navigation.settings, systemImage: "gear", value: RitualistPages.settings) {
                             NavigationStack {
                                 SettingsRoot()
                             }

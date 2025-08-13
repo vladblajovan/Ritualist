@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Use case for updating/refreshing personality analysis
 public protocol UpdatePersonalityAnalysisUseCase {

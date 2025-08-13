@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RitualistCore
 
 /// Use case for generating personalized insights based on personality analysis
 public protocol GetPersonalityInsightsUseCase {
