@@ -51,7 +51,7 @@ public struct CardDesign {
 
 /// Unified card style modifier
 @available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
-public struct UnifiedCardStyle: ViewModifier {
+public struct CardStyle: ViewModifier {
     public init() {}
     
     public func body(content: Content) -> some View {
@@ -68,10 +68,28 @@ public struct UnifiedCardStyle: ViewModifier {
     }
 }
 
+/// Apple-recommended bounce style for interactive feedback
+@available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
+public struct BounceStyle: ButtonStyle {
+    public init() {}
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(
+                .spring(response: 0.4, dampingFraction: 0.6),
+                value: configuration.isPressed
+            )
+    }
+}
+
 @available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
 public extension View {
-    func cardStyle() -> some View {
-        modifier(UnifiedCardStyle())
+    func cardStyle(action: @escaping () -> Void = {}) -> some View {
+        Button(action: action) {
+            self.modifier(CardStyle())
+        }
+        .buttonStyle(BounceStyle())
     }
 }
 

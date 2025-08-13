@@ -246,7 +246,7 @@ struct MonthlyCalendarCard: View {
     }
     
     private func weekdayHeaders() -> [String] {
-        return DateUtils.orderedWeekdaySymbols(style: .veryShort)
+        DateUtils.orderedWeekdaySymbols(style: .veryShort)
     }
     
     private func getMonthDays(for date: Date) -> [Date] {
@@ -287,8 +287,8 @@ extension Calendar {
         var data: [Date: Double] = [:]
         
         // Generate sample completion data for current month
-        for i in 1...30 {
-            if let date = calendar.date(byAdding: .day, value: -i, to: Date()) {
+        for index in 1...30 {
+            if let date = calendar.date(byAdding: .day, value: -index, to: Date()) {
                 data[calendar.startOfDay(for: date)] = Double.random(in: 0...1)
             }
         }

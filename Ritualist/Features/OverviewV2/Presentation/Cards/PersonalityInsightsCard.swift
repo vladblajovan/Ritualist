@@ -97,7 +97,7 @@ struct PersonalityInsightsCard: View {
                 noInsightsContent
             }
         }
-        .cardStyle()
+        .cardStyle(action: onOpenAnalysis)
     }
     
     // MARK: - Content Views
