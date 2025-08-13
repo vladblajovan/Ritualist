@@ -70,31 +70,6 @@ extension Container {
         }
     }
     
-    @MainActor
-    var overviewViewModel: Factory<OverviewViewModel> {
-        self { @MainActor in
-            OverviewViewModel(
-                getActiveHabits: self.getActiveHabits(),
-                getLogs: self.getLogs(),
-                getLogForDate: self.getLogForDate(),
-                calculateCurrentStreak: self.calculateCurrentStreak(),
-                calculateBestStreak: self.calculateBestStreak(),
-                loadProfile: self.loadProfile(),
-                generateCalendarDays: self.generateCalendarDays(),
-                generateCalendarGrid: self.generateCalendarGrid(),
-                toggleHabitLog: self.toggleHabitLog(),
-                getCurrentSlogan: self.getCurrentSlogan(),
-                trackUserAction: self.trackUserAction(),
-                trackHabitLogged: self.trackHabitLogged(),
-                checkFeatureAccess: self.checkFeatureAccess(),
-                checkHabitCreationLimit: self.checkHabitCreationLimit(),
-                getPaywallMessage: self.getPaywallMessage(),
-                validateHabitSchedule: self.validateHabitSchedule(),
-                checkWeeklyTarget: self.checkWeeklyTarget()
-            )
-        }
-        .singleton
-    }
     
     @MainActor
     var tipsViewModel: Factory<TipsViewModel> {

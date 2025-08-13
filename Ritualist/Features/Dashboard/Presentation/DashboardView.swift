@@ -52,7 +52,7 @@ public struct DashboardView: View {
                 
                 Spacer(minLength: 100) // Bottom padding for tab bar
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, Spacing.screenMargin)
         }
         .refreshable {
             await vm.refresh()

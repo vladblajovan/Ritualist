@@ -72,12 +72,15 @@ struct PersonalityInsightsCard: View {
                 
                 Spacer()
                 
-                // Link to full analysis
+                // Link to full analysis - only this icon opens the sheet
                 Button(action: onOpenAnalysis) {
                     Image(systemName: "arrow.up.right")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                        .contentShape(Circle())
+                        .frame(width: 24, height: 24)
                 }
+                .buttonStyle(PlainButtonStyle())
             }
             
             // Content based on state
@@ -97,44 +100,46 @@ struct PersonalityInsightsCard: View {
                 noInsightsContent
             }
         }
-        .cardStyle(action: onOpenAnalysis)
+        .cardStyle() // Remove action - only top-right icon should open sheet
     }
     
     // MARK: - Content Views
     
     @ViewBuilder
     private var insightsContent: some View {
+        let initialInsightsCount = 2
+        
         VStack(spacing: 16) {
-            ForEach(Array(insights.prefix(isExpanded ? insights.count : 3).enumerated()), id: \.element.id) { index, insight in
+            ForEach(Array(insights.prefix(isExpanded ? insights.count : initialInsightsCount).enumerated()), id: \.element.id) { index, insight in
                 InsightRow(insight: insight)
                 
-                if index < min(insights.count, isExpanded ? insights.count : 3) - 1 {
+                if index < min(insights.count, isExpanded ? insights.count : initialInsightsCount) - 1 {
                     Divider()
                         .opacity(0.3)
                 }
             }
             
             // Show more/less indicator if there are additional insights
-            if insights.count > 3 {
+            if insights.count > initialInsightsCount {
                 HStack {
-                    Text(isExpanded ? "Show less" : "View \(insights.count - 3) more insights")
+                    Text(isExpanded ? "Show less" : "View \(insights.count - initialInsightsCount) more insights")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
                     Spacer()
                     
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isExpanded.toggle()
-                        }
-                    } label: {
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                    // Expand/collapse handled by tap on this row only
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                 }
                 .padding(.top, 4)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isExpanded.toggle()
+                    }
+                }
             }
         }
     }

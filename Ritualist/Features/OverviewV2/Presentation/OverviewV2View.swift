@@ -3,7 +3,7 @@ import FactoryKit
 import RitualistCore
 
 public struct OverviewV2View: View {
-    @ObservedObject var vm: OverviewV2ViewModel
+    @State var vm: OverviewV2ViewModel
     
     public init(vm: OverviewV2ViewModel) {
         self.vm = vm
@@ -45,7 +45,12 @@ public struct OverviewV2View: View {
                     onNumericHabitUpdate: { habit, newValue in
                         await vm.updateNumericHabit(habit, value: newValue)
                     },
-                    getCurrentProgress: vm.getCurrentProgress,
+                    getProgressSync: { habit in
+                        vm.getProgressSync(for: habit)
+                    },
+                    onNumericHabitAction: { habit in
+                        vm.showNumericSheet(for: habit)
+                    },
                     onPreviousDay: {
                         vm.goToPreviousDay()
                     },
@@ -65,18 +70,22 @@ public struct OverviewV2View: View {
                         currentSlogan: vm.currentSlogan,
                         timeOfDay: vm.currentTimeOfDay,
                         completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
+                        viewingDate: vm.viewingDate,
                         onHabitComplete: { habit in
                             Task {
                                 await vm.completeHabit(habit)
                             }
                         },
-                        getCurrentProgress: { habit in
-                            vm.getCurrentProgress(for: habit)
+                        getProgressSync: { habit in
+                            vm.getProgressSync(for: habit)
                         },
                         onNumericHabitUpdate: { habit, newValue in
                             Task {
                                 await vm.updateNumericHabit(habit, value: newValue)
                             }
+                        },
+                        onNumericHabitAction: { habit in
+                            vm.showNumericSheet(for: habit)
                         },
                         onDeleteHabitLog: { habit in
                             Task {
@@ -86,8 +95,13 @@ public struct OverviewV2View: View {
                     )
                 }
                 
-                if vm.shouldShowActiveStreaks {
-                    ActiveStreaksCard(streaks: vm.activeStreaks)
+                if vm.shouldShowActiveStreaks || vm.isLoading {
+                    StreaksCard(
+                        streaks: vm.activeStreaks,
+                        shouldAnimateBestStreak: false,
+                        onAnimationComplete: {},
+                        isLoading: vm.isLoading
+                    )
                 }
                 
                 // Core navigation and overview
@@ -122,7 +136,7 @@ public struct OverviewV2View: View {
                 
                 Spacer(minLength: 100) // Tab bar padding
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, Spacing.screenMargin)
         }
         .background(Color(.systemGroupedBackground))
         .refreshable {
@@ -134,6 +148,22 @@ public struct OverviewV2View: View {
         .onAppear {
             Task {
                 await vm.refreshPersonalityInsights()
+            }
+        }
+        .sheet(isPresented: $vm.showingNumericSheet) {
+            if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
+                let initialProgress = vm.getProgressSync(for: habit)
+                NumericHabitLogSheetDirect(
+                    habit: habit,
+                    viewingDate: vm.viewingDate,
+                    onSave: { newValue in
+                        await vm.updateNumericHabit(habit, value: newValue)
+                    },
+                    onCancel: {
+                        // Sheet dismisses automatically
+                    },
+                    initialValue: initialProgress
+                )
             }
         }
     }

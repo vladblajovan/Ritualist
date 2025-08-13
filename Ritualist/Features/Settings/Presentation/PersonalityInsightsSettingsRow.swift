@@ -66,6 +66,9 @@ struct PersonalityInsightsSettingsRow: View {
         }
         .sheet(isPresented: $showingPersonalityInsights) {
             PersonalityInsightsView(viewModel: personalityVM)
+                .presentationDetents([.fraction(0.9)]) // 90% height
+                .presentationDragIndicator(.visible)
+                // Remove .presentationBackground for full transparency
         }
     }
     

@@ -7,14 +7,14 @@ struct QuickActionsCard: View {
     let currentSlogan: String?
     let timeOfDay: TimeOfDay
     let completionPercentage: Double
+    let viewingDate: Date // Add viewing date from ViewModel
     let onHabitComplete: (Habit) -> Void
-    let getCurrentProgress: (Habit) -> Double // New callback to get current progress
+    let getProgressSync: (Habit) -> Double // Sync callback to get current progress from ViewModel
     let onNumericHabitUpdate: (Habit, Double) -> Void // New callback for numeric habit updates
+    let onNumericHabitAction: ((Habit) -> Void)? // New callback for numeric habit sheet
     let onDeleteHabitLog: (Habit) -> Void // New callback for deleting habit log
     
     @State private var animatingHabitId: UUID? = nil
-    @State private var showingNumericSheet = false
-    @State private var selectedHabit: Habit?
     @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     
@@ -63,20 +63,6 @@ struct QuickActionsCard: View {
             }
         }
         .cardStyle()
-        .sheet(isPresented: $showingNumericSheet) {
-            if let habit = selectedHabit, habit.kind == .numeric {
-                NumericHabitLogSheet(
-                    habit: habit,
-                    currentValue: getCurrentProgress(habit),
-                    onSave: { newValue in
-                        onNumericHabitUpdate(habit, newValue)
-                    },
-                    onCancel: {
-                        // Sheet dismisses automatically
-                    }
-                )
-            }
-        }
         .alert("Delete Log Entry?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {
                 habitToDelete = nil
@@ -99,26 +85,64 @@ struct QuickActionsCard: View {
         Button {
             if !isCompleted {
                 if habit.kind == .numeric {
-                    selectedHabit = habit
-                    showingNumericSheet = true
+                    onNumericHabitAction?(habit)
                 } else {
-                    // For binary habits, use the original animation and completion flow
+                    // For binary habits, complete immediately with animation
                     withAnimation(.easeOut(duration: 0.3)) {
                         animatingHabitId = habit.id
                     }
                     
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        onHabitComplete(habit)
-                        animatingHabitId = nil
+                    Task {
+                        // Small delay for animation, then complete
+                        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                        await MainActor.run {
+                            onHabitComplete(habit)
+                            animatingHabitId = nil
+                        }
                     }
                 }
             }
         } label: {
             HStack(spacing: 12) {
-                // Habit Emoji
-                Text(habit.emoji ?? "📊")
-                    .font(.title3)
-                    .frame(width: 28, height: 28)
+                // Circular Progress Indicator with Emoji
+                ZStack {
+                    // Background circle with habit color at low opacity
+                    Circle()
+                        .fill(Color(hex: habit.colorHex).opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    
+                    // Progress border (only for incomplete habits)
+                    if !isCompleted {
+                        let progressValue: Double = {
+                            if habit.kind == .numeric {
+                                let currentValue = getProgressSync(habit)
+                                let target = habit.dailyTarget ?? 1.0
+                                return min(max(currentValue / target, 0.0), 1.0)
+                            } else {
+                                return 0.0 // Binary incomplete = 0%
+                            }
+                        }()
+                        
+                        Circle()
+                            .trim(from: 0, to: progressValue)
+                            .stroke(Color(hex: habit.colorHex), lineWidth: 3)
+                            .frame(width: 40, height: 40)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeInOut(duration: 0.3), value: progressValue)
+                    } 
+                    // else {
+                        // Completed habits show full circle - DISABLED: UX overkill
+                        // Circle()
+                        //     .trim(from: 0, to: 1.0)
+                        //     .stroke(.green, lineWidth: 3)
+                        //     .frame(width: 40, height: 40)
+                        //     .rotationEffect(.degrees(-90))
+                    // }
+                    
+                    // Emoji
+                    Text(habit.emoji ?? "📊")
+                        .font(.title3)
+                }
                 
                 // Habit Info
                 VStack(alignment: .leading, spacing: 2) {
@@ -128,17 +152,7 @@ struct QuickActionsCard: View {
                         .lineLimit(1)
                     
                     if habit.kind == .numeric, let unitLabel = habit.unitLabel {
-                        if isCompleted {
-                            Text("\(Int(habit.dailyTarget ?? 1.0)) \(unitLabel) - Completed")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                        } else {
-                            let currentValue = getCurrentProgress(habit)
-                            let target = habit.dailyTarget ?? 1.0
-                            Text("\(Int(currentValue))/\(Int(target)) \(unitLabel)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        numericHabitStatusText(habit: habit, unitLabel: unitLabel, isCompleted: isCompleted)
                     } else {
                         Text(isCompleted ? "Completed" : "Tap to complete")
                             .font(.caption)
@@ -155,8 +169,8 @@ struct QuickActionsCard: View {
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isCompleted ? Color.green.opacity(0.15) : Color(.systemBackground))
-                    .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+                    .fill(isCompleted ? Color.green.opacity(0.15) : CardDesign.secondaryBackground)
+                    .shadow(color: isCompleted ? .black.opacity(0.08) : .clear, radius: isCompleted ? 4 : 0, x: 0, y: isCompleted ? 2 : 0)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
@@ -172,6 +186,25 @@ struct QuickActionsCard: View {
                 habitToDelete = habit
                 showingDeleteAlert = true
             }
+        }
+    }
+    
+    
+    @ViewBuilder
+    private func numericHabitStatusText(habit: Habit, unitLabel: String, isCompleted: Bool) -> some View {
+        if isCompleted {
+            let target = Int(habit.dailyTarget ?? 1.0)
+            Text("\(target) \(unitLabel) - Completed")
+                .font(.caption)
+                .foregroundColor(.green)
+        } else {
+            let currentValue = getProgressSync(habit)
+            let target = habit.dailyTarget ?? 1.0
+            let currentInt = Int(currentValue)
+            let targetInt = Int(target)
+            Text("\(currentInt)/\(targetInt) \(unitLabel)")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
     }
 }
@@ -223,9 +256,11 @@ struct QuickActionsCard: View {
             currentSlogan: "Rise with purpose, rule your day.",
             timeOfDay: .morning,
             completionPercentage: 0.6,
+            viewingDate: Date(),
             onHabitComplete: { _ in },
-            getCurrentProgress: { _ in 3.0 }, // Mock progress
+            getProgressSync: { _ in 3.0 }, // Mock progress
             onNumericHabitUpdate: { _, _ in },
+            onNumericHabitAction: { _ in },
             onDeleteHabitLog: { _ in }
         )
         
@@ -236,9 +271,11 @@ struct QuickActionsCard: View {
             currentSlogan: "End strong, dream bigger.",
             timeOfDay: .evening,
             completionPercentage: 1.0,
+            viewingDate: Date(),
             onHabitComplete: { _ in },
-            getCurrentProgress: { _ in 0.0 },
+            getProgressSync: { _ in 0.0 },
             onNumericHabitUpdate: { _, _ in },
+            onNumericHabitAction: { _ in },
             onDeleteHabitLog: { _ in }
         )
     }

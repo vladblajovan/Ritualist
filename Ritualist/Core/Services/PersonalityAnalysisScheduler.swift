@@ -98,38 +98,22 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
     /// Forces analysis to run for manual mode, bypassing frequency checks
     public func forceManualAnalysis(for userId: UUID) async {
         let timestamp = Date().timeIntervalSince1970
-        print("🧠 [DEBUG] Starting force manual analysis for user: \(userId)")
-        
         do {
             // Get user preferences
             guard let preferences = try await personalityRepository.getAnalysisPreferences(for: userId),
                   preferences.isCurrentlyActive else {
-                print("🧠 [DEBUG] Analysis preferences not active - returning")
                 return
             }
-            print("🧠 [DEBUG] Preferences active: \(preferences.analysisFrequency)")
             
             // Check if user has sufficient data
             let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
-            print("🧠 [DEBUG] Analysis eligibility: \(eligibility.isEligible)")
-            
             if !eligibility.isEligible {
-                print("🧠 [DEBUG] Not eligible for analysis - missing requirements:")
-                for requirement in eligibility.missingRequirements {
-                    print("🧠 [DEBUG]   ❌ \(requirement.name): \(requirement.currentValue)/\(requirement.requiredValue) (\(requirement.description))")
-                }
-                print("🧠 [DEBUG] Overall progress: \(eligibility.overallProgress)")
-                if let daysToEligibility = eligibility.estimatedDaysToEligibility {
-                    print("🧠 [DEBUG] Estimated days to eligibility: \(daysToEligibility)")
-                }
                 return
             }
             
-            print("🧠 [DEBUG] All requirements met - proceeding with analysis")
             await performAnalysis(for: userId)
             
             let endTimestamp = Date().timeIntervalSince1970
-            print("🧠 [DEBUG] Force manual analysis completed in \(endTimestamp - timestamp)s")
             
         } catch {
             print("🧠 [DEBUG] Error during forced manual analysis: \(error)")

@@ -237,14 +237,14 @@ private struct HabitSuggestionRow: View {
                         .font(.caption)
                         .padding(.horizontal, Spacing.small)
                         .padding(.vertical, 2)
-                        .background(Color(.systemGray5), in: Capsule())
+                        .background(.gray.opacity(0.1), in: Capsule())
                     
                     if let target = targetText {
                         Text(target)
                             .font(.caption)
                             .padding(.horizontal, Spacing.small)
                             .padding(.vertical, 2)
-                            .background(Color(.systemGray5), in: Capsule())
+                            .background(.gray.opacity(0.1), in: Capsule())
                     }
                 }
             }
@@ -285,10 +285,10 @@ private struct HabitSuggestionRow: View {
             .buttonStyle(PlainButtonStyle())
         }
         .padding(Spacing.medium)
-        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
+        .background(.gray.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(.systemGray5), lineWidth: 1)
+                .stroke(.gray.opacity(0.2), lineWidth: 1)
         )
     }
 }

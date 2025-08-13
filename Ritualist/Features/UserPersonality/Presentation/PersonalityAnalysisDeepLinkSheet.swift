@@ -35,9 +35,12 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
             
-            // Use PersonalityInsightsView without wrapping in another NavigationView
+            // Use PersonalityInsightsView which has its own NavigationView
             PersonalityInsightsView(viewModel: viewModel)
         }
+        .presentationDetents([.fraction(0.9)]) // 90% height
+        .presentationDragIndicator(.visible)
+        // Removed .presentationBackground for full transparency
         .onAppear {
             handleNotificationAction()
             clearNotificationBadge()

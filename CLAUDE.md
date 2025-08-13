@@ -159,6 +159,8 @@
 
 **ALWAYS FOLLOW THESE PRINCIPLES:**
 - **VERIFY BEFORE WRITING**: NEVER use imaginary property, method, function, parameter, or class names. ALWAYS search the actual codebase first using Grep/Read tools
+- **NO EMPTY STUBS**: NEVER implement methods that just return 0, nil, or empty values as placeholders. Always implement actual working logic or clearly mark as TODO with explanation
+- **ALWAYS COMPLETE PLANS**: When you present a plan with steps, you MUST complete ALL steps. Never stop mid-plan or mark things complete when they have build errors. Finish the work completely.
 - **Clean Architecture**: Views → ViewModels → UseCases → Services/Repositories
 - **Separation of Concerns**: No direct service calls from Views or ViewModels
 - **UseCase Pattern**: Every business operation must go through a UseCase

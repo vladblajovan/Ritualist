@@ -10,13 +10,11 @@ struct TodaysSummaryCard: View {
     let currentSlogan: String?
     let onQuickAction: (Habit) -> Void
     let onNumericHabitUpdate: ((Habit, Double) async -> Void)?
-    let getCurrentProgress: ((Habit) -> Double)?
+    let getProgressSync: ((Habit) -> Double)
+    let onNumericHabitAction: ((Habit) -> Void)? // New callback for numeric habit sheet
     let onPreviousDay: () -> Void
     let onNextDay: () -> Void
     let onGoToToday: () -> Void
-    
-    @State private var selectedHabit: Habit?
-    @State private var showingNumericSheet = false
     
     init(summary: TodaysSummary?, 
          viewingDate: Date,
@@ -26,7 +24,8 @@ struct TodaysSummaryCard: View {
          currentSlogan: String? = nil,
          onQuickAction: @escaping (Habit) -> Void,
          onNumericHabitUpdate: ((Habit, Double) async -> Void)? = nil,
-         getCurrentProgress: ((Habit) -> Double)? = nil,
+         getProgressSync: @escaping (Habit) -> Double,
+         onNumericHabitAction: ((Habit) -> Void)? = nil,
          onPreviousDay: @escaping () -> Void,
          onNextDay: @escaping () -> Void,
          onGoToToday: @escaping () -> Void) {
@@ -38,7 +37,8 @@ struct TodaysSummaryCard: View {
         self.currentSlogan = currentSlogan
         self.onQuickAction = onQuickAction
         self.onNumericHabitUpdate = onNumericHabitUpdate
-        self.getCurrentProgress = getCurrentProgress
+        self.getProgressSync = getProgressSync
+        self.onNumericHabitAction = onNumericHabitAction
         self.onPreviousDay = onPreviousDay
         self.onNextDay = onNextDay
         self.onGoToToday = onGoToToday
@@ -198,55 +198,53 @@ struct TodaysSummaryCard: View {
             }
         }
         .cardStyle()
-        .sheet(isPresented: $showingNumericSheet) {
-            if let habit = selectedHabit, habit.kind == .numeric {
-                NumericHabitLogSheet(
-                    habit: habit,
-                    currentValue: getCurrentProgress?(habit) ?? 0.0,
-                    onSave: { newValue in
-                        Task {
-                            await onNumericHabitUpdate?(habit, newValue)
-                        }
-                    },
-                    onCancel: {
-                        // Sheet dismisses automatically
-                    }
-                )
-            }
-        }
     }
     
     @ViewBuilder
     private func quickActionButton(for habit: Habit) -> some View {
         Button {
             if habit.kind == .numeric {
-                selectedHabit = habit
-                showingNumericSheet = true
+                onNumericHabitAction?(habit)
             } else {
                 onQuickAction(habit)
             }
         } label: {
             HStack(spacing: 12) {
-                Text(habit.emoji ?? "📊")
-                    .font(.title2)
+                // Circular Progress Indicator with Emoji
+                ZStack {
+                    // Background circle with habit color at low opacity
+                    Circle()
+                        .fill(Color(hex: habit.colorHex).opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    
+                    // Progress border for numeric habits
+                    if habit.kind == .numeric {
+                        let currentValue = getProgressSync(habit)
+                        let target = habit.dailyTarget ?? 1.0
+                        let progressValue = min(max(currentValue / target, 0.0), 1.0)
+                        
+                        Circle()
+                            .trim(from: 0, to: progressValue)
+                            .stroke(Color(hex: habit.colorHex), lineWidth: 3)
+                            .frame(width: 44, height: 44)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeInOut(duration: 0.3), value: progressValue)
+                    }
+                    
+                    // Emoji
+                    Text(habit.emoji ?? "📊")
+                        .font(.title2)
+                }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     if habit.kind == .numeric {
-                        let currentValue = getCurrentProgress?(habit) ?? 0.0
+                        let currentValue = getProgressSync(habit)
                         let target = habit.dailyTarget ?? 1.0
                         Text("Next: \(habit.name)")
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.primary)
-                        
-                        if currentValue > 0 {
-                            Text("\(Int(currentValue))/\(Int(target)) \(habit.unitLabel ?? "units")")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("Tap to log progress")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        Text("\(Int(currentValue))/\(Int(target)) \(habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? habit.unitLabel! : "units")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     } else {
                         Text("Next: \(habit.name)")
                             .font(.system(size: 15, weight: .medium))
@@ -346,7 +344,8 @@ struct TodaysSummaryCard: View {
             currentSlogan: "Rise with purpose, rule your day.",
             onQuickAction: { _ in },
             onNumericHabitUpdate: { _, _ in },
-            getCurrentProgress: { _ in 0.0 },
+            getProgressSync: { _ in 0.0 },
+            onNumericHabitAction: { _ in },
             onPreviousDay: { },
             onNextDay: { },
             onGoToToday: { }
@@ -380,7 +379,8 @@ struct TodaysSummaryCard: View {
             currentSlogan: nil,
             onQuickAction: { _ in },
             onNumericHabitUpdate: { _, _ in },
-            getCurrentProgress: { _ in 0.0 },
+            getProgressSync: { _ in 0.0 },
+            onNumericHabitAction: { _ in },
             onPreviousDay: { },
             onNextDay: { },
             onGoToToday: { }

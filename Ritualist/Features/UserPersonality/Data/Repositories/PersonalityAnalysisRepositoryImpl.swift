@@ -174,25 +174,11 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     
     
     private func validateEligibilityFromInput(_ input: HabitAnalysisInput) -> AnalysisEligibility {
-        print("🧠 [DEBUG] Validating analysis eligibility from input:")
-        print("🧠 [DEBUG]   - Active habits: \(input.activeHabits.count)")
-        print("🧠 [DEBUG]   - Custom habits: \(input.customHabits.count)")
-        print("🧠 [DEBUG]   - Custom categories: \(input.customCategories.count)")
-        print("🧠 [DEBUG]   - Tracking days: \(input.trackingDays)")
-        print("🧠 [DEBUG]   - Total data points: \(input.totalDataPoints)")
-        print("🧠 [DEBUG]   - Habit categories: \(input.habitCategories.count)")
-        
+
         let requirements = buildThresholdRequirements(from: input)
         let unmetRequirements = requirements.filter { !$0.isMet }
         
-        print("🧠 [DEBUG] Requirements check:")
-        for requirement in requirements {
-            let status = requirement.isMet ? "✅" : "❌"
-            print("🧠 [DEBUG]   \(status) \(requirement.name): \(requirement.currentValue)/\(requirement.requiredValue)")
-        }
-        
         if unmetRequirements.isEmpty {
-            print("🧠 [DEBUG] ✅ All requirements met - eligible for analysis")
             return AnalysisEligibility(
                 isEligible: true,
                 missingRequirements: [],
@@ -200,7 +186,6 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
                 estimatedDaysToEligibility: nil
             )
         } else {
-            print("🧠 [DEBUG] ❌ \(unmetRequirements.count) requirements not met - not eligible")
             return AnalysisEligibility(
                 isEligible: false,
                 missingRequirements: unmetRequirements,

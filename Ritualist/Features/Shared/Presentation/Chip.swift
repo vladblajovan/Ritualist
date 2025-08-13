@@ -31,7 +31,7 @@ public struct Chip: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(
-            isSelected ? (color ?? AppColors.brand) : Color(.systemGray6),
+            isSelected ? (color ?? AppColors.brand) : .gray.opacity(0.1),
             in: Capsule()
         )
         .foregroundColor(

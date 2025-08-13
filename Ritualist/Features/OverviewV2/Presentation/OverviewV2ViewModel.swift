@@ -105,37 +105,37 @@ public struct SmartInsight {
 // MARK: - ViewModel
 
 @MainActor
-public final class OverviewV2ViewModel: ObservableObject {
-    // MARK: - Published Properties
-    @Published public var todaysSummary: TodaysSummary?
-    
-    // Cache for current day's habit progress (habit ID -> current value)
-    // This stores the actual aggregated log values for the viewing date
-    @Published private var currentHabitProgress: [UUID: Double] = [:]
-    
-    // Cache for current day's habit logs (habit ID -> [HabitLog])
-    // This stores the raw logs so we can properly handle updates
-    private var currentHabitLogs: [UUID: [HabitLog]] = [:]
-    @Published public var weeklyProgress: WeeklyProgress?
-    @Published public var activeStreaks: [StreakInfo] = []
-    @Published public var smartInsights: [SmartInsight] = []
-    @Published public var personalityInsights: [OverviewPersonalityInsight] = []
-    @Published public var shouldShowPersonalityInsights = true // Always show the card
-    @Published public var isPersonalityDataSufficient = false // Track if data is sufficient for new analysis
-    @Published public var personalityThresholdRequirements: [ThresholdRequirement] = [] // Current requirements status
-    @Published public var dominantPersonalityTrait: String? = nil
-    @Published public var selectedDate: Date = Date()
-    @Published public var isCalendarExpanded: Bool = false
-    @Published public var viewingDate: Date = Date() // The date being viewed in Today's Progress card
-    @Published public var showInspirationCard: Bool = false
+@Observable
+public final class OverviewV2ViewModel {
+    // MARK: - Observable Properties
+    public var todaysSummary: TodaysSummary?
+    public var weeklyProgress: WeeklyProgress?
+    public var activeStreaks: [StreakInfo] = []
+    public var smartInsights: [SmartInsight] = []
+    public var personalityInsights: [OverviewPersonalityInsight] = []
+    public var shouldShowPersonalityInsights = true // Always show the card
+    public var isPersonalityDataSufficient = false // Track if data is sufficient for new analysis
+    public var personalityThresholdRequirements: [ThresholdRequirement] = [] // Current requirements status
+    public var dominantPersonalityTrait: String? = nil
+    public var selectedDate: Date = Date()
+    public var isCalendarExpanded: Bool = false
+    public var viewingDate: Date = Date() // The date being viewed in Today's Progress card
+    public var showInspirationCard: Bool = false
     
     // Inspiration card tracking
-    private var lastShownInspirationTrigger: InspirationTrigger?
-    private var sessionStartTime: Date = Date()
-    private var dismissedTriggersToday: Set<InspirationTrigger> = []
+    @ObservationIgnored private var lastShownInspirationTrigger: InspirationTrigger?
+    @ObservationIgnored private var sessionStartTime: Date = Date()
+    @ObservationIgnored private var dismissedTriggersToday: Set<InspirationTrigger> = []
     
-    @Published public var isLoading: Bool = false
-    @Published public var error: Error?
+    public var isLoading: Bool = false
+    public var error: Error?
+    
+    // Shared sheet state
+    public var selectedHabitForSheet: Habit?
+    public var showingNumericSheet = false
+    
+    // Progress cache - single source of truth for habit progress
+    @ObservationIgnored private var habitProgressCache: [UUID: Double] = [:]
     
     // MARK: - Computed Properties
     public var incompleteHabits: [Habit] {
@@ -152,7 +152,7 @@ public final class OverviewV2ViewModel: ObservableObject {
     }
     
     public var shouldShowActiveStreaks: Bool {
-        !activeStreaks.isEmpty && activeStreaks.contains { $0.currentStreak >= 3 }
+        !activeStreaks.isEmpty
     }
     
     public var shouldShowInsights: Bool {
@@ -234,23 +234,23 @@ public final class OverviewV2ViewModel: ObservableObject {
         return weeklyData
     }
     
-    @Published public var monthlyCompletionData: [Date: Double] = [:]
+    public var monthlyCompletionData: [Date: Double] = [:]
     
     // MARK: - Dependencies
-    @Injected(\.getActiveHabits) private var getActiveHabits
-    @Injected(\.getLogs) private var getLogs
-    @Injected(\.getBatchLogs) private var getBatchLogs
-    @Injected(\.logHabit) private var logHabit
-    @Injected(\.deleteLog) private var deleteLog
-    @Injected(\.slogansService) private var slogansService
-    @Injected(\.userService) private var userService
-    @Injected(\.calculateCurrentStreak) private var calculateCurrentStreakUseCase
-    @Injected(\.getPersonalityProfileUseCase) private var getPersonalityProfileUseCase
-    @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
-    @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
-    @Injected(\.validateAnalysisDataUseCase) private var validateAnalysisDataUseCase
-    @Injected(\.personalityAnalysisRepository) private var personalityAnalysisRepository
-    @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
+    @ObservationIgnored @Injected(\.getActiveHabits) private var getActiveHabits
+    @ObservationIgnored @Injected(\.getLogs) private var getLogs
+    @ObservationIgnored @Injected(\.getBatchLogs) private var getBatchLogs
+    @ObservationIgnored @Injected(\.logHabit) private var logHabit
+    @ObservationIgnored @Injected(\.deleteLog) private var deleteLog
+    @ObservationIgnored @Injected(\.slogansService) private var slogansService
+    @ObservationIgnored @Injected(\.userService) private var userService
+    @ObservationIgnored @Injected(\.calculateCurrentStreak) private var calculateCurrentStreakUseCase
+    @ObservationIgnored @Injected(\.getPersonalityProfileUseCase) private var getPersonalityProfileUseCase
+    @ObservationIgnored @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
+    @ObservationIgnored @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
+    @ObservationIgnored @Injected(\.validateAnalysisDataUseCase) private var validateAnalysisDataUseCase
+    @ObservationIgnored @Injected(\.personalityAnalysisRepository) private var personalityAnalysisRepository
+    @ObservationIgnored @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     
     private var userId: UUID { 
         userService.currentProfile.id 
@@ -275,13 +275,15 @@ public final class OverviewV2ViewModel: ObservableObject {
             async let activeStreaksTask = loadActiveStreaks()
             async let insightsTask = loadSmartInsights()
             async let monthlyDataTask = loadMonthlyCompletionData()
+            async let preloadHabitDataTask = preloadHabitData()
             
-            let (todaySummary, weeklyProgress, streaks, insights, monthlyData) = try await (
+            let (todaySummary, weeklyProgress, streaks, insights, monthlyData, _) = try await (
                 todaySummaryTask,
                 weeklyProgressTask,
                 activeStreaksTask,
                 insightsTask,
-                monthlyDataTask
+                monthlyDataTask,
+                preloadHabitDataTask
             )
             
             // Load personality insights separately (non-blocking)
@@ -335,10 +337,6 @@ public final class OverviewV2ViewModel: ObservableObject {
                 
                 try await logHabit.execute(log)
                 
-                // Update caches
-                currentHabitProgress[habit.id] = 1.0
-                currentHabitLogs[habit.id] = [log]
-                
                 // Refresh data to show updated progress
                 await loadData()
             }
@@ -349,28 +347,25 @@ public final class OverviewV2ViewModel: ObservableObject {
         }
     }
     
-    public func getCurrentProgress(for habit: Habit) -> Double {
-        if let cached = currentHabitProgress[habit.id] {
-            return cached
-        }
-        
-        // If not in cache, try to get from current logs cache
-        if let logs = currentHabitLogs[habit.id] {
+    public func getCurrentProgress(for habit: Habit) async -> Double {
+        do {
+            let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
+            let logsForDate = allLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
+            
             if habit.kind == .numeric {
-                return logs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+                return logsForDate.reduce(0.0) { $0 + ($1.value ?? 0.0) }
             } else {
-                return logs.isEmpty ? 0.0 : 1.0
+                return logsForDate.isEmpty ? 0.0 : 1.0
             }
+        } catch {
+            print("Failed to get current progress for habit \(habit.name): \(error)")
+            return 0.0
         }
-        
-        return 0.0
     }
+    
     
     public func updateNumericHabit(_ habit: Habit, value: Double) async {
         do {
-            // Update the cache immediately for responsive UI
-            currentHabitProgress[habit.id] = value
-            
             // Get existing logs for this habit on the viewing date
             let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
             let existingLogsForDate = allLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
@@ -384,17 +379,11 @@ public final class OverviewV2ViewModel: ObservableObject {
                     value: value
                 )
                 try await logHabit.execute(log)
-                
-                // Update our cache
-                currentHabitLogs[habit.id] = [log]
             } else if existingLogsForDate.count == 1 {
                 // Single existing log - update it
                 var updatedLog = existingLogsForDate[0]
                 updatedLog.value = value
                 try await logHabit.execute(updatedLog)
-                
-                // Update our cache
-                currentHabitLogs[habit.id] = [updatedLog]
                 
             } else {
                 // Multiple logs exist for this date - this shouldn't happen for our UI
@@ -410,27 +399,27 @@ public final class OverviewV2ViewModel: ObservableObject {
                     value: value
                 )
                 try await logHabit.execute(log)
-                
-                // Update our cache
-                currentHabitLogs[habit.id] = [log]
             }
+            
+            // Update progress cache immediately for responsive UI
+            habitProgressCache[habit.id] = value
             
             // Refresh data to show updated progress and completion status
             await loadData()
             
         } catch {
-            // Revert the optimistic cache update on error
-            // Restore previous cached value if possible
-            if let existingLogs = currentHabitLogs[habit.id] {
-                let totalValue = existingLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
-                currentHabitProgress[habit.id] = totalValue
-            } else {
-                currentHabitProgress[habit.id] = 0.0
-            }
-            
             self.error = error
             print("Failed to update numeric habit: \(error)")
         }
+    }
+    
+    public func getProgressSync(for habit: Habit) -> Double {
+        return habitProgressCache[habit.id] ?? 0.0
+    }
+    
+    public func showNumericSheet(for habit: Habit) {
+        selectedHabitForSheet = habit
+        showingNumericSheet = true
     }
     
     public func deleteHabitLog(_ habit: Habit) async {
@@ -443,10 +432,6 @@ public final class OverviewV2ViewModel: ObservableObject {
             for log in existingLogsForDate {
                 try await deleteLog.execute(id: log.id)
             }
-            
-            // Update cache to reflect deletion
-            currentHabitProgress[habit.id] = 0.0
-            currentHabitLogs[habit.id] = []
             
             // Refresh data to show updated UI
             await loadData()
@@ -694,23 +679,12 @@ public final class OverviewV2ViewModel: ObservableObject {
         let targetDate = viewingDate
         let allActiveHabits = try await getActiveHabits.execute()
         
-        print("📊 [DEBUG] loadTodaysSummary: Found \(allActiveHabits.count) active habits:")
-        for habit in allActiveHabits {
-            print("📊 [DEBUG]   - \(habit.name) (ID: \(habit.id), active: \(habit.isActive))")
-        }
-        
         let habits = allActiveHabits.filter { habit in
             let isScheduled = habit.schedule.isActiveOn(date: targetDate)
             return isScheduled
         }
-        
-        print("📊 [DEBUG] After filtering for schedule, \(habits.count) habits are scheduled for today:")
-        for habit in habits {
-            print("📊 [DEBUG]   - \(habit.name) (ID: \(habit.id))")
-        }
+
         var allTargetDateLogs: [HabitLog] = []
-        var progressCache: [UUID: Double] = [:]
-        var logsCache: [UUID: [HabitLog]] = [:]
         
         // OPTIMIZATION: Batch load logs for all habits to avoid N+1 queries
         let habitIds = habits.map(\.id)
@@ -720,23 +694,7 @@ public final class OverviewV2ViewModel: ObservableObject {
             let habitLogs = logsByHabitId[habit.id] ?? []
             let targetDateLogs = habitLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: targetDate) }
             allTargetDateLogs.append(contentsOf: targetDateLogs)
-            
-            // Store logs in cache for proper handling
-            logsCache[habit.id] = targetDateLogs
-            
-            // Calculate progress for both numeric and binary habits
-            if habit.kind == .numeric {
-                let totalValue = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
-                progressCache[habit.id] = totalValue
-            } else {
-                // Binary habits: 1.0 if logged, 0.0 if not
-                progressCache[habit.id] = targetDateLogs.isEmpty ? 0.0 : 1.0
-            }
         }
-        
-        // Update the caches
-        self.currentHabitProgress = progressCache
-        self.currentHabitLogs = logsCache
         
         // Count will be calculated based on the completed habits array
         
@@ -846,7 +804,7 @@ public final class OverviewV2ViewModel: ObservableObject {
             let today = Date()
             let currentStreak = calculateCurrentStreakUseCase.execute(habit: habit, logs: logs, asOf: today)
             
-            if currentStreak >= 3 { // Only show streaks of 3+ days
+            if currentStreak >= 1 { // Show all active streaks (1+ days)
                 let streakInfo = StreakInfo(
                     id: habit.id.uuidString,
                     habitName: habit.name,
@@ -1277,6 +1235,26 @@ public final class OverviewV2ViewModel: ObservableObject {
             return "\(name), what a comeback! Yesterday was tough, but look at you now. This is resilience! 🚀"
         } else {
             return "Incredible comeback story! You've bounced back stronger than ever. Pure resilience! 🚀"
+        }
+    }
+    
+    /// Pre-loads habit data to prevent empty sheets on app start
+    private func preloadHabitData() async throws {
+        let habits = try await getActiveHabits.execute()
+        
+        // Pre-fetch and cache progress for all habits to avoid empty sheets
+        for habit in habits {
+            let logs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
+            let targetDateLogs = logs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
+            
+            let progress: Double
+            if habit.kind == .numeric {
+                progress = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+            } else {
+                progress = targetDateLogs.isEmpty ? 0.0 : 1.0
+            }
+            
+            habitProgressCache[habit.id] = progress
         }
     }
 }

@@ -46,17 +46,6 @@ private struct HabitsContentView: View {
                         .buttonStyle(PlainButtonStyle())
                 }
                 
-                // DEBUG: Temporary cleanup button
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        Task {
-                            await vm.debugCleanupOrphanedHabits()
-                        }
-                    } label: {
-                        Text("🧹")
-                            .font(.title2)
-                    }
-                }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -87,6 +76,9 @@ private struct HabitsContentView: View {
                     onHabitRemove: { habitId in await vm.delete(id: habitId) },
                     onShowPaywall: vm.showPaywallFromAssistant
                 )
+                .presentationDetents([.height(600)]) // Fixed height like quick log
+                .presentationDragIndicator(.visible)
+                // Remove .presentationBackground for full transparency
                 .onDisappear {
                     vm.handleAssistantDismissal()
                 }
@@ -182,7 +174,7 @@ private struct HabitsListView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
-                        .padding(.horizontal, Spacing.large)
+                        .padding(.horizontal, Spacing.screenMargin)
                         .padding(.vertical, Spacing.medium)
                         .background(Color(.systemBackground))
                     } else {
@@ -206,7 +198,7 @@ private struct HabitsListView: View {
                                     }
                                 }
                             }
-                            .padding(.horizontal, Spacing.large)
+                            .padding(.horizontal, Spacing.screenMargin)
                         }
                         .padding(.vertical, Spacing.small)
                         .background(Color(.systemBackground))
@@ -237,7 +229,7 @@ private struct HabitsListView: View {
                                 
                                 Spacer()
                             }
-                            .padding(.horizontal, Spacing.large)
+                            .padding(.horizontal, Spacing.screenMargin)
                             .padding(.vertical, Spacing.small)
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)

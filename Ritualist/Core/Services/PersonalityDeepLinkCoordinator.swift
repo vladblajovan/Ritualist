@@ -110,6 +110,13 @@ public final class PersonalityDeepLinkCoordinator: ObservableObject {
         shouldNavigateToSettings = true // Reset to default
     }
     
+    /// Resets only the analysis trigger state, keeping other properties intact
+    @MainActor
+    public func resetAnalysisState() {
+        shouldShowPersonalityAnalysis = false
+        // Keep pendingNotificationAction and shouldNavigateToSettings as they are
+    }
+    
     /// Checks if there's a pending navigation that should trigger
     public func processPendingNavigation() -> Bool {
         if shouldShowPersonalityAnalysis {

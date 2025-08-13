@@ -8,7 +8,13 @@ import SwiftUI
 @available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
 public struct CardDesign {
     // MARK: - Layout
-    public static let cornerRadius: CGFloat = 16
+    public static let cornerRadius: CGFloat = {
+        if #available(iOS 26.0, *) {
+            return 25 // iOS 26 large radius style
+        } else {
+            return 16 // Classic radius for older iOS
+        }
+    }()
     public static let cardPadding: CGFloat = 20
     public static let cardSpacing: CGFloat = 16
     public static let shadowRadius: CGFloat = 5
@@ -16,7 +22,14 @@ public struct CardDesign {
     // MARK: - Colors (Light/Dark Mode Adaptive)
     #if canImport(UIKit)
     @available(iOS 13.0, watchOS 6.0, *)
-    public static let cardBackground = Color(UIColor.secondarySystemGroupedBackground)
+    public static let cardBackground = Color(uiColor: UIColor { traitCollection in
+        switch traitCollection.userInterfaceStyle {
+        case .dark:
+            return UIColor.systemGray5 // Lighter gray in dark mode for better visibility
+        default:
+            return UIColor.secondarySystemGroupedBackground // Keep original for light mode
+        }
+    })
     @available(iOS 13.0, watchOS 6.0, *)
     public static let secondaryBackground = Color(UIColor.systemGray6)
     #elseif canImport(AppKit)
@@ -67,6 +80,7 @@ public struct CardStyle: ViewModifier {
             )
     }
 }
+
 
 /// Apple-recommended bounce style for interactive feedback
 @available(iOS 13.0, watchOS 6.0, macOS 10.15, *)

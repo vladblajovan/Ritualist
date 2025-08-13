@@ -62,28 +62,19 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     /// Delete habit by ID on background thread
     public func delete(id: UUID) async throws {
         do {
-            print("🗑️ [DEBUG] Attempting to delete habit with ID: \(id)")
-            
             let descriptor = FetchDescriptor<SDHabit>(predicate: #Predicate { $0.id == id })
             let habits = try modelContext.fetch(descriptor)
             
-            print("🗑️ [DEBUG] Found \(habits.count) habits to delete")
-            
             for habit in habits {
-                print("🗑️ [DEBUG] Deleting habit: \(habit.name) (ID: \(habit.id))")
                 modelContext.delete(habit)
             }
             
             try modelContext.save()
-            print("🗑️ [DEBUG] Successfully saved deletion to database")
             
             // Verify deletion worked
             let verifyDescriptor = FetchDescriptor<SDHabit>(predicate: #Predicate { $0.id == id })
             let remainingHabits = try modelContext.fetch(verifyDescriptor)
-            print("🗑️ [DEBUG] After deletion, found \(remainingHabits.count) habits with that ID (should be 0)")
-            
         } catch {
-            print("🗑️ [DEBUG] Error during habit deletion: \(error)")
             // TODO: Add error handler integration when DI allows it
             throw error
         }
@@ -92,8 +83,6 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     /// Cleanup orphaned habits that reference non-existent categories
     public func cleanupOrphanedHabits() async throws -> Int {
         do {
-            print("🧹 [DEBUG] Starting cleanup of orphaned habits...")
-            
             // Get all habits
             let habitDescriptor = FetchDescriptor<SDHabit>()
             let allHabits = try modelContext.fetch(habitDescriptor)
@@ -103,31 +92,22 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
             let allCategories = try modelContext.fetch(categoryDescriptor)
             let existingCategoryIds = Set(allCategories.map { $0.id })
             
-            print("🧹 [DEBUG] Found \(allHabits.count) habits and \(allCategories.count) categories")
-            print("🧹 [DEBUG] Existing category IDs: \(existingCategoryIds)")
             
             // Find habits with invalid category references
             let orphanedHabits = allHabits.filter { habit in
                 if let categoryId = habit.categoryId, !categoryId.isEmpty {
                     let isOrphaned = !existingCategoryIds.contains(categoryId)
-                    if isOrphaned {
-                        print("🧹 [DEBUG] ORPHANED: \(habit.name) references non-existent category: \(categoryId)")
-                    }
                     return isOrphaned
                 }
                 return false // Habits with nil categoryId are fine
             }
-            
-            print("🧹 [DEBUG] Found \(orphanedHabits.count) orphaned habits to delete")
-            
+        
             // Delete orphaned habits
             for habit in orphanedHabits {
-                print("🧹 [DEBUG] Deleting orphaned habit: \(habit.name) (ID: \(habit.id), categoryId: \(habit.categoryId ?? "nil"))")
                 modelContext.delete(habit)
             }
             
             try modelContext.save()
-            print("🧹 [DEBUG] Successfully cleaned up \(orphanedHabits.count) orphaned habits")
             
             return orphanedHabits.count
             

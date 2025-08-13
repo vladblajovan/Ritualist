@@ -47,7 +47,7 @@ public struct PersonalityInsightsView: View {
                                 .controlSize(.small)
                             }
                             .padding()
-                            .background(Color.red.opacity(0.1))
+                            .background(Color.red.opacity(0.05))
                             .cornerRadius(8)
                             .padding(.horizontal)
                             
@@ -107,7 +107,7 @@ public struct PersonalityInsightsView: View {
                                 }
                             }
                             .padding()
-                            .background(Color.green.opacity(0.1))
+                            .background(Color.green.opacity(0.05))
                             .cornerRadius(8)
                             .padding(.horizontal)
                             
@@ -171,7 +171,7 @@ public struct PersonalityInsightsView: View {
                                     }
                                 }
                                 .padding()
-                                .background(Color.green.opacity(0.1))
+                                .background(Color.green.opacity(0.05))
                                 .cornerRadius(8)
                                 .padding(.horizontal)
                                 
@@ -222,7 +222,7 @@ public struct PersonalityInsightsView: View {
                                     }
                                 }
                                 .padding()
-                                .background(Color.green.opacity(0.1))
+                                .background(Color.green.opacity(0.05))
                                 .cornerRadius(8)
                                 .padding(.horizontal)
                                 
@@ -270,7 +270,7 @@ public struct PersonalityInsightsView: View {
                                     }
                                 }
                                 .padding()
-                                .background(Color.green.opacity(0.1))
+                                .background(Color.green.opacity(0.05))
                                 .cornerRadius(8)
                                 .padding(.horizontal)
                                 
@@ -286,7 +286,7 @@ public struct PersonalityInsightsView: View {
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(Color.orange.opacity(0.1))
+                                .background(Color.orange.opacity(0.05))
                                 .cornerRadius(8)
                                 .padding(.horizontal)
                                 
@@ -333,7 +333,7 @@ public struct PersonalityInsightsView: View {
                                 }
                             }
                             .padding()
-                            .background(Color.green.opacity(0.1))
+                            .background(Color.green.opacity(0.05))
                             .cornerRadius(8)
                             .padding(.horizontal)
                             
@@ -347,7 +347,7 @@ public struct PersonalityInsightsView: View {
                 }
             }
             .navigationTitle("Personality Insights")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Privacy") {
@@ -372,6 +372,8 @@ public struct PersonalityInsightsView: View {
         }
         .sheet(isPresented: $showingPrivacy) {
             BasicPrivacyView()
+                .presentationDetents([.height(500)])
+                .presentationDragIndicator(.visible)
         }
     }
 }
@@ -471,6 +473,8 @@ private struct PersonalityProfileView: View {
         }
         .sheet(isPresented: $showingConfidenceInfo) {
             ConfidenceInfoSheet(confidence: profile.confidence)
+                .presentationDetents([.height(500)])
+                .presentationDragIndicator(.visible)
         }
     }
     
@@ -510,7 +514,7 @@ private struct PersonalityProfileView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
+                .fill(.gray.opacity(0.05))
         )
     }
     
@@ -540,42 +544,28 @@ private struct PersonalityProfileView: View {
             
             VStack(spacing: 8) {
                 AnalysisDetailRow(
-                    label: "Analysis Date",
+                    label: "Date",
                     value: DateFormatter.mediumDateFormatter.string(from: profile.analysisMetadata.analysisDate)
                 )
                 
                 AnalysisDetailRow(
-                    label: "Data Points Analyzed",
+                    label: "Period", value: "Last \(profile.analysisMetadata.timeRangeAnalyzed) days"
+                )
+                
+                AnalysisDetailRow(
+                    label: "Data Points",
                     value: "\(profile.analysisMetadata.dataPointsAnalyzed)"
                 )
                 
-                HStack {
-                    HStack(spacing: 4) {
-                        Image(systemName: "calendar")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                        Text("Analysis Period")
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                    HStack(spacing: 4) {
-                        Text("Last \(profile.analysisMetadata.timeRangeAnalyzed) days")
-                            .fontWeight(.medium)
-                        Image(systemName: "info.circle")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                    }
-                }
-                
                 AnalysisDetailRow(
-                    label: "Analysis Version",
+                    label: "Algorithm Version",
                     value: profile.analysisMetadata.version
                 )
             }
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.secondarySystemBackground))
+                    .fill(.gray.opacity(0.05))
             )
         }
     }
@@ -603,8 +593,7 @@ private struct PersonalityProfileView: View {
         
         let topTraits = profile.traitsByScore.prefix(3)
         
-        for (trait, score) in topTraits {
-            if score > 0.6 {
+        for (trait, score) in topTraits where score > 0.6 {
                 switch trait {
                 case .openness:
                     insights.append("Try creative or novel activities to leverage your openness")
@@ -617,7 +606,6 @@ private struct PersonalityProfileView: View {
                 case .neuroticism:
                     insights.append("Focus on stress-reduction and mindfulness practices")
                 }
-            }
         }
         
         if insights.isEmpty {
@@ -661,10 +649,10 @@ private struct TraitRowView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(isDominant ? Color.blue.opacity(0.1) : Color(.secondarySystemBackground))
+                .fill(isDominant ? Color.blue.opacity(0.05) : .gray.opacity(0.03))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(isDominant ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 1)
+                        .stroke(isDominant ? Color.blue.opacity(0.15) : Color.clear, lineWidth: 1)
                 )
         )
     }
@@ -964,7 +952,7 @@ private struct ConfidenceInfoSheet: View {
                                 .foregroundColor(.secondary)
                         }
                         .padding()
-                        .background(Color(.secondarySystemBackground))
+                        .background(.gray.opacity(0.05))
                         .cornerRadius(8)
                     }
                 }

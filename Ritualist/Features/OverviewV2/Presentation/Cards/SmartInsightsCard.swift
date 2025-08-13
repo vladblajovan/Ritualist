@@ -4,6 +4,8 @@ import RitualistCore
 struct SmartInsightsCard: View {
     let insights: [SmartInsight]
     
+    @State private var isExpanded = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Header
@@ -19,17 +21,17 @@ struct SmartInsightsCard: View {
                 
                 Spacer()
                 
-                if !insights.isEmpty {
-                    Text("This Week")
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(CardDesign.secondaryBackground)
-                        )
-                }
+//                if !insights.isEmpty {
+//                    Text("This Week")
+//                        .font(.system(size: 14, weight: .medium, design: .rounded))
+//                        .foregroundColor(.secondary)
+//                        .padding(.horizontal, 8)
+//                        .padding(.vertical, 4)
+//                        .background(
+//                            RoundedRectangle(cornerRadius: 8)
+//                                .fill(CardDesign.secondaryBackground)
+//                        )
+//                }
             }
             
             if insights.isEmpty {
@@ -55,20 +57,50 @@ struct SmartInsightsCard: View {
                 .padding(.vertical, 16)
             } else {
                 // Insights Display
-                VStack(spacing: 16) {
-                    ForEach(insights.prefix(3).indices, id: \.self) { index in
-                        let insight = insights[index]
-                        insightRow(for: insight, index: index)
-                        
-                        if index < min(insights.count, 3) - 1 {
-                            Divider()
-                                .opacity(0.3)
-                        }
+                insightsContent
+            }
+        }
+        .cardStyle()
+    }
+    
+    // MARK: - Insights Content
+    
+    @ViewBuilder
+    private var insightsContent: some View {
+        let initialInsightsCount = 2
+        
+        VStack(spacing: 16) {
+            ForEach(Array(insights.prefix(isExpanded ? insights.count : initialInsightsCount).enumerated()), id: \.offset) { index, insight in
+                insightRow(for: insight, index: index)
+                
+                if index < min(insights.count, isExpanded ? insights.count : initialInsightsCount) - 1 {
+                    Divider()
+                        .opacity(0.3)
+                }
+            }
+            
+            // Show more/less indicator if there are additional insights
+            if insights.count > initialInsightsCount {
+                HStack {
+                    Text(isExpanded ? "Show less" : "View \(insights.count - initialInsightsCount) more insights")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 4)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isExpanded.toggle()
                     }
                 }
             }
         }
-        .cardStyle()
     }
     
     @ViewBuilder

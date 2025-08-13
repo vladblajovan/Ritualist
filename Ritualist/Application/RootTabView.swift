@@ -71,21 +71,21 @@ public struct RootTabView: View {
             }
         }
         .onChange(of: deepLinkCoordinator.shouldShowPersonalityAnalysis) { oldValue, shouldShow in
-            if !shouldShow {
-                // Handle dismissal
-                showingPersonalityAnalysis = false
-            } else if shouldShow {
+            if shouldShow {
                 if deepLinkCoordinator.shouldNavigateToSettings {
                     // Navigate to settings tab first (for notifications)
                     navigationService.selectedTab = .settings
-                    // Small delay to ensure tab switch completes
                     Task {
                         try? await Task.sleep(for: .milliseconds(100))
                         showingPersonalityAnalysis = true
+                        // Reset coordinator state immediately after triggering
+                        deepLinkCoordinator.resetAnalysisState()
                     }
                 } else {
                     // Show directly without tab navigation (for direct calls)
                     showingPersonalityAnalysis = true
+                    // Reset coordinator state immediately after triggering
+                    deepLinkCoordinator.resetAnalysisState()
                 }
             }
         }
@@ -93,7 +93,8 @@ public struct RootTabView: View {
             PersonalityAnalysisDeepLinkSheet(
                 action: deepLinkCoordinator.pendingNotificationAction
             ) {
-                deepLinkCoordinator.clearPendingNavigation()
+                // Only clear the notification action on dismissal
+                deepLinkCoordinator.pendingNotificationAction = nil
                 showingPersonalityAnalysis = false
             }
         }
