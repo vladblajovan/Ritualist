@@ -22,6 +22,10 @@ extension Container {
         self { GetBatchLogs(repo: self.logRepository()) }
     }
     
+    var getSingleHabitLogs: Factory<GetSingleHabitLogs> {
+        self { GetSingleHabitLogs(getBatchLogs: self.getBatchLogs()) }
+    }
+    
     var getLogForDate: Factory<GetLogForDate> {
         self { GetLogForDate(repo: self.logRepository()) }
     }

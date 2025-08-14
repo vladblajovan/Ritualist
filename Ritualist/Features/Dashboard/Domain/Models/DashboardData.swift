@@ -66,32 +66,27 @@ public struct DashboardData {
         return habits.filter { dayCompletion.completedHabits.contains($0.id) }
     }
     
+    /// Get completed habit IDs for a specific date
+    /// O(1) lookup - no database queries
+    public func completedHabits(for date: Date) -> Set<UUID> {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        return dailyCompletions[startOfDay]?.completedHabits ?? []
+    }
+    
     /// Get habits scheduled for a specific date
     public func scheduledHabits(for date: Date) -> [Habit] {
         return habits.filter { $0.schedule.isActiveOn(date: date) }
     }
     
-    /// Get streak data for a specific habit
+    /// Get streak data for a specific habit using proper UseCase
     /// Uses pre-loaded logs without additional queries
-    public func streakData(for habitId: UUID) -> StreakInfo? {
+    public func streakData(for habitId: UUID, using calculateCurrentStreak: CalculateCurrentStreakUseCase) -> StreakInfo? {
         guard let habit = habits.first(where: { $0.id == habitId }),
               let logs = habitLogs[habitId] else { return nil }
         
-        // Calculate current streak from pre-loaded logs
-        let sortedLogs = logs.sorted { $0.date > $1.date } // Most recent first
-        var currentStreak = 0
-        let calendar = Calendar.current
-        var checkDate = calendar.startOfDay(for: Date())
-        
-        for log in sortedLogs {
-            let logDate = calendar.startOfDay(for: log.date)
-            if logDate == checkDate {
-                currentStreak += 1
-                checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate) ?? checkDate
-            } else {
-                break
-            }
-        }
+        // Use proper streak calculation UseCase that handles schedules and compliance
+        let currentStreak = calculateCurrentStreak.execute(habit: habit, logs: logs, asOf: Date())
         
         return StreakInfo(
             id: habit.id.uuidString,
@@ -125,32 +120,32 @@ public struct DashboardData {
         return dataPoints.sorted { $0.date < $1.date }
     }
     
-    /// Get habit performance data for all habits
-    /// Uses pre-loaded logs and calculated completions
-    public func habitPerformanceData() -> [HabitPerformanceResult] {
+    /// Get habit performance data for all habits using proper schedule calculation
+    /// Uses pre-loaded logs and calculated completions with schedule analyzer
+    public func habitPerformanceData(using scheduleAnalyzer: HabitScheduleAnalyzerProtocol) -> [HabitPerformanceResult] {
         return habits.map { habit in
-            let logs = habitLogs[habit.id] ?? []
-            let totalDays = Calendar.current.dateComponents([.day], from: dateRange.lowerBound, to: dateRange.upperBound).day ?? 0
-            
             // Count completed days for this habit
             var completedDays = 0
-            _ = Calendar.current // Suppress warning
+            var expectedDays = 0
             
             for (_, dayCompletion) in dailyCompletions {
-                if dayCompletion.expectedHabits.contains(habit.id) && dayCompletion.completedHabits.contains(habit.id) {
-                    completedDays += 1
+                if dayCompletion.expectedHabits.contains(habit.id) {
+                    expectedDays += 1
+                    if dayCompletion.completedHabits.contains(habit.id) {
+                        completedDays += 1
+                    }
                 }
             }
             
-            let completionRate = totalDays > 0 ? Double(completedDays) / Double(totalDays) : 0.0
+            let completionRate = expectedDays > 0 ? Double(completedDays) / Double(expectedDays) : 0.0
             
             return HabitPerformanceResult(
                 habitId: habit.id,
                 habitName: habit.name,
                 emoji: habit.emoji ?? "📊",
-                completionRate: completionRate,
+                completionRate: min(completionRate, 1.0), // Cap at 100%
                 completedDays: completedDays,
-                expectedDays: totalDays
+                expectedDays: expectedDays
             )
         }.sorted { $0.completionRate > $1.completionRate }
     }
@@ -181,7 +176,7 @@ public struct DashboardData {
             
             return CategoryPerformanceResult(
                 categoryId: String(describing: category.id),
-                categoryName: category.name,
+                categoryName: category.displayName,
                 completionRate: completionRate,
                 habitCount: categoryHabits.count,
                 color: "#007AFF", // Default iOS blue color

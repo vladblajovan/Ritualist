@@ -288,6 +288,25 @@ public final class GetBatchLogs: GetBatchLogsUseCase {
     }
 }
 
+public final class GetSingleHabitLogs: GetSingleHabitLogsUseCase {
+    private let getBatchLogs: GetBatchLogsUseCase
+    
+    public init(getBatchLogs: GetBatchLogsUseCase) {
+        self.getBatchLogs = getBatchLogs
+    }
+    
+    public func execute(for habitID: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
+        // Use batch loading with single habit ID for consistency and potential caching benefits
+        let logsByHabitId = try await getBatchLogs.execute(
+            for: [habitID],
+            since: startDate,
+            until: endDate
+        )
+        
+        return logsByHabitId[habitID] ?? []
+    }
+}
+
 public final class LogHabit: LogHabitUseCase {
     private let repo: LogRepository
     public init(repo: LogRepository) { self.repo = repo }

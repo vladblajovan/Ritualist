@@ -95,15 +95,6 @@ public struct OverviewV2View: View {
                     )
                 }
                 
-                if vm.shouldShowActiveStreaks || vm.isLoading {
-                    StreaksCard(
-                        streaks: vm.activeStreaks,
-                        shouldAnimateBestStreak: false,
-                        onAnimationComplete: {},
-                        isLoading: vm.isLoading
-                    )
-                }
-                
                 // Core navigation and overview
                 WeeklyOverviewCard(progress: vm.weeklyProgress)
                 
@@ -115,6 +106,15 @@ public struct OverviewV2View: View {
                         vm.selectedDate = date
                     }
                 )
+                
+                if vm.shouldShowActiveStreaks || vm.isLoading {
+                    StreaksCard(
+                        streaks: vm.activeStreaks,
+                        shouldAnimateBestStreak: false,
+                        onAnimationComplete: {},
+                        isLoading: vm.isLoading
+                    )
+                }
                 
                 // Smart contextual insights (basic habit patterns)
                 if vm.shouldShowInsights {

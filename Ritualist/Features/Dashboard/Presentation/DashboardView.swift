@@ -4,7 +4,7 @@ import RitualistCore
 
 // swiftlint:disable type_body_length
 public struct DashboardView: View {
-    @ObservedObject var vm: DashboardViewModel
+    var vm: DashboardViewModel
     
     public init(vm: DashboardViewModel) {
         self.vm = vm
@@ -20,26 +20,19 @@ public struct DashboardView: View {
                 if vm.isLoading {
                     loadingView
                 } else if let stats = vm.completionStats {
-                    statsCardsSection(stats: stats)
+                    // Weekly Patterns (moved to top)
+                    if let weeklyPatterns = vm.weeklyPatterns {
+                        weeklyPatternsSection(patterns: weeklyPatterns)
+                    }
                     
-                    // Habit Performance Section
-                    if let habitPerformance = vm.habitPerformanceData {
-                        habitPerformanceSection(performance: habitPerformance)
+                    // Streak Analysis (moved to top)
+                    if let streakAnalysis = vm.streakAnalysis {
+                        streakAnalysisSection(analysis: streakAnalysis)
                     }
                     
                     // Progress Chart
                     if let chartData = vm.progressChartData {
                         progressChartSection(data: chartData)
-                    }
-                    
-                    // Weekly Patterns
-                    if let weeklyPatterns = vm.weeklyPatterns {
-                        weeklyPatternsSection(patterns: weeklyPatterns)
-                    }
-                    
-                    // Streak Analysis
-                    if let streakAnalysis = vm.streakAnalysis {
-                        streakAnalysisSection(analysis: streakAnalysis)
                     }
                     
                     // Category Breakdown
@@ -125,85 +118,6 @@ public struct DashboardView: View {
         .padding(.horizontal, 40)
     }
     
-    @ViewBuilder 
-    private func statsCardsSection(stats: HabitCompletionStats) -> some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: 16) {
-            StatCard.simple(
-                title: Strings.Dashboard.totalHabits,
-                value: "\(stats.totalHabits)",
-                icon: "list.bullet",
-                color: .blue
-            )
-            
-            StatCard.simple(
-                title: Strings.Dashboard.completedHabits,
-                value: "\(stats.completedHabits)",
-                icon: "checkmark.circle.fill",
-                color: .green
-            )
-        }
-        
-        // Overall Completion Rate Card
-        VStack(spacing: 12) {
-            HStack {
-                Image(systemName: "chart.pie.fill")
-                    .font(.title2)
-                    .foregroundColor(AppColors.brand)
-                
-                Text(Strings.Dashboard.overallCompletion)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-            }
-            
-            HStack {
-                Text("\(Int(stats.completionRate * 100))%")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(AppColors.brand)
-                
-                Spacer()
-                
-                CircularProgressView(
-                    progress: stats.completionRate,
-                    color: AppColors.brand,
-                    lineWidth: 6
-                )
-                .frame(width: 60, height: 60)
-            }
-        }
-        .cardStyle()
-    }
-    
-    @ViewBuilder
-    private func habitPerformanceSection(performance: [DashboardViewModel.HabitPerformanceViewModel]) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "star.fill")
-                    .font(.title2)
-                    .foregroundColor(.orange)
-                
-                Text(Strings.Dashboard.topPerformers)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-            }
-            
-            ForEach(performance.prefix(3)) { habit in
-                HabitPerformanceRow(
-                    name: habit.name,
-                    completionRate: habit.completionRate,
-                    emoji: habit.emoji
-                )
-            }
-        }
-        .cardStyle()
-    }
-    
     @ViewBuilder
     private func progressChartSection(data: [DashboardViewModel.ChartDataPointViewModel]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -269,17 +183,22 @@ public struct DashboardView: View {
                     .font(.title2)
                     .foregroundColor(.purple)
                 
-                Text("Weekly Patterns")
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Perfect Day Patterns")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text("Which days achieve full completion")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
                 
                 Spacer()
             }
             
-            // Best/Worst days summary
+            // Best/Worst days for system-wide completion
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Best Day")
+                    Text("Strongest Day")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text(patterns.bestDay)
@@ -291,7 +210,7 @@ public struct DashboardView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("Needs Work")
+                    Text("Challenge Day")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text(patterns.worstDay)

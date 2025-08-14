@@ -5,8 +5,9 @@ import RitualistCore
 
 // swiftlint:disable type_body_length
 @MainActor
-public final class DashboardViewModel: ObservableObject {
-    @Published public var selectedTimePeriod: TimePeriod = .thisMonth {
+@Observable
+public final class DashboardViewModel {
+    public var selectedTimePeriod: TimePeriod = .thisMonth {
         didSet {
             if oldValue != selectedTimePeriod {
                 Task {
@@ -15,23 +16,23 @@ public final class DashboardViewModel: ObservableObject {
             }
         }
     }
-    @Published public var completionStats: HabitCompletionStats?
-    @Published public var habitPerformanceData: [HabitPerformanceViewModel]?
-    @Published public var progressChartData: [ChartDataPointViewModel]?
-    @Published public var weeklyPatterns: WeeklyPatternsViewModel?
-    @Published public var streakAnalysis: StreakAnalysisViewModel?
-    @Published public var categoryBreakdown: [CategoryPerformanceViewModel]?
-    @Published public var isLoading = false
-    @Published public var error: Error?
+    public var completionStats: HabitCompletionStats?
+    public var habitPerformanceData: [HabitPerformanceViewModel]?
+    public var progressChartData: [ChartDataPointViewModel]?
+    public var weeklyPatterns: WeeklyPatternsViewModel?
+    public var streakAnalysis: StreakAnalysisViewModel?
+    public var categoryBreakdown: [CategoryPerformanceViewModel]?
+    public var isLoading = false
+    public var error: Error?
     
-    @Injected(\.habitAnalyticsService) internal var habitAnalyticsService
-    @Injected(\.userService) internal var userService
-    @Injected(\.calculateHabitPerformanceUseCase) private var calculateHabitPerformanceUseCase
-    @Injected(\.generateProgressChartDataUseCase) private var generateProgressChartDataUseCase
-    @Injected(\.analyzeWeeklyPatternsUseCase) private var analyzeWeeklyPatternsUseCase
-    @Injected(\.calculateStreakAnalysisUseCase) private var calculateStreakAnalysisUseCase
-    @Injected(\.aggregateCategoryPerformanceUseCase) private var aggregateCategoryPerformanceUseCase
-    @Injected(\.getBatchLogs) internal var getBatchLogs
+    @ObservationIgnored @Injected(\.habitAnalyticsService) internal var habitAnalyticsService
+    @ObservationIgnored @Injected(\.userService) internal var userService
+    @ObservationIgnored @Injected(\.getBatchLogs) internal var getBatchLogs
+    @ObservationIgnored @Injected(\.getSingleHabitLogs) internal var getSingleHabitLogs
+    @ObservationIgnored @Injected(\.getAllCategories) internal var getAllCategories
+    @ObservationIgnored @Injected(\.calculateCurrentStreak) internal var calculateCurrentStreak
+    @ObservationIgnored @Injected(\.habitScheduleAnalyzer) internal var scheduleAnalyzer
+    @ObservationIgnored @Injected(\.performanceAnalysisService) internal var performanceAnalysisService
     
     internal var userId: UUID { 
         userService.currentProfile.id 
@@ -228,90 +229,5 @@ public final class DashboardViewModel: ObservableObject {
         await loadData()
     }
     
-    // MARK: - Private Methods
-    
-    private func loadHabitPerformanceData() async {
-        do {
-            let range = selectedTimePeriod.dateRange
-            let results = try await calculateHabitPerformanceUseCase.execute(
-                for: userId,
-                from: range.start,
-                to: range.end
-            )
-            
-            let viewModels = results.map(HabitPerformanceViewModel.init)
-            self.habitPerformanceData = viewModels
-            
-        } catch {
-            print("Failed to load habit performance data: \(error)")
-        }
-    }
-    
-    private func loadProgressChartData() async {
-        do {
-            let range = selectedTimePeriod.dateRange
-            let results = try await generateProgressChartDataUseCase.execute(
-                for: userId,
-                from: range.start,
-                to: range.end
-            )
-            
-            let viewModels = results.map(ChartDataPointViewModel.init)
-            self.progressChartData = viewModels
-            
-        } catch {
-            print("Failed to load progress chart data: \(error)")
-        }
-    }
-    
-    private func loadWeeklyPatterns() async {
-        do {
-            let range = selectedTimePeriod.dateRange
-            let result = try await analyzeWeeklyPatternsUseCase.execute(
-                for: userId,
-                from: range.start,
-                to: range.end
-            )
-            
-            let viewModel = WeeklyPatternsViewModel(from: result)
-            self.weeklyPatterns = viewModel
-            
-        } catch {
-            print("Failed to load weekly patterns: \(error)")
-        }
-    }
-    
-    private func loadStreakAnalysis() async {
-        do {
-            let range = selectedTimePeriod.dateRange
-            let result = try await calculateStreakAnalysisUseCase.execute(
-                for: userId,
-                from: range.start,
-                to: range.end
-            )
-            
-            let viewModel = StreakAnalysisViewModel(from: result)
-            self.streakAnalysis = viewModel
-            
-        } catch {
-            print("Failed to load streak analysis: \(error)")
-        }
-    }
-    
-    private func loadCategoryBreakdown() async {
-        do {
-            let range = selectedTimePeriod.dateRange
-            let results = try await aggregateCategoryPerformanceUseCase.execute(
-                for: userId,
-                from: range.start,
-                to: range.end
-            )
-            
-            let viewModels = results.map(CategoryPerformanceViewModel.init)
-            self.categoryBreakdown = viewModels
-        } catch {
-            print("Failed to load category breakdown: \(error)")
-        }
-    }
 }
 // swiftlint:enable type_body_length

@@ -64,6 +64,10 @@ public protocol GetBatchLogsUseCase {
     func execute(for habitIDs: [UUID], since: Date?, until: Date?) async throws -> [UUID: [HabitLog]] 
 }
 
+public protocol GetSingleHabitLogsUseCase {
+    func execute(for habitID: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog]
+}
+
 public protocol LogHabitUseCase { 
     func execute(_ log: HabitLog) async throws 
 }

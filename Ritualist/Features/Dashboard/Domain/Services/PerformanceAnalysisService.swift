@@ -57,7 +57,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     
     public init(
         scheduleAnalyzer: HabitScheduleAnalyzerProtocol,
-        calendar: Calendar = Calendar.current
+        calendar: Calendar = DateUtils.userCalendar()
     ) {
         self.scheduleAnalyzer = scheduleAnalyzer
         self.calendar = calendar
@@ -159,7 +159,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             currentDate = nextDay
         }
         
-        // Calculate day of week performance results
+        // Calculate day of week performance results using proper week ordering
         let dayOfWeekResults = dayPerformance.map { weekday, performance in
             let dayName = calendar.weekdaySymbols[weekday - 1]
             let completionRate = performance.total > 0 ? Double(performance.completed) / Double(performance.total) : 0.0
@@ -191,6 +191,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         to endDate: Date
     ) -> StreakAnalysisResult {
         
+        
         let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
         let activeHabits = habits.filter { $0.isActive }
         
@@ -199,23 +200,31 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         var longestStreak = 0
         var daysWithFullCompletion = 0
         
-        // Analyze each day for streak calculation
-        var currentDate = calendar.startOfDay(for: endDate)
+        // FIXED: Always start from today for current streak calculation
+        let today = calendar.startOfDay(for: Date())
+        var currentDate = today
         let start = calendar.startOfDay(for: startDate)
+        
         
         while currentDate >= start {
             let dayLogs = logsByDate[currentDate] ?? []
             var dayCompleted = true
             var expectedHabitsCount = 0
+            var completedHabitsThisDay: [String] = []
+            var missedHabitsThisDay: [String] = []
             
             for habit in activeHabits {
                 if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
                     expectedHabitsCount += 1
-                    if !dayLogs.contains(where: { $0.habitID == habit.id }) {
+                    if dayLogs.contains(where: { $0.habitID == habit.id }) {
+                        completedHabitsThisDay.append(habit.name)
+                    } else {
                         dayCompleted = false
+                        missedHabitsThisDay.append(habit.name)
                     }
                 }
             }
+            
             
             if expectedHabitsCount > 0 && dayCompleted {
                 currentStreak += 1
@@ -225,6 +234,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                 // Break current streak if we had expected habits but didn't complete them all
                 longestStreak = max(longestStreak, currentStreak)
                 currentStreak = 0
+            } else {
             }
             
             guard let previousDay = calendar.date(byAdding: .day, value: -1, to: currentDate) else {
@@ -235,8 +245,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         
         longestStreak = max(longestStreak, currentStreak)
         
-        // Determine trend
-        let totalDays = calendar.dateComponents([.day], from: start, to: endDate).day ?? 0
+        // Calculate consistency based on analysis period
+        let totalDays = calendar.dateComponents([.day], from: start, to: today).day ?? 0
         let consistencyScore = totalDays > 0 ? Double(daysWithFullCompletion) / Double(totalDays) : 0.0
         
         let streakTrend: String
@@ -247,6 +257,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         } else {
             streakTrend = "stable"
         }
+        
         
         return StreakAnalysisResult(
             currentStreak: currentStreak,

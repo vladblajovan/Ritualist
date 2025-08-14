@@ -20,6 +20,7 @@ public final class HabitAnalyticsServiceImpl: HabitAnalyticsService {
     
     // PHASE 3: Add batch loading capability to eliminate N+1 queries
     @Injected(\.getBatchLogs) private var getBatchLogs
+    @Injected(\.getSingleHabitLogs) private var getSingleHabitLogs
     
     public init(
         habitRepository: HabitRepository,
@@ -54,19 +55,6 @@ public final class HabitAnalyticsServiceImpl: HabitAnalyticsService {
         
         // Flatten the results into a single array
         return logsByHabitId.values.flatMap { $0 }
-    }
-    
-    /// Get logs for a specific habit in a date range
-    /// Uses batch loading when available for better performance
-    public func getLogsForSingleHabit(_ habitId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
-        // Use batch loading with single habit ID
-        let logsByHabitId = try await getBatchLogs.execute(
-            for: [habitId],
-            since: startDate,
-            until: endDate
-        )
-        
-        return logsByHabitId[habitId] ?? []
     }
     
     public func getHabitCompletionStats(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats {
@@ -110,5 +98,11 @@ public final class HabitAnalyticsServiceImpl: HabitAnalyticsService {
             completedHabits: successfulHabits,
             completionRate: completionRate
         )
+    }
+    
+    /// Get logs for a single habit using optimized batch loading
+    /// Delegates to proper UseCase following Clean Architecture
+    public func getSingleHabitLogs(habitId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
+        return try await getSingleHabitLogs.execute(for: habitId, from: startDate, to: endDate)
     }
 }

@@ -701,6 +701,7 @@ public final class OverviewV2ViewModel {
         for habit in data.habits {
             // Get logs for this habit from unified data
             let logs = data.habitLogs[habit.id] ?? []
+            
             let currentStreak = calculateCurrentStreakUseCase.execute(habit: habit, logs: logs, asOf: today)
             
             if currentStreak >= 1 { // Show all active streaks (1+ days)
@@ -716,7 +717,9 @@ public final class OverviewV2ViewModel {
         }
         
         // Sort by streak length (longest first)
-        return streaks.sorted { $0.currentStreak > $1.currentStreak }
+        let sortedStreaks = streaks.sorted { $0.currentStreak > $1.currentStreak }
+        
+        return sortedStreaks
     }
     
     

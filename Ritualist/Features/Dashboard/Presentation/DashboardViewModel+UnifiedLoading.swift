@@ -15,9 +15,8 @@ extension DashboardViewModel {
         // 1. Single query for all active habits
         let habits = try await habitAnalyticsService.getActiveHabits(for: userId)
         
-        // 2. Single query for all categories (if needed)
-        // TODO: Add category repository injection when available
-        let categories: [Category] = [] // Placeholder - will be updated when CategoryRepository is available
+        // 2. Single query for all categories
+        let categories = try await getAllCategories.execute()
         
         // 3. Single batch query for ALL habit logs in the entire date range
         let habitIds = habits.map(\.id)
@@ -52,6 +51,7 @@ extension DashboardViewModel {
         // Calculate total completions across all days in range
         var totalPossibleCompletions = 0
         var totalActualCompletions = 0
+        var habitsWithCompletions: Set<UUID> = []
         
         let calendar = Calendar.current
         var currentDate = dateRange.lowerBound
@@ -64,6 +64,12 @@ extension DashboardViewModel {
             totalPossibleCompletions += scheduledHabits.count
             totalActualCompletions += Int(completionRate * Double(scheduledHabits.count))
             
+            // Track habits that had any completions on this day
+            if completionRate > 0 {
+                let completedHabitsToday = dashboardData.completedHabits(for: startOfDay)
+                habitsWithCompletions.formUnion(completedHabitsToday)
+            }
+            
             guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
             currentDate = nextDate
         }
@@ -72,7 +78,7 @@ extension DashboardViewModel {
         
         return HabitCompletionStats(
             totalHabits: habits.count,
-            completedHabits: totalActualCompletions,
+            completedHabits: habitsWithCompletions.count, // Fixed: Count of unique habits with completions
             completionRate: averageCompletionRate
         )
     }
@@ -80,7 +86,7 @@ extension DashboardViewModel {
     /// Extract habit performance data from unified dashboard data
     /// O(n) operation using pre-calculated data - no additional queries
     func extractHabitPerformanceData(from dashboardData: DashboardData) -> [HabitPerformanceViewModel] {
-        let domainResults = dashboardData.habitPerformanceData()
+        let domainResults = dashboardData.habitPerformanceData(using: scheduleAnalyzer)
         return domainResults.map(HabitPerformanceViewModel.init)
     }
     
@@ -100,7 +106,7 @@ extension DashboardViewModel {
         
         guard !habits.isEmpty else { return nil }
         
-        let calendar = Calendar.current
+        let calendar = DateUtils.userCalendar() // Use system calendar with user's week start preference
         var dayOfWeekStats: [Int: (completed: Int, total: Int)] = [:]
         
         // Initialize stats for all days of week (1 = Sunday, 7 = Saturday)
@@ -112,30 +118,36 @@ extension DashboardViewModel {
         var currentDate = dateRange.lowerBound
         while currentDate <= dateRange.upperBound {
             let dayOfWeek = calendar.component(.weekday, from: currentDate)
-            let completionRate = dashboardData.completionRate(for: currentDate)
-            let scheduledCount = dashboardData.scheduledHabits(for: currentDate).count
+            let scheduledHabits = dashboardData.scheduledHabits(for: currentDate)
+            let completedHabits = dashboardData.completedHabits(for: currentDate)
             
-            if scheduledCount > 0 {
-                let completedCount = Int(completionRate * Double(scheduledCount))
-                dayOfWeekStats[dayOfWeek]?.completed += completedCount
-                dayOfWeekStats[dayOfWeek]?.total += scheduledCount
+            if !scheduledHabits.isEmpty {
+                // Count actual completed habits instead of using floating point calculation
+                let actualCompletedCount = scheduledHabits.filter { completedHabits.contains($0.id) }.count
+                dayOfWeekStats[dayOfWeek]?.completed += actualCompletedCount
+                dayOfWeekStats[dayOfWeek]?.total += scheduledHabits.count
             }
             
             guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
             currentDate = nextDate
         }
         
-        // Convert to domain models and find best/worst days
-        let dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        // Use proper week ordering respecting user's week start preference
+        let orderedWeekdaySymbols = DateUtils.orderedWeekdaySymbols(style: .standalone)
         var dayPerformances: [DayOfWeekPerformanceResult] = []
         var bestDayRate = 0.0
         var worstDayRate = 1.0
-        var bestDay = "Monday"
-        var worstDay = "Monday"
+        var bestDay = orderedWeekdaySymbols.first ?? "Monday"
+        var worstDay = orderedWeekdaySymbols.first ?? "Monday"
         
-        for (dayNum, stats) in dayOfWeekStats.sorted(by: { $0.key < $1.key }) {
+        // Process days in user's preferred order
+        for (index, dayName) in orderedWeekdaySymbols.enumerated() {
+            // Convert back to Calendar weekday (1=Sunday, 2=Monday, etc.)
+            let startIndex = calendar.firstWeekday - 1
+            let calendarWeekday = ((index + startIndex) % 7) + 1
+            
+            let stats = dayOfWeekStats[calendarWeekday] ?? (completed: 0, total: 0)
             let rate = stats.total > 0 ? Double(stats.completed) / Double(stats.total) : 0.0
-            let dayName = dayNames[dayNum - 1]
             
             dayPerformances.append(DayOfWeekPerformanceResult(
                 dayName: dayName,
@@ -169,34 +181,21 @@ extension DashboardViewModel {
     }
     
     /// Extract streak analysis from unified dashboard data
-    /// Uses pre-loaded logs without additional queries
+    /// Uses existing PerformanceAnalysisService for system-wide streak calculation
     func extractStreakAnalysis(from dashboardData: DashboardData) -> StreakAnalysisViewModel? {
         let habits = dashboardData.habits
+        let dateRange = dashboardData.dateRange
         guard !habits.isEmpty else { return nil }
         
-        var totalCurrentStreaks = 0
-        var activeStreaks = 0
-        var longestStreak = 0
-        var averageStreak = 0.0
+        // Flatten habitLogs for service call
+        let allLogs = dashboardData.habitLogs.values.flatMap { $0 }
         
-        for habit in habits {
-            if let streakInfo = dashboardData.streakData(for: habit.id) {
-                totalCurrentStreaks += streakInfo.currentStreak
-                if streakInfo.currentStreak > 0 {
-                    activeStreaks += 1
-                }
-                longestStreak = max(longestStreak, streakInfo.currentStreak)
-            }
-        }
-        
-        averageStreak = habits.isEmpty ? 0.0 : Double(totalCurrentStreaks) / Double(habits.count)
-        
-        let streakAnalysisResult = StreakAnalysisResult(
-            currentStreak: longestStreak,
-            longestStreak: longestStreak,
-            streakTrend: "stable",
-            daysWithFullCompletion: activeStreaks,
-            consistencyScore: averageStreak / 10.0 // Normalize to 0-1 range
+        // Use existing service for proper streak analysis
+        let streakAnalysisResult = performanceAnalysisService.calculateStreakAnalysis(
+            habits: habits,
+            logs: allLogs,
+            from: dateRange.lowerBound,
+            to: dateRange.upperBound
         )
         
         return StreakAnalysisViewModel(from: streakAnalysisResult)
@@ -207,5 +206,11 @@ extension DashboardViewModel {
     func extractCategoryBreakdown(from dashboardData: DashboardData) -> [CategoryPerformanceViewModel] {
         let domainResults = dashboardData.categoryPerformanceData()
         return domainResults.map(CategoryPerformanceViewModel.init)
+    }
+    
+    /// Example method showing proper UseCase usage for single habit queries
+    /// Uses the new GetSingleHabitLogsUseCase with optimized batch loading
+    func getLogsForSpecificHabit(_ habitId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
+        return try await getSingleHabitLogs.execute(for: habitId, from: startDate, to: endDate)
     }
 }
