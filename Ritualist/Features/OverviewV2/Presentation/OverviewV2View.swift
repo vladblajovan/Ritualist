@@ -152,7 +152,6 @@ public struct OverviewV2View: View {
         }
         .sheet(isPresented: $vm.showingNumericSheet) {
             if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
-                let initialProgress = vm.getProgressSync(for: habit)
                 NumericHabitLogSheetDirect(
                     habit: habit,
                     viewingDate: vm.viewingDate,
@@ -162,7 +161,7 @@ public struct OverviewV2View: View {
                     onCancel: {
                         // Sheet dismisses automatically
                     },
-                    initialValue: initialProgress
+                    initialValue: vm.getProgressSync(for: habit)
                 )
             }
         }

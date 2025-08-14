@@ -10,7 +10,7 @@ struct TodaysSummaryCard: View {
     let currentSlogan: String?
     let onQuickAction: (Habit) -> Void
     let onNumericHabitUpdate: ((Habit, Double) async -> Void)?
-    let getProgressSync: ((Habit) -> Double)
+    let getProgress: ((Habit) -> Double)
     let onNumericHabitAction: ((Habit) -> Void)? // New callback for numeric habit sheet
     let onPreviousDay: () -> Void
     let onNextDay: () -> Void
@@ -37,7 +37,7 @@ struct TodaysSummaryCard: View {
         self.currentSlogan = currentSlogan
         self.onQuickAction = onQuickAction
         self.onNumericHabitUpdate = onNumericHabitUpdate
-        self.getProgressSync = getProgressSync
+        self.getProgress = getProgressSync
         self.onNumericHabitAction = onNumericHabitAction
         self.onPreviousDay = onPreviousDay
         self.onNextDay = onNextDay
@@ -219,7 +219,7 @@ struct TodaysSummaryCard: View {
                     
                     // Progress border for numeric habits
                     if habit.kind == .numeric {
-                        let currentValue = getProgressSync(habit)
+                        let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
                         let progressValue = min(max(currentValue / target, 0.0), 1.0)
                         
@@ -238,7 +238,7 @@ struct TodaysSummaryCard: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     if habit.kind == .numeric {
-                        let currentValue = getProgressSync(habit)
+                        let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
                         Text("Next: \(habit.name)")
                             .font(.system(size: 15, weight: .medium))

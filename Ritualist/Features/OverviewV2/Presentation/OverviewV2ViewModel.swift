@@ -39,8 +39,8 @@ public final class OverviewV2ViewModel {
     public var selectedHabitForSheet: Habit?
     public var showingNumericSheet = false
     
-    // Progress cache - single source of truth for habit progress
-    @ObservationIgnored private var habitProgressCache: [UUID: Double] = [:]
+    // Single source of truth for all overview data
+    public var overviewData: OverviewData?
     
     // MARK: - Computed Properties
     public var incompleteHabits: [Habit] {
@@ -151,32 +151,24 @@ public final class OverviewV2ViewModel {
         error = nil
         
         do {
-            async let todaySummaryTask = loadTodaysSummary()
-            async let weeklyProgressTask = loadWeeklyProgress()
-            async let activeStreaksTask = loadActiveStreaks()
-            async let insightsTask = loadSmartInsights()
-            async let monthlyDataTask = loadMonthlyCompletionData()
-            async let preloadHabitDataTask = preloadHabitData()
+            // Load unified data once instead of multiple parallel operations
+            let overviewData = try await loadOverviewData()
             
-            let (todaySummary, weeklyProgress, streaks, insights, monthlyData, _) = try await (
-                todaySummaryTask,
-                weeklyProgressTask,
-                activeStreaksTask,
-                insightsTask,
-                monthlyDataTask,
-                preloadHabitDataTask
-            )
+            // Load insights separately (this doesn't use unified data yet)
+            let insights = try await loadSmartInsights()
+            
+            // Store the overview data and extract all card data from it
+            self.overviewData = overviewData
+            self.todaysSummary = extractTodaysSummary(from: overviewData)
+            self.weeklyProgress = extractWeeklyProgress(from: overviewData)
+            self.activeStreaks = extractActiveStreaks(from: overviewData)
+            self.monthlyCompletionData = extractMonthlyData(from: overviewData)
+            self.smartInsights = insights
             
             // Load personality insights separately (non-blocking)
             Task {
                 await loadPersonalityInsights()
             }
-            
-            self.todaysSummary = todaySummary
-            self.weeklyProgress = weeklyProgress
-            self.activeStreaks = streaks
-            self.smartInsights = insights
-            self.monthlyCompletionData = monthlyData
             
             // Check if we should show inspiration card contextually
             self.checkAndShowInspirationCard()
@@ -282,10 +274,7 @@ public final class OverviewV2ViewModel {
                 try await logHabit.execute(log)
             }
             
-            // Update progress cache immediately for responsive UI
-            habitProgressCache[habit.id] = value
-            
-            // Refresh data to show updated progress and completion status
+            // Refresh data to get updated values from database
             await loadData()
             
         } catch {
@@ -295,7 +284,18 @@ public final class OverviewV2ViewModel {
     }
     
     public func getProgressSync(for habit: Habit) -> Double {
-        return habitProgressCache[habit.id] ?? 0.0
+        // Use single source of truth from overviewData if available
+        guard let data = overviewData else {
+            return 0.0
+        }
+        
+        let logs = data.logs(for: habit.id, on: viewingDate)
+        
+        if habit.kind == .binary {
+            return logs.isEmpty ? 0.0 : 1.0
+        } else {
+            return logs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+        }
     }
     
     public func showNumericSheet(for habit: Habit) {
@@ -556,69 +556,86 @@ public final class OverviewV2ViewModel {
     
     // MARK: - Private Methods
     
-    private func loadTodaysSummary() async throws -> TodaysSummary {
-        let targetDate = viewingDate
-        let allActiveHabits = try await getActiveHabits.execute()
+    /// Load overview data from database
+    private func loadOverviewData() async throws -> OverviewData {
+        // 1. Load habits ONCE
+        let habits = try await getActiveHabits.execute()
         
-        let habits = allActiveHabits.filter { habit in
-            let isScheduled = habit.schedule.isActiveOn(date: targetDate)
-            return isScheduled
+        // 2. Determine date range (past 30 days for monthly data)
+        let calendar = Calendar.current
+        let today = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -30, to: today) else {
+            throw NSError(domain: "OverviewV2", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate date range"])
         }
-
-        var allTargetDateLogs: [HabitLog] = []
         
-        // OPTIMIZATION: Batch load logs for all habits to avoid N+1 queries
+        // 3. Load logs ONCE for entire date range using batch operation
         let habitIds = habits.map(\.id)
-        let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: targetDate, until: targetDate)
+        let habitLogs = try await getBatchLogs.execute(
+            for: habitIds, 
+            since: startDate, 
+            until: today
+        )
+        
+        return OverviewData(
+            habits: habits,
+            habitLogs: habitLogs,
+            dateRange: startDate...today
+        )
+    }
+    
+    // MARK: - Data Extraction Methods
+    
+    /// Extract TodaysSummary from overview data
+    private func extractTodaysSummary(from data: OverviewData) -> TodaysSummary {
+        let targetDate = viewingDate
+        let habits = data.scheduledHabits(for: targetDate)
+        
+        var allTargetDateLogs: [HabitLog] = []
+        var incompleteHabits: [Habit] = []
+        var completedHabits: [Habit] = []
         
         for habit in habits {
-            let habitLogs = logsByHabitId[habit.id] ?? []
-            let targetDateLogs = habitLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: targetDate) }
-            allTargetDateLogs.append(contentsOf: targetDateLogs)
-        }
-        
-        // Count will be calculated based on the completed habits array
-        
-        // Create completed habits array (sorted by completion time)
-        let completedHabits = habits.filter { habit in
-            let habitLogs = allTargetDateLogs.filter { $0.habitID == habit.id }
+            let logs = data.logs(for: habit.id, on: targetDate)
+            allTargetDateLogs.append(contentsOf: logs)
             
+            // Check completion based on habit type
+            let isCompleted: Bool
             if habit.kind == .binary {
                 // Binary habits: completed if any log exists
-                return !habitLogs.isEmpty
+                isCompleted = !logs.isEmpty
             } else {
                 // Numeric habits: completed if total value >= daily target
-                let totalValue = habitLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+                let totalValue = logs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
                 let target = habit.dailyTarget ?? 1.0
-                return totalValue >= target
+                isCompleted = totalValue >= target
             }
-        }.sorted { habit1, habit2 in
-            // Sort by latest log time for each habit (most recent at end)
+            
+            // Only show as incomplete if not completed AND not a future date
+            if targetDate > Date() {
+                // Don't add future dates to incomplete list
+                if isCompleted {
+                    completedHabits.append(habit)
+                }
+            } else {
+                // Past/present dates
+                if isCompleted {
+                    completedHabits.append(habit)
+                } else {
+                    incompleteHabits.append(habit)
+                }
+            }
+        }
+        
+        // Sort completed habits by latest log time (most recent first)
+        completedHabits.sort { habit1, habit2 in
             let habit1Logs = allTargetDateLogs.filter { $0.habitID == habit1.id }
             let habit2Logs = allTargetDateLogs.filter { $0.habitID == habit2.id }
             let habit1LatestTime = habit1Logs.map { $0.date }.max() ?? Date.distantPast
             let habit2LatestTime = habit2Logs.map { $0.date }.max() ?? Date.distantPast
-            return habit1LatestTime < habit2LatestTime
+            return habit1LatestTime > habit2LatestTime  // Most recent first
         }
         
-        let incompleteHabits = habits.filter { habit in
-            // Only show as incomplete if not completed AND not a future date
-            let habitLogs = allTargetDateLogs.filter { $0.habitID == habit.id }
-            
-            if targetDate > Date() {
-                return false // Don't show future dates as incomplete
-            }
-            
-            if habit.kind == .binary {
-                // Binary habits: incomplete if no log exists
-                return habitLogs.isEmpty
-            } else {
-                // Numeric habits: incomplete if total value < daily target
-                let totalValue = habitLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
-                let target = habit.dailyTarget ?? 1.0
-                return totalValue < target
-            }
-        }
+        let completionPercentage = habits.isEmpty ? 0.0 : Double(completedHabits.count) / Double(habits.count)
         
         return TodaysSummary(
             completedHabitsCount: completedHabits.count,
@@ -628,44 +645,29 @@ public final class OverviewV2ViewModel {
         )
     }
     
-    private func loadWeeklyProgress() async throws -> WeeklyProgress {
+    /// Extract WeeklyProgress from overview data
+    private func extractWeeklyProgress(from data: OverviewData) -> WeeklyProgress {
         let calendar = Calendar.current
         let today = Date()
         
         // Get the start of the current week
         guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else {
-            throw NSError(domain: "WeeklyProgress", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not get week interval"])
+            return WeeklyProgress(daysCompleted: Array(repeating: false, count: 7), currentDayIndex: 0)
         }
         
         var daysCompleted: [Bool] = []
         // Calculate current day index relative to week start day
-        let todayWeekday = calendar.component(.weekday, from: today) // 1=Sunday, 2=Monday, etc.
-        let firstWeekday = calendar.firstWeekday // 1=Sunday, 2=Monday, etc.
+        let todayWeekday = calendar.component(.weekday, from: today)
+        let firstWeekday = calendar.firstWeekday
         let currentDayIndex = (todayWeekday - firstWeekday + 7) % 7
         
         // Check each day of the week
         for dayOffset in 0..<7 {
             if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: weekInterval.start) {
-                let allActiveHabits = try await getActiveHabits.execute()
-                let habits = allActiveHabits.filter { $0.schedule.isActiveOn(date: dayDate) }
-                
-                // OPTIMIZATION: Batch load logs for all habits to avoid N+1 queries
-                let habitIds = habits.map(\.id)
-                let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: dayDate, until: dayDate)
-                
-                var completedCount = 0
-                for habit in habits {
-                    let logs = logsByHabitId[habit.id] ?? []
-                    let dateLog = logs.first { log in
-                        calendar.isDate(log.date, inSameDayAs: dayDate)
-                    }
-                    if dateLog != nil {
-                        completedCount += 1
-                    }
-                }
-                
+                // Use unified data's completion rate calculation
+                let completionRate = data.completionRate(for: dayDate)
                 // Consider day completed ONLY if ALL habits were logged (100%)
-                let isCompleted = !habits.isEmpty && Double(completedCount) / Double(habits.count) >= 1.0
+                let isCompleted = completionRate >= 1.0
                 daysCompleted.append(isCompleted)
             } else {
                 daysCompleted.append(false)
@@ -675,18 +677,30 @@ public final class OverviewV2ViewModel {
         return WeeklyProgress(daysCompleted: daysCompleted, currentDayIndex: currentDayIndex)
     }
     
-    private func loadActiveStreaks() async throws -> [StreakInfo] {
-        let habits = try await getActiveHabits.execute()
+    /// Extract monthly completion data from overview data
+    private func extractMonthlyData(from data: OverviewData) -> [Date: Double] {
+        var result: [Date: Double] = [:]
+        let calendar = Calendar.current
+        
+        // Get dates from range, ensuring we use startOfDay for consistency
+        for dayOffset in 0...30 {
+            if let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) {
+                let startOfDay = calendar.startOfDay(for: date)
+                result[startOfDay] = data.completionRate(for: startOfDay)
+            }
+        }
+        
+        return result
+    }
+    
+    /// Extract active streaks from overview data
+    private func extractActiveStreaks(from data: OverviewData) -> [StreakInfo] {
         var streaks: [StreakInfo] = []
+        let today = Date()
         
-        // OPTIMIZATION: Batch load all logs for all habits to avoid N+1 queries
-        let habitIds = habits.map(\.id)
-        let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: nil, until: nil)
-        
-        for habit in habits {
-            // Calculate current streak using cached logs
-            let logs = logsByHabitId[habit.id] ?? []
-            let today = Date()
+        for habit in data.habits {
+            // Get logs for this habit from unified data
+            let logs = data.habitLogs[habit.id] ?? []
             let currentStreak = calculateCurrentStreakUseCase.execute(habit: habit, logs: logs, asOf: today)
             
             if currentStreak >= 1 { // Show all active streaks (1+ days)
@@ -704,6 +718,9 @@ public final class OverviewV2ViewModel {
         // Sort by streak length (longest first)
         return streaks.sorted { $0.currentStreak > $1.currentStreak }
     }
+    
+    
+    
     
     
     private func loadSmartInsights() async throws -> [SmartInsight] {
@@ -916,48 +933,6 @@ public final class OverviewV2ViewModel {
     }
     
     
-    private func loadMonthlyCompletionData() async throws -> [Date: Double] {
-        let calendar = Calendar.current
-        let today = Date()
-        
-        // Get all active habits
-        let allActiveHabits = try await getActiveHabits.execute()
-        guard !allActiveHabits.isEmpty else { return [:] }
-        
-        var completionData: [Date: Double] = [:]
-        
-        // Load data for the past 30 days
-        for i in 0...30 {
-            if let date = calendar.date(byAdding: .day, value: -i, to: today) {
-                let startOfDay = calendar.startOfDay(for: date)
-                
-                // FIXED: Apply schedule filtering like other methods
-                let habits = allActiveHabits.filter { $0.schedule.isActiveOn(date: startOfDay) }
-                
-                // Get all logs for this date
-                // OPTIMIZATION: Batch load logs for all habits to avoid N+1 queries
-                let habitIds = habits.map(\.id)
-                let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: startOfDay, until: startOfDay)
-                
-                var completedCount = 0
-                for habit in habits {
-                    let logs = logsByHabitId[habit.id] ?? []
-                    let dateLog = logs.first { log in
-                        calendar.isDate(log.date, inSameDayAs: startOfDay)
-                    }
-                    if dateLog != nil {
-                        completedCount += 1
-                    }
-                }
-                
-                // Calculate completion percentage
-                let completionRate = Double(completedCount) / Double(habits.count)
-                completionData[startOfDay] = completionRate
-            }
-        }
-        
-        return completionData
-    }
     
     private func resetDismissedTriggersIfNewDay() {
         let calendar = Calendar.current
@@ -1123,26 +1098,6 @@ public final class OverviewV2ViewModel {
             return "\(name), what a comeback! Yesterday was tough, but look at you now. This is resilience! 🚀"
         } else {
             return "Incredible comeback story! You've bounced back stronger than ever. Pure resilience! 🚀"
-        }
-    }
-    
-    /// Pre-loads habit data to prevent empty sheets on app start
-    private func preloadHabitData() async throws {
-        let habits = try await getActiveHabits.execute()
-        
-        // Pre-fetch and cache progress for all habits to avoid empty sheets
-        for habit in habits {
-            let logs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
-            let targetDateLogs = logs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
-            
-            let progress: Double
-            if habit.kind == .numeric {
-                progress = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
-            } else {
-                progress = targetDateLogs.isEmpty ? 0.0 : 1.0
-            }
-            
-            habitProgressCache[habit.id] = progress
         }
     }
 }
