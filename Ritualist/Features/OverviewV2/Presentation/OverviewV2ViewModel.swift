@@ -653,15 +653,19 @@ public final class OverviewV2ViewModel {
                 let habitIds = habits.map(\.id)
                 let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: dayDate, until: dayDate)
                 
-                var dayLogs: [HabitLog] = []
+                var completedCount = 0
                 for habit in habits {
-                    let habitLogs = logsByHabitId[habit.id] ?? []
-                    let logsForDay = habitLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: dayDate) }
-                    dayLogs.append(contentsOf: logsForDay)
+                    let logs = logsByHabitId[habit.id] ?? []
+                    let dateLog = logs.first { log in
+                        calendar.isDate(log.date, inSameDayAs: dayDate)
+                    }
+                    if dateLog != nil {
+                        completedCount += 1
+                    }
                 }
                 
-                // Consider day completed if any habits were logged
-                let isCompleted = !dayLogs.isEmpty && Double(dayLogs.count) / Double(habits.count) > 0.5
+                // Consider day completed ONLY if ALL habits were logged (100%)
+                let isCompleted = !habits.isEmpty && Double(completedCount) / Double(habits.count) >= 1.0
                 daysCompleted.append(isCompleted)
             } else {
                 daysCompleted.append(false)
@@ -917,8 +921,8 @@ public final class OverviewV2ViewModel {
         let today = Date()
         
         // Get all active habits
-        let habits = try await getActiveHabits.execute()
-        guard !habits.isEmpty else { return [:] }
+        let allActiveHabits = try await getActiveHabits.execute()
+        guard !allActiveHabits.isEmpty else { return [:] }
         
         var completionData: [Date: Double] = [:]
         
@@ -926,6 +930,9 @@ public final class OverviewV2ViewModel {
         for i in 0...30 {
             if let date = calendar.date(byAdding: .day, value: -i, to: today) {
                 let startOfDay = calendar.startOfDay(for: date)
+                
+                // FIXED: Apply schedule filtering like other methods
+                let habits = allActiveHabits.filter { $0.schedule.isActiveOn(date: startOfDay) }
                 
                 // Get all logs for this date
                 // OPTIMIZATION: Batch load logs for all habits to avoid N+1 queries

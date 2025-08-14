@@ -37,10 +37,10 @@ public struct HabitsAssistantView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            // Category selector
+            // Sticky category selector at top
             if vm.isLoadingCategories {
                 ProgressView("Loading categories...")
-                    .padding(.bottom, Spacing.medium)
+                    .padding(.vertical, Spacing.medium)
             } else {
                 HorizontalCarousel(
                     items: vm.categories,
@@ -57,58 +57,30 @@ public struct HabitsAssistantView: View {
                         )
                     }
                 )
-                .background(Color.clear)
-                .padding(.bottom, Spacing.medium)
+                .padding(.bottom, Spacing.small)
             }
             
-            // Main scrollable content
+            // Scrollable content
             ScrollView {
-                VStack(spacing: 0) {
-                    // Header with assistant character (fades on scroll)
-                    VStack(spacing: Spacing.medium) {
-                        Text("🤖")
-                            .font(.system(size: 60))
-                            .padding(.top, Spacing.large)
-                        
-                        VStack(spacing: Spacing.small) {
-                            Text("Let's Get Started!")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            
-                            Text("I'll help you choose some habits to begin your journey. Tap the + button to add any habits that interest you.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, Spacing.large)
-                        }
+                LazyVStack(spacing: Spacing.medium) {
+                    ForEach(suggestions) { suggestion in
+                        HabitSuggestionRow(
+                            suggestion: suggestion,
+                            isAdded: vm.addedSuggestionIds.contains(suggestion.id),
+                            isCreating: isCreatingHabit,
+                            isDeleting: isDeletingHabit,
+                            onAdd: {
+                                await addHabit(suggestion)
+                            },
+                            onRemove: {
+                                await removeHabit(suggestion)
+                            }
+                        )
                     }
-                    .padding(.bottom, Spacing.large)
-                    .scrollTransition { content, phase in
-                        content
-                            .opacity(phase.isIdentity ? 1 : 0)
-                            .scaleEffect(phase.isIdentity ? 1 : 0.95)
-                    }
-                    
-                    // Suggestions list
-                    LazyVStack(spacing: Spacing.medium) {
-                        ForEach(suggestions) { suggestion in
-                            HabitSuggestionRow(
-                                suggestion: suggestion,
-                                isAdded: vm.addedSuggestionIds.contains(suggestion.id),
-                                isCreating: isCreatingHabit,
-                                isDeleting: isDeletingHabit,
-                                onAdd: {
-                                    await addHabit(suggestion)
-                                },
-                                onRemove: {
-                                    await removeHabit(suggestion)
-                                }
-                            )
-                        }
-                    }
-                    .padding(.horizontal, Spacing.medium)
-                    .padding(.bottom, Spacing.xlarge)
                 }
+                .padding(.horizontal, Spacing.medium)
+                .padding(.top, Spacing.medium)
+                .padding(.bottom, Spacing.xlarge)
             }
         }
         .background(Color.clear)

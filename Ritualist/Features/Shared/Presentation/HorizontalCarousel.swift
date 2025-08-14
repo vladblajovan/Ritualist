@@ -84,6 +84,5 @@ public struct HorizontalCarousel<T: Identifiable, Content: View>: View {
             }
         }
         .padding(.vertical, 12)
-        .background(Color(.systemBackground))
     }
 }

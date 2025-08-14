@@ -122,7 +122,7 @@ struct MonthlyCalendarCard: View {
                 }
             }
             
-            let completedDays = weekDays.filter { monthlyData[calendar.startOfDay(for: $0)] ?? 0.0 > 0.8 }.count
+            let completedDays = weekDays.filter { monthlyData[calendar.startOfDay(for: $0)] ?? 0.0 >= 1.0 }.count
             Text("\(completedDays) of \(weekDays.count) days this week")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -195,14 +195,14 @@ struct MonthlyCalendarCard: View {
             return CardDesign.secondaryBackground
         }
         
-        if completionRate >= 0.8 {
-            return CardDesign.progressGreen
-        } else if completionRate >= 0.5 {
-            return CardDesign.progressOrange
+        if completionRate >= 1.0 {
+            return CardDesign.progressGreen  // Only 100% completion is green (completed)
+        } else if completionRate >= 0.8 {
+            return CardDesign.progressOrange  // 80-99% is orange (almost there)
         } else if completionRate > 0 {
-            return CardDesign.progressRed.opacity(0.6)
+            return CardDesign.progressRed.opacity(0.6)  // Some progress is red
         } else {
-            return CardDesign.secondaryBackground
+            return CardDesign.secondaryBackground  // No progress is gray
         }
     }
     
@@ -219,7 +219,7 @@ struct MonthlyCalendarCard: View {
             return .secondary
         }
         
-        return completionRate >= 0.5 ? .white : .primary
+        return completionRate >= 0.8 ? .white : .primary  // White text for orange/green backgrounds
     }
     
     private var dayFormatter: DateFormatter {

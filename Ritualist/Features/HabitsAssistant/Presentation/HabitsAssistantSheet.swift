@@ -56,9 +56,9 @@ public struct HabitsAssistantSheet: View {
             }
         }
         .deviceAwareSheetSizing(
-            compactMultiplier: (min: 0.88, ideal: 0.97, max: 1.0),
-            regularMultiplier: (min: 0.80, ideal: 0.93, max: 1.0),
-            largeMultiplier: (min: 0.72, ideal: 0.83, max: 0.94)
+            compactMultiplier: (min: 1.0, ideal: 1.0, max: 1.0),
+            regularMultiplier: (min: 1.0, ideal: 1.0, max: 1.0),
+            largeMultiplier: (min: 1.0, ideal: 1.0, max: 1.0)
         )
     }
 }
