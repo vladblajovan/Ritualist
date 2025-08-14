@@ -76,8 +76,11 @@ private struct HabitsContentView: View {
                     onHabitRemove: { habitId in await vm.delete(id: habitId) },
                     onShowPaywall: vm.showPaywallFromAssistant
                 )
-                .presentationDetents([.height(600)]) // Fixed height like quick log
-                .presentationDragIndicator(.visible)
+                .deviceAwareSheetSizing(
+                    compactMultiplier: (min: 0.88, ideal: 0.97, max: 1.0),
+                    regularMultiplier: (min: 0.80, ideal: 0.93, max: 1.0),
+                    largeMultiplier: (min: 0.72, ideal: 0.83, max: 0.94)
+                )
                 // Remove .presentationBackground for full transparency
                 .onDisappear {
                     vm.handleAssistantDismissal()
@@ -239,7 +242,7 @@ private struct HabitsListView: View {
                         // Habits section
                         Section {
                             ForEach(vm.filteredHabits, id: \.id) { habit in
-                                HabitRowView(habit: habit) {
+                                GenericRowView.habitRow(habit: habit) {
                                     vm.selectHabit(habit)
                                 }
                                 .tag(habit.id)
@@ -461,38 +464,6 @@ private struct HabitsListView: View {
     }
 }
 
-private struct HabitRowView: View {
-    let habit: Habit
-    let onTap: () -> Void
-    
-    var body: some View {
-        HStack {
-            ZStack {
-                Circle()
-                    .fill(AppColors.brand.opacity(0.1))
-                    .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
-                Text(habit.emoji ?? "•")
-            }
-            VStack(alignment: .leading) {
-                Text(habit.name).bold()
-                Text(habit.isActive ? Strings.Status.active : Strings.Status.inactive)
-                    .font(.caption)
-                    .foregroundColor(habit.isActive ? .green : .secondary)
-            }
-            Spacer()
-            
-            Image(systemName: "info.circle")
-                .font(.title3)
-                .foregroundColor(.secondary)
-                .onTapGesture {
-                    onTap()
-                }
-                .accessibilityLabel("View habit details")
-        }
-        .contentShape(Rectangle())
-        .allowsHitTesting(true)
-    }
-}
 
 private struct OperationStatusView: View {
     let isCreating: Bool

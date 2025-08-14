@@ -57,6 +57,7 @@ public struct HabitsAssistantView: View {
                         )
                     }
                 )
+                .background(Color.clear)
                 .padding(.bottom, Spacing.medium)
             }
             
@@ -110,6 +111,7 @@ public struct HabitsAssistantView: View {
                 }
             }
         }
+        .background(Color.clear)
         .task {
             await vm.loadCategories()
             vm.initializeWithExistingHabits(existingHabits)

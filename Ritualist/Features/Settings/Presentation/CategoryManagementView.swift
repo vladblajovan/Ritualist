@@ -75,7 +75,7 @@ public struct CategoryManagementView: View {
     private var categoryList: some View {
         List(selection: $selectedCategoryIds) {
             ForEach(vm.categories, id: \.id) { category in
-                CategoryRowView(category: category)
+                GenericRowView.categoryRow(category: category)
                     .deleteDisabled(category.isPredefined)
                     .tag(category.id)
             }
@@ -229,43 +229,6 @@ public struct CategoryManagementView: View {
     }
 }
 
-private struct CategoryRowView: View {
-    let category: Category
-    
-    var body: some View {
-        HStack(spacing: Spacing.medium) {
-            Text(category.emoji)
-                .font(.title2)
-                .frame(width: 30)
-                .opacity(category.isActive ? 1.0 : 0.5)
-            
-            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                Text(category.displayName)
-                    .font(.headline)
-                    .foregroundColor(category.isPredefined ? .secondary : (category.isActive ? .primary : .secondary))
-                    .strikethrough(!category.isActive)
-                
-                HStack(spacing: Spacing.small) {
-                    if category.isPredefined {
-                        Text("Predefined")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if !category.isActive {
-                        Text("Inactive")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                    }
-                }
-            }
-            
-            Spacer()
-        }
-        .contentShape(Rectangle())
-        .opacity(category.isActive ? 1.0 : 0.7)
-    }
-}
 
 
 #Preview {

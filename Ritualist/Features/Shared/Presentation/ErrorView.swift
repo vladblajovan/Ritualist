@@ -21,12 +21,11 @@ public struct ErrorView: View {
         } description: {
             Text(message)
         } actions: {
-            Button("Retry") {
+            ActionButton.primary(title: "Retry") {
                 Task {
                     await retryAction()
                 }
             }
-            .buttonStyle(.borderedProminent)
         }
     }
 }

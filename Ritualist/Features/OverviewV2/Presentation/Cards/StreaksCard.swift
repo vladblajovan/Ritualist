@@ -169,7 +169,8 @@ struct StreaksCard: View {
     @ViewBuilder
     private func streakDetailSheet(for streak: StreakInfo) -> some View {
         NavigationView {
-            VStack(alignment: .leading, spacing: 24) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
                     // Header
                     VStack(spacing: 12) {
                         Text(streak.emoji)
@@ -262,8 +263,9 @@ struct StreaksCard: View {
                         .foregroundColor(.secondary)
                     }
                     .padding(16)
+                }
+                .padding()
             }
-            .padding()
             .navigationTitle("Streak Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -274,8 +276,11 @@ struct StreaksCard: View {
                 }
             }
         }
-        .presentationDetents([.height(500)])
-        .presentationDragIndicator(.visible)
+        .deviceAwareSheetSizing(
+            compactMultiplier: (min: 0.75, ideal: 0.85, max: 0.95),
+            regularMultiplier: (min: 0.70, ideal: 0.80, max: 0.90),
+            largeMultiplier: (min: 0.65, ideal: 0.75, max: 0.85)
+        )
     }
     
     private func streakLevelText(for flameCount: Int) -> String {

@@ -62,94 +62,112 @@ public struct NumericHabitLogSheetDirect: View {
         value < dailyTarget + 50
     }
     
+    
     public var body: some View {
         NavigationView {
-            VStack(spacing: Spacing.large) {
-                VStack(spacing: Spacing.medium) {
-                    Text(habit.emoji ?? "📊")
-                        .font(.system(size: 48))
-                    
-                    Text(habit.name)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, Spacing.large)
-                
-                VStack(spacing: Spacing.medium) {
-                    ZStack {
-                        Circle()
-                            .stroke(AppColors.brand.opacity(0.2), lineWidth: 8)
-                            .frame(width: 120, height: 120)
+            VStack(spacing: 0) {
+                // Scrollable content area
+                ScrollView {
+                    VStack(spacing: Spacing.large) {
+                        // Header with emoji and name
+                        VStack(spacing: Spacing.medium) {
+                            Text(habit.emoji ?? "📊")
+                                .font(.system(size: 48))
+                            
+                            Text(habit.name)
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .multilineTextAlignment(.center)
+                        }
                         
-                        Circle()
-                            .trim(from: 0, to: progressPercentage)
-                            .stroke(
-                                isCompleted ? .green : AppColors.brand,
-                                style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                            )
-                            .frame(width: 120, height: 120)
-                            .rotationEffect(.degrees(-90))
-                            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: progressPercentage)
-                        
-                        VStack(spacing: 2) {
-                            Text("\(Int(value))")
-                                .font(.system(size: 28, weight: .bold))
+                        // Progress circle and status
+                        VStack(spacing: Spacing.medium) {
+                            ZStack {
+                                Circle()
+                                    .stroke(AppColors.brand.opacity(0.2), lineWidth: 8)
+                                    .frame(width: 120, height: 120)
+                                
+                                Circle()
+                                    .trim(from: 0, to: progressPercentage)
+                                    .stroke(
+                                        isCompleted ? .green : AppColors.brand,
+                                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                                    )
+                                    .frame(width: 120, height: 120)
+                                    .rotationEffect(.degrees(-90))
+                                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: progressPercentage)
+                                
+                                VStack(spacing: 2) {
+                                    Text("\(Int(value))")
+                                        .font(.system(size: 28, weight: .bold))
+                                        .foregroundColor(isCompleted ? .green : .primary)
+                                    Text("/ \(Int(dailyTarget))")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Text("\(Int(value)) of \(Int(dailyTarget)) \(unitLabel)")
+                                .font(.headline)
                                 .foregroundColor(isCompleted ? .green : .primary)
-                            Text("/ \(Int(dailyTarget))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            
+                            if isCompleted {
+                                Text("🎉 Target reached!")
+                                    .font(.subheadline)
+                                    .foregroundColor(.green)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        
+                        // Increment/decrement controls
+                        VStack(spacing: Spacing.large) {
+                            HStack(spacing: 24) {
+                                Button {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        value = max(0, value - 1)
+                                    }
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.system(size: 44))
+                                        .foregroundColor(canDecrement ? AppColors.brand : AppColors.brand.opacity(0.3))
+                                }
+                                .disabled(!canDecrement)
+                                
+                                Button {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        value += 1
+                                    }
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 44))
+                                        .foregroundColor(canIncrement ? AppColors.brand : AppColors.brand.opacity(0.3))
+                                }
+                                .disabled(!canIncrement)
+                            }
+                            .padding(.horizontal, Spacing.xlarge)
+                            
+                            if dailyTarget >= 5 {
+                                HStack(spacing: Spacing.medium) {
+                                    quickIncrementButton(amount: 5)
+                                    if dailyTarget >= 10 {
+                                        quickIncrementButton(amount: 10)
+                                    }
+                                }
+                            }
                         }
                     }
-                    
-                    Text("\(Int(value)) of \(Int(dailyTarget)) \(unitLabel)")
-                        .font(.headline)
-                        .foregroundColor(isCompleted ? .green : .primary)
-                    
-                    if isCompleted {
-                        Text("🎉 Target reached!")
-                            .font(.subheadline)
-                            .foregroundColor(.green)
-                            .fontWeight(.medium)
-                    }
+                    .padding(.horizontal)
                 }
                 
-                VStack(spacing: Spacing.large) {
-                    HStack(spacing: 24) { // Closer spacing for easier one-hand use
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                value = max(0, value - 1)
-                            }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.system(size: 44))
-                                .foregroundColor(canDecrement ? AppColors.brand : AppColors.brand.opacity(0.3))
-                        }
-                        .disabled(!canDecrement)
-                        
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                value += 1
-                            }
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 44))
-                                .foregroundColor(canIncrement ? AppColors.brand : AppColors.brand.opacity(0.3))
-                        }
-                        .disabled(!canIncrement)
-                    }
-                    .padding(.horizontal, Spacing.xlarge)
-                    
-                    if dailyTarget >= 5 {
-                        HStack(spacing: Spacing.medium) {
-                            quickIncrementButton(amount: 5)
-                            if dailyTarget >= 10 {
-                                quickIncrementButton(amount: 10)
-                            }
-                        }
+                // Fixed button area at bottom
+                VStack(spacing: Spacing.small) {
+                    if !isValidValue {
+                        Text("Value must be between 0 and \(Int(dailyTarget + 50))")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.horizontal, Spacing.large)
                     }
                     
-                    // Button row with Complete All and Save
                     HStack(spacing: Spacing.medium) {
                         if !isCompleted && value < dailyTarget {
                             if #available(iOS 26.0, *) {
@@ -158,7 +176,6 @@ public struct NumericHabitLogSheetDirect: View {
                                         value = dailyTarget
                                     }
                                     
-                                    // Auto-save and dismiss after setting to target
                                     Task {
                                         await onSave(dailyTarget)
                                         dismiss()
@@ -181,7 +198,6 @@ public struct NumericHabitLogSheetDirect: View {
                                         value = dailyTarget
                                     }
                                     
-                                    // Auto-save and dismiss after setting to target
                                     Task {
                                         await onSave(dailyTarget)
                                         dismiss()
@@ -202,7 +218,6 @@ public struct NumericHabitLogSheetDirect: View {
                             }
                         }
                         
-                        // Save button (moved from toolbar)
                         if #available(iOS 26.0, *) {
                             Button {
                                 if isValidValue {
@@ -245,16 +260,9 @@ public struct NumericHabitLogSheetDirect: View {
                         }
                     }
                     .padding(.horizontal, Spacing.medium)
-                    
-                    if !isValidValue {
-                        Text("Value must be between 0 and \(Int(dailyTarget + 50))")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .padding(.horizontal, Spacing.large)
-                    }
                 }
-                
-                Spacer()
+                .padding(.bottom, Spacing.medium)
+                .background(.regularMaterial)
             }
             .navigationTitle("Log Progress")
             .navigationBarTitleDisplayMode(.inline)
@@ -267,8 +275,11 @@ public struct NumericHabitLogSheetDirect: View {
                 }
             }
         }
-        .presentationDetents([.height(500)]) // Half screen height
-        .presentationDragIndicator(.visible)
+        .deviceAwareSheetSizing(
+            compactMultiplier: (min: 0.92, ideal: 0.95, max: 0.98),
+            regularMultiplier: (min: 0.67, ideal: 0.73, max: 0.87),
+            largeMultiplier: (min: 0.61, ideal: 0.67, max: 0.78)
+        )
         .overlay(
             Group {
                 if isLoading {

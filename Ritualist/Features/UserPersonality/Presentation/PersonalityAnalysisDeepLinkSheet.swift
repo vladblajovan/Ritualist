@@ -39,8 +39,11 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
             // Use PersonalityInsightsView which has its own NavigationView
             PersonalityInsightsView(viewModel: viewModel)
         }
-        .presentationDetents([.fraction(0.9)]) // 90% height
-        .presentationDragIndicator(.visible)
+        .deviceAwareSheetSizing(
+            compactMultiplier: (min: 0.97, ideal: 1.0, max: 1.0),
+            regularMultiplier: (min: 0.87, ideal: 1.0, max: 1.0),
+            largeMultiplier: (min: 0.78, ideal: 0.89, max: 1.0)
+        )
         // Removed .presentationBackground for full transparency
         .onAppear {
             handleNotificationAction()

@@ -131,14 +131,14 @@ public struct DashboardView: View {
             GridItem(.flexible()),
             GridItem(.flexible())
         ], spacing: 16) {
-            StatsCard(
+            StatCard.simple(
                 title: Strings.Dashboard.totalHabits,
                 value: "\(stats.totalHabits)",
                 icon: "list.bullet",
                 color: .blue
             )
             
-            StatsCard(
+            StatCard.simple(
                 title: Strings.Dashboard.completedHabits,
                 value: "\(stats.completedHabits)",
                 icon: "checkmark.circle.fill",

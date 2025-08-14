@@ -43,7 +43,7 @@ public struct TipsBottomSheet: View {
                             Section(header: Text(String(localized: "featuredTips")).font(.subheadline).fontWeight(.medium)) {
                                 ForEach(featuredTips, id: \.id) { tip in
                                     NavigationLink(destination: TipDetailContentView(tip: tip)) {
-                                        TipListRowContent(tip: tip)
+                                        GenericRowView.tipRow(tip: tip) {}
                                     }
                                 }
                             }
@@ -59,7 +59,7 @@ public struct TipsBottomSheet: View {
                                 Section(header: Text(categoryDisplayName(category)).font(.subheadline).fontWeight(.medium)) {
                                     ForEach(categoryTips, id: \.id) { tip in
                                         NavigationLink(destination: TipDetailContentView(tip: tip)) {
-                                            TipListRowContent(tip: tip)
+                                            GenericRowView.tipRow(tip: tip) {}
                                         }
                                     }
                                 }
@@ -79,8 +79,11 @@ public struct TipsBottomSheet: View {
                 }
             }
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.hidden) // We have our own handle bar
+        .deviceAwareSheetSizing(
+            compactMultiplier: (min: 0.88, ideal: 0.97, max: 1.0),
+            regularMultiplier: (min: 0.80, ideal: 0.93, max: 1.0),
+            largeMultiplier: (min: 0.72, ideal: 0.83, max: 0.94)
+        )
     }
     
     private func categoryDisplayName(_ category: TipCategory) -> String {
@@ -97,67 +100,6 @@ public struct TipsBottomSheet: View {
     }
 }
 
-// MARK: - Tip List Row Component (Legacy - kept for compatibility)
-private struct TipListRow: View {
-    let tip: Tip
-    let onTap: () -> Void
-    
-    var body: some View {
-        Button(action: onTap) {
-            TipListRowContent(tip: tip)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .accessibilityLabel("Tip: \(tip.title). \(tip.description)")
-        .accessibilityAddTraits(.isButton)
-    }
-}
-
-// MARK: - Tip List Row Content (for NavigationLink)
-private struct TipListRowContent: View {
-    let tip: Tip
-    
-    var body: some View {
-        HStack(spacing: Spacing.medium) {
-            // Icon
-            if let icon = tip.icon {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(AppColors.brand)
-                    .frame(width: ComponentSize.iconMedium, height: ComponentSize.iconMedium)
-            } else {
-                // Placeholder circle if no icon
-                Circle()
-                    .fill(AppColors.brand.opacity(0.2))
-                    .frame(width: ComponentSize.iconMedium, height: ComponentSize.iconMedium)
-                    .overlay(
-                        Text(String(tip.title.prefix(1)))
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(AppColors.brand)
-                    )
-            }
-            
-            // Content
-            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                Text(tip.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(AppColors.textPrimary)
-                    .multilineTextAlignment(.leading)
-                
-                Text(tip.description)
-                    .font(.caption)
-                    .foregroundColor(AppColors.textSecondary)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-            }
-            
-            Spacer()
-        }
-        .padding(.vertical, Spacing.xxsmall)
-        .accessibilityLabel("Tip: \(tip.title). \(tip.description)")
-    }
-}
 
 // MARK: - Tip Detail Content View for NavigationStack
 private struct TipDetailContentView: View {
