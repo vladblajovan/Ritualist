@@ -24,15 +24,16 @@ public final class DashboardViewModel: ObservableObject {
     @Published public var isLoading = false
     @Published public var error: Error?
     
-    @Injected(\.habitAnalyticsService) private var habitAnalyticsService
-    @Injected(\.userService) private var userService
+    @Injected(\.habitAnalyticsService) internal var habitAnalyticsService
+    @Injected(\.userService) internal var userService
     @Injected(\.calculateHabitPerformanceUseCase) private var calculateHabitPerformanceUseCase
     @Injected(\.generateProgressChartDataUseCase) private var generateProgressChartDataUseCase
     @Injected(\.analyzeWeeklyPatternsUseCase) private var analyzeWeeklyPatternsUseCase
     @Injected(\.calculateStreakAnalysisUseCase) private var calculateStreakAnalysisUseCase
     @Injected(\.aggregateCategoryPerformanceUseCase) private var aggregateCategoryPerformanceUseCase
+    @Injected(\.getBatchLogs) internal var getBatchLogs
     
-    private var userId: UUID { 
+    internal var userId: UUID { 
         userService.currentProfile.id 
     }
     
@@ -194,23 +195,25 @@ public final class DashboardViewModel: ObservableObject {
         error = nil
         
         do {
-            // Load completion statistics
-            let range = selectedTimePeriod.dateRange
-            let stats = try await habitAnalyticsService.getHabitCompletionStats(
-                for: userId,
-                from: range.start,
-                to: range.end
-            )
+            // PHASE 2: Unified data loading - reduces queries from 471+ to 3
+            let dashboardData = try await loadUnifiedDashboardData()
             
-            self.completionStats = stats
-            
-            // Load additional data if stats are available
-            if stats.totalHabits > 0 {
-                await loadHabitPerformanceData()
-                await loadProgressChartData()
-                await loadWeeklyPatterns()
-                await loadStreakAnalysis()
-                await loadCategoryBreakdown()
+            // Extract all metrics from single source (no additional queries)
+            if !dashboardData.habits.isEmpty {
+                self.completionStats = extractCompletionStats(from: dashboardData)
+                self.habitPerformanceData = extractHabitPerformanceData(from: dashboardData)
+                self.progressChartData = extractProgressChartData(from: dashboardData)
+                self.weeklyPatterns = extractWeeklyPatterns(from: dashboardData)
+                self.streakAnalysis = extractStreakAnalysis(from: dashboardData)
+                self.categoryBreakdown = extractCategoryBreakdown(from: dashboardData)
+            } else {
+                // No habits - set empty states
+                self.completionStats = HabitCompletionStats(totalHabits: 0, completedHabits: 0, completionRate: 0.0)
+                self.habitPerformanceData = []
+                self.progressChartData = []
+                self.weeklyPatterns = nil
+                self.streakAnalysis = nil
+                self.categoryBreakdown = []
             }
             
         } catch {

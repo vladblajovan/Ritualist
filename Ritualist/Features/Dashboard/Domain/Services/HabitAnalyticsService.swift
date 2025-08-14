@@ -7,6 +7,7 @@
 
 import Foundation
 import RitualistCore
+import FactoryKit
 
 // HabitAnalyticsService protocol moved to RitualistCore/Services/ServiceProtocols.swift
 
@@ -16,6 +17,9 @@ public final class HabitAnalyticsServiceImpl: HabitAnalyticsService {
     private let logRepository: LogRepository
     private let scheduleAnalyzer: HabitScheduleAnalyzerProtocol
     private let calendar: Calendar
+    
+    // PHASE 3: Add batch loading capability to eliminate N+1 queries
+    @Injected(\.getBatchLogs) private var getBatchLogs
     
     public init(
         habitRepository: HabitRepository,
@@ -36,17 +40,33 @@ public final class HabitAnalyticsServiceImpl: HabitAnalyticsService {
     
     public func getHabitLogs(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
         let habits = try await getActiveHabits(for: userId)
-        var allLogs: [HabitLog] = []
         
-        for habit in habits {
-            let habitLogs = try await logRepository.logs(for: habit.id)
-            let logsInRange = habitLogs.filter { log in
-                log.date >= startDate && log.date <= endDate
-            }
-            allLogs.append(contentsOf: logsInRange)
-        }
+        // PHASE 3: Eliminate N+1 query pattern - use batch loading instead
+        // BEFORE: N queries (1 per habit)
+        // AFTER: 1 batch query for all habits
         
-        return allLogs
+        let habitIds = habits.map(\.id)
+        let logsByHabitId = try await getBatchLogs.execute(
+            for: habitIds,
+            since: startDate,
+            until: endDate
+        )
+        
+        // Flatten the results into a single array
+        return logsByHabitId.values.flatMap { $0 }
+    }
+    
+    /// Get logs for a specific habit in a date range
+    /// Uses batch loading when available for better performance
+    public func getLogsForSingleHabit(_ habitId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
+        // Use batch loading with single habit ID
+        let logsByHabitId = try await getBatchLogs.execute(
+            for: [habitId],
+            since: startDate,
+            until: endDate
+        )
+        
+        return logsByHabitId[habitId] ?? []
     }
     
     public func getHabitCompletionStats(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats {

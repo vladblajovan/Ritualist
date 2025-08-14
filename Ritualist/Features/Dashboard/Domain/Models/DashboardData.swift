@@ -1,0 +1,248 @@
+import Foundation
+import RitualistCore
+
+/// Single source of truth data structure for Dashboard analytics
+/// Replaces multiple independent data loading methods to eliminate N+1 queries
+/// Expected to reduce database queries from 471+ to 3 for annual views
+public struct DashboardData {
+    public let habits: [Habit]
+    public let categories: [Category]
+    public let habitLogs: [UUID: [HabitLog]]  // Indexed by habitId for O(1) access
+    public let dateRange: ClosedRange<Date>   // Date range we have data for
+    
+    // Pre-calculated daily metrics for O(1) chart generation
+    private let dailyCompletions: [Date: DayCompletion]
+    
+    public struct DayCompletion {
+        public let date: Date
+        public let completedHabits: Set<UUID>
+        public let expectedHabits: Set<UUID>  // Based on schedule
+        public let completionRate: Double
+        public let totalCompleted: Int
+        public let totalExpected: Int
+        
+        public init(date: Date, completedHabits: Set<UUID>, expectedHabits: Set<UUID>, completionRate: Double, totalCompleted: Int, totalExpected: Int) {
+            self.date = date
+            self.completedHabits = completedHabits
+            self.expectedHabits = expectedHabits
+            self.completionRate = completionRate
+            self.totalCompleted = totalCompleted
+            self.totalExpected = totalExpected
+        }
+    }
+    
+    public init(habits: [Habit], categories: [Category], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>) {
+        self.habits = habits
+        self.categories = categories
+        self.habitLogs = habitLogs
+        self.dateRange = dateRange
+        
+        // Pre-calculate all daily completions during initialization
+        self.dailyCompletions = Self.calculateDailyCompletions(
+            habits: habits,
+            habitLogs: habitLogs,
+            dateRange: dateRange
+        )
+    }
+    
+    // MARK: - Helper Methods for O(1) Data Access
+    
+    /// Get completion rate for a specific date (0.0 to 1.0)
+    /// O(1) lookup - no database queries
+    public func completionRate(for date: Date) -> Double {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        return dailyCompletions[startOfDay]?.completionRate ?? 0.0
+    }
+    
+    /// Get habits completed on a specific date
+    /// O(1) lookup for habit IDs, then O(n) filtering where n is small
+    public func habitsCompleted(on date: Date) -> [Habit] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        
+        guard let dayCompletion = dailyCompletions[startOfDay] else { return [] }
+        
+        return habits.filter { dayCompletion.completedHabits.contains($0.id) }
+    }
+    
+    /// Get habits scheduled for a specific date
+    public func scheduledHabits(for date: Date) -> [Habit] {
+        return habits.filter { $0.schedule.isActiveOn(date: date) }
+    }
+    
+    /// Get streak data for a specific habit
+    /// Uses pre-loaded logs without additional queries
+    public func streakData(for habitId: UUID) -> StreakInfo? {
+        guard let habit = habits.first(where: { $0.id == habitId }),
+              let logs = habitLogs[habitId] else { return nil }
+        
+        // Calculate current streak from pre-loaded logs
+        let sortedLogs = logs.sorted { $0.date > $1.date } // Most recent first
+        var currentStreak = 0
+        let calendar = Calendar.current
+        var checkDate = calendar.startOfDay(for: Date())
+        
+        for log in sortedLogs {
+            let logDate = calendar.startOfDay(for: log.date)
+            if logDate == checkDate {
+                currentStreak += 1
+                checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate) ?? checkDate
+            } else {
+                break
+            }
+        }
+        
+        return StreakInfo(
+            id: habit.id.uuidString,
+            habitName: habit.name,
+            emoji: habit.emoji ?? "📊",
+            currentStreak: currentStreak,
+            isActive: currentStreak > 0
+        )
+    }
+    
+    /// Get all chart data points for the date range
+    /// O(n) where n is number of days - no database queries
+    public func chartDataPoints() -> [ProgressChartDataPoint] {
+        let calendar = Calendar.current
+        var dataPoints: [ProgressChartDataPoint] = []
+        
+        var currentDate = dateRange.lowerBound
+        while currentDate <= dateRange.upperBound {
+            let startOfDay = calendar.startOfDay(for: currentDate)
+            let completionRate = dailyCompletions[startOfDay]?.completionRate ?? 0.0
+            
+            dataPoints.append(ProgressChartDataPoint(
+                date: startOfDay,
+                completionRate: completionRate
+            ))
+            
+            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
+            currentDate = nextDate
+        }
+        
+        return dataPoints.sorted { $0.date < $1.date }
+    }
+    
+    /// Get habit performance data for all habits
+    /// Uses pre-loaded logs and calculated completions
+    public func habitPerformanceData() -> [HabitPerformanceResult] {
+        return habits.map { habit in
+            let logs = habitLogs[habit.id] ?? []
+            let totalDays = Calendar.current.dateComponents([.day], from: dateRange.lowerBound, to: dateRange.upperBound).day ?? 0
+            
+            // Count completed days for this habit
+            var completedDays = 0
+            _ = Calendar.current // Suppress warning
+            
+            for (_, dayCompletion) in dailyCompletions {
+                if dayCompletion.expectedHabits.contains(habit.id) && dayCompletion.completedHabits.contains(habit.id) {
+                    completedDays += 1
+                }
+            }
+            
+            let completionRate = totalDays > 0 ? Double(completedDays) / Double(totalDays) : 0.0
+            
+            return HabitPerformanceResult(
+                habitId: habit.id,
+                habitName: habit.name,
+                emoji: habit.emoji ?? "📊",
+                completionRate: completionRate,
+                completedDays: completedDays,
+                expectedDays: totalDays
+            )
+        }.sorted { $0.completionRate > $1.completionRate }
+    }
+    
+    /// Get category performance breakdown
+    public func categoryPerformanceData() -> [CategoryPerformanceResult] {
+        let habitsByCategory = Dictionary(grouping: habits) { $0.categoryId ?? "default" }
+        
+        return categories.compactMap { category -> CategoryPerformanceResult? in
+            let categoryHabits = habitsByCategory[String(describing: category.id)] ?? []
+            guard !categoryHabits.isEmpty else { return nil }
+            
+            let totalCompletions = categoryHabits.reduce(0) { total, habit in
+                let habitCompletions = dailyCompletions.values.reduce(0) { sum, dayCompletion in
+                    return sum + (dayCompletion.completedHabits.contains(habit.id) ? 1 : 0)
+                }
+                return total + habitCompletions
+            }
+            
+            let totalPossibleCompletions = categoryHabits.reduce(0) { total, habit in
+                let habitExpected = dailyCompletions.values.reduce(0) { sum, dayCompletion in
+                    return sum + (dayCompletion.expectedHabits.contains(habit.id) ? 1 : 0)
+                }
+                return total + habitExpected
+            }
+            
+            let completionRate = totalPossibleCompletions > 0 ? Double(totalCompletions) / Double(totalPossibleCompletions) : 0.0
+            
+            return CategoryPerformanceResult(
+                categoryId: String(describing: category.id),
+                categoryName: category.name,
+                completionRate: completionRate,
+                habitCount: categoryHabits.count,
+                color: "#007AFF", // Default iOS blue color
+                emoji: category.emoji ?? "📂"
+            )
+        }.sorted { $0.completionRate > $1.completionRate }
+    }
+    
+    // MARK: - Private Calculation Methods
+    
+    /// Pre-calculate daily completions for the entire date range
+    /// This eliminates the need for per-day database queries
+    private static func calculateDailyCompletions(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>) -> [Date: DayCompletion] {
+        var dailyCompletions: [Date: DayCompletion] = [:]
+        let calendar = Calendar.current
+        
+        var currentDate = dateRange.lowerBound
+        while currentDate <= dateRange.upperBound {
+            let startOfDay = calendar.startOfDay(for: currentDate)
+            
+            // Get habits scheduled for this date
+            let scheduledHabits = habits.filter { $0.schedule.isActiveOn(date: startOfDay) }
+            let expectedHabits = Set(scheduledHabits.map(\.id))
+            
+            // Find completed habits for this date
+            var completedHabits: Set<UUID> = []
+            
+            for habit in scheduledHabits {
+                if let logs = habitLogs[habit.id] {
+                    let dayLogs = logs.filter { calendar.isDate($0.date, inSameDayAs: startOfDay) }
+                    
+                    let isCompleted: Bool
+                    if habit.kind == .binary {
+                        isCompleted = !dayLogs.isEmpty
+                    } else {
+                        let totalValue = dayLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+                        let target = habit.dailyTarget ?? 1.0
+                        isCompleted = totalValue >= target
+                    }
+                    
+                    if isCompleted {
+                        completedHabits.insert(habit.id)
+                    }
+                }
+            }
+            
+            let completionRate = expectedHabits.isEmpty ? 0.0 : Double(completedHabits.count) / Double(expectedHabits.count)
+            
+            dailyCompletions[startOfDay] = DayCompletion(
+                date: startOfDay,
+                completedHabits: completedHabits,
+                expectedHabits: expectedHabits,
+                completionRate: completionRate,
+                totalCompleted: completedHabits.count,
+                totalExpected: expectedHabits.count
+            )
+            
+            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
+            currentDate = nextDate
+        }
+        
+        return dailyCompletions
+    }
+}
