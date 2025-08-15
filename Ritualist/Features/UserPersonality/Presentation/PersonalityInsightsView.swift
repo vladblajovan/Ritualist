@@ -829,13 +829,6 @@ private extension ConfidenceLevel {
     }
 }
 
-private extension DateFormatter {
-    static let mediumDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter
-    }()
-}
 
 #Preview {
     let sampleProfile = PersonalityProfile(

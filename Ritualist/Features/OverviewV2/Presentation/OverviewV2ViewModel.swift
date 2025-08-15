@@ -85,7 +85,7 @@ public final class OverviewV2ViewModel {
     }
     
     public var currentTimeOfDay: TimeOfDay {
-        slogansService.getCurrentTimeOfDay()
+        TimeOfDay.current()
     }
     
     public var shouldShowInspirationCard: Bool {

@@ -257,29 +257,10 @@ struct MonthlyCalendarCard: View {
         
         let dateInterval = DateInterval(start: monthFirstWeek.start, end: monthLastWeek.end)
         
-        return calendar.generateDates(inside: dateInterval, matching: DateComponents(hour: 0, minute: 0, second: 0))
+        return DateUtils.generateDates(inside: dateInterval, matching: DateComponents(hour: 0, minute: 0, second: 0), calendar: calendar)
     }
 }
 
-// Calendar extension for generating dates
-extension Calendar {
-    func generateDates(inside interval: DateInterval, matching components: DateComponents) -> [Date] {
-        var dates: [Date] = []
-        dates.append(interval.start)
-        
-        enumerateDates(startingAfter: interval.start, matching: components, matchingPolicy: .nextTime) { date, _, stop in
-            if let date = date {
-                if date < interval.end {
-                    dates.append(date)
-                } else {
-                    stop = true
-                }
-            }
-        }
-        
-        return dates
-    }
-}
 
 #Preview {
     let sampleData: [Date: Double] = {

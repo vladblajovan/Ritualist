@@ -42,52 +42,6 @@ public final class DashboardViewModel {
     
     // MARK: - Data Models
     
-    public enum TimePeriod: CaseIterable {
-        case thisWeek
-        case thisMonth
-        case last6Months
-        case lastYear
-        case allTime
-        
-        public var displayName: String {
-            switch self {
-            case .thisWeek: return Strings.Dashboard.thisWeek
-            case .thisMonth: return Strings.Dashboard.thisMonth
-            case .last6Months: return Strings.Dashboard.last6Months
-            case .lastYear: return Strings.Dashboard.lastYear
-            case .allTime: return Strings.Dashboard.allTime
-            }
-        }
-        
-        public var dateRange: (start: Date, end: Date) {
-            let calendar = Calendar.current
-            let now = Date()
-            
-            switch self {
-            case .thisWeek:
-                let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
-                return (start: startOfWeek, end: now)
-                
-            case .thisMonth:
-                let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
-                return (start: startOfMonth, end: now)
-                
-            case .last6Months:
-                let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: now) ?? now
-                return (start: sixMonthsAgo, end: now)
-                
-            case .lastYear:
-                let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: now) ?? now
-                return (start: oneYearAgo, end: now)
-                
-            case .allTime:
-                // Use a date far in the past to capture all available data
-                let allTimeStart = calendar.date(byAdding: .year, value: -10, to: now) ?? now
-                return (start: allTimeStart, end: now)
-            }
-        }
-    }
-    
     // MARK: - Presentation Models
     
     /// UI-specific model for habit performance display

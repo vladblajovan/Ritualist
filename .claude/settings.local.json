@@ -25,5 +25,6 @@
       "Bash(cp:*)"
     ],
     "deny": []
-  }
+  },
+  "outputStyle": "Explanatory"
 }

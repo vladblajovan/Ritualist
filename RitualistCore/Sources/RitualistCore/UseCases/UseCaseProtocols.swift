@@ -296,3 +296,25 @@ public protocol CalculateCurrentStreakUseCase {
 public protocol CalculateBestStreakUseCase {
     func execute(habit: Habit, logs: [HabitLog]) -> Int
 }
+
+// MARK: - Dashboard Analytics Use Cases
+
+public protocol AggregateCategoryPerformanceUseCaseProtocol {
+    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [CategoryPerformanceResult]
+}
+
+public protocol AnalyzeWeeklyPatternsUseCaseProtocol {
+    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> WeeklyPatternsResult
+}
+
+public protocol CalculateHabitPerformanceUseCaseProtocol {
+    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitPerformanceResult]
+}
+
+public protocol CalculateStreakAnalysisUseCaseProtocol {
+    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> StreakAnalysisResult
+}
+
+public protocol GenerateProgressChartDataUseCaseProtocol {
+    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [ProgressChartDataPoint]
+}

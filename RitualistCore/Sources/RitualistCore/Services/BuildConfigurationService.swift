@@ -1,3 +1,10 @@
+//
+//  BuildConfigurationService.swift
+//  RitualistCore
+//
+//  Created by Vlad Blajovan on 15.08.2025.
+//
+
 import Foundation
 
 // MARK: - Build Configuration Detection
@@ -18,12 +25,14 @@ public enum BuildConfiguration {
         #elseif SUBSCRIPTION_ENABLED
         return .subscriptionBased
         #else
-        #error("Must specify either ALL_FEATURES_ENABLED or SUBSCRIPTION_ENABLED flag in build configuration.")
+        // Default to subscription-based when building standalone (e.g., Swift Package Manager)
+        // The main app should always set explicit flags
+        return .subscriptionBased
         #endif
     }()
 }
 
-// MARK: - Build Configuration Service
+// MARK: - Build Configuration Service Protocol
 
 /// Service for detecting and working with build-time configuration
 public protocol BuildConfigurationService {

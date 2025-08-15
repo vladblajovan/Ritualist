@@ -1,5 +1,4 @@
 import Foundation
-import RitualistCore
 
 /// Single source of truth data structure for Dashboard analytics
 /// Replaces multiple independent data loading methods to eliminate N+1 queries

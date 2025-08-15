@@ -95,4 +95,22 @@ public enum DateUtils {
     public static func habitWeekdayToCalendarWeekday(_ habitWeekday: Int) -> Int {
         return habitWeekday == 7 ? 1 : habitWeekday + 1
     }
+    
+    /// Generate dates inside a date interval matching specified components
+    public static func generateDates(inside interval: DateInterval, matching components: DateComponents, calendar: Calendar = .current) -> [Date] {
+        var dates: [Date] = []
+        dates.append(interval.start)
+        
+        calendar.enumerateDates(startingAfter: interval.start, matching: components, matchingPolicy: .nextTime) { date, _, stop in
+            if let date = date {
+                if date < interval.end {
+                    dates.append(date)
+                } else {
+                    stop = true
+                }
+            }
+        }
+        
+        return dates
+    }
 }

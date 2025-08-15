@@ -1,5 +1,11 @@
+//
+//  OverviewData.swift
+//  RitualistCore
+//
+//  Migrated from Features/OverviewV2/Presentation on 15.08.2025.
+//
+
 import Foundation
-import RitualistCore
 
 /// Single source of truth data structure for OverviewV2
 /// Replaces multiple independent data loading methods to ensure consistency
@@ -7,6 +13,12 @@ public struct OverviewData {
     public let habits: [Habit]
     public let habitLogs: [UUID: [HabitLog]]  // Cached logs by habitId
     public let dateRange: ClosedRange<Date>   // Date range we have data for
+    
+    public init(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>) {
+        self.habits = habits
+        self.habitLogs = habitLogs
+        self.dateRange = dateRange
+    }
     
     // MARK: - Helper Methods
     

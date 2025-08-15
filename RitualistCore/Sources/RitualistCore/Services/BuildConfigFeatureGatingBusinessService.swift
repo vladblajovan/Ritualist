@@ -1,8 +1,14 @@
+//
+//  BuildConfigFeatureGatingBusinessService.swift
+//  RitualistCore
+//
+//  Created by Vlad Blajovan on 15.08.2025.
+//
+
 import Foundation
 import Observation
-import RitualistCore
 
-// MARK: - Build Config Feature Gating Service
+// MARK: - Build Config Feature Gating Business Service
 
 /// Feature gating business service that respects build-time configuration
 /// When all features are enabled at build time, this service grants access to everything
@@ -95,11 +101,27 @@ public final class BuildConfigFeatureGatingBusinessService: FeatureGatingBusines
     }
 }
 
-// MARK: - Legacy Build Config Service
+// MARK: - Convenience Factory
+
+extension BuildConfigFeatureGatingBusinessService {
+    /// Creates a build config aware feature gating business service with standard subscription logic as fallback
+    public static func create(userService: UserService, errorHandler: ErrorHandlingActor? = nil) -> FeatureGatingBusinessService {
+        let buildConfigService = DefaultBuildConfigurationService()
+        let standardFeatureGating = DefaultFeatureGatingBusinessService(userService: userService, errorHandler: errorHandler)
+        
+        return BuildConfigFeatureGatingBusinessService(
+            buildConfigService: buildConfigService,
+            standardFeatureGating: standardFeatureGating
+        )
+    }
+}
+
+// MARK: - Legacy Build Config Feature Gating Service
 
 /// Legacy Feature gating service that respects build-time configuration
 /// When all features are enabled at build time, this service grants access to everything
 /// When subscription gating is enabled, it delegates to the standard feature gating logic
+@available(iOS 17.0, macOS 14.0, *)
 @available(*, deprecated, message: "Use FeatureGatingUIService with BuildConfigFeatureGatingBusinessService instead")
 @Observable
 public final class BuildConfigFeatureGatingService: FeatureGatingService {
@@ -180,28 +202,11 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
     }
 }
 
-// MARK: - Convenience Factory
-
-extension BuildConfigFeatureGatingBusinessService {
-    /// Creates a build config aware feature gating business service with standard subscription logic as fallback
-    public static func create(userService: UserService, errorHandler: ErrorHandlingActor? = nil) -> FeatureGatingBusinessService {
-        let buildConfigService = DefaultBuildConfigurationService()
-        let standardFeatureGating = DefaultFeatureGatingBusinessService(userService: userService, errorHandler: errorHandler)
-        
-        return BuildConfigFeatureGatingBusinessService(
-            buildConfigService: buildConfigService,
-            standardFeatureGating: standardFeatureGating
-        )
-    }
-    
-    // UI Service layer has been removed - ViewModels should use BusinessService directly
-}
-
 // MARK: - Legacy Factory
 
 extension BuildConfigFeatureGatingService {
     /// Legacy factory method - Creates a build config aware feature gating service with standard subscription logic as fallback
-    @available(*, deprecated, message: "Use BuildConfigFeatureGatingBusinessService.createUIService instead")
+    @available(*, deprecated, message: "Use BuildConfigFeatureGatingBusinessService.create instead")
     public static func create(userService: UserService, errorHandler: ErrorHandlingActor? = nil) -> FeatureGatingService {
         let buildConfigService = DefaultBuildConfigurationService()
         let standardFeatureGating = DefaultFeatureGatingService(userService: userService, errorHandler: errorHandler)

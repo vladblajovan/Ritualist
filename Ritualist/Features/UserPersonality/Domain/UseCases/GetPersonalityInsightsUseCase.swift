@@ -208,38 +208,3 @@ public final class DefaultGetPersonalityInsightsUseCase: GetPersonalityInsightsU
     }
 }
 
-// MARK: - Supporting Types
-
-public struct PersonalityInsight: Identifiable, Codable {
-    public let id: String
-    public let category: InsightCategory
-    public let trait: PersonalityTrait?
-    public let title: String
-    public let description: String
-    public let actionable: String
-    public let confidence: ConfidenceLevel
-    
-    public enum InsightCategory: String, CaseIterable, Codable {
-        case habitRecommendation = "habit_recommendation"
-        case patternAnalysis = "pattern_analysis"
-        case motivation = "motivation"
-        case warning = "warning"
-        case celebration = "celebration"
-    }
-}
-
-public struct PersonalityInsightCollection: Codable {
-    public let habitRecommendations: [PersonalityInsight]
-    public let patternInsights: [PersonalityInsight]
-    public let motivationalInsights: [PersonalityInsight]
-    public let generatedDate: Date
-    public let profileId: String
-    
-    public var allInsights: [PersonalityInsight] {
-        return habitRecommendations + patternInsights + motivationalInsights
-    }
-    
-    public var insightCount: Int {
-        return allInsights.count
-    }
-}

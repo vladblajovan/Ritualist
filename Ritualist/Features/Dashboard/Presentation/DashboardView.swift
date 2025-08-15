@@ -62,7 +62,7 @@ public struct DashboardView: View {
     private var timePeriodSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                ForEach(DashboardViewModel.TimePeriod.allCases, id: \.self) { period in
+                ForEach(TimePeriod.allCases, id: \.self) { period in
                     Button(action: { vm.selectedTimePeriod = period }) {
                         Text(period.displayName)
                             .font(.system(size: 15, weight: .medium))

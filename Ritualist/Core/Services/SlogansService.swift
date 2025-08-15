@@ -54,7 +54,7 @@ public final class SlogansService: SlogansServiceProtocol {
     // MARK: - Public Methods
     
     public func getCurrentSlogan() -> String {
-        let timeOfDay = getCurrentTimeOfDay()
+        let timeOfDay = TimeOfDay.current()
         return getSlogan(for: timeOfDay)
     }
     
@@ -63,24 +63,6 @@ public final class SlogansService: SlogansServiceProtocol {
         return slogans.randomElement() ?? Strings.Overview.instructions
     }
     
-    public func getCurrentTimeOfDay() -> TimeOfDay {
-        let currentDate = DateUtils.now
-        return getTimeOfDay(for: currentDate)
-    }
-    
-    public func getTimeOfDay(for date: Date) -> TimeOfDay {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: date)
-        
-        switch hour {
-        case 0..<11:
-            return .morning
-        case 11..<16:
-            return .noon
-        default:
-            return .evening
-        }
-    }
     
     // MARK: - Private Methods
     
@@ -116,11 +98,5 @@ public final class MockSlogansService: SlogansServiceProtocol {
         fixedSlogan
     }
     
-    public func getCurrentTimeOfDay() -> TimeOfDay {
-        fixedTimeOfDay
-    }
     
-    public func getTimeOfDay(for date: Date) -> TimeOfDay {
-        fixedTimeOfDay
-    }
 }
