@@ -539,6 +539,183 @@ public struct HabitSuggestionsData {
             kind: .binary,
             schedule: .timesPerWeek(1),
             description: "Connect meaningfully through handwritten letters"
+        ),
+        
+        // Creativity
+        HabitSuggestion(
+            id: "creative_writing",
+            name: "Creative Writing",
+            emoji: "✍️",
+            colorHex: "#8E44AD",
+            categoryId: "creativity",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 20.0,
+            description: "Express yourself through creative writing",
+            personalityWeights: [
+                "openness": 0.85,
+                "conscientiousness": 0.4,
+                "extraversion": 0.2,
+                "neuroticism": -0.1
+            ]
+        ),
+        
+        HabitSuggestion(
+            id: "sketch_draw",
+            name: "Sketch & Draw",
+            emoji: "✏️",
+            colorHex: "#E74C3C",
+            categoryId: "creativity",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 30.0,
+            description: "Develop visual creativity through drawing",
+            personalityWeights: [
+                "openness": 0.9,
+                "conscientiousness": 0.3,
+                "extraversion": 0.1,
+                "neuroticism": -0.2
+            ]
+        ),
+        
+        HabitSuggestion(
+            id: "photography",
+            name: "Photography",
+            emoji: "📸",
+            colorHex: "#3498DB",
+            categoryId: "creativity",
+            kind: .binary,
+            description: "Capture and create through photography",
+            personalityWeights: [
+                "openness": 0.8,
+                "conscientiousness": 0.5,
+                "extraversion": 0.3,
+                "agreeableness": 0.2
+            ]
+        ),
+        
+        HabitSuggestion(
+            id: "music_composition",
+            name: "Compose Music",
+            emoji: "🎼",
+            colorHex: "#9B59B6",
+            categoryId: "creativity",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 25.0,
+            description: "Create original musical compositions",
+            personalityWeights: [
+                "openness": 0.95,
+                "conscientiousness": 0.6,
+                "extraversion": 0.2,
+                "neuroticism": -0.1
+            ]
+        ),
+        
+        HabitSuggestion(
+            id: "craft_diy",
+            name: "Crafting & DIY",
+            emoji: "🛠️",
+            colorHex: "#E67E22",
+            categoryId: "creativity",
+            kind: .binary,
+            schedule: .timesPerWeek(3),
+            description: "Create with your hands through crafting",
+            personalityWeights: [
+                "openness": 0.7,
+                "conscientiousness": 0.7,
+                "extraversion": 0.1,
+                "agreeableness": 0.3
+            ]
+        ),
+        
+        HabitSuggestion(
+            id: "brainstorm_ideas",
+            name: "Brainstorm Ideas",
+            emoji: "💡",
+            colorHex: "#F39C12",
+            categoryId: "creativity",
+            kind: .numeric,
+            unitLabel: "ideas",
+            dailyTarget: 5.0,
+            description: "Generate new ideas through brainstorming",
+            personalityWeights: [
+                "openness": 0.9,
+                "conscientiousness": 0.2,
+                "extraversion": 0.4,
+                "neuroticism": -0.3
+            ]
+        ),
+        
+        HabitSuggestion(
+            id: "creative_cooking",
+            name: "Creative Cooking",
+            emoji: "👨‍🍳",
+            colorHex: "#27AE60",
+            categoryId: "creativity",
+            kind: .binary,
+            schedule: .timesPerWeek(2),
+            description: "Experiment with new recipes and flavors",
+            personalityWeights: [
+                "openness": 0.8,
+                "conscientiousness": 0.4,
+                "extraversion": 0.3,
+                "agreeableness": 0.4
+            ]
+        ),
+        
+        HabitSuggestion(
+            id: "improvisation",
+            name: "Improvisation",
+            emoji: "🎭",
+            colorHex: "#E91E63",
+            categoryId: "creativity",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 15.0,
+            description: "Practice spontaneous creative expression",
+            personalityWeights: [
+                "openness": 0.95,
+                "conscientiousness": 0.1,
+                "extraversion": 0.6,
+                "neuroticism": -0.4
+            ]
+        ),
+        
+        HabitSuggestion(
+            id: "design_creation",
+            name: "Design Creation",
+            emoji: "🎨",
+            colorHex: "#9C27B0",
+            categoryId: "creativity",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 30.0,
+            description: "Create digital or physical designs",
+            personalityWeights: [
+                "openness": 0.85,
+                "conscientiousness": 0.6,
+                "extraversion": 0.2,
+                "agreeableness": 0.1
+            ]
+        ),
+        
+        HabitSuggestion(
+            id: "creative_movement",
+            name: "Creative Movement",
+            emoji: "💃",
+            colorHex: "#FF5722",
+            categoryId: "creativity",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 20.0,
+            description: "Express creativity through dance and movement",
+            personalityWeights: [
+                "openness": 0.8,
+                "conscientiousness": 0.3,
+                "extraversion": 0.7,
+                "neuroticism": -0.3
+            ]
         )
     ]
     

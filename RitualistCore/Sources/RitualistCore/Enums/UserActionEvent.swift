@@ -25,6 +25,7 @@ public enum UserActionEvent {
     case habitsAssistantOpened(source: HabitsAssistantSource)
     case habitsAssistantClosed
     case habitsAssistantCategorySelected(category: String)
+    case habitsAssistantCategoryCleared
     case habitsAssistantHabitSuggestionViewed(habitId: String, category: String)
     case habitsAssistantHabitAdded(habitId: String, habitName: String, category: String)
     case habitsAssistantHabitAddFailed(habitId: String, error: String)

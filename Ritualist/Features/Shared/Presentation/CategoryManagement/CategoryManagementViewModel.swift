@@ -178,6 +178,23 @@ public final class CategoryManagementViewModel {
         }
     }
     
+    public func toggleActiveStatus(id: String) async {
+        guard let category = categories.first(where: { $0.id == id }) else { return }
+        
+        let updatedCategory = Category(
+            id: category.id,
+            name: category.name,
+            displayName: category.displayName,
+            emoji: category.emoji,
+            order: category.order,
+            isActive: !category.isActive,  // Toggle the status
+            isPredefined: category.isPredefined,
+            personalityWeights: category.personalityWeights
+        )
+        
+        await updateCategory(updatedCategory)
+    }
+    
     public func moveCategories(from source: IndexSet, to destination: Int) async {
         error = nil
         

@@ -929,6 +929,23 @@ public final class CreateHabitFromSuggestion: CreateHabitFromSuggestionUseCase {
     }
 }
 
+public final class RemoveHabitFromSuggestion: RemoveHabitFromSuggestionUseCase {
+    private let deleteHabit: DeleteHabitUseCase
+    
+    public init(deleteHabit: DeleteHabitUseCase) {
+        self.deleteHabit = deleteHabit
+    }
+    
+    public func execute(suggestionId: String, habitId: UUID) async -> Bool {
+        do {
+            try await deleteHabit.execute(id: habitId)
+            return true
+        } catch {
+            return false
+        }
+    }
+}
+
 // MARK: - User Use Case Implementations
 
 public final class CheckPremiumStatus: CheckPremiumStatusUseCase {

@@ -7,6 +7,10 @@ public struct CategoryManagementView: View {
     @Bindable var vm: CategoryManagementViewModel
     @State private var showingAddCategory = false
     @State private var selectedCategoryIds: Set<String> = []
+    @State private var showingDeleteConfirmation = false
+    @State private var showingDeactivateConfirmation = false
+    @State private var categoriesToDelete: Set<String> = []
+    @State private var categoriesToDeactivate: Set<String> = []
     @Environment(\.editMode) private var editMode
     
     public init(vm: CategoryManagementViewModel) {
@@ -66,6 +70,34 @@ public struct CategoryManagementView: View {
                     await vm.createCustomCategory(name: name, emoji: emoji)
                 }
             }
+            .confirmationDialog(
+                "Delete Categories",
+                isPresented: $showingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    Task {
+                        await deleteSelectedCategories()
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text(deleteConfirmationMessage)
+            }
+            .confirmationDialog(
+                "Deactivate Categories",
+                isPresented: $showingDeactivateConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Deactivate", role: .destructive) {
+                    Task {
+                        await deactivateSelectedCategories()
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text(deactivateConfirmationMessage)
+            }
             .task {
                 await vm.load()
             }
@@ -77,7 +109,41 @@ public struct CategoryManagementView: View {
             ForEach(vm.categories, id: \.id) { category in
                 GenericRowView.categoryRow(category: category)
                     .deleteDisabled(category.isPredefined)
+                    .selectionDisabled(category.isPredefined)
                     .tag(category.id)
+                    .swipeActions(edge: .leading) {
+                        if editMode?.wrappedValue != .active {
+                            Button {
+                                if category.isActive {
+                                    // Show deactivate confirmation for individual category
+                                    categoriesToDeactivate = [category.id]
+                                    showingDeactivateConfirmation = true
+                                } else {
+                                    // Activate directly without confirmation
+                                    Task {
+                                        await vm.toggleActiveStatus(id: category.id)
+                                    }
+                                }
+                            } label: {
+                                Label(
+                                    category.isActive ? "Deactivate" : "Activate",
+                                    systemImage: category.isActive ? "pause.circle" : "play.circle"
+                                )
+                            }
+                            .tint(category.isActive ? .orange : .green)
+                        }
+                    }
+                    .swipeActions(edge: .trailing) {
+                        if editMode?.wrappedValue != .active && !category.isPredefined {
+                            Button(role: .destructive) {
+                                // Show delete confirmation for individual category
+                                categoriesToDelete = [category.id]
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
             }
             .onDelete(perform: deleteCategories)
             .onMove(perform: moveCategories)
@@ -124,15 +190,13 @@ public struct CategoryManagementView: View {
                             }
                         }
                         .foregroundColor(.green)
-                        .disabled(selectedCategoriesArePredefined)
                     }
                     
                     // Deactivate button (only show if active categories are selected)
                     if hasActiveSelectedCategories {
                         Button {
-                            Task {
-                                await deactivateSelectedCategories()
-                            }
+                            categoriesToDeactivate = selectedCategoryIds
+                            showingDeactivateConfirmation = true
                         } label: {
                             VStack(spacing: 2) {
                                 Image(systemName: "pause.circle")
@@ -141,14 +205,12 @@ public struct CategoryManagementView: View {
                                     .font(.caption2)
                             }
                         }
-                        .disabled(selectedCategoriesArePredefined)
                     }
                     
                     // Delete button
                     Button {
-                        Task {
-                            await deleteSelectedCategories()
-                        }
+                        categoriesToDelete = selectedCategoryIds
+                        showingDeleteConfirmation = true
                     } label: {
                         VStack(spacing: 2) {
                             Image(systemName: "trash")
@@ -172,6 +234,32 @@ public struct CategoryManagementView: View {
         return selectedCategories.contains { $0.isPredefined }
     }
     
+    private var deleteConfirmationMessage: String {
+        // Use the live selection for counting, but filter to get actual categories to delete
+        let categoriesToCount = categoriesToDelete.isEmpty ? selectedCategoryIds : categoriesToDelete
+        let selectedCategories = vm.categories.filter { categoriesToCount.contains($0.id) }
+        let customCategories = selectedCategories.filter { !$0.isPredefined }
+        
+        if customCategories.count == 1 {
+            return "Are you sure you want to delete \"\(customCategories.first!.displayName)\"? This action cannot be undone."
+        } else {
+            return "Are you sure you want to delete \(customCategories.count) categories? This action cannot be undone."
+        }
+    }
+    
+    private var deactivateConfirmationMessage: String {
+        // Use the live selection for counting, but filter to get actual categories to deactivate
+        let categoriesToCount = categoriesToDeactivate.isEmpty ? selectedCategoryIds : categoriesToDeactivate
+        let selectedCategories = vm.categories.filter { categoriesToCount.contains($0.id) }
+        let customCategories = selectedCategories.filter { !$0.isPredefined && $0.isActive }
+        
+        if customCategories.count == 1 {
+            return "Are you sure you want to deactivate \"\(customCategories.first!.displayName)\"? It will be hidden from habit creation but existing habits will remain."
+        } else {
+            return "Are you sure you want to deactivate \(customCategories.count) categories? They will be hidden from habit creation but existing habits will remain."
+        }
+    }
+    
     private var hasActiveSelectedCategories: Bool {
         let selectedCategories = vm.categories.filter { selectedCategoryIds.contains($0.id) }
         return selectedCategories.contains { $0.isActive }
@@ -184,7 +272,7 @@ public struct CategoryManagementView: View {
     
     private func activateSelectedCategories() async {
         for categoryId in selectedCategoryIds {
-            if let category = vm.categories.first(where: { $0.id == categoryId }), !category.isPredefined {
+            if let category = vm.categories.first(where: { $0.id == categoryId }) {
                 let updatedCategory = Category(
                     id: category.id,
                     name: category.name,
@@ -192,7 +280,8 @@ public struct CategoryManagementView: View {
                     emoji: category.emoji,
                     order: category.order,
                     isActive: true,
-                    isPredefined: category.isPredefined
+                    isPredefined: category.isPredefined,
+                    personalityWeights: category.personalityWeights
                 )
                 await vm.updateCategory(updatedCategory)
             }
@@ -201,8 +290,9 @@ public struct CategoryManagementView: View {
     }
     
     private func deactivateSelectedCategories() async {
-        for categoryId in selectedCategoryIds {
-            if let category = vm.categories.first(where: { $0.id == categoryId }), !category.isPredefined {
+        for categoryId in categoriesToDeactivate {
+            if let category = vm.categories.first(where: { $0.id == categoryId }) {
+                print("DEBUG: Deactivating category: \(category.displayName)")
                 let updatedCategory = Category(
                     id: category.id,
                     name: category.name,
@@ -210,7 +300,8 @@ public struct CategoryManagementView: View {
                     emoji: category.emoji,
                     order: category.order,
                     isActive: false,
-                    isPredefined: category.isPredefined
+                    isPredefined: category.isPredefined,
+                    personalityWeights: category.personalityWeights
                 )
                 await vm.updateCategory(updatedCategory)
             }
@@ -219,14 +310,16 @@ public struct CategoryManagementView: View {
     }
     
     private func deleteSelectedCategories() async {
-        let selectedCategories = vm.categories.filter { selectedCategoryIds.contains($0.id) }
+        let selectedCategories = vm.categories.filter { categoriesToDelete.contains($0.id) }
         let customCategories = selectedCategories.filter { !$0.isPredefined }
         
         for category in customCategories {
+            print("DEBUG: Deleting category: \(category.displayName)")
             await vm.deleteCategory(category.id)
         }
         selectedCategoryIds.removeAll()
     }
+    
 }
 
 

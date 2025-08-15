@@ -97,7 +97,7 @@ public struct CategoryFilterCarousel: View {
                 .padding(.vertical, Spacing.medium)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Spacing.medium) {
+                    HStack(spacing: 12) {
                         // Category chips
                         ForEach(categories, id: \.id) { category in
                             Button {

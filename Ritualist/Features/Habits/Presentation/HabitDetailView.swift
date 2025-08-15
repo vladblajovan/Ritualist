@@ -103,7 +103,7 @@ private struct BasicInfoSection: View {
                 HStack {
                     Text(Strings.Form.name)
                     TextField(Strings.Form.habitName, text: $vm.name)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .textFieldStyle(.plain)
                         .focused($focusedField, equals: .name)
                         .onSubmit {
                             // Move to next field based on habit type
@@ -164,7 +164,7 @@ private struct BasicInfoSection: View {
                     HStack {
                         Text(Strings.Form.unit)
                         TextField(Strings.Form.unitPlaceholder, text: $vm.unitLabel)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textFieldStyle(.plain)
                             .focused($focusedField, equals: .unitLabel)
                             .onSubmit {
                                 focusedField = .dailyTarget
@@ -185,7 +185,7 @@ private struct BasicInfoSection: View {
                         Text(Strings.Form.dailyTarget)
                         TextField(Strings.Form.target, value: $vm.dailyTarget, formatter: NumberUtils.habitValueFormatter())
                             .keyboardType(.decimalPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textFieldStyle(.plain)
                             .focused($focusedField, equals: .dailyTarget)
                             .onSubmit {
                                 focusedField = nil // Close keyboard

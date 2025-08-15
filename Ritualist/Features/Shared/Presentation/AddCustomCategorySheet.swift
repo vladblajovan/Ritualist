@@ -49,7 +49,7 @@ public struct AddCustomCategorySheet: View {
                             .fontWeight(.semibold)
                         
                         TextField("Enter category name", text: $categoryName)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textFieldStyle(.plain)
                             .autocapitalization(.words)
                             .disableAutocorrection(false)
                     }

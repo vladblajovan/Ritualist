@@ -8,8 +8,6 @@ public struct DashboardRoot: View {
     
     public var body: some View {
         DashboardView(vm: vm)
-            .navigationTitle(Strings.Dashboard.title)
-            .navigationBarTitleDisplayMode(.large)
     }
 }
 

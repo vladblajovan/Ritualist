@@ -46,10 +46,7 @@ public final class HabitsAssistantViewModel {
         
         do {
             categories = try await getPredefinedCategoriesUseCase.execute()
-            // Set first category as selected by default
-            if selectedCategory == nil {
-                selectedCategory = categories.first
-            }
+            // Start with no category selected to show all habits
         } catch {
             categoriesError = error
             categories = []
@@ -63,11 +60,23 @@ public final class HabitsAssistantViewModel {
         userActionTracker?.track(.habitsAssistantCategorySelected(category: category.name))
     }
     
+    public func clearCategorySelection() {
+        selectedCategory = nil
+        userActionTracker?.track(.habitsAssistantCategoryCleared)
+    }
+    
     public func getSuggestions() -> [HabitSuggestion] {
-        guard let selectedCategory = selectedCategory else { 
-            return []
+        if let selectedCategory = selectedCategory {
+            return suggestionsService.getSuggestions(for: selectedCategory.id)
+        } else {
+            // Show all suggestions when no category is selected
+            return suggestionsService.getSuggestions()
         }
-        return suggestionsService.getSuggestions(for: selectedCategory.id)
+    }
+    
+    public func getAllSuggestions() -> [HabitSuggestion] {
+        // Always return all suggestions regardless of category filter
+        return suggestionsService.getSuggestions()
     }
     
     public func initializeWithExistingHabits(_ existingHabits: [Habit]) {

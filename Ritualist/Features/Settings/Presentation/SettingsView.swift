@@ -10,8 +10,6 @@ public struct SettingsRoot: View {
     
     public var body: some View {
         SettingsContentView(vm: vm)
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.large)
             .task {
                 await vm.load()
             }
@@ -32,7 +30,9 @@ private struct SettingsFormView: View {
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
     @State private var paywallItem: PaywallItem?
+    @State private var showingCategoryManagement = false
     @Injected(\.paywallViewModel) var paywallViewModel
+    @Injected(\.categoryManagementViewModel) var categoryManagementVM
     
     // Local form state
     @State private var name = ""
@@ -67,6 +67,7 @@ private struct SettingsFormView: View {
                                 
                                 VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                                     TextField(Strings.Form.name, text: $name)
+                                        .textFieldStyle(.plain)
                                         .focused($isNameFieldFocused)
                                         .onSubmit {
                                             isNameFieldFocused = false
@@ -141,6 +142,25 @@ private struct SettingsFormView: View {
                                 Text(Strings.Settings.dark).tag(2)
                             }
                             .pickerStyle(MenuPickerStyle())
+                            .onChange(of: appearance) { _, newValue in
+                                Task {
+                                    // Auto-save appearance changes
+                                    vm.profile.appearance = newValue
+                                    _ = await vm.save()
+                                    await vm.updateAppearance(newValue)
+                                }
+                            }
+                        }
+                    }
+                    
+                    Section("Data Management") {
+                        GenericRowView.settingsRow(
+                            title: "Manage Categories",
+                            subtitle: "Add, edit, or delete habit categories",
+                            icon: "folder.badge.gearshape",
+                            iconColor: .orange
+                        ) {
+                            showingCategoryManagement = true
                         }
                     }
                     
@@ -210,24 +230,6 @@ private struct SettingsFormView: View {
                         await vm.refreshNotificationStatus()
                     }
                 }
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            Task {
-                                await saveChanges()
-                            }
-                        } label: {
-                            if vm.isSaving {
-                                ProgressView()
-                                    .scaleEffect(ScaleFactors.smallMedium)
-                            } else {
-                                Text(Strings.Button.save)
-                                    .fontWeight(hasChanges ? .semibold : .regular)
-                            }
-                        }
-                        .disabled(!hasChanges || vm.isSaving)
-                    }
-                }
                 .sheet(isPresented: $showingImagePicker) {
                     AvatarImagePicker(
                         name: displayName,
@@ -246,6 +248,11 @@ private struct SettingsFormView: View {
                 }
                 .sheet(item: $paywallItem) { item in
                     PaywallView(vm: item.viewModel)
+                }
+                .sheet(isPresented: $showingCategoryManagement) {
+                    NavigationStack {
+                        CategoryManagementView(vm: categoryManagementVM)
+                    }
                 }
                 .onAppear {
                     // Refresh premium status when settings page appears
@@ -271,10 +278,6 @@ private struct SettingsFormView: View {
         vm.profile.name
     }
     
-    private var hasChanges: Bool {
-        name != vm.profile.name ||
-               appearance != vm.profile.appearance
-    }
     
     private func updateLocalState() {
         name = vm.profile.name
@@ -288,21 +291,6 @@ private struct SettingsFormView: View {
         _ = await vm.save()
     }
     
-    private func saveChanges() async {
-        // Update profile settings
-        vm.profile.name = name
-        vm.profile.appearance = appearance
-        _ = await vm.save()
-        
-        // Also update the user service name
-        await vm.updateUserName(name)
-        
-        // Update app appearance after saving profile
-        await vm.updateAppearance(appearance)
-        
-        // Update local state to reflect saved values
-        updateLocalState()
-    }
     
     
     private func appearanceName(_ appearance: Int) -> String {

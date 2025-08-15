@@ -14,7 +14,7 @@ public final class UserActionEventMapper {
              .onboardingNotificationPermissionRequested, .onboardingNotificationPermissionGranted,
              .onboardingNotificationPermissionDenied:
             return onboardingEventName(for: event)
-        case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected,
+        case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected, .habitsAssistantCategoryCleared,
              .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
              .habitsAssistantHabitRemoved, .habitsAssistantHabitRemoveFailed:
             return assistantEventName(for: event)
@@ -51,7 +51,7 @@ public final class UserActionEventMapper {
              .onboardingNotificationPermissionRequested, .onboardingNotificationPermissionGranted,
              .onboardingNotificationPermissionDenied:
             return onboardingEventProperties(for: event)
-        case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected,
+        case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected, .habitsAssistantCategoryCleared,
              .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
              .habitsAssistantHabitRemoved, .habitsAssistantHabitRemoveFailed:
             return assistantEventProperties(for: event)
@@ -105,6 +105,7 @@ private extension UserActionEventMapper {
         case .habitsAssistantOpened: return "habits_assistant_opened"
         case .habitsAssistantClosed: return "habits_assistant_closed"
         case .habitsAssistantCategorySelected: return "habits_assistant_category_selected"
+        case .habitsAssistantCategoryCleared: return "habits_assistant_category_cleared"
         case .habitsAssistantHabitSuggestionViewed: return "habits_assistant_habit_suggestion_viewed"
         case .habitsAssistantHabitAdded: return "habits_assistant_habit_added"
         case .habitsAssistantHabitAddFailed: return "habits_assistant_habit_add_failed"

@@ -42,21 +42,28 @@ public struct HabitsAssistantView: View {
                 ProgressView("Loading categories...")
                     .padding(.vertical, Spacing.medium)
             } else {
-                HorizontalCarousel(
-                    items: vm.categories,
-                    selectedItem: vm.selectedCategory,
-                    onItemTap: { category in
-                        vm.selectCategory(category)
-                    },
-                    showPageIndicator: false,
-                    content: { category, isSelected in
-                        Chip(
-                            text: category.displayName,
-                            emoji: category.emoji,
-                            isSelected: isSelected
-                        )
-                    }
-                )
+                VStack(spacing: Spacing.small) {
+                    HorizontalCarousel(
+                        items: vm.categories,
+                        selectedItem: vm.selectedCategory,
+                        onItemTap: { category in
+                            if vm.selectedCategory?.id == category.id {
+                                // Deselect if tapping the same category
+                                vm.clearCategorySelection()
+                            } else {
+                                vm.selectCategory(category)
+                            }
+                        },
+                        showPageIndicator: false,
+                        content: { category, isSelected in
+                            Chip(
+                                text: category.displayName,
+                                emoji: category.emoji,
+                                isSelected: isSelected
+                            )
+                        }
+                    )
+                }
                 .padding(.bottom, Spacing.small)
             }
             

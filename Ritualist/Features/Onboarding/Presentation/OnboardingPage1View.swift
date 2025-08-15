@@ -33,7 +33,7 @@ struct OnboardingPage1View: View {
                     
                     VStack(spacing: Spacing.small) {
                         TextField("Enter your name", text: $viewModel.userName)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
                             .font(.title3)
                             .multilineTextAlignment(.center)
                             .focused($isTextFieldFocused)

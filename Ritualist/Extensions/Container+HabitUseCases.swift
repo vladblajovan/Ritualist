@@ -62,4 +62,12 @@ extension Container {
             )
         }
     }
+    
+    var removeHabitFromSuggestionUseCase: Factory<RemoveHabitFromSuggestionUseCase> {
+        self {
+            RemoveHabitFromSuggestion(
+                deleteHabit: self.deleteHabit()
+            )
+        }
+    }
 }

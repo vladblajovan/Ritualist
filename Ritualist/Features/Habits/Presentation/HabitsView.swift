@@ -9,8 +9,8 @@ public struct HabitsRoot: View {
     
     public var body: some View {
         HabitsContentView(vm: vm)
-            .navigationTitle("Habits")
-            .navigationBarTitleDisplayMode(.large)
+//            .navigationTitle("Habits")
+//            .navigationBarTitleDisplayMode(.large)
             .task {
                 await vm.load()
             }
@@ -19,7 +19,6 @@ public struct HabitsRoot: View {
 
 private struct HabitsContentView: View {
     @Bindable var vm: HabitsViewModel
-    @Injected(\.categoryManagementViewModel) var categoryManagementVM
     
     var body: some View {
         HabitsListView(vm: vm)
@@ -46,7 +45,6 @@ private struct HabitsContentView: View {
                         .buttonStyle(PlainButtonStyle())
                 }
                 
-                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         vm.handleCreateHabitTap()
@@ -70,40 +68,17 @@ private struct HabitsContentView: View {
             }
             .sheet(isPresented: $vm.showingHabitAssistant) {
                 HabitsAssistantSheet(
-                    vm: vm.habitsAssistantViewModel,
-                    existingHabits: vm.items,
-                    onHabitCreate: vm.createHabitFromSuggestion,
-                    onHabitRemove: { habitId in await vm.delete(id: habitId) },
-                    onShowPaywall: vm.showPaywallFromAssistant
+                    existingHabits: vm.items
                 )
-                .deviceAwareSheetSizing(
-                    compactMultiplier: (min: 0.88, ideal: 0.97, max: 1.0),
-                    regularMultiplier: (min: 0.80, ideal: 0.93, max: 1.0),
-                    largeMultiplier: (min: 0.72, ideal: 0.83, max: 0.94)
-                )
-                // Remove .presentationBackground for full transparency
                 .onDisappear {
                     vm.handleAssistantDismissal()
                 }
-            }
-            .sheet(isPresented: $vm.showingCategoryManagement) {
-                categoryManagementSheet
             }
             .onChange(of: vm.paywallItem) { oldValue, newValue in
                 if oldValue != nil && newValue == nil {
                     vm.handlePaywallDismissal()
                 }
             }
-    }
-    
-    @ViewBuilder
-    private var categoryManagementSheet: some View {
-        NavigationStack {
-            CategoryManagementView(vm: categoryManagementVM)
-                .onDisappear {
-                    vm.handleCategoryManagementDismissal()
-                }
-        }
     }
 }
 
@@ -112,7 +87,11 @@ private struct HabitsListView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
     @State private var showingDeleteConfirmation = false
+    @State private var showingBatchDeleteConfirmation = false
+    @State private var showingDeactivateConfirmation = false
     @State private var habitToDelete: Habit?
+    @State private var habitsToDelete: Set<UUID> = []
+    @State private var habitsToDeactivate: Set<UUID> = []
     @State private var selection: Set<UUID> = []
     
     var body: some View {
@@ -137,9 +116,7 @@ private struct HabitsListView: View {
                             onCategorySelect: { category in
                                 vm.selectFilterCategory(category)
                             },
-                            onManageCategories: {
-                                vm.handleCategoryManagementTap()
-                            },
+                            onManageCategories: nil,
                             onAddHabit: nil,
                             onAssistant: nil
                         )
@@ -196,9 +173,6 @@ private struct HabitsListView: View {
                                             vm.selectFilterCategory(category)
                                         }
                                     }
-                                    .onLongPressGesture {
-                                        vm.handleCategoryManagementTap()
-                                    }
                                 }
                             }
                             .padding(.horizontal, Spacing.screenMargin)
@@ -209,35 +183,6 @@ private struct HabitsListView: View {
                     
                     // Scrollable content with categories header, buttons and habits
                     List(selection: $selection) {
-                        // Categories header section (scrollable - will hide on scroll)
-                        Section {
-                            HStack {
-                                Text("Categories")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                
-                                Button {
-                                    vm.handleCategoryManagementTap()
-                                } label: {
-                                    HStack(spacing: Spacing.xsmall) {
-                                        Image(systemName: "gear")
-                                            .font(.caption)
-                                        Text("Manage")
-                                            .font(.caption)
-                                            .fontWeight(.medium)
-                                    }
-                                    .foregroundColor(.secondary)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal, Spacing.screenMargin)
-                            .padding(.vertical, Spacing.small)
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets())
-                        }
                         
                         // Habits section
                         Section {
@@ -246,9 +191,6 @@ private struct HabitsListView: View {
                                     vm.selectHabit(habit)
                                 }
                                 .tag(habit.id)
-                                .onTapGesture {
-                                    // Intercept List row taps - do nothing
-                                }
                                 .swipeActions(edge: .leading) {
                                     if editMode?.wrappedValue != .active {
                                         Button {
@@ -286,7 +228,7 @@ private struct HabitsListView: View {
                             selection.removeAll()
                         }
                     }
-                    .listStyle(PlainListStyle())
+                    .listStyle(.insetGrouped)
                     .overlay(alignment: .bottom) {
                         if !selection.isEmpty {
                             editModeToolbar
@@ -312,25 +254,56 @@ private struct HabitsListView: View {
                     vm.handleHabitDetailDismissal()
                 }
         }
-        .confirmationDialog(isPresented: $showingDeleteConfirmation) {
+        .confirmationDialog(
+            "Delete Habit",
+            isPresented: $showingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
             if let habit = habitToDelete {
-                ConfirmationDialog(
-                    title: Strings.Dialog.deleteHabit,
-                    message: Strings.Dialog.deleteHabitMessage(habit.name),
-                    confirmTitle: Strings.Button.delete,
-                    cancelTitle: Strings.Button.cancel,
-                    isDestructive: true,
-                    onConfirm: {
+                Button("Delete", role: .destructive) {
+                    Task {
                         await deleteHabit(habit)
-                        showingDeleteConfirmation = false
-                        habitToDelete = nil
-                    },
-                    onCancel: {
-                        showingDeleteConfirmation = false
                         habitToDelete = nil
                     }
-                )
+                }
+                Button("Cancel", role: .cancel) {
+                    habitToDelete = nil
+                }
             }
+        } message: {
+            if let habit = habitToDelete {
+                Text("Are you sure you want to delete \"\(habit.name)\"? This action cannot be undone and all habit data will be lost.")
+            }
+        }
+        .confirmationDialog(
+            "Delete Habits",
+            isPresented: $showingBatchDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    print("DEBUG: Habits batch delete dialog confirmed")
+                    await deleteSelectedHabits()
+                }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text(batchDeleteConfirmationMessage)
+        }
+        .confirmationDialog(
+            "Deactivate Habits", 
+            isPresented: $showingDeactivateConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Deactivate", role: .destructive) {
+                Task {
+                    print("DEBUG: Habits deactivate dialog confirmed")
+                    await deactivateSelectedHabits()
+                }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text(deactivateConfirmationMessage)
         }
     }
     
@@ -360,9 +333,8 @@ private struct HabitsListView: View {
             
             if hasActiveSelectedHabits {
                 Button {
-                    Task {
-                        await deactivateSelectedHabits()
-                    }
+                    habitsToDeactivate = selection
+                    showingDeactivateConfirmation = true
                 } label: {
                     VStack(spacing: 2) {
                         Image(systemName: "pause.circle")
@@ -375,9 +347,8 @@ private struct HabitsListView: View {
             }
             
             Button {
-                Task {
-                    await deleteSelectedHabits()
-                }
+                habitsToDelete = selection
+                showingBatchDeleteConfirmation = true
             } label: {
                 VStack(spacing: 2) {
                     Image(systemName: "trash")
@@ -405,6 +376,30 @@ private struct HabitsListView: View {
         return selectedHabits.contains { !$0.isActive }
     }
     
+    private var batchDeleteConfirmationMessage: String {
+        // Use the live selection for counting, but filter to get actual habits to delete
+        let habitsToCount = habitsToDelete.isEmpty ? selection : habitsToDelete
+        let selectedHabits = vm.filteredHabits.filter { habitsToCount.contains($0.id) }
+        
+        if selectedHabits.count == 1 {
+            return "Are you sure you want to delete \"\(selectedHabits.first!.name)\"? This action cannot be undone and all habit data will be lost."
+        } else {
+            return "Are you sure you want to delete \(selectedHabits.count) habits? This action cannot be undone and all habit data will be lost."
+        }
+    }
+    
+    private var deactivateConfirmationMessage: String {
+        // Use the live selection for counting, but filter to get actual habits to deactivate
+        let habitsToCount = habitsToDeactivate.isEmpty ? selection : habitsToDeactivate
+        let selectedHabits = vm.filteredHabits.filter { habitsToCount.contains($0.id) && $0.isActive }
+        
+        if selectedHabits.count == 1 {
+            return "Are you sure you want to deactivate \"\(selectedHabits.first!.name)\"? It will be hidden from your habits list but existing data will remain."
+        } else {
+            return "Are you sure you want to deactivate \(selectedHabits.count) habits? They will be hidden from your habits list but existing data will remain."
+        }
+    }
+    
     private func activateSelectedHabits() async {
         for habitId in selection {
             await vm.toggleActiveStatus(id: habitId)
@@ -413,14 +408,18 @@ private struct HabitsListView: View {
     }
     
     private func deactivateSelectedHabits() async {
-        for habitId in selection {
+        print("DEBUG: deactivateSelectedHabits called with \(habitsToDeactivate.count) habits")
+        for habitId in habitsToDeactivate {
+            print("DEBUG: Toggling active status for habit: \(habitId)")
             await vm.toggleActiveStatus(id: habitId)
         }
         selection.removeAll()
     }
     
     private func deleteSelectedHabits() async {
-        for habitId in selection {
+        print("DEBUG: deleteSelectedHabits called with \(habitsToDelete.count) habits")
+        for habitId in habitsToDelete {
+            print("DEBUG: Deleting habit: \(habitId)")
             await vm.delete(id: habitId)
         }
         selection.removeAll()

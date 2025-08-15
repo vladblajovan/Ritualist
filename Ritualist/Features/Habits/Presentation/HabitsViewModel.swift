@@ -14,10 +14,8 @@ public final class HabitsViewModel {
     @ObservationIgnored @Injected(\.reorderHabits) var reorderHabits
     @ObservationIgnored @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
     @ObservationIgnored @Injected(\.createHabitFromSuggestionUseCase) var createHabitFromSuggestionUseCase
-    @ObservationIgnored @Injected(\.habitSuggestionsService) var habitSuggestionsService
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
-    @ObservationIgnored @Injected(\.habitsAssistantViewModel) var habitsAssistantViewModelInjected
     @ObservationIgnored @Injected(\.cleanupOrphanedHabits) var cleanupOrphanedHabits
     
     // MARK: - Shared ViewModels
@@ -35,15 +33,14 @@ public final class HabitsViewModel {
     
     // MARK: - Navigation State
     public var showingCreateHabit = false
-    public var showingHabitAssistant = false
-    public var showingCategoryManagement = false
     public var selectedHabit: Habit?
     public var paywallItem: PaywallItem?
+    
+    // MARK: - Assistant Navigation State
+    public var showingHabitAssistant = false
     public var shouldReopenAssistantAfterPaywall = false
     public var isHandlingPaywallDismissal = false
-    public var habitsAssistantViewModel: HabitsAssistantViewModel {
-        habitsAssistantViewModelInjected
-    }
+    
     
     // MARK: - Paywall Protection
     
@@ -267,17 +264,6 @@ public final class HabitsViewModel {
         }
     }
     
-    /// Handle habit assistant button tap
-    public func handleAssistantTap(source: String) {
-        userActionTracker.track(.habitsAssistantOpened(source: source == "emptyState" ? .emptyState : .habitsPage))
-        showingHabitAssistant = true
-    }
-    
-    /// Handle category management button tap
-    public func handleCategoryManagementTap() {
-        userActionTracker.track(.categoryManagementOpened)
-        showingCategoryManagement = true
-    }
     
     /// Show paywall
     public func showPaywall() {
@@ -286,6 +272,37 @@ public final class HabitsViewModel {
             paywallViewModel.trackPaywallShown(source: "habits", trigger: "habit_limit")
             paywallItem = PaywallItem(viewModel: paywallViewModel)
         }
+    }
+    
+    
+    
+    /// Handle when create habit sheet is dismissed - refresh data
+    public func handleCreateHabitDismissal() {
+        Task {
+            await load()
+        }
+    }
+    
+    
+    /// Handle when habit detail sheet is dismissed - refresh data
+    public func handleHabitDetailDismissal() {
+        Task {
+            await load()
+        }
+    }
+    
+    
+    /// Select a habit for editing
+    public func selectHabit(_ habit: Habit) {
+        selectedHabit = habit
+    }
+    
+    // MARK: - Assistant Navigation
+    
+    /// Handle habit assistant button tap
+    public func handleAssistantTap(source: String = "toolbar") {
+        userActionTracker.track(.habitsAssistantOpened(source: source == "emptyState" ? .emptyState : .habitsPage))
+        showingHabitAssistant = true
     }
     
     /// Show paywall from assistant (sets flag to reopen assistant after)
@@ -322,40 +339,13 @@ public final class HabitsViewModel {
         }
     }
     
-    /// Handle when create habit sheet is dismissed - refresh data
-    public func handleCreateHabitDismissal() {
-        Task {
-            await load()
-        }
-    }
-    
-    /// Handle when assistant sheet is dismissed - refresh data  
+    /// Handle when assistant sheet is dismissed - refresh data
     public func handleAssistantDismissal() {
         Task {
             await load()
         }
     }
     
-    /// Handle when habit detail sheet is dismissed - refresh data
-    public func handleHabitDetailDismissal() {
-        Task {
-            await load()
-        }
-    }
-    
-    /// Handle when category management sheet is dismissed - refresh data
-    public func handleCategoryManagementDismissal() {
-        Task {
-            await load()
-        }
-    }
-    
-    /// Select a habit for editing
-    public func selectHabit(_ habit: Habit) {
-        selectedHabit = habit
-    }
-    
-    // MARK: - Category Management
     
     /// Handle category filter selection
     public func selectFilterCategory(_ category: Category?) {

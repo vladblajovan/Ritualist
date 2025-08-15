@@ -54,6 +54,10 @@ public protocol CreateHabitFromSuggestionUseCase {
     func execute(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult
 }
 
+public protocol RemoveHabitFromSuggestionUseCase {
+    func execute(suggestionId: String, habitId: UUID) async -> Bool
+}
+
 // MARK: - Log Use Cases
 
 public protocol GetLogsUseCase { 

@@ -216,7 +216,7 @@ public extension GenericRowView {
         onTap: @escaping () -> Void
     ) -> GenericRowView {
         GenericRowView(
-            icon: .circleWithEmoji(habit.emoji ?? "•", backgroundColor: AppColors.brand),
+            icon: .circleWithEmoji(habit.emoji ?? "•", backgroundColor: Color(hex: habit.colorHex)),
             title: habit.name,
             subtitle: habit.isActive ? Strings.Status.active : Strings.Status.inactive,
             badges: [],
@@ -237,9 +237,6 @@ public extension GenericRowView {
         onTap: (() -> Void)? = nil
     ) -> GenericRowView {
         var badges: [RowBadge] = []
-        if category.isPredefined {
-            badges.append(.predefined())
-        }
         if !category.isActive {
             badges.append(.inactive())
         }

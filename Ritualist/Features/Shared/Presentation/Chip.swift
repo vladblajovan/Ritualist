@@ -25,14 +25,13 @@ public struct Chip: View {
                 Text(emoji)
             }
             Text(text)
-                .font(.subheadline)
-                .fontWeight(.medium)
+                .font(.system(size: 15, weight: .medium))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
         .background(
-            isSelected ? (color ?? AppColors.brand) : .gray.opacity(0.1),
-            in: Capsule()
+            RoundedRectangle(cornerRadius: 25)
+                .fill(isSelected ? (color ?? AppColors.brand) : Color(.secondarySystemBackground))
         )
         .foregroundColor(
             isSelected ? .white : .primary

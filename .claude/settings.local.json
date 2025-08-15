@@ -24,7 +24,8 @@
       "Bash(xcrun simctl list:*)",
       "Bash(cp:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   },
   "outputStyle": "Explanatory"
 }
