@@ -6,7 +6,7 @@ import RitualistCore
 @MainActor @Observable
 public final class HabitsViewModel {
     // MARK: - Factory Injected Dependencies
-    @ObservationIgnored @Injected(\.getAllHabits) var getAllHabits
+    @ObservationIgnored @Injected(\.loadHabitsData) var loadHabitsData
     @ObservationIgnored @Injected(\.createHabit) var createHabit
     @ObservationIgnored @Injected(\.updateHabit) var updateHabit
     @ObservationIgnored @Injected(\.deleteHabit) var deleteHabit
@@ -14,7 +14,6 @@ public final class HabitsViewModel {
     @ObservationIgnored @Injected(\.reorderHabits) var reorderHabits
     @ObservationIgnored @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
     @ObservationIgnored @Injected(\.createHabitFromSuggestionUseCase) var createHabitFromSuggestionUseCase
-    @ObservationIgnored @Injected(\.getActiveCategories) var getActiveCategories
     @ObservationIgnored @Injected(\.habitSuggestionsService) var habitSuggestionsService
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
@@ -23,8 +22,8 @@ public final class HabitsViewModel {
     
     // MARK: - Shared ViewModels
     
-    // MARK: - Data State
-    public private(set) var items: [Habit] = []
+    // MARK: - Data State (Unified)
+    public private(set) var habitsData: HabitsData = HabitsData(habits: [], categories: [])
     public private(set) var isLoading = false
     public private(set) var error: Error?
     public private(set) var isCreating = false
@@ -32,9 +31,6 @@ public final class HabitsViewModel {
     public private(set) var isDeleting = false
     
     // MARK: - Category Filtering State
-    public private(set) var categories: [Category] = []
-    public private(set) var isLoadingCategories = false
-    public private(set) var categoriesError: Error?
     public var selectedFilterCategory: Category?
     
     // MARK: - Navigation State
@@ -53,29 +49,27 @@ public final class HabitsViewModel {
     
     /// Check if user can create more habits based on current count
     public var canCreateMoreHabits: Bool {
-        checkHabitCreationLimit.execute(currentCount: items.count)
+        checkHabitCreationLimit.execute(currentCount: habitsData.totalHabitsCount)
     }
     
     /// Filtered habits based on selected category and active categories only
     public var filteredHabits: [Habit] {
-        let activeCategoryIds = Set(categories.map { $0.id })
-        
-        // First filter to only habits from active categories or habits with no category
-        let habitsFromActiveCategories = items.filter { habit in
-            // Include habits with no category or habits from active categories
-            let isIncluded = habit.categoryId == nil || activeCategoryIds.contains(habit.categoryId ?? "")
-
-            return isIncluded
-        }
-
-        // Then apply category filter if one is selected
-        guard let selectedFilterCategory = selectedFilterCategory else {
-            return habitsFromActiveCategories
-        }
-        
-        return habitsFromActiveCategories.filter { habit in
-            habit.categoryId == selectedFilterCategory.id
-        }
+        habitsData.filteredHabits(for: selectedFilterCategory)
+    }
+    
+    /// Direct access to habits array (for backward compatibility)
+    public var items: [Habit] {
+        habitsData.habits
+    }
+    
+    /// Direct access to categories array (for backward compatibility)
+    public var categories: [Category] {
+        habitsData.categories
+    }
+    
+    /// Loading state for categories (always false for unified loading)
+    public var isLoadingCategories: Bool {
+        isLoading
     }
     
     // MARK: - Initialization
@@ -88,12 +82,8 @@ public final class HabitsViewModel {
         isLoading = true
         error = nil
         
-        async let habitsResult = getAllHabits.execute()
-        async let categoriesResult: () = loadCategories()
-        
         do { 
-            items = try await habitsResult
-            await categoriesResult
+            habitsData = try await loadHabitsData.execute()
             
             // Track performance metrics
             let loadTime = Date().timeIntervalSince(startTime)
@@ -101,11 +91,11 @@ public final class HabitsViewModel {
                 metric: "habits_load_time",
                 value: loadTime * 1000, // Convert to milliseconds
                 unit: "ms",
-                additionalProperties: ["habits_count": items.count, "categories_count": categories.count]
+                additionalProperties: ["habits_count": habitsData.totalHabitsCount, "categories_count": habitsData.categoriesCount]
             )
         } catch { 
             self.error = error
-            items = []
+            habitsData = HabitsData(habits: [], categories: [])
             userActionTracker.trackError(error, context: "habits_load")
         }
         
@@ -166,7 +156,7 @@ public final class HabitsViewModel {
         error = nil
         
         // Capture habit info before deletion for tracking
-        let habitToDelete = items.first { $0.id == id }
+        let habitToDelete = habitsData.habits.first { $0.id == id }
         
         do {
             try await deleteHabit.execute(id: id)
@@ -195,7 +185,7 @@ public final class HabitsViewModel {
         error = nil
         
         // Capture habit info before toggle for tracking
-        let habitToToggle = items.first { $0.id == id }
+        let habitToToggle = habitsData.habits.first { $0.id == id }
         
         do {
             _ = try await toggleHabitActiveStatus.execute(id: id)
@@ -234,7 +224,8 @@ public final class HabitsViewModel {
         
         do {
             try await reorderHabits.execute(newOrder)
-            items = newOrder // Update local state immediately for smooth UI
+            // Update local state immediately for smooth UI
+            habitsData = HabitsData(habits: newOrder, categories: habitsData.categories)
             isUpdating = false
             return true
         } catch {
@@ -365,22 +356,6 @@ public final class HabitsViewModel {
     }
     
     // MARK: - Category Management
-    
-    /// Load categories for filtering
-    private func loadCategories() async {
-        isLoadingCategories = true
-        categoriesError = nil
-        
-        do {
-            categories = try await getActiveCategories.execute()
-        } catch {
-            categoriesError = error
-            categories = []
-            userActionTracker.trackError(error, context: "load_categories")
-        }
-        
-        isLoadingCategories = false
-    }
     
     /// Handle category filter selection
     public func selectFilterCategory(_ category: Category?) {

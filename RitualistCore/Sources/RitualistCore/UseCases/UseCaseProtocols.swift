@@ -177,6 +177,10 @@ public protocol ValidateCategoryNameUseCase {
     func execute(name: String) async throws -> Bool 
 }
 
+public protocol LoadHabitsDataUseCase {
+    func execute() async throws -> HabitsData
+}
+
 // MARK: - Onboarding Use Cases
 
 public protocol GetOnboardingStateUseCase { 

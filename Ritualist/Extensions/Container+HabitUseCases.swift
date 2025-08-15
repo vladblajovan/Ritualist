@@ -24,6 +24,10 @@ extension Container {
         self { GetAllHabits(repo: self.habitRepository()) }
     }
     
+    var loadHabitsData: Factory<LoadHabitsData> {
+        self { LoadHabitsData(habitRepo: self.habitRepository(), categoryRepo: self.categoryRepository()) }
+    }
+    
     var getHabitCount: Factory<GetHabitCount> {
         self { GetHabitCount(habitRepository: self.habitRepository()) }
     }

@@ -443,6 +443,31 @@ public final class ValidateCategoryName: ValidateCategoryNameUseCase {
     }
 }
 
+public final class LoadHabitsData: LoadHabitsDataUseCase {
+    private let habitRepo: HabitRepository
+    private let categoryRepo: CategoryRepository
+    
+    public init(habitRepo: HabitRepository, categoryRepo: CategoryRepository) {
+        self.habitRepo = habitRepo
+        self.categoryRepo = categoryRepo
+    }
+    
+    public func execute() async throws -> HabitsData {
+        // Batch load both habits and categories concurrently for performance
+        async let habitsResult = habitRepo.fetchAllHabits()
+        async let categoriesResult = categoryRepo.getActiveCategories()
+        
+        do {
+            let habits = try await habitsResult.sorted { $0.displayOrder < $1.displayOrder }
+            let categories = try await categoriesResult
+            
+            return HabitsData(habits: habits, categories: categories)
+        } catch {
+            throw error
+        }
+    }
+}
+
 // MARK: - Onboarding Use Case Implementations
 public final class GetOnboardingState: GetOnboardingStateUseCase {
     private let repo: OnboardingRepository
