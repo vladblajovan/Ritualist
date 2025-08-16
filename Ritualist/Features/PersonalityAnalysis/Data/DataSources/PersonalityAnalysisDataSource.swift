@@ -10,7 +10,7 @@ import SwiftData
 import RitualistCore
 
 @ModelActor
-public actor PersonalityAnalysisDataSourceActor: PersonalityAnalysisDataSource {
+public actor PersonalityAnalysisDataSource: PersonalityAnalysisDataSourceProtocol {
     
     public func getLatestProfile(for userId: UUID) async throws -> PersonalityProfile? {
         let userIdString = userId.uuidString

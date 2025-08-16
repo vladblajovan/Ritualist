@@ -23,7 +23,7 @@ public struct RootTabView: View {
                 TabView(selection: $vm.navigationService.selectedTab) {
                     Tab(Strings.Navigation.overview, systemImage: "calendar", value: Pages.overview) {
                             NavigationStack {
-                                OverviewV2Root()
+                                OverviewRoot()
                             }
                         }
 

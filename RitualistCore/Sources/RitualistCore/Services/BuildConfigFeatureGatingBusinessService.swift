@@ -100,20 +100,3 @@ public final class BuildConfigFeatureGatingBusinessService: FeatureGatingBusines
         return await standardFeatureGating.isFeatureAvailable(feature)
     }
 }
-
-// MARK: - Legacy Factory
-
-
-
-extension BuildConfigFeatureGatingBusinessService {
-    /// Creates a build config aware feature gating business service with standard subscription logic as fallback
-    public static func create(userService: UserService, errorHandler: ErrorHandlingActor? = nil) -> FeatureGatingBusinessService {
-        let buildConfigService = DefaultBuildConfigurationService()
-        let standardFeatureGating = DefaultFeatureGatingBusinessService(userService: userService, errorHandler: errorHandler)
-        
-        return BuildConfigFeatureGatingBusinessService(
-            buildConfigService: buildConfigService,
-            standardFeatureGating: standardFeatureGating
-        )
-    }
-}

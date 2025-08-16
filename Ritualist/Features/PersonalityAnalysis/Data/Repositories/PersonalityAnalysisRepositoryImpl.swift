@@ -11,7 +11,7 @@ import SwiftData
 
 public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisRepositoryProtocol {
     
-    private let dataSource: PersonalityAnalysisDataSource
+    private let dataSource: PersonalityAnalysisDataSourceProtocol
     private let habitRepository: HabitRepository
     private let categoryRepository: CategoryRepository
     private let logRepository: LogRepository
@@ -19,7 +19,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     private let completionCalculator: ScheduleAwareCompletionCalculator
     
     public init(
-        dataSource: PersonalityAnalysisDataSource,
+        dataSource: PersonalityAnalysisDataSourceProtocol,
         habitRepository: HabitRepository,
         categoryRepository: CategoryRepository,
         logRepository: LogRepository,

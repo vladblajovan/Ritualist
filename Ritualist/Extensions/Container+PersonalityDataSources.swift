@@ -8,12 +8,12 @@ extension Container {
     
     // MARK: - Personality Data Sources
     
-    var personalityAnalysisDataSource: Factory<PersonalityAnalysisDataSource> {
+    var personalityAnalysisDataSource: Factory<PersonalityAnalysisDataSourceProtocol> {
         self { 
             guard let container = self.persistenceContainer()?.container else {
                 fatalError("Failed to get ModelContainer for PersonalityAnalysisDataSource")
             }
-            return PersonalityAnalysisDataSourceActor(modelContainer: container)
+            return PersonalityAnalysisDataSource(modelContainer: container)
         }
         .singleton
     }

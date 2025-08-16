@@ -5,13 +5,11 @@ import RitualistCore
 
 // swiftlint:disable file_length type_body_length
 
-// MARK: - Data Models (moved to RitualistCore)
-
 // MARK: - ViewModel
 
 @MainActor
 @Observable
-public final class OverviewV2ViewModel {
+public final class OverviewViewModel {
     // MARK: - Observable Properties
     public var todaysSummary: TodaysSummary?
     public var weeklyProgress: WeeklyProgress?

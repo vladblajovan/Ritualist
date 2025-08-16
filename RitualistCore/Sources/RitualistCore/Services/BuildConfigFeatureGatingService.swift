@@ -92,17 +92,3 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         return standardFeatureGating.isFeatureAvailable(feature)
     }
 }
-
-extension BuildConfigFeatureGatingService {
-    /// Legacy factory method - Creates a build config aware feature gating service with standard subscription logic as fallback
-    @available(*, deprecated, message: "Use BuildConfigFeatureGatingBusinessService.create instead")
-    public static func create(userService: UserService, errorHandler: ErrorHandlingActor? = nil) -> FeatureGatingService {
-        let buildConfigService = DefaultBuildConfigurationService()
-        let standardFeatureGating = DefaultFeatureGatingService(userService: userService, errorHandler: errorHandler)
-        
-        return BuildConfigFeatureGatingService(
-            buildConfigService: buildConfigService,
-            standardFeatureGating: standardFeatureGating
-        )
-    }
-}

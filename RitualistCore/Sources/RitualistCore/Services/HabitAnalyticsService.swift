@@ -5,7 +5,6 @@
 //  Created by Vlad Blajovan on 14.08.2025.
 //
 
-
 import Foundation
 
 /// Domain service responsible for habit data access and retrieval

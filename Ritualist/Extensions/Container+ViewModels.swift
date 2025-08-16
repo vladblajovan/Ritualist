@@ -31,9 +31,9 @@ extension Container {
     }
     
     @MainActor
-    var overviewV2ViewModel: Factory<OverviewV2ViewModel> {
+    var overviewViewModel: Factory<OverviewViewModel> {
         self { @MainActor in
-            OverviewV2ViewModel()
+            OverviewViewModel()
         }
         .singleton
     }

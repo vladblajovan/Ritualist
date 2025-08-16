@@ -2,10 +2,10 @@ import SwiftUI
 import FactoryKit
 import RitualistCore
 
-public struct OverviewV2View: View {
-    @State var vm: OverviewV2ViewModel
+public struct OverviewView: View {
+    @State var vm: OverviewViewModel
     
-    public init(vm: OverviewV2ViewModel) {
+    public init(vm: OverviewViewModel) {
         self.vm = vm
     }
     
@@ -169,6 +169,6 @@ public struct OverviewV2View: View {
 }
 
 #Preview {
-    let vm = OverviewV2ViewModel()
-    return OverviewV2View(vm: vm)
+    let vm = OverviewViewModel()
+    return OverviewView(vm: vm)
 }
