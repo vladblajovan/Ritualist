@@ -4,30 +4,26 @@ import RitualistCore
 
 public struct RootTabView: View {
     @Injected(\.rootTabViewModel) var viewModel
-    @Injected(\.appearanceManager) var appearanceManager
-    @InjectedObject(\.navigationService) var navigationService
-    @InjectedObject(\.personalityDeepLinkCoordinator) var deepLinkCoordinator
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
-    @State private var overviewKey = 0
     @State private var showingPersonalityAnalysis = false
-    @Namespace private var glassUnionNamespace
 
     public init() {}
 
     @ViewBuilder
     public var body: some View {
+        @Bindable var vm = viewModel
+        
         Group {
             if isCheckingOnboarding {
                 ProgressView("Loading...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.systemBackground))
             } else {
-                TabView(selection: $navigationService.selectedTab) {
+                TabView(selection: $vm.navigationService.selectedTab) {
                     Tab(Strings.Navigation.overview, systemImage: "calendar", value: Pages.overview) {
                             NavigationStack {
                                 OverviewV2Root()
-                                    .id(overviewKey)
                             }
                         }
 
@@ -50,7 +46,7 @@ public struct RootTabView: View {
                         }
                 }
                 .modifier(TabBarMinimizeModifier())
-                .preferredColorScheme(appearanceManager.colorScheme)
+                .preferredColorScheme(vm.appearanceManager.colorScheme)
             }
         }
         .task {
@@ -62,42 +58,37 @@ public struct RootTabView: View {
                 showOnboarding = false
             })
         }
-        .onChange(of: showOnboarding) { _, isShowing in
-            if !isShowing {
-                overviewKey += 1
-            }
-        }
-        .onChange(of: deepLinkCoordinator.shouldShowPersonalityAnalysis) { oldValue, shouldShow in
+        .onChange(of: vm.personalityDeepLinkCoordinator.shouldShowPersonalityAnalysis) { oldValue, shouldShow in
             if shouldShow {
-                if deepLinkCoordinator.shouldNavigateToSettings {
+                if vm.personalityDeepLinkCoordinator.shouldNavigateToSettings {
                     // Navigate to settings tab first (for notifications)
-                    navigationService.selectedTab = .settings
+                    vm.navigationService.selectedTab = .settings
                     Task {
                         try? await Task.sleep(for: .milliseconds(100))
                         showingPersonalityAnalysis = true
                         // Reset coordinator state immediately after triggering
-                        deepLinkCoordinator.resetAnalysisState()
+                        vm.personalityDeepLinkCoordinator.resetAnalysisState()
                     }
                 } else {
                     // Show directly without tab navigation (for direct calls)
                     showingPersonalityAnalysis = true
                     // Reset coordinator state immediately after triggering
-                    deepLinkCoordinator.resetAnalysisState()
+                    vm.personalityDeepLinkCoordinator.resetAnalysisState()
                 }
             }
         }
         .sheet(isPresented: $showingPersonalityAnalysis) {
             PersonalityAnalysisDeepLinkSheet(
-                action: deepLinkCoordinator.pendingNotificationAction
+                action: vm.personalityDeepLinkCoordinator.pendingNotificationAction
             ) {
                 // Only clear the notification action on dismissal
-                deepLinkCoordinator.pendingNotificationAction = nil
+                vm.personalityDeepLinkCoordinator.pendingNotificationAction = nil
                 showingPersonalityAnalysis = false
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             // Check for pending navigation when app enters foreground
-            if deepLinkCoordinator.processPendingNavigation() {
+            if vm.personalityDeepLinkCoordinator.processPendingNavigation() {
                 // Already handled by onChange above
             }
         }

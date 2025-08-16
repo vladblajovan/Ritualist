@@ -11,13 +11,14 @@ import UserNotifications
 import RitualistCore
 
 /// Coordinates deep linking for personality analysis notifications
-public final class PersonalityDeepLinkCoordinator: ObservableObject {
+@Observable
+public final class PersonalityDeepLinkCoordinator {
     
-    // MARK: - Published Properties
+    // MARK: - Observable Properties
     
-    @Published public var shouldShowPersonalityAnalysis = false
-    @Published public var pendingNotificationAction: PersonalityNotificationAction?
-    @Published public var shouldNavigateToSettings = true // Controls whether to switch to Settings tab
+    public var shouldShowPersonalityAnalysis = false
+    public var pendingNotificationAction: PersonalityNotificationAction?
+    public var shouldNavigateToSettings = true // Controls whether to switch to Settings tab
     
     // MARK: - Types
     

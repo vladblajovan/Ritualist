@@ -9,7 +9,11 @@ public final class RootTabViewModel {
     // MARK: - Dependencies
     private let getOnboardingState: GetOnboardingState
     private let loadProfile: LoadProfile
-    private let appearanceManager: AppearanceManager
+    
+    // MARK: - Services (exposed for view binding)
+    public let appearanceManager: AppearanceManager
+    public var navigationService: NavigationService
+    public let personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator
     
     // MARK: - State
     public var showOnboarding = false
@@ -18,11 +22,15 @@ public final class RootTabViewModel {
     public init(
         getOnboardingState: GetOnboardingState,
         loadProfile: LoadProfile,
-        appearanceManager: AppearanceManager
+        appearanceManager: AppearanceManager,
+        navigationService: NavigationService,
+        personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator
     ) {
         self.getOnboardingState = getOnboardingState
         self.loadProfile = loadProfile
         self.appearanceManager = appearanceManager
+        self.navigationService = navigationService
+        self.personalityDeepLinkCoordinator = personalityDeepLinkCoordinator
     }
     
     // MARK: - Public Methods

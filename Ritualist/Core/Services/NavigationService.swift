@@ -1,13 +1,13 @@
 import SwiftUI
-import Combine
 import RitualistCore
 
 // MARK: - Navigation Service Implementation
 
 @MainActor
-public final class NavigationService: ObservableObject {
-    @Published public var selectedTab: Pages = .overview
-    @Published public var shouldRefreshOverview = false
+@Observable
+public final class NavigationService {
+    public var selectedTab: Pages = .overview
+    public var shouldRefreshOverview = false
     public var trackingService: UserActionTrackerService?
     
     public init() {}
