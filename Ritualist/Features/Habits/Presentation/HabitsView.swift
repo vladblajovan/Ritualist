@@ -9,8 +9,6 @@ public struct HabitsRoot: View {
     
     public var body: some View {
         HabitsContentView(vm: vm)
-//            .navigationTitle("Habits")
-//            .navigationBarTitleDisplayMode(.large)
             .task {
                 await vm.load()
             }
@@ -462,7 +460,6 @@ private struct HabitsListView: View {
         await vm.load()
     }
 }
-
 
 private struct OperationStatusView: View {
     let isCreating: Bool
