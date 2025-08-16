@@ -2,7 +2,7 @@
 //  SlogansServiceProtocol.swift
 //  RitualistCore
 //
-//  Created by Vlad Blajovan on 14.08.2025.
+//  Created by Vlad Blajovan on 16.08.2025.
 //
 
 

@@ -1,8 +1,6 @@
 import Foundation
 import RitualistCore
 
-// MARK: - Paywall Service (protocols moved to RitualistCore)
-
 // MARK: - Business Service Implementations
 
 public final class MockPaywallBusinessService: PaywallBusinessService {

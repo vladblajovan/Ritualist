@@ -13,7 +13,7 @@ public struct UserProfile: Identifiable, Codable, Hashable {
     public var avatarImageData: Data?
     public var appearance: Int // 0 followSystem, 1 light, 2 dark
     
-    // Subscription info (consolidated from User entity)
+    // Subscription info
     public var subscriptionPlan: SubscriptionPlan
     public var subscriptionExpiryDate: Date?
     

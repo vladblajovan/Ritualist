@@ -1,12 +1,9 @@
 import Foundation
 import RitualistCore
 
-// MARK: - Slogans Service (protocol moved to RitualistCore)
-
 // MARK: - Slogans Service Implementation
 
 public final class SlogansService: SlogansServiceProtocol {
-    
     
     // MARK: - Slogans Data
     
@@ -63,7 +60,6 @@ public final class SlogansService: SlogansServiceProtocol {
         return slogans.randomElement() ?? Strings.Overview.instructions
     }
     
-    
     // MARK: - Private Methods
     
     private func getSlogans(for timeOfDay: TimeOfDay) -> [String] {
@@ -97,6 +93,4 @@ public final class MockSlogansService: SlogansServiceProtocol {
     public func getSlogan(for timeOfDay: TimeOfDay) -> String {
         fixedSlogan
     }
-    
-    
 }

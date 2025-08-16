@@ -16,7 +16,6 @@ public final class OnboardingRepositoryImpl: OnboardingRepository {
         if let state = try await local.load() {
             return state
         } else {
-            // Return default incomplete state
             return OnboardingState()
         }
     }

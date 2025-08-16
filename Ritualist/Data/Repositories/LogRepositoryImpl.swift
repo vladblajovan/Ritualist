@@ -15,7 +15,7 @@ public final class LogRepositoryImpl: LogRepository {
         self.local = local
     }
     public func logs(for habitID: UUID) async throws -> [HabitLog] {
-        return try await local.logs(for: habitID)
+        try await local.logs(for: habitID)
     }
     public func upsert(_ log: HabitLog) async throws {
         try await local.upsert(log)

@@ -15,7 +15,7 @@ public final class HabitRepositoryImpl: HabitRepository {
         self.local = local
     }
     public func fetchAllHabits() async throws -> [Habit] {
-        return try await local.fetchAll()
+        try await local.fetchAll()
     }
     public func create(_ habit: Habit) async throws {
         try await update(habit)
@@ -27,6 +27,6 @@ public final class HabitRepositoryImpl: HabitRepository {
         try await local.delete(id: id)
     }
     public func cleanupOrphanedHabits() async throws -> Int {
-        return try await local.cleanupOrphanedHabits()
+        try await local.cleanupOrphanedHabits()
     }
 }

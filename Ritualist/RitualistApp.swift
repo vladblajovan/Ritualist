@@ -29,8 +29,8 @@ import UserNotifications
     private func createFallbackContainer() -> ModelContainer {
         do {
             return try ModelContainer(
-                for: SDHabit.self, SDHabitLog.self, SDUserProfile.self, 
-                    SDCategory.self, SDOnboardingState.self, SDPersonalityProfile.self
+                for: HabitModel.self, HabitLogModel.self, UserProfileModel.self, 
+                    HabitCategoryModel.self, OnboardingStateModel.self, PersonalityAnalysisModel.self
             )
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
