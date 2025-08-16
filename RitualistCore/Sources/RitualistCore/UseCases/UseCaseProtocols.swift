@@ -231,7 +231,7 @@ public protocol SnoozeHabitReminderUseCase {
 }
 
 public protocol HandleNotificationActionUseCase {
-    func execute(action: NotificationAction, habitId: UUID, habitName: String?, reminderTime: ReminderTime?) async throws
+    func execute(action: NotificationAction, habitId: UUID, habitName: String?, habitKind: HabitKind, reminderTime: ReminderTime?) async throws
 }
 
 public protocol CancelHabitRemindersUseCase {

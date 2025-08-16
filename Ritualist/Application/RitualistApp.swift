@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import FactoryKit
+import RitualistCore
 import UserNotifications
 
 @main struct RitualistApp: App {
@@ -62,12 +63,49 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     // Handle notification tap when app is in background/closed
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         
-        // Handle personality analysis notifications on main actor
-        Task { @MainActor in
-            personalityDeepLinkCoordinator.handleNotificationResponse(response)
+        // Check if this is a habit notification
+        let userInfo = response.notification.request.content.userInfo
+        if let habitId = userInfo["habitId"] as? String {
+            // This is a habit notification - handle it like a log action
+            self.handleHabitNotification(response)
+        } else {
+            // Handle personality analysis notifications on main actor
+            Task { @MainActor in
+                personalityDeepLinkCoordinator.handleNotificationResponse(response)
+            }
         }
         
         completionHandler()
+    }
+    
+    private func handleHabitNotification(_ response: UNNotificationResponse) {
+        let userInfo = response.notification.request.content.userInfo
+        
+        guard let habitIdString = userInfo["habitId"] as? String,
+              let habitId = UUID(uuidString: habitIdString),
+              let habitName = userInfo["habitName"] as? String,
+              let reminderHour = userInfo["reminderHour"] as? Int,
+              let reminderMinute = userInfo["reminderMinute"] as? Int else {
+            print("Invalid habit notification userInfo: \(userInfo)")
+            return
+        }
+        
+        let habitKindString = userInfo["habitKind"] as? String ?? "binary"
+        let habitKind: HabitKind = habitKindString == "numeric" ? .numeric : .binary
+        let reminderTime = ReminderTime(hour: reminderHour, minute: reminderMinute)
+        
+        // Simulate the "Log" action by calling the notification service's action handler
+        Task { @MainActor in
+            do {
+                // Access the notification service and trigger the action handler
+                let notificationService = Container.shared.notificationService()
+                if let actionHandler = (notificationService as? LocalNotificationService)?.actionHandler {
+                    try await actionHandler(.log, habitId, habitName, habitKind, reminderTime)
+                }
+            } catch {
+                print("Error handling habit notification: \(error)")
+            }
+        }
     }
     
     // Handle notification when app is in foreground (optional - shows banner)

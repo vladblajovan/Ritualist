@@ -26,7 +26,7 @@ class MockNotificationService: NotificationService {
         scheduledHabits.append((habitID, times))
     }
     
-    func scheduleWithActions(for habitID: UUID, habitName: String, times: [ReminderTime]) async throws {
+    func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {
         scheduledWithActionsHabits.append((habitID, habitName, times))
     }
     

@@ -149,6 +149,14 @@ public struct OverviewView: View {
             Task {
                 await vm.refreshPersonalityInsights()
             }
+            // Process pending numeric habit from notification
+            vm.processPendingNumericHabit()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Refresh data when app comes to foreground (after background notification actions)
+            Task {
+                await vm.refresh()
+            }
         }
         .sheet(isPresented: $vm.showingNumericSheet) {
             if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {

@@ -11,7 +11,7 @@ public protocol NotificationService {
     func requestAuthorizationIfNeeded() async throws -> Bool
     func checkAuthorizationStatus() async -> Bool
     func schedule(for habitID: UUID, times: [ReminderTime]) async throws
-    func scheduleWithActions(for habitID: UUID, habitName: String, times: [ReminderTime]) async throws
+    func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws
     func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws
     func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws
     func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws

@@ -6,6 +6,8 @@ import RitualistCore
 
 public final class LocalNotificationService: NSObject, NotificationService {
     private static let habitReminderCategory = "HABIT_REMINDER"
+    private static let binaryHabitReminderCategory = "BINARY_HABIT_REMINDER"
+    private static let numericHabitReminderCategory = "NUMERIC_HABIT_REMINDER"
     private static let habitStreakMilestoneCategory = "HABIT_STREAK_MILESTONE"
     
     // Personality Analysis Categories
@@ -19,7 +21,7 @@ public final class LocalNotificationService: NSObject, NotificationService {
     ]
     
     // Delegate handler for notification actions
-    public var actionHandler: ((NotificationAction, UUID, String?, ReminderTime?) async throws -> Void)?
+    public var actionHandler: ((NotificationAction, UUID, String?, HabitKind, ReminderTime?) async throws -> Void)?
     public var trackingService: UserActionTrackerService?
     private let errorHandler: ErrorHandlingActor?
     
@@ -71,20 +73,33 @@ public final class LocalNotificationService: NSObject, NotificationService {
         }
     }
     
-    public func scheduleWithActions(for habitID: UUID, habitName: String, times: [ReminderTime]) async throws {
+    public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {
         let center = UNUserNotificationCenter.current()
         
         for (index, time) in times.enumerated() {
             let content = UNMutableNotificationContent()
-            content.title = "Time for \(habitName)"
-            content.body = "It's \(String(format: "%02d:%02d", time.hour, time.minute)) - time to work on your \(habitName) habit!"
+            
+            // Customize title and body based on habit type
+            switch habitKind {
+            case .binary:
+                content.title = "Time to complete: \(habitName) ✓"
+                content.body = "Quick tap to mark as done!"
+            case .numeric:
+                content.title = "Log progress: \(habitName)"
+                content.body = "Time to track your progress!"
+            }
+            
             content.sound = .default
-            content.categoryIdentifier = Self.habitReminderCategory
+            
+            // Use different category based on habit type
+            content.categoryIdentifier = habitKind == .binary ? 
+                Self.binaryHabitReminderCategory : Self.numericHabitReminderCategory
             
             // Store habit information in userInfo for action handling
             content.userInfo = [
                 "habitId": habitID.uuidString,
                 "habitName": habitName,
+                "habitKind": habitKind == .binary ? "binary" : "numeric",
                 "reminderHour": time.hour,
                 "reminderMinute": time.minute
             ]
@@ -313,12 +328,21 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
     // MARK: - Notification Categories Setup
     
     public func setupNotificationCategories() async {
-        let logAction = UNNotificationAction(
+        // Actions for binary habits (background completion)
+        let binaryLogAction = UNNotificationAction(
             identifier: NotificationAction.log.rawValue,
-            title: NotificationAction.log.title,
-            options: [.foreground]
+            title: NotificationAction.log.title(for: .binary),
+            options: NotificationAction.log.options(for: .binary)
         )
         
+        // Actions for numeric habits (foreground for UI)
+        let numericLogAction = UNNotificationAction(
+            identifier: NotificationAction.log.rawValue,
+            title: NotificationAction.log.title(for: .numeric),
+            options: NotificationAction.log.options(for: .numeric)
+        )
+        
+        // Shared actions (both background)
         let remindLaterAction = UNNotificationAction(
             identifier: NotificationAction.remindLater.rawValue,
             title: NotificationAction.remindLater.title,
@@ -331,9 +355,32 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
             options: []
         )
         
+        // Binary habit category (background completion)
+        let binaryHabitCategory = UNNotificationCategory(
+            identifier: Self.binaryHabitReminderCategory,
+            actions: [binaryLogAction, remindLaterAction, dismissAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        
+        // Numeric habit category (foreground for UI)
+        let numericHabitCategory = UNNotificationCategory(
+            identifier: Self.numericHabitReminderCategory,
+            actions: [numericLogAction, remindLaterAction, dismissAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        
+        // Legacy category (for backwards compatibility)
+        let legacyLogAction = UNNotificationAction(
+            identifier: NotificationAction.log.rawValue,
+            title: NotificationAction.log.title,
+            options: [.foreground]
+        )
+        
         let habitReminderCategory = UNNotificationCategory(
             identifier: Self.habitReminderCategory,
-            actions: [logAction, remindLaterAction, dismissAction],
+            actions: [legacyLogAction, remindLaterAction, dismissAction],
             intentIdentifiers: [],
             options: [.customDismissAction] // Enable persistence tracking
         )
@@ -347,7 +394,12 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         )
         
         // Create personality analysis categories with basic options for persistence
-        var allCategories: Set<UNNotificationCategory> = [habitReminderCategory, habitStreakMilestoneCategory]
+        var allCategories: Set<UNNotificationCategory> = [
+            binaryHabitCategory, 
+            numericHabitCategory, 
+            habitReminderCategory, 
+            habitStreakMilestoneCategory
+        ]
         
         for categoryId in Self.personalityAnalysisCategories {
             let personalityCategory = UNNotificationCategory(
@@ -377,6 +429,10 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
             return
         }
         
+        // Extract habit kind (fallback to binary for backwards compatibility)
+        let habitKindString = userInfo["habitKind"] as? String ?? "binary"
+        let habitKind: HabitKind = habitKindString == "numeric" ? .numeric : .binary
+        
         let reminderTime = ReminderTime(hour: reminderHour, minute: reminderMinute)
         
         guard let action = NotificationAction(rawValue: response.actionIdentifier) else {
@@ -396,7 +452,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         
         // Call the injected action handler (we're already on main thread)
         do {
-            try await actionHandler?(action, habitId, habitName, reminderTime)
+            try await actionHandler?(action, habitId, habitName, habitKind, reminderTime)
         } catch {
             await errorHandler?.logError(
                 error,
@@ -405,7 +461,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
                     "operation": "handleNotificationAction",
                     "action": action.rawValue,
                     "habit_id": habitId.uuidString,
-                    "habit_name": habitName ?? "unknown"
+                    "habit_name": habitName
                 ]
             )
         }

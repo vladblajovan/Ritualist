@@ -37,6 +37,9 @@ public final class OverviewViewModel {
     public var selectedHabitForSheet: Habit?
     public var showingNumericSheet = false
     
+    // Notification-triggered sheet state
+    public var pendingNumericHabitFromNotification: Habit?
+    
     // Single source of truth for all overview data
     public var overviewData: OverviewData?
     
@@ -299,6 +302,17 @@ public final class OverviewViewModel {
     public func showNumericSheet(for habit: Habit) {
         selectedHabitForSheet = habit
         showingNumericSheet = true
+    }
+    
+    public func setPendingNumericHabit(_ habit: Habit) {
+        pendingNumericHabitFromNotification = habit
+    }
+    
+    public func processPendingNumericHabit() {
+        if let habit = pendingNumericHabitFromNotification {
+            showNumericSheet(for: habit)
+            pendingNumericHabitFromNotification = nil
+        }
     }
     
     public func deleteHabitLog(_ habit: Habit) async {

@@ -33,7 +33,8 @@ extension Container {
     var handleNotificationAction: Factory<HandleNotificationActionUseCase> {
         self { HandleNotificationAction(
             logHabitFromNotification: self.logHabitFromNotification(),
-            snoozeHabitReminder: self.snoozeHabitReminder()
+            snoozeHabitReminder: self.snoozeHabitReminder(),
+            notificationService: self.notificationService()
         )}
     }
     

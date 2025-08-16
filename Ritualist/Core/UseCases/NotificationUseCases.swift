@@ -22,7 +22,7 @@ public final class ScheduleHabitReminders: ScheduleHabitRemindersUseCase {
         // Schedule new notifications only for active habits with reminders
         guard habit.isActive && !habit.reminders.isEmpty else { return }
         
-        try await notificationService.scheduleWithActions(for: habit.id, habitName: habit.name, times: habit.reminders)
+        try await notificationService.scheduleWithActions(for: habit.id, habitName: habit.name, habitKind: habit.kind, times: habit.reminders)
     }
 }
 
@@ -96,19 +96,23 @@ public final class SnoozeHabitReminder: SnoozeHabitReminderUseCase {
 public final class HandleNotificationAction: HandleNotificationActionUseCase {
     private let logHabitFromNotification: LogHabitFromNotificationUseCase
     private let snoozeHabitReminder: SnoozeHabitReminderUseCase
+    private let notificationService: NotificationService
     
     public init(
         logHabitFromNotification: LogHabitFromNotificationUseCase,
-        snoozeHabitReminder: SnoozeHabitReminderUseCase
+        snoozeHabitReminder: SnoozeHabitReminderUseCase,
+        notificationService: NotificationService
     ) {
         self.logHabitFromNotification = logHabitFromNotification
         self.snoozeHabitReminder = snoozeHabitReminder
+        self.notificationService = notificationService
     }
     
     public func execute(
         action: NotificationAction,
         habitId: UUID,
         habitName: String?,
+        habitKind: HabitKind,
         reminderTime: ReminderTime?
     ) async throws {
         let currentDate = Date()
@@ -116,6 +120,14 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
         switch action {
         case .log:
             try await logHabitFromNotification.execute(habitId: habitId, date: currentDate, value: nil)
+            
+            // Send confirmation notification for binary habits (background completion)
+            if habitKind == .binary, let habitName = habitName {
+                let title = "✅ \(habitName) completed!"
+                let body = "Great job! Keep up the streak."
+                try await notificationService.sendImmediate(title: title, body: body)
+            }
+            // For numeric habits, the foreground app will open and show the UI
             
         case .remindLater:
             guard let habitName = habitName, let reminderTime = reminderTime else {
