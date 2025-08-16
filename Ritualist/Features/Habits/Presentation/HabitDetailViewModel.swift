@@ -36,8 +36,8 @@ public final class HabitDetailViewModel {
     public var isActive = true
     
     // Category state
-    public var selectedCategory: Category?
-    public private(set) var categories: [Category] = []
+    public var selectedCategory: HabitCategory?
+    public private(set) var categories: [HabitCategory] = []
     public private(set) var isLoadingCategories = false
     public private(set) var categoriesError: Error?
     
@@ -219,7 +219,7 @@ public final class HabitDetailViewModel {
         isLoadingCategories = false
     }
     
-    public func selectCategory(_ category: Category) {
+    public func selectCategory(_ category: HabitCategory) {
         selectedCategory = category
         // Re-validate for duplicates when category changes
         Task {
@@ -236,7 +236,7 @@ public final class HabitDetailViewModel {
             }
             
             // Create new category with unique ID
-            let newCategory = Category(
+            let newCategory = HabitCategory(
                 id: UUID().uuidString,
                 name: name.lowercased(),
                 displayName: name,

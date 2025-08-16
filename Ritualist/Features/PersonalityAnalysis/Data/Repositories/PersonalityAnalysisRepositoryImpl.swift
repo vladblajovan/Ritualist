@@ -298,7 +298,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         return allLogs
     }
     
-    public func getUserCustomCategories(for userId: UUID) async throws -> [Category] {
+    public func getUserCustomCategories(for userId: UUID) async throws -> [HabitCategory] {
         try await categoryRepository.getCustomCategories()
     }
     

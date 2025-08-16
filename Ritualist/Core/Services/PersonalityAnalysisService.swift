@@ -494,7 +494,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     }
     
     /// Infers personality weights for custom categories based on behavior patterns
-    private func inferPersonalityWeights(for category: Category, habits: [Habit], allLogs: [Double]) -> [String: Double] {
+    private func inferPersonalityWeights(for category: HabitCategory, habits: [Habit], allLogs: [Double]) -> [String: Double] {
         // Start with neutral baseline - using consistent ordering to prevent fluctuations
         var weights: [String: Double] = [
             "openness": 0.05,

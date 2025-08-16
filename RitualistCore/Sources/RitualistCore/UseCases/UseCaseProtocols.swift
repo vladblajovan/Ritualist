@@ -146,31 +146,31 @@ public protocol GetTipsByCategoryUseCase {
 // MARK: - Category Use Cases
 
 public protocol GetAllCategoriesUseCase { 
-    func execute() async throws -> [Category] 
+    func execute() async throws -> [HabitCategory] 
 }
 
 public protocol GetCategoryByIdUseCase { 
-    func execute(id: String) async throws -> Category? 
+    func execute(id: String) async throws -> HabitCategory? 
 }
 
 public protocol GetActiveCategoriesUseCase { 
-    func execute() async throws -> [Category] 
+    func execute() async throws -> [HabitCategory] 
 }
 
 public protocol GetPredefinedCategoriesUseCase { 
-    func execute() async throws -> [Category] 
+    func execute() async throws -> [HabitCategory] 
 }
 
 public protocol GetCustomCategoriesUseCase { 
-    func execute() async throws -> [Category] 
+    func execute() async throws -> [HabitCategory] 
 }
 
 public protocol CreateCustomCategoryUseCase { 
-    func execute(_ category: Category) async throws 
+    func execute(_ category: HabitCategory) async throws 
 }
 
 public protocol UpdateCategoryUseCase { 
-    func execute(_ category: Category) async throws 
+    func execute(_ category: HabitCategory) async throws 
 }
 
 public protocol DeleteCategoryUseCase { 

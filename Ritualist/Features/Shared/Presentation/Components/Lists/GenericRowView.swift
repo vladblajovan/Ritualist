@@ -233,7 +233,7 @@ public extension GenericRowView {
     
     /// For category rows with emoji and badges
     static func categoryRow(
-        category: Category,
+        category: HabitCategory,
         onTap: (() -> Void)? = nil
     ) -> GenericRowView {
         var badges: [RowBadge] = []
@@ -311,7 +311,7 @@ public extension GenericRowView {
 #Preview("Category Row") {
     VStack(spacing: Spacing.medium) {
         GenericRowView.categoryRow(
-            category: Category(
+            category: HabitCategory(
                 id: UUID().uuidString,
                 name: "Health",
                 displayName: "Health",
@@ -324,7 +324,7 @@ public extension GenericRowView {
         .padding()
         
         GenericRowView.categoryRow(
-            category: Category(
+            category: HabitCategory(
                 id: UUID().uuidString,
                 name: "Custom Goal",
                 displayName: "Custom Goal", 

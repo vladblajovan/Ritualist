@@ -19,7 +19,7 @@ public struct DomainValidation {
     /// - Returns: Validation result with comprehensive error message if invalid
     public static func validateDomainState(
         habits: [Habit],
-        categories: [Category],
+        categories: [HabitCategory],
         userHabitCount: Int,
         isPremiumUser: Bool
     ) -> ValidationResult {

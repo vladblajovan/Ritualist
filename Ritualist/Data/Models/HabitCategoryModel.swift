@@ -41,8 +41,8 @@ import RitualistCore
     }
     
     /// Convert SwiftData model to domain entity
-    public func toEntity() -> Category {
-        return Category(
+    public func toEntity() -> HabitCategory {
+        HabitCategory(
             id: id,
             name: name,
             displayName: displayName,
@@ -54,8 +54,8 @@ import RitualistCore
     }
     
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ category: Category) -> HabitCategoryModel {
-        return HabitCategoryModel(
+    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModel {
+        HabitCategoryModel(
             id: category.id,
             name: category.name,
             displayName: category.displayName,

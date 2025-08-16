@@ -47,7 +47,7 @@ public protocol PersonalityAnalysisRepositoryProtocol {
     func getUserHabitLogs(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog]
     
     /// Get custom categories created by a user
-    func getUserCustomCategories(for userId: UUID) async throws -> [Category]
+    func getUserCustomCategories(for userId: UUID) async throws -> [HabitCategory]
     
     /// Get comprehensive habit completion statistics
     func getHabitCompletionStats(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats

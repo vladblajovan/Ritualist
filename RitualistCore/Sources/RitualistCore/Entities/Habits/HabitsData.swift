@@ -12,9 +12,9 @@ import Foundation
 /// Follows OverviewData/DashboardData reactive architecture patterns
 public struct HabitsData {
     public let habits: [Habit]
-    public let categories: [Category]
+    public let categories: [HabitCategory]
     
-    public init(habits: [Habit], categories: [Category]) {
+    public init(habits: [Habit], categories: [HabitCategory]) {
         self.habits = habits
         self.categories = categories
     }
@@ -23,7 +23,7 @@ public struct HabitsData {
     
     /// Get all habits filtered by category and active status
     /// Returns habits from active categories only, plus uncategorized habits
-    public func filteredHabits(for selectedCategory: Category?) -> [Habit] {
+    public func filteredHabits(for selectedCategory: HabitCategory?) -> [Habit] {
         let activeCategoryIds = Set(categories.map { $0.id })
         
         // First filter to only habits from active categories or habits with no category
@@ -63,7 +63,7 @@ public struct HabitsData {
     }
     
     /// Get category by ID
-    public func category(withId id: String) -> Category? {
+    public func category(withId id: String) -> HabitCategory? {
         categories.first { $0.id == id }
     }
     

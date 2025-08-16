@@ -19,8 +19,8 @@ public final class HabitsAssistantViewModel {
     private let userActionTracker: UserActionTrackerService?
     
     // MARK: - State
-    public private(set) var categories: [Category] = []
-    public var selectedCategory: Category?
+    public private(set) var categories: [HabitCategory] = []
+    public var selectedCategory: HabitCategory?
     public private(set) var isLoadingCategories = false
     public private(set) var categoriesError: Error?
     public private(set) var addedSuggestionIds: Set<String> = []
@@ -55,7 +55,7 @@ public final class HabitsAssistantViewModel {
         isLoadingCategories = false
     }
     
-    public func selectCategory(_ category: Category) {
+    public func selectCategory(_ category: HabitCategory) {
         selectedCategory = category
         userActionTracker?.track(.habitsAssistantCategorySelected(category: category.name))
     }

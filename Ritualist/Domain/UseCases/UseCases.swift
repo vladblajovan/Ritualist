@@ -1,11 +1,6 @@
 import Foundation
 import RitualistCore
 
-// Resolve naming conflict with system Category type
-public typealias Category = RitualistCore.Category
-
-
-
 // MARK: - Habit Use Case Implementations
 public final class CreateHabit: CreateHabitUseCase {
     private let repo: HabitRepository
@@ -371,37 +366,37 @@ public final class GetTipsByCategory: GetTipsByCategoryUseCase {
 public final class GetAllCategories: GetAllCategoriesUseCase {
     private let repo: CategoryRepository
     public init(repo: CategoryRepository) { self.repo = repo }
-    public func execute() async throws -> [Category] { try await repo.getAllCategories() }
+    public func execute() async throws -> [HabitCategory] { try await repo.getAllCategories() }
 }
 
 public final class GetCategoryById: GetCategoryByIdUseCase {
     private let repo: CategoryRepository
     public init(repo: CategoryRepository) { self.repo = repo }
-    public func execute(id: String) async throws -> Category? { try await repo.getCategory(by: id) }
+    public func execute(id: String) async throws -> HabitCategory? { try await repo.getCategory(by: id) }
 }
 
 public final class GetActiveCategories: GetActiveCategoriesUseCase {
     private let repo: CategoryRepository
     public init(repo: CategoryRepository) { self.repo = repo }
-    public func execute() async throws -> [Category] { try await repo.getActiveCategories() }
+    public func execute() async throws -> [HabitCategory] { try await repo.getActiveCategories() }
 }
 
 public final class GetPredefinedCategories: GetPredefinedCategoriesUseCase {
     private let repo: CategoryRepository
     public init(repo: CategoryRepository) { self.repo = repo }
-    public func execute() async throws -> [Category] { try await repo.getPredefinedCategories() }
+    public func execute() async throws -> [HabitCategory] { try await repo.getPredefinedCategories() }
 }
 
 public final class GetCustomCategories: GetCustomCategoriesUseCase {
     private let repo: CategoryRepository
     public init(repo: CategoryRepository) { self.repo = repo }
-    public func execute() async throws -> [Category] { try await repo.getCustomCategories() }
+    public func execute() async throws -> [HabitCategory] { try await repo.getCustomCategories() }
 }
 
 public final class CreateCustomCategory: CreateCustomCategoryUseCase {
     private let repo: CategoryRepository
     public init(repo: CategoryRepository) { self.repo = repo }
-    public func execute(_ category: Category) async throws {
+    public func execute(_ category: HabitCategory) async throws {
         // Business logic: Validate category doesn't already exist
         let existsByName = try await repo.categoryExists(name: category.name)
         let existsById = try await repo.categoryExists(id: category.id)
@@ -417,7 +412,7 @@ public final class CreateCustomCategory: CreateCustomCategoryUseCase {
 public final class UpdateCategory: UpdateCategoryUseCase {
     private let repo: CategoryRepository
     public init(repo: CategoryRepository) { self.repo = repo }
-    public func execute(_ category: Category) async throws {
+    public func execute(_ category: HabitCategory) async throws {
         try await repo.updateCategory(category)
     }
 }

@@ -273,7 +273,7 @@ public struct CategoryManagementView: View {
     private func activateSelectedCategories() async {
         for categoryId in selectedCategoryIds {
             if let category = vm.categories.first(where: { $0.id == categoryId }) {
-                let updatedCategory = Category(
+                let updatedCategory = HabitCategory(
                     id: category.id,
                     name: category.name,
                     displayName: category.displayName,
@@ -293,7 +293,7 @@ public struct CategoryManagementView: View {
         for categoryId in categoriesToDeactivate {
             if let category = vm.categories.first(where: { $0.id == categoryId }) {
                 print("DEBUG: Deactivating category: \(category.displayName)")
-                let updatedCategory = Category(
+                let updatedCategory = HabitCategory(
                     id: category.id,
                     name: category.name,
                     displayName: category.displayName,

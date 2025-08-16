@@ -17,17 +17,17 @@ public final class CategoryManagementViewModel {
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     
     // MARK: - State
-    public private(set) var categories: [Category] = []
+    public private(set) var categories: [HabitCategory] = []
     public private(set) var isLoading = false
     public private(set) var error: Error?
     
     
     // MARK: - Computed Properties
-    public var customCategories: [Category] {
+    public var customCategories: [HabitCategory] {
         categories.filter { !$0.isPredefined }
     }
     
-    public var predefinedCategories: [Category] {
+    public var predefinedCategories: [HabitCategory] {
         categories.filter { $0.isPredefined }
     }
     
@@ -67,7 +67,7 @@ public final class CategoryManagementViewModel {
         userActionTracker.track(.categoryManagementOpened)
     }
     
-    public func createCategory(_ category: Category) async {
+    public func createCategory(_ category: HabitCategory) async {
         error = nil
         
         do {
@@ -88,7 +88,7 @@ public final class CategoryManagementViewModel {
     public func createCustomCategory(name: String, emoji: String) async -> Bool {
         error = nil
         
-        let category = Category(
+        let category = HabitCategory(
             id: UUID().uuidString,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
             displayName: name.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -116,7 +116,7 @@ public final class CategoryManagementViewModel {
         }
     }
     
-    public func updateCategory(_ category: Category) async {
+    public func updateCategory(_ category: HabitCategory) async {
         error = nil
         
         do {
@@ -137,7 +137,7 @@ public final class CategoryManagementViewModel {
         error = nil
         
         // Only allow deletion of custom categories
-        let categoriesToDelete: [Category] = offsets.compactMap { index in
+        let categoriesToDelete: [HabitCategory] = offsets.compactMap { index in
             guard index < categories.count else { return nil }
             let category = categories[index]
             return category.isPredefined ? nil : category
@@ -181,7 +181,7 @@ public final class CategoryManagementViewModel {
     public func toggleActiveStatus(id: String) async {
         guard let category = categories.first(where: { $0.id == id }) else { return }
         
-        let updatedCategory = Category(
+        let updatedCategory = HabitCategory(
             id: category.id,
             name: category.name,
             displayName: category.displayName,
@@ -204,7 +204,7 @@ public final class CategoryManagementViewModel {
         // Update order values and track reordering
         for (index, category) in updatedCategories.enumerated() {
             let oldOrder = category.order
-            updatedCategories[index] = Category(
+            updatedCategories[index] = HabitCategory(
                 id: category.id,
                 name: category.name,
                 displayName: category.displayName,

@@ -35,7 +35,7 @@ public protocol PerformanceAnalysisService {
     /// Aggregate category performance from habits, categories, and logs
     func aggregateCategoryPerformance(
         habits: [Habit], 
-        categories: [Category], 
+        categories: [HabitCategory], 
         logs: [HabitLog], 
         from startDate: Date, 
         to endDate: Date

@@ -241,8 +241,8 @@ public struct HabitAnalysisInput {
     public let activeHabits: [Habit]
     public let completionRates: [Double]
     public let customHabits: [Habit]
-    public let customCategories: [Category]
-    public let habitCategories: [Category]
+    public let customCategories: [HabitCategory]
+    public let habitCategories: [HabitCategory]
     public let selectedSuggestions: [HabitSuggestion]
     public let trackingDays: Int
     public let analysisTimeRange: Int
@@ -252,8 +252,8 @@ public struct HabitAnalysisInput {
         activeHabits: [Habit],
         completionRates: [Double],
         customHabits: [Habit],
-        customCategories: [Category],
-        habitCategories: [Category],
+        customCategories: [HabitCategory],
+        habitCategories: [HabitCategory],
         selectedSuggestions: [HabitSuggestion],
         trackingDays: Int,
         analysisTimeRange: Int,

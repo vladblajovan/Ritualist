@@ -7,9 +7,9 @@ import RitualistCore
 @ModelActor
 public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
     
-    private lazy var predefinedCategories: [Category] = {
+    private lazy var predefinedCategories: [HabitCategory] = {
         [
-            Category(
+            HabitCategory(
                 id: "health",
                 name: "health", 
                 displayName: "Health",
@@ -23,7 +23,7 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
                     "agreeableness": 0.2
                 ]
             ),
-            Category(
+            HabitCategory(
                 id: "wellness",
                 name: "wellness",
                 displayName: "Wellness", 
@@ -38,7 +38,7 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
                     "agreeableness": 0.2
                 ]
             ),
-            Category(
+            HabitCategory(
                 id: "productivity",
                 name: "productivity",
                 displayName: "Productivity",
@@ -52,7 +52,7 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
                     "openness": 0.1
                 ]
             ),
-            Category(
+            HabitCategory(
                 id: "social",
                 name: "social",
                 displayName: "Social",
@@ -66,7 +66,7 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
                     "conscientiousness": 0.3
                 ]
             ),
-            Category(
+            HabitCategory(
                 id: "learning",
                 name: "learning",
                 displayName: "Learning",
@@ -80,7 +80,7 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
                     "extraversion": 0.2
                 ]
             ),
-            Category(
+            HabitCategory(
                 id: "creativity",
                 name: "creativity",
                 displayName: "Creativity",
@@ -97,41 +97,41 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
         ]
     }()
     
-    private func getStoredCategories() async throws -> [Category] {
+    private func getStoredCategories() async throws -> [HabitCategory] {
         let descriptor = FetchDescriptor<HabitCategoryModel>()
         let categories = try modelContext.fetch(descriptor)
         return categories.map { $0.toEntity() }
     }
     
-    public func getAllCategories() async throws -> [Category] {
+    public func getAllCategories() async throws -> [HabitCategory] {
         let storedCategories = try await getStoredCategories()
         let allCategories = predefinedCategories + storedCategories
         return allCategories.sorted { $0.order < $1.order }
     }
     
-    public func getCategory(by id: String) async throws -> Category? {
+    public func getCategory(by id: String) async throws -> HabitCategory? {
         return try await getAllCategories().first { $0.id == id }
     }
     
-    public func getActiveCategories() async throws -> [Category] {
+    public func getActiveCategories() async throws -> [HabitCategory] {
         return try await getAllCategories().filter { $0.isActive }
     }
     
-    public func getPredefinedCategories() async throws -> [Category] {
+    public func getPredefinedCategories() async throws -> [HabitCategory] {
         return predefinedCategories.filter { $0.isActive }
     }
     
-    public func getCustomCategories() async throws -> [Category] {
+    public func getCustomCategories() async throws -> [HabitCategory] {
         return try await getStoredCategories().filter { $0.isActive }
     }
     
-    public func createCustomCategory(_ category: Category) async throws {
+    public func createCustomCategory(_ category: HabitCategory) async throws {
         let categoryModel = HabitCategoryModel.fromEntity(category)
         modelContext.insert(categoryModel)
         try modelContext.save()
     }
     
-    public func updateCategory(_ category: Category) async throws {
+    public func updateCategory(_ category: HabitCategory) async throws {
         let descriptor = FetchDescriptor<HabitCategoryModel>(
             predicate: #Predicate { $0.id == category.id }
         )

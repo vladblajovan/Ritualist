@@ -15,31 +15,31 @@ public final class CategoryRepositoryImpl: CategoryRepository {
         self.localDataSource = local
     }
     
-    public func getAllCategories() async throws -> [Category] {
+    public func getAllCategories() async throws -> [HabitCategory] {
         try await localDataSource.getAllCategories()
     }
     
-    public func getCategory(by id: String) async throws -> Category? {
+    public func getCategory(by id: String) async throws -> HabitCategory? {
         try await localDataSource.getCategory(by: id)
     }
     
-    public func getActiveCategories() async throws -> [Category] {
+    public func getActiveCategories() async throws -> [HabitCategory] {
         try await localDataSource.getActiveCategories()
     }
     
-    public func getPredefinedCategories() async throws -> [Category] {
+    public func getPredefinedCategories() async throws -> [HabitCategory] {
         try await localDataSource.getPredefinedCategories()
     }
     
-    public func getCustomCategories() async throws -> [Category] {
+    public func getCustomCategories() async throws -> [HabitCategory] {
         try await localDataSource.getCustomCategories()
     }
     
-    public func createCustomCategory(_ category: Category) async throws {
+    public func createCustomCategory(_ category: HabitCategory) async throws {
         try await localDataSource.createCustomCategory(category)
     }
     
-    public func updateCategory(_ category: Category) async throws {
+    public func updateCategory(_ category: HabitCategory) async throws {
         try await localDataSource.updateCategory(category)
     }
     

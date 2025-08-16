@@ -230,7 +230,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     
     public func aggregateCategoryPerformance(
         habits: [Habit], 
-        categories: [Category], 
+        categories: [HabitCategory], 
         logs: [HabitLog], 
         from startDate: Date, 
         to endDate: Date

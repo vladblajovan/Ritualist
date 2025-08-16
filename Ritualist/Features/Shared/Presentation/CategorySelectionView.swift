@@ -2,20 +2,20 @@ import SwiftUI
 import RitualistCore
 
 public struct CategorySelectionView: View {
-    @Binding var selectedCategory: Category?
-    let categories: [Category]
+    @Binding var selectedCategory: HabitCategory?
+    let categories: [HabitCategory]
     let isLoading: Bool
-    let onCategorySelect: (Category) -> Void
+    let onCategorySelect: (HabitCategory) -> Void
     let onAddCustomCategory: () -> Void
     let onManageCategories: (() -> Void)?
     let showAddCustomOption: Bool
     
     public init(
-        selectedCategory: Binding<Category?>,
-        categories: [Category],
+        selectedCategory: Binding<HabitCategory?>,
+        categories: [HabitCategory],
         isLoading: Bool = false,
         showAddCustomOption: Bool = true,
-        onCategorySelect: @escaping (Category) -> Void,
+        onCategorySelect: @escaping (HabitCategory) -> Void,
         onAddCustomCategory: @escaping () -> Void,
         onManageCategories: (() -> Void)? = nil
     ) {
@@ -111,10 +111,10 @@ public struct CategorySelectionView: View {
 
 #Preview {
     let sampleCategories = [
-        Category(id: "health", name: "health", displayName: "Health", emoji: "💪", order: 0),
-        Category(id: "wellness", name: "wellness", displayName: "Wellness", emoji: "🧘", order: 1),
-        Category(id: "productivity", name: "productivity", displayName: "Productivity", emoji: "⚡", order: 2),
-        Category(id: "learning", name: "learning", displayName: "Learning", emoji: "📚", order: 3)
+        HabitCategory(id: "health", name: "health", displayName: "Health", emoji: "💪", order: 0),
+        HabitCategory(id: "wellness", name: "wellness", displayName: "Wellness", emoji: "🧘", order: 1),
+        HabitCategory(id: "productivity", name: "productivity", displayName: "Productivity", emoji: "⚡", order: 2),
+        HabitCategory(id: "learning", name: "learning", displayName: "Learning", emoji: "📚", order: 3)
     ]
     
     VStack(spacing: Spacing.large) {

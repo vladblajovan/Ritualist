@@ -15,38 +15,38 @@ public final class CategoryRemoteDataSource: CategoryLocalDataSourceProtocol {
     // TODO: Implement backend integration when available
     // For now, this is a NoOp implementation - replace with real backend calls
     
-    public func getAllCategories() async throws -> [Category] {
+    public func getAllCategories() async throws -> [HabitCategory] {
         // TODO: Fetch from backend API
         // For now, return empty array until backend is available
         return []
     }
     
-    public func getCategory(by id: String) async throws -> Category? {
+    public func getCategory(by id: String) async throws -> HabitCategory? {
         // TODO: Fetch specific category from backend API
         return nil
     }
     
-    public func getActiveCategories() async throws -> [Category] {
+    public func getActiveCategories() async throws -> [HabitCategory] {
         // TODO: Fetch active categories from backend API
         return []
     }
     
-    public func getPredefinedCategories() async throws -> [Category] {
+    public func getPredefinedCategories() async throws -> [HabitCategory] {
         // TODO: Fetch predefined categories from backend API
         return []
     }
     
-    public func getCustomCategories() async throws -> [Category] {
+    public func getCustomCategories() async throws -> [HabitCategory] {
         // TODO: Fetch custom categories from backend API
         return []
     }
     
-    public func createCustomCategory(_ category: Category) async throws {
+    public func createCustomCategory(_ category: HabitCategory) async throws {
         // TODO: Create custom category via backend API
         // For now, this is a NoOp until backend is available
     }
     
-    public func updateCategory(_ category: Category) async throws {
+    public func updateCategory(_ category: HabitCategory) async throws {
         // TODO: Update category via backend API
         // For now, this is a NoOp until backend is available
     }

@@ -29,7 +29,7 @@ public final class HabitsViewModel {
     public private(set) var isDeleting = false
     
     // MARK: - Category Filtering State
-    public var selectedFilterCategory: Category?
+    public var selectedFilterCategory: HabitCategory?
     
     // MARK: - Navigation State
     public var showingCreateHabit = false
@@ -60,7 +60,7 @@ public final class HabitsViewModel {
     }
     
     /// Direct access to categories array (for backward compatibility)
-    public var categories: [Category] {
+    public var categories: [HabitCategory] {
         habitsData.categories
     }
     
@@ -348,7 +348,7 @@ public final class HabitsViewModel {
     
     
     /// Handle category filter selection
-    public func selectFilterCategory(_ category: Category?) {
+    public func selectFilterCategory(_ category: HabitCategory?) {
         selectedFilterCategory = category
     }
     

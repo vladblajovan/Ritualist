@@ -5,7 +5,7 @@ import Foundation
 /// Expected to reduce database queries from 471+ to 3 for annual views
 public struct DashboardData {
     public let habits: [Habit]
-    public let categories: [Category]
+    public let categories: [HabitCategory]
     public let habitLogs: [UUID: [HabitLog]]  // Indexed by habitId for O(1) access
     public let dateRange: ClosedRange<Date>   // Date range we have data for
     
@@ -30,7 +30,7 @@ public struct DashboardData {
         }
     }
     
-    public init(habits: [Habit], categories: [Category], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>) {
+    public init(habits: [Habit], categories: [HabitCategory], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>) {
         self.habits = habits
         self.categories = categories
         self.habitLogs = habitLogs

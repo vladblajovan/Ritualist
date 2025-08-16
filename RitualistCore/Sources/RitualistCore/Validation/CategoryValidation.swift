@@ -41,7 +41,7 @@ public struct CategoryValidation {
     /// Validates a complete category configuration
     /// - Parameter category: The category to validate
     /// - Returns: Validation result with specific error message if invalid
-    public static func validateCategory(_ category: Category) -> ValidationResult {
+    public static func validateCategory(_ category: HabitCategory) -> ValidationResult {
         // Validate name
         let nameResult = validateName(category.name)
         if !nameResult.isValid {
