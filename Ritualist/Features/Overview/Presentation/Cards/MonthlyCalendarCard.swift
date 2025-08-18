@@ -8,6 +8,7 @@ struct MonthlyCalendarCard: View {
     let onDateSelect: (Date) -> Void
     
     @State private var currentDate = Date()
+    @State private var glowingDate: Date? = nil
     
     private var calendar: Calendar {
         DateUtils.userCalendar()
@@ -19,14 +20,58 @@ struct MonthlyCalendarCard: View {
         return formatter
     }
     
+    private var currentMonthName: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: Date())
+    }
+    
+    private var monthIcon: String {
+        let month = calendar.component(.month, from: Date())
+        switch month {
+        case 12, 1, 2: return "❄️" // Winter
+        case 3, 4, 5: return "🌸" // Spring  
+        case 6, 7, 8: return "☀️" // Summer
+        case 9, 10, 11: return "🍂" // Fall
+        default: return "📅"
+        }
+    }
+    
+    private var currentViewingIcon: String {
+        let month = calendar.component(.month, from: currentDate)
+        switch month {
+        case 12, 1, 2: return "❄️" // Winter
+        case 3, 4, 5: return "🌸" // Spring  
+        case 6, 7, 8: return "☀️" // Summer
+        case 9, 10, 11: return "🍂" // Fall
+        default: return "📅"
+        }
+    }
+    
+    private var currentViewingMonthName: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: currentDate)
+    }
+    
+    private var isViewingCurrentMonth: Bool {
+        calendar.isDate(currentDate, equalTo: Date(), toGranularity: .month)
+    }
+    
+    private func goToCurrentMonth() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentDate = Date()
+        }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Header
             HStack {
                 HStack(spacing: 8) {
-                    Text("📆")
+                    Text(isExpanded ? currentViewingIcon : monthIcon)
                         .font(.title2)
-                    Text("This Month")
+                    Text(isExpanded ? currentViewingMonthName : currentMonthName)
                         .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
@@ -64,9 +109,16 @@ struct MonthlyCalendarCard: View {
                         
                         Spacer()
                         
-                        Text(monthFormatter.string(from: currentDate))
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.primary)
+                        // Back to current month button (only show if not viewing current month)
+                        if !isViewingCurrentMonth {
+                            Button {
+                                goToCurrentMonth()
+                            } label: {
+                                Text("Back to \(currentMonthName)")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(AppColors.brand)
+                            }
+                        }
                         
                         Spacer()
                         
@@ -105,20 +157,25 @@ struct MonthlyCalendarCard: View {
         VStack(spacing: 12) {
             HStack(spacing: 0) {
                 ForEach(weekDays, id: \.self) { date in
-                    VStack(spacing: 6) {
-                        Text(dayFormatter.string(from: date))
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-                        
-                        dayIndicator(for: date, size: 28)
-                            .overlay(
-                                Text("\(calendar.component(.day, from: date))")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(dayTextColor(for: date))
-                            )
+                    Button {
+                        performGlowAndSelect(date: date)
+                    } label: {
+                        VStack(spacing: 6) {
+                            Text(dayFormatter.string(from: date))
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondary)
+                            
+                            dayIndicator(for: date, size: 28)
+                                .overlay(
+                                    Text("\(calendar.component(.day, from: date))")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(dayTextColor(for: date))
+                                )
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             
@@ -151,7 +208,7 @@ struct MonthlyCalendarCard: View {
                 ForEach(monthDays, id: \.self) { date in
                     if calendar.component(.month, from: date) == calendar.component(.month, from: currentDate) {
                         Button {
-                            onDateSelect(date)
+                            performGlowAndSelect(date: date)
                         } label: {
                             dayIndicator(for: date, size: 36)
                                 .overlay(
@@ -185,7 +242,14 @@ struct MonthlyCalendarCard: View {
                 Circle()
                     .stroke(isToday ? AppColors.brand : Color.clear, lineWidth: 2)
             )
+            .shadow(
+                color: calendar.isDate(glowingDate ?? Date.distantPast, inSameDayAs: date) ? 
+                       AppColors.brand : Color.clear,
+                radius: calendar.isDate(glowingDate ?? Date.distantPast, inSameDayAs: date) ? 8 : 0,
+                x: 0, y: 0
+            )
             .opacity(isFutureDate ? 0.3 : 1.0)
+            .animation(.easeInOut(duration: 0.3), value: glowingDate)
     }
     
     private func dayBackgroundColor(for date: Date, completionRate: Double) -> Color {
@@ -258,6 +322,20 @@ struct MonthlyCalendarCard: View {
         let dateInterval = DateInterval(start: monthFirstWeek.start, end: monthLastWeek.end)
         
         return DateUtils.generateDates(inside: dateInterval, matching: DateComponents(hour: 0, minute: 0, second: 0), calendar: calendar)
+    }
+    
+    private func performGlowAndSelect(date: Date) {
+        // Start glow effect
+        glowingDate = date
+        
+        // After glow animation completes, trigger date selection
+        Task {
+            try? await Task.sleep(nanoseconds: 400_000_000) // 0.4 seconds
+            await MainActor.run {
+                glowingDate = nil
+                onDateSelect(date)
+            }
+        }
     }
 }
 

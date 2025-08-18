@@ -185,7 +185,10 @@ private struct HabitsListView: View {
                         // Habits section
                         Section {
                             ForEach(vm.filteredHabits, id: \.id) { habit in
-                                GenericRowView.habitRow(habit: habit) {
+                                GenericRowView.habitRowWithSchedule(
+                                    habit: habit,
+                                    scheduleStatus: vm.getScheduleStatus(for: habit)
+                                ) {
                                     vm.selectHabit(habit)
                                 }
                                 .tag(habit.id)

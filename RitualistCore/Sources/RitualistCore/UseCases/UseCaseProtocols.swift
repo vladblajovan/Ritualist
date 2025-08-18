@@ -291,7 +291,7 @@ public protocol GetPurchaseStateUseCase {
 // MARK: - Habit Schedule Use Cases
 
 public protocol ValidateHabitScheduleUseCase {
-    func execute(date: Date, habit: Habit) -> Bool
+    func execute(habit: Habit, date: Date) async throws -> HabitScheduleValidationResult
 }
 
 public protocol CheckWeeklyTargetUseCase {
@@ -304,9 +304,6 @@ public protocol CalculateCurrentStreakUseCase {
     func execute(habit: Habit, logs: [HabitLog], asOf: Date) -> Int
 }
 
-public protocol CalculateBestStreakUseCase {
-    func execute(habit: Habit, logs: [HabitLog]) -> Int
-}
 
 // MARK: - Dashboard Analytics Use Cases
 
@@ -322,9 +319,6 @@ public protocol CalculateHabitPerformanceUseCaseProtocol {
     func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitPerformanceResult]
 }
 
-public protocol CalculateStreakAnalysisUseCaseProtocol {
-    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> StreakAnalysisResult
-}
 
 public protocol GenerateProgressChartDataUseCaseProtocol {
     func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [ProgressChartDataPoint]

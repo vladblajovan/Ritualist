@@ -31,6 +31,10 @@ private struct SettingsFormView: View {
     @State private var selectedImageData: Data?
     @State private var paywallItem: PaywallItem?
     @State private var showingCategoryManagement = false
+    
+    #if DEBUG
+    @State private var showingDebugMenu = false
+    #endif
     @Injected(\.paywallViewModel) var paywallViewModel
     @Injected(\.categoryManagementViewModel) var categoryManagementVM
     
@@ -168,6 +172,19 @@ private struct SettingsFormView: View {
                         PersonalityInsightsSettingsRow()
                     }
                     
+                    #if DEBUG
+                    Section("Debug") {
+                        GenericRowView.settingsRow(
+                            title: "Debug Menu",
+                            subtitle: "Development tools and database management",
+                            icon: "wrench.and.screwdriver",
+                            iconColor: .red
+                        ) {
+                            showingDebugMenu = true
+                        }
+                    }
+                    #endif
+                    
                     Section(Strings.Settings.notifications) {
                         HStack(spacing: Spacing.medium) {
                             Image(systemName: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill")
@@ -254,6 +271,14 @@ private struct SettingsFormView: View {
                         CategoryManagementView(vm: categoryManagementVM)
                     }
                 }
+                
+                #if DEBUG
+                .sheet(isPresented: $showingDebugMenu) {
+                    NavigationStack {
+                        DebugMenuView(vm: vm)
+                    }
+                }
+                #endif
                 .onAppear {
                     // Refresh premium status when settings page appears
                     vm.refreshPremiumStatus()

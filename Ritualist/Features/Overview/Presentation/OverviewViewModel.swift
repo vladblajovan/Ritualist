@@ -53,8 +53,8 @@ public final class OverviewViewModel {
     }
     
     public var shouldShowQuickActions: Bool {
-        // Show QuickActions when there are incomplete habits OR completed habits to display
-        return !incompleteHabits.isEmpty || !completedHabits.isEmpty
+        // Only show QuickActions when there are incomplete habits (completed habits now shown in Today's card)
+        return !incompleteHabits.isEmpty
     }
     
     public var shouldShowActiveStreaks: Bool {
@@ -133,6 +133,8 @@ public final class OverviewViewModel {
     @ObservationIgnored @Injected(\.validateAnalysisDataUseCase) private var validateAnalysisDataUseCase
     @ObservationIgnored @Injected(\.personalityAnalysisRepository) private var personalityAnalysisRepository
     @ObservationIgnored @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
+    @ObservationIgnored @Injected(\.habitCompletionService) private var habitCompletionService
+    @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     
     private var userId: UUID { 
         userService.currentProfile.id 
@@ -155,16 +157,13 @@ public final class OverviewViewModel {
             // Load unified data once instead of multiple parallel operations
             let overviewData = try await loadOverviewData()
             
-            // Load insights separately (this doesn't use unified data yet)
-            let insights = try await loadSmartInsights()
-            
-            // Store the overview data and extract all card data from it
+            // Store the overview data and extract all card data from it using unified approach
             self.overviewData = overviewData
             self.todaysSummary = extractTodaysSummary(from: overviewData)
             self.weeklyProgress = extractWeeklyProgress(from: overviewData)
             self.activeStreaks = extractActiveStreaks(from: overviewData)
             self.monthlyCompletionData = extractMonthlyData(from: overviewData)
-            self.smartInsights = insights
+            self.smartInsights = extractSmartInsights(from: overviewData)
             
             // Load personality insights separately (non-blocking)
             Task {
@@ -299,6 +298,64 @@ public final class OverviewViewModel {
         }
     }
     
+    // MARK: - Schedule Status and Validation Methods
+    
+    public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
+        return HabitScheduleStatus.forHabit(habit, date: viewingDate, habitCompletionService: habitCompletionService)
+    }
+    
+    public func getWeeklyProgress(for habit: Habit) -> (completed: Int, target: Int) {
+        guard case .timesPerWeek = habit.schedule else {
+            return (completed: 0, target: 0)
+        }
+        
+        do {
+            // Get logs for the current week
+            let weekStart = Calendar.current.dateInterval(of: .weekOfYear, for: viewingDate)?.start ?? viewingDate
+            let weekEnd = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: weekStart) ?? viewingDate
+            let logs = try loadLogsSynchronously(for: habit.id, from: weekStart, to: weekEnd)
+            
+            if let service = habitCompletionService as? DefaultHabitCompletionService {
+                return service.getWeeklyProgress(habit: habit, for: viewingDate, logs: logs)
+            } else {
+                // Fallback implementation for protocol conformance
+                guard case .timesPerWeek(let weeklyTarget) = habit.schedule else { return (0, 0) }
+                let filteredLogs = logs.filter { log in
+                    log.habitID == habit.id && log.value != nil && log.value! > 0
+                }
+                let uniqueDays = Set(filteredLogs.map { log in
+                    Calendar.current.startOfDay(for: log.date)
+                })
+                
+                
+                return (uniqueDays.count, weeklyTarget)
+            }
+        } catch {
+            return (completed: 0, target: 0)
+        }
+    }
+    
+    private func loadLogsSynchronously(for habitId: UUID, from startDate: Date, to endDate: Date) throws -> [HabitLog] {
+        // This is a simplified synchronous version - in production you'd want to cache this data
+        // For now, we'll use cached data from overviewData if available
+        guard let data = overviewData else { return [] }
+        let habitLogs = data.habitLogs[habitId] ?? []
+        return habitLogs.filter { log in
+            log.date >= startDate && log.date <= endDate
+        }
+    }
+    
+    public func getScheduleValidationMessage(for habit: Habit) async -> String? {
+        do {
+            _ = try await validateHabitScheduleUseCase.execute(habit: habit, date: viewingDate)
+            return nil // No validation errors
+        } catch let error as HabitScheduleValidationError {
+            return error.localizedDescription
+        } catch {
+            return "Unable to validate habit schedule"
+        }
+    }
+    
     public func showNumericSheet(for habit: Habit) {
         selectedHabitForSheet = habit
         showingNumericSheet = true
@@ -359,6 +416,13 @@ public final class OverviewViewModel {
     
     public func goToToday() {
         viewingDate = Date()
+        Task {
+            await loadData()
+        }
+    }
+    
+    public func goToDate(_ date: Date) {
+        viewingDate = date
         Task {
             await loadData()
         }
@@ -610,17 +674,8 @@ public final class OverviewViewModel {
             let logs = data.logs(for: habit.id, on: targetDate)
             allTargetDateLogs.append(contentsOf: logs)
             
-            // Check completion based on habit type
-            let isCompleted: Bool
-            if habit.kind == .binary {
-                // Binary habits: completed if any log exists
-                isCompleted = !logs.isEmpty
-            } else {
-                // Numeric habits: completed if total value >= daily target
-                let totalValue = logs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
-                let target = habit.dailyTarget ?? 1.0
-                isCompleted = totalValue >= target
-            }
+            // Use centralized completion service for consistent calculation
+            let isCompleted = habitCompletionService.isCompleted(habit: habit, on: targetDate, logs: logs)
             
             // Only show as incomplete if not completed AND not a future date
             if targetDate > Date() {
@@ -676,10 +731,13 @@ public final class OverviewViewModel {
         // Check each day of the week
         for dayOffset in 0..<7 {
             if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: weekInterval.start) {
-                // Use unified data's completion rate calculation
-                let completionRate = data.completionRate(for: dayDate)
-                // Consider day completed ONLY if ALL habits were logged (100%)
-                let isCompleted = completionRate >= 1.0
+                // Use HabitCompletionService for single source of truth
+                let scheduledHabits = data.scheduledHabits(for: dayDate)
+                let completedCount = scheduledHabits.count { habit in
+                    let logs = data.logs(for: habit.id, on: dayDate)
+                    return habitCompletionService.isCompleted(habit: habit, on: dayDate, logs: logs)
+                }
+                let isCompleted = !scheduledHabits.isEmpty && completedCount == scheduledHabits.count
                 daysCompleted.append(isCompleted)
             } else {
                 daysCompleted.append(false)
@@ -698,7 +756,17 @@ public final class OverviewViewModel {
         for dayOffset in 0...30 {
             if let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) {
                 let startOfDay = calendar.startOfDay(for: date)
-                result[startOfDay] = data.completionRate(for: startOfDay)
+                // Use HabitCompletionService for single source of truth completion rate
+                let scheduledHabits = data.scheduledHabits(for: startOfDay)
+                if scheduledHabits.isEmpty {
+                    result[startOfDay] = 0.0
+                } else {
+                    let completedCount = scheduledHabits.count { habit in
+                        let logs = data.logs(for: habit.id, on: startOfDay)
+                        return habitCompletionService.isCompleted(habit: habit, on: startOfDay, logs: logs)
+                    }
+                    result[startOfDay] = Double(completedCount) / Double(scheduledHabits.count)
+                }
             }
         }
         
@@ -734,12 +802,15 @@ public final class OverviewViewModel {
         return sortedStreaks
     }
     
-    
-    
-    
+    /// Extract smart insights from unified overview data
+    /// Uses pre-loaded data and HabitCompletionService for consistency
+    private func extractSmartInsights(from data: OverviewData) -> [SmartInsight] {
+        return data.generateSmartInsights(completionService: habitCompletionService)
+    }
     
     private func loadSmartInsights() async throws -> [SmartInsight] {
-        // Smart Insights now only contains basic habit pattern analysis
+        // DEPRECATED: This method is being replaced by extractSmartInsights() 
+        // which uses unified OverviewData instead of separate queries
         return try await generateBasicHabitInsights()
     }
     

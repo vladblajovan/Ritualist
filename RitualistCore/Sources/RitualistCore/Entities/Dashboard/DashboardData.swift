@@ -1,5 +1,18 @@
 import Foundation
 
+/// Protocol for habit completion service to ensure single source of truth
+/// This protocol must be implemented by the completion service in the main app
+public protocol HabitCompletionService {
+    /// Check if a habit is completed on a specific date based on its schedule semantics
+    func isCompleted(habit: Habit, on date: Date, logs: [HabitLog]) -> Bool
+    
+    /// Check if a habit is scheduled to be performed on a specific date
+    func isScheduledDay(habit: Habit, date: Date) -> Bool
+    
+    /// Calculate daily progress for a specific date
+    func calculateDailyProgress(habit: Habit, logs: [HabitLog], for date: Date) -> Double
+}
+
 /// Single source of truth data structure for Dashboard analytics
 /// Replaces multiple independent data loading methods to eliminate N+1 queries
 /// Expected to reduce database queries from 471+ to 3 for annual views
@@ -30,17 +43,18 @@ public struct DashboardData {
         }
     }
     
-    public init(habits: [Habit], categories: [HabitCategory], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>) {
+    public init(habits: [Habit], categories: [HabitCategory], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, completionService: HabitCompletionService) {
         self.habits = habits
         self.categories = categories
         self.habitLogs = habitLogs
         self.dateRange = dateRange
         
-        // Pre-calculate all daily completions during initialization
+        // Pre-calculate all daily completions during initialization using HabitCompletionService
         self.dailyCompletions = Self.calculateDailyCompletions(
             habits: habits,
             habitLogs: habitLogs,
-            dateRange: dateRange
+            dateRange: dateRange,
+            completionService: completionService
         )
     }
     
@@ -186,9 +200,9 @@ public struct DashboardData {
     
     // MARK: - Private Calculation Methods
     
-    /// Pre-calculate daily completions for the entire date range
-    /// This eliminates the need for per-day database queries
-    private static func calculateDailyCompletions(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>) -> [Date: DayCompletion] {
+    /// Pre-calculate daily completions for the entire date range using HabitCompletionService
+    /// This eliminates the need for per-day database queries and ensures single source of truth
+    private static func calculateDailyCompletions(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, completionService: HabitCompletionService) -> [Date: DayCompletion] {
         var dailyCompletions: [Date: DayCompletion] = [:]
         let calendar = Calendar.current
         
@@ -205,16 +219,8 @@ public struct DashboardData {
             
             for habit in scheduledHabits {
                 if let logs = habitLogs[habit.id] {
-                    let dayLogs = logs.filter { calendar.isDate($0.date, inSameDayAs: startOfDay) }
-                    
-                    let isCompleted: Bool
-                    if habit.kind == .binary {
-                        isCompleted = !dayLogs.isEmpty
-                    } else {
-                        let totalValue = dayLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
-                        let target = habit.dailyTarget ?? 1.0
-                        isCompleted = totalValue >= target
-                    }
+                    // Use HabitCompletionService for single source of truth completion logic
+                    let isCompleted = completionService.isCompleted(habit: habit, on: startOfDay, logs: logs)
                     
                     if isCompleted {
                         completedHabits.insert(habit.id)

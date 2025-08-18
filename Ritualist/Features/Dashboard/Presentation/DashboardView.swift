@@ -31,7 +31,7 @@ public struct DashboardView: View {
                     }
                     
                     // Progress Chart
-                    if let chartData = vm.progressChartData {
+                    if let chartData = vm.progressChartData, !chartData.isEmpty {
                         progressChartSection(data: chartData)
                     }
                     
@@ -156,9 +156,13 @@ public struct DashboardView: View {
             }
             .frame(height: 200)
             .chartYAxis {
-                AxisMarks { _ in
-                    AxisValueLabel()
-                        .font(.caption2)
+                AxisMarks { value in
+                    AxisValueLabel {
+                        if let doubleValue = value.as(Double.self) {
+                            Text("\(Int(doubleValue * 100))%")
+                                .font(.caption2)
+                        }
+                    }
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
                         .foregroundStyle(.secondary.opacity(0.5))
                 }
@@ -184,10 +188,10 @@ public struct DashboardView: View {
                     .foregroundColor(.purple)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Perfect Day Patterns")
+                    Text("Schedule Optimization")
                         .font(.headline)
                         .foregroundColor(.primary)
-                    Text("Which days achieve full completion")
+                    Text("Optimize your habit scheduling")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -195,54 +199,12 @@ public struct DashboardView: View {
                 Spacer()
             }
             
-            // Best/Worst days for system-wide completion
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Strongest Day")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(patterns.bestDay)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.green)
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("Challenge Day")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(patterns.worstDay)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.orange)
-                }
-            }
-            
-            // Bar chart for days of week
-            Chart(patterns.dayOfWeekPerformance) { dayData in
-                BarMark(
-                    x: .value("Day", String(dayData.dayName.prefix(3))),
-                    y: .value("Completion", dayData.completionRate)
-                )
-                .foregroundStyle(
-                    dayData.dayName == patterns.bestDay ? .green :
-                    dayData.dayName == patterns.worstDay ? .orange : .blue
-                )
-            }
-            .frame(height: 120)
-            .chartYAxis {
-                AxisMarks { _ in
-                    AxisValueLabel()
-                        .font(.caption2)
-                }
-            }
-            .chartXAxis {
-                AxisMarks { _ in
-                    AxisValueLabel()
-                        .font(.caption2)
-                }
+            if patterns.isDataSufficient {
+                // Show optimization insights when data is sufficient
+                scheduleOptimizationContent(patterns: patterns)
+            } else {
+                // Show threshold requirements when data is insufficient
+                thresholdRequirementsContent(requirements: patterns.thresholdRequirements)
             }
         }
         .cardStyle()
@@ -256,9 +218,14 @@ public struct DashboardView: View {
                     .font(.title2)
                     .foregroundColor(.orange)
                 
-                Text("Streak Analysis")
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Period Streaks")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text("Performance during selected period")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
                 
                 Spacer()
             }
@@ -273,7 +240,7 @@ public struct DashboardView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.orange)
-                    Text("Current")
+                    Text("In Period")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -283,7 +250,7 @@ public struct DashboardView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.green)
-                    Text("Best")
+                    Text("Peak")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -306,7 +273,7 @@ public struct DashboardView: View {
                     .foregroundColor(analysis.streakTrend == "improving" ? .green :
                                    analysis.streakTrend == "declining" ? .red : .orange)
                 
-                Text("Trend: \(analysis.streakTrend.capitalized)")
+                Text("Period trend: \(analysis.streakTrend.capitalized)")
                     .font(.subheadline)
                     .foregroundColor(.primary)
                 
@@ -378,6 +345,144 @@ public struct DashboardView: View {
             }
         }
         .cardStyle()
+    }
+    
+    // MARK: - Schedule Optimization Helpers
+    
+    @ViewBuilder
+    private func thresholdRequirementsContent(requirements: [DashboardViewModel.ThresholdRequirement]) -> some View {
+        VStack(spacing: 16) {
+            // Header message
+            VStack(spacing: 8) {
+                Text("🎯")
+                    .font(.system(size: 32))
+                    .opacity(0.6)
+                
+                VStack(spacing: 4) {
+                    Text("Building Your Profile")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                    
+                    Text("Complete these requirements to unlock personalized scheduling insights")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            
+            // Requirements list
+            VStack(spacing: 12) {
+                ForEach(Array(requirements.enumerated()), id: \.offset) { index, requirement in
+                    HStack(spacing: 12) {
+                        // Status icon
+                        Image(systemName: requirement.isMet ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 16))
+                            .foregroundColor(requirement.isMet ? .green : .secondary)
+                        
+                        // Content
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack {
+                                Text(requirement.title)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.primary)
+                                
+                                Spacer()
+                                
+                                Text(requirement.progressText)
+                                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                                    .foregroundColor(requirement.isMet ? .green : .secondary)
+                            }
+                            
+                            Text(requirement.description)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+    }
+    
+    @ViewBuilder
+    private func scheduleOptimizationContent(patterns: DashboardViewModel.WeeklyPatternsViewModel) -> some View {
+        VStack(spacing: 16) {
+            // Schedule insights based on data
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Schedule Insights")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                // Best performing day
+                HStack {
+                    Text("🌟")
+                        .font(.title3)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(patterns.bestDay) works best")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.primary)
+                        
+                        let bestPerformance = patterns.dayOfWeekPerformance.first { $0.dayName == patterns.bestDay }
+                        Text("\(Int((bestPerformance?.completionRate ?? 0) * 100))% completion rate")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                }
+                
+                // Optimization suggestion
+                HStack {
+                    Text("⚡")
+                        .font(.title3)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Try moving habits to \(patterns.bestDay)")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.primary)
+                        
+                        Text("Your highest success day")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                }
+            }
+            
+            // Mini chart showing performance
+            Chart(patterns.dayOfWeekPerformance) { dayData in
+                BarMark(
+                    x: .value("Day", String(dayData.dayName.prefix(3))),
+                    y: .value("Completion", dayData.completionRate)
+                )
+                .foregroundStyle(
+                    dayData.dayName == patterns.bestDay ? .green :
+                    dayData.dayName == patterns.worstDay ? .orange : .blue
+                )
+            }
+            .frame(height: 80)
+            .chartYAxis {
+                AxisMarks { value in
+                    AxisValueLabel {
+                        if let doubleValue = value.as(Double.self) {
+                            Text("\(Int(doubleValue * 100))%")
+                                .font(.caption2)
+                        }
+                    }
+                }
+            }
+            .chartXAxis {
+                AxisMarks { _ in
+                    AxisValueLabel()
+                        .font(.caption2)
+                }
+            }
+        }
     }
 }
 

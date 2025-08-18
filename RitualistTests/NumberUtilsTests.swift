@@ -8,6 +8,7 @@
 import Testing
 import Foundation
 @testable import Ritualist
+import RitualistCore
 
 struct NumberUtilsTests {
     

@@ -11,8 +11,10 @@ public struct NumericHabitLogSheetDirect: View {
     let initialValue: Double?
     
     @Injected(\.logRepository) private var logRepository
+    @Injected(\.hapticFeedbackService) private var hapticService
     @State private var currentValue: Double = 0.0
     @State private var isLoading = true
+    @State private var isGlowing = false
     
     @State private var value: Double = 0.0
     @Environment(\.dismiss) private var dismiss
@@ -172,13 +174,22 @@ public struct NumericHabitLogSheetDirect: View {
                         if !isCompleted && value < dailyTarget {
                             if #available(iOS 26.0, *) {
                                 Button {
+                                    // Trigger glow effect and success haptic
+                                    isGlowing = true
+                                    hapticService.triggerCompletion(type: .milestone)
+                                    
                                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                                         value = dailyTarget
                                     }
                                     
                                     Task {
+                                        // Small delay for glow effect
+                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                                         await onSave(dailyTarget)
-                                        dismiss()
+                                        await MainActor.run {
+                                            isGlowing = false
+                                            dismiss()
+                                        }
                                     }
                                 } label: {
                                     HStack {
@@ -194,13 +205,22 @@ public struct NumericHabitLogSheetDirect: View {
                                 .glassEffect(.regular.tint(AppColors.brand), in: RoundedRectangle(cornerRadius: 25))
                             } else {
                                 Button {
+                                    // Trigger glow effect and success haptic
+                                    isGlowing = true
+                                    hapticService.triggerCompletion(type: .milestone)
+                                    
                                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                                         value = dailyTarget
                                     }
                                     
                                     Task {
+                                        // Small delay for glow effect
+                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                                         await onSave(dailyTarget)
-                                        dismiss()
+                                        await MainActor.run {
+                                            isGlowing = false
+                                            dismiss()
+                                        }
                                     }
                                 } label: {
                                     HStack {
@@ -221,9 +241,16 @@ public struct NumericHabitLogSheetDirect: View {
                         if #available(iOS 26.0, *) {
                             Button {
                                 if isValidValue {
+                                    // Trigger glow effect and progress haptic
+                                    isGlowing = true
+                                    hapticService.triggerCompletion(type: .standard)
+                                    
                                     Task {
+                                        // Small delay for glow effect
+                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                                         await onSave(value)
                                         await MainActor.run {
+                                            isGlowing = false
                                             dismiss()
                                         }
                                     }
@@ -240,9 +267,16 @@ public struct NumericHabitLogSheetDirect: View {
                         } else {
                             Button {
                                 if isValidValue {
+                                    // Trigger glow effect and progress haptic
+                                    isGlowing = true
+                                    hapticService.triggerCompletion(type: .standard)
+                                    
                                     Task {
+                                        // Small delay for glow effect
+                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                                         await onSave(value)
                                         await MainActor.run {
+                                            isGlowing = false
                                             dismiss()
                                         }
                                     }
@@ -308,6 +342,7 @@ public struct NumericHabitLogSheetDirect: View {
         .onChange(of: currentValue) { _, newValue in
             value = newValue
         }
+        .completionGlow(isGlowing: isGlowing)
     }
     
     @ViewBuilder

@@ -8,6 +8,7 @@
 import Testing
 import Foundation
 @testable import Ritualist
+import RitualistCore
 
 /// Lightweight utility tests that should run quickly without hanging
 struct UtilitiesLightTests {

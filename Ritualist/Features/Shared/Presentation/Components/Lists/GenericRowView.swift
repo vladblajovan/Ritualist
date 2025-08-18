@@ -231,6 +231,44 @@ public extension GenericRowView {
         )
     }
     
+    /// For habit rows with emoji, status, and schedule indicator
+    static func habitRowWithSchedule(
+        habit: Habit,
+        scheduleStatus: HabitScheduleStatus,
+        onTap: @escaping () -> Void
+    ) -> GenericRowView {
+        var badges: [RowBadge] = []
+        
+        // Add schedule badge
+        badges.append(RowBadge(
+            text: scheduleStatus.displayText,
+            color: scheduleStatus.color
+        ))
+        
+        // Add inactive badge if needed
+        if !habit.isActive {
+            badges.append(.inactive())
+        }
+        
+        return GenericRowView(
+            icon: .circleWithEmoji(habit.emoji ?? "•", backgroundColor: Color(hex: habit.colorHex)),
+            title: habit.name,
+            subtitle: scheduleStatus.isAvailable ? "Available for logging" : "Not scheduled today",
+            badges: badges,
+            trailing: AnyView(
+                HStack(spacing: 8) {
+                    HabitScheduleIndicator.compact(status: scheduleStatus)
+                    Image(systemName: "info.circle")
+                        .font(.title3)
+                        .foregroundColor(.secondary)
+                        .accessibilityLabel("View habit details")
+                }
+            ),
+            action: onTap,
+            isEnabled: habit.isActive && scheduleStatus.isAvailable
+        )
+    }
+    
     /// For category rows with emoji and badges
     static func categoryRow(
         category: HabitCategory,

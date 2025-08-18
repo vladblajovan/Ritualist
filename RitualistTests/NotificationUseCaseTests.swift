@@ -1,5 +1,6 @@
 import XCTest
 @testable import Ritualist
+import RitualistCore
 
 // MARK: - Mock Notification Service for Testing
 
@@ -41,6 +42,18 @@ class MockNotificationService: NotificationService {
     func setupNotificationCategories() async {
         categoriesSetup = true
     }
+    
+    func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws {
+        // Mock implementation
+    }
+    
+    func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws {
+        // Mock implementation
+    }
+    
+    func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws {
+        // Mock implementation
+    }
 }
 
 // MARK: - Mock Repositories for Testing
@@ -64,6 +77,10 @@ class MockHabitRepository: HabitRepository {
     
     func delete(id: UUID) async throws {
         habits.removeAll { $0.id == id }
+    }
+    
+    func cleanupOrphanedHabits() async throws -> Int {
+        return 0 // Mock implementation
     }
 }
 
@@ -210,7 +227,11 @@ class NotificationUseCaseTests: XCTestCase {
         mockHabitRepository.habits = [habit]
         
         let getLogForDate = GetLogForDate(repo: mockLogRepository)
-        let logHabit = LogHabit(repo: mockLogRepository)
+        let logHabit = LogHabit(
+            repo: mockLogRepository,
+            habitRepo: mockHabitRepository,
+            validateSchedule: ValidateHabitSchedule()
+        )
         
         let useCase = LogHabitFromNotification(
             habitRepository: mockHabitRepository,
@@ -243,7 +264,11 @@ class NotificationUseCaseTests: XCTestCase {
         mockLogRepository.logs = [existingLog]
         
         let getLogForDate = GetLogForDate(repo: mockLogRepository)
-        let logHabit = LogHabit(repo: mockLogRepository)
+        let logHabit = LogHabit(
+            repo: mockLogRepository,
+            habitRepo: mockHabitRepository,
+            validateSchedule: ValidateHabitSchedule()
+        )
         
         let useCase = LogHabitFromNotification(
             habitRepository: mockHabitRepository,
@@ -296,7 +321,11 @@ class NotificationUseCaseTests: XCTestCase {
         mockHabitRepository.habits = [habit]
         
         let getLogForDate = GetLogForDate(repo: mockLogRepository)
-        let logHabit = LogHabit(repo: mockLogRepository)
+        let logHabit = LogHabit(
+            repo: mockLogRepository,
+            habitRepo: mockHabitRepository,
+            validateSchedule: ValidateHabitSchedule()
+        )
         
         let logHabitFromNotification = LogHabitFromNotification(
             habitRepository: mockHabitRepository,
@@ -309,15 +338,17 @@ class NotificationUseCaseTests: XCTestCase {
         
         let useCase = HandleNotificationAction(
             logHabitFromNotification: logHabitFromNotification,
-            snoozeHabitReminder: snoozeHabitReminder
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService
         )
         
         // Act
         do {
             try await useCase.execute(
-                action: .log,
+                action: NotificationAction.log,
                 habitId: habitId,
                 habitName: "Test Habit",
+                habitKind: .binary,
                 reminderTime: ReminderTime(hour: 9, minute: 0)
             )
         } catch {
@@ -339,22 +370,28 @@ class NotificationUseCaseTests: XCTestCase {
             habitRepository: mockHabitRepository,
             logRepository: mockLogRepository,
             getLogForDate: GetLogForDate(repo: mockLogRepository),
-            logHabit: LogHabit(repo: mockLogRepository)
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
         )
         
         let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
         
         let useCase = HandleNotificationAction(
             logHabitFromNotification: logHabitFromNotification,
-            snoozeHabitReminder: snoozeHabitReminder
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService
         )
         
         // Act
         do {
             try await useCase.execute(
-                action: .remindLater,
+                action: NotificationAction.remindLater,
                 habitId: habitId,
                 habitName: habitName,
+                habitKind: .binary,
                 reminderTime: reminderTime
             )
         } catch {
@@ -373,17 +410,23 @@ class NotificationUseCaseTests: XCTestCase {
                 habitRepository: mockHabitRepository,
                 logRepository: mockLogRepository,
                 getLogForDate: GetLogForDate(repo: mockLogRepository),
-                logHabit: LogHabit(repo: mockLogRepository)
+                logHabit: LogHabit(
+                    repo: mockLogRepository,
+                    habitRepo: mockHabitRepository,
+                    validateSchedule: ValidateHabitSchedule()
+                )
             ),
-            snoozeHabitReminder: SnoozeHabitReminder(notificationService: mockNotificationService)
+            snoozeHabitReminder: SnoozeHabitReminder(notificationService: mockNotificationService),
+            notificationService: mockNotificationService
         )
         
         // Act
         do {
             try await useCase.execute(
-                action: .dismiss,
+                action: NotificationAction.dismiss,
                 habitId: UUID(),
                 habitName: "Test Habit",
+                habitKind: .binary,
                 reminderTime: ReminderTime(hour: 9, minute: 0)
             )
         } catch {
@@ -406,7 +449,11 @@ class NotificationUseCaseTests: XCTestCase {
             habitRepository: mockHabitRepository,
             logRepository: mockLogRepository,
             getLogForDate: GetLogForDate(repo: mockLogRepository),
-            logHabit: LogHabit(repo: mockLogRepository)
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
         )
         
         // Act & Assert
@@ -432,7 +479,11 @@ class NotificationUseCaseTests: XCTestCase {
         mockLogRepository.logs = [existingLog]
         
         let getLogForDate = GetLogForDate(repo: mockLogRepository)
-        let logHabit = LogHabit(repo: mockLogRepository)
+        let logHabit = LogHabit(
+            repo: mockLogRepository,
+            habitRepo: mockHabitRepository,
+            validateSchedule: ValidateHabitSchedule()
+        )
         
         let useCase = LogHabitFromNotification(
             habitRepository: mockHabitRepository,
@@ -463,22 +514,28 @@ class NotificationUseCaseTests: XCTestCase {
             habitRepository: mockHabitRepository,
             logRepository: mockLogRepository,
             getLogForDate: GetLogForDate(repo: mockLogRepository),
-            logHabit: LogHabit(repo: mockLogRepository)
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
         )
         
         let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
         
         let useCase = HandleNotificationAction(
             logHabitFromNotification: logHabitFromNotification,
-            snoozeHabitReminder: snoozeHabitReminder
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService
         )
         
         // Act - passing nil habitName
         do {
             try await useCase.execute(
-                action: .log,
+                action: NotificationAction.log,
                 habitId: habitId,
                 habitName: nil,
+                habitKind: .binary,
                 reminderTime: ReminderTime(hour: 9, minute: 0)
             )
         } catch {
@@ -497,17 +554,23 @@ class NotificationUseCaseTests: XCTestCase {
                 habitRepository: mockHabitRepository,
                 logRepository: mockLogRepository,
                 getLogForDate: GetLogForDate(repo: mockLogRepository),
-                logHabit: LogHabit(repo: mockLogRepository)
+                logHabit: LogHabit(
+                    repo: mockLogRepository,
+                    habitRepo: mockHabitRepository,
+                    validateSchedule: ValidateHabitSchedule()
+                )
             ),
-            snoozeHabitReminder: SnoozeHabitReminder(notificationService: mockNotificationService)
+            snoozeHabitReminder: SnoozeHabitReminder(notificationService: mockNotificationService),
+            notificationService: mockNotificationService
         )
         
         // Act & Assert - missing habitName
         do {
             try await useCase.execute(
-                action: .remindLater,
+                action: NotificationAction.remindLater,
                 habitId: UUID(),
-                habitName: nil, // Missing
+                habitName: nil as String?, // Missing
+                habitKind: .binary,
                 reminderTime: ReminderTime(hour: 9, minute: 0)
             )
             XCTFail("Expected error to be thrown")
@@ -518,10 +581,11 @@ class NotificationUseCaseTests: XCTestCase {
         // Act & Assert - missing reminderTime
         do {
             try await useCase.execute(
-                action: .remindLater,
+                action: NotificationAction.remindLater,
                 habitId: UUID(),
                 habitName: "Test Habit",
-                reminderTime: nil // Missing
+                habitKind: .binary,
+                reminderTime: nil as ReminderTime? // Missing
             )
             XCTFail("Expected error to be thrown")
         } catch {

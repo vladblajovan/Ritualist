@@ -16,7 +16,8 @@ extension Container {
                 categoryRepository: self.categoryRepository(),
                 logRepository: self.logRepository(),
                 suggestionsService: self.habitSuggestionsService(),
-                completionCalculator: self.scheduleAwareCompletionCalculator()
+                completionCalculator: self.scheduleAwareCompletionCalculator(),
+                getBatchLogs: self.getBatchLogs()
             ) 
         }
         .singleton

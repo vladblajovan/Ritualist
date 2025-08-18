@@ -14,13 +14,18 @@ struct StreaksCard: View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
             HStack {
-                HStack(spacing: 8) {
-                    Text("🔥")
-                        .font(.title2)
-                    Text("Active Streaks")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text("🔥")
+                            .font(.title2)
+                        Text("Current Streaks")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                    }
+                    Text("Active as of today")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()
@@ -94,7 +99,7 @@ struct StreaksCard: View {
             }
         }
         .sheet(item: $sheetStreak) { streak in
-            streakDetailSheet(for: streak)
+            StreakDetailSheet(streak: streak)
         }
     }
     
@@ -140,7 +145,7 @@ struct StreaksCard: View {
                     
                     // Show streak level based on flameCount
                     if streak.flameCount > 0 {
-                        Text(streakLevelText(for: streak.flameCount))
+                        Text(StreakDetailSheet.streakLevelText(for: streak.flameCount))
                             .font(.caption2)
                             .foregroundColor(.orange)
                             .fontWeight(.medium)
@@ -164,132 +169,6 @@ struct StreaksCard: View {
                 onAnimationComplete()
             }
         )
-    }
-    
-    @ViewBuilder
-    private func streakDetailSheet(for streak: StreakInfo) -> some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Header
-                    VStack(spacing: 12) {
-                        Text(streak.emoji)
-                            .font(.system(size: 48))
-                        
-                        Text(streak.habitName)
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    // Stats
-                    HStack(spacing: 0) {
-                        // Current Streak
-                        VStack(spacing: 8) {
-                            VStack(spacing: 4) {
-                                Text("\(streak.currentStreak)")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(AppColors.brand)
-                                
-                                Text("Current")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            HStack(spacing: 4) {
-                                Text(streak.flameEmoji)
-                                    .font(.caption)
-                                
-                                Text(streak.currentStreak == 1 ? "day" : "days")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        
-                        // Divider
-                        Rectangle()
-                            .fill(Color(.systemGray4))
-                            .frame(width: 1, height: 60)
-                        
-                        // Streak Level
-                        VStack(spacing: 8) {
-                            VStack(spacing: 4) {
-                                Text("\(streak.flameCount)")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(AppColors.brand)
-                                
-                                Text("Level")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            HStack(spacing: 4) {
-                                Image(systemName: "star.fill")
-                                    .font(.caption)
-                                    .foregroundColor(streak.flameCount > 0 ? .yellow : .secondary)
-                                
-                                Text(streakLevelText(for: streak.flameCount))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(.gray.opacity(0.1))
-                    )
-                    
-                    // Explanation
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("About Streaks")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("**Current Streak**: Consecutive days ending with today")
-                                .font(.subheadline)
-                            
-                            Text("**Best Streak**: Your longest consecutive sequence ever")
-                                .font(.subheadline)
-                        }
-                        .foregroundColor(.secondary)
-                    }
-                    .padding(16)
-                }
-                .padding()
-            }
-            .navigationTitle("Streak Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        sheetStreak = nil
-                    }
-                }
-            }
-        }
-        .deviceAwareSheetSizing(
-            compactMultiplier: (min: 0.75, ideal: 0.85, max: 0.95),
-            regularMultiplier: (min: 0.70, ideal: 0.80, max: 0.90),
-            largeMultiplier: (min: 0.65, ideal: 0.75, max: 0.85)
-        )
-    }
-    
-    private func streakLevelText(for flameCount: Int) -> String {
-        switch flameCount {
-        case 3: return "Fire Master"
-        case 2: return "Strong"
-        case 1: return "Building"
-        default: return "Starting"
-        }
     }
 }
 

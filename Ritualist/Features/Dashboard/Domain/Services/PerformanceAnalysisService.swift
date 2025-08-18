@@ -10,16 +10,27 @@ import RitualistCore
 
 // PerformanceAnalysisService protocol moved to RitualistCore/Services/PerformanceAnalysisService.swift
 
+private struct PerfectDayStreakResult {
+    let currentStreak: Int
+    let longestStreak: Int
+    let streakTrend: String
+    let daysWithFullCompletion: Int
+    let consistencyScore: Double
+}
+
 public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     
     private let scheduleAnalyzer: HabitScheduleAnalyzerProtocol
+    private let streakCalculationService: StreakCalculationService
     private let calendar: Calendar
     
     public init(
         scheduleAnalyzer: HabitScheduleAnalyzerProtocol,
+        streakCalculationService: StreakCalculationService,
         calendar: Calendar = DateUtils.userCalendar()
     ) {
         self.scheduleAnalyzer = scheduleAnalyzer
+        self.streakCalculationService = streakCalculationService
         self.calendar = calendar
     }
     
@@ -151,50 +162,67 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         to endDate: Date
     ) -> StreakAnalysisResult {
         
-        
-        let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
         let activeHabits = habits.filter { $0.isActive }
         
-        var streakDays: [Date] = []
+        // Calculate "perfect day" streaks (where ALL habits are completed)
+        // This is different from individual habit streaks and remains useful for overall performance analysis
+        let perfectDayAnalysis = calculatePerfectDayStreak(
+            habits: activeHabits,
+            logs: logs,
+            from: startDate,
+            to: endDate
+        )
+        
+        return StreakAnalysisResult(
+            currentStreak: perfectDayAnalysis.currentStreak,
+            longestStreak: perfectDayAnalysis.longestStreak,
+            streakTrend: perfectDayAnalysis.streakTrend,
+            daysWithFullCompletion: perfectDayAnalysis.daysWithFullCompletion,
+            consistencyScore: perfectDayAnalysis.consistencyScore
+        )
+    }
+    
+    /// Calculate "perfect day" streaks where ALL active habits are completed
+    /// This is different from individual habit streaks - it tracks overall consistency
+    private func calculatePerfectDayStreak(
+        habits: [Habit],
+        logs: [HabitLog],
+        from startDate: Date,
+        to endDate: Date
+    ) -> PerfectDayStreakResult {
+        
+        let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
+        
         var currentStreak = 0
         var longestStreak = 0
         var daysWithFullCompletion = 0
         
-        // FIXED: Always start from today for current streak calculation
         let today = calendar.startOfDay(for: Date())
         var currentDate = today
         let start = calendar.startOfDay(for: startDate)
-        
         
         while currentDate >= start {
             let dayLogs = logsByDate[currentDate] ?? []
             var dayCompleted = true
             var expectedHabitsCount = 0
-            var completedHabitsThisDay: [String] = []
-            var missedHabitsThisDay: [String] = []
             
-            for habit in activeHabits {
+            for habit in habits {
                 if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
                     expectedHabitsCount += 1
-                    if dayLogs.contains(where: { $0.habitID == habit.id }) {
-                        completedHabitsThisDay.append(habit.name)
-                    } else {
+                    if !dayLogs.contains(where: { $0.habitID == habit.id }) {
                         dayCompleted = false
-                        missedHabitsThisDay.append(habit.name)
+                        break
                     }
                 }
             }
             
-            
             if expectedHabitsCount > 0 && dayCompleted {
                 currentStreak += 1
-                streakDays.append(currentDate)
                 daysWithFullCompletion += 1
             } else if expectedHabitsCount > 0 {
                 // Break current streak if we had expected habits but didn't complete them all
                 longestStreak = max(longestStreak, currentStreak)
                 currentStreak = 0
-            } else {
             }
             
             guard let previousDay = calendar.date(byAdding: .day, value: -1, to: currentDate) else {
@@ -218,8 +246,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             streakTrend = "stable"
         }
         
-        
-        return StreakAnalysisResult(
+        return PerfectDayStreakResult(
             currentStreak: currentStreak,
             longestStreak: longestStreak,
             streakTrend: streakTrend,

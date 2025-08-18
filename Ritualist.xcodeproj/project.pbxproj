@@ -37,6 +37,26 @@
 		91B731022E38E4C10050A48A /* RitualistUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		91A5C7BB2E51C1E00095C251 /* Exceptions for "RitualistTests" folder in "RitualistTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ViewModelTrackingIntegrationTests.swift,
+			);
+			target = 91B730F72E38E4C10050A48A /* RitualistTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		91A5C7BC2E51C1E00095C251 /* Exceptions for "RitualistTests" folder in "Compile Sources" phase from "RitualistTests" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 91B730F42E38E4C10050A48A /* Sources */;
+			membershipExceptions = (
+				ViewModelTrackingIntegrationTests.swift,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		91B730EB2E38E4BC0050A48A /* Ritualist */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -45,12 +65,11 @@
 		};
 		91B730FB2E38E4C10050A48A /* RitualistTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				91A5C7BB2E51C1E00095C251 /* Exceptions for "RitualistTests" folder in "RitualistTests" target */,
+				91A5C7BC2E51C1E00095C251 /* Exceptions for "RitualistTests" folder in "Compile Sources" phase from "RitualistTests" target */,
+			);
 			path = RitualistTests;
-			sourceTree = "<group>";
-		};
-		91B731052E38E4C10050A48A /* RitualistUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = RitualistUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -85,12 +104,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		91A5C7BA2E51C1D40095C251 /* RitualistUITests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = RitualistUITests;
+			sourceTree = "<group>";
+		};
 		91B730E02E38E4BC0050A48A = {
 			isa = PBXGroup;
 			children = (
 				91B730EB2E38E4BC0050A48A /* Ritualist */,
 				91B730FB2E38E4C10050A48A /* RitualistTests */,
-				91B731052E38E4C10050A48A /* RitualistUITests */,
+				91A5C7BA2E51C1D40095C251 /* RitualistUITests */,
 				91B730EA2E38E4BC0050A48A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -171,9 +197,6 @@
 			);
 			dependencies = (
 				91B731042E38E4C10050A48A /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				91B731052E38E4C10050A48A /* RitualistUITests */,
 			);
 			name = RitualistUITests;
 			packageProductDependencies = (

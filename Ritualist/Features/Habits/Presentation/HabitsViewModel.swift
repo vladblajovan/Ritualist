@@ -17,6 +17,9 @@ public final class HabitsViewModel {
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
     @ObservationIgnored @Injected(\.cleanupOrphanedHabits) var cleanupOrphanedHabits
+    @ObservationIgnored @Injected(\.habitCompletionService) private var habitCompletionService
+    @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
+    @ObservationIgnored @Injected(\.getSingleHabitLogs) private var getSingleHabitLogs
     
     // MARK: - Shared ViewModels
     
@@ -295,6 +298,71 @@ public final class HabitsViewModel {
     /// Select a habit for editing
     public func selectHabit(_ habit: Habit) {
         selectedHabit = habit
+    }
+    
+    // MARK: - Habit Completion Methods
+    
+    /// Check if a habit is completed today using HabitCompletionService
+    public func isHabitCompletedToday(_ habit: Habit) async -> Bool {
+        do {
+            // Use dedicated UseCase to get logs for a single habit today
+            let today = Date()
+            let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
+            return habitCompletionService.isCompleted(habit: habit, on: today, logs: logs)
+        } catch {
+            return false
+        }
+    }
+    
+    /// Get current progress for a habit today using HabitCompletionService
+    public func getCurrentProgress(for habit: Habit) async -> Double {
+        do {
+            // Use dedicated UseCase to get logs for a single habit today
+            let today = Date()
+            let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
+            return habitCompletionService.calculateDailyProgress(habit: habit, logs: logs, for: today)
+        } catch {
+            return 0.0
+        }
+    }
+    
+    /// Check if a habit should be shown as actionable today using HabitCompletionService
+    public func isHabitActionableToday(_ habit: Habit) -> Bool {
+        return habitCompletionService.isScheduledDay(habit: habit, date: Date())
+    }
+    
+    /// Get schedule validation message for a habit
+    public func getScheduleValidationMessage(for habit: Habit) async -> String? {
+        do {
+            _ = try await validateHabitScheduleUseCase.execute(habit: habit, date: Date())
+            return nil // No validation errors
+        } catch {
+            return error.localizedDescription
+        }
+    }
+    
+    /// Get the schedule status for a habit today
+    public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
+        return HabitScheduleStatus.forHabit(habit, date: Date(), habitCompletionService: habitCompletionService)
+    }
+    
+    /// Check if a habit's logging should be disabled based on schedule validation
+    public func shouldDisableLogging(for habit: Habit) async -> Bool {
+        do {
+            let validationResult = try await validateHabitScheduleUseCase.execute(habit: habit, date: Date())
+            return !validationResult.isValid
+        } catch {
+            return true // Disable if validation fails
+        }
+    }
+    
+    /// Get validation result for a habit (used for real-time UI feedback)
+    public func getValidationResult(for habit: Habit) async -> HabitScheduleValidationResult? {
+        do {
+            return try await validateHabitScheduleUseCase.execute(habit: habit, date: Date())
+        } catch {
+            return nil
+        }
     }
     
     // MARK: - Assistant Navigation

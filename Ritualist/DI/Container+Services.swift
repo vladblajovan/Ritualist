@@ -84,9 +84,34 @@ extension Container {
             .singleton
     }
     
-    var scheduleAwareCompletionCalculator: Factory<ScheduleAwareCompletionCalculator> {
-        self { DefaultScheduleAwareCompletionCalculator() }
+    @MainActor
+    var hapticFeedbackService: Factory<HapticFeedbackService> {
+        self { HapticFeedbackService.shared }
             .singleton
+    }
+    
+    var scheduleAwareCompletionCalculator: Factory<ScheduleAwareCompletionCalculator> {
+        self { DefaultScheduleAwareCompletionCalculator(habitCompletionService: self.habitCompletionServiceProtocol()) }
+            .singleton
+    }
+    
+    var habitCompletionService: Factory<HabitCompletionService> {
+        self { DefaultHabitCompletionService() }
+            .singleton
+    }
+    
+    var habitCompletionServiceProtocol: Factory<HabitCompletionServiceProtocol> {
+        self { DefaultHabitCompletionService() }
+            .singleton
+    }
+    
+    var streakCalculationService: Factory<StreakCalculationService> {
+        self { 
+            DefaultStreakCalculationService(
+                habitCompletionService: self.habitCompletionServiceProtocol()
+            )
+        }
+        .singleton
     }
     
     // MARK: - User & Analytics Services
@@ -224,5 +249,19 @@ extension Container {
         self { @MainActor in PersonalityDeepLinkCoordinator.shared }
         .singleton
     }
+    
+    // MARK: - Debug Services
+    
+    #if DEBUG
+    var debugService: Factory<DebugServiceProtocol> {
+        self { 
+            guard let container = self.persistenceContainer() else {
+                fatalError("Failed to get PersistenceContainer for DebugService")
+            }
+            return DebugService(persistenceContainer: container)
+        }
+        .singleton
+    }
+    #endif
 
 }

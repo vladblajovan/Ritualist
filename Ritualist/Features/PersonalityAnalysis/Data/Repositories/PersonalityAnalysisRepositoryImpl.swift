@@ -17,6 +17,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     private let logRepository: LogRepository
     private let suggestionsService: HabitSuggestionsService
     private let completionCalculator: ScheduleAwareCompletionCalculator
+    private let getBatchLogs: GetBatchLogsUseCase
     
     public init(
         dataSource: PersonalityAnalysisDataSourceProtocol,
@@ -24,7 +25,8 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         categoryRepository: CategoryRepository,
         logRepository: LogRepository,
         suggestionsService: HabitSuggestionsService,
-        completionCalculator: ScheduleAwareCompletionCalculator = DefaultScheduleAwareCompletionCalculator()
+        completionCalculator: ScheduleAwareCompletionCalculator = DefaultScheduleAwareCompletionCalculator(),
+        getBatchLogs: GetBatchLogsUseCase
     ) {
         self.dataSource = dataSource
         self.habitRepository = habitRepository
@@ -32,6 +34,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         self.logRepository = logRepository
         self.suggestionsService = suggestionsService
         self.completionCalculator = completionCalculator
+        self.getBatchLogs = getBatchLogs
     }
     
     public func getPersonalityProfile(for userId: UUID) async throws -> PersonalityProfile? {
@@ -69,20 +72,14 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         let allHabits = try await habitRepository.fetchAllHabits()
         let activeHabits = allHabits.filter { $0.isActive }
         
-        // Get all habit logs for the last 30 days
+        // Get all habit logs for the last 30 days using batch optimization
         let endDate = Date()
         let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
-        var allLogs: [HabitLog] = []
         
-        // Get logs for each active habit
-        for habit in activeHabits {
-            let habitLogs = try await logRepository.logs(for: habit.id)
-            // Filter logs to the date range
-            let filteredLogs = habitLogs.filter { log in
-                log.date >= startDate && log.date <= endDate
-            }
-            allLogs.append(contentsOf: filteredLogs)
-        }
+        // OPTIMIZATION: Use batch loading to avoid N+1 queries (was: N individual calls)
+        let habitIds = activeHabits.map(\.id)
+        let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: startDate, until: endDate)
+        let allLogs = logsByHabitId.values.flatMap { $0 }
         
         // Calculate completion rates per habit using schedule-aware logic
         let completionRates = activeHabits.map { habit in
@@ -311,16 +308,10 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
             return HabitCompletionStats(totalHabits: 0, completedHabits: 0, completionRate: 0.0)
         }
         
-        // Get all habit logs for the date range (match the working pattern from getHabitAnalysisInput)
-        var allLogs: [HabitLog] = []
-        for habit in activeHabits {
-            let habitLogs = try await logRepository.logs(for: habit.id)
-            // Filter logs to the date range
-            let filteredLogs = habitLogs.filter { log in
-                log.date >= startDate && log.date <= endDate
-            }
-            allLogs.append(contentsOf: filteredLogs)
-        }
+        // OPTIMIZATION: Use batch loading to avoid N+1 queries (was: N individual calls)
+        let habitIds = activeHabits.map(\.id)
+        let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: startDate, until: endDate)
+        let allLogs = logsByHabitId.values.flatMap { $0 }
         
         // Use the schedule-aware completion calculator
         return completionCalculator.calculateCompletionStats(

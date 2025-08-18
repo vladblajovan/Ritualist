@@ -31,7 +31,8 @@ extension Container {
     var performanceAnalysisService: Factory<PerformanceAnalysisService> {
         self {
             PerformanceAnalysisServiceImpl(
-                scheduleAnalyzer: self.habitScheduleAnalyzer()
+                scheduleAnalyzer: self.habitScheduleAnalyzer(),
+                streakCalculationService: self.streakCalculationService()
             )
         }
         .singleton
@@ -66,14 +67,6 @@ extension Container {
         }
     }
     
-    var calculateStreakAnalysisUseCase: Factory<CalculateStreakAnalysisUseCaseProtocol> {
-        self {
-            CalculateStreakAnalysisUseCase(
-                habitAnalyticsService: self.habitAnalyticsService(),
-                performanceAnalysisService: self.performanceAnalysisService()
-            )
-        }
-    }
     
     var aggregateCategoryPerformanceUseCase: Factory<AggregateCategoryPerformanceUseCaseProtocol> {
         self {

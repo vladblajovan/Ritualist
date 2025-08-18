@@ -13,6 +13,10 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.paywallService) var paywallService
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
+    
+    #if DEBUG
+    @ObservationIgnored @Injected(\.debugService) var debugService
+    #endif
 
     public var profile = UserProfile()
     public private(set) var isLoading = false
@@ -22,6 +26,11 @@ public final class SettingsViewModel {
     public private(set) var isRequestingNotifications = false
     public private(set) var isCancellingSubscription = false
     public private(set) var isUpdatingUser = false
+    
+    #if DEBUG
+    public private(set) var isClearingDatabase = false
+    public private(set) var databaseStats: DebugDatabaseStats?
+    #endif
     
     // Computed properties
     public var isPremiumUser: Bool {
@@ -169,4 +178,37 @@ public final class SettingsViewModel {
         // Track appearance change
         userActionTracker.track(.profileUpdated(field: "appearance"))
     }
+    
+    // MARK: - Debug Methods
+    
+    #if DEBUG
+    public func loadDatabaseStats() async {
+        do {
+            databaseStats = try await debugService.getDatabaseStats()
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "debug_database_stats")
+        }
+    }
+    
+    public func clearDatabase() async {
+        isClearingDatabase = true
+        error = nil
+        
+        do {
+            try await debugService.clearDatabase()
+            
+            // Reload stats after clearing
+            databaseStats = try await debugService.getDatabaseStats()
+            
+            // Track the debug action
+            userActionTracker.track(.custom(event: "debug_database_cleared", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "debug_database_clear")
+        }
+        
+        isClearingDatabase = false
+    }
+    #endif
 }

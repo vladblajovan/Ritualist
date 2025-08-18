@@ -31,7 +31,11 @@ extension Container {
     }
     
     var logHabit: Factory<LogHabit> {
-        self { LogHabit(repo: self.logRepository()) }
+        self { LogHabit(
+            repo: self.logRepository(),
+            habitRepo: self.habitRepository(),
+            validateSchedule: self.validateHabitSchedule()
+        ) }
     }
     
     var deleteLog: Factory<DeleteLog> {
@@ -65,7 +69,7 @@ extension Container {
     }
     
     var validateHabitSchedule: Factory<ValidateHabitSchedule> {
-        self { ValidateHabitSchedule() }
+        self { ValidateHabitSchedule(habitCompletionService: self.habitCompletionService()) }
     }
     
     var checkWeeklyTarget: Factory<CheckWeeklyTarget> {
@@ -75,12 +79,9 @@ extension Container {
     // MARK: - Streak Calculations
     
     var calculateCurrentStreak: Factory<CalculateCurrentStreak> {
-        self { CalculateCurrentStreak() }
+        self { CalculateCurrentStreak(streakCalculationService: self.streakCalculationService()) }
     }
     
-    var calculateBestStreak: Factory<CalculateBestStreak> {
-        self { CalculateBestStreak() }
-    }
     
     // MARK: - Service-based Use Cases
     

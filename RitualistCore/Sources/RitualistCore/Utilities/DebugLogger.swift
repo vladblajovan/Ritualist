@@ -10,7 +10,7 @@ public enum LogLevel: String, CaseIterable {
     case error = "ERROR"
     case critical = "CRITICAL"
     
-    var osLogType: OSLogType {
+    public var osLogType: OSLogType {
         switch self {
         case .debug: return .debug
         case .info: return .info

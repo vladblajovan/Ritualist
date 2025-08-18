@@ -30,9 +30,10 @@ public final class DashboardViewModel {
     @ObservationIgnored @Injected(\.getBatchLogs) internal var getBatchLogs
     @ObservationIgnored @Injected(\.getSingleHabitLogs) internal var getSingleHabitLogs
     @ObservationIgnored @Injected(\.getAllCategories) internal var getAllCategories
-    @ObservationIgnored @Injected(\.calculateCurrentStreak) internal var calculateCurrentStreak
     @ObservationIgnored @Injected(\.habitScheduleAnalyzer) internal var scheduleAnalyzer
     @ObservationIgnored @Injected(\.performanceAnalysisService) internal var performanceAnalysisService
+    @ObservationIgnored @Injected(\.habitCompletionService) internal var habitCompletionService
+    @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     
     internal var userId: UUID { 
         userService.currentProfile.id 
@@ -81,12 +82,112 @@ public final class DashboardViewModel {
         public let bestDay: String
         public let worstDay: String
         public let averageWeeklyCompletion: Double
+        public let isDataSufficient: Bool
+        public let thresholdRequirements: [ThresholdRequirement]
         
-        init(from domain: WeeklyPatternsResult) {
+        init(from domain: WeeklyPatternsResult, daysWithData: Int, averageRate: Double, habitCount: Int, timePeriod: TimePeriod) {
             self.dayOfWeekPerformance = domain.dayOfWeekPerformance.map(DayOfWeekPerformanceViewModel.init)
             self.bestDay = domain.bestDay
             self.worstDay = domain.worstDay
             self.averageWeeklyCompletion = domain.averageWeeklyCompletion
+            
+            // Calculate period-aware data quality requirements
+            let minDaysRequired = Self.calculateMinDaysRequired(for: timePeriod)
+            let minCompletionRate = 0.3
+            let minHabitsRequired = 2
+            // Only calculate spread from days with actual data (not 0%)
+            let daysWithPerformanceData = domain.dayOfWeekPerformance.filter { $0.completionRate > 0 }
+            let performanceSpread = daysWithPerformanceData.isEmpty ? 0.0 : 
+                (daysWithPerformanceData.max(by: { $0.completionRate < $1.completionRate })?.completionRate ?? 0) - 
+                (daysWithPerformanceData.min(by: { $0.completionRate < $1.completionRate })?.completionRate ?? 0)
+            
+            let hasEnoughDays = daysWithData >= minDaysRequired
+            let hasEnoughCompletion = averageRate >= minCompletionRate
+            let hasEnoughHabits = habitCount >= minHabitsRequired
+            let hasVariation = performanceSpread > 0.1
+            
+            self.isDataSufficient = hasEnoughDays && hasEnoughCompletion && hasEnoughHabits && hasVariation
+            
+            // Build requirements list
+            var requirements: [ThresholdRequirement] = []
+            
+            requirements.append(ThresholdRequirement(
+                title: Self.getTrackingTitle(for: timePeriod),
+                description: "Need consistent tracking data",
+                current: daysWithData,
+                target: minDaysRequired,
+                isMet: hasEnoughDays,
+                unit: "days"
+            ))
+            
+            requirements.append(ThresholdRequirement(
+                title: "30% completion rate",
+                description: "Need regular habit completion",
+                current: Int(averageRate * 100),
+                target: Int(minCompletionRate * 100),
+                isMet: hasEnoughCompletion,
+                unit: "%"
+            ))
+            
+            requirements.append(ThresholdRequirement(
+                title: "Multiple active habits",
+                description: "Need variety for optimization",
+                current: habitCount,
+                target: minHabitsRequired,
+                isMet: hasEnoughHabits,
+                unit: "habits"
+            ))
+            
+            requirements.append(ThresholdRequirement(
+                title: "Performance variation",
+                description: "Need different completion rates across days",
+                current: Int(performanceSpread * 100),
+                target: 10,
+                isMet: hasVariation,
+                unit: "% spread"
+            ))
+            
+            self.thresholdRequirements = requirements
+        }
+        
+        // MARK: - Helper Methods
+        
+        /// Calculate minimum days required based on time period
+        private static func calculateMinDaysRequired(for timePeriod: TimePeriod) -> Int {
+            switch timePeriod {
+            case .thisWeek:
+                return 5  // Need at least 5 days for weekly patterns
+            case .thisMonth:
+                return 14 // Need 2 weeks for reliable patterns
+            case .last6Months, .lastYear, .allTime:
+                return 30 // Need more data for longer periods
+            }
+        }
+        
+        /// Get period-appropriate tracking title
+        private static func getTrackingTitle(for timePeriod: TimePeriod) -> String {
+            switch timePeriod {
+            case .thisWeek:
+                return "Track for 5 days"
+            case .thisMonth:
+                return "Track for 2 weeks"
+            case .last6Months, .lastYear, .allTime:
+                return "Track for 30 days"
+            }
+        }
+    }
+    
+    /// Requirement for Schedule Optimization feature
+    public struct ThresholdRequirement {
+        public let title: String
+        public let description: String
+        public let current: Int
+        public let target: Int
+        public let isMet: Bool
+        public let unit: String
+        
+        public var progressText: String {
+            "\(current)/\(target) \(unit)"
         }
     }
     
@@ -163,7 +264,7 @@ public final class DashboardViewModel {
                 self.categoryBreakdown = extractCategoryBreakdown(from: dashboardData)
             } else {
                 // No habits - set empty states
-                self.completionStats = HabitCompletionStats(totalHabits: 0, completedHabits: 0, completionRate: 0.0)
+                self.completionStats = nil
                 self.habitPerformanceData = []
                 self.progressChartData = []
                 self.weeklyPatterns = nil
@@ -181,6 +282,43 @@ public final class DashboardViewModel {
     
     public func refresh() async {
         await loadData()
+    }
+    
+    // MARK: - Habit Completion Methods
+    
+    /// Check if a habit is completed on a specific date using HabitCompletionService
+    public func isHabitCompleted(_ habit: Habit, on date: Date) async -> Bool {
+        do {
+            let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
+            return habitCompletionService.isCompleted(habit: habit, on: date, logs: logs)
+        } catch {
+            return false
+        }
+    }
+    
+    /// Get progress for a habit on a specific date using HabitCompletionService
+    public func getHabitProgress(_ habit: Habit, on date: Date) async -> Double {
+        do {
+            let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
+            return habitCompletionService.calculateDailyProgress(habit: habit, logs: logs, for: date)
+        } catch {
+            return 0.0
+        }
+    }
+    
+    /// Check if a habit should be shown as actionable on a specific date using HabitCompletionService
+    public func isHabitActionable(_ habit: Habit, on date: Date) -> Bool {
+        return habitCompletionService.isScheduledDay(habit: habit, date: date)
+    }
+    
+    /// Get schedule validation message for a habit on a specific date
+    public func getScheduleValidationMessage(for habit: Habit, on date: Date) async -> String? {
+        do {
+            _ = try await validateHabitScheduleUseCase.execute(habit: habit, date: date)
+            return nil // No validation errors
+        } catch {
+            return error.localizedDescription
+        }
     }
     
 }

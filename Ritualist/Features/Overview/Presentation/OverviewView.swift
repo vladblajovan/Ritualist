@@ -10,8 +10,9 @@ public struct OverviewView: View {
     }
     
     public var body: some View {
-        ScrollView {
-            LazyVStack(spacing: CardDesign.cardSpacing) {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: CardDesign.cardSpacing) {
                 // Always show core cards
                 // Inspiration card moved to top position
                 if vm.shouldShowInspirationCard {
@@ -51,6 +52,17 @@ public struct OverviewView: View {
                     onNumericHabitAction: { habit in
                         vm.showNumericSheet(for: habit)
                     },
+                    onDeleteHabitLog: { habit in
+                        Task {
+                            await vm.deleteHabitLog(habit)
+                        }
+                    },
+                    getScheduleStatus: { habit in
+                        vm.getScheduleStatus(for: habit)
+                    },
+                    getValidationMessage: { habit in
+                        await vm.getScheduleValidationMessage(for: habit)
+                    },
                     onPreviousDay: {
                         vm.goToPreviousDay()
                     },
@@ -61,6 +73,7 @@ public struct OverviewView: View {
                         vm.goToToday()
                     }
                 )
+                .id("topCard")
                 
                 // Conditional cards based on user state
                 if vm.shouldShowQuickActions {
@@ -91,19 +104,41 @@ public struct OverviewView: View {
                             Task {
                                 await vm.deleteHabitLog(habit)
                             }
+                        },
+                        getScheduleStatus: { habit in
+                            vm.getScheduleStatus(for: habit)
+                        },
+                        getValidationMessage: { habit in
+                            await vm.getScheduleValidationMessage(for: habit)
+                        },
+                        getWeeklyProgress: { habit in
+                            vm.getWeeklyProgress(for: habit)
                         }
                     )
                 }
                 
                 // Core navigation and overview
-                WeeklyOverviewCard(progress: vm.weeklyProgress)
+                WeeklyOverviewCard(
+                    progress: vm.weeklyProgress,
+                    onDateSelect: { date in
+                        vm.goToDate(date)
+                        // Scroll immediately after date selection (which happens after glow effect)
+                        withAnimation(.easeInOut(duration: 0.6)) {
+                            proxy.scrollTo("topCard", anchor: .top)
+                        }
+                    }
+                )
                 
                 // Expandable calendar section
                 MonthlyCalendarCard(
                     isExpanded: $vm.isCalendarExpanded,
                     monthlyData: vm.isCalendarExpanded ? vm.monthlyCompletionData : vm.weeklyCompletionData,
                     onDateSelect: { date in
-                        vm.selectedDate = date
+                        vm.goToDate(date)
+                        // Scroll immediately after date selection (which happens after glow effect)
+                        withAnimation(.easeInOut(duration: 0.6)) {
+                            proxy.scrollTo("topCard", anchor: .top)
+                        }
                     }
                 )
                 
@@ -173,6 +208,7 @@ public struct OverviewView: View {
                 )
             }
         }
+        } // ScrollViewReader
     }
 }
 

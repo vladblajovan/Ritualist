@@ -121,7 +121,12 @@ private extension UserActionEventMapper {
         case .habitCreated: return "habit_created"
         case .habitUpdated: return "habit_updated" 
         case .habitDeleted: return "habit_deleted"
+        case .habitArchived: return "habit_archived"
+        case .habitRestored: return "habit_restored"
         case .habitLogged: return "habit_logged"
+        case .habitLogDeleted: return "habit_log_deleted"
+        case .habitLogUpdated: return "habit_log_updated"
+        case .habitStreakAchieved: return "habit_streak_achieved"
         default: return "unknown_habit_event"
         }
     }
@@ -135,28 +140,77 @@ private extension UserActionEventMapper {
     }
     
     func notificationEventName(for event: UserActionEvent) -> String {
-        return "notification_event"
+        switch event {
+        case .notificationPermissionRequested: return "notification_permission_requested"
+        case .notificationPermissionGranted: return "notification_permission_granted"
+        case .notificationPermissionDenied: return "notification_permission_denied"
+        case .notificationReceived: return "notification_received"
+        case .notificationActionTapped: return "notification_action_tapped"
+        case .notificationScheduled: return "notification_scheduled"
+        case .notificationCancelled: return "notification_cancelled"
+        default: return "notification_event"
+        }
     }
     
     func categoryEventName(for event: UserActionEvent) -> String {
-        return "category_event"
+        switch event {
+        case .categoryCreated: return "category_created"
+        case .categoryUpdated: return "category_updated"
+        case .categoryDeleted: return "category_deleted"
+        case .categoryReordered: return "category_reordered"
+        case .categoryManagementOpened: return "category_management_opened"
+        default: return "category_event"
+        }
     }
     
     func paywallEventName(for event: UserActionEvent) -> String {
-        return "paywall_event"
+        switch event {
+        case .paywallShown: return "paywall_shown"
+        case .paywallDismissed: return "paywall_dismissed"
+        case .productSelected: return "product_selected"
+        case .purchaseAttempted: return "purchase_attempted"
+        case .purchaseCompleted: return "purchase_completed"
+        case .purchaseFailed: return "purchase_failed"
+        case .purchaseRestoreAttempted: return "purchase_restore_attempted"
+        case .purchaseRestoreCompleted: return "purchase_restore_completed"
+        case .purchaseRestoreFailed: return "purchase_restore_failed"
+        default: return "unknown_paywall_event"
+        }
     }
     
     func tipsEventName(for event: UserActionEvent) -> String {
-        return "tips_event"
+        switch event {
+        case .tipsCarouselViewed: return "tips_carousel_viewed"
+        case .tipViewed: return "tip_viewed"
+        case .tipDetailOpened: return "tip_detail_opened"
+        case .tipDetailClosed: return "tip_detail_closed"
+        case .tipsBottomSheetOpened: return "tips_bottom_sheet_opened"
+        case .tipsBottomSheetClosed: return "tips_bottom_sheet_closed"
+        case .tipsCategoryFilterApplied: return "tips_category_filter_applied"
+        default: return "tips_event"
+        }
     }
     
     func settingsEventName(for event: UserActionEvent) -> String {
-        return "settings_event"
+        switch event {
+        case .settingsOpened: 
+            return "settings_opened"
+        case .profileUpdated(_): 
+            return "profile_updated"
+        case .notificationSettingsChanged(_): 
+            return "notification_settings_changed"
+        case .appearanceChanged(_): 
+            return "appearance_changed"
+        default: 
+            return "settings_event"
+        }
     }
     
     func systemEventName(for event: UserActionEvent) -> String {
         switch event {
-        case .errorOccurred: return "error_occurred"
+        case .errorOccurred(_): return "error_occurred"
+        case .crashReported(_): return "crash_reported"
+        case .performanceMetric(_): return "performance_metric"
         default: return "system_event"
         }
     }
@@ -169,43 +223,201 @@ private extension UserActionEventMapper {
         switch event {
         case .onboardingPageViewed(let page, let pageName):
             return ["page": page, "page_name": pageName]
+        case .onboardingPageNext(let fromPage, let toPage):
+            return ["from_page": fromPage, "to_page": toPage]
+        case .onboardingPageBack(let fromPage, let toPage):
+            return ["from_page": fromPage, "to_page": toPage]
+        case .onboardingUserNameEntered(let hasName):
+            return ["has_name": hasName]
         default: return [:]
         }
     }
     
     func assistantEventProperties(for event: UserActionEvent) -> [String: Any] {
-        return [:]
+        switch event {
+        case .habitsAssistantOpened(let source):
+            return ["source": source.rawValue]
+        case .habitsAssistantCategorySelected(let category):
+            return ["category": category]
+        case .habitsAssistantHabitSuggestionViewed(let habitId, let category):
+            return ["habit_id": habitId, "category": category]
+        case .habitsAssistantHabitAdded(let habitId, let habitName, let category):
+            return ["habit_id": habitId, "habit_name": habitName, "category": category]
+        case .habitsAssistantHabitAddFailed(let habitId, let error):
+            return ["habit_id": habitId, "error": error]
+        case .habitsAssistantHabitRemoved(let habitId, let habitName, let category):
+            return ["habit_id": habitId, "habit_name": habitName, "category": category]
+        case .habitsAssistantHabitRemoveFailed(let habitId, let error):
+            return ["habit_id": habitId, "error": error]
+        default:
+            return [:]
+        }
     }
     
     func habitEventProperties(for event: UserActionEvent) -> [String: Any] {
-        return [:]
+        switch event {
+        case .habitCreated(let habitId, let habitName, let habitType):
+            return ["habit_id": habitId, "habit_name": habitName, "habit_type": habitType]
+        case .habitUpdated(let habitId, let habitName):
+            return ["habit_id": habitId, "habit_name": habitName]
+        case .habitDeleted(let habitId, let habitName):
+            return ["habit_id": habitId, "habit_name": habitName]
+        case .habitArchived(let habitId, let habitName):
+            return ["habit_id": habitId, "habit_name": habitName]
+        case .habitRestored(let habitId, let habitName):
+            return ["habit_id": habitId, "habit_name": habitName]
+        case .habitLogged(let habitId, let habitName, let date, let logType, let value):
+            var properties: [String: Any] = [
+                "habit_id": habitId,
+                "habit_name": habitName,
+                "date": ISO8601DateFormatter().string(from: date),
+                "log_type": logType
+            ]
+            if let value = value {
+                properties["value"] = value
+            }
+            return properties
+        case .habitLogDeleted(let habitId, let habitName, let date):
+            return [
+                "habit_id": habitId,
+                "habit_name": habitName,
+                "date": ISO8601DateFormatter().string(from: date)
+            ]
+        case .habitLogUpdated(let habitId, let habitName, let date, let oldValue, let newValue):
+            var properties: [String: Any] = [
+                "habit_id": habitId,
+                "habit_name": habitName,
+                "date": ISO8601DateFormatter().string(from: date)
+            ]
+            if let oldValue = oldValue {
+                properties["old_value"] = oldValue
+            }
+            if let newValue = newValue {
+                properties["new_value"] = newValue
+            }
+            return properties
+        case .habitStreakAchieved(let habitId, let habitName, let streakLength):
+            return ["habit_id": habitId, "habit_name": habitName, "streak_length": streakLength]
+        default:
+            return [:]
+        }
     }
     
     func navigationEventProperties(for event: UserActionEvent) -> [String: Any] {
-        return [:]
+        switch event {
+        case .screenViewed(let screen):
+            return ["screen": screen]
+        case .tabSwitched(let from, let to):
+            return ["from": from, "to": to]
+        default:
+            return [:]
+        }
     }
     
     func notificationEventProperties(for event: UserActionEvent) -> [String: Any] {
-        return [:]
+        switch event {
+        case .notificationReceived(let habitId, let habitName, let source):
+            return ["habit_id": habitId, "habit_name": habitName, "source": source]
+        case .notificationActionTapped(let action, let habitId, let habitName, let source):
+            return ["action": action, "habit_id": habitId, "habit_name": habitName, "source": source]
+        case .notificationScheduled(let habitId, let habitName, let reminderCount):
+            return ["habit_id": habitId, "habit_name": habitName, "reminder_count": reminderCount]
+        case .notificationCancelled(let habitId, let habitName, let reason):
+            return ["habit_id": habitId, "habit_name": habitName, "reason": reason]
+        default:
+            return [:]
+        }
     }
     
     func categoryEventProperties(for event: UserActionEvent) -> [String: Any] {
-        return [:]
+        switch event {
+        case .categoryCreated(let categoryId, let categoryName, let emoji):
+            return ["category_id": categoryId, "category_name": categoryName, "emoji": emoji]
+        case .categoryUpdated(let categoryId, let categoryName):
+            return ["category_id": categoryId, "category_name": categoryName]
+        case .categoryDeleted(let categoryId, let categoryName, let habitsCount):
+            return ["category_id": categoryId, "category_name": categoryName, "habits_count": habitsCount]
+        case .categoryReordered(let categoryId, let fromOrder, let toOrder):
+            return ["category_id": categoryId, "from_order": fromOrder, "to_order": toOrder]
+        default:
+            return [:]
+        }
     }
     
     func paywallEventProperties(for event: UserActionEvent) -> [String: Any] {
-        return [:]
+        switch event {
+        case .paywallShown(let source, let trigger):
+            return ["source": source, "trigger": trigger]
+        case .paywallDismissed(let source, let duration):
+            return ["source": source, "duration": duration]
+        case .productSelected(let productId, let productName, let price):
+            return ["product_id": productId, "product_name": productName, "price": price]
+        case .purchaseAttempted(let productId, let productName, let price):
+            return ["product_id": productId, "product_name": productName, "price": price]
+        case .purchaseCompleted(let productId, let productName, let price, let duration):
+            return ["product_id": productId, "product_name": productName, "price": price, "duration": duration]
+        case .purchaseFailed(let productId, let error):
+            return ["product_id": productId, "error": error]
+        case .purchaseRestoreAttempted:
+            return [:]
+        case .purchaseRestoreCompleted(let productId, let productName):
+            var properties: [String: Any] = [:]
+            if let productId = productId {
+                properties["product_id"] = productId
+            }
+            if let productName = productName {
+                properties["product_name"] = productName
+            }
+            return properties
+        case .purchaseRestoreFailed(let error):
+            return ["error": error]
+        default:
+            return [:]
+        }
     }
     
     func tipsEventProperties(for event: UserActionEvent) -> [String: Any] {
-        return [:]
+        switch event {
+        case .tipViewed(let tipId, let tipTitle, let category, let source):
+            return ["tip_id": tipId, "tip_title": tipTitle, "category": category, "source": source]
+        case .tipDetailOpened(let tipId, let tipTitle, let category, let isFeatured):
+            return ["tip_id": tipId, "tip_title": tipTitle, "category": category, "is_featured": isFeatured]
+        case .tipDetailClosed(let tipId, let tipTitle, let timeSpent):
+            return ["tip_id": tipId, "tip_title": tipTitle, "time_spent": timeSpent]
+        case .tipsBottomSheetOpened(let source):
+            return ["source": source]
+        case .tipsBottomSheetClosed(let timeSpent):
+            return ["time_spent": timeSpent]
+        case .tipsCategoryFilterApplied(let category):
+            return ["category": category]
+        default:
+            return [:]
+        }
     }
     
     func settingsEventProperties(for event: UserActionEvent) -> [String: Any] {
-        return [:]
+        switch event {
+        case .profileUpdated(let field):
+            return ["field": field]
+        case .notificationSettingsChanged(let enabled):
+            return ["enabled": enabled]
+        case .appearanceChanged(let theme):
+            return ["theme": theme]
+        default:
+            return [:]
+        }
     }
     
     func systemEventProperties(for event: UserActionEvent) -> [String: Any] {
-        return [:]
+        switch event {
+        case .errorOccurred(let error, let context):
+            return ["error": error, "context": context]
+        case .crashReported(let error):
+            return ["error": error]
+        case .performanceMetric(let metric, let value, let unit):
+            return ["metric": metric, "value": value, "unit": unit]
+        default:
+            return [:]
+        }
     }
 }

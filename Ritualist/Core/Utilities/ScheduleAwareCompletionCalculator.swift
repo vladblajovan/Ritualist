@@ -40,8 +40,11 @@ public protocol ScheduleAwareCompletionCalculator {
 public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareCompletionCalculator {
     
     private let calendar = Calendar.current
+    private let habitCompletionService: HabitCompletionServiceProtocol
     
-    public init() {}
+    public init(habitCompletionService: HabitCompletionServiceProtocol = DefaultHabitCompletionService()) {
+        self.habitCompletionService = habitCompletionService
+    }
     
     public func calculateCompletionRate(
         for habit: Habit,
@@ -65,16 +68,7 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
     }
     
     public func isHabitCompleted(habit: Habit, logs: [HabitLog], date: Date) -> Bool {
-        let dayStart = calendar.startOfDay(for: date)
-        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
-        
-        let dayLogs = logs.filter { log in
-            log.habitID == habit.id && log.date >= dayStart && log.date < dayEnd
-        }
-        
-        return dayLogs.contains { log in
-            isLogCompleted(log: log, habit: habit)
-        }
+        return habitCompletionService.isCompleted(habit: habit, on: date, logs: logs)
     }
     
     public func calculateExpectedDays(
@@ -210,7 +204,7 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         
         while currentDate <= endOfRange {
             let weekday = calendar.component(.weekday, from: currentDate)
-            let habitWeekday = weekday == 1 ? 7 : weekday - 1 // Convert Sunday=1 to Sunday=7
+            let habitWeekday = DateUtils.calendarWeekdayToHabitWeekday(weekday)
             
             if scheduledDays.contains(habitWeekday) {
                 if isHabitCompleted(habit: habit, logs: logs, date: currentDate) {
@@ -294,7 +288,7 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         
         while currentDate <= endOfRange {
             let weekday = calendar.component(.weekday, from: currentDate)
-            let habitWeekday = weekday == 1 ? 7 : weekday - 1 // Convert Sunday=1 to Sunday=7
+            let habitWeekday = DateUtils.calendarWeekdayToHabitWeekday(weekday)
             
             if scheduledDays.contains(habitWeekday) {
                 expectedDays += 1

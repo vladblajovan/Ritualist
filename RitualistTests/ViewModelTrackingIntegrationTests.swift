@@ -8,6 +8,7 @@
 import Testing
 import Foundation
 @testable import Ritualist
+import RitualistCore
 
 /// Tests that verify tracking integration in ViewModels
 struct ViewModelTrackingIntegrationTests {
@@ -64,7 +65,7 @@ struct ViewModelTrackingIntegrationTests {
         }
         
         func flush() {
-            // No-op for mock
+            // Mock implementation - no-op
         }
         
         // Helper methods for testing
@@ -111,10 +112,10 @@ struct ViewModelTrackingIntegrationTests {
     }
     
     final class MockGetActiveCategories: GetActiveCategoriesUseCase {
-        var categoriesToReturn: [Ritualist.Category] = []
+        var categoriesToReturn: [HabitCategory] = []
         var shouldThrowError = false
         
-        func execute() async throws -> [Ritualist.Category] {
+        func execute() async throws -> [HabitCategory] {
             if shouldThrowError {
                 throw NSError(domain: "TestError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Mock categories error"])
             }
@@ -181,7 +182,12 @@ struct ViewModelTrackingIntegrationTests {
         // Verify the error was tracked
         #expect(mockTracker.trackedEvents.count == 1)
         
-        if case .errorOccurred(let error, let context) = mockTracker.lastTrackedEvent()! {
+        guard let lastEvent = mockTracker.lastTrackedEvent() else {
+            #expect(Bool(false), "Expected an event to be tracked")
+            return
+        }
+        
+        if case .errorOccurred(let error, let context) = lastEvent {
             #expect(error == "Test error message")
             #expect(context == "test_context")
         } else {
@@ -208,7 +214,12 @@ struct ViewModelTrackingIntegrationTests {
         // Verify the performance metric was tracked
         #expect(mockTracker.trackedEvents.count == 1)
         
-        if case .performanceMetric(let metric, let value, let unit) = mockTracker.lastTrackedEvent()! {
+        guard let lastEvent = mockTracker.lastTrackedEvent() else {
+            #expect(Bool(false), "Expected an event to be tracked")
+            return
+        }
+        
+        if case .performanceMetric(let metric, let value, let unit) = lastEvent {
             #expect(metric == "load_time")
             #expect(value == 1250.5)
             #expect(unit == "ms")
@@ -235,7 +246,12 @@ struct ViewModelTrackingIntegrationTests {
         // Verify the crash was tracked
         #expect(mockTracker.trackedEvents.count == 1)
         
-        if case .crashReported(let error) = mockTracker.lastTrackedEvent()! {
+        guard let lastEvent = mockTracker.lastTrackedEvent() else {
+            #expect(Bool(false), "Expected an event to be tracked")
+            return
+        }
+        
+        if case .crashReported(let error) = lastEvent {
             #expect(error == "Application crashed")
         } else {
             #expect(Bool(false), "Expected crashReported event")
