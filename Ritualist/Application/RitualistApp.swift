@@ -23,15 +23,28 @@ import UserNotifications
                 .task {
                     await setupNotifications()
                 }
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
         }
     }
     
     // Fallback container if dependency injection fails
     private func createFallbackContainer() -> ModelContainer {
         do {
+            // Use app group shared container for consistency
+            guard let sharedContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.vladblajovan.Ritualist") else {
+                fatalError("Failed to get shared container URL for app group")
+            }
+            
+            let configuration = ModelConfiguration(
+                url: sharedContainerURL.appendingPathComponent("Ritualist.sqlite")
+            )
+            
             return try ModelContainer(
                 for: HabitModel.self, HabitLogModel.self, UserProfileModel.self, 
-                    HabitCategoryModel.self, OnboardingStateModel.self, PersonalityAnalysisModel.self
+                    HabitCategoryModel.self, OnboardingStateModel.self, PersonalityAnalysisModel.self,
+                configurations: configuration
             )
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
@@ -45,6 +58,51 @@ import UserNotifications
         // Set up notification delegate
         await MainActor.run {
             UNUserNotificationCenter.current().delegate = appDelegate
+        }
+    }
+    
+    /// Handle deep links from widget taps
+    /// Navigates to appropriate habit or overview section
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "ritualist" else { return }
+        
+        switch url.host {
+        case "habit":
+            handleHabitDeepLink(url)
+        case "overview":
+            handleOverviewDeepLink()
+        default:
+            // Unknown deep link - navigate to overview as fallback
+            handleOverviewDeepLink()
+        }
+    }
+    
+    /// Handle habit-specific deep links from widget
+    /// Format: ritualist://habit/{habitId}
+    private func handleHabitDeepLink(_ url: URL) {
+        guard let habitIdString = url.pathComponents.last,
+              let habitId = UUID(uuidString: habitIdString) else {
+            // Invalid habit ID - fallback to overview
+            handleOverviewDeepLink()
+            return
+        }
+        
+        Task { @MainActor in
+            // Navigate to Overview tab and trigger habit completion flow
+            let navigationService = Container.shared.navigationService()
+            navigationService.navigateToOverview(shouldRefresh: true)
+            
+            // TODO: Could implement specific habit selection/completion here
+            // For now, just navigate to overview where user can complete the habit
+        }
+    }
+    
+    /// Handle overview deep links from widget
+    /// Simply navigates to the Overview tab
+    private func handleOverviewDeepLink() {
+        Task { @MainActor in
+            let navigationService = Container.shared.navigationService()
+            navigationService.navigateToOverview(shouldRefresh: true)
         }
     }
 }

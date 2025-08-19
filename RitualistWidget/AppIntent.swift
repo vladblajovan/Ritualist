@@ -8,11 +8,8 @@
 import WidgetKit
 import AppIntents
 
-struct ConfigurationAppIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource { "Configuration" }
-    static var description: IntentDescription { "This is an example widget." }
+// Future enhancement: Could add widget configuration options
+// For example: filter by category, show/hide completed habits, etc.
 
-    // An example configurable parameter.
-    @Parameter(title: "Favorite Emoji", default: "😃")
-    var favoriteEmoji: String
-}
+// Currently using StaticConfiguration for simplicity
+// This file is kept for potential future configuration features

@@ -135,6 +135,7 @@ public final class OverviewViewModel {
     @ObservationIgnored @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     @ObservationIgnored @Injected(\.habitCompletionService) private var habitCompletionService
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
+    @ObservationIgnored @Injected(\.widgetRefreshService) private var widgetRefreshService
     
     private var userId: UUID { 
         userService.currentProfile.id 
@@ -212,6 +213,9 @@ public final class OverviewViewModel {
                 
                 // Refresh data to show updated progress
                 await loadData()
+                
+                // Refresh widget to show updated habit status
+                widgetRefreshService.refreshWidgetsForHabit(habit.id)
             }
             
         } catch {
@@ -276,6 +280,9 @@ public final class OverviewViewModel {
             
             // Refresh data to get updated values from database
             await loadData()
+            
+            // Refresh widget to show updated habit status
+            widgetRefreshService.refreshWidgetsForHabit(habit.id)
             
         } catch {
             self.error = error
@@ -385,6 +392,9 @@ public final class OverviewViewModel {
             
             // Refresh data to show updated UI
             await loadData()
+            
+            // Refresh widget to show updated habit status
+            widgetRefreshService.refreshWidgetsForHabit(habit.id)
             
         } catch {
             self.error = error

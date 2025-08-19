@@ -113,4 +113,13 @@ public enum DateUtils {
         
         return dates
     }
+    
+    /// Check if a date falls on one of the scheduled weekdays
+    /// Used by habit completion services to determine if a habit is scheduled for a given day
+    /// @param scheduledDays: Set of weekday integers (1=Monday, 2=Tuesday...7=Sunday)
+    public static func isDateInScheduledDays(_ date: Date, scheduledDays: Set<Int>, calendar: Calendar = .current) -> Bool {
+        let calendarWeekday = calendar.component(.weekday, from: date)
+        let habitWeekday = calendarWeekdayToHabitWeekday(calendarWeekday)
+        return scheduledDays.contains(habitWeekday)
+    }
 }

@@ -11,10 +11,23 @@
 		911237FB2E41210800A57BFC /* FactoryKit in Frameworks */ = {isa = PBXBuildFile; productRef = 911237FA2E41210800A57BFC /* FactoryKit */; };
 		911237FD2E41210800A57BFC /* FactoryTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 911237FC2E41210800A57BFC /* FactoryTesting */; };
 		9196AAED2E4E49C300D5F386 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9196AAEC2E4E49C300D5F386 /* RitualistCore */; };
+		91A5C7CE2E5369190095C251 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91A5C7CD2E5369190095C251 /* WidgetKit.framework */; };
+		91A5C7D02E5369190095C251 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91A5C7CF2E5369190095C251 /* SwiftUI.framework */; };
+		91A5C7E12E5369230095C251 /* RitualistWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		91A5C8032E53A0240095C251 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8022E53A0240095C251 /* RitualistCore */; };
+		91A5C8052E53A25C0095C251 /* FactoryKit in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8042E53A25C0095C251 /* FactoryKit */; };
+		91A5C8072E53C5830095C251 /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8062E53C5830095C251 /* Factory */; };
 		91C9ACD92E4A887C0077EF5C /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C9ACD82E4A887C0077EF5C /* RitualistCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		91A5C7DF2E5369230095C251 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 91B730E12E38E4BC0050A48A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 91A5C7CA2E5369190095C251;
+			remoteInfo = RitualistWidgetExtension;
+		};
 		91B730F92E38E4C10050A48A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 91B730E12E38E4BC0050A48A /* Project object */;
@@ -31,50 +44,101 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		91A5C7EA2E5369230095C251 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				91A5C7E12E5369230095C251 /* RitualistWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RitualistWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		91A5C7CD2E5369190095C251 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		91A5C7CF2E5369190095C251 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		91A5C7EB2E53699B0095C251 /* RitualistWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RitualistWidgetExtension.entitlements; sourceTree = "<group>"; };
 		91B730E92E38E4BC0050A48A /* Ritualist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ritualist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91B730F82E38E4C10050A48A /* RitualistTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		91B731022E38E4C10050A48A /* RitualistUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		91A5C7BB2E51C1E00095C251 /* Exceptions for "RitualistTests" folder in "RitualistTests" target */ = {
+		916F90D12E546D8800D77E0D /* Exceptions for "Ritualist" folder in "RitualistWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ViewModelTrackingIntegrationTests.swift,
+				Data/DataSources/CategoryLocalDataSource.swift,
+				Data/DataSources/CategoryRemoteDataSource.swift,
+				Data/DataSources/HabitLocalDataSource.swift,
+				Data/DataSources/LogLocalDataSource.swift,
+				Data/DataSources/OnboardingLocalDataSource.swift,
+				Data/DataSources/ProfileLocalDataSource.swift,
+				Data/Models/HabitCategoryModel.swift,
+				Data/Models/HabitLogModel.swift,
+				Data/Models/HabitModel.swift,
+				Data/Models/OnboardingStateModel.swift,
+				Data/Models/UserProfileModel.swift,
+				Data/PersistenceContainer/PersistenceContainer.swift,
+				Data/Repositories/CategoryRepositoryImpl.swift,
+				Data/Repositories/HabitRepositoryImpl.swift,
+				Data/Repositories/LogRepositoryImpl.swift,
+				Data/Repositories/TipRepositoryImpl.swift,
+				Features/PersonalityAnalysis/Data/DataSources/PersonalityAnalysisDataSource.swift,
+				Features/PersonalityAnalysis/Data/Models/PersonalityAnalysisModel.swift,
 			);
-			target = 91B730F72E38E4C10050A48A /* RitualistTests */;
+			target = 91A5C7CA2E5369190095C251 /* RitualistWidgetExtension */;
+		};
+		91A5C7E92E5369230095C251 /* Exceptions for "RitualistWidget" folder in "RitualistWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 91A5C7CA2E5369190095C251 /* RitualistWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		91A5C7BC2E51C1E00095C251 /* Exceptions for "RitualistTests" folder in "Compile Sources" phase from "RitualistTests" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = 91B730F42E38E4C10050A48A /* Sources */;
-			membershipExceptions = (
-				ViewModelTrackingIntegrationTests.swift,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		91A5C7D12E5369190095C251 /* RitualistWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				91A5C7E92E5369230095C251 /* Exceptions for "RitualistWidget" folder in "RitualistWidgetExtension" target */,
+			);
+			path = RitualistWidget;
+			sourceTree = "<group>";
+		};
 		91B730EB2E38E4BC0050A48A /* Ritualist */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				916F90D12E546D8800D77E0D /* Exceptions for "Ritualist" folder in "RitualistWidgetExtension" target */,
+			);
 			path = Ritualist;
 			sourceTree = "<group>";
 		};
 		91B730FB2E38E4C10050A48A /* RitualistTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				91A5C7BB2E51C1E00095C251 /* Exceptions for "RitualistTests" folder in "RitualistTests" target */,
-				91A5C7BC2E51C1E00095C251 /* Exceptions for "RitualistTests" folder in "Compile Sources" phase from "RitualistTests" target */,
-			);
 			path = RitualistTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		91A5C7C82E5369190095C251 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91A5C8032E53A0240095C251 /* RitualistCore in Frameworks */,
+				91A5C8072E53C5830095C251 /* Factory in Frameworks */,
+				91A5C7D02E5369190095C251 /* SwiftUI.framework in Frameworks */,
+				91A5C8052E53A25C0095C251 /* FactoryKit in Frameworks */,
+				91A5C7CE2E5369190095C251 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		91B730E62E38E4BC0050A48A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -111,12 +175,24 @@
 			path = RitualistUITests;
 			sourceTree = "<group>";
 		};
+		91A5C7CC2E5369190095C251 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				91A5C7CD2E5369190095C251 /* WidgetKit.framework */,
+				91A5C7CF2E5369190095C251 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		91B730E02E38E4BC0050A48A = {
 			isa = PBXGroup;
 			children = (
+				91A5C7EB2E53699B0095C251 /* RitualistWidgetExtension.entitlements */,
 				91B730EB2E38E4BC0050A48A /* Ritualist */,
 				91B730FB2E38E4C10050A48A /* RitualistTests */,
 				91A5C7BA2E51C1D40095C251 /* RitualistUITests */,
+				91A5C7D12E5369190095C251 /* RitualistWidget */,
+				91A5C7CC2E5369190095C251 /* Frameworks */,
 				91B730EA2E38E4BC0050A48A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -127,6 +203,7 @@
 				91B730E92E38E4BC0050A48A /* Ritualist.app */,
 				91B730F82E38E4C10050A48A /* RitualistTests.xctest */,
 				91B731022E38E4C10050A48A /* RitualistUITests.xctest */,
+				91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -134,6 +211,31 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		91A5C7CA2E5369190095C251 /* RitualistWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 91A5C7E22E5369230095C251 /* Build configuration list for PBXNativeTarget "RitualistWidgetExtension" */;
+			buildPhases = (
+				91A5C7C72E5369190095C251 /* Sources */,
+				91A5C7C82E5369190095C251 /* Frameworks */,
+				91A5C7C92E5369190095C251 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				91A5C7D12E5369190095C251 /* RitualistWidget */,
+			);
+			name = RitualistWidgetExtension;
+			packageProductDependencies = (
+				91A5C8022E53A0240095C251 /* RitualistCore */,
+				91A5C8042E53A25C0095C251 /* FactoryKit */,
+				91A5C8062E53C5830095C251 /* Factory */,
+			);
+			productName = RitualistWidgetExtension;
+			productReference = 91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		91B730E82E38E4BC0050A48A /* Ritualist */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 91B7310C2E38E4C10050A48A /* Build configuration list for PBXNativeTarget "Ritualist" */;
@@ -142,10 +244,12 @@
 				91B730E62E38E4BC0050A48A /* Frameworks */,
 				91B730E72E38E4BC0050A48A /* Resources */,
 				91B7316B2E38F55B0050A48A /* ShellScript */,
+				91A5C7EA2E5369230095C251 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				91A5C7E02E5369230095C251 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				91B730EB2E38E4BC0050A48A /* Ritualist */,
@@ -212,9 +316,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1640;
+				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 1640;
 				TargetAttributes = {
+					91A5C7CA2E5369190095C251 = {
+						CreatedOnToolsVersion = 26.0;
+					};
 					91B730E82E38E4BC0050A48A = {
 						CreatedOnToolsVersion = 16.4;
 					};
@@ -249,11 +356,19 @@
 				91B730E82E38E4BC0050A48A /* Ritualist */,
 				91B730F72E38E4C10050A48A /* RitualistTests */,
 				91B731012E38E4C10050A48A /* RitualistUITests */,
+				91A5C7CA2E5369190095C251 /* RitualistWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		91A5C7C92E5369190095C251 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		91B730E72E38E4BC0050A48A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -299,6 +414,13 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		91A5C7C72E5369190095C251 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		91B730E52E38E4BC0050A48A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -323,6 +445,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		91A5C7E02E5369230095C251 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 91A5C7CA2E5369190095C251 /* RitualistWidgetExtension */;
+			targetProxy = 91A5C7DF2E5369230095C251 /* PBXContainerItemProxy */;
+		};
 		91B730FA2E38E4C10050A48A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 91B730E82E38E4BC0050A48A /* Ritualist */;
@@ -405,6 +532,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Ritualist/Ritualist.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -445,7 +573,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -463,7 +591,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -543,6 +671,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Ritualist/Ritualist.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -583,7 +712,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -601,7 +730,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -674,6 +803,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Ritualist/Ritualist.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -714,7 +844,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -732,7 +862,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -805,6 +935,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Ritualist/Ritualist.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -845,7 +976,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -863,7 +994,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -873,6 +1004,198 @@
 				TEST_TARGET_NAME = Ritualist;
 			};
 			name = "Release-Subscription";
+		};
+		91A5C7E32E5369230095C251 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = RitualistWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PK53CW8644;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RitualistWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RitualistWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.Ritualist.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		91A5C7E42E5369230095C251 /* Debug-Subscription */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = RitualistWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PK53CW8644;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RitualistWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RitualistWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.Ritualist.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-Subscription";
+		};
+		91A5C7E52E5369230095C251 /* Debug-AllFeatures */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = RitualistWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PK53CW8644;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RitualistWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RitualistWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.Ritualist.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-AllFeatures";
+		};
+		91A5C7E62E5369230095C251 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = RitualistWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PK53CW8644;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RitualistWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RitualistWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.Ritualist.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		91A5C7E72E5369230095C251 /* Release-Subscription */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = RitualistWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PK53CW8644;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RitualistWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RitualistWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.Ritualist.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-Subscription";
+		};
+		91A5C7E82E5369230095C251 /* Release-AllFeatures */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = RitualistWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PK53CW8644;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RitualistWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RitualistWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.Ritualist.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-AllFeatures";
 		};
 		91B7310A2E38E4C10050A48A /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -1000,6 +1323,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Ritualist/Ritualist.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -1036,6 +1360,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Ritualist/Ritualist.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -1075,7 +1400,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1094,7 +1419,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1112,7 +1437,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1130,7 +1455,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1144,6 +1469,19 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		91A5C7E22E5369230095C251 /* Build configuration list for PBXNativeTarget "RitualistWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91A5C7E32E5369230095C251 /* Debug */,
+				91A5C7E42E5369230095C251 /* Debug-Subscription */,
+				91A5C7E52E5369230095C251 /* Debug-AllFeatures */,
+				91A5C7E62E5369230095C251 /* Release */,
+				91A5C7E72E5369230095C251 /* Release-Subscription */,
+				91A5C7E82E5369230095C251 /* Release-AllFeatures */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		91B730E42E38E4BC0050A48A /* Build configuration list for PBXProject "Ritualist" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1235,6 +1573,21 @@
 		9196AAEC2E4E49C300D5F386 /* RitualistCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RitualistCore;
+		};
+		91A5C8022E53A0240095C251 /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 91C9ACD72E4A887C0077EF5C /* XCLocalSwiftPackageReference "RitualistCore" */;
+			productName = RitualistCore;
+		};
+		91A5C8042E53A25C0095C251 /* FactoryKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 911237F72E41210800A57BFC /* XCRemoteSwiftPackageReference "Factory" */;
+			productName = FactoryKit;
+		};
+		91A5C8062E53C5830095C251 /* Factory */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 911237F72E41210800A57BFC /* XCRemoteSwiftPackageReference "Factory" */;
+			productName = Factory;
 		};
 		91C9ACD82E4A887C0077EF5C /* RitualistCore */ = {
 			isa = XCSwiftPackageProductDependency;

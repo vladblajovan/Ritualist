@@ -86,7 +86,13 @@ extension Container {
     
     @MainActor
     var hapticFeedbackService: Factory<HapticFeedbackService> {
-        self { HapticFeedbackService.shared }
+        self { @MainActor in HapticFeedbackService.shared }
+            .singleton
+    }
+    
+    @MainActor
+    var widgetRefreshService: Factory<WidgetRefreshServiceProtocol> {
+        self { @MainActor in WidgetRefreshService() }
             .singleton
     }
     
@@ -206,6 +212,25 @@ extension Container {
         .singleton
     }
     
+    // MARK: - Build Configuration Service
+    
+    var buildConfigurationService: Factory<BuildConfigurationService> {
+        self { DefaultBuildConfigurationService() }
+            .singleton
+    }
+    
+    // MARK: - Standard Feature Gating Services
+    
+    var defaultFeatureGatingService: Factory<FeatureGatingService> {
+        self { DefaultFeatureGatingService(userService: self.userService(), errorHandler: self.errorHandlingActor()) }
+            .singleton
+    }
+    
+    var defaultFeatureGatingBusinessService: Factory<FeatureGatingBusinessService> {
+        self { DefaultFeatureGatingBusinessService(userService: self.userService(), errorHandler: self.errorHandlingActor()) }
+            .singleton
+    }
+    
     // MARK: - Feature Gating Service
     
     // MARK: - Feature Gating Business Service
@@ -215,9 +240,9 @@ extension Container {
             #if ALL_FEATURES_ENABLED
             return MockFeatureGatingBusinessService(errorHandler: self.errorHandlingActor())
             #else
-            return BuildConfigFeatureGatingBusinessService.create(
-                userService: self.userService(),
-                errorHandler: self.errorHandlingActor()
+            return BuildConfigFeatureGatingBusinessService(
+                buildConfigService: self.buildConfigurationService(),
+                standardFeatureGating: self.defaultFeatureGatingBusinessService()
             )
             #endif
         }
@@ -232,9 +257,9 @@ extension Container {
             #if ALL_FEATURES_ENABLED
             return MockFeatureGatingService(errorHandler: self.errorHandlingActor())
             #else
-            return BuildConfigFeatureGatingService.create(
-                userService: self.userService(),
-                errorHandler: self.errorHandlingActor()
+            return BuildConfigFeatureGatingService(
+                buildConfigService: self.buildConfigurationService(),
+                standardFeatureGating: self.defaultFeatureGatingService()
             )
             #endif
         }
