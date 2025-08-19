@@ -70,6 +70,11 @@ extension Container {
             .singleton
     }
     
+    var historicalDateValidationService: Factory<HistoricalDateValidationServiceProtocol> {
+        self { DefaultHistoricalDateValidationService() }
+            .singleton
+    }
+    
     // MARK: - Use Cases
     
     var validateHabitSchedule: Factory<WidgetValidateHabitSchedule> {

@@ -9,11 +9,12 @@ import SwiftUI
 import RitualistCore
 
 /// Large widget view (338x354 points) showing comprehensive habit overview
-/// Displays all remaining habits with detailed progress and time-based insights
+/// Displays all remaining habits with detailed progress and time-based insights with date navigation
 struct LargeWidgetView: View {
-    let habits: [Habit]
-    let habitProgress: [UUID: Int]
-    let completionPercentage: Double
+    let entry: RemainingHabitsEntry
+    
+    // Fixed heights to ensure uniform card appearance
+    private let chipHeight: CGFloat = 50
     
     private let columns = [
         GridItem(.flexible(), spacing: 8),
@@ -21,24 +22,17 @@ struct LargeWidgetView: View {
     ]
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Date navigation header
+            WidgetDateNavigationHeader(entry: entry, size: .large)
+            
             headerView
             
-            if habits.isEmpty {
-                completedStateView
-            } else {
-                VStack(spacing: 12) {
-                    habitsGridView
-                    
-                    if habits.count > 6 {
-                        additionalHabitsView
-                    }
-                }
-            }
+            habitsSections
             
             Spacer()
         }
-        .padding(.top, 20)
+        .padding(.top, 16)
         .padding([.leading, .trailing, .bottom], 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -46,134 +40,113 @@ struct LargeWidgetView: View {
     // MARK: - View Components
     
     private var headerView: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
+            // Current Progress header with percentage
             HStack {
-                HStack(spacing: 10) {
-                    Text("⚡")
-                        .font(.largeTitle)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Today's Habits")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        Text("\(habits.count) remaining")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Spacer()
-                
-                // Progress circle
-                progressCircleView
-            }
-            
-            // Progress bar
-            if completionPercentage > 0 {
-                progressBarView
-            }
-        }
-    }
-    
-    private var progressCircleView: some View {
-        VStack(spacing: 4) {
-            ZStack {
-                Circle()
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 3)
-                    .frame(width: 50, height: 50)
-                
-                Circle()
-                    .trim(from: 0, to: completionPercentage)
-                    .stroke(
-                        Color.widgetBrand,
-                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                    )
-                    .frame(width: 50, height: 50)
-                    .rotationEffect(.degrees(-90))
-                
-                Text("\(Int(completionPercentage * 100))%")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-            }
-        }
-    }
-    
-    private var progressBarView: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("Daily Progress")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
-                
-                Text("\(Int(completionPercentage * 100))% complete")
-                    .font(.caption)
+                Text("Current Progress:")
+                    .font(.headline)
                     .fontWeight(.medium)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                Text("\(Int(entry.completionPercentage * 100))%")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
             }
             
-            ProgressView(value: completionPercentage)
+            ProgressView(value: entry.completionPercentage)
                 .tint(Color.widgetBrand)
         }
     }
     
-    private var completedStateView: some View {
-        VStack(spacing: 12) {
-            Spacer()
-            
-            VStack(spacing: 8) {
-                Text("🎉")
-                    .font(.system(size: 48))
-                
-                Text("Outstanding!")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .minimumScaleFactor(0.8)
-                
-                Text("All habits completed!")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .minimumScaleFactor(0.7)
-                
-                Text("Keep up the momentum!")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.blue)
-                    .minimumScaleFactor(0.7)
+    
+    
+    private var habitsSections: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Remaining habits section
+            if !remainingHabits.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    sectionHeader(title: "Remaining", count: remainingHabits.count)
+                    
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(Array(remainingHabits.prefix(6).enumerated()), id: \.element.habit.id) { index, habitInfo in
+                            WidgetHabitChip(
+                                habitDisplayInfo: habitInfo, 
+                                isViewingToday: entry.navigationInfo.isViewingToday,
+                                selectedDate: entry.navigationInfo.selectedDate
+                            )
+                            .frame(height: chipHeight)
+                        }
+                    }
+                    
+                    // Additional remaining habits in horizontal scroll if needed
+                    if remainingHabits.count > 6 {
+                        additionalHabitsView(habits: Array(remainingHabits.dropFirst(6)))
+                    }
+                }
             }
+            
+            // Completed habits section
+            if !completedHabits.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    sectionHeader(title: "Completed", count: completedHabits.count)
+                    
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(Array(completedHabits.prefix(4).enumerated()), id: \.element.habit.id) { index, habitInfo in
+                            WidgetHabitChip(
+                                habitDisplayInfo: habitInfo, 
+                                isViewingToday: entry.navigationInfo.isViewingToday,
+                                selectedDate: entry.navigationInfo.selectedDate
+                            )
+                            .frame(height: chipHeight)
+                        }
+                    }
+                    
+                    // Additional completed habits in horizontal scroll if needed
+                    if completedHabits.count > 4 {
+                        additionalHabitsView(habits: Array(completedHabits.dropFirst(4)))
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Section Components
+    
+    @ViewBuilder
+    private func sectionHeader(title: String, count: Int) -> some View {
+        HStack {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+            
+            Text("(\(count))")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
             
             Spacer()
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 8)
     }
     
-    private var habitsGridView: some View {
-        LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(habits.prefix(6)) { habit in
-                WidgetHabitChip(habit: habit, currentProgress: habitProgress[habit.id] ?? 0)
-            }
-        }
-    }
-    
-    private var additionalHabitsView: some View {
+    private func additionalHabitsView(habits: [HabitDisplayInfo]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Additional Habits")
+            Text("Additional")
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.secondary)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(habits.dropFirst(6).prefix(4)) { habit in
-                        CompactHabitChip(habit: habit)
+                    ForEach(habits.prefix(6), id: \.habit.id) { habitInfo in
+                        CompactHabitChip(habitDisplayInfo: habitInfo)
                     }
                     
-                    if habits.count > 10 {
-                        Text("+\(habits.count - 10) more")
+                    if habits.count > 6 {
+                        Text("+\(habits.count - 6) more")
                             .font(.caption2)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -185,12 +158,26 @@ struct LargeWidgetView: View {
             }
         }
     }
+    
+    // MARK: - Computed Properties
+    
+    private var remainingHabits: [HabitDisplayInfo] {
+        entry.habitDisplayInfo.filter { !$0.isCompleted }
+    }
+    
+    private var completedHabits: [HabitDisplayInfo] {
+        entry.habitDisplayInfo.filter { $0.isCompleted }
+    }
 }
 
 // MARK: - Compact Habit Chip
 
 private struct CompactHabitChip: View {
-    let habit: Habit
+    let habitDisplayInfo: HabitDisplayInfo
+    
+    private var habit: Habit {
+        habitDisplayInfo.habit
+    }
     
     var body: some View {
         Link(destination: WidgetConstants.habitDeepLinkURL(for: habit.id)) {
@@ -202,47 +189,85 @@ private struct CompactHabitChip: View {
                     .font(.caption2)
                     .fontWeight(.medium)
                     .lineLimit(1)
+                
+                // Show completion indicator for completed habits
+                if habitDisplayInfo.isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                }
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
             .background(
                 Capsule()
-                    .fill(Color.widgetBrand.opacity(0.1))
+                    .fill(habitDisplayInfo.isCompleted ? Color.green.opacity(0.1) : Color.widgetBrand.opacity(0.1))
             )
             .overlay(
                 Capsule()
-                    .stroke(Color.widgetBrand.opacity(0.2), lineWidth: 1)
+                    .stroke(habitDisplayInfo.isCompleted ? Color.green.opacity(0.2) : Color.widgetBrand.opacity(0.2), lineWidth: 1)
             )
+            .opacity(habitDisplayInfo.isCompleted ? 1.0 : 0.7)
         }
     }
 }
 
 // MARK: - Preview
 
-#Preview("Large Widget - With Many Habits") {
+#Preview("Large Widget - Mixed Progress") {
     let habits = [
         Habit(id: UUID(), name: "Morning Reading", emoji: "📚", kind: .binary, schedule: .daily, isActive: true, displayOrder: 1),
         Habit(id: UUID(), name: "Exercise", emoji: "🏃", kind: .numeric, dailyTarget: 10000, schedule: .daily, isActive: true, displayOrder: 2),
         Habit(id: UUID(), name: "Meditation", emoji: "🧘", kind: .binary, schedule: .daily, isActive: true, displayOrder: 3),
-        Habit(id: UUID(), name: "Water", emoji: "💧", kind: .numeric, dailyTarget: 8, schedule: .daily, isActive: true, displayOrder: 4)
+        Habit(id: UUID(), name: "Water", emoji: "💧", kind: .numeric, dailyTarget: 8, schedule: .daily, isActive: true, displayOrder: 4),
+        Habit(id: UUID(), name: "Journaling", emoji: "📝", kind: .binary, schedule: .daily, isActive: true, displayOrder: 5),
+        Habit(id: UUID(), name: "Stretching", emoji: "🤸", kind: .binary, schedule: .daily, isActive: true, displayOrder: 6),
+        Habit(id: UUID(), name: "Learning", emoji: "📖", kind: .binary, schedule: .daily, isActive: true, displayOrder: 7),
+        Habit(id: UUID(), name: "Walk", emoji: "🚶", kind: .numeric, dailyTarget: 5000, schedule: .daily, isActive: true, displayOrder: 8)
     ]
-    let habitProgress = Dictionary(uniqueKeysWithValues: habits.enumerated().map { ($1.id, $0 * 3) })
-    
-    return LargeWidgetView(
-        habits: habits,
-        habitProgress: habitProgress,
-        completionPercentage: 0.67
+    let habitDisplayInfo = [
+        HabitDisplayInfo(habit: habits[0], currentProgress: 1, isCompleted: true),    // Completed
+        HabitDisplayInfo(habit: habits[1], currentProgress: 7500, isCompleted: false), // Remaining
+        HabitDisplayInfo(habit: habits[2], currentProgress: 1, isCompleted: true),    // Completed
+        HabitDisplayInfo(habit: habits[3], currentProgress: 6, isCompleted: false),   // Remaining
+        HabitDisplayInfo(habit: habits[4], currentProgress: 0, isCompleted: false),   // Remaining
+        HabitDisplayInfo(habit: habits[5], currentProgress: 1, isCompleted: true),    // Completed
+        HabitDisplayInfo(habit: habits[6], currentProgress: 0, isCompleted: false),   // Remaining
+        HabitDisplayInfo(habit: habits[7], currentProgress: 3200, isCompleted: false) // Remaining
+    ]
+    let selectedDate = Calendar.current.date(byAdding: .day, value: -3, to: Date())!
+    let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
+    let entry = RemainingHabitsEntry(
+        date: Date(),
+        habitDisplayInfo: habitDisplayInfo,
+        completionPercentage: 0.375, // 3 completed out of 8
+        navigationInfo: navigationInfo
     )
+    
+    return LargeWidgetView(entry: entry)
     .frame(width: 338, height: 354)
     .background(Color(.systemBackground))
 }
 
 #Preview("Large Widget - All Done") {
-    LargeWidgetView(
-        habits: [],
-        habitProgress: [:],
-        completionPercentage: 1.0
+    let habits = [
+        Habit(id: UUID(), name: "Morning Reading", emoji: "📚", kind: .binary, schedule: .daily, isActive: true, displayOrder: 1),
+        Habit(id: UUID(), name: "Exercise", emoji: "🏃", kind: .numeric, dailyTarget: 30, schedule: .daily, isActive: true, displayOrder: 2),
+        Habit(id: UUID(), name: "Meditation", emoji: "🧘", kind: .binary, schedule: .daily, isActive: true, displayOrder: 3),
+        Habit(id: UUID(), name: "Water", emoji: "💧", kind: .numeric, dailyTarget: 8, schedule: .daily, isActive: true, displayOrder: 4)
+    ]
+    let habitDisplayInfo = habits.map { habit in
+        HabitDisplayInfo(habit: habit, currentProgress: Int(habit.dailyTarget ?? 1), isCompleted: true)
+    }
+    let navigationInfo = WidgetNavigationInfo(selectedDate: Date())
+    let entry = RemainingHabitsEntry(
+        date: Date(),
+        habitDisplayInfo: habitDisplayInfo,
+        completionPercentage: 1.0,
+        navigationInfo: navigationInfo
     )
-    .frame(width: 338, height: 354)
-    .background(Color(.systemBackground))
+    
+    return LargeWidgetView(entry: entry)
+        .frame(width: 338, height: 354)
+        .background(Color(.systemBackground))
 }

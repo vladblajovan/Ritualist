@@ -86,8 +86,20 @@ struct TodaysSummaryCard: View {
                     // Previous Day Button
                     Button(action: onPreviousDay) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(canGoToPrevious ? .primary : .secondary)
+                            .font(.body)
+                            .foregroundColor(canGoToPrevious ? AppColors.brand : .secondary)
+                            .frame(width: 28, height: 28)
+                            .background(
+                                Circle()
+                                    .fill(canGoToPrevious ? AppColors.brand.opacity(0.1) : Color.clear)
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(
+                                        canGoToPrevious ? AppColors.brand.opacity(0.3) : Color.secondary.opacity(0.2),
+                                        lineWidth: 1.0
+                                    )
+                            )
                     }
                     .disabled(!canGoToPrevious)
                     
@@ -114,8 +126,20 @@ struct TodaysSummaryCard: View {
                     if !isViewingToday && canGoToNext {
                         Button(action: onNextDay) {
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.primary)
+                                .font(.body)
+                                .foregroundColor(AppColors.brand)
+                                .frame(width: 28, height: 28)
+                                .background(
+                                    Circle()
+                                        .fill(AppColors.brand.opacity(0.1))
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(
+                                            AppColors.brand.opacity(0.3),
+                                            lineWidth: 1.0
+                                        )
+                                )
                         }
                     } else if !isViewingToday {
                         Button(action: onGoToToday) {

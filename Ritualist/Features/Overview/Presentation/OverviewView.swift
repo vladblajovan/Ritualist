@@ -181,11 +181,26 @@ public struct OverviewView: View {
             await vm.loadData()
         }
         .onAppear {
+            print("[DEEP-LINK-TRACE] OverviewView.onAppear called")
+            print("[DEEP-LINK-TRACE] View state: viewingDate = \(vm.viewingDate)")
+            print("[DEEP-LINK-TRACE] View state: showingNumericSheet = \(vm.showingNumericSheet)")
+            print("[DEEP-LINK-TRACE] View state: selectedHabitForSheet = \(vm.selectedHabitForSheet?.name ?? "nil")")
+            
+            // RACE CONDITION FIX: Set view as visible immediately
+            vm.setViewVisible(true)
+            
             Task {
                 await vm.refreshPersonalityInsights()
             }
-            // Process pending numeric habit from notification
-            vm.processPendingNumericHabit()
+            
+            // Process pending numeric habit from notification with enhanced timing validation
+            // This now serves as a fallback since the observer pattern will catch most cases
+            processNumericHabitWithViewStateValidation()
+        }
+        .onDisappear {
+            print("[DEEP-LINK-TRACE] OverviewView.onDisappear called")
+            // RACE CONDITION FIX: Set view as not visible
+            vm.setViewVisible(false)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             // Refresh data when app comes to foreground (after background notification actions)
@@ -206,9 +221,82 @@ public struct OverviewView: View {
                     },
                     initialValue: vm.getProgressSync(for: habit)
                 )
+                .onAppear {
+                    print("[DEEP-LINK-TRACE] NumericHabitLogSheetDirect appeared for habit: \(habit.name) (ID: \(habit.id))")
+                    print("[DEEP-LINK-TRACE] Sheet viewingDate: \(vm.viewingDate)")
+                    print("[DEEP-LINK-TRACE] Sheet initialValue: \(vm.getProgressSync(for: habit))")
+                }
             }
         }
         } // ScrollViewReader
+    }
+    
+    // MARK: - Private Methods
+    
+    /// Processes pending numeric habit with robust view state validation and timing
+    private func processNumericHabitWithViewStateValidation() {
+        print("[DEEP-LINK-TRACE] Starting enhanced numeric habit processing...")
+        print("[DEEP-LINK-TRACE] Initial view state check at onAppear time:")
+        print("[DEEP-LINK-TRACE] - View hierarchy ready: checking in 500ms")
+        print("[DEEP-LINK-TRACE] - Current pending habit: \(vm.pendingNumericHabitFromNotification?.name ?? "none")")
+        
+        // First attempt with 500ms delay for view hierarchy readiness
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            print("[DEEP-LINK-TRACE] === 500ms delay checkpoint ===")
+            print("[DEEP-LINK-TRACE] View state validation:")
+            print("[DEEP-LINK-TRACE] - showingNumericSheet: \(vm.showingNumericSheet)")
+            print("[DEEP-LINK-TRACE] - selectedHabitForSheet: \(vm.selectedHabitForSheet?.name ?? "nil")")
+            print("[DEEP-LINK-TRACE] - hasDataLoaded: \(vm.todaysSummary != nil)")
+            print("[DEEP-LINK-TRACE] - pendingHabit: \(vm.pendingNumericHabitFromNotification?.name ?? "none")")
+            
+            // Validate view is ready for sheet presentation
+            if isViewReadyForSheetPresentation() {
+                print("[DEEP-LINK-TRACE] ✅ View is ready - processing pending numeric habit")
+                vm.processPendingNumericHabit()
+            } else {
+                print("[DEEP-LINK-TRACE] ⚠️ View not ready after 500ms - attempting fallback with additional delay")
+                // Fallback with longer delay if view still not ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    print("[DEEP-LINK-TRACE] === 1000ms fallback checkpoint ===")
+                    print("[DEEP-LINK-TRACE] Fallback view state validation:")
+                    print("[DEEP-LINK-TRACE] - showingNumericSheet: \(vm.showingNumericSheet)")
+                    print("[DEEP-LINK-TRACE] - selectedHabitForSheet: \(vm.selectedHabitForSheet?.name ?? "nil")")
+                    print("[DEEP-LINK-TRACE] - hasDataLoaded: \(vm.todaysSummary != nil)")
+                    print("[DEEP-LINK-TRACE] - pendingHabit: \(vm.pendingNumericHabitFromNotification?.name ?? "none")")
+                    
+                    if isViewReadyForSheetPresentation() {
+                        print("[DEEP-LINK-TRACE] ✅ View ready on fallback - processing pending numeric habit")
+                        vm.processPendingNumericHabit()
+                    } else {
+                        print("[DEEP-LINK-TRACE] ❌ View still not ready after 1000ms - forcing processing anyway")
+                        print("[DEEP-LINK-TRACE] This may indicate a deeper SwiftUI timing issue")
+                        vm.processPendingNumericHabit()
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Validates that the view is in a state ready for sheet presentation
+    private func isViewReadyForSheetPresentation() -> Bool {
+        // Check if view has basic data loaded (indicates view lifecycle is complete)
+        let hasDataLoaded = vm.todaysSummary != nil
+        
+        // Check if there's no conflicting sheet state
+        let noConflictingSheet = !vm.showingNumericSheet && vm.selectedHabitForSheet == nil
+        
+        // Check if there's actually a pending habit to process
+        let hasPendingHabit = vm.pendingNumericHabitFromNotification != nil && !vm.isPendingHabitProcessed
+        
+        let isReady = hasDataLoaded && noConflictingSheet && hasPendingHabit
+        
+        print("[DEEP-LINK-TRACE] View readiness check:")
+        print("[DEEP-LINK-TRACE] - hasDataLoaded: \(hasDataLoaded)")
+        print("[DEEP-LINK-TRACE] - noConflictingSheet: \(noConflictingSheet)")
+        print("[DEEP-LINK-TRACE] - hasPendingHabit: \(hasPendingHabit)")
+        print("[DEEP-LINK-TRACE] - isReady: \(isReady)")
+        
+        return isReady
     }
 }
 

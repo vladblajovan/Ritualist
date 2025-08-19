@@ -120,6 +120,11 @@ extension Container {
         .singleton
     }
     
+    var historicalDateValidationService: Factory<HistoricalDateValidationServiceProtocol> {
+        self { DefaultHistoricalDateValidationService() }
+            .singleton
+    }
+    
     // MARK: - User & Analytics Services
     
     var userActionTracker: Factory<UserActionTrackerService> {
@@ -272,6 +277,11 @@ extension Container {
     @MainActor
     var personalityDeepLinkCoordinator: Factory<PersonalityDeepLinkCoordinator> {
         self { @MainActor in PersonalityDeepLinkCoordinator.shared }
+        .singleton
+    }
+    
+    var urlValidationService: Factory<URLValidationService> {
+        self { DefaultURLValidationService() }
         .singleton
     }
     

@@ -8,25 +8,22 @@
 import SwiftUI
 import RitualistCore
 
-/// Small widget view (70x70 points) showing remaining habits count and top 2 habits
-/// Adapts the QuickActionsCard design for compact widget display
+/// Small widget view (155x155 points) showing remaining habits count and top 2 habits
+/// Adapts the QuickActionsCard design for compact widget display with date navigation
 struct SmallWidgetView: View {
-    let habits: [Habit]
-    let habitProgress: [UUID: Int]
-    let completionPercentage: Double
+    let entry: RemainingHabitsEntry
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Header matching QuickActionsCard style
+        VStack(alignment: .leading, spacing: 4) {
+            // Date navigation header
+            WidgetDateNavigationHeader(entry: entry, size: .small)
+            
+            // Header matching QuickActionsCard style  
             headerView
             
-            if habits.isEmpty {
-                completedStateView
-            } else {
-                habitsListView
-            }
+            habitsListView
         }
-        .padding(.top, 14)
+        .padding(.top, 8)
         .padding([.leading, .trailing, .bottom], 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -38,42 +35,29 @@ struct SmallWidgetView: View {
             Text("⚡")
                 .font(.title3)
             
-            Text("\(habits.count) left")
+            Text("\(entry.habitDisplayInfo.count) habits")
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.secondary)
         }
     }
     
-    private var completedStateView: some View {
-        VStack(spacing: 4) {
-            Spacer()
-            
-            Text("🎉")
-                .font(.title)
-                .frame(maxWidth: .infinity)
-            
-            Text("All done!")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity)
-            
-            Spacer()
-        }
-    }
     
     private var habitsListView: some View {
         VStack(spacing: 6) {
             // Show top 2 habits
-            ForEach(Array(habits.prefix(2).enumerated()), id: \.element.id) { index, habit in
-                WidgetHabitChip(habit: habit, currentProgress: habitProgress[habit.id] ?? 0)
+            ForEach(Array(entry.habitDisplayInfo.prefix(2).enumerated()), id: \.element.habit.id) { index, habitInfo in
+                WidgetHabitChip(
+                    habitDisplayInfo: habitInfo, 
+                    isViewingToday: entry.navigationInfo.isViewingToday,
+                    selectedDate: entry.navigationInfo.selectedDate
+                )
             }
             
             // Show remaining count if more than 2 habits
-            if habits.count > 2 {
+            if entry.habitDisplayInfo.count > 2 {
                 HStack {
-                    Text("+\(habits.count - 2) more")
+                    Text("+\(entry.habitDisplayInfo.count - 2) more")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                     Spacer()
@@ -116,23 +100,57 @@ struct SmallWidgetView: View {
             displayOrder: 3
         )
     ]
-    let habitProgress = Dictionary(uniqueKeysWithValues: habits.enumerated().map { ($1.id, $0 * 5) })
-    
-    return SmallWidgetView(
-        habits: habits,
-        habitProgress: habitProgress,
-        completionPercentage: 0.3
+    let habitDisplayInfo = habits.enumerated().map { index, habit in
+        HabitDisplayInfo(habit: habit, currentProgress: index * 5, isCompleted: false)
+    }
+    let selectedDate = Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+    let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
+    let entry = RemainingHabitsEntry(
+        date: Date(),
+        habitDisplayInfo: habitDisplayInfo,
+        completionPercentage: 0.3,
+        navigationInfo: navigationInfo
     )
-    .frame(width: 155, height: 155)
-    .background(Color(.systemBackground))
+    
+    return SmallWidgetView(entry: entry)
+        .frame(width: 155, height: 155)
+        .background(Color(.systemBackground))
 }
 
 #Preview("Small Widget - All Done") {
-    SmallWidgetView(
-        habits: [],
-        habitProgress: [:],
-        completionPercentage: 1.0
+    let habits = [
+        Habit(
+            id: UUID(),
+            name: "Morning Reading",
+            emoji: "📚",
+            kind: .binary,
+            schedule: .daily,
+            isActive: true,
+            displayOrder: 1
+        ),
+        Habit(
+            id: UUID(),
+            name: "Exercise",
+            emoji: "🏃",
+            kind: .numeric,
+            dailyTarget: 30,
+            schedule: .daily,
+            isActive: true,
+            displayOrder: 2
+        )
+    ]
+    let habitDisplayInfo = habits.map { habit in
+        HabitDisplayInfo(habit: habit, currentProgress: Int(habit.dailyTarget ?? 1), isCompleted: true)
+    }
+    let navigationInfo = WidgetNavigationInfo(selectedDate: Date())
+    let entry = RemainingHabitsEntry(
+        date: Date(),
+        habitDisplayInfo: habitDisplayInfo,
+        completionPercentage: 1.0,
+        navigationInfo: navigationInfo
     )
-    .frame(width: 155, height: 155)
-    .background(Color(.systemBackground))
+    
+    return SmallWidgetView(entry: entry)
+        .frame(width: 155, height: 155)
+        .background(Color(.systemBackground))
 }
