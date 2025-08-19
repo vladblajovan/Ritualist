@@ -9,6 +9,7 @@ import Foundation
 import FactoryKit
 import RitualistCore
 import SwiftData
+import WidgetKit
 
 // MARK: - Widget Container Extensions
 // Using the exact same architecture as the main app
@@ -69,7 +70,27 @@ extension Container {
             .singleton
     }
     
-    // MARK: - Widget Data Service
+    // MARK: - Use Cases
+    
+    var validateHabitSchedule: Factory<WidgetValidateHabitSchedule> {
+        self { WidgetValidateHabitSchedule(habitCompletionService: self.habitCompletionService()) }
+    }
+    
+    var logHabitUseCase: Factory<WidgetLogHabit> {
+        self { WidgetLogHabit(
+            logRepository: self.logRepository(),
+            habitRepository: self.habitRepository(),
+            validateSchedule: self.validateHabitSchedule()
+        ) }
+    }
+    
+    // MARK: - Widget Services
+    
+    @MainActor
+    var widgetRefreshService: Factory<WidgetRefreshServiceProtocol> {
+        self { @MainActor in WidgetRefreshService() }
+            .singleton
+    }
     
     var widgetDataService: Factory<WidgetDataService> {
         self {

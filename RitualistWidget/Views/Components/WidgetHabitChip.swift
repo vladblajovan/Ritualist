@@ -7,40 +7,54 @@
 
 import SwiftUI
 import RitualistCore
+import AppIntents
 
 /// Habit chip for widget display - adapted from QuickActionsCard design
-/// Provides tappable chips that deep link into the main app for habit completion
+/// Binary habits use App Intent for direct completion, numeric habits deep link to app
 struct WidgetHabitChip: View {
     let habit: Habit
     let currentProgress: Int
     
     var body: some View {
-        Link(destination: deepLinkURL) {
-            HStack(spacing: 6) {
-                // Habit emoji
-                Text(habit.emoji ?? WidgetConstants.defaultHabitEmoji)
-                    .font(.caption)
-                
-                // Habit name
-                Text(habit.name)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                
-                Spacer(minLength: 0)
-                
-                // Progress indicator for numeric habits
-                if habit.kind == .numeric, let target = habit.dailyTarget {
-                    Text("\(currentProgress)/\(Int(target))")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
+        if habit.kind == .binary {
+            Button(intent: completeHabitIntent) {
+                chipContent
             }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
-            .background(chipBackground)
-            .overlay(chipBorder)
+            .buttonStyle(PlainButtonStyle())
+        } else {
+            Link(destination: deepLinkURL) {
+                chipContent
+            }
         }
+    }
+    
+    // MARK: - Shared Content
+    
+    private var chipContent: some View {
+        HStack(spacing: 6) {
+            // Habit emoji
+            Text(habit.emoji ?? WidgetConstants.defaultHabitEmoji)
+                .font(.caption)
+            
+            // Habit name
+            Text(habit.name)
+                .font(.caption)
+                .fontWeight(.medium)
+                .lineLimit(1)
+            
+            Spacer(minLength: 0)
+            
+            // Progress indicator for numeric habits
+            if habit.kind == .numeric, let target = habit.dailyTarget {
+                Text("\(currentProgress)/\(Int(target))")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(chipBackground)
+        .overlay(chipBorder)
     }
     
     // MARK: - View Components
@@ -63,6 +77,12 @@ struct WidgetHabitChip: View {
     
     private var deepLinkURL: URL {
         WidgetConstants.habitDeepLinkURL(for: habit.id)
+    }
+    
+    private var completeHabitIntent: CompleteHabitIntent {
+        let intent = CompleteHabitIntent()
+        intent.habitId = habit.id.uuidString
+        return intent
     }
 }
 
