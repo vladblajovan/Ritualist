@@ -14,7 +14,7 @@ struct StreakCalculationServiceTests {
     
     // MARK: - Test Data Setup
     
-    static let testCalendar = Calendar(identifier: .gregorian)
+    static let testCalendar = DateUtils.userCalendar()
     
     // Create fixed test dates - Aug 4, 2025 is a Monday
     let monday = Self.testCalendar.date(from: DateComponents(year: 2025, month: 8, day: 4))!
@@ -36,7 +36,7 @@ struct StreakCalculationServiceTests {
     let prevFriday = Self.testCalendar.date(from: DateComponents(year: 2025, month: 8, day: 1))!
     
     func createService() -> StreakCalculationService {
-        let habitCompletionService = DefaultHabitCompletionService()
+        let habitCompletionService = DefaultHabitCompletionService(calendar: Self.testCalendar)
         return DefaultStreakCalculationService(
             habitCompletionService: habitCompletionService,
             calendar: Self.testCalendar

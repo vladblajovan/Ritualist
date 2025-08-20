@@ -155,21 +155,16 @@ public final class OverviewViewModel {
     // MARK: - Public Methods
     
     public func loadData() async {
-        print("[DEEP-LINK-TRACE] loadData called for date: \(viewingDate)")
         guard !isLoading else { 
-            print("[DEEP-LINK-TRACE] loadData already in progress, skipping")
             return 
         }
         
-        print("[DEEP-LINK-TRACE] Starting data loading process...")
         isLoading = true
         error = nil
         
         do {
             // Load unified data once instead of multiple parallel operations
-            print("[DEEP-LINK-TRACE] About to call loadOverviewData for date: \(viewingDate)")
             let overviewData = try await loadOverviewData()
-            print("[DEEP-LINK-TRACE] loadOverviewData completed, processing results...")
             
             // Store the overview data and extract all card data from it using unified approach
             self.overviewData = overviewData
@@ -178,7 +173,6 @@ public final class OverviewViewModel {
             self.activeStreaks = extractActiveStreaks(from: overviewData)
             self.monthlyCompletionData = extractMonthlyData(from: overviewData)
             self.smartInsights = extractSmartInsights(from: overviewData)
-            print("[DEEP-LINK-TRACE] All data extractions completed - todaysSummary has \(todaysSummary?.incompleteHabits.count ?? 0) incomplete habits")
             
             // Load personality insights separately (non-blocking)
             Task {
@@ -190,10 +184,8 @@ public final class OverviewViewModel {
             
         } catch {
             self.error = error
-            print("[DEEP-LINK-TRACE] Failed to load OverviewV2 data: \(error)")
         }
         
-        print("[DEEP-LINK-TRACE] loadData completed successfully for date: \(viewingDate)")
         self.isLoading = false
     }
     
@@ -228,6 +220,9 @@ public final class OverviewViewModel {
                 
                 // Refresh data to show updated progress
                 await loadData()
+                
+                // Small delay to ensure data is committed to shared container before widget refresh
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
                 
                 // Refresh widget to show updated habit status
                 widgetRefreshService.refreshWidgetsForHabit(habit.id)
@@ -295,6 +290,9 @@ public final class OverviewViewModel {
             
             // Refresh data to get updated values from database
             await loadData()
+            
+            // Small delay to ensure data is committed to shared container before widget refresh
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             
             // Refresh widget to show updated habit status
             widgetRefreshService.refreshWidgetsForHabit(habit.id)
@@ -379,33 +377,18 @@ public final class OverviewViewModel {
     }
     
     public func showNumericSheet(for habit: Habit) {
-        print("[DEEP-LINK-TRACE] showNumericSheet called for habit: \(habit.name) (ID: \(habit.id))")
-        print("[DEEP-LINK-TRACE] Before setting: selectedHabitForSheet = \(selectedHabitForSheet?.name ?? "nil"), showingNumericSheet = \(showingNumericSheet)")
         selectedHabitForSheet = habit
         showingNumericSheet = true
-        print("[DEEP-LINK-TRACE] After setting: selectedHabitForSheet = \(selectedHabitForSheet?.name ?? "nil"), showingNumericSheet = \(showingNumericSheet)")
-        print("[DEEP-LINK-TRACE] showNumericSheet completed - sheet should now appear")
     }
     
     public func setPendingNumericHabit(_ habit: Habit) {
-        print("[DEEP-LINK-TRACE] setPendingNumericHabit called for habit: \(habit.name) (ID: \(habit.id))")
-        print("[DEEP-LINK-TRACE] Before setting: pendingNumericHabitFromNotification = \(pendingNumericHabitFromNotification?.name ?? "nil"), hasPendingHabitBeenProcessed = \(hasPendingHabitBeenProcessed)")
-        print("[DEEP-LINK-TRACE] View visibility state: isViewVisible = \(isViewVisible)")
-        
         pendingNumericHabitFromNotification = habit
         hasPendingHabitBeenProcessed = false // Reset processing flag when new habit is set
         
-        print("[DEEP-LINK-TRACE] After setting: pendingNumericHabitFromNotification = \(pendingNumericHabitFromNotification?.name ?? "nil"), hasPendingHabitBeenProcessed = \(hasPendingHabitBeenProcessed)")
-        
         // RACE CONDITION FIX: If view is visible and ready, process immediately instead of waiting for onAppear
         if isViewVisible {
-            print("[DEEP-LINK-TRACE] View is visible - processing habit immediately to avoid race condition")
             processPendingNumericHabit()
-        } else {
-            print("[DEEP-LINK-TRACE] View not visible - habit will be processed on onAppear as fallback")
         }
-        
-        print("[DEEP-LINK-TRACE] setPendingNumericHabit completed")
     }
     
     public var isPendingHabitProcessed: Bool {
@@ -413,37 +396,21 @@ public final class OverviewViewModel {
     }
     
     public func setViewVisible(_ visible: Bool) {
-        print("[DEEP-LINK-TRACE] setViewVisible called with: \(visible)")
         isViewVisible = visible
     }
     
     public func processPendingNumericHabit() {
-        print("[DEEP-LINK-TRACE] processPendingNumericHabit called")
-        print("[DEEP-LINK-TRACE] Current state: hasPendingHabitBeenProcessed = \(hasPendingHabitBeenProcessed)")
-        print("[DEEP-LINK-TRACE] Current state: pendingNumericHabitFromNotification = \(pendingNumericHabitFromNotification?.name ?? "nil")")
-        print("[DEEP-LINK-TRACE] Current state: viewingDate = \(viewingDate)")
-        print("[DEEP-LINK-TRACE] Current state: todaysSummary loaded = \(todaysSummary != nil)")
-        
         // Prevent double-processing if already handled
         guard !hasPendingHabitBeenProcessed,
               let habit = pendingNumericHabitFromNotification else {
-            if hasPendingHabitBeenProcessed {
-                print("[DEEP-LINK-TRACE] Guard failed - habit already processed")
-            } else {
-                print("[DEEP-LINK-TRACE] Guard failed - no pending habit to process")
-            }
             return
         }
         
-        print("[DEEP-LINK-TRACE] Processing pending habit: \(habit.name) (ID: \(habit.id))")
-        print("[DEEP-LINK-TRACE] About to call showNumericSheet...")
         showNumericSheet(for: habit)
         
         // Clean up state after processing
         pendingNumericHabitFromNotification = nil
         hasPendingHabitBeenProcessed = true
-        print("[DEEP-LINK-TRACE] Cleanup completed: pendingNumericHabitFromNotification = nil, hasPendingHabitBeenProcessed = true")
-        print("[DEEP-LINK-TRACE] processPendingNumericHabit completed successfully")
     }
     
     public func deleteHabitLog(_ habit: Habit) async {
@@ -459,6 +426,9 @@ public final class OverviewViewModel {
             
             // Refresh data to show updated UI
             await loadData()
+            
+            // Small delay to ensure data is committed to shared container before widget refresh
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             
             // Refresh widget to show updated habit status
             widgetRefreshService.refreshWidgetsForHabit(habit.id)

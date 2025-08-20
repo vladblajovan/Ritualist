@@ -13,8 +13,13 @@ import RitualistCore
 struct LargeWidgetView: View {
     let entry: RemainingHabitsEntry
     
-    // Fixed heights to ensure uniform card appearance
-    private let chipHeight: CGFloat = 50
+    // Dynamic sizing based on available space
+    private var chipSize: CGFloat {
+        // Base size that scales well on different devices
+        // Widget width is 338, with 6+6 padding = 326 available width
+        // For ~7 chips per row: (326 - 6*6 spacing) / 7 ≈ 41
+        return 41
+    }
     
     private let columns = [
         GridItem(.flexible(), spacing: 8),
@@ -22,9 +27,9 @@ struct LargeWidgetView: View {
     ]
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             // Date navigation header
-            WidgetDateNavigationHeader(entry: entry, size: .large)
+            WidgetDateNavigationHeader(entry: entry, size: .large, completionPercentage: entry.completionPercentage)
             
             headerView
             
@@ -32,8 +37,8 @@ struct LargeWidgetView: View {
             
             Spacer()
         }
-        .padding(.top, 16)
-        .padding([.leading, .trailing, .bottom], 16)
+        .padding(.top, 4)
+        .padding([.leading, .trailing, .bottom], 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
     
@@ -46,74 +51,85 @@ struct LargeWidgetView: View {
                 Text("Current Progress:")
                     .font(.headline)
                     .fontWeight(.medium)
-                    .foregroundColor(.primary)
+                    .foregroundColor(CardDesign.progressColor(for: entry.completionPercentage))
                 
                 Spacer()
                 
                 Text("\(Int(entry.completionPercentage * 100))%")
                     .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+                    .foregroundColor(CardDesign.progressColor(for: entry.completionPercentage))
             }
             
             ProgressView(value: entry.completionPercentage)
-                .tint(Color.widgetBrand)
+                .tint(CardDesign.progressColor(for: entry.completionPercentage))
         }
     }
     
     
     
     private var habitsSections: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             // Remaining habits section
             if !remainingHabits.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     sectionHeader(title: "Remaining", count: remainingHabits.count)
                     
-                    LazyVGrid(columns: columns, spacing: 8) {
+                    LazyVGrid(columns: columns, spacing: 6) {
                         ForEach(Array(remainingHabits.prefix(6).enumerated()), id: \.element.habit.id) { index, habitInfo in
                             WidgetHabitChip(
                                 habitDisplayInfo: habitInfo, 
                                 isViewingToday: entry.navigationInfo.isViewingToday,
-                                selectedDate: entry.navigationInfo.selectedDate
+                                selectedDate: entry.navigationInfo.selectedDate,
+                                widgetSize: .large
                             )
-                            .frame(height: chipHeight)
+                            .frame(height: chipSize)
                         }
                     }
                     
-                    // Additional remaining habits in horizontal scroll if needed
+                    // Show count if there are more remaining habits
                     if remainingHabits.count > 6 {
-                        additionalHabitsView(habits: Array(remainingHabits.dropFirst(6)))
+                        Text("+\(remainingHabits.count - 6) more remaining")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding(.top, 4)
                     }
                 }
             }
             
             // Completed habits section
             if !completedHabits.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     sectionHeader(title: "Completed", count: completedHabits.count)
                     
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(Array(completedHabits.prefix(4).enumerated()), id: \.element.habit.id) { index, habitInfo in
-                            WidgetHabitChip(
-                                habitDisplayInfo: habitInfo, 
-                                isViewingToday: entry.navigationInfo.isViewingToday,
-                                selectedDate: entry.navigationInfo.selectedDate
-                            )
-                            .frame(height: chipHeight)
-                        }
-                    }
-                    
-                    // Additional completed habits in horizontal scroll if needed
-                    if completedHabits.count > 4 {
-                        additionalHabitsView(habits: Array(completedHabits.dropFirst(4)))
-                    }
+                    flowingHabitChips(habits: Array(completedHabits.prefix(10)))
                 }
             }
         }
     }
     
     // MARK: - Section Components
+    
+    @ViewBuilder
+    private func flowingHabitChips(habits: [HabitDisplayInfo]) -> some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.adaptive(minimum: chipSize, maximum: chipSize), spacing: 6)
+            ],
+            alignment: .leading,
+            spacing: 6
+        ) {
+            ForEach(habits, id: \.habit.id) { habitInfo in
+                WidgetHabitChip(
+                    habitDisplayInfo: habitInfo, 
+                    isViewingToday: entry.navigationInfo.isViewingToday,
+                    selectedDate: entry.navigationInfo.selectedDate,
+                    widgetSize: .large
+                )
+                .frame(width: chipSize, height: chipSize)
+            }
+        }
+    }
     
     @ViewBuilder
     private func sectionHeader(title: String, count: Int) -> some View {
@@ -126,38 +142,12 @@ struct LargeWidgetView: View {
             Text("(\(count))")
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
             
             Spacer()
         }
     }
     
-    private func additionalHabitsView(habits: [HabitDisplayInfo]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Additional")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(habits.prefix(6), id: \.habit.id) { habitInfo in
-                        CompactHabitChip(habitDisplayInfo: habitInfo)
-                    }
-                    
-                    if habits.count > 6 {
-                        Text("+\(habits.count - 6) more")
-                            .font(.caption2)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.secondary.opacity(0.1))
-                            .clipShape(Capsule())
-                    }
-                }
-                .padding(.horizontal, 1)
-            }
-        }
-    }
     
     // MARK: - Computed Properties
     
@@ -170,47 +160,7 @@ struct LargeWidgetView: View {
     }
 }
 
-// MARK: - Compact Habit Chip
 
-private struct CompactHabitChip: View {
-    let habitDisplayInfo: HabitDisplayInfo
-    
-    private var habit: Habit {
-        habitDisplayInfo.habit
-    }
-    
-    var body: some View {
-        Link(destination: WidgetConstants.habitDeepLinkURL(for: habit.id)) {
-            HStack(spacing: 4) {
-                Text(habit.emoji ?? WidgetConstants.defaultHabitEmoji)
-                    .font(.caption2)
-                
-                Text(habit.name)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                
-                // Show completion indicator for completed habits
-                if habitDisplayInfo.isCompleted {
-                    Image(systemName: "checkmark")
-                        .font(.caption2)
-                        .foregroundColor(.green)
-                }
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(
-                Capsule()
-                    .fill(habitDisplayInfo.isCompleted ? Color.green.opacity(0.1) : Color.widgetBrand.opacity(0.1))
-            )
-            .overlay(
-                Capsule()
-                    .stroke(habitDisplayInfo.isCompleted ? Color.green.opacity(0.2) : Color.widgetBrand.opacity(0.2), lineWidth: 1)
-            )
-            .opacity(habitDisplayInfo.isCompleted ? 1.0 : 0.7)
-        }
-    }
-}
 
 // MARK: - Preview
 

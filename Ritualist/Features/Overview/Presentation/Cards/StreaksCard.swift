@@ -89,7 +89,8 @@ struct StreaksCard: View {
                 .frame(height: 220) // Fixed height for 2 rows
             }
         }
-        .cardStyle()
+        .padding(20)
+        .glassmorphicMaximizedContentStyle()
         .onAppear {
             if shouldAnimateBestStreak {
                 // Find the best streak to animate

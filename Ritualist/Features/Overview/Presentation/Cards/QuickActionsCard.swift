@@ -83,7 +83,8 @@ struct QuickActionsCard: View {
                 .padding(.vertical, 20)
             }
         }
-        .cardStyle()
+        .padding(20)
+        .glassmorphicMaximizedContentStyle()
         .alert("Delete Log Entry?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {
                 habitToDelete = nil

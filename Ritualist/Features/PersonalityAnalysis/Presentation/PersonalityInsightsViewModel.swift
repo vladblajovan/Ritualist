@@ -328,6 +328,26 @@ public final class PersonalityInsightsViewModel: ObservableObject {
         preferences?.showDataUsage ?? true
     }
     
+    /// Determines if the force redo analysis button should be enabled
+    /// Requires: frequency = manual AND analysis enabled AND sufficient data
+    public var isForceRedoAnalysisButtonEnabled: Bool {
+        // Check if frequency is manual
+        guard preferences?.analysisFrequency == .manual else { return false }
+        
+        // Check if analysis is enabled
+        guard isAnalysisEnabled else { return false }
+        
+        // Check if has sufficient data (based on view state)
+        switch viewState {
+        case .ready:
+            // Has sufficient data and valid profile
+            return true
+        case .loading, .insufficientData, .readyWithInsufficientData, .error:
+            // Either loading, insufficient data, or error state
+            return false
+        }
+    }
+    
     // MARK: - Scheduling Helper Properties
     
     public func getNextScheduledAnalysisDate() async -> Date? {

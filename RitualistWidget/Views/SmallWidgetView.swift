@@ -23,8 +23,8 @@ struct SmallWidgetView: View {
             
             habitsListView
         }
-        .padding(.top, 8)
-        .padding([.leading, .trailing, .bottom], 10)
+        .padding(.top, 4)
+        .padding([.leading, .trailing, .bottom], 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
     
@@ -38,7 +38,7 @@ struct SmallWidgetView: View {
             Text("\(entry.habitDisplayInfo.count) habits")
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
         }
     }
     
@@ -50,7 +50,8 @@ struct SmallWidgetView: View {
                 WidgetHabitChip(
                     habitDisplayInfo: habitInfo, 
                     isViewingToday: entry.navigationInfo.isViewingToday,
-                    selectedDate: entry.navigationInfo.selectedDate
+                    selectedDate: entry.navigationInfo.selectedDate,
+                    widgetSize: .small
                 )
             }
             
@@ -59,7 +60,7 @@ struct SmallWidgetView: View {
                 HStack {
                     Text("+\(entry.habitDisplayInfo.count - 2) more")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white.opacity(0.7))
                     Spacer()
                 }
             }

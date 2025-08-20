@@ -60,7 +60,8 @@ struct PersonalityInsightsCard: View {
                 noInsightsContent
             }
         }
-        .cardStyle() // Remove action - only top-right icon should open sheet
+        .padding(20)
+        .glassmorphicMaximizedContentStyle() // Remove action - only top-right icon should open sheet
     }
     
     // MARK: - Content Views

@@ -99,7 +99,8 @@ struct ActiveStreaksCard: View {
                 }
             }
         }
-        .cardStyle()
+        .padding(20)
+        .glassmorphicMaximizedContentStyle()
     }
     
     private func streakColor(for days: Int) -> Color {

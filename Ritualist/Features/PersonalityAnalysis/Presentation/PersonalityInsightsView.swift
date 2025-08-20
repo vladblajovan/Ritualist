@@ -95,7 +95,7 @@ public struct PersonalityInsightsView: View {
                                         }
                                         .buttonStyle(.bordered)
                                         .controlSize(.small)
-                                        .disabled(viewModel.isLoading)
+                                        .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
                                     }
                                     
                                     Button("Disable") {
@@ -159,7 +159,7 @@ public struct PersonalityInsightsView: View {
                                             }
                                             .buttonStyle(.bordered)
                                             .controlSize(.small)
-                                            .disabled(viewModel.isLoading)
+                                            .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
                                         }
                                         
                                         Button("Disable") {
@@ -210,7 +210,7 @@ public struct PersonalityInsightsView: View {
                                             }
                                             .buttonStyle(.bordered)
                                             .controlSize(.small)
-                                            .disabled(viewModel.isLoading)
+                                            .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
                                         }
                                         
                                         Button("Disable") {
@@ -258,7 +258,7 @@ public struct PersonalityInsightsView: View {
                                             }
                                             .buttonStyle(.bordered)
                                             .controlSize(.small)
-                                            .disabled(viewModel.isLoading)
+                                            .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
                                         }
                                         
                                         Button("Disable") {
@@ -321,7 +321,7 @@ public struct PersonalityInsightsView: View {
                                         }
                                         .buttonStyle(.bordered)
                                         .controlSize(.small)
-                                        .disabled(viewModel.isLoading)
+                                        .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
                                     }
                                     
                                     Button("Disable") {

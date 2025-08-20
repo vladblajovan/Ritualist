@@ -14,13 +14,13 @@ struct StreakUseCasesTests {
     
     // MARK: - Test Data Setup
     
-    static let testCalendar = Calendar(identifier: .gregorian)
+    static let testCalendar = DateUtils.userCalendar()
     
     // Create service instances for testing
-    let habitCompletionService = DefaultHabitCompletionService()
+    let habitCompletionService = DefaultHabitCompletionService(calendar: Self.testCalendar)
     
     func createStreakCalculationService() -> StreakCalculationService {
-        return DefaultStreakCalculationService(habitCompletionService: habitCompletionService)
+        return DefaultStreakCalculationService(habitCompletionService: habitCompletionService, calendar: Self.testCalendar)
     }
     
     func createCurrentStreakUseCase() -> CalculateCurrentStreak {
@@ -102,8 +102,10 @@ struct StreakUseCasesTests {
     @Test("DaysOfWeek habit respects schedule")
     func daysOfWeekHabitSchedule() {
         let useCase = createCurrentStreakUseCase()
+        // Ensure habit start date predates all logs (1 week before Monday)
+        let earlierStartDate = Self.testCalendar.date(byAdding: .weekOfYear, value: -1, to: monday)!
         // Monday, Wednesday, Friday habit (1, 3, 5 in habit format)
-        let habit = createHabit(schedule: .daysOfWeek([1, 3, 5]))
+        let habit = createHabit(schedule: .daysOfWeek([1, 3, 5]), startDate: earlierStartDate)
         let logs = [
             createLog(for: habit, date: friday),     // Friday (scheduled)
             createLog(for: habit, date: thursday),   // Thursday (not scheduled - should be ignored)
@@ -262,7 +264,9 @@ struct StreakUseCasesTests {
     @Test("DaysOfWeek habit handles week transitions correctly")
     func daysOfWeekWeekTransition() {
         let useCase = createCurrentStreakUseCase()
-        let habit = createHabit(schedule: .daysOfWeek([1, 7])) // Monday and Sunday
+        // Ensure habit start date predates all logs (2 weeks before Monday)
+        let earlierStartDate = DateUtils.userCalendar().date(byAdding: .weekOfYear, value: -2, to: monday)!
+        let habit = createHabit(schedule: .daysOfWeek([1, 7]), startDate: earlierStartDate) // Monday and Sunday
         
         let logs = [
             createLog(for: habit, date: nextMonday),  // Monday of new week
@@ -289,7 +293,9 @@ struct StreakUseCasesTests {
     @Test("Weekday conversion handles Monday correctly")
     func weekdayConversionMonday() {
         let useCase = createCurrentStreakUseCase()
-        let habit = createHabit(schedule: .daysOfWeek([1])) // Monday in habit format
+        // Ensure habit start date predates the test log (1 week before Monday)
+        let earlierStartDate = DateUtils.userCalendar().date(byAdding: .weekOfYear, value: -1, to: monday)!
+        let habit = createHabit(schedule: .daysOfWeek([1]), startDate: earlierStartDate) // Monday in habit format
         let logs = [createLog(for: habit, date: monday)]
         
         let streak = useCase.execute(habit: habit, logs: logs, asOf: monday)

@@ -22,6 +22,50 @@ struct DebugMenuView: View {
                     .foregroundColor(.secondary)
             }
             
+            Section("Test Data") {
+                // Test Data Population Button
+                Button {
+                    Task {
+                        await vm.populateTestData()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: vm.isPopulatingTestData ? "hourglass" : "testtube.2")
+                            .foregroundColor(.blue)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            if vm.isPopulatingTestData {
+                                Text("Populating Test Data...")
+                                    .fontWeight(.medium)
+                                
+                                if !vm.testDataProgressMessage.isEmpty {
+                                    Text(vm.testDataProgressMessage)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                Text("Populate Test Data")
+                                    .fontWeight(.medium)
+                                
+                                Text("Create habits, categories & 2-week history")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        Spacer()
+                    }
+                }
+                .disabled(vm.isPopulatingTestData || vm.isClearingDatabase)
+                
+                // Progress Bar
+                if vm.isPopulatingTestData {
+                    ProgressView(value: vm.testDataProgress, total: 1.0)
+                        .progressViewStyle(LinearProgressViewStyle(tint: .blue))
+                        .scaleEffect(y: 0.5) // Make it thinner
+                }
+            }
+            
             Section("Database Management") {
                 // Database Statistics
                 VStack(alignment: .leading, spacing: 8) {

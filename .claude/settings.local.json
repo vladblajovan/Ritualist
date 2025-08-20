@@ -22,7 +22,8 @@
       "Bash(xcrun simctl spawn:*)",
       "Bash(open:*)",
       "Bash(xcrun simctl list:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(xcrun swift:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

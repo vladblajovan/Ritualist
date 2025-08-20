@@ -14,7 +14,7 @@ struct SimpleHabitScheduleTest {
     
     @Test("TimesPerWeek schedule behavior verification")
     func timesPerWeekScheduleBehavior() {
-        let calendar = Calendar(identifier: .gregorian)
+        let calendar = DateUtils.userCalendar()
         let testDate = calendar.date(from: DateComponents(year: 2025, month: 8, day: 16))! // Today
         
         // Test different timesPerWeek values
@@ -36,7 +36,7 @@ struct SimpleHabitScheduleTest {
     
     @Test("Daily schedule comparison")
     func dailyScheduleComparison() {
-        let calendar = Calendar(identifier: .gregorian)
+        let calendar = DateUtils.userCalendar()
         let testDate = calendar.date(from: DateComponents(year: 2025, month: 8, day: 16))!
         
         let dailySchedule = HabitSchedule.daily
@@ -58,7 +58,7 @@ struct SimpleHabitScheduleTest {
     
     @Test("DaysOfWeek schedule comparison")
     func daysOfWeekScheduleComparison() {
-        let calendar = Calendar(identifier: .gregorian)
+        let calendar = DateUtils.userCalendar()
         let friday = calendar.date(from: DateComponents(year: 2025, month: 8, day: 15))! // Friday, August 15, 2025
         
         // Friday only schedule (5 in habit weekday format)

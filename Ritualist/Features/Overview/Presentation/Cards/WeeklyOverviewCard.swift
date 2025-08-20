@@ -1,12 +1,21 @@
 import SwiftUI
 import RitualistCore
 
+// MARK: - WeeklyOverviewCard
 struct WeeklyOverviewCard: View {
     let progress: WeeklyProgress?
     let onDateSelect: (Date) -> Void
     
     @State private var glowingDate: Date? = nil
     
+    // Shared formatters to avoid creation overhead
+    private static let weekFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+    
+    // MARK: - Computed Properties
     private var weekdays: [String] {
         DateUtils.orderedWeekdaySymbols(style: .veryShort)
     }
@@ -24,11 +33,8 @@ struct WeeklyOverviewCard: View {
         let startOfWeek = weekInterval.start
         let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek) ?? weekInterval.end
         
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        
-        let startString = formatter.string(from: startOfWeek)
-        let endString = formatter.string(from: endOfWeek)
+        let startString = Self.weekFormatter.string(from: startOfWeek)
+        let endString = Self.weekFormatter.string(from: endOfWeek)
         
         return (weekOfYear, "\(startString)-\(endString)")
     }
@@ -109,13 +115,12 @@ struct WeeklyOverviewCard: View {
                                     }
                                     .scaleEffect(dayIndex == progress.currentDayIndex ? 1.1 : 1.0)
                                     .shadow(
-                                        color: Calendar.current.isDate(glowingDate ?? Date.distantPast, inSameDayAs: date) ? 
-                                               AppColors.brand : Color.clear,
-                                        radius: Calendar.current.isDate(glowingDate ?? Date.distantPast, inSameDayAs: date) ? 8 : 0,
+                                        color: isGlowingDate(date) ? AppColors.brand : Color.clear,
+                                        radius: isGlowingDate(date) ? 6 : 0,  // Reduced radius for better performance
                                         x: 0, y: 0
                                     )
-                                    .animation(.easeInOut(duration: 0.3), value: glowingDate)
-                                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: progress.currentDayIndex)
+                                    .animation(.easeInOut(duration: 0.2), value: glowingDate)  // Faster animation
+                                    .animation(.interpolatingSpring(mass: 0.8, stiffness: 100, damping: 15), value: progress.currentDayIndex)  // Optimized spring
                                 }
                                 .frame(maxWidth: .infinity)
                             }
@@ -140,7 +145,7 @@ struct WeeklyOverviewCard: View {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(weeklyColor(for: progress.weeklyCompletionRate))
                                     .frame(width: geometry.size.width * progress.weeklyCompletionRate, height: 6)
-                                    .animation(.easeInOut(duration: 0.8), value: progress.weeklyCompletionRate)
+                                    .animation(.easeInOut(duration: 0.4), value: progress.weeklyCompletionRate)  // Faster progress animation
                             }
                         }
                         .frame(height: 6)
@@ -177,7 +182,8 @@ struct WeeklyOverviewCard: View {
                 .redacted(reason: .placeholder)
             }
         }
-        .cardStyle()
+        .padding(20)
+        .glassmorphicMaximizedContentStyle()
     }
     
     private func dayBackgroundColor(for dayIndex: Int, progress: WeeklyProgress) -> Color {
@@ -198,19 +204,29 @@ struct WeeklyOverviewCard: View {
         else { return CardDesign.progressRed }
     }
     
+    // MARK: - Performance Helper Functions
+    
+    /// Optimized glow date check - avoids repeated Calendar.current.isDate calls
+    @inline(__always)
+    private func isGlowingDate(_ date: Date) -> Bool {
+        guard let glowing = glowingDate else { return false }
+        return Calendar.current.isDate(glowing, inSameDayAs: date)
+    }
+    
     private func performGlowAndSelect(date: Date) {
         // Start glow effect
         glowingDate = date
         
-        // After glow animation completes, trigger date selection
+        // Optimized timing for smoother interaction
         Task {
-            try? await Task.sleep(nanoseconds: 400_000_000) // 0.4 seconds
+            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds (faster)
             await MainActor.run {
                 glowingDate = nil
                 onDateSelect(date)
             }
         }
     }
+    
 }
 
 #Preview {

@@ -59,6 +59,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		916F91602E55EC7000D77E0D /* Ritualist-AllFeatures.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Ritualist-AllFeatures.xctestplan"; sourceTree = "<group>"; };
 		91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RitualistWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		91A5C7CD2E5369190095C251 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		91A5C7CF2E5369190095C251 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -168,13 +169,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		91A5C7BA2E51C1D40095C251 /* RitualistUITests */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = RitualistUITests;
-			sourceTree = "<group>";
-		};
 		91A5C7CC2E5369190095C251 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -187,10 +181,10 @@
 		91B730E02E38E4BC0050A48A = {
 			isa = PBXGroup;
 			children = (
+				916F91602E55EC7000D77E0D /* Ritualist-AllFeatures.xctestplan */,
 				91A5C7EB2E53699B0095C251 /* RitualistWidgetExtension.entitlements */,
 				91B730EB2E38E4BC0050A48A /* Ritualist */,
 				91B730FB2E38E4C10050A48A /* RitualistTests */,
-				91A5C7BA2E51C1D40095C251 /* RitualistUITests */,
 				91A5C7D12E5369190095C251 /* RitualistWidget */,
 				91A5C7CC2E5369190095C251 /* Frameworks */,
 				91B730EA2E38E4BC0050A48A /* Products */,

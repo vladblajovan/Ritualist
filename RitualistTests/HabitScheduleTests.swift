@@ -14,7 +14,7 @@ struct HabitScheduleTests {
     
     // MARK: - Test Data Setup
     
-    static let testCalendar = Calendar(identifier: .gregorian)
+    static let testCalendar = DateUtils.userCalendar()
     
     // Create test dates for a full week (Monday = Aug 4, 2025)
     static let monday = testCalendar.date(from: DateComponents(year: 2025, month: 8, day: 4))! // Monday

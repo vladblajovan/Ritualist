@@ -32,7 +32,7 @@ private struct OnboardingContentView: View {
             
             // Page content
             TabView(selection: $viewModel.currentPage) {
-                OnboardingPage1View(viewModel: viewModel)
+                OnboardingPage1View(viewModel: viewModel, onComplete: onComplete)
                     .tag(0)
                 
                 OnboardingPage2View(viewModel: viewModel)

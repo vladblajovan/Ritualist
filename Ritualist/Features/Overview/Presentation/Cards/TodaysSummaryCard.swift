@@ -22,6 +22,7 @@ struct TodaysSummaryCard: View {
     let onGoToToday: () -> Void
     
     @State private var isCompletedSectionExpanded = false
+    @State private var isRemainingSectionExpanded = false
     @State private var showingDeleteAlert = false  
     @State private var habitToDelete: Habit?
     @State private var animatingHabitId: UUID? = nil
@@ -86,17 +87,17 @@ struct TodaysSummaryCard: View {
                     // Previous Day Button
                     Button(action: onPreviousDay) {
                         Image(systemName: "chevron.left")
-                            .font(.body)
-                            .foregroundColor(canGoToPrevious ? AppColors.brand : .secondary)
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(canGoToPrevious ? (summary != nil ? progressColor(for: summary!.completionPercentage) : AppColors.brand) : .secondary)
                             .frame(width: 28, height: 28)
                             .background(
                                 Circle()
-                                    .fill(canGoToPrevious ? AppColors.brand.opacity(0.1) : Color.clear)
+                                    .fill(canGoToPrevious ? (summary != nil ? progressColor(for: summary!.completionPercentage).opacity(0.1) : AppColors.brand.opacity(0.1)) : Color.clear)
                             )
                             .overlay(
                                 Circle()
                                     .stroke(
-                                        canGoToPrevious ? AppColors.brand.opacity(0.3) : Color.secondary.opacity(0.2),
+                                        canGoToPrevious ? (summary != nil ? progressColor(for: summary!.completionPercentage).opacity(0.3) : AppColors.brand.opacity(0.3)) : Color.secondary.opacity(0.2),
                                         lineWidth: 1.0
                                     )
                             )
@@ -126,17 +127,17 @@ struct TodaysSummaryCard: View {
                     if !isViewingToday && canGoToNext {
                         Button(action: onNextDay) {
                             Image(systemName: "chevron.right")
-                                .font(.body)
-                                .foregroundColor(AppColors.brand)
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(summary != nil ? progressColor(for: summary!.completionPercentage) : AppColors.brand)
                                 .frame(width: 28, height: 28)
                                 .background(
                                     Circle()
-                                        .fill(AppColors.brand.opacity(0.1))
+                                        .fill(summary != nil ? progressColor(for: summary!.completionPercentage).opacity(0.1) : AppColors.brand.opacity(0.1))
                                 )
                                 .overlay(
                                     Circle()
                                         .stroke(
-                                            AppColors.brand.opacity(0.3),
+                                            summary != nil ? progressColor(for: summary!.completionPercentage).opacity(0.3) : AppColors.brand.opacity(0.3),
                                             lineWidth: 1.0
                                         )
                                 )
@@ -145,7 +146,7 @@ struct TodaysSummaryCard: View {
                         Button(action: onGoToToday) {
                             Text("Today")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(AppColors.brand)
+                                .foregroundColor(summary != nil ? progressColor(for: summary!.completionPercentage) : AppColors.brand)
                         }
                     } else {
                         // Invisible placeholder for alignment
@@ -154,24 +155,11 @@ struct TodaysSummaryCard: View {
                             .foregroundColor(.clear)
                     }
                 }
-                
-                // Show retroactive hint for past days
-                if !isViewingToday {
-                    HStack {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("You can complete missed habits retroactively")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 4)
-                }
             }
             
             if let summary = summary {
                 // Main Progress Section
-                HStack(spacing: 32) {
+                HStack(alignment: .top, spacing: 32) {
                     // Progress Ring
                     ZStack {
                         Circle()
@@ -192,30 +180,27 @@ struct TodaysSummaryCard: View {
                     
                     // Progress Details
                     VStack(alignment: .leading, spacing: 12) {
-                        // Show bullet dots only if not all habits are completed
-                        if summary.completionPercentage < 1.0 {
-                            // Habit Progress Dots - Flexible Grid for multiple lines
-                            LazyVGrid(columns: Array(repeating: GridItem(.adaptive(minimum: 14, maximum: 18), spacing: 10), count: 12), spacing: 8) {
-                                ForEach(0..<summary.totalHabits, id: \.self) { index in
-                                    Circle()
-                                        .fill(index < summary.completedHabitsCount ? 
-                                              progressColor(for: summary.completionPercentage) : 
-                                              CardDesign.secondaryBackground)
-                                        .frame(width: 14, height: 14)
-                                        .scaleEffect(index < summary.completedHabitsCount ? 1.0 : 0.85)
-                                        .shadow(color: index < summary.completedHabitsCount ? 
-                                               progressColor(for: summary.completionPercentage).opacity(0.3) : 
-                                               Color.clear, 
-                                               radius: 2, x: 0, y: 1)
-                                        .overlay(
-                                            Circle()
-                                                .stroke(index < summary.completedHabitsCount ? 
-                                                       progressColor(for: summary.completionPercentage).opacity(0.2) :
-                                                       Color.clear, 
-                                                       lineWidth: 0.5)
-                                        )
-                                        .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0).delay(Double(index) * 0.1), value: summary.completedHabitsCount)
-                                }
+                        // Always show habit progress dots (including for completed days)
+                        LazyVGrid(columns: Array(repeating: GridItem(.adaptive(minimum: 14, maximum: 18), spacing: 10), count: 12), spacing: 8) {
+                            ForEach(0..<summary.totalHabits, id: \.self) { index in
+                                Circle()
+                                    .fill(index < summary.completedHabitsCount ? 
+                                          progressColor(for: summary.completionPercentage) : 
+                                          CardDesign.secondaryBackground)
+                                    .frame(width: 14, height: 14)
+                                    .scaleEffect(index < summary.completedHabitsCount ? 1.0 : 0.85)
+                                    .shadow(color: index < summary.completedHabitsCount ? 
+                                           progressColor(for: summary.completionPercentage).opacity(0.3) : 
+                                           Color.clear, 
+                                           radius: 2, x: 0, y: 1)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(index < summary.completedHabitsCount ? 
+                                                   progressColor(for: summary.completionPercentage).opacity(0.2) :
+                                                   Color.clear, 
+                                                   lineWidth: 0.5)
+                                    )
+                                    .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0).delay(Double(index) * 0.1), value: summary.completedHabitsCount)
                             }
                         }
                         
@@ -226,8 +211,24 @@ struct TodaysSummaryCard: View {
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                         
-                        // Motivational Message (hide when day is complete)
-                        if summary.completionPercentage < 1.0 {
+                        // Motivational Message (different styles for incomplete vs complete)
+                        if summary.completionPercentage >= 1.0 {
+                            // Celebration message with special styling for completed days
+                            HStack(spacing: 8) {
+                                Image(systemName: "party.popper.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.green)
+                                
+                                Text(summary.motivationalMessage)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.green)
+                            }
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
+                        } else {
+                            // Regular motivational message for incomplete days
                             Text(summary.motivationalMessage)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
@@ -249,12 +250,12 @@ struct TodaysSummaryCard: View {
                 loadingView
             }
         }
-        .cardStyle()
-        .alert("Delete Log Entry?", isPresented: $showingDeleteAlert) {
+        .glassmorphicContentStyle()
+        .alert("Remove Log Entry?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {
                 habitToDelete = nil
             }
-            Button("Delete", role: .destructive) {
+            Button("Remove", role: .destructive) {
                 if let habit = habitToDelete {
                     performRemovalAnimation(for: habit)
                 }
@@ -440,15 +441,51 @@ struct TodaysSummaryCard: View {
             // Incomplete habits
             if !summary.incompleteHabits.isEmpty {
                 VStack(spacing: 8) {
-                    ForEach(summary.incompleteHabits.prefix(3), id: \.id) { habit in
+                    // Show first 3 habits, or all if expanded
+                    ForEach(isRemainingSectionExpanded ? summary.incompleteHabits : Array(summary.incompleteHabits.prefix(3)), id: \.id) { habit in
                         habitRow(habit: habit, isCompleted: false)
                     }
                     
                     if summary.incompleteHabits.count > 3 {
-                        Text("+ \(summary.incompleteHabits.count - 3) more")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if isRemainingSectionExpanded {
+                            // Collapse button
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    isRemainingSectionExpanded = false
+                                }
+                            } label: {
+                                HStack {
+                                    Text("Show less")
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.brand)
+                                    
+                                    Image(systemName: "chevron.up")
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.brand)
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
                             .padding(.top, 4)
+                        } else {
+                            // Expand button
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    isRemainingSectionExpanded = true
+                                }
+                            } label: {
+                                HStack {
+                                    Text("+ \(summary.incompleteHabits.count - 3) more remaining")
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.brand)
+                                    
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.brand)
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(.top, 2)
+                        }
                     }
                 }
             }
@@ -649,7 +686,7 @@ struct TodaysSummaryCard: View {
                     HStack(spacing: 6) {
                         Text(habit.name)
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(isCompleted ? .secondary : (isDisabled ? .secondary.opacity(0.7) : .primary))
+                            .foregroundColor(isCompleted ? .gray : (isDisabled ? .secondary.opacity(0.7) : .primary))
                             .lineLimit(1)
                         
                         // Schedule indicator icon
@@ -667,7 +704,7 @@ struct TodaysSummaryCard: View {
                         let targetInt = Int(target)
                         Text("\(currentInt)/\(targetInt) \(habit.unitLabel ?? "units")")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.gray)
                     } else if isDisabled {
                         Text(scheduleStatus.displayText)
                             .font(.caption)
@@ -687,9 +724,9 @@ struct TodaysSummaryCard: View {
                         habitToDelete = habit
                         showingDeleteAlert = true
                     } label: {
-                        Image(systemName: "minus.circle.fill")
+                        Image(systemName: "ellipsis.circle.fill")
                             .font(.system(size: 18))
-                            .foregroundColor(.red.opacity(0.7))
+                            .foregroundColor(.gray.opacity(0.8))
                     }
                     .buttonStyle(PlainButtonStyle())
                 } else {

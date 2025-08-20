@@ -4,11 +4,18 @@ import RitualistCore
 struct OnboardingPage1View: View {
     @Bindable var viewModel: OnboardingViewModel
     @FocusState private var isTextFieldFocused: Bool
+    let onComplete: (() -> Void)?
+    
+    init(viewModel: OnboardingViewModel, onComplete: (() -> Void)? = nil) {
+        self.viewModel = viewModel
+        self.onComplete = onComplete
+    }
     
     var body: some View {
         GeometryReader { geometry in
-            ScrollView {
-                VStack(spacing: adaptiveSpacing(for: geometry.size.height)) {
+            ZStack(alignment: .topTrailing) {
+                ScrollView {
+                    VStack(spacing: adaptiveSpacing(for: geometry.size.height)) {
                     Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
                     
                     // Welcome icon
@@ -62,6 +69,33 @@ struct OnboardingPage1View: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 isTextFieldFocused = false
+            }
+            
+            #if DEBUG
+            // Debug-only Skip button in top right corner
+            Button(action: {
+                print("[DEBUG] Skip button tapped!")
+                Task {
+                    print("[DEBUG] Calling skipOnboarding...")
+                    let success = await viewModel.skipOnboarding()
+                    print("[DEBUG] Skip onboarding result: \(success)")
+                    if success {
+                        print("[DEBUG] Skip successful, calling onComplete callback")
+                        onComplete?()
+                    }
+                }
+            }) {
+                Text("Skip")
+                    .font(.body)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.accentColor)
+                    .cornerRadius(6)
+            }
+            .padding(.top, 50) // Safe area consideration
+            .padding(.trailing, 20)
+            #endif
             }
         }
         .onAppear {

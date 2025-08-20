@@ -45,7 +45,7 @@ public struct RootTabView: View {
                             }
                         }
                 }
-                .modifier(TabBarMinimizeModifier())
+                //.modifier(TabBarMinimizeModifier())
                 .preferredColorScheme(vm.appearanceManager.colorScheme)
             }
         }

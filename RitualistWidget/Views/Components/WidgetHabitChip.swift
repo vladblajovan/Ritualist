@@ -15,6 +15,7 @@ struct WidgetHabitChip: View {
     let habitDisplayInfo: HabitDisplayInfo
     let isViewingToday: Bool
     let selectedDate: Date
+    let widgetSize: WidgetSize
     
     // Legacy computed properties for backward compatibility
     private var habit: Habit {
@@ -58,31 +59,68 @@ struct WidgetHabitChip: View {
     
     // MARK: - Shared Content
     
+    @ViewBuilder
     private var chipContent: some View {
-        HStack(alignment: .top, spacing: 6) {
-            // Habit emoji
-            Text(habit.emoji ?? WidgetConstants.defaultHabitEmoji)
-                .font(.caption)
-            
-            // Habit name with better text wrapping
-            Text(habit.name)
-                .font(.caption)
-                .fontWeight(.medium)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .minimumScaleFactor(0.8)
-            
-            Spacer(minLength: 0)
-            
-            // Progress indicator based on habit type and completion status
-            progressIndicator
+        if habitDisplayInfo.isCompleted {
+            if widgetSize == .large {
+                // Circular design for large widget - emoji centered with habit color background and green border
+                Text(habit.emoji ?? WidgetConstants.defaultHabitEmoji)
+                    .font(.title3)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(
+                        Circle()
+                            .fill(brandColor.opacity(0.15))
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(Color.green, lineWidth: 2.5)
+                    )
+            } else {
+                // Simplified completed habit chip for small/medium widgets
+                HStack {
+                    Spacer()
+                    Text(habit.emoji ?? WidgetConstants.defaultHabitEmoji)
+                        .font(.title3)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.green.opacity(0.2))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.green, lineWidth: 2)
+                )
+            }
+        } else {
+            // Standard chip layout for incomplete habits
+            HStack(alignment: .top, spacing: 6) {
+                // Habit emoji
+                Text(habit.emoji ?? WidgetConstants.defaultHabitEmoji)
+                    .font(.caption)
+                
+                // Habit name with better text wrapping
+                Text(habit.name)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .minimumScaleFactor(0.8)
+                
+                Spacer(minLength: 0)
+                
+                // Progress indicator based on habit type and completion status
+                progressIndicator
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .background(chipBackground)
+            .overlay(chipBorder)
+            .opacity(completionOpacity)
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(chipBackground)
-        .overlay(chipBorder)
-        .opacity(completionOpacity)
     }
     
     // MARK: - View Components
@@ -151,12 +189,12 @@ struct WidgetHabitChip: View {
             // Show empty circle for today's incomplete binary habits (indicates tap-to-complete)
             Image(systemName: "circle")
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
         } else {
             // Show empty circle for historical incomplete binary habits
             Image(systemName: "circle")
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
         }
     }
     
@@ -171,7 +209,7 @@ struct WidgetHabitChip: View {
             // Show progress text for incomplete numeric habits
             Text("\(currentProgress)/\(Int(target))")
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
         }
     }
     
@@ -204,7 +242,8 @@ struct WidgetHabitChip: View {
     return WidgetHabitChip(
         habitDisplayInfo: habitDisplayInfo,
         isViewingToday: true,
-        selectedDate: Date()
+        selectedDate: Date(),
+        widgetSize: .large
     )
     .padding()
     .background(Color(.systemBackground))
@@ -225,7 +264,8 @@ struct WidgetHabitChip: View {
     return WidgetHabitChip(
         habitDisplayInfo: habitDisplayInfo,
         isViewingToday: true,
-        selectedDate: Date()
+        selectedDate: Date(),
+        widgetSize: .large
     )
     .padding()
     .background(Color(.systemBackground))
@@ -247,7 +287,8 @@ struct WidgetHabitChip: View {
     return WidgetHabitChip(
         habitDisplayInfo: habitDisplayInfo,
         isViewingToday: false,
-        selectedDate: Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+        selectedDate: Calendar.current.date(byAdding: .day, value: -2, to: Date())!,
+        widgetSize: .large
     )
     .padding()
     .background(Color(.systemBackground))
@@ -268,7 +309,8 @@ struct WidgetHabitChip: View {
     return WidgetHabitChip(
         habitDisplayInfo: habitDisplayInfo,
         isViewingToday: false,
-        selectedDate: Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+        selectedDate: Calendar.current.date(byAdding: .day, value: -2, to: Date())!,
+        widgetSize: .large
     )
     .padding()
     .background(Color(.systemBackground))
@@ -290,7 +332,8 @@ struct WidgetHabitChip: View {
     return WidgetHabitChip(
         habitDisplayInfo: habitDisplayInfo,
         isViewingToday: false,
-        selectedDate: Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+        selectedDate: Calendar.current.date(byAdding: .day, value: -2, to: Date())!,
+        widgetSize: .large
     )
     .padding()
     .background(Color(.systemBackground))

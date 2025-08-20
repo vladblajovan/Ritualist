@@ -147,7 +147,8 @@ struct MonthlyCalendarCard: View {
                     ))
             }
         }
-        .cardStyle()
+        .padding(20)
+        .glassmorphicMaximizedContentStyle()
     }
     
     @ViewBuilder

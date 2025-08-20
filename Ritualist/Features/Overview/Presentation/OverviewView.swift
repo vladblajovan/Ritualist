@@ -10,9 +10,13 @@ public struct OverviewView: View {
     }
     
     public var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: CardDesign.cardSpacing) {
+        ZStack {
+            // Beautiful gradient background
+            RitualistGradientBackground()
+            
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: CardDesign.cardSpacing) {
                 // Always show core cards
                 // Inspiration card moved to top position
                 if vm.shouldShowInspirationCard {
@@ -28,6 +32,7 @@ public struct OverviewView: View {
                             }
                         }
                     )
+                    .simpleCard()
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 
@@ -73,9 +78,12 @@ public struct OverviewView: View {
                         vm.goToToday()
                     }
                 )
+                .glassmorphicCard()
                 .id("topCard")
                 
                 // Conditional cards based on user state
+                // COMMENTED OUT: QuickActionsCard - Quick Log functionality temporarily disabled
+                /*
                 if vm.shouldShowQuickActions {
                     QuickActionsCard(
                         incompleteHabits: vm.incompleteHabits,
@@ -115,7 +123,9 @@ public struct OverviewView: View {
                             vm.getWeeklyProgress(for: habit)
                         }
                     )
+                    .glassmorphicCard()
                 }
+                */
                 
                 // Core navigation and overview
                 WeeklyOverviewCard(
@@ -128,6 +138,7 @@ public struct OverviewView: View {
                         }
                     }
                 )
+                .simpleCard()
                 
                 // Expandable calendar section
                 MonthlyCalendarCard(
@@ -141,6 +152,7 @@ public struct OverviewView: View {
                         }
                     }
                 )
+                .simpleCard()
                 
                 if vm.shouldShowActiveStreaks || vm.isLoading {
                     StreaksCard(
@@ -149,11 +161,13 @@ public struct OverviewView: View {
                         onAnimationComplete: {},
                         isLoading: vm.isLoading
                     )
+                    .simpleCard()
                 }
                 
                 // Smart contextual insights (basic habit patterns)
                 if vm.shouldShowInsights {
                     SmartInsightsCard(insights: vm.smartInsights)
+                        .simpleCard()
                 }
                 
                 // Personality-based insights (separate card)
@@ -167,13 +181,13 @@ public struct OverviewView: View {
                             vm.openPersonalityAnalysis()
                         }
                     )
+                    .simpleCard()
                 }
                 
                 Spacer(minLength: 100) // Tab bar padding
             }
             .padding(.horizontal, Spacing.screenMargin)
         }
-        .background(Color(.systemGroupedBackground))
         .refreshable {
             await vm.refresh()
         }
@@ -181,11 +195,6 @@ public struct OverviewView: View {
             await vm.loadData()
         }
         .onAppear {
-            print("[DEEP-LINK-TRACE] OverviewView.onAppear called")
-            print("[DEEP-LINK-TRACE] View state: viewingDate = \(vm.viewingDate)")
-            print("[DEEP-LINK-TRACE] View state: showingNumericSheet = \(vm.showingNumericSheet)")
-            print("[DEEP-LINK-TRACE] View state: selectedHabitForSheet = \(vm.selectedHabitForSheet?.name ?? "nil")")
-            
             // RACE CONDITION FIX: Set view as visible immediately
             vm.setViewVisible(true)
             
@@ -198,7 +207,6 @@ public struct OverviewView: View {
             processNumericHabitWithViewStateValidation()
         }
         .onDisappear {
-            print("[DEEP-LINK-TRACE] OverviewView.onDisappear called")
             // RACE CONDITION FIX: Set view as not visible
             vm.setViewVisible(false)
         }
@@ -221,55 +229,35 @@ public struct OverviewView: View {
                     },
                     initialValue: vm.getProgressSync(for: habit)
                 )
-                .onAppear {
-                    print("[DEEP-LINK-TRACE] NumericHabitLogSheetDirect appeared for habit: \(habit.name) (ID: \(habit.id))")
-                    print("[DEEP-LINK-TRACE] Sheet viewingDate: \(vm.viewingDate)")
-                    print("[DEEP-LINK-TRACE] Sheet initialValue: \(vm.getProgressSync(for: habit))")
-                }
             }
         }
-        } // ScrollViewReader
+            } // ScrollViewReader
+        } // ZStack
     }
     
     // MARK: - Private Methods
     
     /// Processes pending numeric habit with robust view state validation and timing
     private func processNumericHabitWithViewStateValidation() {
-        print("[DEEP-LINK-TRACE] Starting enhanced numeric habit processing...")
-        print("[DEEP-LINK-TRACE] Initial view state check at onAppear time:")
-        print("[DEEP-LINK-TRACE] - View hierarchy ready: checking in 500ms")
-        print("[DEEP-LINK-TRACE] - Current pending habit: \(vm.pendingNumericHabitFromNotification?.name ?? "none")")
+        // PHASE 1 FIX: Guard early - only proceed if there's actually a pending habit
+        guard vm.pendingNumericHabitFromNotification != nil && !vm.isPendingHabitProcessed else {
+            return
+        }
         
         // First attempt with 500ms delay for view hierarchy readiness
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            print("[DEEP-LINK-TRACE] === 500ms delay checkpoint ===")
-            print("[DEEP-LINK-TRACE] View state validation:")
-            print("[DEEP-LINK-TRACE] - showingNumericSheet: \(vm.showingNumericSheet)")
-            print("[DEEP-LINK-TRACE] - selectedHabitForSheet: \(vm.selectedHabitForSheet?.name ?? "nil")")
-            print("[DEEP-LINK-TRACE] - hasDataLoaded: \(vm.todaysSummary != nil)")
-            print("[DEEP-LINK-TRACE] - pendingHabit: \(vm.pendingNumericHabitFromNotification?.name ?? "none")")
             
             // Validate view is ready for sheet presentation
             if isViewReadyForSheetPresentation() {
-                print("[DEEP-LINK-TRACE] ✅ View is ready - processing pending numeric habit")
                 vm.processPendingNumericHabit()
             } else {
-                print("[DEEP-LINK-TRACE] ⚠️ View not ready after 500ms - attempting fallback with additional delay")
-                // Fallback with longer delay if view still not ready
+                // PHASE 1 FIX: Normal data loading timing, not an error
+                // Wait for data loading to complete (typically takes 500-1000ms)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    print("[DEEP-LINK-TRACE] === 1000ms fallback checkpoint ===")
-                    print("[DEEP-LINK-TRACE] Fallback view state validation:")
-                    print("[DEEP-LINK-TRACE] - showingNumericSheet: \(vm.showingNumericSheet)")
-                    print("[DEEP-LINK-TRACE] - selectedHabitForSheet: \(vm.selectedHabitForSheet?.name ?? "nil")")
-                    print("[DEEP-LINK-TRACE] - hasDataLoaded: \(vm.todaysSummary != nil)")
-                    print("[DEEP-LINK-TRACE] - pendingHabit: \(vm.pendingNumericHabitFromNotification?.name ?? "none")")
-                    
                     if isViewReadyForSheetPresentation() {
-                        print("[DEEP-LINK-TRACE] ✅ View ready on fallback - processing pending numeric habit")
                         vm.processPendingNumericHabit()
                     } else {
-                        print("[DEEP-LINK-TRACE] ❌ View still not ready after 1000ms - forcing processing anyway")
-                        print("[DEEP-LINK-TRACE] This may indicate a deeper SwiftUI timing issue")
+                        // Processing anyway to prevent hanging deep links
                         vm.processPendingNumericHabit()
                     }
                 }
@@ -285,18 +273,9 @@ public struct OverviewView: View {
         // Check if there's no conflicting sheet state
         let noConflictingSheet = !vm.showingNumericSheet && vm.selectedHabitForSheet == nil
         
-        // Check if there's actually a pending habit to process
-        let hasPendingHabit = vm.pendingNumericHabitFromNotification != nil && !vm.isPendingHabitProcessed
-        
-        let isReady = hasDataLoaded && noConflictingSheet && hasPendingHabit
-        
-        print("[DEEP-LINK-TRACE] View readiness check:")
-        print("[DEEP-LINK-TRACE] - hasDataLoaded: \(hasDataLoaded)")
-        print("[DEEP-LINK-TRACE] - noConflictingSheet: \(noConflictingSheet)")
-        print("[DEEP-LINK-TRACE] - hasPendingHabit: \(hasPendingHabit)")
-        print("[DEEP-LINK-TRACE] - isReady: \(isReady)")
-        
-        return isReady
+        // PHASE 1 FIX: Remove hasPendingHabit requirement - view can be ready without pending actions
+        // The early guard in processNumericHabitWithViewStateValidation() handles the pending habit check
+        return hasDataLoaded && noConflictingSheet
     }
 }
 

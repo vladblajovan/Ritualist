@@ -81,6 +81,15 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     }
     
     public func getStreakBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date) -> [Date] {
+        switch habit.schedule {
+        case .timesPerWeek(let weeklyTarget):
+            return getTimesPerWeekBreakDates(habit: habit, logs: logs, asOf: date, weeklyTarget: weeklyTarget)
+        default:
+            return getDailyBreakDates(habit: habit, logs: logs, asOf: date)
+        }
+    }
+    
+    private func getDailyBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date) -> [Date] {
         var breakDates: [Date] = []
         var currentDate = calendar.startOfDay(for: date)
         let habitStartDate = calendar.startOfDay(for: habit.startDate)
@@ -99,6 +108,46 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         }
         
         return breakDates.reversed() // Return in chronological order
+    }
+    
+    private func getTimesPerWeekBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date, weeklyTarget: Int) -> [Date] {
+        var breakDates: [Date] = []
+        var weekDate = calendar.startOfDay(for: date)
+        let habitStartDate = habit.startDate
+        
+        // Check each week backwards
+        while weekDate >= habitStartDate {
+            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: weekDate) else { break }
+            
+            // Don't count future weeks or weeks before habit start
+            if weekInterval.start > date || weekInterval.end < habitStartDate {
+                break
+            }
+            
+            let weekLogs = logs.filter { log in
+                log.date >= weekInterval.start &&
+                log.date < weekInterval.end &&
+                isLogCompleted(log: log, habit: habit)
+            }
+            
+            // If weekly target isn't met, add all days in that week as break dates
+            if weekLogs.count < weeklyTarget {
+                var dayDate = weekInterval.start
+                while dayDate < weekInterval.end {
+                    if dayDate >= habitStartDate && dayDate <= date {
+                        breakDates.append(dayDate)
+                    }
+                    guard let nextDay = calendar.date(byAdding: .day, value: 1, to: dayDate) else { break }
+                    dayDate = nextDay
+                }
+            }
+            
+            // Move to previous week
+            guard let previousWeek = calendar.date(byAdding: .weekOfYear, value: -1, to: weekDate) else { break }
+            weekDate = previousWeek
+        }
+        
+        return breakDates.sorted() // Return in chronological order
     }
     
     public func getNextScheduledDate(habit: Habit, after date: Date) -> Date? {

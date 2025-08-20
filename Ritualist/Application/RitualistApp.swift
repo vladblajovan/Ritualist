@@ -158,17 +158,11 @@ import UserNotifications
             let overviewViewModel = Container.shared.overviewViewModel()
             
             // Navigate to the specific date first and wait for completion
-            print("[DEEP-LINK-TRACE] About to navigate to date and load data for habit \(habit.name)...")
             await navigateToDateInOverview(targetDate)
-            print("[DEEP-LINK-TRACE] Navigation and data loading completed - now setting pending habit")
             
             // Set the habit as pending for progress sheet auto-opening
             // The sheet will open when OverviewView appears and calls processPendingNumericHabit()
-            print("[DEEP-LINK-TRACE] About to set pending numeric habit \(habit.name) (ID: \(habit.id))")
             overviewViewModel.setPendingNumericHabit(habit)
-            
-            print("[DEEP-LINK-TRACE] Progress sheet configured for habit \(habit.name) on \(targetDate) - will open when view appears")
-            print("[DEEP-LINK-TRACE] handleProgressDeepLinkAction completed successfully")
             
         } catch {
             print("[DEEP-LINK] Error fetching habit for progress action: \(error)")
@@ -179,20 +173,13 @@ import UserNotifications
     /// Sets the overview to display the specific date and refreshes data
     @MainActor
     private func navigateToDateInOverview(_ targetDate: Date) async {
-        print("[DEEP-LINK-TRACE] navigateToDateInOverview started for date \(targetDate)")
-        
         let overviewViewModel = Container.shared.overviewViewModel()
         
         // Set the date first
-        print("[DEEP-LINK-TRACE] Setting viewingDate to \(targetDate)")
         overviewViewModel.viewingDate = targetDate
         
         // Wait for data loading to complete before proceeding
-        print("[DEEP-LINK-TRACE] About to await loadData()")
         await overviewViewModel.loadData()
-        print("[DEEP-LINK-TRACE] loadData() completed successfully")
-        
-        print("[DEEP-LINK-TRACE] navigateToDateInOverview completed for date \(targetDate)")
     }
     
     /// Handle overview deep links from widget

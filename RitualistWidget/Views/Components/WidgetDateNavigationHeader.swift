@@ -14,6 +14,14 @@ import AppIntents
 struct WidgetDateNavigationHeader: View {
     let entry: RemainingHabitsEntry
     let size: WidgetSize
+    let completionPercentage: Double?
+    
+    // Convenience init for backwards compatibility
+    init(entry: RemainingHabitsEntry, size: WidgetSize, completionPercentage: Double? = nil) {
+        self.entry = entry
+        self.size = size
+        self.completionPercentage = completionPercentage
+    }
     
     var body: some View {
         HStack(alignment: .center, spacing: sizingConfig.horizontalSpacing) {
@@ -33,7 +41,7 @@ struct WidgetDateNavigationHeader: View {
                     Button(intent: NavigateToTodayIntent()) {
                         Image(systemName: "calendar.circle")
                             .font(.caption)
-                            .foregroundColor(.widgetBrand)
+                            .foregroundColor(navigationColor)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -58,7 +66,7 @@ struct WidgetDateNavigationHeader: View {
         Text(entry.navigationInfo.dateDisplayText)
             .font(sizingConfig.dateFont)
             .fontWeight(.semibold)
-            .foregroundColor(.white)
+            .foregroundColor(navigationColor)
             .lineLimit(1)
             .minimumScaleFactor(0.8) // Allow text scaling for small widgets
     }
@@ -85,16 +93,16 @@ struct WidgetDateNavigationHeader: View {
     private func navigationButtonContent(icon: String, isEnabled: Bool) -> some View {
         Image(systemName: icon)
             .font(sizingConfig.buttonIconFont)
-            .foregroundColor(isEnabled ? .widgetBrand : .secondary)
+            .foregroundColor(isEnabled ? navigationColor : .secondary)
             .frame(width: sizingConfig.buttonSize, height: sizingConfig.buttonSize)
             .background(
                 Circle()
-                    .fill(isEnabled ? Color.widgetBrand.opacity(0.1) : Color.clear)
+                    .fill(isEnabled ? navigationColor.opacity(0.1) : Color.clear)
             )
             .overlay(
                 Circle()
                     .stroke(
-                        isEnabled ? Color.widgetBrand.opacity(0.3) : Color.secondary.opacity(0.2),
+                        isEnabled ? navigationColor.opacity(0.3) : Color.secondary.opacity(0.2),
                         lineWidth: sizingConfig.buttonBorderWidth
                     )
             )
@@ -105,6 +113,13 @@ struct WidgetDateNavigationHeader: View {
     
     private var sizingConfig: SizingConfiguration {
         SizingConfiguration.configuration(for: size)
+    }
+    
+    private var navigationColor: Color {
+        guard let percentage = completionPercentage else {
+            return .widgetBrand
+        }
+        return CardDesign.progressColor(for: percentage)
     }
 }
 
@@ -150,7 +165,7 @@ private struct SizingConfiguration {
                 buttonBorderWidth: 0.75,
                 todayIndicatorSize: 5,
                 horizontalSpacing: 8,
-                horizontalPadding: 8,
+                horizontalPadding: 2,
                 verticalPadding: 4
             )
             
@@ -162,7 +177,7 @@ private struct SizingConfiguration {
                 buttonBorderWidth: 1.0,
                 todayIndicatorSize: 6,
                 horizontalSpacing: 12,
-                horizontalPadding: 12,
+                horizontalPadding: 0,
                 verticalPadding: 6
             )
         }

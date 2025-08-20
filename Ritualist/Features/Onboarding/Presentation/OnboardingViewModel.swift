@@ -128,6 +128,35 @@ public final class OnboardingViewModel {
         }
     }
     
+    #if DEBUG
+    /// Skip onboarding entirely - debug builds only
+    public func skipOnboarding() async -> Bool {
+        print("[DEBUG] skipOnboarding() called")
+        isLoading = true
+        do {
+            print("[DEBUG] About to call completeOnboarding.execute")
+            // Complete onboarding with debug user name and no notifications
+            try await completeOnboarding.execute(userName: "Debug User", hasNotifications: false)
+            print("[DEBUG] completeOnboarding.execute succeeded")
+            isCompleted = true
+            print("[DEBUG] Set isCompleted = true")
+            
+            // Track as skipped for debug metrics
+            userActionTracker.track(.onboardingCompleted)
+            print("[DEBUG] Tracked onboarding completion")
+            
+            isLoading = false
+            print("[DEBUG] Skip onboarding completed successfully")
+            return true
+        } catch {
+            print("[DEBUG] Skip onboarding failed with error: \(error)")
+            errorMessage = "Failed to skip onboarding"
+            isLoading = false
+            return false
+        }
+    }
+    #endif
+    
     public var canProceedFromCurrentPage: Bool {
         switch currentPage {
         case 0: // Name input page

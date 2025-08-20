@@ -15,7 +15,7 @@ struct DateUtilsTests {
     // MARK: - Test Data Setup
     
     // Fixed test dates for consistent testing
-    static let testCalendar = Calendar(identifier: .gregorian)
+    static let testCalendar = DateUtils.userCalendar()
     static let testDate1 = testCalendar.date(from: DateComponents(year: 2025, month: 8, day: 4, hour: 14, minute: 30))!
     static let testDate2 = testCalendar.date(from: DateComponents(year: 2025, month: 8, day: 5, hour: 9, minute: 15))!
     static let testDate3 = testCalendar.date(from: DateComponents(year: 2025, month: 8, day: 7, hour: 22, minute: 45))!

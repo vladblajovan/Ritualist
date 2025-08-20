@@ -13,17 +13,8 @@ import RitualistCore
 struct MediumWidgetView: View {
     let entry: RemainingHabitsEntry
     
-    // Height synchronization state
-    @State private var remainingCardHeights: [CGFloat] = []
-    @State private var completedCardHeights: [CGFloat] = []
-    
-    private var maxRemainingHeight: CGFloat {
-        remainingCardHeights.max() ?? 0
-    }
-    
-    private var maxCompletedHeight: CGFloat {
-        completedCardHeights.max() ?? 0
-    }
+    // Fixed height for consistent card appearance
+    private let chipHeight: CGFloat = 50
     
     private let columns = [
         GridItem(.flexible(), spacing: 8),
@@ -39,8 +30,8 @@ struct MediumWidgetView: View {
             
             habitsSections
         }
-        .padding(.top, 12)
-        .padding([.leading, .trailing, .bottom], 12)
+        .padding(.top, 6)
+        .padding([.leading, .trailing, .bottom], 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
     
@@ -53,14 +44,14 @@ struct MediumWidgetView: View {
                 Text("Current Progress:")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 Spacer()
                 
                 Text("\(Int(entry.completionPercentage * 100))%")
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
             }
             
             ProgressView(value: entry.completionPercentage)
@@ -82,26 +73,16 @@ struct MediumWidgetView: View {
                             WidgetHabitChip(
                                 habitDisplayInfo: habitInfo, 
                                 isViewingToday: entry.navigationInfo.isViewingToday,
-                                selectedDate: entry.navigationInfo.selectedDate
+                                selectedDate: entry.navigationInfo.selectedDate,
+                                widgetSize: .medium
                             )
-                            .frame(height: maxRemainingHeight > 0 ? maxRemainingHeight : nil)
-                            .background(
-                                GeometryReader { geometry in
-                                    Color.clear
-                                        .onAppear {
-                                            updateRemainingHeight(geometry.size.height, at: index)
-                                        }
-                                        .onChange(of: geometry.size.height) { _, newHeight in
-                                            updateRemainingHeight(newHeight, at: index)
-                                        }
-                                }
-                            )
+                            .frame(height: chipHeight)
                         }
                         
                         // Show "more" indicator if there are additional remaining habits
                         if remainingHabits.count > 4 {
                             moreHabitsChip(remaining: remainingHabits.count - 4)
-                                .frame(height: maxRemainingHeight > 0 ? maxRemainingHeight : nil)
+                                .frame(height: chipHeight)
                         }
                     }
                 }
@@ -117,26 +98,16 @@ struct MediumWidgetView: View {
                             WidgetHabitChip(
                                 habitDisplayInfo: habitInfo, 
                                 isViewingToday: entry.navigationInfo.isViewingToday,
-                                selectedDate: entry.navigationInfo.selectedDate
+                                selectedDate: entry.navigationInfo.selectedDate,
+                                widgetSize: .medium
                             )
-                            .frame(height: maxCompletedHeight > 0 ? maxCompletedHeight : nil)
-                            .background(
-                                GeometryReader { geometry in
-                                    Color.clear
-                                        .onAppear {
-                                            updateCompletedHeight(geometry.size.height, at: index)
-                                        }
-                                        .onChange(of: geometry.size.height) { _, newHeight in
-                                            updateCompletedHeight(newHeight, at: index)
-                                        }
-                                }
-                            )
+                            .frame(height: chipHeight)
                         }
                         
                         // Show "more" indicator if there are additional completed habits
                         if completedHabits.count > 2 {
                             moreHabitsChip(remaining: completedHabits.count - 2)
-                                .frame(height: maxCompletedHeight > 0 ? maxCompletedHeight : nil)
+                                .frame(height: chipHeight)
                         }
                     }
                 }
@@ -157,7 +128,7 @@ struct MediumWidgetView: View {
             Text("(\(count))")
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
             
             Spacer()
         }
@@ -167,12 +138,12 @@ struct MediumWidgetView: View {
         HStack(spacing: 6) {
             Text("...")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
             
             Text("+\(remaining) more")
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
             
             Spacer(minLength: 0)
         }
@@ -196,36 +167,6 @@ struct MediumWidgetView: View {
     
     private var completedHabits: [HabitDisplayInfo] {
         entry.habitDisplayInfo.filter { $0.isCompleted }
-    }
-    
-    // MARK: - Height Management
-    
-    private func updateRemainingHeight(_ height: CGFloat, at index: Int) {
-        guard height > 0 else { return }
-        
-        // Ensure array is large enough
-        while remainingCardHeights.count <= index {
-            remainingCardHeights.append(0)
-        }
-        
-        // Only update if height has changed significantly (avoid tiny layout adjustments)
-        if abs(remainingCardHeights[index] - height) > 0.5 {
-            remainingCardHeights[index] = height
-        }
-    }
-    
-    private func updateCompletedHeight(_ height: CGFloat, at index: Int) {
-        guard height > 0 else { return }
-        
-        // Ensure array is large enough
-        while completedCardHeights.count <= index {
-            completedCardHeights.append(0)
-        }
-        
-        // Only update if height has changed significantly (avoid tiny layout adjustments)
-        if abs(completedCardHeights[index] - height) > 0.5 {
-            completedCardHeights[index] = height
-        }
     }
 }
 

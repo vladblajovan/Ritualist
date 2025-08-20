@@ -46,7 +46,7 @@ struct UtilitiesLightTests {
     
     @Test("DateUtils handles same day comparisons")
     func dateUtilsSameDay() {
-        let calendar = Calendar(identifier: .gregorian)
+        let calendar = DateUtils.userCalendar()
         let date1 = calendar.date(from: DateComponents(year: 2025, month: 8, day: 4, hour: 8))!
         let date2 = calendar.date(from: DateComponents(year: 2025, month: 8, day: 4, hour: 20))!
         
@@ -55,7 +55,7 @@ struct UtilitiesLightTests {
     
     @Test("DateUtils calculates days between correctly")
     func dateUtilsDaysBetween() {
-        let calendar = Calendar(identifier: .gregorian)
+        let calendar = DateUtils.userCalendar()
         let date1 = calendar.date(from: DateComponents(year: 2025, month: 8, day: 4))!
         let date2 = calendar.date(from: DateComponents(year: 2025, month: 8, day: 5))!
         

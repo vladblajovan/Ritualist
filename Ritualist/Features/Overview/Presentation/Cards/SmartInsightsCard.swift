@@ -60,7 +60,8 @@ struct SmartInsightsCard: View {
                 insightsContent
             }
         }
-        .cardStyle()
+        .padding(20)
+        .glassmorphicMaximizedContentStyle()
     }
     
     // MARK: - Insights Content

@@ -16,6 +16,7 @@ public final class SettingsViewModel {
     
     #if DEBUG
     @ObservationIgnored @Injected(\.debugService) var debugService
+    @ObservationIgnored @Injected(\.testDataPopulationService) var testDataPopulationService
     #endif
 
     public var profile = UserProfile()
@@ -30,6 +31,9 @@ public final class SettingsViewModel {
     #if DEBUG
     public private(set) var isClearingDatabase = false
     public private(set) var databaseStats: DebugDatabaseStats?
+    public private(set) var isPopulatingTestData = false
+    public private(set) var testDataProgress: Double = 0.0
+    public private(set) var testDataProgressMessage: String = ""
     #endif
     
     // Computed properties
@@ -209,6 +213,38 @@ public final class SettingsViewModel {
         }
         
         isClearingDatabase = false
+    }
+    
+    public func populateTestData() async {
+        isPopulatingTestData = true
+        testDataProgress = 0.0
+        testDataProgressMessage = "Starting test data population..."
+        error = nil
+        
+        // Setup progress callback
+        testDataPopulationService.progressUpdate = { [weak self] message, progress in
+            Task { @MainActor in
+                self?.testDataProgressMessage = message
+                self?.testDataProgress = progress
+            }
+        }
+        
+        do {
+            try await testDataPopulationService.populateTestData()
+            
+            // Reload stats after populating data
+            databaseStats = try await debugService.getDatabaseStats()
+            
+            // Track the debug action
+            userActionTracker.track(.custom(event: "debug_test_data_populated", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "debug_test_data_population")
+        }
+        
+        isPopulatingTestData = false
+        testDataProgress = 0.0
+        testDataProgressMessage = ""
     }
     #endif
 }

@@ -427,7 +427,9 @@ struct RitualistWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: RemainingHabitsProvider()) { entry in
             RemainingHabitsWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(for: .widget) {
+                    WidgetGradientBackground()
+                }
         }
         .configurationDisplayName("Today's Habits")
         .description("View your habits with completion status")
