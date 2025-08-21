@@ -24,7 +24,8 @@ public final class UserActionEventMapper {
         case .screenViewed, .tabSwitched:
             return navigationEventName(for: event)
         case .notificationPermissionRequested, .notificationPermissionGranted, .notificationPermissionDenied,
-             .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled:
+             .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled,
+             .notificationSuppressed:
             return notificationEventName(for: event)
         case .categoryCreated, .categoryUpdated, .categoryDeleted, .categoryReordered, .categoryManagementOpened:
             return categoryEventName(for: event)
@@ -61,7 +62,8 @@ public final class UserActionEventMapper {
         case .screenViewed, .tabSwitched:
             return navigationEventProperties(for: event)
         case .notificationPermissionRequested, .notificationPermissionGranted, .notificationPermissionDenied,
-             .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled:
+             .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled,
+             .notificationSuppressed:
             return notificationEventProperties(for: event)
         case .categoryCreated, .categoryUpdated, .categoryDeleted, .categoryReordered, .categoryManagementOpened:
             return categoryEventProperties(for: event)
@@ -148,6 +150,7 @@ private extension UserActionEventMapper {
         case .notificationActionTapped: return "notification_action_tapped"
         case .notificationScheduled: return "notification_scheduled"
         case .notificationCancelled: return "notification_cancelled"
+        case .notificationSuppressed: return "notification_suppressed"
         default: return "notification_event"
         }
     }
@@ -323,6 +326,8 @@ private extension UserActionEventMapper {
         case .notificationScheduled(let habitId, let habitName, let reminderCount):
             return ["habit_id": habitId, "habit_name": habitName, "reminder_count": reminderCount]
         case .notificationCancelled(let habitId, let habitName, let reason):
+            return ["habit_id": habitId, "habit_name": habitName, "reason": reason]
+        case .notificationSuppressed(let habitId, let habitName, let reason):
             return ["habit_id": habitId, "habit_name": habitName, "reason": reason]
         default:
             return [:]

@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import UIKit
 import RitualistCore
 
 // MARK: - Notification Service (protocol moved to RitualistCore)
@@ -24,12 +25,17 @@ public final class LocalNotificationService: NSObject, NotificationService {
     public var actionHandler: ((NotificationAction, UUID, String?, HabitKind, ReminderTime?) async throws -> Void)?
     public var trackingService: UserActionTrackerService?
     private let errorHandler: ErrorHandlingActor?
+    private let habitCompletionCheckService: HabitCompletionCheckService
     
-    public init(errorHandler: ErrorHandlingActor? = nil) {
+    public init(habitCompletionCheckService: HabitCompletionCheckService, errorHandler: ErrorHandlingActor? = nil) {
+        self.habitCompletionCheckService = habitCompletionCheckService
         self.errorHandler = errorHandler
         super.init()
+        
         // Set up the notification center delegate to handle foreground notifications
+        print("🔧 [NotificationService] Setting up notification delegate")
         UNUserNotificationCenter.current().delegate = self
+        print("🔧 [NotificationService] Delegate set to: \(String(describing: UNUserNotificationCenter.current().delegate))")
         
         // Setup notification categories with actions
         Task {
@@ -75,8 +81,10 @@ public final class LocalNotificationService: NSObject, NotificationService {
     
     public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {
         let center = UNUserNotificationCenter.current()
+        let calendar = Calendar.current
+        let today = Date()
         
-        for (index, time) in times.enumerated() {
+        for time in times {
             let content = UNMutableNotificationContent()
             
             // Customize title and body based on habit type
@@ -104,15 +112,23 @@ public final class LocalNotificationService: NSObject, NotificationService {
                 "reminderMinute": time.minute
             ]
             
-            var date = DateComponents()
-            date.hour = time.hour
-            date.minute = time.minute
-            let trigger = UNCalendarNotificationTrigger(dateMatching: date, repeats: true)
+            // Create notification time for today only (non-repeating)
+            var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
+            dateComponents.hour = time.hour
+            dateComponents.minute = time.minute
             
-            let id = "\(habitID.uuidString)-\(time.hour)-\(time.minute)"
-            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-            
-            try await center.add(request)
+            // Only schedule if the time hasn't passed today
+            if let notificationDate = calendar.date(from: dateComponents), 
+               notificationDate > Date() {
+                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+                let id = "today_\(habitID.uuidString)-\(time.hour)-\(time.minute)"
+                let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+                
+                try await center.add(request)
+                print("📅 [NotificationService] Scheduled notification for \(habitName) today at \(time.hour):\(String(format: "%02d", time.minute))")
+            } else {
+                print("⏰ [NotificationService] Skipping notification for \(habitName) at \(time.hour):\(String(format: "%02d", time.minute)) - time has already passed today")
+            }
         }
         
         // Track notification scheduling
@@ -245,28 +261,71 @@ public final class LocalNotificationService: NSObject, NotificationService {
         let prefix = habitID.uuidString
         let pending = await center.pendingNotificationRequests()
         
-        // Cancel all notifications that match the habit ID (including rich_, tailored_, and streak_ prefixed ones)
+        print("🔍 [NotificationService] Starting cancellation for habit: \(habitID)")
+        print("📊 [NotificationService] Total pending notifications before cancellation: \(pending.count)")
+        
+        // Log all pending notifications for this habit to debug
+        let habitNotifications = pending.filter { notification in
+            let id = notification.identifier
+            let matches = id.hasPrefix(prefix) || 
+                         id.hasPrefix("rich_\(prefix)") || 
+                         id.hasPrefix("tailored_\(prefix)") || 
+                         id.hasPrefix("today_\(prefix)") ||
+                         id.hasPrefix("streak_milestone_\(prefix)")
+            if matches {
+                print("🎯 [NotificationService] Found habit notification to cancel: \(id)")
+            }
+            return matches
+        }
+        
+        // Cancel all notifications that match the habit ID (including rich_, tailored_, today_, and streak_ prefixed ones)
         let ids = pending.map { $0.identifier }.filter { id in
             id.hasPrefix(prefix) || 
             id.hasPrefix("rich_\(prefix)") || 
             id.hasPrefix("tailored_\(prefix)") || 
+            id.hasPrefix("today_\(prefix)") ||
             id.hasPrefix("streak_milestone_\(prefix)")
         }
+        
+        print("🗑️ [NotificationService] Cancelling \(ids.count) notifications for habit \(habitID)")
+        print("📋 [NotificationService] Notification IDs to cancel: \(ids)")
         
         // Extract habit name from pending notifications for tracking
         let habitName = pending.first(where: { notification in
             let id = notification.identifier
-            return id.hasPrefix(prefix) || id.hasPrefix("rich_\(prefix)") || id.hasPrefix("tailored_\(prefix)")
+            return id.hasPrefix(prefix) || 
+                   id.hasPrefix("rich_\(prefix)") || 
+                   id.hasPrefix("tailored_\(prefix)") || 
+                   id.hasPrefix("today_\(prefix)")
         })?.content.userInfo["habitName"] as? String ?? "Unknown Habit"
         
         center.removePendingNotificationRequests(withIdentifiers: ids)
+        
+        // Verify cancellation by checking pending notifications again
+        let pendingAfter = await center.pendingNotificationRequests()
+        let remainingHabitNotifications = pendingAfter.filter { notification in
+            let id = notification.identifier
+            return id.hasPrefix(prefix) || 
+                   id.hasPrefix("rich_\(prefix)") || 
+                   id.hasPrefix("tailored_\(prefix)") || 
+                   id.hasPrefix("today_\(prefix)") ||
+                   id.hasPrefix("streak_milestone_\(prefix)")
+        }
+        
+        print("✅ [NotificationService] Cancellation complete. Remaining habit notifications: \(remainingHabitNotifications.count)")
+        if !remainingHabitNotifications.isEmpty {
+            print("⚠️ [NotificationService] WARNING: Some notifications were not cancelled:")
+            for notification in remainingHabitNotifications {
+                print("⚠️ [NotificationService] Still pending: \(notification.identifier)")
+            }
+        }
         
         // Track notification cancellation
         if !ids.isEmpty {
             trackingService?.track(.notificationCancelled(
                 habitId: habitID.uuidString,
                 habitName: habitName,
-                reason: "manual_cancellation"
+                reason: "habit_completed"
             ))
         }
     }
@@ -295,6 +354,38 @@ public final class LocalNotificationService: NSObject, NotificationService {
         try await center.add(request)
         print("Snooze notification scheduled successfully")
     }
+    
+    // MARK: - Private Helpers
+    
+    /// Executes an async operation with a timeout to prevent blocking the delegate
+    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async -> T) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            // Add the actual operation
+            group.addTask {
+                await operation()
+            }
+            
+            // Add the timeout task
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TimeoutError()
+            }
+            
+            // Return the first result (either completion or timeout)
+            guard let result = try await group.next() else {
+                throw TimeoutError()
+            }
+            
+            // Cancel remaining tasks
+            group.cancelAll()
+            return result
+        }
+    }
+}
+
+// MARK: - Timeout Error
+private struct TimeoutError: Error {
+    let message = "Operation timed out"
 }
 
 // MARK: - UNUserNotificationCenterDelegate
@@ -305,9 +396,56 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        print("Notification received in foreground: \(notification.request.content.title)")
-        // Show the notification even when the app is in the foreground
-        completionHandler([.banner, .sound, .badge])
+        print("🔥 [NotificationService] ========== WILL PRESENT CALLED ==========")
+        print("📱 [NotificationService] Notification ID: \(notification.request.identifier)")
+        print("📱 [NotificationService] Notification title: \(notification.request.content.title)")
+        print("📱 [NotificationService] Notification body: \(notification.request.content.body)")
+        print("📱 [NotificationService] App state: \(UIApplication.shared.applicationState.rawValue)")
+        
+        // Extract habitId from notification userInfo for completion checking
+        let userInfo = notification.request.content.userInfo
+        print("🔍 [NotificationService] UserInfo: \(userInfo)")
+        
+        guard let habitIdString = userInfo["habitId"] as? String,
+              let habitId = UUID(uuidString: habitIdString) else {
+            print("⚠️ [NotificationService] No valid habitId found in notification, showing notification by default")
+            print("⚠️ [NotificationService] Expected habitId key not found or invalid UUID")
+            completionHandler([.banner, .sound, .badge])
+            return
+        }
+        
+        print("🔔 [NotificationService] Notification for habit: \(habitId)")
+        print("🔍 [NotificationService] Checking completion status for habit: \(habitId)")
+        
+        // Use async completion checking with timeout to avoid blocking the delegate
+        Task {
+            do {
+                print("⏱️ [NotificationService] Starting completion check with 0.5s timeout")
+                let shouldShow = try await withTimeout(seconds: 0.5) {
+                    await self.habitCompletionCheckService.shouldShowNotification(habitId: habitId, date: Date())
+                }
+                
+                print("📊 [NotificationService] Completion check result: shouldShow = \(shouldShow)")
+                
+                if shouldShow {
+                    print("✅ [NotificationService] Habit not completed, showing notification")
+                    print("🔊 [NotificationService] Calling completionHandler with [.banner, .sound, .badge]")
+                    completionHandler([.banner, .sound, .badge])
+                } else {
+                    print("🚫 [NotificationService] Habit already completed, suppressing notification")
+                    print("🔇 [NotificationService] Calling completionHandler with [] (suppressed)")
+                    completionHandler([]) // Suppress notification
+                }
+            } catch {
+                print("⚠️ [NotificationService] Error checking completion status: \(error)")
+                print("⚠️ [NotificationService] Error details: \(String(describing: error))")
+                print("🔊 [NotificationService] Falling back to showing notification")
+                // Fail-safe: show notification on any error
+                completionHandler([.banner, .sound, .badge])
+            }
+        }
+        
+        print("🔥 [NotificationService] ========== WILL PRESENT EXIT ==========")
     }
     
     // This method is called when the user taps on a notification
@@ -316,6 +454,12 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        print("🔥 [NotificationService] ========== DID RECEIVE CALLED ==========")
+        print("🎯 [NotificationService] Notification response action: \(response.actionIdentifier)")
+        print("🎯 [NotificationService] Notification ID: \(response.notification.request.identifier)")
+        print("🎯 [NotificationService] Notification title: \(response.notification.request.content.title)")
+        print("🎯 [NotificationService] App state: \(UIApplication.shared.applicationState.rawValue)")
+        
         // Handle notification response on main thread
         DispatchQueue.main.async {
             Task {
@@ -323,6 +467,8 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
                 completionHandler()
             }
         }
+        
+        print("🔥 [NotificationService] ========== DID RECEIVE EXIT ==========")
     }
     
     // MARK: - Notification Categories Setup
@@ -441,6 +587,25 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         }
         
         print("Handling notification action: \(action) for habit: \(habitName)")
+        
+        // For log actions, check if habit is already completed to provide better UX
+        if action == .log {
+            let today = Date()
+            let shouldShow = await habitCompletionCheckService.shouldShowNotification(habitId: habitId, date: today)
+            
+            if !shouldShow {
+                print("Habit \(habitName) is already completed today, skipping action")
+                
+                // Track as already completed interaction
+                trackingService?.track(.notificationActionTapped(
+                    action: "already_completed",
+                    habitId: habitId.uuidString,
+                    habitName: habitName,
+                    source: "notification_action_skipped"
+                ))
+                return
+            }
+        }
         
         // Track notification action
         trackingService?.track(.notificationActionTapped(

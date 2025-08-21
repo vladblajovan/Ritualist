@@ -22,6 +22,21 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
         }
     }
     
+    /// Fetch a single habit by ID from background thread, return Domain model
+    public func fetch(by id: UUID) async throws -> Habit? {
+        do {
+            let descriptor = FetchDescriptor<HabitModel>(
+                predicate: #Predicate { $0.id == id }
+            )
+            let habits = try modelContext.fetch(descriptor)
+            return try habits.first?.toEntity()
+        } catch {
+            // TODO: Add error handler integration when DI allows it
+            // For now, just re-throw the error
+            throw error
+        }
+    }
+    
     /// Insert or update habit on background thread - accepts Domain model
     public func upsert(_ habit: Habit) async throws {
         do {

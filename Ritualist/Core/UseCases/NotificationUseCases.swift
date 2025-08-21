@@ -9,10 +9,16 @@ import RitualistCore
 public final class ScheduleHabitReminders: ScheduleHabitRemindersUseCase {
     private let habitRepository: HabitRepository
     private let notificationService: NotificationService
+    private let habitCompletionCheckService: HabitCompletionCheckService
     
-    public init(habitRepository: HabitRepository, notificationService: NotificationService) {
+    public init(
+        habitRepository: HabitRepository, 
+        notificationService: NotificationService,
+        habitCompletionCheckService: HabitCompletionCheckService
+    ) {
         self.habitRepository = habitRepository
         self.notificationService = notificationService
+        self.habitCompletionCheckService = habitCompletionCheckService
     }
     
     public func execute(habit: Habit) async throws {
@@ -22,6 +28,17 @@ public final class ScheduleHabitReminders: ScheduleHabitRemindersUseCase {
         // Schedule new notifications only for active habits with reminders
         guard habit.isActive && !habit.reminders.isEmpty else { return }
         
+        // Check if habit is already completed for today
+        let today = Date()
+        let shouldShow = await habitCompletionCheckService.shouldShowNotification(habitId: habit.id, date: today)
+        
+        // Only schedule notifications if the habit is not completed today
+        guard shouldShow else { 
+            print("🚫 [ScheduleHabitReminders] Habit \(habit.name) is already completed today, not scheduling notifications")
+            return 
+        }
+        
+        print("✅ [ScheduleHabitReminders] Habit \(habit.name) not completed today, scheduling notifications")
         try await notificationService.scheduleWithActions(for: habit.id, habitName: habit.name, habitKind: habit.kind, times: habit.reminders)
     }
 }
@@ -46,8 +63,7 @@ public final class LogHabitFromNotification: LogHabitFromNotificationUseCase {
     
     public func execute(habitId: UUID, date: Date, value: Double?) async throws {
         // Fetch habit to determine logging behavior
-        let allHabits = try await habitRepository.fetchAllHabits()
-        guard let habit = allHabits.first(where: { $0.id == habitId }) else {
+        guard let habit = try await habitRepository.fetchHabit(by: habitId) else {
             throw NSError(domain: "LogHabitFromNotification", code: 404, 
                          userInfo: [NSLocalizedDescriptionKey: "Habit not found"])
         }
@@ -97,15 +113,21 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
     private let logHabitFromNotification: LogHabitFromNotificationUseCase
     private let snoozeHabitReminder: SnoozeHabitReminderUseCase
     private let notificationService: NotificationService
+    private let habitCompletionCheckService: HabitCompletionCheckService
+    private let cancelHabitReminders: CancelHabitRemindersUseCase
     
     public init(
         logHabitFromNotification: LogHabitFromNotificationUseCase,
         snoozeHabitReminder: SnoozeHabitReminderUseCase,
-        notificationService: NotificationService
+        notificationService: NotificationService,
+        habitCompletionCheckService: HabitCompletionCheckService,
+        cancelHabitReminders: CancelHabitRemindersUseCase
     ) {
         self.logHabitFromNotification = logHabitFromNotification
         self.snoozeHabitReminder = snoozeHabitReminder
         self.notificationService = notificationService
+        self.habitCompletionCheckService = habitCompletionCheckService
+        self.cancelHabitReminders = cancelHabitReminders
     }
     
     public func execute(
@@ -119,7 +141,22 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
         
         switch action {
         case .log:
+            // For log actions, check if habit is already completed to provide better UX
+            let shouldShow = await habitCompletionCheckService.shouldShowNotification(habitId: habitId, date: currentDate)
+            
+            if !shouldShow {
+                // Habit is already completed today, skip action
+                print("Habit \(habitName ?? "Unknown") is already completed today, skipping action")
+                return
+            }
+            
+            // Proceed with logging since habit is not completed
             try await logHabitFromNotification.execute(habitId: habitId, date: currentDate, value: nil)
+            
+            // CRITICAL: Cancel all remaining notifications for this habit today
+            // This prevents duplicate notifications from firing after completion
+            print("🚫 [HandleNotificationAction] Habit completed - cancelling remaining notifications for habit: \(habitId)")
+            await cancelHabitReminders.execute(habitId: habitId)
             
             // Send confirmation notification for binary habits (background completion)
             if habitKind == .binary, let habitName = habitName {

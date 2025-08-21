@@ -27,7 +27,10 @@ extension Container {
     
     var notificationService: Factory<NotificationService> {
         self { 
-            let service = LocalNotificationService(errorHandler: self.errorHandlingActor())
+            let service = LocalNotificationService(
+                habitCompletionCheckService: self.habitCompletionCheckService(),
+                errorHandler: self.errorHandlingActor()
+            )
             service.trackingService = self.userActionTracker()
             
             // Configure the action handler to use dependency injection
@@ -46,8 +49,7 @@ extension Container {
                     Task {
                         // Fetch the habit object
                         do {
-                            let habits = try await self.habitRepository().fetchAllHabits()
-                            if let habit = habits.first(where: { $0.id == habitId }) {
+                            if let habit = try await self.habitRepository().fetchHabit(by: habitId) {
                                 // Set the habit as pending on the OverviewViewModel
                                 await MainActor.run {
                                     self.overviewViewModel().setPendingNumericHabit(habit)
@@ -109,6 +111,30 @@ extension Container {
     var habitCompletionServiceProtocol: Factory<HabitCompletionServiceProtocol> {
         self { DefaultHabitCompletionService() }
             .singleton
+    }
+    
+    var habitCompletionCheckService: Factory<HabitCompletionCheckService> {
+        self { 
+            DefaultHabitCompletionCheckService(
+                habitRepository: self.habitRepository(),
+                logRepository: self.logRepository(),
+                habitCompletionService: self.habitCompletionServiceProtocol(),
+                calendar: .current,
+                errorHandler: self.errorHandlingActor()
+            )
+        }
+        .singleton
+    }
+    
+    var dailyNotificationScheduler: Factory<DailyNotificationSchedulerService> {
+        self {
+            DefaultDailyNotificationScheduler(
+                habitRepository: self.habitRepository(),
+                scheduleHabitReminders: self.scheduleHabitReminders(),
+                notificationService: self.notificationService()
+            )
+        }
+        .singleton
     }
     
     var streakCalculationService: Factory<StreakCalculationService> {
@@ -211,7 +237,10 @@ extension Container {
             mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
             return mockPaywall
             #else
-            return StoreKitPaywallService()
+            // MainActor-isolated service creation
+            return MainActor.assumeIsolated {
+                StoreKitPaywallService()
+            }
             #endif
         }
         .singleton

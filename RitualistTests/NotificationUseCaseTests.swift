@@ -1,8 +1,36 @@
 import XCTest
 @testable import Ritualist
 import RitualistCore
+import Testing
 
-// MARK: - Mock Notification Service for Testing
+// MARK: - Mock Services for Testing
+
+class MockHabitCompletionCheckService: HabitCompletionCheckService {
+    var shouldShowResponses: [UUID: Bool] = [:]
+    var callLog: [(habitId: UUID, date: Date)] = []
+    
+    func shouldShowNotification(habitId: UUID, date: Date) async -> Bool {
+        callLog.append((habitId: habitId, date: date))
+        return shouldShowResponses[habitId] ?? true // Default to show notification
+    }
+    
+    func reset() {
+        shouldShowResponses.removeAll()
+        callLog.removeAll()
+    }
+}
+
+class MockCancelHabitRemindersUseCase: CancelHabitRemindersUseCase {
+    var cancelledHabits: [UUID] = []
+    
+    func execute(habitId: UUID) async {
+        cancelledHabits.append(habitId)
+    }
+    
+    func reset() {
+        cancelledHabits.removeAll()
+    }
+}
 
 class MockNotificationService: NotificationService {
     var requestAuthorizationCalled = false
@@ -54,6 +82,16 @@ class MockNotificationService: NotificationService {
     func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws {
         // Mock implementation
     }
+    
+    func reset() {
+        requestAuthorizationCalled = false
+        checkAuthorizationStatusCalled = false
+        scheduledHabits.removeAll()
+        scheduledWithActionsHabits.removeAll()
+        cancelledHabits.removeAll()
+        immediateNotifications.removeAll()
+        categoriesSetup = false
+    }
 }
 
 // MARK: - Mock Repositories for Testing
@@ -63,6 +101,10 @@ class MockHabitRepository: HabitRepository {
     
     func fetchAllHabits() async throws -> [Habit] {
         return habits
+    }
+    
+    func fetchHabit(by id: UUID) async throws -> Habit? {
+        return habits.first { $0.id == id }
     }
     
     func create(_ habit: Habit) async throws {
@@ -81,6 +123,10 @@ class MockHabitRepository: HabitRepository {
     
     func cleanupOrphanedHabits() async throws -> Int {
         return 0 // Mock implementation
+    }
+    
+    func reset() {
+        habits.removeAll()
     }
 }
 
@@ -102,6 +148,10 @@ class MockLogRepository: LogRepository {
     func deleteLog(id: UUID) async throws {
         logs.removeAll { $0.id == id }
     }
+    
+    func reset() {
+        logs.removeAll()
+    }
 }
 
 // MARK: - Notification Use Cases Tests
@@ -111,18 +161,25 @@ class NotificationUseCaseTests: XCTestCase {
     var mockNotificationService: MockNotificationService!
     var mockHabitRepository: MockHabitRepository!
     var mockLogRepository: MockLogRepository!
+    var mockHabitCompletionCheckService: MockHabitCompletionCheckService!
     
     override func setUp() {
         super.setUp()
         mockNotificationService = MockNotificationService()
         mockHabitRepository = MockHabitRepository()
         mockLogRepository = MockLogRepository()
+        mockHabitCompletionCheckService = MockHabitCompletionCheckService()
     }
     
     override func tearDown() {
+        mockNotificationService?.reset()
+        mockHabitRepository?.reset()
+        mockLogRepository?.reset()
+        mockHabitCompletionCheckService?.reset()
         mockNotificationService = nil
         mockHabitRepository = nil
         mockLogRepository = nil
+        mockHabitCompletionCheckService = nil
         super.tearDown()
     }
     
@@ -140,7 +197,8 @@ class NotificationUseCaseTests: XCTestCase {
         
         let useCase = ScheduleHabitReminders(
             habitRepository: mockHabitRepository,
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService
         )
         
         // Act
@@ -175,7 +233,8 @@ class NotificationUseCaseTests: XCTestCase {
         
         let useCase = ScheduleHabitReminders(
             habitRepository: mockHabitRepository,
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService
         )
         
         // Act
@@ -202,7 +261,8 @@ class NotificationUseCaseTests: XCTestCase {
         
         let useCase = ScheduleHabitReminders(
             habitRepository: mockHabitRepository,
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService
         )
         
         // Act
@@ -339,7 +399,9 @@ class NotificationUseCaseTests: XCTestCase {
         let useCase = HandleNotificationAction(
             logHabitFromNotification: logHabitFromNotification,
             snoozeHabitReminder: snoozeHabitReminder,
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
         )
         
         // Act
@@ -348,7 +410,7 @@ class NotificationUseCaseTests: XCTestCase {
                 action: NotificationAction.log,
                 habitId: habitId,
                 habitName: "Test Habit",
-                habitKind: .binary,
+                habitKind: HabitKind.binary,
                 reminderTime: ReminderTime(hour: 9, minute: 0)
             )
         } catch {
@@ -382,7 +444,9 @@ class NotificationUseCaseTests: XCTestCase {
         let useCase = HandleNotificationAction(
             logHabitFromNotification: logHabitFromNotification,
             snoozeHabitReminder: snoozeHabitReminder,
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
         )
         
         // Act
@@ -391,7 +455,7 @@ class NotificationUseCaseTests: XCTestCase {
                 action: NotificationAction.remindLater,
                 habitId: habitId,
                 habitName: habitName,
-                habitKind: .binary,
+                habitKind: HabitKind.binary,
                 reminderTime: reminderTime
             )
         } catch {
@@ -417,7 +481,9 @@ class NotificationUseCaseTests: XCTestCase {
                 )
             ),
             snoozeHabitReminder: SnoozeHabitReminder(notificationService: mockNotificationService),
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
         )
         
         // Act
@@ -426,7 +492,7 @@ class NotificationUseCaseTests: XCTestCase {
                 action: NotificationAction.dismiss,
                 habitId: UUID(),
                 habitName: "Test Habit",
-                habitKind: .binary,
+                habitKind: HabitKind.binary,
                 reminderTime: ReminderTime(hour: 9, minute: 0)
             )
         } catch {
@@ -526,7 +592,9 @@ class NotificationUseCaseTests: XCTestCase {
         let useCase = HandleNotificationAction(
             logHabitFromNotification: logHabitFromNotification,
             snoozeHabitReminder: snoozeHabitReminder,
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
         )
         
         // Act - passing nil habitName
@@ -535,7 +603,7 @@ class NotificationUseCaseTests: XCTestCase {
                 action: NotificationAction.log,
                 habitId: habitId,
                 habitName: nil,
-                habitKind: .binary,
+                habitKind: HabitKind.binary,
                 reminderTime: ReminderTime(hour: 9, minute: 0)
             )
         } catch {
@@ -561,7 +629,9 @@ class NotificationUseCaseTests: XCTestCase {
                 )
             ),
             snoozeHabitReminder: SnoozeHabitReminder(notificationService: mockNotificationService),
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
         )
         
         // Act & Assert - missing habitName
@@ -570,7 +640,7 @@ class NotificationUseCaseTests: XCTestCase {
                 action: NotificationAction.remindLater,
                 habitId: UUID(),
                 habitName: nil as String?, // Missing
-                habitKind: .binary,
+                habitKind: HabitKind.binary,
                 reminderTime: ReminderTime(hour: 9, minute: 0)
             )
             XCTFail("Expected error to be thrown")
@@ -584,7 +654,7 @@ class NotificationUseCaseTests: XCTestCase {
                 action: NotificationAction.remindLater,
                 habitId: UUID(),
                 habitName: "Test Habit",
-                habitKind: .binary,
+                habitKind: HabitKind.binary,
                 reminderTime: nil as ReminderTime? // Missing
             )
             XCTFail("Expected error to be thrown")
@@ -606,7 +676,8 @@ class NotificationUseCaseTests: XCTestCase {
         
         let useCase = ScheduleHabitReminders(
             habitRepository: mockHabitRepository,
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService
         )
         
         // Act
@@ -648,7 +719,8 @@ class NotificationUseCaseTests: XCTestCase {
         
         let useCase = ScheduleHabitReminders(
             habitRepository: mockHabitRepository,
-            notificationService: mockNotificationService
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService
         )
         
         // Act
@@ -664,5 +736,679 @@ class NotificationUseCaseTests: XCTestCase {
         XCTAssertEqual(scheduledHabit?.0, habit.id)
         XCTAssertEqual(scheduledHabit?.1, habit.name)
         XCTAssertEqual(scheduledHabit?.2.count, 3)
+    }
+    
+    // MARK: - Notification Suppression Tests
+    
+    func testHandleNotificationAction_LogAction_CompletedHabit_SkipsAction() async {
+        // Arrange
+        let habitId = UUID()
+        let habit = Habit(id: habitId, name: "Test Habit", kind: .binary, isActive: true)
+        mockHabitRepository.habits = [habit]
+        
+        // Mock completion check service to return false (don't show notification = already completed)
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = false
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: "Test Habit",
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        
+        // Assert - No logs should be created since habit is already completed
+        XCTAssertTrue(mockLogRepository.logs.isEmpty, "No logs should be created for already completed habit")
+        XCTAssertTrue(mockNotificationService.immediateNotifications.isEmpty, "No confirmation notifications should be sent")
+    }
+    
+    func testHandleNotificationAction_LogAction_IncompleteHabit_ProceedsWithAction() async {
+        // Arrange
+        let habitId = UUID()
+        let habit = Habit(id: habitId, name: "Test Habit", kind: .binary, isActive: true)
+        mockHabitRepository.habits = [habit]
+        
+        // Mock completion check service to return true (show notification = not completed)
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = true
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: "Test Habit",
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        
+        // Assert - Log should be created since habit is not completed
+        XCTAssertEqual(mockLogRepository.logs.count, 1, "Log should be created for incomplete habit")
+        XCTAssertEqual(mockLogRepository.logs.first?.habitID, habitId)
+        XCTAssertEqual(mockLogRepository.logs.first?.value, 1.0)
+        
+        // Binary habit should get confirmation notification
+        XCTAssertEqual(mockNotificationService.immediateNotifications.count, 1)
+        XCTAssertTrue(mockNotificationService.immediateNotifications.first?.0.contains("✅ Test Habit completed!") ?? false)
+    }
+    
+    func testHandleNotificationAction_LogAction_NumericHabit_CompletedHabit_SkipsAction() async {
+        // Arrange
+        let habitId = UUID()
+        let habit = Habit(id: habitId, name: "Workout Reps", kind: .numeric, isActive: true)
+        mockHabitRepository.habits = [habit]
+        
+        // Add existing log showing habit has some progress already
+        let existingLog = HabitLog(habitID: habitId, date: Date(), value: 5.0)
+        mockLogRepository.logs = [existingLog]
+        
+        // Mock completion check service to return false (don't show notification = already completed)
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = false
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: "Workout Reps",
+                habitKind: HabitKind.numeric,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        
+        // Assert - No additional logs should be created since habit is already completed
+        XCTAssertEqual(mockLogRepository.logs.count, 1, "Should still have only the original log")
+        XCTAssertEqual(mockLogRepository.logs.first?.value, 5.0, "Log value should remain unchanged")
+        XCTAssertTrue(mockNotificationService.immediateNotifications.isEmpty, "No confirmation notifications for numeric habits")
+    }
+    
+    func testHandleNotificationAction_LogAction_NumericHabit_IncompleteHabit_ProceedsWithAction() async {
+        // Arrange
+        let habitId = UUID()
+        let habit = Habit(id: habitId, name: "Workout Reps", kind: .numeric, isActive: true)
+        mockHabitRepository.habits = [habit]
+        
+        // Add existing log showing partial progress
+        let existingLog = HabitLog(habitID: habitId, date: Date(), value: 2.0)
+        mockLogRepository.logs = [existingLog]
+        
+        // Mock completion check service to return true (show notification = not completed)
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = true
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: "Workout Reps",
+                habitKind: HabitKind.numeric,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        
+        // Assert - Log should be incremented since habit is not completed
+        XCTAssertEqual(mockLogRepository.logs.count, 1, "Should still have one log entry")
+        XCTAssertEqual(mockLogRepository.logs.first?.value, 3.0, "Log value should be incremented from 2.0 to 3.0")
+        XCTAssertTrue(mockNotificationService.immediateNotifications.isEmpty, "Numeric habits don't get confirmation notifications")
+    }
+    
+    func testHandleNotificationAction_NonLogActions_AlwaysProceed() async {
+        // Arrange
+        let habitId = UUID()
+        let habitName = "Test Habit"
+        
+        // Mock completion check service to return false (habit is completed)
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = false
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act & Assert - Test remindLater action (should always proceed)
+        do {
+            try await useCase.execute(
+                action: NotificationAction.remindLater,
+                habitId: habitId,
+                habitName: habitName,
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error for remindLater: \(error)")
+        }
+        
+        // Assert - Snooze notification should be sent regardless of completion status
+        XCTAssertEqual(mockNotificationService.immediateNotifications.count, 1)
+        XCTAssertEqual(mockNotificationService.immediateNotifications.first?.0, "Reminder: Test Habit")
+        
+        // Reset for next test
+        mockNotificationService.reset()
+        
+        // Act & Assert - Test dismiss action (should always proceed)
+        do {
+            try await useCase.execute(
+                action: NotificationAction.dismiss,
+                habitId: habitId,
+                habitName: habitName,
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error for dismiss: \(error)")
+        }
+        
+        // Assert - Dismiss action should do nothing (no error)
+        XCTAssertTrue(mockNotificationService.immediateNotifications.isEmpty)
+        XCTAssertTrue(mockLogRepository.logs.isEmpty)
+    }
+    
+    func testHabitCompletionCheckService_Integration() async {
+        // Arrange
+        let habitId = UUID()
+        let habitName = "Integration Test Habit"
+        
+        // Mock completion check service to simulate different completion states
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = false // Start as completed
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act 1 - Try to log when habit is completed
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: habitName,
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        
+        // Assert 1 - Service should have been called and action should be skipped
+        XCTAssertEqual(mockHabitCompletionCheckService.callLog.count, 1)
+        XCTAssertEqual(mockHabitCompletionCheckService.callLog.first?.habitId, habitId)
+        XCTAssertTrue(mockLogRepository.logs.isEmpty, "No logs should be created when habit is completed")
+        
+        // Arrange 2 - Change completion state to incomplete
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = true
+        let habit = Habit(id: habitId, name: habitName, kind: .binary, isActive: true)
+        mockHabitRepository.habits = [habit]
+        
+        // Act 2 - Try to log when habit is not completed
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: habitName,
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        
+        // Assert 2 - Service should be called again and action should proceed
+        XCTAssertEqual(mockHabitCompletionCheckService.callLog.count, 2)
+        XCTAssertEqual(mockLogRepository.logs.count, 1, "Log should be created when habit is not completed")
+        XCTAssertEqual(mockLogRepository.logs.first?.habitID, habitId)
+    }
+    
+    func testHabitCompletionCheckService_UsesCurrentDate() async {
+        // Arrange
+        let habitId = UUID()
+        let today = Date()
+        
+        // Add the habit to the mock repository so LogHabitFromNotification can find it
+        let testHabit = Habit(id: habitId, name: "Date Test Habit", emoji: "🧪", kind: .binary, schedule: .daily, reminders: [])
+        mockHabitRepository.habits = [testHabit]
+        
+        // Mock the service to track date calls
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = true
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: "Date Test Habit",
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        
+        // Assert - Service should be called with today's date (within reasonable time window)
+        XCTAssertEqual(mockHabitCompletionCheckService.callLog.count, 1)
+        let calledDate = mockHabitCompletionCheckService.callLog.first?.date
+        XCTAssertNotNil(calledDate)
+        
+        // Verify the date is close to current time (within 5 seconds to account for execution time)
+        let timeDifference = abs(calledDate!.timeIntervalSince(today))
+        XCTAssertLessThan(timeDifference, 5.0, "Should use current date")
+    }
+    
+    func testHabitCompletionCheckService_FailSafeOnError() async {
+        // Arrange
+        let habitId = UUID()
+        
+        // Don't set any response in mock service - this will cause default behavior (return true)
+        // This simulates the service failing and falling back to showing notification
+        
+        let habit = Habit(id: habitId, name: "Fail Safe Test", kind: .binary, isActive: true)
+        mockHabitRepository.habits = [habit]
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: "Fail Safe Test",
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        
+        // Assert - Should proceed with action when service returns default (true)
+        XCTAssertEqual(mockHabitCompletionCheckService.callLog.count, 1)
+        XCTAssertEqual(mockLogRepository.logs.count, 1, "Should create log when service fails/returns true")
+        XCTAssertEqual(mockLogRepository.logs.first?.habitID, habitId)
+    }
+    
+    func testHabitCompletionCheckService_CalledOnlyForLogActions() async {
+        // Arrange
+        let habitId = UUID()
+        let habitName = "Service Call Test"
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act 1 - Test dismiss action (should NOT call completion check)
+        do {
+            try await useCase.execute(
+                action: NotificationAction.dismiss,
+                habitId: habitId,
+                habitName: habitName,
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error for dismiss: \(error)")
+        }
+        
+        // Assert 1 - No calls to completion check service
+        XCTAssertTrue(mockHabitCompletionCheckService.callLog.isEmpty, "Dismiss action should not check completion")
+        
+        // Act 2 - Test remindLater action (should NOT call completion check)
+        do {
+            try await useCase.execute(
+                action: NotificationAction.remindLater,
+                habitId: habitId,
+                habitName: habitName,
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error for remindLater: \(error)")
+        }
+        
+        // Assert 2 - Still no calls to completion check service
+        XCTAssertTrue(mockHabitCompletionCheckService.callLog.isEmpty, "RemindLater action should not check completion")
+        
+        // Act 3 - Test log action (SHOULD call completion check)
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = true
+        let habit = Habit(id: habitId, name: habitName, kind: .binary, isActive: true)
+        mockHabitRepository.habits = [habit]
+        
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: habitName,
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error for log: \(error)")
+        }
+        
+        // Assert 3 - Now should have one call to completion check service
+        XCTAssertEqual(mockHabitCompletionCheckService.callLog.count, 1, "Log action should check completion")
+        XCTAssertEqual(mockHabitCompletionCheckService.callLog.first?.habitId, habitId)
+    }
+    
+    // MARK: - Edge Cases for Notification Suppression
+    
+    func testHandleNotificationAction_LogAction_CompletedHabit_BinaryVsNumeric() async {
+        // Test that both binary and numeric habits are handled consistently when completed
+        
+        // Arrange - Binary habit
+        let binaryHabitId = UUID()
+        let binaryHabit = Habit(id: binaryHabitId, name: "Binary Habit", kind: .binary, isActive: true)
+        mockHabitRepository.habits = [binaryHabit]
+        
+        // Mock as completed
+        mockHabitCompletionCheckService.shouldShowResponses[binaryHabitId] = false
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act & Assert - Binary habit
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: binaryHabitId,
+                habitName: "Binary Habit",
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error for binary habit: \(error)")
+        }
+        
+        let binaryCallCount = mockHabitCompletionCheckService.callLog.count
+        let binaryLogCount = mockLogRepository.logs.count
+        
+        // Arrange - Numeric habit
+        let numericHabitId = UUID()
+        let numericHabit = Habit(id: numericHabitId, name: "Numeric Habit", kind: .numeric, isActive: true)
+        mockHabitRepository.habits = [numericHabit]
+        
+        // Mock as completed
+        mockHabitCompletionCheckService.shouldShowResponses[numericHabitId] = false
+        
+        // Act & Assert - Numeric habit
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: numericHabitId,
+                habitName: "Numeric Habit",
+                habitKind: HabitKind.numeric,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error for numeric habit: \(error)")
+        }
+        
+        // Assert - Both habit types should behave identically
+        XCTAssertEqual(mockHabitCompletionCheckService.callLog.count, binaryCallCount + 1, "Both habit types should check completion")
+        XCTAssertEqual(mockLogRepository.logs.count, binaryLogCount, "Neither habit type should create logs when completed")
+        
+        // Verify both habits were checked
+        let habitIds = Set(mockHabitCompletionCheckService.callLog.map { $0.habitId })
+        XCTAssertTrue(habitIds.contains(binaryHabitId), "Binary habit should be checked")
+        XCTAssertTrue(habitIds.contains(numericHabitId), "Numeric habit should be checked")
+    }
+    
+    func testHandleNotificationAction_LogAction_CalendarBoundaryConditions() async {
+        // Test that completion checking works correctly across different calendar contexts
+        
+        let habitId = UUID()
+        let habit = Habit(id: habitId, name: "Calendar Test", kind: .binary, isActive: true)
+        mockHabitRepository.habits = [habit]
+        
+        // Mock as incomplete
+        mockHabitCompletionCheckService.shouldShowResponses[habitId] = true
+        
+        let logHabitFromNotification = LogHabitFromNotification(
+            habitRepository: mockHabitRepository,
+            logRepository: mockLogRepository,
+            getLogForDate: GetLogForDate(repo: mockLogRepository),
+            logHabit: LogHabit(
+                repo: mockLogRepository,
+                habitRepo: mockHabitRepository,
+                validateSchedule: ValidateHabitSchedule()
+            )
+        )
+        
+        let snoozeHabitReminder = SnoozeHabitReminder(notificationService: mockNotificationService)
+        
+        let useCase = HandleNotificationAction(
+            logHabitFromNotification: logHabitFromNotification,
+            snoozeHabitReminder: snoozeHabitReminder,
+            notificationService: mockNotificationService,
+            habitCompletionCheckService: mockHabitCompletionCheckService,
+            cancelHabitReminders: MockCancelHabitRemindersUseCase()
+        )
+        
+        // Act - Execute action with current date/time
+        do {
+            try await useCase.execute(
+                action: NotificationAction.log,
+                habitId: habitId,
+                habitName: "Calendar Test",
+                habitKind: HabitKind.binary,
+                reminderTime: ReminderTime(hour: 9, minute: 0)
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        
+        // Assert - Service should be called with current date context
+        XCTAssertEqual(mockHabitCompletionCheckService.callLog.count, 1)
+        
+        let calledDate = mockHabitCompletionCheckService.callLog.first?.date
+        XCTAssertNotNil(calledDate, "Service should be called with a date")
+        
+        // Verify the date is within a reasonable range of current time
+        let now = Date()
+        let timeDifference = abs(calledDate!.timeIntervalSince(now))
+        XCTAssertLessThan(timeDifference, 10.0, "Should use current date within reasonable time window")
+        
+        // Verify action proceeded since habit was incomplete
+        XCTAssertEqual(mockLogRepository.logs.count, 1)
+        XCTAssertEqual(mockLogRepository.logs.first?.habitID, habitId)
     }
 }

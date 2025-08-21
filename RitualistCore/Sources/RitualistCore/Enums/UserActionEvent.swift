@@ -57,6 +57,7 @@ public enum UserActionEvent {
     case notificationActionTapped(action: String, habitId: String, habitName: String, source: String)
     case notificationScheduled(habitId: String, habitName: String, reminderCount: Int)
     case notificationCancelled(habitId: String, habitName: String, reason: String)
+    case notificationSuppressed(habitId: String, habitName: String, reason: String)
     
     // Category Management
     case categoryCreated(categoryId: String, categoryName: String, emoji: String)

@@ -73,7 +73,8 @@ struct StreakUseCasesTests {
     @Test("Daily habit with consecutive days returns correct streak")
     func dailyHabitConsecutiveDays() {
         let useCase = createCurrentStreakUseCase()
-        let habit = createHabit(schedule: .daily)
+        // Fix: Set habit start date to before our test logs to ensure all count
+        let habit = createHabit(schedule: .daily, startDate: monday) // Start from Monday, logs are Wed-Fri
         let logs = [
             createLog(for: habit, date: friday),     // Day 3
             createLog(for: habit, date: thursday),   // Day 2

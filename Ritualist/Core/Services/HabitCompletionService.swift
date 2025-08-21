@@ -58,10 +58,11 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
             // For daily and daysOfWeek habits: check if completed on that specific day
             return isCompletedOnSpecificDay(habit: habit, date: date, logs: logs)
             
-        case .timesPerWeek:
-            // For timesPerWeek habits: check if completed on that specific day
-            // This provides immediate daily feedback while tracking weekly progress separately
-            return isCompletedOnSpecificDay(habit: habit, date: date, logs: logs)
+        case .timesPerWeek(let weeklyTarget):
+            // For timesPerWeek habits: check if weekly target is met
+            // This provides accurate completion status based on weekly progress
+            let (completed, target) = getWeeklyProgress(habit: habit, for: date, logs: logs)
+            return completed >= target
         }
     }
     
@@ -235,27 +236,37 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
     }
     
     private func calculateTimesPerWeekProgress(habit: Habit, weeklyTarget: Int, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double {
-        // Filter for only completed logs
+        // Use duration-based week calculation for consistency with calculateWeeklyTargets
+        let dayComponents = calendar.dateComponents([.day], from: startDate, to: endDate)
+        let totalDays = max(1, (dayComponents.day ?? 0) + 1) // +1 because range is inclusive
+        let totalWeeks = max(1, Int(round(Double(totalDays) / 7.0))) // Use rounding to match user expectations
+        
+        // Filter for only completed logs within the date range
         let completedLogs = logs.filter { log in
-            isLogCompleted(log: log, habit: habit)
+            log.date >= startDate && log.date <= endDate && isLogCompleted(log: log, habit: habit)
         }
+        
+        // Filter for only completed logs within the date range
         
         // Group completed logs by week start date
         let completionsByWeek = Dictionary(grouping: completedLogs) { log in
             calendar.dateInterval(of: .weekOfYear, for: log.date)?.start ?? log.date
         }
         
-        var totalWeeks = 0
         var totalActualCompletions = 0
         
-        // Calculate week by week
+        // Calculate week by week using calendar week boundaries
         var currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: startDate)?.start ?? startDate
         let endWeekStart = calendar.dateInterval(of: .weekOfYear, for: endDate)?.start ?? endDate
         
         while currentWeekStart <= endWeekStart {
-            totalWeeks += 1
-            let weekCompletions = completionsByWeek[currentWeekStart]?.count ?? 0
-            totalActualCompletions += min(weekCompletions, weeklyTarget)
+            // Count unique days (not total logs) - consistent with getWeeklyProgress
+            let weekLogs = completionsByWeek[currentWeekStart] ?? []
+            let uniqueDaysInWeek = Set(weekLogs.map { log in
+                calendar.startOfDay(for: log.date)
+            }).count
+            
+            totalActualCompletions += min(uniqueDaysInWeek, weeklyTarget)
             
             guard let nextWeek = calendar.date(byAdding: .weekOfYear, value: 1, to: currentWeekStart) else { break }
             currentWeekStart = nextWeek
@@ -263,6 +274,7 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
         
         let totalExpected = totalWeeks * weeklyTarget
         guard totalExpected > 0 else { return 0.0 }
+        
         return Double(totalActualCompletions) / Double(totalExpected)
     }
     
@@ -311,7 +323,7 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
     }
     
     private func calculateWeeklyTargets(weeklyTarget: Int, from startDate: Date, to endDate: Date) -> Int {
-        // Count the number of weeks that overlap with the date range
+        // Count the number of calendar weeks that overlap with the date range
         var weekCount = 0
         var currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: startDate)?.start ?? startDate
         let endWeekStart = calendar.dateInterval(of: .weekOfYear, for: endDate)?.start ?? endDate

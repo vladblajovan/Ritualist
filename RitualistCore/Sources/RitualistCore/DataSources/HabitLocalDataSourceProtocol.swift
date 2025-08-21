@@ -12,6 +12,9 @@ public protocol HabitLocalDataSourceProtocol {
     /// Fetch all habits from local storage
     func fetchAll() async throws -> [Habit]
     
+    /// Fetch a single habit by ID from local storage
+    func fetch(by id: UUID) async throws -> Habit?
+    
     /// Insert or update a habit in local storage
     func upsert(_ habit: Habit) async throws
     

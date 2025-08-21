@@ -11,7 +11,8 @@ extension Container {
     var scheduleHabitReminders: Factory<ScheduleHabitRemindersUseCase> {
         self { ScheduleHabitReminders(
             habitRepository: self.habitRepository(),
-            notificationService: self.notificationService()
+            notificationService: self.notificationService(),
+            habitCompletionCheckService: self.habitCompletionCheckService()
         )}
     }
     
@@ -34,7 +35,9 @@ extension Container {
         self { HandleNotificationAction(
             logHabitFromNotification: self.logHabitFromNotification(),
             snoozeHabitReminder: self.snoozeHabitReminder(),
-            notificationService: self.notificationService()
+            notificationService: self.notificationService(),
+            habitCompletionCheckService: self.habitCompletionCheckService(),
+            cancelHabitReminders: self.cancelHabitReminders()
         )}
     }
     

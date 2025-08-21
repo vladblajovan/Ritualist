@@ -17,6 +17,7 @@ import UserNotifications
     @Injected(\.persistenceContainer) private var persistenceContainer
     @Injected(\.urlValidationService) private var urlValidationService
     @Injected(\.navigationService) private var navigationService
+    @Injected(\.dailyNotificationScheduler) private var dailyNotificationScheduler
     
     var body: some Scene {
         WindowGroup {
@@ -24,6 +25,13 @@ import UserNotifications
                 .modelContainer(persistenceContainer?.container ?? createFallbackContainer())
                 .task {
                     await setupNotifications()
+                    await scheduleInitialNotifications()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    // Re-schedule notifications when app becomes active (handles day changes while backgrounded)
+                    Task {
+                        await rescheduleNotificationsIfNeeded()
+                    }
                 }
                 .onOpenURL { url in
                     handleDeepLink(url)
@@ -57,9 +65,28 @@ import UserNotifications
         // Setup notification categories on app launch
         await notificationService.setupNotificationCategories()
         
-        // Set up notification delegate
-        await MainActor.run {
-            UNUserNotificationCenter.current().delegate = appDelegate
+        // Set up notification delegate - handled by LocalNotificationService
+        // Removed: UNUserNotificationCenter.current().delegate = appDelegate
+    }
+    
+    /// Schedule initial notifications on app launch
+    private func scheduleInitialNotifications() async {
+        do {
+            print("🚀 [App] Scheduling initial notifications on app launch")
+            try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
+        } catch {
+            print("⚠️ [App] Failed to schedule initial notifications: \(error)")
+        }
+    }
+    
+    /// Re-schedule notifications if needed (e.g., when app becomes active)
+    /// This handles day changes and completion status updates while the app was backgrounded
+    private func rescheduleNotificationsIfNeeded() async {
+        do {
+            print("🔄 [App] Re-scheduling notifications on app active")
+            try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
+        } catch {
+            print("⚠️ [App] Failed to re-schedule notifications: \(error)")
         }
     }
     
@@ -195,12 +222,16 @@ import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
+    @Injected(\.notificationService) private var notificationService
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        UNUserNotificationCenter.current().delegate = self
+        // Notification delegate is now handled by LocalNotificationService
+        // Removed: UNUserNotificationCenter.current().delegate = self
         
         return true
     }
+    
+    // Notification presentation handling removed - LocalNotificationService is now the sole delegate
     
     // Handle notification tap when app is in background/closed
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
@@ -249,14 +280,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             }
         }
     }
-    
-    // Handle notification when app is in foreground (optional - shows banner)
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        
-        // Show notification banner, sound, and badge even when app is in foreground
-        completionHandler([.banner, .sound, .badge])
-    }
 }
+
+// MARK: - App Delegate cleanup completed - notification handling moved to LocalNotificationService
 
 // Separate view to properly observe AppearanceManager changes
 struct RootAppView: View {
