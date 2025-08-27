@@ -29,7 +29,7 @@ extension Container {
     }
     
     var getHabitCount: Factory<GetHabitCount> {
-        self { GetHabitCount(habitRepository: self.habitRepository()) }
+        self { GetHabitCount(repo: self.habitRepository()) }
     }
     
     // MARK: - Habit Management Operations
@@ -74,14 +74,14 @@ extension Container {
     // MARK: - Habit Calculation Operations
     
     var isHabitCompleted: Factory<IsHabitCompleted> {
-        self { IsHabitCompleted(habitCompletionService: self.habitCompletionServiceProtocol()) }
+        self { IsHabitCompleted(habitCompletionService: self.habitCompletionService()) }
     }
     
     var calculateDailyProgress: Factory<CalculateDailyProgress> {
-        self { CalculateDailyProgress(habitCompletionService: self.habitCompletionServiceProtocol()) }
+        self { CalculateDailyProgress(habitCompletionService: self.habitCompletionService()) }
     }
     
     var isScheduledDay: Factory<IsScheduledDay> {
-        self { IsScheduledDay(habitCompletionService: self.habitCompletionServiceProtocol()) }
+        self { IsScheduledDay(habitCompletionService: self.habitCompletionService()) }
     }
 }

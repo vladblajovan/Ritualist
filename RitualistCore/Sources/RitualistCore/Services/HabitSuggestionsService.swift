@@ -18,3 +18,23 @@ public protocol HabitSuggestionsService {
     /// Get a specific habit suggestion by ID
     func getSuggestion(by id: String) -> HabitSuggestion?
 }
+
+// MARK: - Implementation
+
+/// Default implementation using static habit suggestions data
+public final class DefaultHabitSuggestionsService: HabitSuggestionsService {
+    
+    public init() {}
+    
+    public func getSuggestions() -> [HabitSuggestion] {
+        return HabitSuggestionsData.getAllSuggestions()
+    }
+    
+    public func getSuggestions(for categoryId: String) -> [HabitSuggestion] {
+        return HabitSuggestionsData.getSuggestions(for: categoryId)
+    }
+    
+    public func getSuggestion(by id: String) -> HabitSuggestion? {
+        return HabitSuggestionsData.getSuggestion(by: id)
+    }
+}

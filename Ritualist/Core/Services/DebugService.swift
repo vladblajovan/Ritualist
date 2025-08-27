@@ -1,26 +1,15 @@
-//
-//  DebugService.swift
-//  Ritualist
-//
-//  Created by Claude on 18.08.2025.
-//
-
+// Re-export DebugService protocol from RitualistCore
+// Implementation must stay in app layer due to SwiftData model dependencies
 import Foundation
 import SwiftData
 import RitualistCore
 import FactoryKit
 
-/// Service for debug operations like database clearing
-/// Only available in debug builds
-public protocol DebugServiceProtocol {
-    /// Clear all data from the database
-    func clearDatabase() async throws
-    
-    /// Get database statistics
-    func getDatabaseStats() async throws -> DebugDatabaseStats
-}
+// Re-export protocol from RitualistCore
+public typealias DebugServiceProtocol = RitualistCore.DebugServiceProtocol
+public typealias DebugDatabaseStats = RitualistCore.DebugDatabaseStats
 
-
+// Implementation remains in app layer due to SwiftData model dependencies
 #if DEBUG
 public final class DebugService: DebugServiceProtocol {
     private let persistenceContainer: PersistenceContainer

@@ -54,7 +54,7 @@ extension Container {
                 logHabitUseCase: self.logHabit(),
                 habitRepository: self.habitRepository(),
                 categoryRepository: self.categoryRepository(),
-                habitCompletionService: self.habitCompletionServiceProtocol(),
+                habitCompletionService: self.habitCompletionService(),
                 testDataUtilities: self.testDataPopulationService()
             )
         }

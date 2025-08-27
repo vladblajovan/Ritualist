@@ -375,6 +375,7 @@ public protocol AnalyzePersonalityUseCase {
 
 public protocol GetPersonalityInsightsUseCase {
     func execute(for userId: UUID) async throws -> PersonalityProfile?
+    func getAllInsights(for profile: PersonalityProfile) -> PersonalityInsightCollection
 }
 
 public protocol IsPersonalityAnalysisEnabledUseCase {

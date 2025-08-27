@@ -1,17 +1,6 @@
 import Foundation
 
-/// Protocol for habit completion service to ensure single source of truth
-/// This protocol must be implemented by the completion service in the main app
-public protocol HabitCompletionService {
-    /// Check if a habit is completed on a specific date based on its schedule semantics
-    func isCompleted(habit: Habit, on date: Date, logs: [HabitLog]) -> Bool
-    
-    /// Check if a habit is scheduled to be performed on a specific date
-    func isScheduledDay(habit: Habit, date: Date) -> Bool
-    
-    /// Calculate daily progress for a specific date
-    func calculateDailyProgress(habit: Habit, logs: [HabitLog], for date: Date) -> Double
-}
+// HabitCompletionService protocol moved to Services/HabitCompletionService.swift
 
 /// Single source of truth data structure for Dashboard analytics
 /// Replaces multiple independent data loading methods to eliminate N+1 queries

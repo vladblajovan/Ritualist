@@ -424,9 +424,7 @@ private struct PricingCard: View {
 
 #Preview {
     let mockSecureSubscriptionService = MockSecureSubscriptionService()
-    let mockBusinessService = MockPaywallBusinessService(
-        subscriptionService: mockSecureSubscriptionService
-    )
+    let mockBusinessService = MockPaywallBusinessService()
     let mockUserService = MockUserService()
     let updateProfileSubscription = UpdateProfileSubscription(
         userService: mockUserService,

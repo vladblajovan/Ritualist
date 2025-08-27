@@ -22,7 +22,9 @@ extension Container {
             HabitAnalyticsServiceImpl(
                 habitRepository: self.habitRepository(),
                 logRepository: self.logRepository(),
-                scheduleAnalyzer: self.habitScheduleAnalyzer()
+                scheduleAnalyzer: self.habitScheduleAnalyzer(),
+                getBatchLogs: self.getBatchLogs(),
+                getSingleHabitLogs: self.getSingleHabitLogs()
             )
         }
         .singleton

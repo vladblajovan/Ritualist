@@ -1,14 +1,6 @@
-//
-//  GetHabitsFromSuggestionsUseCase.swift
-//  Ritualist
-//
-//  Created by Claude on 03.08.2025.
-//
-
 import Foundation
-import RitualistCore
 
-// MARK: - Simplified Implementation Using suggestionId Field
+// MARK: - Habit Suggestions Use Case Implementations
 
 public protocol GetHabitsFromSuggestionsUseCase {
     func execute(existingHabits: [Habit], suggestionIds: [String]) -> (addedSuggestions: Set<String>, habitMappings: [String: UUID])

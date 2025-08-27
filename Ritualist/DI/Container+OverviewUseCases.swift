@@ -9,7 +9,7 @@ extension Container {
     // MARK: - Habit Operations
     
     var getActiveHabits: Factory<GetActiveHabitsUseCase> {
-        self { GetActiveHabits(habitRepository: self.habitRepository()) }
+        self { GetActiveHabits(repo: self.habitRepository()) }
     }
     
     // MARK: - Log Operations
@@ -84,7 +84,9 @@ extension Container {
     // MARK: - Streak Calculations
     
     var calculateCurrentStreak: Factory<CalculateCurrentStreakUseCase> {
-        self { CalculateCurrentStreak(streakCalculationService: self.streakCalculationService()) }
+        self { 
+            CalculateCurrentStreak(streakCalculationService: self.streakCalculationService())
+        }
     }
     
     

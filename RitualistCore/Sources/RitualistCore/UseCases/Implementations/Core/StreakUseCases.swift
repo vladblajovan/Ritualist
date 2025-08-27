@@ -1,5 +1,4 @@
 import Foundation
-import RitualistCore
 
 // MARK: - Streak Use Case Implementations
 
@@ -14,4 +13,3 @@ public final class CalculateCurrentStreak: CalculateCurrentStreakUseCase {
         return streakCalculationService.calculateCurrentStreak(habit: habit, logs: logs, asOf: asOf)
     }
 }
-

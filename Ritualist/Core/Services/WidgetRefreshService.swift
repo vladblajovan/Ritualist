@@ -1,25 +1,13 @@
-//
-//  WidgetRefreshService.swift
-//  Ritualist
-//
-//  Created by Vlad Blajovan on 18.08.2025.
-//
-
+// Re-export WidgetRefreshService protocol from RitualistCore
+// Implementation must stay in app layer due to WidgetKit dependency
 import WidgetKit
 import Foundation
+import RitualistCore
 
-/// Protocol for widget refresh service to enable proper dependency injection and testing
-public protocol WidgetRefreshServiceProtocol {
-    /// Refresh all Ritualist widgets after habit completion or data changes
-    func refreshWidgets()
-    
-    /// Refresh widgets for specific habit changes (future enhancement)
-    func refreshWidgetsForHabit(_ habitId: UUID)
-    
-    /// Refresh widgets after bulk habit operations
-    func refreshWidgetsAfterBulkOperation()
-}
+// Re-export protocol from RitualistCore
+public typealias WidgetRefreshServiceProtocol = RitualistCore.WidgetRefreshServiceProtocol
 
+// Implementation remains in app layer due to WidgetKit dependency
 /// Service responsible for refreshing widget timelines when app data changes
 /// Ensures widget displays up-to-date habit completion status
 public final class WidgetRefreshService: WidgetRefreshServiceProtocol {

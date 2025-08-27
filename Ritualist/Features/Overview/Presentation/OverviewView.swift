@@ -78,6 +78,7 @@ public struct OverviewView: View {
                         vm.goToToday()
                     }
                 )
+                //.simpleCard()
                 .glassmorphicCard()
                 .id("topCard")
                 

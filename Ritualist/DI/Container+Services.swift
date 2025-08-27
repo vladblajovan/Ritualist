@@ -98,16 +98,11 @@ extension Container {
     }
     
     var scheduleAwareCompletionCalculator: Factory<ScheduleAwareCompletionCalculator> {
-        self { DefaultScheduleAwareCompletionCalculator(habitCompletionService: self.habitCompletionServiceProtocol()) }
+        self { DefaultScheduleAwareCompletionCalculator(habitCompletionService: self.habitCompletionService()) }
             .singleton
     }
     
     var habitCompletionService: Factory<HabitCompletionService> {
-        self { DefaultHabitCompletionService() }
-            .singleton
-    }
-    
-    var habitCompletionServiceProtocol: Factory<HabitCompletionServiceProtocol> {
         self { DefaultHabitCompletionService() }
             .singleton
     }
@@ -117,8 +112,8 @@ extension Container {
             DefaultHabitCompletionCheckService(
                 habitRepository: self.habitRepository(),
                 logRepository: self.logRepository(),
-                habitCompletionService: self.habitCompletionServiceProtocol(),
-                calendar: .current,
+                habitCompletionService: self.habitCompletionService(),
+                calendar: Calendar.current,
                 errorHandler: self.errorHandlingActor()
             )
         }
@@ -136,10 +131,10 @@ extension Container {
         .singleton
     }
     
-    var streakCalculationService: Factory<StreakCalculationService> {
+    var streakCalculationService: Factory<RitualistCore.StreakCalculationService> {
         self { 
-            DefaultStreakCalculationService(
-                habitCompletionService: self.habitCompletionServiceProtocol()
+            RitualistCore.DefaultStreakCalculationService(
+                habitCompletionService: self.habitCompletionService()
             )
         }
         .singleton
@@ -211,7 +206,6 @@ extension Container {
         self {
             #if DEBUG
             let mockBusiness = MockPaywallBusinessService(
-                subscriptionService: self.secureSubscriptionService(),
                 testingScenario: .randomResults
             )
             mockBusiness.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)

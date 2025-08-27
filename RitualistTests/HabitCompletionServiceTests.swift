@@ -38,7 +38,7 @@ struct HabitCompletionServiceTests {
         Calendar.current
     }
     
-    private var service: HabitCompletionServiceProtocol {
+    private var service: HabitCompletionService {
         DefaultHabitCompletionService(calendar: calendar)
     }
     
