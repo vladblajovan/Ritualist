@@ -91,8 +91,7 @@ extension Container {
             PaywallViewModel(
                 paywallBusinessService: self.paywallBusinessService(),
                 updateProfileSubscription: self.updateProfileSubscription(),
-                errorHandler: self.errorHandlingActor(),
-                userService: self.userService()
+                errorHandler: self.errorHandlingActor()
             )
         }
     }
@@ -106,7 +105,8 @@ extension Container {
                 requestNotificationPermission: self.requestNotificationPermission(),
                 checkNotificationStatus: self.checkNotificationStatus(),
                 clearPurchases: self.clearPurchases(),
-                userService: self.userService(),
+                checkPremiumStatus: self.checkPremiumStatus(),
+                updateUserSubscription: self.updateUserSubscription(),
                 populateTestData: {
                     #if DEBUG
                     return self.populateTestData()

@@ -136,6 +136,10 @@ public protocol GetCurrentUserProfileUseCase {
     func execute() async -> UserProfile
 }
 
+public protocol UpdateUserSubscriptionUseCase {
+    func execute(plan: SubscriptionPlan, expiryDate: Date?) async throws
+}
+
 // MARK: - Calendar Use Cases
 
 public protocol GenerateCalendarDaysUseCase { 

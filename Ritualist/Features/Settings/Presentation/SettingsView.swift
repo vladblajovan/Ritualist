@@ -281,7 +281,9 @@ private struct SettingsFormView: View {
                 #endif
                 .onAppear {
                     // Refresh premium status when settings page appears
-                    vm.refreshPremiumStatus()
+                    Task {
+                        await vm.refreshPremiumStatus()
+                    }
                     updateLocalState()
                 }
             }

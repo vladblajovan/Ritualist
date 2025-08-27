@@ -1008,6 +1008,18 @@ public final class GetCurrentUserProfile: GetCurrentUserProfileUseCase {
     }
 }
 
+public final class UpdateUserSubscription: UpdateUserSubscriptionUseCase {
+    private let userService: UserService
+    
+    public init(userService: UserService) {
+        self.userService = userService
+    }
+    
+    public func execute(plan: SubscriptionPlan, expiryDate: Date?) async throws {
+        try await userService.updateSubscription(plan: plan, expiryDate: expiryDate)
+    }
+}
+
 // MARK: - Habit Schedule Use Case Implementations
 
 public final class ValidateHabitSchedule: ValidateHabitScheduleUseCase {

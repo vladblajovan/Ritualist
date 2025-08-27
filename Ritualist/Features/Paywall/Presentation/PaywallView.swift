@@ -435,8 +435,7 @@ private struct PricingCard: View {
     
     let vm = PaywallViewModel(
         paywallBusinessService: mockBusinessService,
-        updateProfileSubscription: updateProfileSubscription,
-        userService: mockUserService
+        updateProfileSubscription: updateProfileSubscription
     )
     
     PaywallView(vm: vm)

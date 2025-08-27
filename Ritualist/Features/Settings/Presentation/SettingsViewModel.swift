@@ -10,7 +10,8 @@ public final class SettingsViewModel {
     private let requestNotificationPermission: RequestNotificationPermissionUseCase
     private let checkNotificationStatus: CheckNotificationStatusUseCase
     private let clearPurchases: ClearPurchasesUseCase
-    private let userService: UserService
+    private let checkPremiumStatus: CheckPremiumStatusUseCase
+    private let updateUserSubscription: UpdateUserSubscriptionUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
     
@@ -37,9 +38,12 @@ public final class SettingsViewModel {
     public private(set) var testDataProgressMessage: String = ""
     #endif
     
+    // Cache premium status to avoid async issues
+    private var cachedPremiumStatus = false
+    
     // Computed properties
     public var isPremiumUser: Bool {
-        userService.isPremiumUser
+        cachedPremiumStatus
     }
 
     public init(loadProfile: LoadProfileUseCase, 
@@ -47,14 +51,16 @@ public final class SettingsViewModel {
                 requestNotificationPermission: RequestNotificationPermissionUseCase,
                 checkNotificationStatus: CheckNotificationStatusUseCase,
                 clearPurchases: ClearPurchasesUseCase,
-                userService: UserService,
+                checkPremiumStatus: CheckPremiumStatusUseCase,
+                updateUserSubscription: UpdateUserSubscriptionUseCase,
                 populateTestData: PopulateTestDataUseCase? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
         self.requestNotificationPermission = requestNotificationPermission
         self.checkNotificationStatus = checkNotificationStatus
         self.clearPurchases = clearPurchases
-        self.userService = userService
+        self.checkPremiumStatus = checkPremiumStatus
+        self.updateUserSubscription = updateUserSubscription
         self.populateTestData = populateTestData
     }
     
@@ -64,11 +70,13 @@ public final class SettingsViewModel {
         do {
             profile = try await loadProfile.execute()
             hasNotificationPermission = await checkNotificationStatus.execute()
+            cachedPremiumStatus = await checkPremiumStatus.execute()
         } catch {
             self.error = error
             profile = UserProfile()
             userActionTracker.trackError(error, context: "settings_load")
             hasNotificationPermission = await checkNotificationStatus.execute()
+            cachedPremiumStatus = await checkPremiumStatus.execute()
         }
         isLoading = false
     }
@@ -139,8 +147,7 @@ public final class SettingsViewModel {
         profile.updatedAt = Date()
         
         do {
-            try await userService.updateProfile(profile)
-            // Profile is automatically updated via the single source of truth
+            try await saveProfile.execute(profile)
             
             // Track user name update
             userActionTracker.track(.profileUpdated(field: "name"))
@@ -157,8 +164,8 @@ public final class SettingsViewModel {
         error = nil
         
         do {
-            // Cancel subscription through user service
-            try await userService.updateSubscription(plan: .free, expiryDate: nil)
+            // Cancel subscription through UseCase
+            try await updateUserSubscription.execute(plan: .free, expiryDate: nil)
             
             // Clear any stored purchases
             clearPurchases.execute()
@@ -171,9 +178,8 @@ public final class SettingsViewModel {
     }
     
     // Method to refresh premium status after purchases
-    public func refreshPremiumStatus() {
-        // Since UserService is @Observable, accessing isPremiumUser will trigger UI updates
-        _ = userService.isPremiumUser
+    public func refreshPremiumStatus() async {
+        cachedPremiumStatus = await checkPremiumStatus.execute()
     }
     
     /// Update the app appearance based on the appearance setting

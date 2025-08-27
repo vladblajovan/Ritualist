@@ -28,6 +28,16 @@ extension Container {
         self { GetCurrentSlogan(slogansService: self.slogansService()) }
     }
     
+    // MARK: - Premium Status Operations
+    
+    var checkPremiumStatus: Factory<CheckPremiumStatus> {
+        self { CheckPremiumStatus(userService: self.userService()) }
+    }
+    
+    var updateUserSubscription: Factory<UpdateUserSubscription> {
+        self { UpdateUserSubscription(userService: self.userService()) }
+    }
+    
     // MARK: - Development Operations
     
     var clearPurchases: Factory<ClearPurchases> {

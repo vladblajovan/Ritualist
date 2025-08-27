@@ -62,6 +62,7 @@ extension Container {
         self { GetCurrentUserProfile(userService: self.userService()) }
     }
     
+    
     // MARK: - Calendar Utilities
     
     var generateCalendarDays: Factory<GenerateCalendarDays> {
