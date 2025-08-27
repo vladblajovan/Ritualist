@@ -36,9 +36,9 @@ public struct TipDetailView: View {
             )
         }
         .deviceAwareSheetSizing(
-            compactMultiplier: (min: 0.71, ideal: 0.79, max: 0.97),
-            regularMultiplier: (min: 0.60, ideal: 0.73, max: 0.87),
-            largeMultiplier: (min: 0.56, ideal: 0.67, max: 0.78)
+            compactMultiplier: SizeMultiplier(min: 0.71, ideal: 0.79, max: 0.97),
+            regularMultiplier: SizeMultiplier(min: 0.60, ideal: 0.73, max: 0.87),
+            largeMultiplier: SizeMultiplier(min: 0.56, ideal: 0.67, max: 0.78)
         )
     }
     

@@ -64,9 +64,9 @@ public struct HabitsAssistantSheet: View {
             }
         }
         .deviceAwareSheetSizing(
-            compactMultiplier: (min: 1.0, ideal: 1.0, max: 1.0),
-            regularMultiplier: (min: 1.0, ideal: 1.0, max: 1.0),
-            largeMultiplier: (min: 1.0, ideal: 1.0, max: 1.0)
+            compactMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
+            regularMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
+            largeMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0)
         )
         .onAppear {
             // Initialize the ViewModel with existing habits to populate mappings
@@ -257,9 +257,9 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
                     onShowPaywall: presentationService.showPaywallFromAssistant
                 )
                 .deviceAwareSheetSizing(
-                    compactMultiplier: (min: 1.0, ideal: 1.0, max: 1.0),
-                    regularMultiplier: (min: 1.0, ideal: 1.0, max: 1.0),
-                    largeMultiplier: (min: 1.0, ideal: 1.0, max: 1.0)
+                    compactMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
+                    regularMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
+                    largeMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0)
                 )
                 .onDisappear {
                     Task {

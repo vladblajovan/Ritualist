@@ -97,8 +97,7 @@ extension Container {
             )
         }
     }
-    
-    
+
     var aggregateCategoryPerformanceUseCase: Factory<AggregateCategoryPerformanceUseCaseProtocol> {
         self {
             AggregateCategoryPerformanceUseCase(

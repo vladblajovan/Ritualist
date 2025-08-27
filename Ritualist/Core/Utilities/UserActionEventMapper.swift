@@ -198,11 +198,11 @@ private extension UserActionEventMapper {
         switch event {
         case .settingsOpened: 
             return "settings_opened"
-        case .profileUpdated(_): 
+        case .profileUpdated: 
             return "profile_updated"
-        case .notificationSettingsChanged(_): 
+        case .notificationSettingsChanged: 
             return "notification_settings_changed"
-        case .appearanceChanged(_): 
+        case .appearanceChanged: 
             return "appearance_changed"
         default: 
             return "settings_event"
@@ -211,9 +211,9 @@ private extension UserActionEventMapper {
     
     func systemEventName(for event: UserActionEvent) -> String {
         switch event {
-        case .errorOccurred(_): return "error_occurred"
-        case .crashReported(_): return "crash_reported"
-        case .performanceMetric(_): return "performance_metric"
+        case .errorOccurred: return "error_occurred"
+        case .crashReported: return "crash_reported"
+        case .performanceMetric: return "performance_metric"
         default: return "system_event"
         }
     }

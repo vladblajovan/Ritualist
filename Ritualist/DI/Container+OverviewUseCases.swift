@@ -61,8 +61,7 @@ extension Container {
     var getCurrentUserProfile: Factory<GetCurrentUserProfile> {
         self { GetCurrentUserProfile(userService: self.userService()) }
     }
-    
-    
+
     // MARK: - Calendar Utilities
     
     var generateCalendarDays: Factory<GenerateCalendarDays> {
@@ -88,8 +87,7 @@ extension Container {
             CalculateCurrentStreak(streakCalculationService: self.streakCalculationService())
         }
     }
-    
-    
+
     // MARK: - Service-based Use Cases
     
     var trackUserAction: Factory<TrackUserAction> {

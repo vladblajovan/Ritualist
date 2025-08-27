@@ -133,9 +133,9 @@ struct StreakDetailSheet: View {
             }
         }
         .deviceAwareSheetSizing(
-            compactMultiplier: (min: 0.75, ideal: 0.85, max: 0.95),
-            regularMultiplier: (min: 0.70, ideal: 0.80, max: 0.90),
-            largeMultiplier: (min: 0.65, ideal: 0.75, max: 0.85)
+            compactMultiplier: SizeMultiplier(min: 0.75, ideal: 0.85, max: 0.95),
+            regularMultiplier: SizeMultiplier(min: 0.70, ideal: 0.80, max: 0.90),
+            largeMultiplier: SizeMultiplier(min: 0.65, ideal: 0.75, max: 0.85)
         )
     }
     

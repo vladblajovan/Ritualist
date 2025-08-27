@@ -374,9 +374,9 @@ public struct PersonalityInsightsView: View {
         .sheet(isPresented: $showingPrivacy) {
             BasicPrivacyView()
                 .deviceAwareSheetSizing(
-                    compactMultiplier: (min: 0.53, ideal: 0.62, max: 0.79),
-                    regularMultiplier: (min: 0.47, ideal: 0.53, max: 0.67),
-                    largeMultiplier: (min: 0.39, ideal: 0.50, max: 0.61)
+                    compactMultiplier: SizeMultiplier(min: 0.53, ideal: 0.62, max: 0.79),
+                    regularMultiplier: SizeMultiplier(min: 0.47, ideal: 0.53, max: 0.67),
+                    largeMultiplier: SizeMultiplier(min: 0.39, ideal: 0.50, max: 0.61)
                 )
         }
     }
@@ -478,9 +478,9 @@ private struct PersonalityProfileView: View {
         .sheet(isPresented: $showingConfidenceInfo) {
             ConfidenceInfoSheet(confidence: profile.confidence)
                 .deviceAwareSheetSizing(
-                    compactMultiplier: (min: 0.53, ideal: 0.62, max: 0.79),
-                    regularMultiplier: (min: 0.47, ideal: 0.53, max: 0.67),
-                    largeMultiplier: (min: 0.39, ideal: 0.50, max: 0.61)
+                    compactMultiplier: SizeMultiplier(min: 0.53, ideal: 0.62, max: 0.79),
+                    regularMultiplier: SizeMultiplier(min: 0.47, ideal: 0.53, max: 0.67),
+                    largeMultiplier: SizeMultiplier(min: 0.39, ideal: 0.50, max: 0.61)
                 )
         }
     }

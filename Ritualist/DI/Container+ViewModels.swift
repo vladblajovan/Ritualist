@@ -71,8 +71,7 @@ extension Container {
             )
         }
     }
-    
-    
+
     @MainActor
     var tipsViewModel: Factory<TipsViewModel> {
         self { @MainActor in

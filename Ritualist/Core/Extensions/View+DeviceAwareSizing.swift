@@ -1,13 +1,19 @@
 import SwiftUI
 
+struct SizeMultiplier {
+    let min: CGFloat
+    let ideal: CGFloat
+    let max: CGFloat
+}
+
 extension View {
     func deviceAwareSheetSizing(
-        compactMultiplier: (min: CGFloat, ideal: CGFloat, max: CGFloat),
-        regularMultiplier: (min: CGFloat, ideal: CGFloat, max: CGFloat),
-        largeMultiplier: (min: CGFloat, ideal: CGFloat, max: CGFloat)
+        compactMultiplier: SizeMultiplier,
+        regularMultiplier: SizeMultiplier,
+        largeMultiplier: SizeMultiplier
     ) -> some View {
         let screenHeight = UIScreen.main.bounds.height
-        let multiplier: (min: CGFloat, ideal: CGFloat, max: CGFloat)
+        let multiplier: SizeMultiplier
         
         if screenHeight <= 670 { // iPhone SE, iPhone 13 mini
             multiplier = compactMultiplier
@@ -17,7 +23,7 @@ extension View {
             multiplier = largeMultiplier
         }
         
-        let sizing = (
+        let sizing = SizeMultiplier(
             min: screenHeight * multiplier.min,
             ideal: screenHeight * multiplier.ideal,
             max: screenHeight * multiplier.max

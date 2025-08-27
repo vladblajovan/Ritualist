@@ -292,8 +292,7 @@ extension Container {
         }
         .singleton
     }
-    
-    
+
     // MARK: - Deep Link Coordination
     
     @MainActor
@@ -325,5 +324,4 @@ extension Container {
         .singleton
     }
     #endif
-
 }

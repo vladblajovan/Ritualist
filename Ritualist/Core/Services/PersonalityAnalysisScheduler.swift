@@ -311,8 +311,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             print("🔔 Failed to send analysis notification: \(error)")
         }
     }
-    
-    
+
     private func scheduleNotification(for userId: UUID, at date: Date, frequency: AnalysisFrequency) async {
         let identifier = Self.schedulerIdentifierPrefix + userId.uuidString
         

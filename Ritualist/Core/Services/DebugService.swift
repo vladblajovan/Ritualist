@@ -93,7 +93,7 @@ public final class DebugService: DebugServiceProtocol {
     }
     
     public func getDatabaseStats() async throws -> DebugDatabaseStats {
-        return DebugDatabaseStats(habitsCount: 0, logsCount: 0, categoriesCount: 0, profilesCount: 0)
+        DebugDatabaseStats(habitsCount: 0, logsCount: 0, categoriesCount: 0, profilesCount: 0)
     }
 }
 #endif

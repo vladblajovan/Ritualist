@@ -226,6 +226,36 @@ This document outlines the step-by-step implementation plan to address the archi
    - [ ] Document testing patterns
    - [ ] Create testing guidelines
 
+### 🏗️ **Build Configuration for Testing**
+
+**Recommended Testing Setup:**
+- **Primary Scheme**: `Ritualist-AllFeatures` - Use for all testing phases
+  - **Reason**: Provides access to all premium features for comprehensive testing
+  - **Target**: iOS Simulator, iPhone 16, iOS 26 (iOS 17 minimum deployment target)
+  - **Configuration**: Debug-AllFeatures (enables all features without subscription checks)
+
+**Testing Commands:**
+```bash
+# Run all tests
+xcodebuild test -project Ritualist.xcodeproj -scheme Ritualist-AllFeatures -destination "platform=iOS Simulator,name=iPhone 16"
+
+# Run specific test class
+xcodebuild test -project Ritualist.xcodeproj -scheme Ritualist-AllFeatures -destination "platform=iOS Simulator,name=iPhone 16" -only-testing:RitualistTests/YourTestClass
+
+# Build for testing (verification)
+xcodebuild build -project Ritualist.xcodeproj -scheme Ritualist-AllFeatures -destination "platform=iOS Simulator,name=iPhone 16"
+```
+
+**Alternative Schemes:**
+- **`Ritualist-Subscription`**: For testing subscription-gated features specifically
+- **`RitualistCore`**: For testing domain layer in isolation
+- **Avoid**: `Ritualist` (base scheme) - may have feature limitations
+
+**Testing Framework:**
+- **Primary**: Swift Testing (iOS 17+) for new tests
+- **Legacy**: XCTest for existing tests that need migration
+- **Data**: TestModelContainer for in-memory SwiftData testing
+
 ### Success Criteria
 - 90%+ UseCase coverage
 - 85%+ Service coverage

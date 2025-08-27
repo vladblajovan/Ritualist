@@ -40,9 +40,9 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
             PersonalityInsightsView(viewModel: viewModel)
         }
         .deviceAwareSheetSizing(
-            compactMultiplier: (min: 0.97, ideal: 1.0, max: 1.0),
-            regularMultiplier: (min: 0.87, ideal: 1.0, max: 1.0),
-            largeMultiplier: (min: 0.78, ideal: 0.89, max: 1.0)
+            compactMultiplier: SizeMultiplier(min: 0.97, ideal: 1.0, max: 1.0),
+            regularMultiplier: SizeMultiplier(min: 0.87, ideal: 1.0, max: 1.0),
+            largeMultiplier: SizeMultiplier(min: 0.78, ideal: 0.89, max: 1.0)
         )
         // Removed .presentationBackground for full transparency
         .onAppear {
