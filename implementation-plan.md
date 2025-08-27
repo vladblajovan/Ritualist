@@ -4,155 +4,222 @@
 
 This document outlines the step-by-step implementation plan to address the architectural inconsistencies and testing gaps identified in the project analysis. The plan is divided into phases with clear deliverables and success criteria.
 
-## Phase 1: Testing Infrastructure (2 weeks)
+## Phase 1A: Minimal Testing Infrastructure (3-4 days)
 
 ### Goals
-- Establish robust testing infrastructure
-- Create clear testing patterns and guidelines
-- Set up CI/CD pipeline improvements
+- Set up essential testing infrastructure without extensive test writing
+- Establish CI/CD with architecture violation detection
+- Document testing patterns from Phase 0
 
 ### Tasks
 
-1. **In-Memory Database Testing (3 days)**
-   - [x] `TestModelContainer` already implemented
-   - [ ] Document usage patterns
-   - [ ] Create example implementations
-   - [ ] Add performance benchmarks
+1. **CI/CD Setup with Architecture Checks (2 days)**
+   - [x] Basic GitHub Actions workflow exists
+   - [ ] Add architecture violation detection from Phase 0:
+     ```bash
+     grep -r "@Injected.*Service" Ritualist/Features/*/Presentation/
+     grep -r "Service" Ritualist/Features/*/Presentation/*ViewModel.swift
+     ```
+   - [ ] Set up basic test coverage reporting
+   - [ ] Configure build caching for faster CI
+   - [ ] Add PR validation checks
 
-2. **Test Data Builders Enhancement (2 days)**
-   - [x] Basic builders exist in TestInfrastructure
-   - [ ] Add missing entity builders
-   - [ ] Implement chainable methods
-   - [ ] Add documentation and examples
+2. **Testing Documentation (1 day)**
+   - [x] Clean test examples exist (OverviewViewModelSimpleTests, NotificationUseCaseCleanTests)
+   - [ ] Document the clean testing pattern from Phase 0
+   - [ ] Create testing guidelines (real implementations, no mocks)
+   - [ ] Document TestModelContainer usage
 
-3. **Test Fixtures Expansion (2 days)**
-   - [ ] Create common test scenarios
-   - [ ] Add edge case fixtures
-   - [ ] Document fixture usage
-   - [ ] Add integration test fixtures
-
-4. **CI/CD Setup (3 days)**
-   - [ ] Configure GitHub Actions
-   - [ ] Set up test coverage reporting
-   - [ ] Add performance regression detection
-   - [ ] Configure automated PR checks
+3. **Basic Test Utilities (1 day)**
+   - [ ] Set up essential test builders
+   - [ ] Create minimal test fixtures
+   - [ ] Establish test data patterns
+   - [ ] **DO NOT write extensive tests yet**
 
 ### Success Criteria
-- All new tests use in-memory database
-- Test data creation is standardized
-- CI pipeline runs all test suites
-- Coverage reports generated automatically
+- CI/CD detects architecture violations automatically
+- Testing patterns documented
+- Basic infrastructure ready
+- **No time wasted testing code that will change**
 
-## Phase 2: Service Layer Testing (3 weeks)
+## Phase 2: Service Layer Cleanup (2 weeks)
 
 ### Goals
-- Replace mock-based tests with real implementations
-- Improve service test coverage
-- Establish clear test boundaries
+- Refactor Services to be pure utilities (no business logic)
+- Clean up service/UseCase boundaries
+- Fix any remaining service architecture issues
 
 ### Tasks
 
-1. **HabitCompletionService Refactor (1 week)**
-   - [ ] Replace mock with real implementation
-   - [ ] Add integration tests
-   - [ ] Test edge cases
-   - [ ] Document testing patterns
-
-2. **Repository Implementation Tests (1 week)**
-   - [ ] Add CRUD operation tests
-   - [ ] Test relationships
-   - [ ] Test error conditions
-   - [ ] Add performance tests
-
-3. **Integration Test Suite (1 week)**
-   - [ ] Test service interactions
-   - [ ] Test use case chains
-   - [ ] Test data flow
-   - [ ] Document patterns
-
-### Success Criteria
-- No unnecessary mocks
-- 85%+ service layer coverage
-- Clear testing patterns established
-- All critical paths tested
-
-## Phase 3: Architecture Cleanup (3 weeks)
-
-### Goals
-- Enforce consistent architecture patterns
-- Clean up service and use case boundaries
-- Implement proper state management
-
-### Tasks
-
-1. **UseCase vs Service Separation (NEW - 1 week)**
-   - [ ] Audit ViewModels for direct Service injection (grep command: `grep -r "@Injected.*Service" Ritualist/Features/*/Presentation/`)
-   - [ ] Rename confusing Services (e.g., HabitCompletionService → HabitCompletionCalculator)
-   - [ ] Create missing UseCases for all ViewModel business operations
-   - [ ] Remove all @Injected Services from ViewModels, replace with UseCases
-   - [ ] Document UseCase/Service responsibilities and boundaries
-   - [ ] Add violation detection to CI/CD pipeline
-
-2. **Use Case Pattern Enforcement (1 week)**
-   - [ ] Audit direct repository access
-   - [ ] Move business logic to use cases
-   - [ ] Standardize error handling
-   - [ ] Document patterns
-
-3. **Service Layer Boundaries (1 week)**
-   - [ ] Refactor Services to be pure utilities (no business operations)
-   - [ ] Ensure Services are stateless and focused
+1. **Service Refactoring (1 week)**
+   - [ ] Audit all Services for business logic
+   - [ ] Move business operations to UseCases
+   - [ ] Ensure Services are stateless utilities
    - [ ] Remove presentation logic from services
-   - [ ] Document service interfaces and boundaries
-   - [ ] Add service tests for utility functions
 
-4. **ViewModels Cleanup (1 week)**
-   - [ ] Implement consistent @Observable usage
-   - [ ] Remove direct service access
-   - [ ] Clean up state management
-   - [ ] Add ViewModel tests
+2. **Service Boundary Definition (3 days)**
+   - [ ] Document what belongs in Services vs UseCases
+   - [ ] Establish clear service interfaces
+   - [ ] Remove service dependencies from ViewModels
+   - [ ] Ensure proper dependency flow
+
+3. **Legacy Code Cleanup (3 days)**
+   - [ ] Remove deprecated service methods
+   - [ ] Clean up service interfaces
+   - [ ] Fix any circular dependencies
+   - [ ] Update service documentation
 
 ### Success Criteria
-- No direct Service injection in ViewModels (only UseCase injection)
-- Clear separation: UseCases = business operations, Services = utilities
-- No direct repository access in views
-- Clear service boundaries with documented responsibilities
-- Consistent state management
-- All critical ViewModel operations go through UseCases
-- Improved test coverage
+- Services contain ONLY utility functions
+- No business logic in Services
+- Clear Service/UseCase separation
+- All ViewModels use UseCases (not Services)
 
-## Phase 4: RitualistCore Enhancement (2 weeks)
+## Phase 3: Architecture Cleanup (2 weeks) ✅ COMPLETED
+
+### Goals ✅
+- Complete UseCase pattern enforcement
+- Clean up remaining architecture issues  
+- Standardize patterns across codebase
+
+### Tasks ✅
+
+1. **UseCase Pattern Completion (1 week)** ✅ COMPLETED
+   - [x] Audit for any remaining direct repository access ✅ ZERO found in ViewModels
+   - [x] Create UseCases for all business operations ✅ Created IsPersonalityAnalysisEnabledUseCase
+   - [x] Standardize UseCase interfaces ✅ Consistent execute() method pattern verified
+   - [x] Ensure proper error handling ✅ Custom error types: HabitError, NotificationError, OverviewError, PersonalityAnalysisError
+
+2. **ViewModel State Management (3 days)** ✅ COMPLETED
+   - [x] Implement consistent @Observable usage ✅ ALL ViewModels use @MainActor @Observable pattern
+   - [x] Clean up state management patterns ✅ Fixed PersonalityInsightsViewModel from ObservableObject to @Observable
+   - [x] Remove any remaining service dependencies ✅ ZERO service injections found in ViewModels
+   - [x] Standardize ViewModel initialization ✅ Standardized public init() with @Injected pattern
+
+3. **Architecture Documentation (3 days)** ✅ COMPLETED
+   - [x] Document final architecture patterns ✅ Documented in MICRO-CONTEXTS/architecture.md
+   - [x] Create architecture decision records ✅ Comprehensive usecase-service-distinction.md with Phase 2&3 completion records
+   - [x] Update developer guidelines ✅ 500+ line CLAUDE.md with complete architectural guidelines
+   - [x] Create pattern examples ✅ Concrete examples and violation detection commands provided
+
+### Success Criteria ✅ ALL MET
+- ✅ 100% UseCase pattern compliance - NO direct repository access found
+- ✅ No direct repository access outside repositories - All business operations properly layered
+- ✅ Consistent state management - Modern @Observable pattern across all ViewModels
+- ✅ Complete architecture documentation - Comprehensive docs and guidelines exist
+
+**Build Verification:** ✅ SUCCESS - All configurations compile (iPhone 16, iOS 26 simulator)
+**Completed:** 27.08.2025
+
+## Phase 4A: RitualistCore Enhancement (1.5 weeks)
 
 ### Goals
-- Complete domain logic migration
-- Strengthen core interfaces
+- Complete domain logic migration to RitualistCore
 - Prepare for watch app support
+- Clean up interfaces (without extensive testing)
 
 ### Tasks
 
-1. **Domain Logic Migration (1 week)**
-   - [ ] Identify remaining business logic
-   - [ ] Move to RitualistCore
+1. **Domain Logic Migration (4 days)**
+   - [ ] Identify remaining business logic in app layer
+   - [ ] Move to RitualistCore package
    - [ ] Update dependencies
-   - [ ] Add tests
+   - [ ] Ensure proper module boundaries
 
 2. **Interface Cleanup (3 days)**
-   - [ ] Review public interfaces
-   - [ ] Document protocols
-   - [ ] Add protocol conformance tests
-   - [ ] Update documentation
+   - [ ] Review and simplify public interfaces
+   - [ ] Remove unnecessary protocols
+   - [ ] Document protocol requirements
+   - [ ] Establish clear module boundaries
 
-3. **Watch App Preparation (4 days)**
-   - [ ] Review shared components
-   - [ ] Test offline capabilities
-   - [ ] Document integration points
-   - [ ] Add watch-specific tests
+3. **Watch App Preparation (1 day)**
+   - [ ] Identify shared components
+   - [ ] Ensure offline capability design
+   - [ ] Document integration approach
+   - [ ] **DO NOT write tests yet**
 
 ### Success Criteria
-- All business logic in RitualistCore
-- Clear public interfaces
-- Watch app ready architecture
-- Comprehensive documentation
+- All domain logic in RitualistCore
+- Clean, minimal public interfaces
+- Watch app architecture ready
+- **Architecture complete, ready for testing**
+
+## Phase 1B + 4B: Comprehensive Testing (2.5 weeks)
+
+### Goals
+- Write extensive tests for the CLEAN architecture
+- Document all testing patterns
+- Achieve high test coverage
+
+### Tasks
+
+1. **UseCase Testing (1 week)**
+   - [ ] Test all 10 new UseCases from Phase 0
+   - [ ] Test all existing UseCases
+   - [ ] Use real implementations with TestModelContainer
+   - [ ] Cover edge cases and error conditions
+
+2. **Service Testing (3 days)**
+   - [ ] Test all utility Services (now properly refactored)
+   - [ ] Test calculations and transformations
+   - [ ] Verify stateless behavior
+   - [ ] Performance benchmarks
+
+3. **ViewModel Testing (3 days)**
+   - [ ] Test all ViewModels with real UseCases
+   - [ ] Test state management
+   - [ ] Test user interactions
+   - [ ] Verify proper @Observable behavior
+
+4. **RitualistCore Testing (2 days)**
+   - [ ] Test all domain logic
+   - [ ] Test public interfaces
+   - [ ] Integration tests
+   - [ ] Watch app scenario tests
+
+5. **Test Infrastructure Completion (2 days)**
+   - [ ] Complete all test builders
+   - [ ] Create comprehensive fixtures
+   - [ ] Document testing patterns
+   - [ ] Create testing guidelines
+
+### Success Criteria
+- 90%+ UseCase coverage
+- 85%+ Service coverage
+- 80%+ ViewModel coverage
+- All testing patterns documented
+- Zero mock-based business logic tests
+- Comprehensive test suite for clean architecture
+
+## Existing Tests Migration Strategy
+
+### Current State Analysis
+- **22 test files** exist with varying quality
+- **8 files** use mocks (need refactoring)
+- **2 clean examples** from Phase 0 (keep as templates)
+
+### Migration Approach
+
+1. **Keep As-Is (Good Tests):**
+   - Utility tests (NumberUtilsTests, DateUtilsTests, etc.)
+   - Repository integration tests (already use TestModelContainer)
+   - Clean examples (OverviewViewModelSimpleTests, NotificationUseCaseCleanTests)
+
+2. **Refactor After Architecture Cleanup:**
+   - Tests with mocks (PersonalityAnalysisServiceTests, ViewModelTrackingIntegrationTests)
+   - Service tests that will change (HabitCompletionServiceTests)
+   - **Wait until Phase 2-3 complete to avoid double work**
+
+3. **Delete/Replace:**
+   - Mock-heavy tests that test wrong patterns
+   - Tests for code that will be deleted
+   - Obsolete test patterns
+
+### Migration Timeline
+- **Phase 1A**: Mark tests as "pending migration"
+- **Phases 2-4A**: Keep tests running but don't fix mock tests
+- **Phase 1B+4B**: Migrate all tests to clean pattern
+- **Final**: Delete all mock-based tests
 
 ## Critical Violations Found - IMMEDIATE ACTION REQUIRED
 
@@ -297,15 +364,16 @@ grep -r ": .*Service" Ritualist/Features/*/Presentation/*ViewModel.swift  # 0 re
 - All critical paths tested
 - Violation detection integrated into CI/CD
 
-## Timeline
+## Timeline (Hybrid Approach)
 
-- **Phase 0: CRITICAL VIOLATION FIXES**: Week 1 (URGENT)
-- Phase 1: Weeks 2-3
-- Phase 2: Weeks 4-6
-- Phase 3: Weeks 7-9
-- Phase 4: Weeks 10-11
+- **Phase 0: CRITICAL VIOLATION FIXES**: ✅ COMPLETED (August 2025)
+- **Phase 1A: Minimal Testing Infrastructure**: Days 1-4 (CI/CD and documentation only)
+- **Phase 2: Service Layer Cleanup**: Weeks 1-2 (Fix architecture first)
+- **Phase 3: Architecture Cleanup**: Weeks 3-4 (Complete patterns)
+- **Phase 4A: RitualistCore Enhancement**: Week 5 + 3 days (Domain migration)
+- **Phase 1B+4B: Comprehensive Testing**: Weeks 6-8 (Test the CLEAN architecture)
 
-Total Duration: 11 weeks (Phase 0 added for critical fixes)
+Total Duration: 8 weeks (2 weeks saved by avoiding double work on tests)
 
 ## Risk Mitigation
 
