@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import FactoryKit
+import Factory
 import RitualistCore
 import SwiftData
 import WidgetKit
@@ -91,9 +91,8 @@ extension Container {
     
     // MARK: - Widget Services
     
-    @MainActor
     var widgetRefreshService: Factory<WidgetRefreshServiceProtocol> {
-        self { @MainActor in WidgetRefreshService() }
+        self { WidgetRefreshService() }
             .singleton
     }
     

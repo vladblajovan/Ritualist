@@ -33,15 +33,6 @@ public final class CreateHabit: CreateHabitUseCase {
     }
 }
 
-public final class GetActiveHabits: GetActiveHabitsUseCase {
-    private let repo: HabitRepository
-    public init(repo: HabitRepository) { self.repo = repo }
-    public func execute() async throws -> [Habit] {
-        // Business logic: Filter only active habits and sort by display order
-        let allHabits = try await repo.fetchAllHabits()
-        return allHabits.filter { $0.isActive }.sorted { $0.displayOrder < $1.displayOrder }
-    }
-}
 
 public final class GetAllHabits: GetAllHabitsUseCase {
     private let repo: HabitRepository
@@ -1106,3 +1097,139 @@ public final class CheckWeeklyTarget: CheckWeeklyTargetUseCase {
         }
     }
 }
+
+// MARK: - New UseCase Implementations (Phase 0)
+
+public final class IsHabitCompleted: IsHabitCompletedUseCase {
+    private let habitCompletionService: HabitCompletionServiceProtocol
+    
+    public init(habitCompletionService: HabitCompletionServiceProtocol) {
+        self.habitCompletionService = habitCompletionService
+    }
+    
+    public func execute(habit: Habit, on date: Date, logs: [HabitLog]) -> Bool {
+        habitCompletionService.isCompleted(habit: habit, on: date, logs: logs)
+    }
+}
+
+public final class CalculateDailyProgress: CalculateDailyProgressUseCase {
+    private let habitCompletionService: HabitCompletionServiceProtocol
+    
+    public init(habitCompletionService: HabitCompletionServiceProtocol) {
+        self.habitCompletionService = habitCompletionService
+    }
+    
+    public func execute(habit: Habit, logs: [HabitLog], for date: Date) -> Double {
+        habitCompletionService.calculateDailyProgress(habit: habit, logs: logs, for: date)
+    }
+}
+
+public final class IsScheduledDay: IsScheduledDayUseCase {
+    private let habitCompletionService: HabitCompletionServiceProtocol
+    
+    public init(habitCompletionService: HabitCompletionServiceProtocol) {
+        self.habitCompletionService = habitCompletionService
+    }
+    
+    public func execute(habit: Habit, date: Date) -> Bool {
+        habitCompletionService.isScheduledDay(habit: habit, date: date)
+    }
+}
+
+public final class ClearPurchases: ClearPurchasesUseCase {
+    private let paywallService: PaywallService
+    
+    public init(paywallService: PaywallService) {
+        self.paywallService = paywallService
+    }
+    
+    public func execute() {
+        paywallService.clearPurchases()
+    }
+}
+
+public final class PopulateTestData: PopulateTestDataUseCase {
+    private var testDataPopulationService: TestDataPopulationServiceProtocol
+    
+    public init(testDataPopulationService: TestDataPopulationServiceProtocol) {
+        self.testDataPopulationService = testDataPopulationService
+    }
+    
+    public var progressUpdate: ((String, Double) -> Void)? {
+        get { testDataPopulationService.progressUpdate }
+        set { testDataPopulationService.progressUpdate = newValue }
+    }
+    
+    public func execute() async throws {
+        try await testDataPopulationService.populateTestData()
+    }
+}
+
+// MARK: - Analytics Use Case Implementations
+
+public final class GetActiveHabits: GetActiveHabitsUseCase {
+    private let habitAnalyticsService: HabitAnalyticsService
+    private let userService: UserService
+    
+    public init(habitAnalyticsService: HabitAnalyticsService, userService: UserService) {
+        self.habitAnalyticsService = habitAnalyticsService
+        self.userService = userService
+    }
+    
+    public func execute() async throws -> [Habit] {
+        let userId = userService.currentProfile.id
+        return try await habitAnalyticsService.getActiveHabits(for: userId)
+    }
+}
+
+public final class CalculateStreakAnalysis: CalculateStreakAnalysisUseCase {
+    private let performanceAnalysisService: PerformanceAnalysisService
+    
+    public init(performanceAnalysisService: PerformanceAnalysisService) {
+        self.performanceAnalysisService = performanceAnalysisService
+    }
+    
+    public func execute(habits: [Habit], logs: [HabitLog], from startDate: Date, to endDate: Date) -> StreakAnalysisResult {
+        performanceAnalysisService.calculateStreakAnalysis(habits: habits, logs: logs, from: startDate, to: endDate)
+    }
+}
+
+public final class RefreshWidget: RefreshWidgetUseCase {
+    private let widgetRefreshService: WidgetRefreshServiceProtocol
+    
+    public init(widgetRefreshService: WidgetRefreshServiceProtocol) {
+        self.widgetRefreshService = widgetRefreshService
+    }
+    
+    public func execute(habitId: UUID) {
+        Task { @MainActor in
+            widgetRefreshService.refreshWidgetsForHabit(habitId)
+        }
+    }
+}
+
+#if DEBUG
+public final class GetDatabaseStats: GetDatabaseStatsUseCase {
+    private let debugService: DebugServiceProtocol
+    
+    public init(debugService: DebugServiceProtocol) {
+        self.debugService = debugService
+    }
+    
+    public func execute() async throws -> DebugDatabaseStats {
+        try await debugService.getDatabaseStats()
+    }
+}
+
+public final class ClearDatabase: ClearDatabaseUseCase {
+    private let debugService: DebugServiceProtocol
+    
+    public init(debugService: DebugServiceProtocol) {
+        self.debugService = debugService
+    }
+    
+    public func execute() async throws {
+        try await debugService.clearDatabase()
+    }
+}
+#endif

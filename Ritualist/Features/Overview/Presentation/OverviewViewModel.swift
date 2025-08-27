@@ -94,7 +94,7 @@ public final class OverviewViewModel {
     }
     
     public var currentSlogan: String {
-        slogansService.getCurrentSlogan()
+        getCurrentSlogan.execute()
     }
     
     public var currentTimeOfDay: TimeOfDay {
@@ -136,8 +136,8 @@ public final class OverviewViewModel {
     @ObservationIgnored @Injected(\.getBatchLogs) private var getBatchLogs
     @ObservationIgnored @Injected(\.logHabit) private var logHabit
     @ObservationIgnored @Injected(\.deleteLog) private var deleteLog
-    @ObservationIgnored @Injected(\.slogansService) private var slogansService
-    @ObservationIgnored @Injected(\.userService) private var userService
+    @ObservationIgnored @Injected(\.getCurrentSlogan) private var getCurrentSlogan
+    @ObservationIgnored @Injected(\.getCurrentUserProfile) private var getCurrentUserProfile
     @ObservationIgnored @Injected(\.calculateCurrentStreak) private var calculateCurrentStreakUseCase
     @ObservationIgnored @Injected(\.getPersonalityProfileUseCase) private var getPersonalityProfileUseCase
     @ObservationIgnored @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
@@ -145,12 +145,14 @@ public final class OverviewViewModel {
     @ObservationIgnored @Injected(\.validateAnalysisDataUseCase) private var validateAnalysisDataUseCase
     @ObservationIgnored @Injected(\.personalityAnalysisRepository) private var personalityAnalysisRepository
     @ObservationIgnored @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
-    @ObservationIgnored @Injected(\.habitCompletionService) private var habitCompletionService
+    @ObservationIgnored @Injected(\.isHabitCompleted) private var isHabitCompleted
+    @ObservationIgnored @Injected(\.calculateDailyProgress) private var calculateDailyProgress
+    @ObservationIgnored @Injected(\.isScheduledDay) private var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
-    @ObservationIgnored @Injected(\.widgetRefreshService) private var widgetRefreshService
+    @ObservationIgnored @Injected(\.refreshWidget) private var refreshWidget
     
-    private var userId: UUID { 
-        userService.currentProfile.id 
+    private func getUserId() async -> UUID {
+        await getCurrentUserProfile.execute().id
     }
     
     public init() {
@@ -169,6 +171,9 @@ public final class OverviewViewModel {
         error = nil
         
         do {
+            // Cache user name for synchronous message generation
+            cachedUserName = await getUserName()
+            
             // Load unified data once instead of multiple parallel operations
             let overviewData = try await loadOverviewData()
             
@@ -231,7 +236,7 @@ public final class OverviewViewModel {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
                 
                 // Refresh widget to show updated habit status
-                widgetRefreshService.refreshWidgetsForHabit(habit.id)
+                refreshWidget.execute(habitId: habit.id)
             }
             
         } catch {
@@ -301,7 +306,7 @@ public final class OverviewViewModel {
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             
             // Refresh widget to show updated habit status
-            widgetRefreshService.refreshWidgetsForHabit(habit.id)
+            refreshWidget.execute(habitId: habit.id)
             
         } catch {
             self.error = error
@@ -327,7 +332,7 @@ public final class OverviewViewModel {
     // MARK: - Schedule Status and Validation Methods
     
     public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
-        return HabitScheduleStatus.forHabit(habit, date: viewingDate, habitCompletionService: habitCompletionService)
+        return HabitScheduleStatus.forHabit(habit, date: viewingDate, isScheduledDay: isScheduledDay)
     }
     
     public func getWeeklyProgress(for habit: Habit) -> (completed: Int, target: Int) {
@@ -341,21 +346,16 @@ public final class OverviewViewModel {
             let weekEnd = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: weekStart) ?? viewingDate
             let logs = try loadLogsSynchronously(for: habit.id, from: weekStart, to: weekEnd)
             
-            if let service = habitCompletionService as? DefaultHabitCompletionService {
-                return service.getWeeklyProgress(habit: habit, for: viewingDate, logs: logs)
-            } else {
-                // Fallback implementation for protocol conformance
-                guard case .timesPerWeek(let weeklyTarget) = habit.schedule else { return (0, 0) }
-                let filteredLogs = logs.filter { log in
-                    log.habitID == habit.id && log.value != nil && log.value! > 0
-                }
-                let uniqueDays = Set(filteredLogs.map { log in
-                    Calendar.current.startOfDay(for: log.date)
-                })
-                
-                
-                return (uniqueDays.count, weeklyTarget)
+            // Calculate weekly progress using business logic
+            guard case .timesPerWeek(let weeklyTarget) = habit.schedule else { return (0, 0) }
+            let filteredLogs = logs.filter { log in
+                log.habitID == habit.id && log.value != nil && log.value! > 0
             }
+            let uniqueDays = Set(filteredLogs.map { log in
+                Calendar.current.startOfDay(for: log.date)
+            })
+            
+            return (uniqueDays.count, weeklyTarget)
         } catch {
             return (completed: 0, target: 0)
         }
@@ -437,7 +437,7 @@ public final class OverviewViewModel {
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             
             // Refresh widget to show updated habit status
-            widgetRefreshService.refreshWidgetsForHabit(habit.id)
+            refreshWidget.execute(habitId: habit.id)
             
         } catch {
             self.error = error
@@ -678,7 +678,7 @@ public final class OverviewViewModel {
     
     public var currentInspirationMessage: String {
         guard let trigger = lastShownInspirationTrigger else {
-            return slogansService.getCurrentSlogan()
+            return getCurrentSlogan.execute()
         }
         return getPersonalizedMessage(for: trigger)
     }
@@ -728,7 +728,7 @@ public final class OverviewViewModel {
             allTargetDateLogs.append(contentsOf: logs)
             
             // Use centralized completion service for consistent calculation
-            let isCompleted = habitCompletionService.isCompleted(habit: habit, on: targetDate, logs: logs)
+            let isCompleted = isHabitCompleted.execute(habit: habit, on: targetDate, logs: logs)
             
             // Only show as incomplete if not completed AND not a future date
             if targetDate > Date() {
@@ -788,7 +788,7 @@ public final class OverviewViewModel {
                 let scheduledHabits = data.scheduledHabits(for: dayDate)
                 let completedCount = scheduledHabits.count { habit in
                     let logs = data.logs(for: habit.id, on: dayDate)
-                    return habitCompletionService.isCompleted(habit: habit, on: dayDate, logs: logs)
+                    return isHabitCompleted.execute(habit: habit, on: dayDate, logs: logs)
                 }
                 let isCompleted = !scheduledHabits.isEmpty && completedCount == scheduledHabits.count
                 daysCompleted.append(isCompleted)
@@ -816,7 +816,7 @@ public final class OverviewViewModel {
                 } else {
                     let completedCount = scheduledHabits.count { habit in
                         let logs = data.logs(for: habit.id, on: startOfDay)
-                        return habitCompletionService.isCompleted(habit: habit, on: startOfDay, logs: logs)
+                        return isHabitCompleted.execute(habit: habit, on: startOfDay, logs: logs)
                     }
                     result[startOfDay] = Double(completedCount) / Double(scheduledHabits.count)
                 }
@@ -856,9 +856,79 @@ public final class OverviewViewModel {
     }
     
     /// Extract smart insights from unified overview data
-    /// Uses pre-loaded data and HabitCompletionService for consistency
+    /// Uses pre-loaded data and UseCases for consistency
     private func extractSmartInsights(from data: OverviewData) -> [SmartInsight] {
-        return data.generateSmartInsights(completionService: habitCompletionService)
+        var insights: [SmartInsight] = []
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Get the proper week interval that respects user's first day of week preference
+        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else {
+            return insights
+        }
+        let startOfWeek = weekInterval.start
+        
+        // Use unified data instead of separate queries
+        guard !data.habits.isEmpty else {
+            return []
+        }
+        
+        // Analyze completion patterns over the past week using unified data
+        var totalCompletions = 0
+        var dailyCompletions: [Int] = Array(repeating: 0, count: 7)
+        
+        for habit in data.habits {
+            let logs = data.habitLogs[habit.id] ?? []
+            let recentLogs = logs.filter { log in
+                log.date >= startOfWeek && log.date < weekInterval.end
+            }
+            
+            // Count actual completions using IsHabitCompletedUseCase for single source of truth
+            for log in recentLogs {
+                let dayLogs = logs.filter { calendar.isDate($0.date, inSameDayAs: log.date) }
+                if isHabitCompleted.execute(habit: habit, on: log.date, logs: dayLogs) {
+                    totalCompletions += 1
+                    
+                    // Count completions per day
+                    let daysSinceStart = calendar.dateComponents([.day], from: startOfWeek, to: log.date).day ?? 0
+                    if daysSinceStart >= 0 && daysSinceStart < 7 {
+                        dailyCompletions[daysSinceStart] += 1
+                    }
+                }
+            }
+        }
+        
+        let totalPossibleCompletions = data.habits.count * 7
+        let completionRate = totalPossibleCompletions > 0 ? Double(totalCompletions) / Double(totalPossibleCompletions) : 0.0
+        
+        // Generate insights based on actual patterns
+        if completionRate >= 0.8 {
+            insights.append(SmartInsight(
+                title: "Excellent Consistency",
+                message: "You're completing \(Int(completionRate * 100))% of your habits this week!",
+                type: .celebration
+            ))
+        } else if completionRate >= 0.6 {
+            insights.append(SmartInsight(
+                title: "Good Progress",
+                message: "You're on track with \(Int(completionRate * 100))% completion. Keep building momentum!",
+                type: .pattern
+            ))
+        } else if completionRate >= 0.3 {
+            insights.append(SmartInsight(
+                title: "Room for Growth",
+                message: "Focus on consistency - even small daily wins add up to big results.",
+                type: .suggestion
+            ))
+        } else {
+            insights.append(SmartInsight(
+                title: "Fresh Start",
+                message: "Every day is a new opportunity. Start with just one habit today.",
+                type: .suggestion
+            ))
+        }
+        
+        return insights
     }
     
     private func loadSmartInsights() async throws -> [SmartInsight] {
@@ -870,6 +940,7 @@ public final class OverviewViewModel {
     private func loadPersonalityInsights() async {
         do {
             // Always get eligibility and requirements info using the UseCase
+            let userId = await getUserId()
             let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
             let requirements = try await validateAnalysisDataUseCase.getProgressDetails(for: userId)
             
@@ -950,6 +1021,7 @@ public final class OverviewViewModel {
     private func checkPersonalityAnalysisEligibility() async throws -> Bool {
         // Use the proper repository validation instead of simplified checks
         do {
+            let userId = await getUserId()
             // Check if personality analysis service is enabled for this user
             let isEnabled = try await personalityAnalysisRepository.isPersonalityAnalysisEnabled(for: userId)
             
@@ -1133,10 +1205,14 @@ public final class OverviewViewModel {
         }
     }
     
-    private var userName: String? {
-        let name = userService.currentProfile.name
-        return name.isEmpty ? nil : name
+    private var cachedUserName: String? = nil
+    
+    private func getUserName() async -> String? {
+        let profile = await getCurrentUserProfile.execute()
+        return profile.name.isEmpty ? nil : profile.name
     }
+    
+    private var userName: String? { cachedUserName }
     
     private func getSessionStartMessage() -> String {
         if let name = userName {

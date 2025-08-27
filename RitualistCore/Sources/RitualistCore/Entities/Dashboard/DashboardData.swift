@@ -43,18 +43,20 @@ public struct DashboardData {
         }
     }
     
-    public init(habits: [Habit], categories: [HabitCategory], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, completionService: HabitCompletionService) {
+    public init(habits: [Habit], categories: [HabitCategory], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, isHabitCompleted: IsHabitCompletedUseCase, calculateDailyProgress: CalculateDailyProgressUseCase, isScheduledDay: IsScheduledDayUseCase) {
         self.habits = habits
         self.categories = categories
         self.habitLogs = habitLogs
         self.dateRange = dateRange
         
-        // Pre-calculate all daily completions during initialization using HabitCompletionService
+        // Pre-calculate all daily completions during initialization using UseCases
         self.dailyCompletions = Self.calculateDailyCompletions(
             habits: habits,
             habitLogs: habitLogs,
             dateRange: dateRange,
-            completionService: completionService
+            isHabitCompleted: isHabitCompleted,
+            calculateDailyProgress: calculateDailyProgress,
+            isScheduledDay: isScheduledDay
         )
     }
     
@@ -200,9 +202,9 @@ public struct DashboardData {
     
     // MARK: - Private Calculation Methods
     
-    /// Pre-calculate daily completions for the entire date range using HabitCompletionService
+    /// Pre-calculate daily completions for the entire date range using UseCases
     /// This eliminates the need for per-day database queries and ensures single source of truth
-    private static func calculateDailyCompletions(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, completionService: HabitCompletionService) -> [Date: DayCompletion] {
+    private static func calculateDailyCompletions(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, isHabitCompleted: IsHabitCompletedUseCase, calculateDailyProgress: CalculateDailyProgressUseCase, isScheduledDay: IsScheduledDayUseCase) -> [Date: DayCompletion] {
         var dailyCompletions: [Date: DayCompletion] = [:]
         let calendar = Calendar.current
         
@@ -219,8 +221,8 @@ public struct DashboardData {
             
             for habit in scheduledHabits {
                 if let logs = habitLogs[habit.id] {
-                    // Use HabitCompletionService for single source of truth completion logic
-                    let isCompleted = completionService.isCompleted(habit: habit, on: startOfDay, logs: logs)
+                    // Use IsHabitCompletedUseCase for single source of truth completion logic
+                    let isCompleted = isHabitCompleted.execute(habit: habit, on: startOfDay, logs: logs)
                     
                     if isCompleted {
                         completedHabits.insert(habit.id)

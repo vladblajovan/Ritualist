@@ -9,7 +9,7 @@ extension Container {
     // MARK: - Habit Operations
     
     var getActiveHabits: Factory<GetActiveHabitsUseCase> {
-        self { GetActiveHabits(repo: self.habitRepository()) }
+        self { GetActiveHabits(habitAnalyticsService: self.habitAnalyticsService(), userService: self.userService()) }
     }
     
     // MARK: - Log Operations
@@ -58,6 +58,10 @@ extension Container {
         self { LoadProfile(repo: self.profileRepository()) }
     }
     
+    var getCurrentUserProfile: Factory<GetCurrentUserProfile> {
+        self { GetCurrentUserProfile(userService: self.userService()) }
+    }
+    
     // MARK: - Calendar Utilities
     
     var generateCalendarDays: Factory<GenerateCalendarDays> {
@@ -85,16 +89,16 @@ extension Container {
     
     // MARK: - Service-based Use Cases
     
-    var getCurrentSlogan: Factory<GetCurrentSlogan> {
-        self { GetCurrentSlogan(slogansService: self.slogansService()) }
-    }
-    
     var trackUserAction: Factory<TrackUserAction> {
         self { TrackUserAction(userActionTracker: self.userActionTracker()) }
     }
     
     var trackHabitLogged: Factory<TrackHabitLogged> {
         self { TrackHabitLogged(userActionTracker: self.userActionTracker()) }
+    }
+    
+    var refreshWidget: Factory<RefreshWidget> {
+        self { RefreshWidget(widgetRefreshService: self.widgetRefreshService()) }
     }
     
     var checkFeatureAccess: Factory<CheckFeatureAccess> {

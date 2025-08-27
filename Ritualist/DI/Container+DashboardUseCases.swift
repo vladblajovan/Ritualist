@@ -38,6 +38,14 @@ extension Container {
         .singleton
     }
     
+    // MARK: - Basic Analytics UseCases
+    
+    var calculateStreakAnalysis: Factory<CalculateStreakAnalysis> {
+        self {
+            CalculateStreakAnalysis(performanceAnalysisService: self.performanceAnalysisService())
+        }
+    }
+    
     // MARK: - Dashboard UseCases
     
     var calculateHabitPerformanceUseCase: Factory<CalculateHabitPerformanceUseCaseProtocol> {

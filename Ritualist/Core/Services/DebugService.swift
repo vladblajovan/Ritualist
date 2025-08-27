@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import RitualistCore
 import FactoryKit
 
 /// Service for debug operations like database clearing
@@ -19,19 +20,6 @@ public protocol DebugServiceProtocol {
     func getDatabaseStats() async throws -> DebugDatabaseStats
 }
 
-public struct DebugDatabaseStats {
-    public let habitsCount: Int
-    public let logsCount: Int
-    public let categoriesCount: Int
-    public let profilesCount: Int
-    
-    public init(habitsCount: Int, logsCount: Int, categoriesCount: Int, profilesCount: Int) {
-        self.habitsCount = habitsCount
-        self.logsCount = logsCount
-        self.categoriesCount = categoriesCount
-        self.profilesCount = profilesCount
-    }
-}
 
 #if DEBUG
 public final class DebugService: DebugServiceProtocol {

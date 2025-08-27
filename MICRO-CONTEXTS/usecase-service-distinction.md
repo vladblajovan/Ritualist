@@ -18,3 +18,19 @@
 ```bash
 grep -r "@Injected.*Service" Ritualist/Features/*/Presentation/ --include="*ViewModel.swift"
 ```
+
+## ✅ **NEW USECASES CREATED (27.08.2025)**
+
+**Habit Completion UseCases:**
+- `IsHabitCompletedUseCase` - Replaces habitCompletionService.isCompleted()
+- `CalculateDailyProgressUseCase` - Replaces habitCompletionService.calculateDailyProgress()
+- `IsScheduledDayUseCase` - Replaces habitCompletionService.isScheduledDay()
+
+**Analytics UseCases:**
+- `GetActiveHabitsUseCase` - Replaces habitAnalyticsService.getActiveHabits()
+- `CalculateStreakAnalysisUseCase` - Replaces performanceAnalysisService.calculateStreakAnalysis()
+
+**Utility UseCases:**
+- `GetCurrentSloganUseCase` - Replaces slogansService.getCurrentSlogan()
+- `ClearPurchasesUseCase` - Replaces paywallService.clearPurchases()
+- `PopulateTestDataUseCase` - Replaces testDataPopulationService calls

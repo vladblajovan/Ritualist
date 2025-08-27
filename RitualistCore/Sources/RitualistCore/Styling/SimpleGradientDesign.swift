@@ -53,7 +53,7 @@ public struct SimpleGradientDesign {
 }
 
 /// Simple gradient background view
-@available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
+@available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
 public struct SimpleGradientBackground: View {
     @Environment(\.colorScheme) private var colorScheme
     
@@ -67,7 +67,7 @@ public struct SimpleGradientBackground: View {
 
 // MARK: - View Extensions
 
-@available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
+@available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
 public extension View {
     /// Add simple gradient background
     func simpleGradientBackground() -> some View {

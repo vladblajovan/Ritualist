@@ -4,6 +4,7 @@ import SwiftUI
 
 /// Beautiful gradient colors adapted for Ritualist's habit tracking context
 /// Shared between main app and widget targets
+@available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
 public extension Color {
     // Warm morning colors (sunrise energy)
     static let ritualistWarmPeach = Color(hex: 0xF7C58B)
@@ -23,6 +24,7 @@ public extension Color {
     static let ritualistDarkTeal = Color(hex: 0x1B3A3B)
 }
 
+@available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
 public extension Color {
     init(hex: UInt32, alpha: Double = 1) {
         let r = Double((hex >> 16) & 0xFF) / 255

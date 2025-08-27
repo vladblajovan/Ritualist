@@ -105,7 +105,15 @@ extension Container {
                 saveProfile: self.saveProfile(),
                 requestNotificationPermission: self.requestNotificationPermission(),
                 checkNotificationStatus: self.checkNotificationStatus(),
-                userService: self.userService()
+                clearPurchases: self.clearPurchases(),
+                userService: self.userService(),
+                populateTestData: {
+                    #if DEBUG
+                    return self.populateTestData()
+                    #else
+                    return nil
+                    #endif
+                }()
             )
         }
         .singleton

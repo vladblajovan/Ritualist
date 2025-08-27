@@ -70,4 +70,18 @@ extension Container {
             )
         }
     }
+    
+    // MARK: - Habit Calculation Operations
+    
+    var isHabitCompleted: Factory<IsHabitCompleted> {
+        self { IsHabitCompleted(habitCompletionService: self.habitCompletionServiceProtocol()) }
+    }
+    
+    var calculateDailyProgress: Factory<CalculateDailyProgress> {
+        self { CalculateDailyProgress(habitCompletionService: self.habitCompletionServiceProtocol()) }
+    }
+    
+    var isScheduledDay: Factory<IsScheduledDay> {
+        self { IsScheduledDay(habitCompletionService: self.habitCompletionServiceProtocol()) }
+    }
 }

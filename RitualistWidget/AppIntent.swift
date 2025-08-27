@@ -7,7 +7,7 @@
 
 import WidgetKit
 import AppIntents
-import FactoryKit
+import Factory
 import RitualistCore
 
 /// App Intent for completing binary habits directly from the widget

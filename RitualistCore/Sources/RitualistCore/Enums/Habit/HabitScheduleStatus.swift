@@ -48,6 +48,7 @@ public enum HabitScheduleStatus {
         }
     }
     
+    @available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
     public var color: Color {
         switch self {
         case .scheduledToday:
@@ -75,8 +76,8 @@ public enum HabitScheduleStatus {
 
 public extension HabitScheduleStatus {
     /// Determines the schedule status for a habit on a specific date
-    static func forHabit(_ habit: Habit, date: Date, habitCompletionService: HabitCompletionService) -> HabitScheduleStatus {
-        let isScheduled = habitCompletionService.isScheduledDay(habit: habit, date: date)
+    static func forHabit(_ habit: Habit, date: Date, isScheduledDay: IsScheduledDayUseCase) -> HabitScheduleStatus {
+        let isScheduled = isScheduledDay.execute(habit: habit, date: date)
         
         // Check if it's always available (daily or flexible weekly)
         switch habit.schedule {

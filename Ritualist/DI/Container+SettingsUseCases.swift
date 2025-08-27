@@ -21,4 +21,30 @@ extension Container {
     var checkNotificationStatus: Factory<CheckNotificationStatus> {
         self { CheckNotificationStatus(notificationService: self.notificationService()) }
     }
+    
+    // MARK: - App Content Operations
+    
+    var getCurrentSlogan: Factory<GetCurrentSlogan> {
+        self { GetCurrentSlogan(slogansService: self.slogansService()) }
+    }
+    
+    // MARK: - Development Operations
+    
+    var clearPurchases: Factory<ClearPurchases> {
+        self { ClearPurchases(paywallService: self.paywallService()) }
+    }
+    
+    var populateTestData: Factory<PopulateTestData> {
+        self { PopulateTestData(testDataPopulationService: self.testDataPopulationService()) }
+    }
+    
+    #if DEBUG
+    var getDatabaseStats: Factory<GetDatabaseStats> {
+        self { GetDatabaseStats(debugService: self.debugService()) }
+    }
+    
+    var clearDatabase: Factory<ClearDatabase> {
+        self { ClearDatabase(debugService: self.debugService()) }
+    }
+    #endif
 }

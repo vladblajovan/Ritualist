@@ -10,7 +10,7 @@ public struct NumericHabitLogSheetDirect: View {
     let onCancel: () -> Void
     let initialValue: Double?
     
-    @Injected(\.logRepository) private var logRepository
+    @Injected(\.getLogs) private var getLogs
     @Injected(\.hapticFeedbackService) private var hapticService
     @State private var currentValue: Double = 0.0
     @State private var isLoading = true
@@ -364,7 +364,7 @@ public struct NumericHabitLogSheetDirect: View {
     private func loadCurrentValue() {
         Task {
             do {
-                let logs = try await logRepository.logs(for: habit.id)
+                let logs = try await getLogs.execute(for: habit.id, since: nil, until: nil)
                 let targetDateLogs = logs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
                 let totalValue = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
                 

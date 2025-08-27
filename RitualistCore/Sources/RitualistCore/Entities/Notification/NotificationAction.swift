@@ -34,6 +34,7 @@ public enum NotificationAction: String, CaseIterable, Codable {
         return title(for: nil)
     }
     
+    @available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
     public func options(for habitKind: HabitKind?) -> UNNotificationActionOptions {
         switch self {
         case .log:

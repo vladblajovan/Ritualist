@@ -7,7 +7,7 @@
 
 import WidgetKit
 import SwiftUI
-import FactoryKit
+import Factory
 import RitualistCore
 
 // MARK: - Timeline Provider

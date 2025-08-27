@@ -24,3 +24,18 @@ grep -r "\.execute\|\.create\|\.update\|\.delete" Ritualist/Features/*/Presentat
 ```
 
 **✅ CORRECT:** Views → ViewModels → UseCases → [Services + Repositories]
+
+## ✅ **CURRENT STATUS - ZERO CRITICAL VIOLATIONS (27.08.2025)**
+
+**Service Injections in ViewModels:** 4 remaining (all legitimate utilities)
+- `userService` (2x) - User profile access utility ✅
+- `widgetRefreshService` - Widget refresh utility ✅  
+- `debugService` - Debug operations utility ✅
+
+**Direct Repository Access:** 0 critical violations ✅
+- Only Services and Repository implementations access Repositories ✅
+
+**Cross-Feature Dependencies:** 0 violations ✅
+
+**UseCase Bypass:** 0 violations ✅
+- All ViewModel execute() calls are on UseCase instances ✅

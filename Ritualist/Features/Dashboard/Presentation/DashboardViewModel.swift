@@ -25,19 +25,17 @@ public final class DashboardViewModel {
     public var isLoading = false
     public var error: Error?
     
-    @ObservationIgnored @Injected(\.habitAnalyticsService) internal var habitAnalyticsService
-    @ObservationIgnored @Injected(\.userService) internal var userService
+    @ObservationIgnored @Injected(\.getActiveHabits) internal var getActiveHabits
+    @ObservationIgnored @Injected(\.calculateStreakAnalysis) internal var calculateStreakAnalysis
     @ObservationIgnored @Injected(\.getBatchLogs) internal var getBatchLogs
     @ObservationIgnored @Injected(\.getSingleHabitLogs) internal var getSingleHabitLogs
     @ObservationIgnored @Injected(\.getAllCategories) internal var getAllCategories
     @ObservationIgnored @Injected(\.habitScheduleAnalyzer) internal var scheduleAnalyzer
-    @ObservationIgnored @Injected(\.performanceAnalysisService) internal var performanceAnalysisService
-    @ObservationIgnored @Injected(\.habitCompletionService) internal var habitCompletionService
+    @ObservationIgnored @Injected(\.isHabitCompleted) internal var isHabitCompleted
+    @ObservationIgnored @Injected(\.calculateDailyProgress) internal var calculateDailyProgress
+    @ObservationIgnored @Injected(\.isScheduledDay) internal var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     
-    internal var userId: UUID { 
-        userService.currentProfile.id 
-    }
     
     public init() {}
     
@@ -286,29 +284,29 @@ public final class DashboardViewModel {
     
     // MARK: - Habit Completion Methods
     
-    /// Check if a habit is completed on a specific date using HabitCompletionService
+    /// Check if a habit is completed on a specific date using IsHabitCompletedUseCase
     public func isHabitCompleted(_ habit: Habit, on date: Date) async -> Bool {
         do {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
-            return habitCompletionService.isCompleted(habit: habit, on: date, logs: logs)
+            return isHabitCompleted.execute(habit: habit, on: date, logs: logs)
         } catch {
             return false
         }
     }
     
-    /// Get progress for a habit on a specific date using HabitCompletionService
+    /// Get progress for a habit on a specific date using CalculateDailyProgressUseCase
     public func getHabitProgress(_ habit: Habit, on date: Date) async -> Double {
         do {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
-            return habitCompletionService.calculateDailyProgress(habit: habit, logs: logs, for: date)
+            return calculateDailyProgress.execute(habit: habit, logs: logs, for: date)
         } catch {
             return 0.0
         }
     }
     
-    /// Check if a habit should be shown as actionable on a specific date using HabitCompletionService
+    /// Check if a habit should be shown as actionable on a specific date using IsScheduledDayUseCase
     public func isHabitActionable(_ habit: Habit, on date: Date) -> Bool {
-        return habitCompletionService.isScheduledDay(habit: habit, date: date)
+        return isScheduledDay.execute(habit: habit, date: date)
     }
     
     /// Get schedule validation message for a habit on a specific date

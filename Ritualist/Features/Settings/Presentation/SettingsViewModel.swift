@@ -9,14 +9,15 @@ public final class SettingsViewModel {
     private let saveProfile: SaveProfileUseCase
     private let requestNotificationPermission: RequestNotificationPermissionUseCase
     private let checkNotificationStatus: CheckNotificationStatusUseCase
+    private let clearPurchases: ClearPurchasesUseCase
     private let userService: UserService
-    @ObservationIgnored @Injected(\.paywallService) var paywallService
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
     
+    private let populateTestData: PopulateTestDataUseCase?
     #if DEBUG
-    @ObservationIgnored @Injected(\.debugService) var debugService
-    @ObservationIgnored @Injected(\.testDataPopulationService) var testDataPopulationService
+    @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
+    @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase
     #endif
 
     public var profile = UserProfile()
@@ -45,12 +46,16 @@ public final class SettingsViewModel {
                 saveProfile: SaveProfileUseCase, 
                 requestNotificationPermission: RequestNotificationPermissionUseCase,
                 checkNotificationStatus: CheckNotificationStatusUseCase,
-                userService: UserService) {
+                clearPurchases: ClearPurchasesUseCase,
+                userService: UserService,
+                populateTestData: PopulateTestDataUseCase? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
         self.requestNotificationPermission = requestNotificationPermission
         self.checkNotificationStatus = checkNotificationStatus
+        self.clearPurchases = clearPurchases
         self.userService = userService
+        self.populateTestData = populateTestData
     }
     
     public func load() async {
@@ -155,8 +160,8 @@ public final class SettingsViewModel {
             // Cancel subscription through user service
             try await userService.updateSubscription(plan: .free, expiryDate: nil)
             
-            // Clear any stored purchases from the paywall service
-            paywallService.clearPurchases()
+            // Clear any stored purchases
+            clearPurchases.execute()
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "subscription_cancellation")
@@ -188,7 +193,7 @@ public final class SettingsViewModel {
     #if DEBUG
     public func loadDatabaseStats() async {
         do {
-            databaseStats = try await debugService.getDatabaseStats()
+            databaseStats = try await getDatabaseStats.execute()
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "debug_database_stats")
@@ -200,10 +205,10 @@ public final class SettingsViewModel {
         error = nil
         
         do {
-            try await debugService.clearDatabase()
+            try await clearDatabase.execute()
             
             // Reload stats after clearing
-            databaseStats = try await debugService.getDatabaseStats()
+            databaseStats = try await getDatabaseStats.execute()
             
             // Track the debug action
             userActionTracker.track(.custom(event: "debug_database_cleared", parameters: [:]))
@@ -216,13 +221,15 @@ public final class SettingsViewModel {
     }
     
     public func populateTestData() async {
+        guard var populateTestData = populateTestData else { return }
+        
         isPopulatingTestData = true
         testDataProgress = 0.0
         testDataProgressMessage = "Starting test data population..."
         error = nil
         
         // Setup progress callback
-        testDataPopulationService.progressUpdate = { [weak self] message, progress in
+        populateTestData.progressUpdate = { [weak self] message, progress in
             Task { @MainActor in
                 self?.testDataProgressMessage = message
                 self?.testDataProgress = progress
@@ -230,10 +237,10 @@ public final class SettingsViewModel {
         }
         
         do {
-            try await testDataPopulationService.populateTestData()
+            try await populateTestData.execute()
             
             // Reload stats after populating data
-            databaseStats = try await debugService.getDatabaseStats()
+            databaseStats = try await getDatabaseStats.execute()
             
             // Track the debug action
             userActionTracker.track(.custom(event: "debug_test_data_populated", parameters: [:]))

@@ -28,26 +28,28 @@ extension DashboardViewModel {
         // PHASE 2: Single batch data loading (3 queries total)
         
         // 1. Single query for all active habits
-        let habits = try await habitAnalyticsService.getActiveHabits(for: userId)
+        let habits = try await getActiveHabits.execute()
         
         // 2. Single query for all categories
         let categories = try await getAllCategories.execute()
         
         // 3. Single batch query for ALL habit logs in the entire date range
-        let habitIds = habits.map(\.id)
+        let habitIds: [UUID] = habits.map { $0.id }
         let habitLogs = try await self.getBatchLogs.execute(
             for: habitIds,
             since: range.start,
             until: range.end
         )
         
-        // Create unified data structure with pre-calculated daily completions using HabitCompletionService
+        // Create unified data structure with pre-calculated daily completions using UseCases
         return DashboardData(
             habits: habits,
             categories: categories,
             habitLogs: habitLogs,
             dateRange: range.start...range.end,
-            completionService: self.habitCompletionService
+            isHabitCompleted: self.isHabitCompleted,
+            calculateDailyProgress: self.calculateDailyProgress,
+            isScheduledDay: self.isScheduledDay
         )
     }
     
@@ -55,7 +57,7 @@ extension DashboardViewModel {
     // MARK: - Data Extraction Methods (Phase 4)
     
     /// Extract completion statistics from unified dashboard data
-    /// Replaces initial habitAnalyticsService.getHabitCompletionStats call
+    /// Replaces initial service calls with efficient data extraction
     func extractCompletionStats(from dashboardData: DashboardData) -> HabitCompletionStats {
         let habits = dashboardData.habits
         let dateRange = dashboardData.dateRange
@@ -331,7 +333,7 @@ extension DashboardViewModel {
     }
     
     /// Extract streak analysis from unified dashboard data
-    /// Uses existing PerformanceAnalysisService for system-wide streak calculation
+    /// Uses existing CalculateStreakAnalysisUseCase for system-wide streak calculation
     func extractStreakAnalysis(from dashboardData: DashboardData) -> StreakAnalysisViewModel? {
         let habits = dashboardData.habits
         let dateRange = dashboardData.dateRange
@@ -340,8 +342,8 @@ extension DashboardViewModel {
         // Flatten habitLogs for service call
         let allLogs = dashboardData.habitLogs.values.flatMap { $0 }
         
-        // Use existing service for proper streak analysis
-        let streakAnalysisResult = performanceAnalysisService.calculateStreakAnalysis(
+        // Use existing UseCase for proper streak analysis
+        let streakAnalysisResult = calculateStreakAnalysis.execute(
             habits: habits,
             logs: allLogs,
             from: dateRange.lowerBound,

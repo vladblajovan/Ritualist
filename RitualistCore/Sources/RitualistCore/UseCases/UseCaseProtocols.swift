@@ -50,6 +50,27 @@ public protocol GetHabitCountUseCase {
     func execute() async -> Int
 }
 
+public protocol IsHabitCompletedUseCase {
+    func execute(habit: Habit, on date: Date, logs: [HabitLog]) -> Bool
+}
+
+public protocol CalculateDailyProgressUseCase {
+    func execute(habit: Habit, logs: [HabitLog], for date: Date) -> Double
+}
+
+public protocol IsScheduledDayUseCase {
+    func execute(habit: Habit, date: Date) -> Bool
+}
+
+public protocol ClearPurchasesUseCase {
+    func execute()
+}
+
+public protocol PopulateTestDataUseCase {
+    func execute() async throws
+    var progressUpdate: ((String, Double) -> Void)? { get set }
+}
+
 public protocol CreateHabitFromSuggestionUseCase {
     func execute(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult
 }
@@ -304,6 +325,12 @@ public protocol CalculateCurrentStreakUseCase {
     func execute(habit: Habit, logs: [HabitLog], asOf: Date) -> Int
 }
 
+// MARK: - Widget Use Cases
+
+public protocol RefreshWidgetUseCase {
+    func execute(habitId: UUID)
+}
+
 
 // MARK: - Dashboard Analytics Use Cases
 
@@ -323,3 +350,19 @@ public protocol CalculateHabitPerformanceUseCaseProtocol {
 public protocol GenerateProgressChartDataUseCaseProtocol {
     func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [ProgressChartDataPoint]
 }
+
+public protocol CalculateStreakAnalysisUseCase {
+    func execute(habits: [Habit], logs: [HabitLog], from startDate: Date, to endDate: Date) -> StreakAnalysisResult
+}
+
+// MARK: - Debug Use Cases
+
+#if DEBUG
+public protocol GetDatabaseStatsUseCase {
+    func execute() async throws -> DebugDatabaseStats
+}
+
+public protocol ClearDatabaseUseCase {
+    func execute() async throws
+}
+#endif
