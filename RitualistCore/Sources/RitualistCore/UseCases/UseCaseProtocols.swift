@@ -338,6 +338,14 @@ public protocol RefreshWidgetUseCase {
 
 // MARK: - Dashboard Analytics Use Cases
 
+public protocol GetHabitLogsForAnalyticsUseCase {
+    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog]
+}
+
+public protocol GetHabitCompletionStatsUseCase {
+    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats
+}
+
 public protocol AggregateCategoryPerformanceUseCaseProtocol {
     func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [CategoryPerformanceResult]
 }
@@ -359,6 +367,36 @@ public protocol CalculateStreakAnalysisUseCase {
     func execute(habits: [Habit], logs: [HabitLog], from startDate: Date, to endDate: Date) -> StreakAnalysisResult
 }
 
+// MARK: - Personality Analysis Use Cases
+
+public protocol AnalyzePersonalityUseCase {
+    func execute(for userId: UUID) async throws -> PersonalityProfile
+}
+
+public protocol GetPersonalityInsightsUseCase {
+    func execute(for userId: UUID) async throws -> PersonalityProfile?
+}
+
+public protocol IsPersonalityAnalysisEnabledUseCase {
+    func execute(for userId: UUID) async throws -> Bool
+}
+
+public protocol GetPersonalityProfileUseCase {
+    func execute(for userId: UUID) async throws -> PersonalityProfile?
+}
+
+public protocol UpdatePersonalityAnalysisUseCase {
+    func execute(for userId: UUID) async throws -> PersonalityProfile
+    func regenerateAnalysis(for userId: UUID) async throws -> PersonalityProfile
+    func shouldUpdateAnalysis(for userId: UUID) async throws -> Bool
+}
+
+public protocol ValidateAnalysisDataUseCase {
+    func execute(for userId: UUID) async throws -> AnalysisEligibility
+    func getProgressDetails(for userId: UUID) async throws -> [ThresholdRequirement]
+    func getEstimatedDaysToEligibility(for userId: UUID) async throws -> Int?
+}
+
 // MARK: - Debug Use Cases
 
 #if DEBUG
@@ -369,4 +407,5 @@ public protocol GetDatabaseStatsUseCase {
 public protocol ClearDatabaseUseCase {
     func execute() async throws
 }
+
 #endif

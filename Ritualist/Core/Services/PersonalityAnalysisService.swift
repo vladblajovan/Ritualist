@@ -8,11 +8,9 @@
 import Foundation
 import RitualistCore
 
-/// Service responsible for analyzing user behavior and calculating personality traits
+/// Service responsible for personality calculation utilities
+/// Business operations moved to AnalyzePersonalityUseCase
 public protocol PersonalityAnalysisService {
-    /// Perform comprehensive personality analysis for a user
-    func analyzePersonality(for userId: UUID) async throws -> PersonalityProfile
-    
     /// Calculate personality scores from habit analysis input
     func calculatePersonalityScores(from input: HabitAnalysisInput) -> [PersonalityTrait: Double]
     
@@ -34,54 +32,8 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         self.errorHandler = errorHandler
     }
     
-    @MainActor
-    public func analyzePersonality(for userId: UUID) async throws -> PersonalityProfile {
-        // Get input data for analysis
-        let input = try await repository.getHabitAnalysisInput(for: userId)
-        
-        // Get enhanced completion statistics with schedule-aware calculations
-        let endDate = Date()
-        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
-        let completionStats = try await repository.getHabitCompletionStats(for: userId, from: startDate, to: endDate)
-        
-        // Calculate personality scores with enhanced data
-        let (traitScores, accumulators, weights) = calculatePersonalityScoresWithDetails(
-            from: input, 
-            completionStats: completionStats
-        )
-        
-        // Determine dominant trait with intelligent tie-breaking
-        let dominantTrait = determineDominantTraitWithTieBreaking(
-            from: traitScores,
-            traitAccumulators: accumulators,
-            totalWeights: weights,
-            input: input
-        )
-        
-        // Create metadata with enhanced data points
-        let enhancedDataPoints = input.totalDataPoints + (completionStats.totalHabits > 0 ? 10 : 0)
-        let metadata = AnalysisMetadata(
-            analysisDate: Date(),
-            dataPointsAnalyzed: enhancedDataPoints,
-            timeRangeAnalyzed: input.analysisTimeRange,
-            version: "1.6"
-        )
-        
-        // Calculate confidence with enhanced completion data
-        let confidence = calculateConfidenceWithCompletionStats(from: metadata, completionStats: completionStats)
-        
-        // Create profile
-        let profile = PersonalityProfile(
-            id: UUID(),
-            userId: userId,
-            traitScores: traitScores,
-            dominantTrait: dominantTrait,
-            confidence: confidence,
-            analysisMetadata: metadata
-        )
-        
-        return profile
-    }
+    // PHASE 2: Business method removed - use AnalyzePersonalityUseCase instead
+    // This service now contains only utility calculation methods
     
     public func calculatePersonalityScores(from input: HabitAnalysisInput) -> [PersonalityTrait: Double] {
         let (scores, _, _) = calculatePersonalityScoresWithDetails(from: input, completionStats: nil)

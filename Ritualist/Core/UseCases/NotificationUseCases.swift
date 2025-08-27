@@ -64,8 +64,7 @@ public final class LogHabitFromNotification: LogHabitFromNotificationUseCase {
     public func execute(habitId: UUID, date: Date, value: Double?) async throws {
         // Fetch habit to determine logging behavior
         guard let habit = try await habitRepository.fetchHabit(by: habitId) else {
-            throw NSError(domain: "LogHabitFromNotification", code: 404, 
-                         userInfo: [NSLocalizedDescriptionKey: "Habit not found"])
+            throw NotificationError.habitNotFound(id: habitId)
         }
         
         // Check if there's already a log for today
@@ -168,8 +167,7 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
             
         case .remindLater:
             guard let habitName = habitName, let reminderTime = reminderTime else {
-                throw NSError(domain: "HandleNotificationAction", code: 400,
-                             userInfo: [NSLocalizedDescriptionKey: "Missing habit name or reminder time for snooze"])
+                throw NotificationError.missingRequiredData(field: "habit name or reminder time for snooze")
             }
             try await snoozeHabitReminder.execute(habitId: habitId, habitName: habitName, originalTime: reminderTime)
             

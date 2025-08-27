@@ -11,6 +11,7 @@ import FactoryKit
 @testable import Ritualist
 @testable import RitualistCore
 
+@available(*, deprecated, message: "PHASE 1B+4B MIGRATION REVIEW: This test uses Mock instances for DI testing. Needs review to determine if this is appropriate system boundary testing or should be rewritten with real implementations.")
 /// Isolated Factory DI verification test to debug dependency injection issues
 /// 
 /// This test validates that Factory DI mock configuration works correctly

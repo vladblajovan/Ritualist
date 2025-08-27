@@ -9,7 +9,7 @@ extension Container {
     // MARK: - Habit Operations
     
     var getActiveHabits: Factory<GetActiveHabitsUseCase> {
-        self { GetActiveHabits(habitAnalyticsService: self.habitAnalyticsService(), userService: self.userService()) }
+        self { GetActiveHabits(habitRepository: self.habitRepository()) }
     }
     
     // MARK: - Log Operations

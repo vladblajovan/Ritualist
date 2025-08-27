@@ -10,6 +10,7 @@ import Foundation
 @testable import Ritualist
 import RitualistCore
 
+@available(*, deprecated, message: "PHASE 1B+4B MIGRATION REQUIRED: This test uses MockUseCases pattern (MockGetAllHabitsUseCase, MockCreateHabitUseCase, MockGetActiveCategories). Will be rewritten to use real implementations with TestModelContainer during comprehensive testing phase.")
 /// Tests that verify tracking integration in ViewModels
 struct ViewModelTrackingIntegrationTests {
     

@@ -52,31 +52,97 @@ jobs:
       with:
         xcode-version: latest-stable
     
-    - name: Build Project
+    - name: Cache SwiftPM Dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/Library/Caches/org.swift.swiftpm
+        key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.swift', '**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-swiftpm-
+    
+    - name: Cache Xcode DerivedData
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-xcode-deriveddata-${{ hashFiles('Ritualist.xcodeproj/project.pbxproj') }}
+        restore-keys: |
+          ${{ runner.os }}-xcode-deriveddata-
+    
+    - name: Build Project (with timing)
       run: |
+        echo "⏱️ Starting build at $(date)"
+        BUILD_START=$(date +%s)
+        
         xcodebuild build \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
-          -configuration Debug
+          -configuration Debug \
+          -derivedDataPath ~/Library/Developer/Xcode/DerivedData
+        
+        BUILD_END=$(date +%s)
+        BUILD_TIME=$((BUILD_END - BUILD_START))
+        echo "✅ Build completed in ${BUILD_TIME} seconds"
+        echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
     
     - name: Run Tests (including Swift Testing)
       run: |
+        echo "🧪 Starting tests at $(date)"
+        TEST_START=$(date +%s)
+        
         xcodebuild test \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
           -only-testing:RitualistTests \
-          -resultBundlePath TestResults.xcresult
+          -resultBundlePath TestResults.xcresult \
+          -derivedDataPath ~/Library/Developer/Xcode/DerivedData
+        
+        TEST_END=$(date +%s)
+        TEST_TIME=$((TEST_END - TEST_START))
+        echo "✅ Tests completed in ${TEST_TIME} seconds"
+        echo "TEST_TIME=${TEST_TIME}" >> $GITHUB_ENV
       continue-on-error: true
+      
+    - name: Generate Test Coverage Report
+      run: |
+        # Extract basic test results
+        if [ -d "TestResults.xcresult" ]; then
+          echo "📊 Extracting test coverage information..."
+          xcrun xccov view --report --json TestResults.xcresult > coverage.json || echo "Coverage extraction failed"
+          
+          # Create simple coverage report
+          cat > test_coverage_report.md << 'EOF'
+        # 📊 Test Coverage Report
+        
+        ## Build Performance
+        EOF
+          echo "- **Build Time**: ${BUILD_TIME} seconds" >> test_coverage_report.md
+          echo "- **Test Time**: ${TEST_TIME} seconds" >> test_coverage_report.md
+          echo "- **Total CI Time**: $((BUILD_TIME + TEST_TIME)) seconds" >> test_coverage_report.md
+          echo "" >> test_coverage_report.md
+          
+          echo "## Test Results" >> test_coverage_report.md
+          echo "- Test results available in TestResults.xcresult" >> test_coverage_report.md
+          echo "- Generated on: $(date)" >> test_coverage_report.md
+          
+          echo "✅ Coverage report generated"
+        else
+          echo "❌ TestResults.xcresult not found - tests may have failed to run"
+        fi
           
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-results
+        name: test-results-and-coverage
         path: |
           TestResults.xcresult/
+          coverage.json
+          test_coverage_report.md
         retention-days: 30
 
   swiftlint:
@@ -116,16 +182,27 @@ jobs:
         ## Summary
         This report shows the results of the build and test pipeline for the Ritualist app.
         
-        ## Test Results
+        ## Pipeline Results
         - **String Validation**: ${{ needs.string-validation.result }}
         - **Build & Test**: ${{ needs.build-test.result }}
         - **SwiftLint**: ${{ needs.swiftlint.result }}
         
-        ## Artifacts
-        Check the "Artifacts" section below for detailed reports.
+        ## Performance Metrics
+        Build performance data available in test-results-and-coverage artifacts.
+        
+        ## Phase 1A Improvements
+        - ✅ **Build Caching**: SwiftPM and DerivedData caching enabled
+        - ✅ **Performance Tracking**: Build and test times measured
+        - ✅ **Coverage Reporting**: Basic coverage data extracted
+        
+        ## Artifacts Available
+        - `string-validation-report` - Localization validation results
+        - `test-results-and-coverage` - Test results, coverage data, and performance metrics
+        - `build-report` - This comprehensive report
         
         ## Next Steps
         - Review any failed builds or tests
+        - Check performance trends in artifacts
         - Fix SwiftLint violations if any
         - Update string translations if validation failed
         

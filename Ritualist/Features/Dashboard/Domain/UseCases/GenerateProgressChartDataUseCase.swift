@@ -13,16 +13,16 @@ public protocol GenerateProgressChartDataUseCaseProtocol {
 }
 
 public final class GenerateProgressChartDataUseCase: GenerateProgressChartDataUseCaseProtocol {
-    private let habitAnalyticsService: HabitAnalyticsService
+    private let getHabitCompletionStatsUseCase: GetHabitCompletionStatsUseCase
     private let performanceAnalysisService: PerformanceAnalysisService
     private let calendar: Calendar
     
     public init(
-        habitAnalyticsService: HabitAnalyticsService,
+        getHabitCompletionStatsUseCase: GetHabitCompletionStatsUseCase,
         performanceAnalysisService: PerformanceAnalysisService,
         calendar: Calendar = Calendar.current
     ) {
-        self.habitAnalyticsService = habitAnalyticsService
+        self.getHabitCompletionStatsUseCase = getHabitCompletionStatsUseCase
         self.performanceAnalysisService = performanceAnalysisService
         self.calendar = calendar
     }
@@ -34,7 +34,7 @@ public final class GenerateProgressChartDataUseCase: GenerateProgressChartDataUs
         while currentDate <= endDate {
             let dayEnd = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
             
-            let dayStats = try await habitAnalyticsService.getHabitCompletionStats(
+            let dayStats = try await getHabitCompletionStatsUseCase.execute(
                 for: userId,
                 from: currentDate,
                 to: dayEnd

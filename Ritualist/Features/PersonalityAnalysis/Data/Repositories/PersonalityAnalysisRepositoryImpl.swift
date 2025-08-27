@@ -355,7 +355,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         if let data = try? JSONEncoder().encode(preferences) {
             UserDefaults.standard.set(data, forKey: key)
         } else {
-            throw NSError(domain: "PersonalityRepository", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode preferences"])
+            throw PersonalityAnalysisError.dataEncodingFailed
         }
     }
 }

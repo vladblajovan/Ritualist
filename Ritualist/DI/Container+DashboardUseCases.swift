@@ -40,6 +40,25 @@ extension Container {
     
     // MARK: - Basic Analytics UseCases
     
+    var getHabitLogsForAnalytics: Factory<GetHabitLogsForAnalytics> {
+        self {
+            GetHabitLogsForAnalytics(
+                habitRepository: self.habitRepository(),
+                getBatchLogs: self.getBatchLogs()
+            )
+        }
+    }
+    
+    var getHabitCompletionStats: Factory<GetHabitCompletionStats> {
+        self {
+            GetHabitCompletionStats(
+                habitRepository: self.habitRepository(),
+                scheduleAnalyzer: self.habitScheduleAnalyzer(),
+                getBatchLogs: self.getBatchLogs()
+            )
+        }
+    }
+    
     var calculateStreakAnalysis: Factory<CalculateStreakAnalysis> {
         self {
             CalculateStreakAnalysis(performanceAnalysisService: self.performanceAnalysisService())
@@ -51,7 +70,8 @@ extension Container {
     var calculateHabitPerformanceUseCase: Factory<CalculateHabitPerformanceUseCaseProtocol> {
         self { 
             CalculateHabitPerformanceUseCase(
-                habitAnalyticsService: self.habitAnalyticsService(),
+                getActiveHabitsUseCase: self.getActiveHabits(),
+                getHabitLogsUseCase: self.getHabitLogsForAnalytics(),
                 performanceAnalysisService: self.performanceAnalysisService()
             )
         }
@@ -60,7 +80,7 @@ extension Container {
     var generateProgressChartDataUseCase: Factory<GenerateProgressChartDataUseCaseProtocol> {
         self {
             GenerateProgressChartDataUseCase(
-                habitAnalyticsService: self.habitAnalyticsService(),
+                getHabitCompletionStatsUseCase: self.getHabitCompletionStats(),
                 performanceAnalysisService: self.performanceAnalysisService()
             )
         }
@@ -69,7 +89,8 @@ extension Container {
     var analyzeWeeklyPatternsUseCase: Factory<AnalyzeWeeklyPatternsUseCaseProtocol> {
         self {
             AnalyzeWeeklyPatternsUseCase(
-                habitAnalyticsService: self.habitAnalyticsService(),
+                getActiveHabitsUseCase: self.getActiveHabits(),
+                getHabitLogsUseCase: self.getHabitLogsForAnalytics(),
                 performanceAnalysisService: self.performanceAnalysisService()
             )
         }
@@ -79,7 +100,8 @@ extension Container {
     var aggregateCategoryPerformanceUseCase: Factory<AggregateCategoryPerformanceUseCaseProtocol> {
         self {
             AggregateCategoryPerformanceUseCase(
-                habitAnalyticsService: self.habitAnalyticsService(),
+                getActiveHabitsUseCase: self.getActiveHabits(),
+                getHabitLogsUseCase: self.getHabitLogsForAnalytics(),
                 performanceAnalysisService: self.performanceAnalysisService(),
                 categoryRepository: self.categoryRepository()
             )

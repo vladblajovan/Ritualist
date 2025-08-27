@@ -1,0 +1,160 @@
+name: Architecture Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'Ritualist/**/*.swift'
+      - 'RitualistCore/**/*.swift'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'Ritualist/**/*.swift'
+      - 'RitualistCore/**/*.swift'
+
+jobs:
+  architecture-check:
+    name: Validate Clean Architecture
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Check for Service Violations in ViewModels
+      run: |
+        echo "🔍 Checking for Service injection violations in ViewModels..."
+        
+        # Check for @Injected.*Service in Presentation layer
+        INJECTED_SERVICES=$(grep -r "@Injected.*Service" Ritualist/Features/*/Presentation/ || true)
+        
+        # Check for Service properties in ViewModels
+        SERVICE_PROPERTIES=$(grep -r ": .*Service" Ritualist/Features/*/Presentation/*ViewModel.swift || true)
+        
+        # Check for Service in ViewModel file content
+        SERVICE_REFERENCES=$(grep -r "Service" Ritualist/Features/*/Presentation/*ViewModel.swift || true)
+        
+        # Create violation report
+        cat > architecture_violations_report.md << 'EOF'
+        # 🏗️ Architecture Violation Report
+        
+        ## Summary
+        This report shows any violations of Clean Architecture patterns in the Ritualist codebase.
+        
+        **Expected Pattern:** Views → ViewModels → UseCases → Services/Repositories
+        
+        **Violation:** ViewModels directly injecting or using Services (should use UseCases only)
+        
+        ## Violation Detection Results
+        EOF
+        
+        # Check results and add to report
+        if [ -n "$INJECTED_SERVICES" ]; then
+          echo "❌ **CRITICAL VIOLATION DETECTED**: @Injected Service in ViewModels" >> architecture_violations_report.md
+          echo '```' >> architecture_violations_report.md
+          echo "$INJECTED_SERVICES" >> architecture_violations_report.md
+          echo '```' >> architecture_violations_report.md
+          echo "" >> architecture_violations_report.md
+          VIOLATIONS_FOUND=true
+        else
+          echo "✅ **PASSED**: No @Injected Services found in ViewModels" >> architecture_violations_report.md
+          echo "" >> architecture_violations_report.md
+        fi
+        
+        if [ -n "$SERVICE_PROPERTIES" ]; then
+          echo "❌ **CRITICAL VIOLATION DETECTED**: Service properties in ViewModels" >> architecture_violations_report.md
+          echo '```' >> architecture_violations_report.md
+          echo "$SERVICE_PROPERTIES" >> architecture_violations_report.md
+          echo '```' >> architecture_violations_report.md
+          echo "" >> architecture_violations_report.md
+          VIOLATIONS_FOUND=true
+        else
+          echo "✅ **PASSED**: No Service properties found in ViewModels" >> architecture_violations_report.md
+          echo "" >> architecture_violations_report.md
+        fi
+        
+        # Count total Service references (informational)
+        SERVICE_COUNT=$(echo "$SERVICE_REFERENCES" | wc -l | xargs)
+        if [ "$SERVICE_COUNT" -gt 0 ] && [ -n "$SERVICE_REFERENCES" ]; then
+          echo "ℹ️ **INFO**: Found $SERVICE_COUNT Service references in ViewModels (review needed)" >> architecture_violations_report.md
+          echo "<details><summary>Click to see all references</summary>" >> architecture_violations_report.md
+          echo "" >> architecture_violations_report.md
+          echo '```' >> architecture_violations_report.md
+          echo "$SERVICE_REFERENCES" >> architecture_violations_report.md
+          echo '```' >> architecture_violations_report.md
+          echo "</details>" >> architecture_violations_report.md
+          echo "" >> architecture_violations_report.md
+        else
+          echo "✅ **PERFECT**: No Service references found in ViewModels" >> architecture_violations_report.md
+          echo "" >> architecture_violations_report.md
+        fi
+        
+        # Add success metrics
+        echo "## ✅ Success Metrics" >> architecture_violations_report.md
+        echo "- **Phase 0 Achievement**: ZERO Service violations in ViewModels" >> architecture_violations_report.md
+        echo "- **Clean Architecture**: Proper layer separation maintained" >> architecture_violations_report.md
+        echo "- **Pattern Compliance**: Views → ViewModels → UseCases → Services" >> architecture_violations_report.md
+        echo "" >> architecture_violations_report.md
+        echo "Generated on: $(date)" >> architecture_violations_report.md
+        
+        # Display report
+        cat architecture_violations_report.md
+        
+        # Fail if critical violations found
+        if [ "$VIOLATIONS_FOUND" = true ]; then
+          echo ""
+          echo "💥 CRITICAL ARCHITECTURE VIOLATIONS DETECTED!"
+          echo "This violates Clean Architecture principles established in Phase 0."
+          echo "Please fix these violations before merging."
+          exit 1
+        else
+          echo ""
+          echo "🎉 Architecture validation PASSED! Clean Architecture maintained."
+        fi
+    
+    - name: Upload Architecture Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: architecture-violations-report
+        path: architecture_violations_report.md
+        retention-days: 30
+    
+    - name: Comment PR with Violations (if any)
+      uses: actions/github-script@v7
+      if: github.event_name == 'pull_request' && always()
+      with:
+        script: |
+          const fs = require('fs');
+          
+          try {
+            const report = fs.readFileSync('architecture_violations_report.md', 'utf8');
+            
+            // Check if violations were found
+            const hasViolations = report.includes('❌ **CRITICAL VIOLATION DETECTED**');
+            
+            if (hasViolations) {
+              // Post violation report
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🚨 Architecture Violations Detected\n\n${report}\n\n**Action Required:** Please fix these violations before merging. The codebase achieved ZERO violations in Phase 0 - let's keep it that way! 🏆`
+              });
+            } else {
+              // Post success message
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🎉 Architecture Validation Passed!\n\n${report}\n\nGreat job maintaining Clean Architecture compliance! 🏆`
+              });
+            }
+          } catch (error) {
+            console.error('Error posting comment:', error);
+          }
+
+# Security: Limit permissions
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write

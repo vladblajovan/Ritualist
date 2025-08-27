@@ -13,12 +13,12 @@ import RitualistCore
 /// Main view for displaying personality insights in Settings
 public struct PersonalityInsightsView: View {
     
-    @StateObject private var viewModel: PersonalityInsightsViewModel
+    @State private var viewModel: PersonalityInsightsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingPrivacy = false
     
     public init(viewModel: PersonalityInsightsViewModel) {
-        self._viewModel = StateObject(wrappedValue: viewModel)
+        self._viewModel = State(wrappedValue: viewModel)
     }
     
     public var body: some View {

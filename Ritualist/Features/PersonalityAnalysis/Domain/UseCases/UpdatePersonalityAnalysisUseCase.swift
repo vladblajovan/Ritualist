@@ -23,26 +23,24 @@ public protocol UpdatePersonalityAnalysisUseCase {
 public final class DefaultUpdatePersonalityAnalysisUseCase: UpdatePersonalityAnalysisUseCase {
     
     private let repository: PersonalityAnalysisRepositoryProtocol
-    private let analysisService: PersonalityAnalysisService
+    private let analyzePersonalityUseCase: AnalyzePersonalityUseCase
     
     // Update analysis if it's older than 7 days
     private let analysisValidityPeriod: TimeInterval = 7 * 24 * 60 * 60
     
     public init(
         repository: PersonalityAnalysisRepositoryProtocol,
-        analysisService: PersonalityAnalysisService
+        analyzePersonalityUseCase: AnalyzePersonalityUseCase
     ) {
         self.repository = repository
-        self.analysisService = analysisService
+        self.analyzePersonalityUseCase = analyzePersonalityUseCase
     }
     
     public func execute(for userId: UUID) async throws -> PersonalityProfile {
-        // Generate new analysis
-        let newProfile = try await analysisService.analyzePersonality(for: userId)
+        // Delegate to the analysis UseCase (follows Clean Architecture)
+        let newProfile = try await analyzePersonalityUseCase.execute(for: userId)
         
-        // Save the new profile
-        try await repository.savePersonalityProfile(newProfile)
-        
+        // Profile is already saved by the AnalyzePersonalityUseCase
         return newProfile
     }
     

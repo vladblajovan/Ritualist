@@ -10,7 +10,7 @@ import FactoryKit
 
 struct PersonalityInsightsSettingsRow: View {
     @State private var showingPersonalityInsights = false
-    @StateObject private var personalityVM = resolve(\.personalityInsightsViewModel)
+    @State private var personalityVM = resolve(\.personalityInsightsViewModel)
     
     var body: some View {
         let isEnabled = personalityVM.preferences?.isEnabled ?? false
@@ -60,9 +60,6 @@ struct PersonalityInsightsSettingsRow: View {
             Task {
                 await personalityVM.loadPreferences()
             }
-        }
-        .onReceive(personalityVM.$preferences) { _ in
-            // Force refresh when preferences change
         }
         .sheet(isPresented: $showingPersonalityInsights) {
             PersonalityInsightsView(viewModel: personalityVM)

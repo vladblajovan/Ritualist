@@ -13,20 +13,23 @@ public protocol AnalyzeWeeklyPatternsUseCaseProtocol {
 }
 
 public final class AnalyzeWeeklyPatternsUseCase: AnalyzeWeeklyPatternsUseCaseProtocol {
-    private let habitAnalyticsService: HabitAnalyticsService
+    private let getActiveHabitsUseCase: GetActiveHabitsUseCase
+    private let getHabitLogsUseCase: GetHabitLogsForAnalyticsUseCase
     private let performanceAnalysisService: PerformanceAnalysisService
     
     public init(
-        habitAnalyticsService: HabitAnalyticsService,
+        getActiveHabitsUseCase: GetActiveHabitsUseCase,
+        getHabitLogsUseCase: GetHabitLogsForAnalyticsUseCase,
         performanceAnalysisService: PerformanceAnalysisService
     ) {
-        self.habitAnalyticsService = habitAnalyticsService
+        self.getActiveHabitsUseCase = getActiveHabitsUseCase
+        self.getHabitLogsUseCase = getHabitLogsUseCase
         self.performanceAnalysisService = performanceAnalysisService
     }
     
     public func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> WeeklyPatternsResult {
-        let habits = try await habitAnalyticsService.getActiveHabits(for: userId)
-        let logs = try await habitAnalyticsService.getHabitLogs(for: userId, from: startDate, to: endDate)
+        let habits = try await getActiveHabitsUseCase.execute()
+        let logs = try await getHabitLogsUseCase.execute(for: userId, from: startDate, to: endDate)
         
         return performanceAnalysisService.analyzeWeeklyPatterns(
             habits: habits,

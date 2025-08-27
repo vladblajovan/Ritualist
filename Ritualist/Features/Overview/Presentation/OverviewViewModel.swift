@@ -143,7 +143,7 @@ public final class OverviewViewModel {
     @ObservationIgnored @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
     @ObservationIgnored @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
     @ObservationIgnored @Injected(\.validateAnalysisDataUseCase) private var validateAnalysisDataUseCase
-    @ObservationIgnored @Injected(\.personalityAnalysisRepository) private var personalityAnalysisRepository
+    @ObservationIgnored @Injected(\.isPersonalityAnalysisEnabledUseCase) private var isPersonalityAnalysisEnabledUseCase
     @ObservationIgnored @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     @ObservationIgnored @Injected(\.isHabitCompleted) private var isHabitCompleted
     @ObservationIgnored @Injected(\.calculateDailyProgress) private var calculateDailyProgress
@@ -694,7 +694,7 @@ public final class OverviewViewModel {
         let calendar = Calendar.current
         let today = Date()
         guard let startDate = calendar.date(byAdding: .day, value: -30, to: today) else {
-            throw NSError(domain: "OverviewV2", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate date range"])
+            throw OverviewError.dateRangeCalculationFailed(reason: "Could not calculate date 30 days ago from today")
         }
         
         // 3. Load logs ONCE for entire date range using batch operation
@@ -1019,18 +1019,18 @@ public final class OverviewViewModel {
     }
     
     private func checkPersonalityAnalysisEligibility() async throws -> Bool {
-        // Use the proper repository validation instead of simplified checks
+        // Use proper UseCases instead of direct repository access
         do {
             let userId = await getUserId()
             // Check if personality analysis service is enabled for this user
-            let isEnabled = try await personalityAnalysisRepository.isPersonalityAnalysisEnabled(for: userId)
+            let isEnabled = try await isPersonalityAnalysisEnabledUseCase.execute(for: userId)
             
             guard isEnabled else {
                 return false
             }
             
-            // Use the proper eligibility validation from the repository
-            let eligibility = try await personalityAnalysisRepository.validateAnalysisEligibility(for: userId)
+            // Use the proper eligibility validation UseCase
+            let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
             return eligibility.isEligible
             
         } catch {

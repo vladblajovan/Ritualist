@@ -15,6 +15,7 @@ public enum PersonalityAnalysisError: Error, LocalizedError, Equatable {
     case noLogsFound
     case analysisDisabled
     case dataCorrupted
+    case dataEncodingFailed
     case networkError
     case unknownError(String)
     
@@ -32,6 +33,8 @@ public enum PersonalityAnalysisError: Error, LocalizedError, Equatable {
             return "Personality analysis has been disabled. You can enable it in Settings."
         case .dataCorrupted:
             return "The analysis data appears to be corrupted. Please try refreshing the analysis."
+        case .dataEncodingFailed:
+            return "Failed to save personality analysis preferences. Please try again."
         case .networkError:
             return "Network error occurred during analysis. Please check your connection and try again."
         case .unknownError(let message):
@@ -51,6 +54,8 @@ public enum PersonalityAnalysisError: Error, LocalizedError, Equatable {
             return "Go to Settings > Personality Insights and enable the analysis feature."
         case .dataCorrupted:
             return "Try refreshing the analysis or contact support if the issue persists."
+        case .dataEncodingFailed:
+            return "Try updating your preferences again or restart the app."
         case .networkError:
             return "Check your internet connection and try again."
         default:
@@ -61,7 +66,7 @@ public enum PersonalityAnalysisError: Error, LocalizedError, Equatable {
     /// Whether this error is recoverable by user action
     public var isRecoverable: Bool {
         switch self {
-        case .insufficientData, .noHabitsFound, .noLogsFound, .analysisDisabled:
+        case .insufficientData, .noHabitsFound, .noLogsFound, .analysisDisabled, .dataEncodingFailed:
             return true
         case .invalidUserId, .dataCorrupted, .networkError, .unknownError:
             return false
@@ -75,7 +80,7 @@ public enum PersonalityAnalysisError: Error, LocalizedError, Equatable {
             return "data_insufficient"
         case .analysisDisabled:
             return "user_disabled"
-        case .invalidUserId, .dataCorrupted:
+        case .invalidUserId, .dataCorrupted, .dataEncodingFailed:
             return "data_invalid"
         case .networkError:
             return "network"

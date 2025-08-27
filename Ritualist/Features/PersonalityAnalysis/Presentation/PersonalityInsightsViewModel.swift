@@ -8,15 +8,15 @@
 import Foundation
 import RitualistCore
 
-@MainActor
-public final class PersonalityInsightsViewModel: ObservableObject {
+@MainActor @Observable
+public final class PersonalityInsightsViewModel {
     
-    // MARK: - Published Properties
+    // MARK: - Observable Properties
     
-    @Published public var viewState: ViewState = .loading
-    @Published public var preferences: PersonalityAnalysisPreferences?
-    @Published public var isLoadingPreferences = false
-    @Published public var isSavingPreferences = false
+    public var viewState: ViewState = .loading
+    public var preferences: PersonalityAnalysisPreferences?
+    public var isLoadingPreferences = false
+    public var isSavingPreferences = false
     
     // MARK: - View State
     

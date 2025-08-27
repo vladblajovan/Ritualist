@@ -19,18 +19,26 @@
 grep -r "@Injected.*Service" Ritualist/Features/*/Presentation/ --include="*ViewModel.swift"
 ```
 
-## ✅ **NEW USECASES CREATED (27.08.2025)**
+## ✅ **PHASE 2 SERVICE CLEANUP COMPLETED (27.08.2025)**
 
-**Habit Completion UseCases:**
-- `IsHabitCompletedUseCase` - Replaces habitCompletionService.isCompleted()
-- `CalculateDailyProgressUseCase` - Replaces habitCompletionService.calculateDailyProgress()
-- `IsScheduledDayUseCase` - Replaces habitCompletionService.isScheduledDay()
+**Services Refactored to Utility-Only:**
+- `PersonalityAnalysisService` - Only calculation methods (calculatePersonalityScores, determineDominantTrait)
+- `HabitAnalyticsService` - Only getSingleHabitLogs() utility method
+- `TestDataPopulationService` - Only data generation utilities (getCustomCategoryData, getCustomHabitData)
 
-**Analytics UseCases:**
-- `GetActiveHabitsUseCase` - Replaces habitAnalyticsService.getActiveHabits()
-- `CalculateStreakAnalysisUseCase` - Replaces performanceAnalysisService.calculateStreakAnalysis()
+**Business Logic Moved to UseCases:**
+- `AnalyzePersonalityUseCase` - Full personality analysis workflow
+- `PopulateTestDataUseCase` - Complete test data population orchestration
+- `UpdatePersonalityAnalysisUseCase` - Profile refresh and regeneration logic
 
-**Utility UseCases:**
-- `GetCurrentSloganUseCase` - Replaces slogansService.getCurrentSlogan()
-- `ClearPurchasesUseCase` - Replaces paywallService.clearPurchases()
-- `PopulateTestDataUseCase` - Replaces testDataPopulationService calls
+**Dashboard UseCases Fixed:**
+- `AggregateCategoryPerformanceUseCase` - Uses GetActiveHabitsUseCase + GetHabitLogsForAnalyticsUseCase
+- `AnalyzeWeeklyPatternsUseCase` - Uses UseCase dependencies instead of Service methods
+- `CalculateHabitPerformanceUseCase` - Uses GetActiveHabitsUseCase + GetHabitLogsUseCase
+- `GenerateProgressChartDataUseCase` - Uses GetHabitCompletionStatsUseCase
+
+**Architecture Boundaries Enforced:**
+- ❌ No ViewModels inject business Services directly
+- ✅ All business operations go through UseCases  
+- ✅ Services contain ONLY utility functions and calculations
+- ✅ UseCases orchestrate business workflows using Services + Repositories

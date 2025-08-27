@@ -1,5 +1,6 @@
 import Foundation
 import FactoryKit
+import RitualistCore
 
 // MARK: - Personality Analysis Use Cases Container Extensions
 
@@ -34,7 +35,7 @@ extension Container {
         self { 
             DefaultUpdatePersonalityAnalysisUseCase(
                 repository: self.personalityAnalysisRepository(),
-                analysisService: self.personalityAnalysisService()
+                analyzePersonalityUseCase: self.analyzePersonalityUseCase()
             ) 
         }
     }
@@ -42,4 +43,9 @@ extension Container {
     var getPersonalityInsightsUseCase: Factory<GetPersonalityInsightsUseCase> {
         self { DefaultGetPersonalityInsightsUseCase() }
     }
+    
+    var isPersonalityAnalysisEnabledUseCase: Factory<IsPersonalityAnalysisEnabledUseCase> {
+        self { DefaultIsPersonalityAnalysisEnabledUseCase(repository: self.personalityAnalysisRepository()) }
+    }
+    
 }

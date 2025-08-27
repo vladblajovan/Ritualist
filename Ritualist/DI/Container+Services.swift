@@ -327,18 +327,7 @@ extension Container {
     }
     
     var testDataPopulationService: Factory<TestDataPopulationServiceProtocol> {
-        self {
-            TestDataPopulationService(
-                debugService: self.debugService(),
-                habitSuggestionsService: self.habitSuggestionsService(),
-                createHabitFromSuggestionUseCase: self.createHabitFromSuggestionUseCase(),
-                createCustomCategoryUseCase: self.createCustomCategory(),
-                logHabitUseCase: self.logHabit(),
-                habitRepository: self.habitRepository(),
-                categoryRepository: self.categoryRepository(),
-                habitCompletionService: self.habitCompletionServiceProtocol()
-            )
-        }
+        self { TestDataPopulationService() }
         .singleton
     }
     #endif

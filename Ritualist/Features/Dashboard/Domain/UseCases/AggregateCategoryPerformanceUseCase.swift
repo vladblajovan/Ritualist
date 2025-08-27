@@ -9,24 +9,27 @@ import Foundation
 import RitualistCore
 
 public final class AggregateCategoryPerformanceUseCase: AggregateCategoryPerformanceUseCaseProtocol {
-    private let habitAnalyticsService: HabitAnalyticsService
+    private let getActiveHabitsUseCase: GetActiveHabitsUseCase
+    private let getHabitLogsUseCase: GetHabitLogsForAnalyticsUseCase
     private let performanceAnalysisService: PerformanceAnalysisService
     private let categoryRepository: CategoryRepository
     
     public init(
-        habitAnalyticsService: HabitAnalyticsService,
+        getActiveHabitsUseCase: GetActiveHabitsUseCase,
+        getHabitLogsUseCase: GetHabitLogsForAnalyticsUseCase,
         performanceAnalysisService: PerformanceAnalysisService,
         categoryRepository: CategoryRepository
     ) {
-        self.habitAnalyticsService = habitAnalyticsService
+        self.getActiveHabitsUseCase = getActiveHabitsUseCase
+        self.getHabitLogsUseCase = getHabitLogsUseCase
         self.performanceAnalysisService = performanceAnalysisService
         self.categoryRepository = categoryRepository
     }
     
     public func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [CategoryPerformanceResult] {
-        let habits = try await habitAnalyticsService.getActiveHabits(for: userId)
+        let habits = try await getActiveHabitsUseCase.execute()
         let categories = try await categoryRepository.getActiveCategories()
-        let logs = try await habitAnalyticsService.getHabitLogs(for: userId, from: startDate, to: endDate)
+        let logs = try await getHabitLogsUseCase.execute(for: userId, from: startDate, to: endDate)
         
         return performanceAnalysisService.aggregateCategoryPerformance(
             habits: habits,

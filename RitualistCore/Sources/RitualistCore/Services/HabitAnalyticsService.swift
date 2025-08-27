@@ -7,15 +7,11 @@
 
 import Foundation
 
-/// Domain service responsible for habit data access and retrieval
+/// PHASE 2: Utility service for habit analytics calculations only
+/// Business operations moved to UseCases following Clean Architecture
 public protocol HabitAnalyticsService {
     
-    /// Get all active habits for a user
-    func getActiveHabits(for userId: UUID) async throws -> [Habit]
-    
-    /// Get habit logs for a user within a date range
-    func getHabitLogs(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog]
-    
-    /// Get habit completion statistics for a user within a date range
-    func getHabitCompletionStats(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats
+    /// Get logs for a single habit using optimized batch loading
+    /// Delegates to proper UseCase following Clean Architecture
+    func getSingleHabitLogs(habitId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog]
 }

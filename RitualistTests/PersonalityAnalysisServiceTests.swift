@@ -10,6 +10,7 @@ import Foundation
 @testable import Ritualist
 @testable import RitualistCore
 
+@available(*, deprecated, message: "PHASE 1B+4B MIGRATION REQUIRED: This test uses MockPersonalityAnalysisRepository pattern. Will be rewritten to use real implementations with TestModelContainer during comprehensive testing phase.")
 @Suite("PersonalityAnalysisService Tests")
 struct PersonalityAnalysisServiceTests {
     

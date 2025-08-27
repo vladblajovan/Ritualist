@@ -1,5 +1,19 @@
+// swiftlint:disable file_length
+
 import Foundation
 import RitualistCore
+import FactoryKit
+
+// MARK: - Test Data Population Types
+public struct TestDataPopulationError: LocalizedError {
+    public let message: String
+    
+    public var errorDescription: String? { message }
+    
+    public init(_ message: String) {
+        self.message = message
+    }
+}
 
 // MARK: - Habit Use Case Implementations
 public final class CreateHabit: CreateHabitUseCase {
@@ -64,7 +78,7 @@ public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
     public func execute(id: UUID) async throws -> Habit {
         let allHabits = try await repo.fetchAllHabits()
         guard let habit = allHabits.first(where: { $0.id == id }) else {
-            throw NSError(domain: "ToggleHabitActiveStatus", code: 404, userInfo: [NSLocalizedDescriptionKey: "Habit not found"])
+            throw HabitError.habitNotFound(id: id)
         }
         
         let updatedHabit = Habit(
@@ -1160,37 +1174,20 @@ public final class ClearPurchases: ClearPurchasesUseCase {
     }
 }
 
-public final class PopulateTestData: PopulateTestDataUseCase {
-    private var testDataPopulationService: TestDataPopulationServiceProtocol
-    
-    public init(testDataPopulationService: TestDataPopulationServiceProtocol) {
-        self.testDataPopulationService = testDataPopulationService
-    }
-    
-    public var progressUpdate: ((String, Double) -> Void)? {
-        get { testDataPopulationService.progressUpdate }
-        set { testDataPopulationService.progressUpdate = newValue }
-    }
-    
-    public func execute() async throws {
-        try await testDataPopulationService.populateTestData()
-    }
-}
 
 // MARK: - Analytics Use Case Implementations
 
 public final class GetActiveHabits: GetActiveHabitsUseCase {
-    private let habitAnalyticsService: HabitAnalyticsService
-    private let userService: UserService
+    private let habitRepository: HabitRepository
     
-    public init(habitAnalyticsService: HabitAnalyticsService, userService: UserService) {
-        self.habitAnalyticsService = habitAnalyticsService
-        self.userService = userService
+    public init(habitRepository: HabitRepository) {
+        self.habitRepository = habitRepository
     }
     
     public func execute() async throws -> [Habit] {
-        let userId = userService.currentProfile.id
-        return try await habitAnalyticsService.getActiveHabits(for: userId)
+        // Business logic: Get all habits and filter active ones
+        let allHabits = try await habitRepository.fetchAllHabits()
+        return allHabits.filter { $0.isActive }
     }
 }
 
@@ -1244,4 +1241,322 @@ public final class ClearDatabase: ClearDatabaseUseCase {
         try await debugService.clearDatabase()
     }
 }
+
+public final class PopulateTestData: PopulateTestDataUseCase {
+    // MARK: - Dependencies - UseCases and Repositories, NOT Services
+    private let debugService: DebugServiceProtocol
+    private let habitSuggestionsService: HabitSuggestionsService
+    private let createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase
+    private let createCustomCategoryUseCase: CreateCustomCategoryUseCase
+    private let logHabitUseCase: LogHabitUseCase
+    private let habitRepository: HabitRepository
+    private let categoryRepository: CategoryRepository
+    private let habitCompletionService: HabitCompletionServiceProtocol
+    private let testDataUtilities: TestDataPopulationServiceProtocol
+    
+    // MARK: - Progress Tracking
+    public var progressUpdate: ((String, Double) -> Void)?
+    
+    public init(
+        debugService: DebugServiceProtocol,
+        habitSuggestionsService: HabitSuggestionsService,
+        createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase,
+        createCustomCategoryUseCase: CreateCustomCategoryUseCase,
+        logHabitUseCase: LogHabitUseCase,
+        habitRepository: HabitRepository,
+        categoryRepository: CategoryRepository,
+        habitCompletionService: HabitCompletionServiceProtocol,
+        testDataUtilities: TestDataPopulationServiceProtocol
+    ) {
+        self.debugService = debugService
+        self.habitSuggestionsService = habitSuggestionsService
+        self.createHabitFromSuggestionUseCase = createHabitFromSuggestionUseCase
+        self.createCustomCategoryUseCase = createCustomCategoryUseCase
+        self.logHabitUseCase = logHabitUseCase
+        self.habitRepository = habitRepository
+        self.categoryRepository = categoryRepository
+        self.habitCompletionService = habitCompletionService
+        self.testDataUtilities = testDataUtilities
+    }
+    
+    public func execute() async throws {
+        // Business workflow orchestration belongs in UseCase, not Service
+        
+        // Step 1: Clear existing data
+        progressUpdate?("Clearing existing data...", 0.0)
+        try await debugService.clearDatabase()
+        
+        // Step 2: Create custom categories
+        progressUpdate?("Creating custom categories...", 0.15)
+        let customCategories = try await createCustomCategories()
+        
+        // Step 3: Create habits from suggestions (diverse selection)
+        progressUpdate?("Creating habits from suggestions...", 0.3)
+        let suggestedHabits = try await createSuggestedHabits()
+        
+        // Step 4: Create custom habits
+        progressUpdate?("Creating custom habits...", 0.5)
+        let customHabits = try await createCustomHabits(using: customCategories)
+        
+        // Step 5: Generate historical data
+        progressUpdate?("Generating historical data...", 0.7)
+        let allHabits = suggestedHabits + customHabits
+        try await generateHistoricalData(for: allHabits)
+        
+        progressUpdate?("Test data population complete!", 1.0)
+    }
+    
+    // MARK: - Private Business Logic Implementation
+    
+    private func createCustomCategories() async throws -> [HabitCategory] {
+        let customCategoryData = testDataUtilities.getCustomCategoryData()
+        var createdCategories: [HabitCategory] = []
+        
+        for (index, categoryData) in customCategoryData.enumerated() {
+            let category = HabitCategory(
+                id: UUID().uuidString,
+                name: categoryData.name,
+                displayName: categoryData.displayName,
+                emoji: categoryData.emoji,
+                order: 100 + index,
+                isActive: true,
+                isPredefined: false
+            )
+            try await createCustomCategoryUseCase.execute(category)
+            createdCategories.append(category)
+        }
+        
+        return createdCategories
+    }
+    
+    private func createSuggestedHabits() async throws -> [Habit] {
+        let allSuggestions = habitSuggestionsService.getSuggestions()
+        guard !allSuggestions.isEmpty else {
+            throw TestDataPopulationError("No habit suggestions available")
+        }
+        
+        // Select diverse habits from different categories (2-3 per category max)
+        let suggestionsByCategory = Dictionary(grouping: allSuggestions) { $0.categoryId }
+        var selectedSuggestions: [HabitSuggestion] = []
+        
+        for (_, suggestions) in suggestionsByCategory {
+            let shuffled = suggestions.shuffled()
+            let count = min(3, suggestions.count)
+            selectedSuggestions.append(contentsOf: Array(shuffled.prefix(count)))
+        }
+        
+        let finalSuggestions = Array(selectedSuggestions.shuffled().prefix(12))
+        var createdHabits: [Habit] = []
+        
+        for suggestion in finalSuggestions {
+            let result = await createHabitFromSuggestionUseCase.execute(suggestion)
+            
+            switch result {
+            case .success(let habitId):
+                if let habits = try? await habitRepository.fetchAllHabits(),
+                   let habit = habits.first(where: { $0.id == habitId }) {
+                    createdHabits.append(habit)
+                }
+            case .error(let error):
+                print("Failed to create habit from suggestion '\(suggestion.name)': \(error)")
+            case .limitReached:
+                throw TestDataPopulationError("Habit creation limit reached while creating suggested habits")
+            }
+        }
+        
+        return createdHabits
+    }
+    
+    private func createCustomHabits(using customCategories: [HabitCategory]) async throws -> [Habit] {
+        guard customCategories.count >= 3 else {
+            throw TestDataPopulationError("Need at least 3 custom categories to create custom habits")
+        }
+        
+        let customHabitData = testDataUtilities.getCustomHabitData()
+        var createdHabits: [Habit] = []
+        
+        for (index, habitData) in customHabitData.enumerated() {
+            let category = customCategories[index]
+            
+            let habit = Habit(
+                id: UUID(),
+                name: habitData.name,
+                colorHex: habitData.colorHex,
+                emoji: habitData.emoji,
+                kind: habitData.kind,
+                unitLabel: habitData.unitLabel,
+                dailyTarget: habitData.dailyTarget,
+                schedule: habitData.schedule,
+                isActive: true,
+                categoryId: category.id
+            )
+            
+            try await habitRepository.create(habit)
+            createdHabits.append(habit)
+        }
+        
+        return createdHabits
+    }
+    
+    private func generateHistoricalData(for habits: [Habit]) async throws {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        let dateRange = Array((0..<90).compactMap { dayOffset in
+            calendar.date(byAdding: .day, value: -dayOffset, to: today)
+        }.reversed())
+        
+        // Use utility service for pattern calculations
+        let dailyCompletionRates = testDataUtilities.generateDailyCompletionRates(
+            for: dateRange,
+            calendar: calendar
+        )
+        
+        for (dayIndex, date) in dateRange.enumerated() {
+            guard let dailyCompletionRate = dailyCompletionRates[date] else { continue }
+            
+            let progressForDate = 0.7 + (Double(dayIndex) / Double(dateRange.count)) * 0.25
+            let weekNumber = (dateRange.count - dayIndex - 1) / 7 + 1
+            progressUpdate?("Creating 3-month history: Week \(weekNumber)...", progressForDate)
+            
+            let scheduledHabits = habits.filter { habit in
+                habitCompletionService.isScheduledDay(habit: habit, date: date)
+            }
+            
+            guard !scheduledHabits.isEmpty else { continue }
+            
+            let targetCompletions = Int(round(Double(scheduledHabits.count) * dailyCompletionRate))
+            let shuffledHabits = scheduledHabits.shuffled()
+            let habitsToComplete = Array(shuffledHabits.prefix(targetCompletions))
+            
+            for habit in habitsToComplete {
+                let logValue: Double?
+                
+                switch habit.kind {
+                case .binary:
+                    logValue = 1.0
+                    
+                case .numeric:
+                    if let target = habit.dailyTarget {
+                        let variation = Double.random(in: 0.9...1.1)
+                        logValue = target * variation
+                    } else {
+                        logValue = Double.random(in: 1.0...10.0)
+                    }
+                }
+                
+                let log = HabitLog(
+                    id: UUID(),
+                    habitID: habit.id,
+                    date: date,
+                    value: logValue
+                )
+                
+                try await logHabitUseCase.execute(log)
+            }
+        }
+    }
+}
 #endif
+
+// MARK: - Analytics UseCases
+
+public final class GetHabitLogsForAnalytics: GetHabitLogsForAnalyticsUseCase {
+    private let habitRepository: HabitRepository
+    private let getBatchLogs: GetBatchLogsUseCase
+    
+    public init(habitRepository: HabitRepository, getBatchLogs: GetBatchLogsUseCase) {
+        self.habitRepository = habitRepository
+        self.getBatchLogs = getBatchLogs
+    }
+    
+    public func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
+        // Business logic moved from Service to UseCase
+        
+        // Get active habits
+        let allHabits = try await habitRepository.fetchAllHabits()
+        let activeHabits = allHabits.filter { $0.isActive }
+        
+        // Use batch loading for efficiency (N+1 query elimination)
+        let habitIds = activeHabits.map(\.id)
+        let logsByHabitId = try await getBatchLogs.execute(
+            for: habitIds,
+            since: startDate,
+            until: endDate
+        )
+        
+        // Flatten results
+        return logsByHabitId.values.flatMap { $0 }
+    }
+}
+
+public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
+    private let habitRepository: HabitRepository
+    private let scheduleAnalyzer: HabitScheduleAnalyzerProtocol
+    private let calendar: Calendar
+    private let getBatchLogs: GetBatchLogsUseCase
+    
+    public init(habitRepository: HabitRepository, scheduleAnalyzer: HabitScheduleAnalyzerProtocol, getBatchLogs: GetBatchLogsUseCase, calendar: Calendar = Calendar.current) {
+        self.habitRepository = habitRepository
+        self.scheduleAnalyzer = scheduleAnalyzer
+        self.getBatchLogs = getBatchLogs
+        self.calendar = calendar
+    }
+    
+    public func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats {
+        // Business logic moved from Service to UseCase
+        
+        // Get active habits
+        let allHabits = try await habitRepository.fetchAllHabits()
+        let habits = allHabits.filter { $0.isActive }
+        
+        // Get logs using batch loading
+        let habitIds = habits.map(\.id)
+        let logsByHabitId = try await getBatchLogs.execute(
+            for: habitIds,
+            since: startDate,
+            until: endDate
+        )
+        let logs = logsByHabitId.values.flatMap { $0 }
+        
+        let totalHabits = habits.count
+        let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
+        
+        var totalExpectedDays = 0
+        var totalCompletedDays = 0
+        var habitsWithCompletions: Set<UUID> = []
+        
+        // Calculate expected days based on each habit's schedule
+        var currentDate = startDate
+        while currentDate <= endDate {
+            let dayLogs = logsByDate[calendar.startOfDay(for: currentDate)] ?? []
+            
+            for habit in habits {
+                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
+                    totalExpectedDays += 1
+                    
+                    if dayLogs.contains(where: { $0.habitID == habit.id }) {
+                        totalCompletedDays += 1
+                        habitsWithCompletions.insert(habit.id)
+                    }
+                }
+            }
+            
+            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: currentDate) else {
+                break
+            }
+            currentDate = nextDay
+        }
+        
+        let completionRate = totalExpectedDays > 0 ? Double(totalCompletedDays) / Double(totalExpectedDays) : 0.0
+        let successfulHabits = habitsWithCompletions.count
+        
+        return HabitCompletionStats(
+            totalHabits: totalHabits,
+            completedHabits: successfulHabits,
+            completionRate: completionRate
+        )
+    }
+}
+
+
