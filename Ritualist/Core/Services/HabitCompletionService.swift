@@ -58,11 +58,10 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
             // For daily and daysOfWeek habits: check if completed on that specific day
             return isCompletedOnSpecificDay(habit: habit, date: date, logs: logs)
             
-        case .timesPerWeek(let weeklyTarget):
-            // For timesPerWeek habits: check if weekly target is met
-            // This provides accurate completion status based on weekly progress
-            let (completed, target) = getWeeklyProgress(habit: habit, for: date, logs: logs)
-            return completed >= target
+        case .timesPerWeek:
+            // For timesPerWeek habits: check if completed on that specific day
+            // This provides immediate daily feedback while tracking weekly progress separately
+            return isCompletedOnSpecificDay(habit: habit, date: date, logs: logs)
         }
     }
     
@@ -143,10 +142,10 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
             isLogCompleted(log: log, habit: habit)
         }
         
-        // Count unique days (not total logs) - this is the key fix
-        let uniqueDays = Set(weekLogs.map { log in
-            calendar.startOfDay(for: log.date)
-        })
+        // Count unique days (not total logs) with proper timezone normalization
+        // This fixes the critical bug where logs at 11:59 PM and 12:01 AM were counted as separate days
+        let logDates = weekLogs.map { $0.date }
+        let uniqueDays = RitualistCore.DateUtils.uniqueNormalizedDays(from: logDates, calendar: calendar)
         
         return (uniqueDays.count, weeklyTarget)
     }
@@ -154,7 +153,8 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
     // MARK: - Private Helper Methods
     
     private func isCompletedOnSpecificDay(habit: Habit, date: Date, logs: [HabitLog]) -> Bool {
-        let dayStart = calendar.startOfDay(for: date)
+        // Use timezone-aware normalization to ensure proper day boundary calculation
+        let dayStart = RitualistCore.DateUtils.normalizedStartOfDay(for: date, calendar: calendar)
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
         
         let dayLogs = logs.filter { log in
@@ -203,8 +203,8 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
         guard expectedDays > 0 else { return 0.0 }
         
         var completedDays = 0
-        var currentDate = calendar.startOfDay(for: startDate)
-        let endOfRange = calendar.startOfDay(for: endDate)
+        var currentDate = RitualistCore.DateUtils.normalizedStartOfDay(for: startDate, calendar: calendar)
+        let endOfRange = RitualistCore.DateUtils.normalizedStartOfDay(for: endDate, calendar: calendar)
         
         while currentDate <= endOfRange {
             if isCompletedOnSpecificDay(habit: habit, date: currentDate, logs: logs) {
@@ -221,8 +221,8 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
         guard expectedDays > 0 else { return 0.0 }
         
         var completedDays = 0
-        var currentDate = calendar.startOfDay(for: startDate)
-        let endOfRange = calendar.startOfDay(for: endDate)
+        var currentDate = RitualistCore.DateUtils.normalizedStartOfDay(for: startDate, calendar: calendar)
+        let endOfRange = RitualistCore.DateUtils.normalizedStartOfDay(for: endDate, calendar: calendar)
         
         while currentDate <= endOfRange {
             let weekday = getHabitWeekday(from: currentDate)
@@ -260,11 +260,11 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
         let endWeekStart = calendar.dateInterval(of: .weekOfYear, for: endDate)?.start ?? endDate
         
         while currentWeekStart <= endWeekStart {
-            // Count unique days (not total logs) - consistent with getWeeklyProgress
+            // Count unique days (not total logs) with proper timezone normalization
+            // This ensures consistent behavior with getWeeklyProgress method
             let weekLogs = completionsByWeek[currentWeekStart] ?? []
-            let uniqueDaysInWeek = Set(weekLogs.map { log in
-                calendar.startOfDay(for: log.date)
-            }).count
+            let logDates = weekLogs.map { $0.date }
+            let uniqueDaysInWeek = RitualistCore.DateUtils.uniqueNormalizedDays(from: logDates, calendar: calendar).count
             
             totalActualCompletions += min(uniqueDaysInWeek, weeklyTarget)
             
@@ -308,8 +308,8 @@ public final class DefaultHabitCompletionService: HabitCompletionServiceProtocol
     
     private func calculateScheduledDays(scheduledDays: Set<Int>, from startDate: Date, to endDate: Date) -> Int {
         var count = 0
-        var currentDate = calendar.startOfDay(for: startDate)
-        let endOfRange = calendar.startOfDay(for: endDate)
+        var currentDate = RitualistCore.DateUtils.normalizedStartOfDay(for: startDate, calendar: calendar)
+        let endOfRange = RitualistCore.DateUtils.normalizedStartOfDay(for: endDate, calendar: calendar)
         
         while currentDate <= endOfRange {
             let weekday = getHabitWeekday(from: currentDate)

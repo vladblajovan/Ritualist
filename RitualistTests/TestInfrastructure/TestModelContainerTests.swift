@@ -77,7 +77,6 @@ struct TestModelContainerTests {
             endDate: nil,
             isActive: true,
             displayOrder: 0,
-            categoryId: "test",
             category: category,
             suggestionId: nil
         )

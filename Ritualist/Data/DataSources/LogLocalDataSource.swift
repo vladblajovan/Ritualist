@@ -17,6 +17,19 @@ public actor LogLocalDataSource: LogLocalDataSourceProtocol {
         return logs.map { $0.toEntity() }
     }
     
+    /// Batch fetch logs for multiple habits in a SINGLE database query
+    public func logs(for habitIDs: [UUID]) async throws -> [HabitLog] {
+        // Handle empty input gracefully
+        guard !habitIDs.isEmpty else { return [] }
+        
+        let descriptor = FetchDescriptor<HabitLogModel>(
+            predicate: #Predicate<HabitLogModel> { habitIDs.contains($0.habitID) },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        let logs = try modelContext.fetch(descriptor)
+        return logs.map { $0.toEntity() }
+    }
+    
     /// Insert or update log on background thread - accepts Domain model
     public func upsert(_ log: HabitLog) async throws {
         // Check if log already exists

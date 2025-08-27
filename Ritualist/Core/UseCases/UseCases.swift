@@ -253,30 +253,37 @@ public final class GetBatchLogs: GetBatchLogsUseCase {
     private let repo: LogRepository
     public init(repo: LogRepository) { self.repo = repo }
     public func execute(for habitIDs: [UUID], since: Date?, until: Date?) async throws -> [UUID: [HabitLog]] {
-        // Batch load all logs for all habits to optimize N+1 queries
+        // TRUE batch query - single database call instead of N calls
+        let allLogs = try await repo.logs(for: habitIDs)
+        
+        // Group logs by habitID and apply date filtering
         var result: [UUID: [HabitLog]] = [:]
         
-        // Use single UseCase per habit but batch the processing
+        // Initialize empty arrays for all requested habitIDs
         for habitID in habitIDs {
-            let logs = try await repo.logs(for: habitID)
-            
+            result[habitID] = []
+        }
+        
+        // Group and filter logs
+        for log in allLogs {
             // Apply same date filtering logic as single GetLogs UseCase
-            let filteredLogs = logs.filter { log in
-                let calendar = Calendar.current
-                if let since {
-                    let sinceStart = calendar.startOfDay(for: since)
-                    let logStart = calendar.startOfDay(for: log.date)
-                    if logStart < sinceStart { return false }
-                }
-                if let until {
-                    let untilStart = calendar.startOfDay(for: until)
-                    let logStart = calendar.startOfDay(for: log.date)
-                    if logStart > untilStart { return false }
-                }
-                return true
+            let calendar = Calendar.current
+            var includeLog = true
+            
+            if let since {
+                let sinceStart = calendar.startOfDay(for: since)
+                let logStart = calendar.startOfDay(for: log.date)
+                if logStart < sinceStart { includeLog = false }
+            }
+            if let until {
+                let untilStart = calendar.startOfDay(for: until)
+                let logStart = calendar.startOfDay(for: log.date)
+                if logStart > untilStart { includeLog = false }
             }
             
-            result[habitID] = filteredLogs
+            if includeLog {
+                result[log.habitID, default: []].append(log)
+            }
         }
         
         return result

@@ -82,6 +82,10 @@ struct HabitCompletionCheckServiceTests {
             return logs.filter { $0.habitID == habitID }
         }
         
+        func logs(for habitIDs: [UUID]) async throws -> [HabitLog] {
+            return logs.filter { habitIDs.contains($0.habitID) }
+        }
+        
         func upsert(_ log: HabitLog) async throws {
             if let index = logs.firstIndex(where: { $0.id == log.id }) {
                 logs[index] = log

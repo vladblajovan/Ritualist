@@ -25,10 +25,12 @@
       "Bash(cp:*)",
       "Bash(xcrun swift:*)",
       "Bash(/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -typecheck -module-name RitualistTests RitualistTests/TestInfrastructure/Fixtures/PerformanceTestFixtures.swift -I /Users/vladblajovan/Library/Developer/Xcode/DerivedData/Ritualist-dseprqesjcstmoahbyhpxoqzsdrv/Build/Products/Debug-AllFeatures-iphonesimulator)",
-      "Bash(/dev/null)"
+      "Bash(/dev/null)",
+      "Bash(timeout 120s xcodebuild test:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
   },
-  "outputStyle": "Explanatory"
+  "outputStyle": "default"
 }

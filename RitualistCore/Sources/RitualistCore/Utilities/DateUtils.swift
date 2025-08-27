@@ -122,4 +122,51 @@ public enum DateUtils {
         let habitWeekday = calendarWeekdayToHabitWeekday(calendarWeekday)
         return scheduledDays.contains(habitWeekday)
     }
+    
+    // MARK: - Timezone-Aware Date Normalization
+    
+    /// Normalize a date to the start of its calendar day in the user's current timezone.
+    /// This ensures consistent day boundary calculations regardless of when logs were created.
+    /// 
+    /// **Critical for completion calculations**: Logs at 11:59 PM and 12:01 AM should count
+    /// as the same day if they fall within the same calendar day in the user's timezone.
+    ///
+    /// - Parameters:
+    ///   - date: The date to normalize
+    ///   - calendar: The calendar to use (defaults to current user calendar with proper timezone)
+    /// - Returns: The start of the calendar day in the user's timezone
+    public static func normalizedStartOfDay(for date: Date, calendar: Calendar = .current) -> Date {
+        var userCalendar = calendar
+        // Ensure we're using the current timezone (in case calendar was cached with different timezone)
+        userCalendar.timeZone = TimeZone.current
+        return userCalendar.startOfDay(for: date)
+    }
+    
+    /// Create a set of normalized dates (start of day) from an array of dates.
+    /// This is specifically designed for counting unique days in habit completion logic.
+    ///
+    /// **Use case**: TimesPerWeek habits need to count unique days, not individual logs.
+    /// Multiple logs on the same calendar day should count as one completion day.
+    ///
+    /// - Parameters:
+    ///   - dates: Array of dates to normalize
+    ///   - calendar: The calendar to use (defaults to current user calendar)
+    /// - Returns: Set of normalized dates (start of day in user's timezone)
+    public static func uniqueNormalizedDays(from dates: [Date], calendar: Calendar = .current) -> Set<Date> {
+        return Set(dates.map { normalizedStartOfDay(for: $0, calendar: calendar) })
+    }
+    
+    /// Check if two dates fall on the same calendar day in the user's current timezone.
+    /// This is timezone-aware and handles edge cases like DST transitions.
+    ///
+    /// - Parameters:
+    ///   - date1: First date to compare
+    ///   - date2: Second date to compare
+    ///   - calendar: The calendar to use (defaults to current user calendar)
+    /// - Returns: True if both dates fall on the same calendar day
+    public static func isSameCalendarDay(_ date1: Date, _ date2: Date, calendar: Calendar = .current) -> Bool {
+        var userCalendar = calendar
+        userCalendar.timeZone = TimeZone.current
+        return userCalendar.isDate(date1, inSameDayAs: date2)
+    }
 }

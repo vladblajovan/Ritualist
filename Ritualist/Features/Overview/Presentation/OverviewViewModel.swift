@@ -73,13 +73,19 @@ public final class OverviewViewModel {
     
     public var canGoToPreviousDay: Bool {
         let calendar = Calendar.current
-        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        return viewingDate > calendar.startOfDay(for: thirtyDaysAgo)
+        let today = Date()
+        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: today) ?? today
+        let viewingDayStart = calendar.startOfDay(for: viewingDate)
+        let boundaryStart = calendar.startOfDay(for: thirtyDaysAgo)
+        return viewingDayStart > boundaryStart
     }
     
     public var canGoToNextDay: Bool {
         let calendar = Calendar.current
-        return viewingDate < calendar.startOfDay(for: Date())
+        let today = Date()
+        let viewingDayStart = calendar.startOfDay(for: viewingDate)
+        let todayStart = calendar.startOfDay(for: today)
+        return viewingDayStart < todayStart
     }
     
     public var isViewingToday: Bool {
@@ -709,7 +715,7 @@ public final class OverviewViewModel {
     // MARK: - Data Extraction Methods
     
     /// Extract TodaysSummary from overview data
-    private func extractTodaysSummary(from data: OverviewData) -> TodaysSummary {
+    internal func extractTodaysSummary(from data: OverviewData) -> TodaysSummary {
         let targetDate = viewingDate
         let habits = data.scheduledHabits(for: targetDate)
         

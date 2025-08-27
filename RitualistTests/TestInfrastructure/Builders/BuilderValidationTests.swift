@@ -94,16 +94,21 @@ struct BuilderValidationTests {
             .build()
         let user = UserProfileBuilder.premiumAnnualUser().build()
         
-        // Convert to SwiftData models and save
+        // Convert to SwiftData models and save (category first, then habit to ensure relationship works)
         let categoryModel = try HabitCategoryModel.fromEntity(category)
-        let habitModel = try HabitModel.fromEntity(habit, context: context)
-        let logModel = try HabitLogModel.fromEntity(log)
         let userModel = try UserProfileModel.fromEntity(user)
         
+        // Insert category first so it's available when creating habit
         context.insert(categoryModel)
+        context.insert(userModel)
+        try context.save() // Save category before creating habit relationship
+        
+        // Now create habit model with category available in context
+        let habitModel = try HabitModel.fromEntity(habit, context: context)
+        let logModel = try HabitLogModel.fromEntity(log)
+        
         context.insert(habitModel)
         context.insert(logModel)
-        context.insert(userModel)
         
         try context.save()
         
@@ -113,7 +118,7 @@ struct BuilderValidationTests {
         
         #expect(savedHabits.count == 1)
         #expect(savedHabits.first?.name == "Morning Workout")
-        #expect(savedHabits.first?.categoryId == "health")
+        #expect(savedHabits.first?.category?.id == "health")
         
         let logDescriptor = FetchDescriptor<HabitLogModel>()
         let savedLogs = try context.fetch(logDescriptor)
@@ -235,12 +240,12 @@ struct BuilderValidationTests {
         let savedHabits = try context.fetch(habitDescriptor)
         
         #expect(savedHabits.count == 4) // Reading, workout, water, meditation
-        #expect(savedHabits.allSatisfy { $0.categoryId != nil })
+        #expect(savedHabits.allSatisfy { $0.category != nil })
         
         // Verify relationships
         for habitModel in savedHabits {
-            if let categoryId = habitModel.categoryId {
-                let matchingCategory = savedCategories.first { $0.id == categoryId }
+            if let category = habitModel.category {
+                let matchingCategory = savedCategories.first { $0.id == category.id }
                 #expect(matchingCategory != nil, "Habit should have matching category")
             }
         }

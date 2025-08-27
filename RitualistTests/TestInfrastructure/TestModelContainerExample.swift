@@ -77,7 +77,6 @@ struct TestModelContainerExample {
             endDate: nil,
             isActive: true,
             displayOrder: 0,
-            categoryId: nil,
             category: nil,
             suggestionId: nil
         )
@@ -99,7 +98,6 @@ struct TestModelContainerExample {
             endDate: nil,
             isActive: true,
             displayOrder: 0,
-            categoryId: nil,
             category: nil,
             suggestionId: nil
         )
@@ -154,7 +152,7 @@ struct TestModelContainerExample {
         let exerciseHabit = fixture.exerciseHabit
         #expect(exerciseHabit.category != nil)
         #expect(exerciseHabit.category?.id == "health")
-        #expect(exerciseHabit.categoryId == "health") // Explicit foreign key
+        // categoryId removed - using relationship only
         
         // Test habit-log relationship
         #expect(exerciseHabit.logs.count == 3)

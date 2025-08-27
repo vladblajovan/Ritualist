@@ -24,7 +24,7 @@ import RitualistCore
     public var isActive: Bool = true // CloudKit requires default values
     public var displayOrder: Int = 0 // CloudKit requires default values
     public var suggestionId: String?
-    public var categoryId: String? // CloudKit requires default values - explicit foreign key
+    // Note: categoryId removed to eliminate dual source of truth with SwiftData relationship
     
     // MARK: - SwiftData Relationships
     @Relationship(deleteRule: .cascade, inverse: \HabitLogModel.habit) 
@@ -34,12 +34,12 @@ import RitualistCore
     public init(id: UUID, name: String, colorHex: String, emoji: String?, kindRaw: Int,
                 unitLabel: String?, dailyTarget: Double?, scheduleData: Data,
                 remindersData: Data, startDate: Date, endDate: Date?, isActive: Bool, displayOrder: Int,
-                categoryId: String? = nil, category: HabitCategoryModel? = nil, suggestionId: String?) {
+                category: HabitCategoryModel? = nil, suggestionId: String?) {
         self.id = id; self.name = name; self.colorHex = colorHex; self.emoji = emoji
         self.kindRaw = kindRaw; self.unitLabel = unitLabel; self.dailyTarget = dailyTarget
         self.scheduleData = scheduleData; self.remindersData = remindersData
         self.startDate = startDate; self.endDate = endDate; self.isActive = isActive
-        self.displayOrder = displayOrder; self.categoryId = categoryId; self.suggestionId = suggestionId
+        self.displayOrder = displayOrder; self.suggestionId = suggestionId
         self.category = category
     }
     
@@ -63,7 +63,7 @@ import RitualistCore
             endDate: endDate, 
             isActive: isActive,
             displayOrder: displayOrder, 
-            categoryId: categoryId, 
+            categoryId: category?.id, 
             suggestionId: suggestionId
         )
     }
@@ -74,7 +74,7 @@ import RitualistCore
         let reminders = try JSONEncoder().encode(habit.reminders)
         let kindRaw = (habit.kind == .binary) ? 0 : 1
         
-        // Store both categoryId (for CloudKit) and relationship (for local queries)
+        // Set relationship from domain entity categoryId
         var category: HabitCategoryModel?
         if let categoryId = habit.categoryId, let context = context {
             let descriptor = FetchDescriptor<HabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
@@ -95,7 +95,7 @@ import RitualistCore
             endDate: habit.endDate, 
             isActive: habit.isActive, 
             displayOrder: habit.displayOrder,
-            categoryId: habit.categoryId, 
+ 
             category: category, 
             suggestionId: habit.suggestionId
         )

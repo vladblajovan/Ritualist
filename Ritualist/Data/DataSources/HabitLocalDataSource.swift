@@ -59,7 +59,13 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
             existing.endDate = habit.endDate
             existing.isActive = habit.isActive
             existing.displayOrder = habit.displayOrder
-            existing.categoryId = habit.categoryId
+            // Update category relationship
+            if let categoryId = habit.categoryId {
+                let categoryDescriptor = FetchDescriptor<HabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
+                existing.category = try? modelContext.fetch(categoryDescriptor).first
+            } else {
+                existing.category = nil
+            }
             existing.suggestionId = habit.suggestionId
         } else {
             // Create new habit in this ModelContext
@@ -108,13 +114,14 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
             let existingCategoryIds = Set(allCategories.map { $0.id })
             
             
-            // Find habits with invalid category references
+            // Find habits with invalid category references through relationship
             let orphanedHabits = allHabits.filter { habit in
-                if let categoryId = habit.categoryId, !categoryId.isEmpty {
-                    let isOrphaned = !existingCategoryIds.contains(categoryId)
+                // Check if habit has a category relationship that points to a deleted category
+                if let category = habit.category {
+                    let isOrphaned = !existingCategoryIds.contains(category.id)
                     return isOrphaned
                 }
-                return false // Habits with nil categoryId are fine
+                return false // Habits with nil category are fine
             }
         
             // Delete orphaned habits

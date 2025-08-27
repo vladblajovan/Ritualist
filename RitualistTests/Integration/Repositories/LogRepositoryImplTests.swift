@@ -821,5 +821,111 @@ struct LogRepositoryImplTests {
         let updatedCount = finalLogs.filter { $0.value == 999.0 }.count
         #expect(updatedCount == 200)
     }
+    
+    // MARK: - Batch Query Tests
+    
+    @Test("Batch logs query retrieves logs for multiple habits in single database call")
+    func testBatchLogsQuery() async throws {
+        // Arrange: Repository with multiple habits and logs
+        let (container, context) = try TestModelContainer.createContainerAndContext()
+        let logDataSource = LogLocalDataSource(modelContainer: container)
+        let logRepository = LogRepositoryImpl(local: logDataSource)
+        
+        // Create test habits
+        let habitDataSource = HabitLocalDataSource(modelContainer: container)
+        let habitRepository = HabitRepositoryImpl(local: habitDataSource)
+        
+        let habit1 = HabitBuilder().withName("Exercise").build()
+        let habit2 = HabitBuilder().withName("Read").build()
+        let habit3 = HabitBuilder().withName("Meditate").build()
+        
+        try await habitRepository.create(habit1)
+        try await habitRepository.create(habit2)
+        try await habitRepository.create(habit3)
+        
+        // Create logs for each habit
+        let logs1 = [
+            HabitLogBuilder().withHabit(habit1).forDaysAgo(0).withValue(1.0).build(),
+            HabitLogBuilder().withHabit(habit1).forDaysAgo(1).withValue(2.0).build(),
+            HabitLogBuilder().withHabit(habit1).forDaysAgo(2).withValue(3.0).build(),
+        ]
+        
+        let logs2 = [
+            HabitLogBuilder().withHabit(habit2).forDaysAgo(0).withValue(10.0).build(),
+            HabitLogBuilder().withHabit(habit2).forDaysAgo(1).withValue(20.0).build(),
+        ]
+        
+        let logs3 = [
+            HabitLogBuilder().withHabit(habit3).forDaysAgo(0).withValue(100.0).build(),
+        ]
+        
+        // Insert all logs
+        for log in logs1 + logs2 + logs3 {
+            try await logRepository.upsert(log)
+        }
+        
+        // Act: Batch query for multiple habits
+        let batchResult = try await logRepository.logs(for: [habit1.id, habit2.id, habit3.id])
+        
+        // Assert: Should get all logs for all habits in correct quantities
+        #expect(batchResult.count == 6) // 3 + 2 + 1 logs total
+        
+        // Verify logs are correctly grouped by habit
+        let habit1Logs = batchResult.filter { $0.habitID == habit1.id }
+        let habit2Logs = batchResult.filter { $0.habitID == habit2.id }
+        let habit3Logs = batchResult.filter { $0.habitID == habit3.id }
+        
+        #expect(habit1Logs.count == 3)
+        #expect(habit2Logs.count == 2)
+        #expect(habit3Logs.count == 1)
+        
+        // Verify log values are correct (should be sorted by date desc)
+        #expect(habit1Logs.map { $0.value }.compactMap { $0 } == [1.0, 2.0, 3.0])
+        #expect(habit2Logs.map { $0.value }.compactMap { $0 } == [10.0, 20.0])
+        #expect(habit3Logs.map { $0.value }.compactMap { $0 } == [100.0])
+    }
+    
+    @Test("Batch logs query handles empty input gracefully")
+    func testBatchLogsQueryWithEmptyInput() async throws {
+        // Arrange: Repository setup
+        let (container, context) = try TestModelContainer.createContainerAndContext()
+        let logDataSource = LogLocalDataSource(modelContainer: container)
+        let logRepository = LogRepositoryImpl(local: logDataSource)
+        
+        // Act: Query with empty habit ID array
+        let result = try await logRepository.logs(for: [])
+        
+        // Assert: Should return empty array, not error
+        #expect(result.isEmpty)
+    }
+    
+    @Test("Batch logs query handles non-existent habit IDs gracefully")
+    func testBatchLogsQueryWithNonExistentHabits() async throws {
+        // Arrange: Repository setup
+        let (container, context) = try TestModelContainer.createContainerAndContext()
+        let logDataSource = LogLocalDataSource(modelContainer: container)
+        let logRepository = LogRepositoryImpl(local: logDataSource)
+        
+        // Create one real habit with logs
+        let habitDataSource = HabitLocalDataSource(modelContainer: container)
+        let habitRepository = HabitRepositoryImpl(local: habitDataSource)
+        let realHabit = HabitBuilder().withName("Real Habit").build()
+        try await habitRepository.create(realHabit)
+        
+        let realLog = HabitLogBuilder().withHabit(realHabit).withValue(5.0).build()
+        try await logRepository.upsert(realLog)
+        
+        // Mix real and fake habit IDs
+        let nonExistentID = UUID()
+        let anotherNonExistentID = UUID()
+        
+        // Act: Query with mix of real and non-existent IDs
+        let result = try await logRepository.logs(for: [realHabit.id, nonExistentID, anotherNonExistentID])
+        
+        // Assert: Should only return logs for existing habit
+        #expect(result.count == 1)
+        #expect(result[0].habitID == realHabit.id)
+        #expect(result[0].value == 5.0)
+    }
 }
 

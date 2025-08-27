@@ -328,3 +328,91 @@ struct StreakUseCasesTests {
         #expect(streak == 0) // nil defaults to 0, which doesn't meet target of 10
     }
 }
+
+// MARK: - Batch Query Integration Tests
+
+@Suite("GetBatchLogs UseCase Tests")
+struct GetBatchLogsUseCaseTests {
+    
+    @Test("GetBatchLogs UseCase returns grouped logs by habit ID with date filtering")
+    func testGetBatchLogsWithDateFiltering() async throws {
+        // Arrange: Repository with test data
+        let (container, context) = try TestModelContainer.createContainerAndContext()
+        let logDataSource = LogLocalDataSource(modelContainer: container)
+        let logRepository = LogRepositoryImpl(local: logDataSource)
+        let useCase = GetBatchLogs(repo: logRepository)
+        
+        // Create test habits
+        let habitDataSource = HabitLocalDataSource(modelContainer: container)
+        let habitRepository = HabitRepositoryImpl(local: habitDataSource)
+        
+        let habit1 = HabitBuilder().withName("Habit1").build()
+        let habit2 = HabitBuilder().withName("Habit2").build()
+        
+        try await habitRepository.create(habit1)
+        try await habitRepository.create(habit2)
+        
+        // Create logs with various dates
+        let today = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: today)!
+        let threeDaysAgo = Calendar.current.date(byAdding: .day, value: -3, to: today)!
+        
+        let logs = [
+            HabitLogBuilder().withHabit(habit1).withDate(today).withValue(1.0).build(),
+            HabitLogBuilder().withHabit(habit1).withDate(yesterday).withValue(2.0).build(),
+            HabitLogBuilder().withHabit(habit1).withDate(twoDaysAgo).withValue(3.0).build(),
+            HabitLogBuilder().withHabit(habit1).withDate(threeDaysAgo).withValue(4.0).build(),
+            
+            HabitLogBuilder().withHabit(habit2).withDate(today).withValue(10.0).build(),
+            HabitLogBuilder().withHabit(habit2).withDate(yesterday).withValue(20.0).build(),
+            HabitLogBuilder().withHabit(habit2).withDate(threeDaysAgo).withValue(40.0).build(),
+        ]
+        
+        for log in logs {
+            try await logRepository.upsert(log)
+        }
+        
+        // Act: Query with date filtering (last 2 days)
+        let result = try await useCase.execute(for: [habit1.id, habit2.id], since: twoDaysAgo, until: nil)
+        
+        // Assert: Should get filtered results grouped by habit
+        #expect(result.keys.count == 2)
+        #expect(result[habit1.id]?.count == 3) // today, yesterday, twoDaysAgo
+        #expect(result[habit2.id]?.count == 2) // today, yesterday (threeDaysAgo filtered out)
+        
+        // Verify exact values for habit1 (should exclude threeDaysAgo)
+        let habit1Values = result[habit1.id]?.compactMap { $0.value } ?? []
+        #expect(Set(habit1Values) == Set([1.0, 2.0, 3.0])) // 4.0 from threeDaysAgo should be filtered
+        
+        // Verify exact values for habit2 (should exclude threeDaysAgo)
+        let habit2Values = result[habit2.id]?.compactMap { $0.value } ?? []
+        #expect(Set(habit2Values) == Set([10.0, 20.0])) // 40.0 from threeDaysAgo should be filtered
+    }
+    
+    @Test("GetBatchLogs UseCase handles empty result gracefully")
+    func testGetBatchLogsWithNoLogs() async throws {
+        // Arrange: Repository with habits but no logs
+        let (container, context) = try TestModelContainer.createContainerAndContext()
+        let logDataSource = LogLocalDataSource(modelContainer: container)
+        let logRepository = LogRepositoryImpl(local: logDataSource)
+        let useCase = GetBatchLogs(repo: logRepository)
+        
+        let habitDataSource = HabitLocalDataSource(modelContainer: container)
+        let habitRepository = HabitRepositoryImpl(local: habitDataSource)
+        
+        let habit1 = HabitBuilder().withName("Empty Habit 1").build()
+        let habit2 = HabitBuilder().withName("Empty Habit 2").build()
+        
+        try await habitRepository.create(habit1)
+        try await habitRepository.create(habit2)
+        
+        // Act: Query habits with no logs
+        let result = try await useCase.execute(for: [habit1.id, habit2.id], since: nil, until: nil)
+        
+        // Assert: Should return empty arrays for each habit
+        #expect(result.keys.count == 2)
+        #expect(result[habit1.id]?.isEmpty == true)
+        #expect(result[habit2.id]?.isEmpty == true)
+    }
+}

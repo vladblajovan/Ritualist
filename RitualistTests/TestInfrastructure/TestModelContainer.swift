@@ -172,7 +172,6 @@ public final class TestModelContainer {
             endDate: nil,
             isActive: true,
             displayOrder: 0,
-            categoryId: "health",
             category: healthCategory,
             suggestionId: nil
         )
@@ -191,7 +190,6 @@ public final class TestModelContainer {
             endDate: nil,
             isActive: true,
             displayOrder: 1,
-            categoryId: "productivity",
             category: productivityCategory,
             suggestionId: nil
         )

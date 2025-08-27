@@ -8,17 +8,17 @@ extension Container {
     
     // MARK: - Habit Operations
     
-    var getActiveHabits: Factory<GetActiveHabits> {
+    var getActiveHabits: Factory<GetActiveHabitsUseCase> {
         self { GetActiveHabits(repo: self.habitRepository()) }
     }
     
     // MARK: - Log Operations
     
-    var getLogs: Factory<GetLogs> {
+    var getLogs: Factory<GetLogsUseCase> {
         self { GetLogs(repo: self.logRepository()) }
     }
     
-    var getBatchLogs: Factory<GetBatchLogs> {
+    var getBatchLogs: Factory<GetBatchLogsUseCase> {
         self { GetBatchLogs(repo: self.logRepository()) }
     }
     
@@ -30,7 +30,7 @@ extension Container {
         self { GetLogForDate(repo: self.logRepository()) }
     }
     
-    var logHabit: Factory<LogHabit> {
+    var logHabit: Factory<LogHabitUseCase> {
         self { LogHabit(
             repo: self.logRepository(),
             habitRepo: self.habitRepository(),
@@ -38,7 +38,7 @@ extension Container {
         ) }
     }
     
-    var deleteLog: Factory<DeleteLog> {
+    var deleteLog: Factory<DeleteLogUseCase> {
         self { DeleteLog(repo: self.logRepository()) }
     }
     
@@ -78,7 +78,7 @@ extension Container {
     
     // MARK: - Streak Calculations
     
-    var calculateCurrentStreak: Factory<CalculateCurrentStreak> {
+    var calculateCurrentStreak: Factory<CalculateCurrentStreakUseCase> {
         self { CalculateCurrentStreak(streakCalculationService: self.streakCalculationService()) }
     }
     

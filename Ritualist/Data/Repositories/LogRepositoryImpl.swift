@@ -17,6 +17,10 @@ public final class LogRepositoryImpl: LogRepository {
     public func logs(for habitID: UUID) async throws -> [HabitLog] {
         try await local.logs(for: habitID)
     }
+    
+    public func logs(for habitIDs: [UUID]) async throws -> [HabitLog] {
+        try await local.logs(for: habitIDs)
+    }
     public func upsert(_ log: HabitLog) async throws {
         try await local.upsert(log)
     }

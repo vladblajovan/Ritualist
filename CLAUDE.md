@@ -1,28 +1,43 @@
 # CLAUDE.md
 
-## ⚡ CRITICAL: READ MICRO-CONTEXTS FIRST!
-**🚨 ALWAYS start by reading relevant micro-context cards (MICRO-CONTEXTS/) before this file! 🚨**  
-**📋 Use TASK-ROUTER.md to select the right cards for your task type.**  
-**📖 Only read this full document if micro-contexts aren't sufficient.**
+## ⚡ MANDATORY: READ MICRO-CONTEXTS FIRST!
+**🚨 YOU MUST start by reading relevant micro-context cards (MICRO-CONTEXTS/) before ANY work! 🚨**  
 
----
+### **MANDATORY READING SEQUENCE:**
+1. **ALWAYS** start with `MICRO-CONTEXTS/quick-start.md` (50 tokens)
+2. **THEN** read task-specific cards based on your work type:
 
-### **Quick Context Selection (50-150 tokens vs 800-1000):**
-- **New to project**: `MICRO-CONTEXTS/quick-start.md` (50 tokens)
-- **Adding features**: `MICRO-CONTEXTS/architecture.md` (30 tokens) 
-- **Performance issues**: `MICRO-CONTEXTS/performance.md` (25 tokens)
-- **Testing**: `MICRO-CONTEXTS/testing.md` (20 tokens)
-- **Build problems**: `MICRO-CONTEXTS/build.md` (25 tokens)
-- **Avoiding mistakes**: `MICRO-CONTEXTS/anti-patterns.md` (40 tokens)
-- **Troubleshooting**: `MICRO-CONTEXTS/debugging.md` (35 tokens)
+| **Your Task** | **REQUIRED Cards** | **Critical Focus** |
+|---------------|--------------------|--------------------|
+| **Adding features** | `usecase-service-distinction.md` + `violation-detection.md` | Architecture violations |
+| **Testing** | `testing-strategy.md` + `anti-patterns.md` | NO MOCKS |
+| **Bug fixes** | `anti-patterns.md` + `debugging.md` | Avoid known pitfalls |
+| **Performance** | `performance.md` + `architecture.md` | N+1 queries, threading |
+| **Build issues** | `build.md` + `debugging.md` | iOS 26 simulator |
 
-📖 **For comprehensive details**: Continue reading this full document (464 lines)
+### **🚫 DO NOT PROCEED WITHOUT READING MICRO-CONTEXTS**
+- Any architectural decision without reading `usecase-service-distinction.md` = VIOLATION
+- Any testing without reading `testing-strategy.md` = ANTI-PATTERN
+- Any feature addition without `violation-detection.md` = GUARANTEED ISSUES
+
+📖 **For comprehensive details**: Continue reading this full document (500+ lines)
 
 ## 📋 COLLABORATION GUIDE
 **CRITICAL**: Always reference `CLAUDE-COLLABORATION-GUIDE.md` before starting any work. This guide contains the interaction protocol, quality gates, and learning procedures that must be followed for effective collaboration.
 
 ## 🧪 TESTING STRATEGY
-**IMPORTANT**: All code changes must include proper unit tests. Reference `TESTING-STRATEGY.md` for comprehensive testing guidelines, patterns, and requirements. Never create standalone test files - always use the proper RitualistTests/ structure.
+**CRITICAL**: All code changes must include proper unit tests using REAL implementations, NOT mocks. The project-analysis.md identifies over-reliance on mocks as a major testing issue. Never create standalone test files - always use the proper RitualistTests/ structure.
+
+**✅ CORRECT TESTING APPROACH:**
+- Use real implementations with test data builders (TestBuilders.swift)
+- Test actual business logic, not mock behavior
+- Use TestModelContainer for integration tests with in-memory SwiftData
+- Verify real calculations and data transformations
+
+**❌ TESTING ANTI-PATTERNS (project-analysis.md violations):**
+- Mock-heavy test suites that test mock behavior instead of real implementations
+- Stub methods returning 0, nil, or empty values
+- Testing mocked return values instead of actual business logic
 
 ## 📚 LESSONS LEARNED - CRITICAL FOR COLLABORATION
 
@@ -42,6 +57,16 @@
 **3. User Feedback Violations**
 - **Critical Error**: Continuing with approaches user explicitly rejected (Combine, DispatchQueue, complex abstractions)
 - **LESSON**: When user says "no Combine", that means NO COMBINE. User preferences are absolute law
+
+**4. Test Design Anti-Pattern: extractTodaysSummary() Test (ONGOING ISSUE)**
+- **Problem**: Test `extractTodaysSummary() calculates progress correctly` fails with all 0 values instead of expected calculations
+- **Root Cause**: Setting `vm.overviewData` manually doesn't trigger `todaysSummary` calculation - property has no `didSet` observer
+- **Failed Attempts**: 
+  1. Using mocks instead of real calculation (user correctly rejected as "faking with mocks")
+  2. Running builds repeatedly instead of analyzing the code
+- **CRITICAL LESSON**: NEVER run builds repeatedly to debug. Analyze the code structure first.
+- **Real Issue**: `todaysSummary` property is computed/derived but not automatically updated when `overviewData` changes
+- **TODO**: Find how `todaysSummary` gets calculated and trigger it properly in the test
 
 ### ✅ **Successful Implementation Patterns**
 
@@ -172,6 +197,13 @@
 - ❌ Repository calls from Views (use UseCases) 
 - ❌ Business logic in Views (move to UseCases)
 - ❌ Multiple service dependencies in ViewModels (compose via UseCases)
+
+**UseCase vs Service Clarity (CRITICAL for iOS Clean Architecture):**
+- **UseCases**: Single business operations that ViewModels call (CompleteHabitUseCase, GetWeeklyProgressUseCase)
+- **Services**: Utilities/calculations that UseCases use (HabitCompletionCalculator, NotificationScheduler)
+- **VIOLATION**: ViewModels directly injecting Services (bypasses business logic layer)
+- **CORRECT**: Views → ViewModels → UseCases → [Services/Repositories]
+- **Detection**: `grep -r "@Injected.*Service" Ritualist/Features/*/Presentation/`
 
 ## Project Overview
 
