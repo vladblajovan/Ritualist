@@ -12,7 +12,7 @@ extension Container {
         self { 
             DefaultPersonalityAnalysisService(
                 repository: self.personalityAnalysisRepository(),
-                errorHandler: self.errorHandlingActor()
+                errorHandler: self.errorHandler()
             )
         }
         .singleton
@@ -29,7 +29,8 @@ extension Container {
                 personalityRepository: self.personalityAnalysisRepository(),
                 analyzePersonalityUseCase: self.analyzePersonalityUseCase(),
                 validateAnalysisDataUseCase: self.validateAnalysisDataUseCase(),
-                errorHandler: self.errorHandlingActor()
+                notificationService: self.notificationService(),
+                errorHandler: self.errorHandler()
             )
         }
         .singleton

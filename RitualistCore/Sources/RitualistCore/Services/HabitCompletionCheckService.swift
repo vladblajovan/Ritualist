@@ -37,7 +37,7 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
     private let logRepository: LogRepository
     private let habitCompletionService: HabitCompletionService
     private let calendar: Calendar
-    private let errorHandler: ErrorHandlingActor?
+    private let errorHandler: ErrorHandler?
     
     // MARK: - Initialization
     
@@ -46,7 +46,7 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
         logRepository: LogRepository,
         habitCompletionService: HabitCompletionService,
         calendar: Calendar = .current,
-        errorHandler: ErrorHandlingActor? = nil
+        errorHandler: ErrorHandler? = nil
     ) {
         self.habitRepository = habitRepository
         self.logRepository = logRepository
@@ -72,8 +72,9 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
                 return false
             }
             
-            let startOfToday = calendar.startOfDay(for: date)
-            let startOfHabitStart = calendar.startOfDay(for: habit.startDate)
+            // Use UTC-based date comparisons for consistent business logic across timezones
+            let startOfToday = CalendarUtils.startOfDayUTC(for: date)
+            let startOfHabitStart = CalendarUtils.startOfDayUTC(for: habit.startDate)
             
             guard startOfToday >= startOfHabitStart else {
                 // Don't notify before habit start date
@@ -81,7 +82,7 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
             }
             
             if let endDate = habit.endDate {
-                let startOfHabitEnd = calendar.startOfDay(for: endDate)
+                let startOfHabitEnd = CalendarUtils.startOfDayUTC(for: endDate)
                 guard startOfToday < startOfHabitEnd else {
                     // Don't notify after habit end date
                     return false
@@ -157,7 +158,7 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
     private func logError(_ message: String, error: Error? = nil, context: [String: String] = [:]) async {
         guard let errorHandler = errorHandler else { return }
         
-        // Use the correct ErrorHandlingActor method signature
+        // Use the correct ErrorHandler method signature
         let contextString = "HabitCompletionCheckService: \(message)"
         var additionalProperties: [String: Any] = [:]
         

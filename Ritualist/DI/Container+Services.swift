@@ -8,9 +8,9 @@ extension Container {
     
     // MARK: - Core Services
     
-    var errorHandlingActor: Factory<ErrorHandlingActor> {
+    var errorHandler: Factory<ErrorHandler> {
         self { 
-            ErrorHandlingActor(maxLogSize: 1000, analyticsEnabled: true)
+            ErrorHandler(maxLogSize: 1000, analyticsEnabled: true)
         }
         .singleton
     }
@@ -29,7 +29,7 @@ extension Container {
         self { 
             let service = LocalNotificationService(
                 habitCompletionCheckService: self.habitCompletionCheckService(),
-                errorHandler: self.errorHandlingActor()
+                errorHandler: self.errorHandler()
             )
             service.trackingService = self.userActionTracker()
             
@@ -72,7 +72,7 @@ extension Container {
     }
     
     var appearanceManager: Factory<AppearanceManager> {
-        self { AppearanceManager() }
+        self { RitualistCore.AppearanceManager() }
             .singleton
     }
     
@@ -114,7 +114,7 @@ extension Container {
                 logRepository: self.logRepository(),
                 habitCompletionService: self.habitCompletionService(),
                 calendar: Calendar.current,
-                errorHandler: self.errorHandlingActor()
+                errorHandler: self.errorHandler()
             )
         }
         .singleton
@@ -122,7 +122,7 @@ extension Container {
     
     var dailyNotificationScheduler: Factory<DailyNotificationSchedulerService> {
         self {
-            DefaultDailyNotificationScheduler(
+            RitualistCore.DefaultDailyNotificationScheduler(
                 habitRepository: self.habitRepository(),
                 scheduleHabitReminders: self.scheduleHabitReminders(),
                 notificationService: self.notificationService()
@@ -150,9 +150,9 @@ extension Container {
     var userActionTracker: Factory<UserActionTrackerService> {
         self {
             #if DEBUG
-            return DebugUserActionTrackerService()
+            return RitualistCore.DebugUserActionTrackerService()
             #else
-            return NoOpUserActionTrackerService()
+            return RitualistCore.NoOpUserActionTrackerService()
             #endif
         }
         .singleton
@@ -166,10 +166,10 @@ extension Container {
             return MockUserBusinessService(
                 loadProfile: self.loadProfile(), 
                 saveProfile: self.saveProfile(),
-                errorHandler: self.errorHandlingActor()
+                errorHandler: self.errorHandler()
             )
             #else
-            return ICloudUserBusinessService(errorHandler: self.errorHandlingActor())
+            return ICloudUserBusinessService(errorHandler: self.errorHandler())
             #endif
         }
         .singleton
@@ -184,10 +184,10 @@ extension Container {
             return MockUserService(
                 loadProfile: self.loadProfile(), 
                 saveProfile: self.saveProfile(),
-                errorHandler: self.errorHandlingActor()
+                errorHandler: self.errorHandler()
             )
             #else
-            return ICloudUserService(errorHandler: self.errorHandlingActor())
+            return ICloudUserService(errorHandler: self.errorHandler())
             #endif
         }
         .singleton
@@ -196,7 +196,7 @@ extension Container {
     // MARK: - Subscription Service
     
     var secureSubscriptionService: Factory<SecureSubscriptionService> {
-        self { MockSecureSubscriptionService(errorHandler: self.errorHandlingActor()) }
+        self { RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler()) }
         .singleton
     }
     
@@ -249,12 +249,12 @@ extension Container {
     // MARK: - Standard Feature Gating Services
     
     var defaultFeatureGatingService: Factory<FeatureGatingService> {
-        self { DefaultFeatureGatingService(userService: self.userService(), errorHandler: self.errorHandlingActor()) }
+        self { DefaultFeatureGatingService(userService: self.userService(), errorHandler: self.errorHandler()) }
             .singleton
     }
     
     var defaultFeatureGatingBusinessService: Factory<FeatureGatingBusinessService> {
-        self { DefaultFeatureGatingBusinessService(userService: self.userService(), errorHandler: self.errorHandlingActor()) }
+        self { DefaultFeatureGatingBusinessService(userService: self.userService(), errorHandler: self.errorHandler()) }
             .singleton
     }
     
@@ -265,7 +265,7 @@ extension Container {
     var featureGatingBusinessService: Factory<FeatureGatingBusinessService> {
         self {
             #if ALL_FEATURES_ENABLED
-            return MockFeatureGatingBusinessService(errorHandler: self.errorHandlingActor())
+            return MockFeatureGatingBusinessService(errorHandler: self.errorHandler())
             #else
             return BuildConfigFeatureGatingBusinessService(
                 buildConfigService: self.buildConfigurationService(),
@@ -282,7 +282,7 @@ extension Container {
     var featureGatingService: Factory<FeatureGatingService> {
         self {
             #if ALL_FEATURES_ENABLED
-            return MockFeatureGatingService(errorHandler: self.errorHandlingActor())
+            return MockFeatureGatingService(errorHandler: self.errorHandler())
             #else
             return BuildConfigFeatureGatingService(
                 buildConfigService: self.buildConfigurationService(),
@@ -297,7 +297,7 @@ extension Container {
     
     @MainActor
     var personalityDeepLinkCoordinator: Factory<PersonalityDeepLinkCoordinator> {
-        self { @MainActor in PersonalityDeepLinkCoordinator.shared }
+        self { @MainActor in RitualistCore.PersonalityDeepLinkCoordinator.shared }
         .singleton
     }
     

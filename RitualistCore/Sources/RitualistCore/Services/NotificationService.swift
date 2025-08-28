@@ -11,6 +11,14 @@ import UserNotifications
 import UIKit
 #endif
 
+public enum NotificationAuthorizationStatus {
+    case notDetermined
+    case denied 
+    case authorized
+    case provisional
+    case ephemeral
+}
+
 public protocol NotificationService {
     func requestAuthorizationIfNeeded() async throws -> Bool
     func checkAuthorizationStatus() async -> Bool
@@ -22,6 +30,12 @@ public protocol NotificationService {
     func cancel(for habitID: UUID) async
     func sendImmediate(title: String, body: String) async throws
     func setupNotificationCategories() async
+    
+    // Personality Analysis Scheduler methods
+    func schedulePersonalityAnalysis(userId: UUID, at date: Date, frequency: AnalysisFrequency) async throws
+    func sendPersonalityAnalysisCompleted(userId: UUID, profile: PersonalityProfile) async throws
+    func cancelPersonalityAnalysis(userId: UUID) async
+    func getNotificationSettings() async -> NotificationAuthorizationStatus
 }
 
 public final class LocalNotificationService: NSObject, NotificationService {
@@ -43,10 +57,10 @@ public final class LocalNotificationService: NSObject, NotificationService {
     // Delegate handler for notification actions
     public var actionHandler: ((NotificationAction, UUID, String?, HabitKind, ReminderTime?) async throws -> Void)?
     public var trackingService: UserActionTrackerService?
-    private let errorHandler: ErrorHandlingActor?
+    private let errorHandler: ErrorHandler?
     private let habitCompletionCheckService: HabitCompletionCheckService
     
-    public init(habitCompletionCheckService: HabitCompletionCheckService, errorHandler: ErrorHandlingActor? = nil) {
+    public init(habitCompletionCheckService: HabitCompletionCheckService, errorHandler: ErrorHandler? = nil) {
         self.habitCompletionCheckService = habitCompletionCheckService
         self.errorHandler = errorHandler
         super.init()
@@ -372,6 +386,77 @@ public final class LocalNotificationService: NSObject, NotificationService {
         print("Scheduling snooze notification: \(title) - \(body)")
         try await center.add(request)
         print("Snooze notification scheduled successfully")
+    }
+    
+    // MARK: - Personality Analysis Methods
+    
+    public func schedulePersonalityAnalysis(userId: UUID, at date: Date, frequency: AnalysisFrequency) async throws {
+        let center = UNUserNotificationCenter.current()
+        let identifier = "personality_analysis_\(userId.uuidString)"
+        
+        // Remove existing notification
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        
+        // Create content
+        let content = UNMutableNotificationContent()
+        content.title = "🔍 Checking Your Habits..."
+        content.body = "We're analyzing your recent habit patterns for personality insights."
+        content.sound = .default
+        
+        // Add deep link for scheduled analysis
+        content.userInfo = [
+            "type": "personality_analysis",
+            "action": "check_analysis", 
+            "scheduled": true
+        ]
+        
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        
+        try await center.add(request)
+    }
+    
+    public func sendPersonalityAnalysisCompleted(userId: UUID, profile: PersonalityProfile) async throws {
+        let center = UNUserNotificationCenter.current()
+        let identifier = "personality_completed_\(userId.uuidString)"
+        
+        // Generate rich notification content based on the analysis results
+        let content = PersonalityNotificationContentGenerator.generateContent(for: profile)
+        
+        // Minimal delay to ensure proper notification center persistence (iOS requirement)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        
+        try await center.add(request)
+        print("🔔 Analysis completion notification sent successfully")
+    }
+    
+    public func cancelPersonalityAnalysis(userId: UUID) async {
+        let center = UNUserNotificationCenter.current()
+        let identifier = "personality_analysis_\(userId.uuidString)"
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+    }
+    
+    public func getNotificationSettings() async -> NotificationAuthorizationStatus {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        
+        switch settings.authorizationStatus {
+        case .notDetermined:
+            return .notDetermined
+        case .denied:
+            return .denied
+        case .authorized:
+            return .authorized
+        case .provisional:
+            return .provisional
+        case .ephemeral:
+            return .ephemeral
+        @unknown default:
+            return .denied
+        }
     }
     
     // MARK: - Private Helpers

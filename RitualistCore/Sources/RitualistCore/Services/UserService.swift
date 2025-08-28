@@ -37,7 +37,7 @@ public final class MockUserService: UserService {
     private var _currentProfile = UserProfile()
     private let loadProfile: LoadProfileUseCase?
     private let saveProfile: SaveProfileUseCase?
-    private let errorHandler: ErrorHandlingActor?
+    private let errorHandler: ErrorHandler?
     
     // Store different test subscription states for easy switching
     private let testSubscriptionStates: [String: (SubscriptionPlan, Date?)] = [
@@ -49,7 +49,7 @@ public final class MockUserService: UserService {
     public init(
         loadProfile: LoadProfileUseCase? = nil, 
         saveProfile: SaveProfileUseCase? = nil,
-        errorHandler: ErrorHandlingActor? = nil
+        errorHandler: ErrorHandler? = nil
     ) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
@@ -153,9 +153,9 @@ public final class MockUserService: UserService {
 @Observable
 public final class ICloudUserService: UserService {
     private var _currentProfile = UserProfile()
-    private let errorHandler: ErrorHandlingActor?
+    private let errorHandler: ErrorHandler?
     
-    public init(errorHandler: ErrorHandlingActor? = nil) {
+    public init(errorHandler: ErrorHandler? = nil) {
         self.errorHandler = errorHandler
         // Initialize with default profile
         _currentProfile = UserProfile()

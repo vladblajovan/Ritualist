@@ -26,9 +26,9 @@ public struct ErrorEvent {
     }
 }
 
-// MARK: - Error Handling Actor
+// MARK: - Error Handler
 
-public actor ErrorHandlingActor {
+public actor ErrorHandler {
     private var errorLog: [ErrorEvent] = []
     private let maxLogSize: Int
     private let analyticsEnabled: Bool

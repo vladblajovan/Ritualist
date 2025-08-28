@@ -24,9 +24,9 @@ public protocol PersonalityAnalysisService {
 public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService {
     
     private let repository: PersonalityAnalysisRepositoryProtocol
-    private let errorHandler: ErrorHandlingActor?
+    private let errorHandler: ErrorHandler?
     
-    public init(repository: PersonalityAnalysisRepositoryProtocol, errorHandler: ErrorHandlingActor? = nil) {
+    public init(repository: PersonalityAnalysisRepositoryProtocol, errorHandler: ErrorHandler? = nil) {
         self.repository = repository
         self.errorHandler = errorHandler
     }

@@ -14,12 +14,12 @@ import Observation
 @Observable
 public final class DefaultFeatureGatingService: FeatureGatingService {
     private let userService: UserService
-    private let errorHandler: ErrorHandlingActor?
+    private let errorHandler: ErrorHandler?
     
     // Free tier limits
     private static let freeMaxHabits = 5
     
-    public init(userService: UserService, errorHandler: ErrorHandlingActor? = nil) {
+    public init(userService: UserService, errorHandler: ErrorHandler? = nil) {
         self.userService = userService
         self.errorHandler = errorHandler
     }

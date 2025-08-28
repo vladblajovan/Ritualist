@@ -71,30 +71,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		916F90D12E546D8800D77E0D /* Exceptions for "Ritualist" folder in "RitualistWidgetExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Data/DataSources/CategoryLocalDataSource.swift,
-				Data/DataSources/CategoryRemoteDataSource.swift,
-				Data/DataSources/HabitLocalDataSource.swift,
-				Data/DataSources/LogLocalDataSource.swift,
-				Data/DataSources/OnboardingLocalDataSource.swift,
-				Data/DataSources/ProfileLocalDataSource.swift,
-				Data/Models/HabitCategoryModel.swift,
-				Data/Models/HabitLogModel.swift,
-				Data/Models/HabitModel.swift,
-				Data/Models/OnboardingStateModel.swift,
-				Data/Models/UserProfileModel.swift,
-				Data/PersistenceContainer/PersistenceContainer.swift,
-				Data/Repositories/CategoryRepositoryImpl.swift,
-				Data/Repositories/HabitRepositoryImpl.swift,
-				Data/Repositories/LogRepositoryImpl.swift,
-				Data/Repositories/TipRepositoryImpl.swift,
-				Features/PersonalityAnalysis/Data/DataSources/PersonalityAnalysisDataSource.swift,
-				Features/PersonalityAnalysis/Data/Models/PersonalityAnalysisModel.swift,
-			);
-			target = 91A5C7CA2E5369190095C251 /* RitualistWidgetExtension */;
-		};
 		91A5C7E92E5369230095C251 /* Exceptions for "RitualistWidget" folder in "RitualistWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -115,9 +91,6 @@
 		};
 		91B730EB2E38E4BC0050A48A /* Ritualist */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				916F90D12E546D8800D77E0D /* Exceptions for "Ritualist" folder in "RitualistWidgetExtension" target */,
-			);
 			path = Ritualist;
 			sourceTree = "<group>";
 		};

@@ -197,34 +197,34 @@ This document outlines the step-by-step implementation plan to address the archi
 ### Tasks
 
 1. **UseCase Testing (1 week)**
-   - [ ] Test all 10 new UseCases from Phase 0
-   - [ ] Test all existing UseCases
-   - [ ] Use real implementations with TestModelContainer
-   - [ ] Cover edge cases and error conditions
+   - [ ] Test 10+ new UseCases from Phase 0 (IsHabitCompletedUseCase, CalculateDailyProgressUseCase, etc.)
+   - [ ] Expand existing UseCase test coverage (StreakUseCasesTests pattern already established)
+   - [ ] **Use existing TestModelContainer + Test Data Builders** (infrastructure ready)
+   - [ ] Cover edge cases with TestScenarios (decliningMotivationUser, edgeCaseData, etc.)
 
 2. **Service Testing (3 days)**
-   - [ ] Test all utility Services (now properly refactored)
-   - [ ] Test calculations and transformations
-   - [ ] Verify stateless behavior
-   - [ ] Performance benchmarks
+   - [ ] Test RitualistCore migrated services (ScheduleAwareCompletionCalculator, HabitAnalyticsService, etc.)
+   - [ ] Test calculations with real data (existing BatchQueryPerformanceTests pattern)
+   - [ ] Verify stateless behavior with TestScenarios
+   - [ ] **Extend existing performance benchmarks** (framework already established)
 
 3. **ViewModel Testing (3 days)**
-   - [ ] Test all ViewModels with real UseCases
-   - [ ] Test state management
-   - [ ] Test user interactions
-   - [ ] Verify proper @Observable behavior
+   - [ ] **Follow OverviewViewModelSimpleTests pattern** (template already established)
+   - [ ] Test @MainActor @Observable state management with real UseCases
+   - [ ] Test user interaction flows using TestModelContainer
+   - [ ] Migrate 3 deprecated ViewModel tests (PersonalityAnalysisServiceTests, etc.)
 
 4. **RitualistCore Testing (2 days)**
-   - [ ] Test all domain logic
-   - [ ] Test public interfaces
-   - [ ] Integration tests
-   - [ ] Watch app scenario tests
+   - [ ] Test migrated domain logic (PersonalityAnalysisScheduler, DataThresholdValidator, etc.)
+   - [ ] **Cross-package integration tests** (App layer + RitualistCore boundaries)
+   - [ ] **Public interface validation** (ensure typealias re-exports work correctly)
+   - [ ] **Watch app readiness tests** (domain layer portability)
 
-5. **Test Infrastructure Completion (2 days)**
-   - [ ] Complete all test builders
-   - [ ] Create comprehensive fixtures
-   - [ ] Document testing patterns
-   - [ ] Create testing guidelines
+5. **Test Infrastructure Enhancement (2 days)**
+   - [ ] **Document TestModelContainer patterns** (usage guide for new tests)
+   - [ ] **Expand TestScenarios** (add more realistic user journeys)
+   - [ ] **Complete TestBuilder coverage** (any missing entity builders)
+   - [ ] **Create testing guidelines** (Phase 1B+4B best practices documentation)
 
 ### 🏗️ **Build Configuration for Testing**
 
@@ -257,42 +257,71 @@ xcodebuild build -project Ritualist.xcodeproj -scheme Ritualist-AllFeatures -des
 - **Data**: TestModelContainer for in-memory SwiftData testing
 
 ### Success Criteria
-- 90%+ UseCase coverage
-- 85%+ Service coverage
-- 80%+ ViewModel coverage
-- All testing patterns documented
-- Zero mock-based business logic tests
-- Comprehensive test suite for clean architecture
+- **90%+ UseCase coverage** (expand from current solid foundation)
+- **85%+ RitualistCore service coverage** (test migrated domain logic)
+- **80%+ ViewModel coverage** (using real UseCases with TestModelContainer)
+- **Zero remaining deprecated tests** (migrate 3 files marked for Phase 1B+4B)
+- **100% TestModelContainer compliance** (no mock business logic tests)
+- **Complete testing documentation** (usage patterns, best practices, examples)
+- **Cross-package integration validation** (App ↔ RitualistCore boundaries)
 
 ## Existing Tests Migration Strategy
 
 ### Current State Analysis
-- **22 test files** exist with varying quality
-- **8 files** use mocks (need refactoring)
-- **2 clean examples** from Phase 0 (keep as templates)
+- **39 test files** exist with varying quality
+- **3 files** marked for Phase 1B+4B migration (deprecated pattern tests)
+- **122 TestModelContainer usages** - extensive real implementation testing infrastructure
+- **Comprehensive test builders** - HabitBuilder, HabitLogBuilder, CategoryBuilder, UserProfileBuilder
+- **TestScenarios** - Pre-configured realistic test data sets
+- **Performance testing suite** - BatchQueryPerformanceTests with real database operations
 
 ### Migration Approach
 
-1. **Keep As-Is (Good Tests):**
-   - Utility tests (NumberUtilsTests, DateUtilsTests, etc.)
-   - Repository integration tests (already use TestModelContainer)
-   - Clean examples (OverviewViewModelSimpleTests, NotificationUseCaseCleanTests)
+1. **Keep As-Is (Excellent Tests):**
+   - **122 TestModelContainer tests** - Already follow correct real implementation pattern
+   - **Performance tests** - BatchQueryPerformanceTests, SimpleBatchQueryTest with real database operations
+   - **Clean examples** - OverviewViewModelSimpleTests, NotificationUseCaseCleanTests (Phase 0 templates)
+   - **Repository tests** - All using TestModelContainer for integration testing
+   - **Utility tests** - NumberUtilsTests, DateUtilsTests, etc. (pure functions)
+   - **UseCase tests** - StreakUseCasesTests and others using real repositories
 
-2. **Refactor After Architecture Cleanup:**
-   - Tests with mocks (PersonalityAnalysisServiceTests, ViewModelTrackingIntegrationTests)
-   - Service tests that will change (HabitCompletionServiceTests)
-   - **Wait until Phase 2-3 complete to avoid double work**
+2. **Migrate During Phase 1B+4B (3 files marked for migration):**
+   - **PersonalityAnalysisServiceTests** - Convert mock pattern to TestModelContainer
+   - **ViewModelTrackingIntegrationTests** - Update to use real UseCases
+   - **Other deprecated pattern tests** - Modernize to Swift Testing + real implementations
 
-3. **Delete/Replace:**
-   - Mock-heavy tests that test wrong patterns
-   - Tests for code that will be deleted
-   - Obsolete test patterns
+3. **Expand Coverage (New Tests Needed):**
+   - **10+ new UseCases from Phase 0** - Need comprehensive test coverage
+   - **Recently migrated RitualistCore services** - Need domain layer testing
+   - **ViewModel integration** - Test @Observable behavior with real UseCases
+   - **Cross-package integration** - App layer + RitualistCore boundary testing
 
-### Migration Timeline
-- **Phase 1A**: Mark tests as "pending migration"
-- **Phases 2-4A**: Keep tests running but don't fix mock tests
-- **Phase 1B+4B**: Migrate all tests to clean pattern
-- **Final**: Delete all mock-based tests
+### Migration Timeline ✅ UPDATED STATUS
+- **Phase 1A**: ✅ COMPLETED - Testing infrastructure documented and validated
+- **Phases 2-4A**: ✅ COMPLETED - Architecture cleanup done while maintaining test stability  
+- **Phase 1B+4B**: **⏳ READY TO START** - Migrate 3 remaining deprecated tests + expand coverage
+- **Current State**: **122 existing TestModelContainer tests** provide excellent foundation
+
+### 🧪 **Current Testing Infrastructure Status (28.08.2025)**
+
+**✅ EXCELLENT FOUNDATION ALREADY EXISTS:**
+- **TestModelContainer**: Fully implemented with in-memory SwiftData for all 6 app models
+- **Test Data Builders**: Complete fluent API for `Habit`, `HabitLog`, `Category`, `UserProfile`
+- **TestScenarios**: Pre-configured realistic data sets (`newUserWithHabits()`, `premiumUser()`, etc.)
+- **Performance Testing**: Real database benchmarks with large datasets (1000+ records)
+- **Clean Test Examples**: `OverviewViewModelSimpleTests`, `NotificationUseCaseCleanTests` as templates
+
+**✅ TESTING PATTERN COMPLIANCE:**
+- **Real Implementations**: 122 TestModelContainer usages across test suite
+- **No Mock Business Logic**: Only system boundary mocking (notifications, analytics)
+- **Swift Testing**: Modern testing framework for iOS 17+
+- **Comprehensive Coverage**: Repository, UseCase, Service, and integration tests
+
+**⏳ PHASE 1B+4B EXPANSION NEEDED:**
+- **3 deprecated tests** to migrate from mock patterns
+- **10+ new UseCases** from Phase 0 need test coverage
+- **RitualistCore services** migrated in Phase 4A need domain layer tests
+- **ViewModel @Observable behavior** testing with real UseCases
 
 ## Critical Violations Found - IMMEDIATE ACTION REQUIRED
 

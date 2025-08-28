@@ -112,12 +112,23 @@ public final class LogHabit: LogHabitUseCase {
         
         // For timesPerWeek habits, validate that user hasn't already logged today
         if case .timesPerWeek = habit.schedule {
-            let dayStart = Calendar.current.startOfDay(for: log.date)
-            let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
-            
             let existingLogs = try await repo.logs(for: habit.id)
             let logsForToday = existingLogs.filter { existingLog in
-                existingLog.date >= dayStart && existingLog.date < dayEnd
+                CalendarUtils.areSameDayUTC(existingLog.date, log.date)
+            }
+            
+            // Debug logging
+            print("🔍 DEBUG LogHabit for '\(habit.name)':")
+            print("   - Log date: \(log.date)")
+            print("   - Using UTC business logic for same-day comparison")
+            print("   - Total existing logs: \(existingLogs.count)")
+            print("   - Logs for today (UTC day): \(logsForToday.count)")
+            if !logsForToday.isEmpty {
+                print("   - Today's logs dates: \(logsForToday.map { $0.date })")
+                print("   - Checking UTC same-day comparisons...")
+                for existingLog in logsForToday {
+                    print("   - areSameDayUTC(\(existingLog.date), \(log.date)) = \(CalendarUtils.areSameDayUTC(existingLog.date, log.date))")
+                }
             }
             
             if !logsForToday.isEmpty {
@@ -153,10 +164,9 @@ public final class GetLogForDate: GetLogForDateUseCase {
         // Get all logs for the habit
         let allLogs = try await repo.logs(for: habitID)
 
-        // Business logic: Find log for specific date (comparing day only)
-        let calendar = Calendar.current
+        // Business logic: Find log for specific date using UTC day comparison
         return allLogs.first { log in
-            calendar.isDate(log.date, inSameDayAs: date)
+            CalendarUtils.areSameDayUTC(log.date, date)
         }
     }
 }

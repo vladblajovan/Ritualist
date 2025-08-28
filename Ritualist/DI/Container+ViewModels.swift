@@ -90,7 +90,7 @@ extension Container {
             PaywallViewModel(
                 paywallBusinessService: self.paywallBusinessService(),
                 updateProfileSubscription: self.updateProfileSubscription(),
-                errorHandler: self.errorHandlingActor()
+                errorHandler: self.errorHandler()
             )
         }
     }

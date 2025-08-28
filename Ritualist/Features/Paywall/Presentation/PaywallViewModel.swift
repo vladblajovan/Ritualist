@@ -6,7 +6,7 @@ import RitualistCore
 public final class PaywallViewModel {
     private let paywallBusinessService: PaywallBusinessService
     private let updateProfileSubscription: UpdateProfileSubscriptionUseCase
-    private let errorHandler: ErrorHandlingActor?
+    private let errorHandler: ErrorHandler?
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     
     // UI State - now managed directly in ViewModel
@@ -40,7 +40,7 @@ public final class PaywallViewModel {
     public init(
         paywallBusinessService: PaywallBusinessService,
         updateProfileSubscription: UpdateProfileSubscriptionUseCase,
-        errorHandler: ErrorHandlingActor? = nil
+        errorHandler: ErrorHandler? = nil
     ) {
         self.paywallBusinessService = paywallBusinessService
         self.updateProfileSubscription = updateProfileSubscription

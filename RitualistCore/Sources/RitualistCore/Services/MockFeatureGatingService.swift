@@ -10,9 +10,9 @@ import Observation
 
 @available(*, deprecated, message: "Use FeatureGatingUIService with MockFeatureGatingBusinessService instead")
 public final class MockFeatureGatingService: FeatureGatingService {
-    private let errorHandler: ErrorHandlingActor?
+    private let errorHandler: ErrorHandler?
     
-    public init(errorHandler: ErrorHandlingActor? = nil) {
+    public init(errorHandler: ErrorHandler? = nil) {
         self.errorHandler = errorHandler
     }
     
