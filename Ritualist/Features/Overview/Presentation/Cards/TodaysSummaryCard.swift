@@ -53,10 +53,8 @@ struct TodaysSummaryCard: View {
 
     // PERFORMANCE: Pre-compute navigation button colors to avoid repeated calculations
     private var navigationButtonColor: Color {
-        if let summary = summary {
-            return progressColor(for: summary.completionPercentage)
-        }
-        return AppColors.brand
+        // Use same color as circular progress (Icon-Inspired Gradient)
+        return Color.ritualistBlue
     }
 
     private var navigationButtonBackgroundColor: Color {
