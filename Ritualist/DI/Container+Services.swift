@@ -85,7 +85,12 @@ extension Container {
         self { SlogansService() }
             .singleton
     }
-    
+
+    var personalizedMessageGenerator: Factory<PersonalizedMessageGeneratorProtocol> {
+        self { PersonalizedMessageGenerator() }
+            .singleton
+    }
+
     @MainActor
     var hapticFeedbackService: Factory<HapticFeedbackService> {
         self { @MainActor in HapticFeedbackService.shared }

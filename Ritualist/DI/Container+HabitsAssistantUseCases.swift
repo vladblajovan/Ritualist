@@ -15,4 +15,8 @@ extension Container {
     var getHabitsFromSuggestionsUseCase: Factory<GetHabitsFromSuggestionsUseCase> {
         self { GetHabitsFromSuggestions() }
     }
+
+    var getSuggestionsUseCase: Factory<GetSuggestionsUseCase> {
+        self { GetSuggestions(suggestionsService: self.habitSuggestionsService()) }
+    }
 }

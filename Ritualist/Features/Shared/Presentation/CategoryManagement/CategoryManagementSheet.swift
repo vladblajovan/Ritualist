@@ -2,18 +2,25 @@ import SwiftUI
 import RitualistCore
 import FactoryKit
 
-/// A reusable wrapper around CategoryManagementView that integrates with CategoryManagementPresentationService
+/// A reusable wrapper around CategoryManagementView for sheet presentation
 /// This component can be used by any view that wants to present Category Management
 public struct CategoryManagementSheet: View {
-    @Injected(\.categoryManagementPresentationService) private var presentationService
-    
+    @Injected(\.categoryManagementViewModel) private var viewModel
+
+    let onDismiss: () async -> Void
+
     /// Initialize the reusable Category Management sheet
-    public init() {}
-    
+    /// - Parameter onDismiss: Callback executed when sheet is dismissed (for data refresh)
+    public init(onDismiss: @escaping () async -> Void = {}) {
+        self.onDismiss = onDismiss
+    }
+
     public var body: some View {
-        CategoryManagementView(vm: presentationService.categoryManagementViewModel)
+        CategoryManagementView(vm: viewModel)
             .onDisappear {
-                presentationService.handleCategoryManagementDismissal()
+                Task {
+                    await onDismiss()
+                }
             }
     }
 }
@@ -37,29 +44,24 @@ public extension View {
     }
 }
 
-/// ViewModifier that integrates presentation service with sheet presentation
+/// ViewModifier for presenting the Category Management sheet
 private struct CategoryManagementSheetModifier: ViewModifier {
-    @Injected(\.categoryManagementPresentationService) private var presentationService
     @Binding var isPresented: Bool
-    
+
     let onDataRefreshNeeded: () async -> Void
-    
+
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: $isPresented) {
-                CategoryManagementSheet()
-            }
-            .onAppear {
-                // Set up data refresh callback
-                presentationService.onDataRefreshNeeded = onDataRefreshNeeded
+                CategoryManagementSheet(onDismiss: onDataRefreshNeeded)
             }
     }
 }
 
-/// Usage example for integrating with CategoryManagementPresentationService:
+/// Usage example:
 /// ```swift
 /// .categoryManagementSheet(
-///     isPresented: $presentationService.showingCategoryManagement,
+///     isPresented: $showingCategoryManagement,
 ///     onDataRefreshNeeded: { await vm.load() }
 /// )
 /// ```

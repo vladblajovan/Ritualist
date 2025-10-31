@@ -23,9 +23,7 @@ struct QuickActionsCard: View {
     @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     @State private var validationMessages: [UUID: String] = [:] // Store validation messages for habits
-    
-    @Injected(\.hapticFeedbackService) private var hapticService
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Header
@@ -111,13 +109,10 @@ struct QuickActionsCard: View {
         Button {
             if !isCompleted && scheduleStatus.isAvailable {
                 if habit.kind == .numeric {
-                    // Trigger light haptic for opening numeric sheet
-                    hapticService.trigger(.light)
                     onNumericHabitAction?(habit)
                 } else {
-                    // For binary habits, complete with glow effect and haptic
+                    // For binary habits, complete with glow effect
                     glowingHabitId = habit.id
-                    hapticService.triggerCompletion(type: .standard)
                     
                     withAnimation(.easeOut(duration: 0.3)) {
                         animatingHabitId = habit.id

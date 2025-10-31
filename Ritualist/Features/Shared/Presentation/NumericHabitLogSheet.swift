@@ -9,9 +9,8 @@ public struct NumericHabitLogSheetDirect: View {
     let onSave: (Double) async -> Void
     let onCancel: () -> Void
     let initialValue: Double?
-    
+
     @Injected(\.getLogs) private var getLogs
-    @Injected(\.hapticFeedbackService) private var hapticService
     @State private var currentValue: Double = 0.0
     @State private var isLoading = true
     @State private var isGlowing = false
@@ -174,9 +173,8 @@ public struct NumericHabitLogSheetDirect: View {
                         if !isCompleted && value < dailyTarget {
                             if #available(iOS 26.0, *) {
                                 Button {
-                                    // Trigger glow effect and success haptic
+                                    // Trigger glow effect
                                     isGlowing = true
-                                    hapticService.triggerCompletion(type: .milestone)
                                     
                                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                                         value = dailyTarget
@@ -205,9 +203,8 @@ public struct NumericHabitLogSheetDirect: View {
                                 .glassEffect(.regular.tint(AppColors.brand), in: RoundedRectangle(cornerRadius: 25))
                             } else {
                                 Button {
-                                    // Trigger glow effect and success haptic
+                                    // Trigger glow effect
                                     isGlowing = true
-                                    hapticService.triggerCompletion(type: .milestone)
                                     
                                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                                         value = dailyTarget
@@ -241,9 +238,8 @@ public struct NumericHabitLogSheetDirect: View {
                         if #available(iOS 26.0, *) {
                             Button {
                                 if isValidValue {
-                                    // Trigger glow effect and progress haptic
+                                    // Trigger glow effect
                                     isGlowing = true
-                                    hapticService.triggerCompletion(type: .standard)
                                     
                                     Task {
                                         // Small delay for glow effect
@@ -267,9 +263,8 @@ public struct NumericHabitLogSheetDirect: View {
                         } else {
                             Button {
                                 if isValidValue {
-                                    // Trigger glow effect and progress haptic
+                                    // Trigger glow effect
                                     isGlowing = true
-                                    hapticService.triggerCompletion(type: .standard)
                                     
                                     Task {
                                         // Small delay for glow effect
