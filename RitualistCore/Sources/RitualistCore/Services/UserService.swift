@@ -42,8 +42,8 @@ public final class MockUserService: UserService {
     // Store different test subscription states for easy switching
     private let testSubscriptionStates: [String: (SubscriptionPlan, Date?)] = [
         "free": (.free, nil),
-        "monthly": (.monthly, Calendar.current.date(byAdding: .month, value: 1, to: Date())),
-        "annual": (.annual, Calendar.current.date(byAdding: .year, value: 1, to: Date()))
+        "monthly": (.monthly, CalendarUtils.addMonths(1, to: Date())),
+        "annual": (.annual, CalendarUtils.addYears(1, to: Date()))
     ]
     
     public init(
@@ -204,7 +204,7 @@ public final class ICloudUserService: UserService {
 }
 
 @available(*, deprecated, message: "Use appropriate UserBusinessService implementation instead")
-@MainActor @Observable
+@Observable
 public final class NoOpUserService: UserService {
     public let currentProfile = UserProfile()
     public let isPremiumUser = false

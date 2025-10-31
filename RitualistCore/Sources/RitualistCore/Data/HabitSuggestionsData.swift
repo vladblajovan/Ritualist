@@ -33,7 +33,7 @@ public struct HabitSuggestionsData {
             colorHex: "#E36414",
             categoryId: "health",
             kind: .binary,
-            schedule: .timesPerWeek(3),
+            schedule: .daysOfWeek([1, 3, 5]),
             description: "Get your body moving with regular workouts"
         ),
         
@@ -182,7 +182,7 @@ public struct HabitSuggestionsData {
             colorHex: "#9C27B0",
             categoryId: "social",
             kind: .binary,
-            schedule: .timesPerWeek(2),
+            schedule: .daysOfWeek([1, 4]),
             description: "Stay connected with family members"
         ),
         
@@ -203,7 +203,7 @@ public struct HabitSuggestionsData {
             colorHex: "#607D8B",
             categoryId: "social",
             kind: .binary,
-            schedule: .timesPerWeek(3),
+            schedule: .daysOfWeek([1, 3, 5]),
             description: "Look for opportunities to help others"
         ),
         
@@ -284,7 +284,7 @@ public struct HabitSuggestionsData {
             colorHex: "#87CEEB",
             categoryId: "wellness",
             kind: .binary,
-            schedule: .timesPerWeek(3),
+            schedule: .daysOfWeek([1, 3, 5]),
             description: "Boost energy and resilience with cold showers"
         ),
         
@@ -403,7 +403,7 @@ public struct HabitSuggestionsData {
             colorHex: "#CD853F",
             categoryId: "productivity",
             kind: .binary,
-            schedule: .timesPerWeek(2),
+            schedule: .daysOfWeek([1, 4]),
             description: "Remove unnecessary items from your space"
         ),
         
@@ -415,7 +415,7 @@ public struct HabitSuggestionsData {
             colorHex: "#8B4513",
             categoryId: "learning",
             kind: .binary,
-            schedule: .timesPerWeek(2),
+            schedule: .daysOfWeek([1, 4]),
             description: "Learn something new through documentaries"
         ),
         
@@ -472,7 +472,7 @@ public struct HabitSuggestionsData {
             colorHex: "#FF8C00",
             categoryId: "learning",
             kind: .binary,
-            schedule: .timesPerWeek(1),
+            schedule: .daysOfWeek([7]),
             description: "Expand culinary skills with new recipes"
         ),
         
@@ -494,7 +494,7 @@ public struct HabitSuggestionsData {
             colorHex: "#DC143C",
             categoryId: "social",
             kind: .binary,
-            schedule: .timesPerWeek(1),
+            schedule: .daysOfWeek([7]),
             description: "Give back to your community through volunteering"
         ),
         
@@ -505,7 +505,7 @@ public struct HabitSuggestionsData {
             colorHex: "#FF69B4",
             categoryId: "social",
             kind: .binary,
-            schedule: .timesPerWeek(1),
+            schedule: .daysOfWeek([7]),
             description: "Expand your social circle and network"
         ),
         
@@ -526,7 +526,7 @@ public struct HabitSuggestionsData {
             colorHex: "#20B2AA",
             categoryId: "social",
             kind: .binary,
-            schedule: .timesPerWeek(2),
+            schedule: .daysOfWeek([1, 4]),
             description: "Engage in activities with others"
         ),
         
@@ -537,7 +537,7 @@ public struct HabitSuggestionsData {
             colorHex: "#F4A460",
             categoryId: "social",
             kind: .binary,
-            schedule: .timesPerWeek(1),
+            schedule: .daysOfWeek([7]),
             description: "Connect meaningfully through handwritten letters"
         ),
         
@@ -619,7 +619,7 @@ public struct HabitSuggestionsData {
             colorHex: "#E67E22",
             categoryId: "creativity",
             kind: .binary,
-            schedule: .timesPerWeek(3),
+            schedule: .daysOfWeek([1, 3, 5]),
             description: "Create with your hands through crafting",
             personalityWeights: [
                 "openness": 0.7,
@@ -654,7 +654,7 @@ public struct HabitSuggestionsData {
             colorHex: "#27AE60",
             categoryId: "creativity",
             kind: .binary,
-            schedule: .timesPerWeek(2),
+            schedule: .daysOfWeek([1, 4]),
             description: "Experiment with new recipes and flavors",
             personalityWeights: [
                 "openness": 0.8,

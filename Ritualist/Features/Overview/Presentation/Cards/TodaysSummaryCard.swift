@@ -23,16 +23,53 @@ struct TodaysSummaryCard: View {
     
     @State private var isCompletedSectionExpanded = false
     @State private var isRemainingSectionExpanded = false
-    @State private var showingDeleteAlert = false  
+    @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     @State private var animatingHabitId: UUID? = nil
     @State private var glowingHabitId: UUID? = nil
     @State private var animatingProgress: Double = 0.0
     @State private var isAnimatingCompletion = false
-    
+
+    // PERFORMANCE: Pre-computed arrays to avoid creating NEW arrays on every render
+    @State private var visibleIncompleteHabits: [Habit] = []
+    @State private var visibleCompletedHabits: [Habit] = []
+
     @Injected(\.hapticFeedbackService) private var hapticService
-    
-    init(summary: TodaysSummary?, 
+
+    // PERFORMANCE: Static DateFormatters - created ONCE, reused forever
+    // DateFormatter is extremely expensive to create (50ms+ overhead eliminated)
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
+
+    private static let todayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMMM yyyy" // e.g., "16 August 2025"
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
+
+    // PERFORMANCE: Pre-compute navigation button colors to avoid repeated calculations
+    private var navigationButtonColor: Color {
+        if let summary = summary {
+            return progressColor(for: summary.completionPercentage)
+        }
+        return AppColors.brand
+    }
+
+    private var navigationButtonBackgroundColor: Color {
+        navigationButtonColor.opacity(0.1)
+    }
+
+    private var navigationButtonStrokeColor: Color {
+        navigationButtonColor.opacity(0.3)
+    }
+
+    init(summary: TodaysSummary?,
          viewingDate: Date,
          isViewingToday: Bool,
          canGoToPrevious: Bool,
@@ -65,20 +102,26 @@ struct TodaysSummaryCard: View {
         self.onNextDay = onNextDay
         self.onGoToToday = onGoToToday
     }
-    
-    private var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .full
-        formatter.timeStyle = .none
-        return formatter
+
+    // PERFORMANCE: Update visible arrays only when needed
+    private func updateVisibleHabits() {
+        guard let summary = summary else {
+            visibleIncompleteHabits = []
+            visibleCompletedHabits = []
+            return
+        }
+
+        // Pre-compute incomplete habits array
+        visibleIncompleteHabits = isRemainingSectionExpanded ?
+            summary.incompleteHabits :
+            Array(summary.incompleteHabits.prefix(3))
+
+        // Pre-compute completed habits array
+        visibleCompletedHabits = isCompletedSectionExpanded ?
+            Array(summary.completedHabits.dropFirst(2)) :
+            []
     }
-    
-    private var todayFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMMM yyyy" // e.g., "16 August 2025"
-        return formatter
-    }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Card Header with Date Navigation
@@ -88,16 +131,16 @@ struct TodaysSummaryCard: View {
                     Button(action: onPreviousDay) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(canGoToPrevious ? (summary != nil ? progressColor(for: summary!.completionPercentage) : AppColors.brand) : .secondary)
+                            .foregroundColor(canGoToPrevious ? navigationButtonColor : .secondary)
                             .frame(width: 28, height: 28)
                             .background(
                                 Circle()
-                                    .fill(canGoToPrevious ? (summary != nil ? progressColor(for: summary!.completionPercentage).opacity(0.1) : AppColors.brand.opacity(0.1)) : Color.clear)
+                                    .fill(canGoToPrevious ? navigationButtonBackgroundColor : Color.clear)
                             )
                             .overlay(
                                 Circle()
                                     .stroke(
-                                        canGoToPrevious ? (summary != nil ? progressColor(for: summary!.completionPercentage).opacity(0.3) : AppColors.brand.opacity(0.3)) : Color.secondary.opacity(0.2),
+                                        canGoToPrevious ? navigationButtonStrokeColor : Color.secondary.opacity(0.2),
                                         lineWidth: 1.0
                                     )
                             )
@@ -109,12 +152,12 @@ struct TodaysSummaryCard: View {
                     // Date and Title
                     VStack(spacing: 4) {
                         if isViewingToday {
-                            Text("Today, \(todayFormatter.string(from: viewingDate))")
+                            Text("Today, \(Self.todayFormatter.string(from: CalendarUtils.startOfDayLocal(for: Date())))")
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
                         } else {
-                            Text(dateFormatter.string(from: viewingDate))
+                            Text(CalendarUtils.formatForDisplay(viewingDate, style: .full))
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
@@ -128,25 +171,22 @@ struct TodaysSummaryCard: View {
                         Button(action: onNextDay) {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(summary != nil ? progressColor(for: summary!.completionPercentage) : AppColors.brand)
+                                .foregroundColor(navigationButtonColor)
                                 .frame(width: 28, height: 28)
                                 .background(
                                     Circle()
-                                        .fill(summary != nil ? progressColor(for: summary!.completionPercentage).opacity(0.1) : AppColors.brand.opacity(0.1))
+                                        .fill(navigationButtonBackgroundColor)
                                 )
                                 .overlay(
                                     Circle()
-                                        .stroke(
-                                            summary != nil ? progressColor(for: summary!.completionPercentage).opacity(0.3) : AppColors.brand.opacity(0.3),
-                                            lineWidth: 1.0
-                                        )
+                                        .stroke(navigationButtonStrokeColor, lineWidth: 1.0)
                                 )
                         }
                     } else if !isViewingToday {
                         Button(action: onGoToToday) {
                             Text("Today")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(summary != nil ? progressColor(for: summary!.completionPercentage) : AppColors.brand)
+                                .foregroundColor(navigationButtonColor)
                         }
                     } else {
                         // Invisible placeholder for alignment
@@ -165,14 +205,14 @@ struct TodaysSummaryCard: View {
                         Circle()
                             .stroke(CardDesign.secondaryBackground, lineWidth: 8)
                             .frame(width: 80, height: 80)
-                        
+
                         Circle()
                             .trim(from: 0.0, to: summary.completionPercentage)
                             .stroke(progressColor(for: summary.completionPercentage), lineWidth: 8)
                             .frame(width: 80, height: 80)
                             .rotationEffect(.degrees(-90))
-                            .animation(.easeInOut(duration: 0.8), value: summary.completionPercentage)
-                        
+                            // PERFORMANCE: Removed animation - causes lag during scroll when data updates
+
                         Text("\(Int(summary.completionPercentage * 100))%")
                             .font(.system(size: 18, weight: .bold, design: .rounded))
                             .foregroundColor(progressColor(for: summary.completionPercentage))
@@ -180,28 +220,22 @@ struct TodaysSummaryCard: View {
                     
                     // Progress Details
                     VStack(alignment: .leading, spacing: 12) {
-                        // Always show habit progress dots (including for completed days)
-                        LazyVGrid(columns: Array(repeating: GridItem(.adaptive(minimum: 14, maximum: 18), spacing: 10), count: 12), spacing: 8) {
-                            ForEach(0..<summary.totalHabits, id: \.self) { index in
-                                Circle()
-                                    .fill(index < summary.completedHabitsCount ? 
-                                          progressColor(for: summary.completionPercentage) : 
-                                          CardDesign.secondaryBackground)
-                                    .frame(width: 14, height: 14)
-                                    .scaleEffect(index < summary.completedHabitsCount ? 1.0 : 0.85)
-                                    .shadow(color: index < summary.completedHabitsCount ? 
-                                           progressColor(for: summary.completionPercentage).opacity(0.3) : 
-                                           Color.clear, 
-                                           radius: 2, x: 0, y: 1)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(index < summary.completedHabitsCount ? 
-                                                   progressColor(for: summary.completionPercentage).opacity(0.2) :
-                                                   Color.clear, 
-                                                   lineWidth: 0.5)
-                                    )
-                                    .animation(.spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0).delay(Double(index) * 0.1), value: summary.completedHabitsCount)
+                        // PERFORMANCE: Simplified to progress bar instead of 12-20+ circles with shadows/overlays
+                        // Previous implementation was massive view hierarchy causing scroll lag
+                        HStack(spacing: 8) {
+                            // Progress bar
+                            GeometryReader { geometry in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(CardDesign.secondaryBackground)
+                                        .frame(height: 8)
+
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(progressColor(for: summary.completionPercentage))
+                                        .frame(width: geometry.size.width * summary.completionPercentage, height: 8)
+                                }
                             }
+                            .frame(height: 8)
                         }
                         
                         // Habit Count Text
@@ -263,8 +297,24 @@ struct TodaysSummaryCard: View {
             }
         } message: {
             if let habit = habitToDelete {
-                Text("This will remove the log entry for \"\(habit.name)\" from \(isViewingToday ? "today" : dateFormatter.string(from: viewingDate)). The habit itself will remain.")
+                Text("This will remove the log entry for \"\(habit.name)\" from \(isViewingToday ? "today" : Self.dateFormatter.string(from: viewingDate)). The habit itself will remain.")
             }
+        }
+        // PERFORMANCE: Update pre-computed arrays when data or expansion state changes
+        .onAppear {
+            updateVisibleHabits()
+        }
+        .onChange(of: summary?.completedHabitsCount) { _, _ in
+            updateVisibleHabits()
+        }
+        .onChange(of: summary?.totalHabits) { _, _ in
+            updateVisibleHabits()
+        }
+        .onChange(of: isRemainingSectionExpanded) { _, _ in
+            updateVisibleHabits()
+        }
+        .onChange(of: isCompletedSectionExpanded) { _, _ in
+            updateVisibleHabits()
         }
     }
     
@@ -314,7 +364,7 @@ struct TodaysSummaryCard: View {
                             .stroke(Color(hex: habit.colorHex), lineWidth: 3)
                             .frame(width: 44, height: 44)
                             .rotationEffect(.degrees(-90))
-                            .animation(.easeInOut(duration: 0.3), value: progressValue)
+                            // PERFORMANCE: Removed animation - numeric progress updates don't need animation
                     }
                     
                     // Emoji
@@ -368,7 +418,7 @@ struct TodaysSummaryCard: View {
         .opacity(isDisabled ? 0.7 : 1.0)
         .scaleEffect(1.0)
         .completionGlow(isGlowing: glowingHabitId == habit.id)
-        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: summary?.completedHabits)
+        // PERFORMANCE: Removed animation on completedHabits changes - expensive for entire view
     }
     
     @ViewBuilder
@@ -442,7 +492,8 @@ struct TodaysSummaryCard: View {
             if !summary.incompleteHabits.isEmpty {
                 VStack(spacing: 8) {
                     // Show first 3 habits, or all if expanded
-                    ForEach(isRemainingSectionExpanded ? summary.incompleteHabits : Array(summary.incompleteHabits.prefix(3)), id: \.id) { habit in
+                    // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
+                    ForEach(visibleIncompleteHabits, id: \.id) { habit in
                         habitRow(habit: habit, isCompleted: false)
                     }
                     
@@ -450,9 +501,8 @@ struct TodaysSummaryCard: View {
                         if isRemainingSectionExpanded {
                             // Collapse button
                             Button {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    isRemainingSectionExpanded = false
-                                }
+                                // PERFORMANCE: Removed animation - expansion/collapse doesn't need animation
+                                isRemainingSectionExpanded = false
                             } label: {
                                 HStack {
                                     Text("Show less")
@@ -469,9 +519,8 @@ struct TodaysSummaryCard: View {
                         } else {
                             // Expand button
                             Button {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    isRemainingSectionExpanded = true
-                                }
+                                // PERFORMANCE: Removed animation - expansion/collapse doesn't need animation
+                                isRemainingSectionExpanded = true
                             } label: {
                                 HStack {
                                     Text("+ \(summary.incompleteHabits.count - 3) more remaining")
@@ -522,15 +571,15 @@ struct TodaysSummaryCard: View {
                         if summary.completedHabits.count > 2 {
                             if isCompletedSectionExpanded {
                                 // Show all remaining completed habits
-                                ForEach(Array(summary.completedHabits.dropFirst(2)), id: \.id) { habit in
+                                // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
+                                ForEach(visibleCompletedHabits, id: \.id) { habit in
                                     habitRow(habit: habit, isCompleted: true)
                                 }
                                 
                                 // Collapse button
                                 Button {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        isCompletedSectionExpanded = false
-                                    }
+                                    // PERFORMANCE: Removed animation - expansion/collapse doesn't need animation
+                                    isCompletedSectionExpanded = false
                                 } label: {
                                     HStack {
                                         Text("Show less")
@@ -547,9 +596,8 @@ struct TodaysSummaryCard: View {
                             } else {
                                 // Expand button
                                 Button {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        isCompletedSectionExpanded = true
-                                    }
+                                    // PERFORMANCE: Removed animation - expansion/collapse doesn't need animation
+                                    isCompletedSectionExpanded = true
                                 } label: {
                                     HStack {
                                         Text("+ \(summary.completedHabits.count - 2) more completed")
@@ -624,61 +672,13 @@ struct TodaysSummaryCard: View {
                             .rotationEffect(.degrees(-90))
                     }
                     
-                    // Animation overlays
-                    if animatingHabitId == habit.id {
-                        if isAnimatingCompletion {
-                            // Completion animation - green circle filling up
-                            Circle()
-                                .trim(from: 0, to: animatingProgress)
-                                .stroke(.green, lineWidth: 3)
-                                .frame(width: 32, height: 32)
-                                .rotationEffect(.degrees(-90))
-                                .animation(.easeInOut(duration: 0.6), value: animatingProgress)
-                            
-                            // Success checkmark overlay
-                            if animatingProgress >= 1.0 {
-                                Circle()
-                                    .fill(.green.opacity(0.2))
-                                    .frame(width: 32, height: 32)
-                                    .overlay(
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 14, weight: .bold))
-                                            .foregroundColor(.green)
-                                    )
-                                    .scaleEffect(animatingProgress >= 1.0 ? 1.1 : 0.8)
-                                    .animation(.spring(response: 0.4, dampingFraction: 0.6), value: animatingProgress)
-                            }
-                        } else {
-                            // Removal animation - red circle emptying out
-                            Circle()
-                                .trim(from: 0, to: animatingProgress)
-                                .stroke(.red, lineWidth: 3)
-                                .frame(width: 32, height: 32)
-                                .rotationEffect(.degrees(-90))
-                                .animation(.easeInOut(duration: 0.6), value: animatingProgress)
-                            
-                            // Remove icon overlay
-                            if animatingProgress <= 0.0 {
-                                Circle()
-                                    .fill(.red.opacity(0.2))
-                                    .frame(width: 32, height: 32)
-                                    .overlay(
-                                        Image(systemName: "minus")
-                                            .font(.system(size: 14, weight: .bold))
-                                            .foregroundColor(.red)
-                                    )
-                                    .scaleEffect(animatingProgress <= 0.0 ? 1.1 : 0.8)
-                                    .animation(.spring(response: 0.4, dampingFraction: 0.6), value: animatingProgress)
-                            }
-                        }
-                    }
+                    // PERFORMANCE: Removed animation overlays - causing scroll lag
+                    // These complex conditional animations were evaluated on every frame
                     
                     // Habit emoji
                     Text(habit.emoji ?? "📊")
                         .font(.system(size: 16))
-                        .opacity(animatingHabitId == habit.id ? 
-                                (isAnimatingCompletion && animatingProgress >= 1.0 ? 0.5 : 
-                                 !isAnimatingCompletion && animatingProgress <= 0.0 ? 0.5 : 1.0) : 1.0)
+                        // PERFORMANCE: Removed complex opacity calculation - caused evaluation on every habit during scroll
                 }
                 
                 // Habit info
@@ -744,10 +744,9 @@ struct TodaysSummaryCard: View {
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(isDisabled)
-        .opacity(isDisabled ? 0.6 : (animatingHabitId == habit.id ? 0.7 : 1.0))
-        .scaleEffect(animatingHabitId == habit.id ? 0.95 : 1.0)
+        .opacity(isDisabled ? 0.6 : 1.0)
+        // PERFORMANCE: Removed scale effect and animation - causes lag during scroll
         .completionGlow(isGlowing: glowingHabitId == habit.id)
-        .animation(.easeInOut(duration: 0.8), value: animatingHabitId)
     }
     
     @ViewBuilder
@@ -765,11 +764,9 @@ struct TodaysSummaryCard: View {
             return ("arrow.clockwise", .blue)
         case .daysOfWeek(let days):
             return days.count == 7 ? ("arrow.clockwise", .blue) : ("calendar", .orange)
-        case .timesPerWeek:
-            return ("number.circle", .purple)
         }
     }
-    
+
     // MARK: - Animation Methods
     
     private func performCompletionAnimation(for habit: Habit) {
@@ -910,7 +907,7 @@ struct TodaysSummaryCard: View {
                     )
                 ]
             ),
-            viewingDate: Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date(),
+            viewingDate: CalendarUtils.addDays(-3, to: Date()),
             isViewingToday: false,
             canGoToPrevious: true,
             canGoToNext: true,

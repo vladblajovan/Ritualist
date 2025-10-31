@@ -31,13 +31,10 @@ public struct OverviewData {
     // These methods contained duplicate completion logic that competed with HabitCompletionService
     // All completion calculations should now use HabitCompletionService for consistency
     
-    /// Get all logs for a specific date across all habits
+    /// Get all logs for a specific date across all habits (UTC-based business logic)
     public func logs(for date: Date) -> [HabitLog] {
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
-        
         return habitLogs.values.flatMap { logs in
-            logs.filter { calendar.isDate($0.date, inSameDayAs: startOfDay) }
+            logs.filter { CalendarUtils.areSameDayUTC($0.date, date) }
         }
     }
     
@@ -45,10 +42,7 @@ public struct OverviewData {
     public func logs(for habitId: UUID, on date: Date) -> [HabitLog] {
         guard let logs = habitLogs[habitId] else { return [] }
         
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
-        
-        return logs.filter { calendar.isDate($0.date, inSameDayAs: startOfDay) }
+        return logs.filter { CalendarUtils.areSameDayUTC($0.date, date) }
     }
     
     // REMOVED: isHabitCompleted(_:on:) method
@@ -59,11 +53,10 @@ public struct OverviewData {
     /// This replaces the separate insight loading in OverviewViewModel
     public func generateSmartInsights(completionService: HabitCompletionService) -> [SmartInsight] {
         var insights: [SmartInsight] = []
-        let calendar = Calendar.current
         let today = Date()
         
-        // Get the proper week interval that respects user's first day of week preference
-        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else {
+        // Get the proper week interval using UTC-based business logic
+        guard let weekInterval = CalendarUtils.weekIntervalUTC(for: today) else {
             return insights
         }
         let startOfWeek = weekInterval.start
@@ -85,12 +78,15 @@ public struct OverviewData {
             
             // Count actual completions using HabitCompletionService for single source of truth
             for log in recentLogs {
-                let dayLogs = logs.filter { calendar.isDate($0.date, inSameDayAs: log.date) }
+                let dayLogs = logs.filter { CalendarUtils.areSameDayUTC($0.date, log.date) }
                 if completionService.isCompleted(habit: habit, on: log.date, logs: dayLogs) {
                     totalCompletions += 1
                     
                     // Count completions per day
-                    let daysSinceStart = calendar.dateComponents([.day], from: startOfWeek, to: log.date).day ?? 0
+                    let daysSinceStart = CalendarUtils.daysBetweenUTC(
+                        startOfWeek,
+                        log.date
+                    )
                     if daysSinceStart >= 0 && daysSinceStart < 7 {
                         dailyCompletions[daysSinceStart] += 1
                     }
@@ -131,9 +127,7 @@ public struct OverviewData {
         // Find best performing day
         if let bestDayIndex = dailyCompletions.enumerated().max(by: { $0.element < $1.element })?.offset {
             // Get the actual date for the best performing day
-            guard let bestDate = calendar.date(byAdding: .day, value: bestDayIndex, to: startOfWeek) else {
-                return insights
-            }
+            let bestDate = CalendarUtils.addDays(bestDayIndex, to: startOfWeek)
             
             // Get the day name using the proper date
             let dayFormatter = DateFormatter()

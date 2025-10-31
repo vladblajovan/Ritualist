@@ -9,17 +9,16 @@ public final class GetLogs: GetLogsUseCase {
         // Get all logs from repository (no filtering in repository layer)
         let allLogs = try await repo.logs(for: habitID)
 
-        // Business logic: Filter by date range
+        // Business logic: Filter by date range using UTC day boundaries
         return allLogs.filter { log in
-            let calendar = Calendar.current
             if let since {
-                let sinceStart = calendar.startOfDay(for: since)
-                let logStart = calendar.startOfDay(for: log.date)
+                let sinceStart = CalendarUtils.startOfDayUTC(for: since)
+                let logStart = CalendarUtils.startOfDayUTC(for: log.date)
                 if logStart < sinceStart { return false }
             }
             if let until {
-                let untilStart = calendar.startOfDay(for: until)
-                let logStart = calendar.startOfDay(for: log.date)
+                let untilStart = CalendarUtils.startOfDayUTC(for: until)
+                let logStart = CalendarUtils.startOfDayUTC(for: log.date)
                 if logStart > untilStart { return false }
             }
             return true
@@ -44,18 +43,17 @@ public final class GetBatchLogs: GetBatchLogsUseCase {
         
         // Group and filter logs
         for log in allLogs {
-            // Apply same date filtering logic as single GetLogs UseCase
-            let calendar = Calendar.current
+            // Apply same date filtering logic as single GetLogs UseCase using UTC day boundaries
             var includeLog = true
             
             if let since {
-                let sinceStart = calendar.startOfDay(for: since)
-                let logStart = calendar.startOfDay(for: log.date)
+                let sinceStart = CalendarUtils.startOfDayUTC(for: since)
+                let logStart = CalendarUtils.startOfDayUTC(for: log.date)
                 if logStart < sinceStart { includeLog = false }
             }
             if let until {
-                let untilStart = calendar.startOfDay(for: until)
-                let logStart = calendar.startOfDay(for: log.date)
+                let untilStart = CalendarUtils.startOfDayUTC(for: until)
+                let logStart = CalendarUtils.startOfDayUTC(for: log.date)
                 if logStart > untilStart { includeLog = false }
             }
             
@@ -110,31 +108,8 @@ public final class LogHabit: LogHabitUseCase {
             throw HabitScheduleValidationError.habitUnavailable(habitName: habit.name)
         }
         
-        // For timesPerWeek habits, validate that user hasn't already logged today
-        if case .timesPerWeek = habit.schedule {
-            let existingLogs = try await repo.logs(for: habit.id)
-            let logsForToday = existingLogs.filter { existingLog in
-                CalendarUtils.areSameDayUTC(existingLog.date, log.date)
-            }
-            
-            // Debug logging
-            print("🔍 DEBUG LogHabit for '\(habit.name)':")
-            print("   - Log date: \(log.date)")
-            print("   - Using UTC business logic for same-day comparison")
-            print("   - Total existing logs: \(existingLogs.count)")
-            print("   - Logs for today (UTC day): \(logsForToday.count)")
-            if !logsForToday.isEmpty {
-                print("   - Today's logs dates: \(logsForToday.map { $0.date })")
-                print("   - Checking UTC same-day comparisons...")
-                for existingLog in logsForToday {
-                    print("   - areSameDayUTC(\(existingLog.date), \(log.date)) = \(CalendarUtils.areSameDayUTC(existingLog.date, log.date))")
-                }
-            }
-            
-            if !logsForToday.isEmpty {
-                throw HabitScheduleValidationError.alreadyLoggedToday(habitName: habit.name)
-            }
-        }
+        // REMOVED: Incorrect daily restriction for timesPerWeek habits
+        // timesPerWeek habits should allow multiple logs per day, only restricted by weekly target
         
         // Validate schedule before logging
         let validationResult = try await validateSchedule.execute(habit: habit, date: log.date)

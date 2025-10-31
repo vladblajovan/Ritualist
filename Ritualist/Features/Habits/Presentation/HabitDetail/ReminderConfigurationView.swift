@@ -76,7 +76,7 @@ public struct ReminderTimeRow: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         
-        let date = Calendar.current.date(
+        let date = CalendarUtils.currentLocalCalendar.date(
             from: DateComponents(hour: reminder.hour, minute: reminder.minute)
         ) ?? Date()
         
@@ -125,7 +125,7 @@ public struct AddReminderSheet: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add") {
-                        let components = Calendar.current.dateComponents([.hour, .minute], from: selectedTime)
+                        let components = CalendarUtils.currentLocalCalendar.dateComponents([.hour, .minute], from: selectedTime)
                         if let hour = components.hour, let minute = components.minute {
                             vm.addReminder(hour: hour, minute: minute)
                         }

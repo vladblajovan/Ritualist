@@ -61,7 +61,8 @@ struct SmartInsightsCard: View {
             }
         }
         .padding(20)
-        .glassmorphicMaximizedContentStyle()
+        // PERFORMANCE: Removed .glassmorphicMaximizedContentStyle() - unnecessary Button wrapper with animation
+        // Card is already wrapped in .simpleCard() in OverviewView
     }
     
     // MARK: - Insights Content
@@ -140,7 +141,7 @@ struct SmartInsightsCard: View {
             }
         }
         .padding(.vertical, 2)
-        .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.1), value: insights.count)
+        // PERFORMANCE: Removed staggered animation - causes lag during scroll
     }
     
     private func insightIcon(for type: SmartInsight.InsightType) -> String {

@@ -14,9 +14,11 @@ public final class ProfileRepositoryImpl: ProfileRepository {
         if let profile = try await local.load() {
             return profile
         } else {
-            // Create profile with system defaults
+            // Create profile with system defaults including timezone preferences
             let defaultProfile = UserProfile(
-                appearance: AppearanceManager.getSystemAppearance()
+                appearance: AppearanceManager.getSystemAppearance(),
+                homeTimezone: nil, // No home timezone set initially
+                displayTimezoneMode: "original" // Default to showing logs as originally experienced
             )
             try await saveProfile(defaultProfile)
             return defaultProfile

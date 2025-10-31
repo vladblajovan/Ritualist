@@ -21,7 +21,6 @@ public final class HabitAnalyticsServiceImpl: HabitAnalyticsService {
     private let habitRepository: HabitRepository
     private let logRepository: LogRepository
     private let scheduleAnalyzer: HabitScheduleAnalyzerProtocol
-    private let calendar: Calendar
     
     // PHASE 3: Add batch loading capability to eliminate N+1 queries
     private let getBatchLogs: GetBatchLogsUseCase
@@ -33,14 +32,12 @@ public final class HabitAnalyticsServiceImpl: HabitAnalyticsService {
         scheduleAnalyzer: HabitScheduleAnalyzerProtocol,
         getBatchLogs: GetBatchLogsUseCase,
         getSingleHabitLogs: GetSingleHabitLogsUseCase,
-        calendar: Calendar = Calendar.current
     ) {
         self.habitRepository = habitRepository
         self.logRepository = logRepository
         self.scheduleAnalyzer = scheduleAnalyzer
         self.getBatchLogs = getBatchLogs
         self.getSingleHabitLogs = getSingleHabitLogs
-        self.calendar = calendar
     }
     
     // PHASE 2: Business methods removed - use GetHabitLogsForAnalyticsUseCase and GetHabitCompletionStatsUseCase instead

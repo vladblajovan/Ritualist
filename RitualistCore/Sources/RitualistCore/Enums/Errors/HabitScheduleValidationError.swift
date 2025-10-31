@@ -18,7 +18,7 @@ public enum HabitScheduleValidationError: Error, LocalizedError, Equatable {
     /// Habit not found or is inactive
     case habitUnavailable(habitName: String)
     
-    /// User has already logged this habit today (for timesPerWeek habits)
+    /// User has already logged this habit today
     case alreadyLoggedToday(habitName: String)
     
     // MARK: - LocalizedError Conformance
@@ -58,7 +58,7 @@ public enum HabitScheduleValidationError: Error, LocalizedError, Equatable {
         case .habitUnavailable:
             return "Ensure the habit exists and is active before attempting to log."
         case .alreadyLoggedToday:
-            return "For weekly habits, you can only complete once per day. Try again tomorrow!"
+            return "You can only complete this habit once per day. Try again tomorrow!"
         }
     }
 }

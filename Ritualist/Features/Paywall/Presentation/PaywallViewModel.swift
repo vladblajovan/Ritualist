@@ -4,7 +4,10 @@ import RitualistCore
 
 @MainActor @Observable
 public final class PaywallViewModel {
-    private let paywallBusinessService: PaywallBusinessService
+    private let loadPaywallProducts: LoadPaywallProductsUseCase
+    private let purchaseProduct: PurchaseProductUseCase  
+    private let restorePurchases: RestorePurchasesUseCase
+    private let checkProductPurchased: CheckProductPurchasedUseCase
     private let updateProfileSubscription: UpdateProfileSubscriptionUseCase
     private let errorHandler: ErrorHandler?
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
@@ -38,11 +41,17 @@ public final class PaywallViewModel {
     }
     
     public init(
-        paywallBusinessService: PaywallBusinessService,
+        loadPaywallProducts: LoadPaywallProductsUseCase,
+        purchaseProduct: PurchaseProductUseCase,
+        restorePurchases: RestorePurchasesUseCase,
+        checkProductPurchased: CheckProductPurchasedUseCase,
         updateProfileSubscription: UpdateProfileSubscriptionUseCase,
         errorHandler: ErrorHandler? = nil
     ) {
-        self.paywallBusinessService = paywallBusinessService
+        self.loadPaywallProducts = loadPaywallProducts
+        self.purchaseProduct = purchaseProduct
+        self.restorePurchases = restorePurchases
+        self.checkProductPurchased = checkProductPurchased
         self.updateProfileSubscription = updateProfileSubscription
         self.errorHandler = errorHandler
         self.benefits = PaywallBenefit.defaultBenefits
@@ -66,7 +75,7 @@ public final class PaywallViewModel {
         isLoading = true
         
         do {
-            products = try await paywallBusinessService.loadProducts()
+            products = try await loadPaywallProducts.execute()
         } catch {
             let paywallError = error as? PaywallError ?? PaywallError.productsNotAvailable
             self.error = paywallError
@@ -136,7 +145,7 @@ public final class PaywallViewModel {
         // Perform purchase through business service
         do {
             purchaseState = .purchasing(product.id)
-            let success = try await paywallBusinessService.purchase(product)
+            let success = try await purchaseProduct.execute(product)
             
             if success {
                 purchaseState = .success(product)
@@ -190,7 +199,7 @@ public final class PaywallViewModel {
         // Perform restore through business service
         do {
             purchaseState = .purchasing("restore")
-            let success = try await paywallBusinessService.restorePurchases()
+            let success = try await restorePurchases.execute()
             
             if success {
                 purchaseState = .idle
@@ -234,7 +243,7 @@ public final class PaywallViewModel {
     private func handleRestoredPurchases() async {
         // Check which products were restored and update user accordingly
         for product in products {
-            let isPurchased = await paywallBusinessService.isProductPurchased(product.id)
+            let isPurchased = await checkProductPurchased.execute(product.id)
             if isPurchased {
                 do {
                     isUpdatingUser = true

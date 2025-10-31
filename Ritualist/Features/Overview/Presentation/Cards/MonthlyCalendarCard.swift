@@ -2,200 +2,94 @@ import SwiftUI
 import Foundation
 import RitualistCore
 
+// PERFORMANCE: Pre-computed day data - ALL properties calculated ONCE when month changes
+private struct DayDisplayData: Identifiable {
+    let id: String
+    let date: Date
+    let dayNumber: Int
+    let bgColor: Color
+    let textColor: Color
+    let hasBorder: Bool
+    let opacity: Double
+    let isCurrentMonth: Bool
+    let row: Int
+    let col: Int
+}
+
+// PERFORMANCE: Complete rewrite using Canvas for MAXIMUM performance
 struct MonthlyCalendarCard: View {
-    @Binding var isExpanded: Bool
-    let monthlyData: [Date: Double] // Date to completion percentage
+    let monthlyData: [Date: Double]
     let onDateSelect: (Date) -> Void
-    
+
     @State private var currentDate = Date()
-    @State private var glowingDate: Date? = nil
-    
+    @State private var displayDays: [DayDisplayData] = []
+
     private var calendar: Calendar {
-        DateUtils.userCalendar()
+        CalendarUtils.currentLocalCalendar
     }
-    
-    private var monthFormatter: DateFormatter {
+
+    private static let monthFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
         return formatter
+    }()
+
+    private var monthString: String {
+        Self.monthFormatter.string(from: currentDate)
     }
-    
-    private var currentMonthName: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: Date())
-    }
-    
-    private var monthIcon: String {
-        let month = calendar.component(.month, from: Date())
-        switch month {
-        case 12, 1, 2: return "❄️" // Winter
-        case 3, 4, 5: return "🌸" // Spring  
-        case 6, 7, 8: return "☀️" // Summer
-        case 9, 10, 11: return "🍂" // Fall
-        default: return "📅"
-        }
-    }
-    
-    private var currentViewingIcon: String {
-        let month = calendar.component(.month, from: currentDate)
-        switch month {
-        case 12, 1, 2: return "❄️" // Winter
-        case 3, 4, 5: return "🌸" // Spring  
-        case 6, 7, 8: return "☀️" // Summer
-        case 9, 10, 11: return "🍂" // Fall
-        default: return "📅"
-        }
-    }
-    
-    private var currentViewingMonthName: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: currentDate)
-    }
-    
+
     private var isViewingCurrentMonth: Bool {
         calendar.isDate(currentDate, equalTo: Date(), toGranularity: .month)
     }
-    
-    private func goToCurrentMonth() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            currentDate = Date()
-        }
-    }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Header
             HStack {
-                HStack(spacing: 8) {
-                    Text(isExpanded ? currentViewingIcon : monthIcon)
-                        .font(.title2)
-                    Text(isExpanded ? currentViewingMonthName : currentMonthName)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                }
-                
+                Text(seasonIcon)
+                    .font(.title2)
+                Text(monthString)
+                    .font(.headline)
+                    .fontWeight(.semibold)
                 Spacer()
-                
+            }
+
+            // Navigation
+            HStack {
                 Button {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                        isExpanded.toggle()
-                    }
+                    changeMonth(by: -1)
                 } label: {
-                    HStack(spacing: 4) {
-                        Text(isExpanded ? "Collapse" : "Expand")
-                            .font(.system(size: 14, weight: .medium))
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .foregroundColor(.secondary)
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.secondary)
                 }
-            }
-            
-            if isExpanded {
-                // Full Month Calendar
-                VStack(spacing: 16) {
-                    // Month Navigation
-                    HStack {
-                        Button {
-                            changeMonth(by: -1)
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Spacer()
-                        
-                        // Back to current month button (only show if not viewing current month)
-                        if !isViewingCurrentMonth {
-                            Button {
-                                goToCurrentMonth()
-                            } label: {
-                                Text("Back to \(currentMonthName)")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(AppColors.brand)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        Button {
-                            changeMonth(by: 1)
-                        } label: {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    // Calendar Grid
-                    calendarGrid
-                }
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .scale(scale: 0.95)),
-                    removal: .opacity.combined(with: .scale(scale: 1.05))
-                ))
-            } else {
-                // Collapsed View - Current Week
-                currentWeekView
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 1.05)),
-                        removal: .opacity.combined(with: .scale(scale: 0.95))
-                    ))
-            }
-        }
-        .padding(20)
-        .glassmorphicMaximizedContentStyle()
-    }
-    
-    @ViewBuilder
-    private var currentWeekView: some View {
-        let weekDays = getCurrentWeekDays()
-        
-        VStack(spacing: 12) {
-            HStack(spacing: 0) {
-                ForEach(weekDays, id: \.self) { date in
+
+                Spacer()
+
+                if !isViewingCurrentMonth {
                     Button {
-                        performGlowAndSelect(date: date)
+                        currentDate = Date()
                     } label: {
-                        VStack(spacing: 6) {
-                            Text(dayFormatter.string(from: date))
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
-                            
-                            dayIndicator(for: date, size: 28)
-                                .overlay(
-                                    Text("\(calendar.component(.day, from: date))")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(dayTextColor(for: date))
-                                )
-                        }
-                        .frame(maxWidth: .infinity)
+                        Text("Today")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.brand)
                     }
-                    .buttonStyle(PlainButtonStyle())
+                }
+
+                Spacer()
+
+                Button {
+                    changeMonth(by: 1)
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.secondary)
                 }
             }
-            
-            let completedDays = weekDays.filter { monthlyData[calendar.startOfDay(for: $0)] ?? 0.0 >= 1.0 }.count
-            Text("\(completedDays) of \(weekDays.count) days this week")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-    }
-    
-    @ViewBuilder
-    private var calendarGrid: some View {
-        let monthDays = getMonthDays(for: currentDate)
-        let columns = Array(repeating: GridItem(.flexible()), count: 7)
-        
-        VStack(spacing: 12) {
-            // Weekday Headers - respecting system week start day
+
+            // Weekday headers
             HStack(spacing: 0) {
-                ForEach(weekdayHeaders(), id: \.self) { day in
+                ForEach(weekdayHeaders, id: \.self) { day in
                     Text(day)
                         .font(.caption)
                         .fontWeight(.semibold)
@@ -203,174 +97,164 @@ struct MonthlyCalendarCard: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            
-            // Calendar Days
-            LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(monthDays, id: \.self) { date in
-                    if calendar.component(.month, from: date) == calendar.component(.month, from: currentDate) {
-                        Button {
-                            performGlowAndSelect(date: date)
-                        } label: {
-                            dayIndicator(for: date, size: 36)
-                                .overlay(
-                                    Text("\(calendar.component(.day, from: date))")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(dayTextColor(for: date))
-                                )
+
+            // PERFORMANCE: Use Canvas for GPU-accelerated rendering - SINGLE draw pass
+            GeometryReader { geometry in
+                Canvas { context, size in
+                    let cellWidth = size.width / 7
+                    let cellHeight: CGFloat = 36
+
+                    for dayData in displayDays where dayData.isCurrentMonth {
+                        let x = CGFloat(dayData.col) * cellWidth
+                        let y = CGFloat(dayData.row) * cellHeight + CGFloat(dayData.row) * 8
+
+                        let rect = CGRect(x: x, y: y, width: cellWidth - 8, height: cellHeight)
+                        let center = CGPoint(x: rect.midX, y: rect.midY)
+                        let radius: CGFloat = 18
+
+                        // Draw background circle
+                        let circlePath = Circle().path(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
+                        context.fill(circlePath, with: .color(dayData.bgColor.opacity(dayData.opacity)))
+
+                        // Draw border if needed (today)
+                        if dayData.hasBorder {
+                            context.stroke(circlePath, with: .color(AppColors.brand), lineWidth: 2)
                         }
-                        .buttonStyle(PlainButtonStyle())
-                    } else {
-                        // Placeholder for days from previous/next month
-                        Rectangle()
-                            .fill(Color.clear)
-                            .frame(height: 36)
+
+                        // Draw day number
+                        let text = Text("\(dayData.dayNumber)")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(dayData.textColor.opacity(dayData.opacity))
+
+                        context.draw(text, at: center, anchor: .center)
                     }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { location in
+                    // FIXED: Pass actual canvas width for accurate tap detection
+                    handleTap(at: location, canvasWidth: geometry.size.width)
+                }
             }
+            .frame(height: CGFloat((displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4) + 1) * 44)
+        }
+        .padding(20)
+        .onAppear {
+            computeDisplayDays()
+        }
+        .onChange(of: currentDate) { _, _ in
+            computeDisplayDays()
+        }
+        .onChange(of: monthlyData) { _, _ in
+            computeDisplayDays()
         }
     }
-    
-    @ViewBuilder
-    private func dayIndicator(for date: Date, size: CGFloat) -> some View {
-        let completionRate = monthlyData[calendar.startOfDay(for: date)] ?? 0.0
-        let isToday = calendar.isDateInToday(date)
-        let isFutureDate = date > Date()
-        
-        Circle()
-            .fill(dayBackgroundColor(for: date, completionRate: completionRate))
-            .frame(width: size, height: size)
-            .overlay(
-                Circle()
-                    .stroke(isToday ? AppColors.brand : Color.clear, lineWidth: 2)
-            )
-            .shadow(
-                color: calendar.isDate(glowingDate ?? Date.distantPast, inSameDayAs: date) ? 
-                       AppColors.brand : Color.clear,
-                radius: calendar.isDate(glowingDate ?? Date.distantPast, inSameDayAs: date) ? 8 : 0,
-                x: 0, y: 0
-            )
-            .opacity(isFutureDate ? 0.3 : 1.0)
-            .animation(.easeInOut(duration: 0.3), value: glowingDate)
-    }
-    
-    private func dayBackgroundColor(for date: Date, completionRate: Double) -> Color {
-        let isFutureDate = date > Date()
-        
-        if isFutureDate {
-            return CardDesign.secondaryBackground
-        }
-        
-        if completionRate >= 1.0 {
-            return CardDesign.progressGreen  // Only 100% completion is green (completed)
-        } else if completionRate >= 0.8 {
-            return CardDesign.progressOrange  // 80-99% is orange (almost there)
-        } else if completionRate > 0 {
-            return CardDesign.progressRed.opacity(0.6)  // Some progress is red
-        } else {
-            return CardDesign.secondaryBackground  // No progress is gray
+
+    private var seasonIcon: String {
+        let month = calendar.component(.month, from: currentDate)
+        switch month {
+        case 12, 1, 2: return "❄️"
+        case 3, 4, 5: return "🌸"
+        case 6, 7, 8: return "☀️"
+        default: return "🍂"
         }
     }
-    
-    private func dayTextColor(for date: Date) -> Color {
-        let completionRate = monthlyData[calendar.startOfDay(for: date)] ?? 0.0
-        let isToday = calendar.isDateInToday(date)
-        let isFutureDate = date > Date()
-        
-        if isToday {
-            return .white  // White text for current day for better visibility
-        }
-        
-        if isFutureDate {
-            return .secondary
-        }
-        
-        return completionRate >= 0.8 ? .white : .primary  // White text for orange/green backgrounds
-    }
-    
-    private var dayFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "E"
-        return formatter
-    }
-    
-    private func changeMonth(by value: Int) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            if let newDate = calendar.date(byAdding: .month, value: value, to: currentDate) {
-                currentDate = newDate
-            }
-        }
-    }
-    
-    private func getCurrentWeekDays() -> [Date] {
-        let today = Date()
-        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
-        
-        return (0..<7).compactMap { dayOffset in
-            calendar.date(byAdding: .day, value: dayOffset, to: startOfWeek)
-        }
-    }
-    
-    private func weekdayHeaders() -> [String] {
+
+    private var weekdayHeaders: [String] {
         DateUtils.orderedWeekdaySymbols(style: .veryShort)
     }
-    
+
+    private func changeMonth(by value: Int) {
+        if let newDate = calendar.date(byAdding: .month, value: value, to: currentDate) {
+            currentDate = newDate
+        }
+    }
+
     private func getMonthDays(for date: Date) -> [Date] {
         guard let monthInterval = calendar.dateInterval(of: .month, for: date),
               let monthFirstWeek = calendar.dateInterval(of: .weekOfYear, for: monthInterval.start),
               let monthLastWeek = calendar.dateInterval(of: .weekOfYear, for: monthInterval.end - 1)
         else { return [] }
-        
+
         let dateInterval = DateInterval(start: monthFirstWeek.start, end: monthLastWeek.end)
-        
         return DateUtils.generateDates(inside: dateInterval, matching: DateComponents(hour: 0, minute: 0, second: 0), calendar: calendar)
     }
-    
-    private func performGlowAndSelect(date: Date) {
-        // Start glow effect
-        glowingDate = date
-        
-        // After glow animation completes, trigger date selection
-        Task {
-            try? await Task.sleep(nanoseconds: 400_000_000) // 0.4 seconds
-            await MainActor.run {
-                glowingDate = nil
-                onDateSelect(date)
-            }
+
+    // PERFORMANCE: Compute ALL display properties ONCE when month changes
+    private func computeDisplayDays() {
+        let days = getMonthDays(for: currentDate)
+        let currentMonth = calendar.component(.month, from: currentDate)
+        let today = Date()
+
+        displayDays = days.enumerated().map { index, date in
+            let dayNumber = calendar.component(.day, from: date)
+            let isCurrentMonth = calendar.component(.month, from: date) == currentMonth
+            let isToday = calendar.isDateInToday(date)
+            let isFuture = date > today
+
+            let normalizedDate = CalendarUtils.startOfDayUTC(for: date)
+            let completion = monthlyData[normalizedDate] ?? 0.0
+
+            // Pre-compute colors
+            let bgColor: Color = {
+                if isFuture { return CardDesign.secondaryBackground }
+                if completion >= 1.0 { return CardDesign.progressGreen }
+                if completion >= 0.8 { return CardDesign.progressOrange }
+                if completion > 0 { return CardDesign.progressRed.opacity(0.6) }
+                return CardDesign.secondaryBackground
+            }()
+
+            let textColor: Color = {
+                if isToday { return .white }
+                if isFuture { return .secondary }
+                return completion >= 0.8 ? .white : .primary
+            }()
+
+            let opacity: Double = isFuture ? 0.3 : 1.0
+
+            return DayDisplayData(
+                id: normalizedDate.timeIntervalSince1970.description,
+                date: date,
+                dayNumber: dayNumber,
+                bgColor: bgColor,
+                textColor: textColor,
+                hasBorder: isToday,
+                opacity: opacity,
+                isCurrentMonth: isCurrentMonth,
+                row: index / 7,
+                col: index % 7
+            )
+        }
+    }
+
+    private func handleTap(at location: CGPoint, canvasWidth: CGFloat) {
+        // FIXED: Use actual canvas width instead of screen width
+        let cellWidth: CGFloat = canvasWidth / 7
+        // FIXED: Account for 8px spacing between rows
+        let cellHeight: CGFloat = 36 + 8
+
+        let col = Int(location.x / cellWidth)
+        let row = Int(location.y / cellHeight)
+
+        if let dayData = displayDays.first(where: { $0.row == row && $0.col == col && $0.isCurrentMonth }) {
+            onDateSelect(dayData.date)
         }
     }
 }
 
-
 #Preview {
     let sampleData: [Date: Double] = {
-        let calendar = Calendar.current
         var data: [Date: Double] = [:]
-        
-        // Generate sample completion data for current month
         for index in 1...30 {
-            if let date = calendar.date(byAdding: .day, value: -index, to: Date()) {
-                data[calendar.startOfDay(for: date)] = Double.random(in: 0...1)
-            }
+            let date = CalendarUtils.addDays(-index, to: Date())
+            data[CalendarUtils.startOfDayUTC(for: date)] = Double.random(in: 0...1)
         }
-        
         return data
     }()
-    
-    VStack(spacing: 20) {
-        // Collapsed state
-        MonthlyCalendarCard(
-            isExpanded: .constant(false),
-            monthlyData: sampleData,
-            onDateSelect: { _ in }
-        )
-        
-        // Expanded state
-        MonthlyCalendarCard(
-            isExpanded: .constant(true),
-            monthlyData: sampleData,
-            onDateSelect: { _ in }
-        )
-    }
+
+    MonthlyCalendarCard(
+        monthlyData: sampleData,
+        onDateSelect: { _ in }
+    )
     .padding()
     .background(Color(.systemGroupedBackground))
 }

@@ -73,19 +73,7 @@ public struct TipsCarouselView: View {
                 .onPreferenceChange(CardHeightPreferenceKey.self) { height in
                     maxCardHeight = height
                 }
-                .mask(
-                    // Fade out edges when content overflows
-                    LinearGradient(
-                        gradient: Gradient(stops: [
-                            .init(color: .clear, location: 0),
-                            .init(color: .black, location: 0.05),
-                            .init(color: .black, location: 0.95),
-                            .init(color: .clear, location: 1)
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+                .mask(GradientTokens.horizontalEdgeFade)
             }
         }
         .padding(.vertical, Spacing.medium)

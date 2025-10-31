@@ -489,13 +489,7 @@ private struct PersonalityProfileView: View {
         VStack(spacing: 16) {
             Image(systemName: "person.crop.circle.fill")
                 .font(.system(size: 64))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.blue, .purple],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .foregroundStyle(GradientTokens.profileIcon)
             
             VStack(spacing: 8) {
                 Text("Your Dominant Trait")

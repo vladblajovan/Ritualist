@@ -123,13 +123,7 @@ public struct PaywallView: View {
         VStack(spacing: 16) {
             Image(systemName: "crown.fill")
                 .font(.system(size: Typography.largeIcon))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.orange, .yellow],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .foregroundStyle(GradientTokens.premiumCrown)
             
             VStack(spacing: 8) {
                 Text("Unlock Your Full Potential")
@@ -216,13 +210,7 @@ public struct PaywallView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        colors: [.blue, .purple],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+                .background(GradientTokens.purchaseButton)
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.xlarge))
             }
@@ -431,8 +419,13 @@ private struct PricingCard: View {
         paywallService: MockPaywallService(subscriptionService: mockSecureSubscriptionService) // Legacy for now
     )
     
+    let mockPaywallService = MockPaywallService(subscriptionService: mockSecureSubscriptionService)
+    
     let vm = PaywallViewModel(
-        paywallBusinessService: mockBusinessService,
+        loadPaywallProducts: LoadPaywallProducts(paywallService: mockPaywallService),
+        purchaseProduct: PurchaseProduct(paywallService: mockPaywallService),
+        restorePurchases: RestorePurchases(paywallService: mockPaywallService),
+        checkProductPurchased: CheckProductPurchased(paywallService: mockPaywallService),
         updateProfileSubscription: updateProfileSubscription
     )
     

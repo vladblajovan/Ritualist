@@ -114,7 +114,8 @@ public final class LocalNotificationService: NSObject, NotificationService {
     
     public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {
         let center = UNUserNotificationCenter.current()
-        let calendar = Calendar.current
+        // Notifications should use local timezone - users want reminders at "7 AM local time"
+        let calendar = CalendarUtils.currentLocalCalendar
         let today = Date()
         
         for time in times {
@@ -181,8 +182,8 @@ public final class LocalNotificationService: NSObject, NotificationService {
     ) async throws {
         let center = UNUserNotificationCenter.current()
         
-        // Check if it's weekend for contextual messaging
-        let calendar = Calendar.current
+        // Check if it's weekend for contextual messaging (local timezone)
+        let calendar = CalendarUtils.currentLocalCalendar
         let isWeekend = calendar.isDateInWeekend(Date())
         
         for time in times {
@@ -237,8 +238,8 @@ public final class LocalNotificationService: NSObject, NotificationService {
             )
         }
         
-        // Check if it's weekend for contextual messaging
-        let calendar = Calendar.current
+        // Check if it's weekend for contextual messaging (local timezone)  
+        let calendar = CalendarUtils.currentLocalCalendar
         let isWeekend = calendar.isDateInWeekend(Date())
         
         for time in times {
@@ -410,7 +411,8 @@ public final class LocalNotificationService: NSObject, NotificationService {
             "scheduled": true
         ]
         
-        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        // Use local timezone for notification scheduling - users expect notifications at local time
+        let components = CalendarUtils.currentLocalCalendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)

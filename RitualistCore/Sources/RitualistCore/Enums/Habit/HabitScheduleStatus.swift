@@ -83,8 +83,6 @@ public extension HabitScheduleStatus {
         switch habit.schedule {
         case .daily:
             return .alwaysScheduled
-        case .timesPerWeek:
-            return .alwaysScheduled
         case .daysOfWeek:
             return isScheduled ? .scheduledToday : .notScheduledToday
         }

@@ -8,7 +8,11 @@ struct InspirationCard: View {
     let completionPercentage: Double
     let shouldShow: Bool
     let onDismiss: () -> Void
-    
+
+    // PERFORMANCE OPTIMIZATION: Cache computed style to prevent recomputation on every render
+    // This eliminates repeated gradient creation and branching logic evaluation
+    @State private var cachedStyle: (gradient: LinearGradient, icon: String, color: Color)?
+
     init(message: String, slogan: String, timeOfDay: TimeOfDay, completionPercentage: Double = 0.0, shouldShow: Bool = true, onDismiss: @escaping () -> Void) {
         self.message = message
         self.slogan = slogan
@@ -17,39 +21,36 @@ struct InspirationCard: View {
         self.shouldShow = shouldShow
         self.onDismiss = onDismiss
     }
-    
-    private var contextualStyle: (gradient: LinearGradient, icon: String, color: Color) {
-        // Enhanced context-aware styling
+
+    // MARK: - Style Computation
+
+    /// Computes the appropriate style based on completion and time
+    /// Uses pre-cached gradients from GradientTokens for optimal performance
+    /// Only called when dependencies change (not on every render)
+    private func computeStyle(
+        completionPercentage: Double,
+        timeOfDay: TimeOfDay
+    ) -> (gradient: LinearGradient, icon: String, color: Color) {
+
+        // Progress-based styling (takes priority)
         if completionPercentage >= 1.0 {
             // Perfect day celebration
             return (
-                LinearGradient(
-                    colors: [Color.green.opacity(0.2), Color.mint.opacity(0.15)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
+                GradientTokens.inspirationPerfect,
                 "party.popper.fill",
                 .green
             )
         } else if completionPercentage >= 0.75 {
             // Strong progress celebration
             return (
-                LinearGradient(
-                    colors: [Color.blue.opacity(0.18), Color.cyan.opacity(0.12)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
+                GradientTokens.inspirationStrong,
                 "flame.fill",
                 .blue
             )
         } else if completionPercentage >= 0.5 {
             // Midway encouragement
             return (
-                LinearGradient(
-                    colors: [Color.orange.opacity(0.16), Color.yellow.opacity(0.12)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
+                GradientTokens.inspirationMidway,
                 "bolt.fill",
                 .orange
             )
@@ -58,68 +59,53 @@ struct InspirationCard: View {
             switch timeOfDay {
             case .morning:
                 return (
-                    LinearGradient(
-                        colors: [Color.pink.opacity(0.15), Color.orange.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
+                    GradientTokens.inspirationMorning,
                     "sunrise.fill",
                     .pink
                 )
             case .noon:
                 return (
-                    LinearGradient(
-                        colors: [Color.indigo.opacity(0.15), Color.blue.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
+                    GradientTokens.inspirationNoon,
                     "sun.max.fill",
                     .indigo
                 )
             case .evening:
                 return (
-                    LinearGradient(
-                        colors: [Color.purple.opacity(0.15), Color.indigo.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
+                    GradientTokens.inspirationEvening,
                     "moon.stars.fill",
                     .purple
                 )
             }
         }
     }
-    
-    private var backgroundGradient: LinearGradient {
-        contextualStyle.gradient
+
+    /// Updates the cached style when dependencies change
+    private func updateCachedStyle() {
+        cachedStyle = computeStyle(
+            completionPercentage: completionPercentage,
+            timeOfDay: timeOfDay
+        )
     }
-    
-    private var iconName: String {
-        contextualStyle.icon
-    }
-    
-    private var iconColor: Color {
-        contextualStyle.color
-    }
-    
-    private var contextualMessage: String {
-        // Use the personalized message passed from the ViewModel
-        return message
+
+    /// Fallback style for initial render before cache is populated
+    private var defaultStyle: (gradient: LinearGradient, icon: String, color: Color) {
+        (GradientTokens.inspirationMorning, "sunrise.fill", .pink)
     }
     
     var body: some View {
         if shouldShow {
+            // Use cached style - single access, no recomputation
+            let style = cachedStyle ?? defaultStyle
+
             VStack(spacing: 0) {
                 HStack {
                     // Time-based icon
-                    Image(systemName: iconName)
+                    Image(systemName: style.icon)
                         .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(iconColor)
-                        .scaleEffect(1.0)
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: shouldShow)
-                    
+                        .foregroundColor(style.color)
+
                     Spacer()
-                    
+
                     // Dismiss button
                     Button(action: onDismiss) {
                         Image(systemName: "checkmark")
@@ -128,48 +114,42 @@ struct InspirationCard: View {
                             .frame(width: 28, height: 28)
                             .background(
                                 Circle()
-                                    .fill(iconColor)
+                                    .fill(style.color)
                             )
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
-                
+
                 // Main content
                 VStack(spacing: 12) {
-                    Text(contextualMessage)
+                    Text(message)
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .foregroundColor(.primary)
                         .multilineTextAlignment(.center)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 16)
-                    
+
                     // Show original slogan as subtitle when message and slogan are different
-                    if contextualMessage != slogan && !slogan.isEmpty {
+                    if message != slogan && !slogan.isEmpty {
                         Text(slogan)
                             .font(.system(size: 14, weight: .medium, design: .rounded))
-                            .foregroundColor(iconColor)
+                            .foregroundColor(style.color)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .italic()
                             .padding(.horizontal, 20)
                     }
-                    
-                    // Subtle animation dots
+
+                    // PERFORMANCE: Removed infinite animations - caused constant GPU work during scrolling
+                    // Static dots instead of animated ones for smooth scrolling
                     HStack(spacing: 6) {
-                        ForEach(0..<3, id: \.self) { index in
+                        ForEach(0..<3, id: \.self) { _ in
                             Circle()
-                                .fill(iconColor.opacity(0.6))
+                                .fill(style.color.opacity(0.6))
                                 .frame(width: 6, height: 6)
-                                .scaleEffect(1.0)
-                                .animation(
-                                    .easeInOut(duration: 1.5)
-                                    .repeatForever(autoreverses: true)
-                                    .delay(Double(index) * 0.2),
-                                    value: shouldShow
-                                )
                         }
                     }
                     .padding(.bottom, 4)
@@ -178,31 +158,30 @@ struct InspirationCard: View {
                 .padding(.bottom, 20)
             }
             .background(
-                backgroundGradient
+                style.gradient
                     .clipShape(RoundedRectangle(cornerRadius: CardDesign.cornerRadius))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
-                    .stroke(iconColor.opacity(0.2), lineWidth: 1)
+                    .stroke(style.color.opacity(0.2), lineWidth: 1)
             )
+            // PERFORMANCE: Removed colored shadow and animations for smooth scrolling
             .shadow(
-                color: iconColor.opacity(0.15),
-                radius: 8,
+                color: .black.opacity(0.05),
+                radius: 4,
                 x: 0,
-                y: 4
+                y: 2
             )
-            .scaleEffect(shouldShow ? 1.0 : 0.95)
-            .opacity(shouldShow ? 1.0 : 0.0)
-            .animation(
-                .spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.1),
-                value: shouldShow
-            )
-            .transition(
-                .asymmetric(
-                    insertion: .scale(scale: 0.9).combined(with: .opacity),
-                    removal: .scale(scale: 0.95).combined(with: .opacity)
-                )
-            )
+            // PERFORMANCE: Reactive cache updates - only when dependencies change
+            .onAppear {
+                updateCachedStyle()
+            }
+            .onChange(of: completionPercentage) { _, _ in
+                updateCachedStyle()
+            }
+            .onChange(of: timeOfDay) { _, _ in
+                updateCachedStyle()
+            }
         }
     }
 }

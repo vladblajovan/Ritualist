@@ -7,7 +7,6 @@ import RitualistCore
 public enum ScheduleType: CaseIterable {
     case daily
     case daysOfWeek
-    case timesPerWeek
 }
 
 @MainActor @Observable
@@ -29,7 +28,6 @@ public final class HabitDetailViewModel {
     public var dailyTarget: Double = 1.0
     public var selectedSchedule: ScheduleType = .daily
     public var selectedDaysOfWeek: Set<Int> = []
-    public var timesPerWeek = 1
     public var selectedEmoji = "⭐"
     public var selectedColorHex = "#2DA9E3"
     public var reminders: [ReminderTime] = []
@@ -298,9 +296,6 @@ public final class HabitDetailViewModel {
         case .daysOfWeek(let days):
             selectedSchedule = .daysOfWeek
             selectedDaysOfWeek = days
-        case .timesPerWeek(let times):
-            selectedSchedule = .timesPerWeek
-            timesPerWeek = times
         }
     }
     
@@ -311,8 +306,6 @@ public final class HabitDetailViewModel {
             schedule = .daily
         case .daysOfWeek:
             schedule = .daysOfWeek(selectedDaysOfWeek)
-        case .timesPerWeek:
-            schedule = .timesPerWeek(timesPerWeek)
         }
         
         // Handle category logic:

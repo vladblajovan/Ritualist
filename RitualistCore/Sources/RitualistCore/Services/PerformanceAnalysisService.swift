@@ -54,16 +54,12 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     
     private let scheduleAnalyzer: HabitScheduleAnalyzerProtocol
     private let streakCalculationService: StreakCalculationService
-    private let calendar: Calendar
-    
     public init(
         scheduleAnalyzer: HabitScheduleAnalyzerProtocol,
-        streakCalculationService: StreakCalculationService,
-        calendar: Calendar = DateUtils.userCalendar()
+        streakCalculationService: StreakCalculationService
     ) {
         self.scheduleAnalyzer = scheduleAnalyzer
         self.streakCalculationService = streakCalculationService
-        self.calendar = calendar
     }
     
     public func calculateHabitPerformance(
@@ -132,7 +128,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         to endDate: Date
     ) -> WeeklyPatternsResult {
         
-        let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
+        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayUTC(for: $0.date) })
         
         // Initialize day performance tracking
         var dayPerformance: [Int: (total: Int, completed: Int)] = [:]
@@ -143,8 +139,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         // Analyze each day in the range
         var currentDate = startDate
         while currentDate <= endDate {
-            let dayLogs = logsByDate[calendar.startOfDay(for: currentDate)] ?? []
-            let weekday = calendar.component(.weekday, from: currentDate)
+            let dayLogs = logsByDate[CalendarUtils.startOfDayUTC(for: currentDate)] ?? []
+            let weekday = CalendarUtils.weekdayComponentUTC(from: currentDate)
             
             for habit in habits where habit.isActive {
                 if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
@@ -156,15 +152,12 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                 }
             }
             
-            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: currentDate) else {
-                break
-            }
-            currentDate = nextDay
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         // Calculate day of week performance results using proper week ordering
         let dayOfWeekResults = dayPerformance.map { weekday, performance in
-            let dayName = calendar.weekdaySymbols[weekday - 1]
+            let dayName = DateFormatter().weekdaySymbols[weekday - 1]
             let completionRate = performance.total > 0 ? Double(performance.completed) / Double(performance.total) : 0.0
             let averageCompleted = performance.total > 0 ? performance.completed / getDayCount(weekday: weekday, from: startDate, to: endDate) : 0
             
@@ -223,15 +216,15 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         to endDate: Date
     ) -> PerfectDayStreakResult {
         
-        let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
+        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayUTC(for: $0.date) })
         
         var currentStreak = 0
         var longestStreak = 0
         var daysWithFullCompletion = 0
         
-        let today = calendar.startOfDay(for: Date())
+        let today = CalendarUtils.startOfDayUTC(for: Date())
         var currentDate = today
-        let start = calendar.startOfDay(for: startDate)
+        let start = CalendarUtils.startOfDayUTC(for: startDate)
         
         while currentDate >= start {
             let dayLogs = logsByDate[currentDate] ?? []
@@ -257,16 +250,13 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                 currentStreak = 0
             }
             
-            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: currentDate) else {
-                break
-            }
-            currentDate = previousDay
+            currentDate = CalendarUtils.addDays(-1, to: currentDate)
         }
         
         longestStreak = max(longestStreak, currentStreak)
         
         // Calculate consistency based on analysis period
-        let totalDays = calendar.dateComponents([.day], from: start, to: today).day ?? 0
+        let totalDays = CalendarUtils.daysBetweenUTC(start, today)
         let consistencyScore = totalDays > 0 ? Double(daysWithFullCompletion) / Double(totalDays) : 0.0
         
         let streakTrend: String
@@ -351,13 +341,10 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         var currentDate = startDate
         
         while currentDate <= endDate {
-            if calendar.component(.weekday, from: currentDate) == weekday {
+            if CalendarUtils.weekdayComponentUTC(from: currentDate) == weekday {
                 count += 1
             }
-            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: currentDate) else {
-                break
-            }
-            currentDate = nextDay
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         return max(count, 1) // Avoid division by zero

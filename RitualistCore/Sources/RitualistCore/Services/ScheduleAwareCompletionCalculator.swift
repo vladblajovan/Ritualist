@@ -38,7 +38,6 @@ public protocol ScheduleAwareCompletionCalculator {
 
 public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareCompletionCalculator {
     
-    private let calendar = Calendar.current
     private let habitCompletionService: HabitCompletionService
     
     public init(habitCompletionService: HabitCompletionService = DefaultHabitCompletionService()) {
@@ -59,8 +58,6 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
             completionRate = calculateDailyCompletionRate(habit: habit, logs: habitLogs, startDate: startDate, endDate: endDate)
         case .daysOfWeek(let days):
             completionRate = calculateDaysOfWeekCompletionRate(habit: habit, logs: habitLogs, scheduledDays: days, startDate: startDate, endDate: endDate)
-        case .timesPerWeek(let count):
-            completionRate = calculateTimesPerWeekCompletionRate(habit: habit, logs: habitLogs, weeklyTarget: count, startDate: startDate, endDate: endDate)
         }
         
         return completionRate
@@ -82,24 +79,15 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         
         switch habit.schedule {
         case .daily:
-            let daysDifference = calendar.dateComponents([.day], from: habitStartDate, to: habitEndDate).day ?? 0
+            let daysDifference = CalendarUtils.daysBetweenUTC(
+                habitStartDate,
+                habitEndDate
+            )
             // Fix: If start and end are on the same day, count it as 1 day
             return max(1, daysDifference + 1)
             
         case .daysOfWeek(let days):
             return calculateExpectedDaysForSchedule(scheduledDays: days, startDate: habitStartDate, endDate: habitEndDate)
-            
-        case .timesPerWeek(let count):
-            let totalWeeks = calendar.dateComponents([.weekOfYear], from: habitStartDate, to: habitEndDate).weekOfYear ?? 0
-            let remainingDays = calendar.dateComponents([.day], from: habitStartDate, to: habitEndDate).day ?? 0
-            
-            // For partial weeks, calculate proportionally
-            if totalWeeks == 0 {
-                let weeklyRatio = Double(remainingDays) / 7.0
-                return Int(ceil(Double(count) * weeklyRatio))
-            } else {
-                return totalWeeks * count
-            }
         }
     }
     
@@ -170,14 +158,14 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         guard expectedDays > 0 else { return 0.0 }
         
         var completedDays = 0
-        var currentDate = calendar.startOfDay(for: max(habit.startDate, startDate))
-        let endOfRange = calendar.startOfDay(for: min(habit.endDate ?? endDate, endDate))
+        var currentDate = CalendarUtils.startOfDayUTC(for: max(habit.startDate, startDate))
+        let endOfRange = CalendarUtils.startOfDayUTC(for: min(habit.endDate ?? endDate, endDate))
         
         while currentDate <= endOfRange {
             if isHabitCompleted(habit: habit, logs: logs, date: currentDate) {
                 completedDays += 1
             }
-            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         return Double(completedDays) / Double(expectedDays)
@@ -198,12 +186,12 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         guard expectedDays > 0 else { return 0.0 }
         
         var completedDays = 0
-        var currentDate = calendar.startOfDay(for: max(habit.startDate, startDate))
-        let endOfRange = calendar.startOfDay(for: min(habit.endDate ?? endDate, endDate))
+        var currentDate = CalendarUtils.startOfDayUTC(for: max(habit.startDate, startDate))
+        let endOfRange = CalendarUtils.startOfDayUTC(for: min(habit.endDate ?? endDate, endDate))
         
         while currentDate <= endOfRange {
-            let weekday = calendar.component(.weekday, from: currentDate)
-            let habitWeekday = DateUtils.calendarWeekdayToHabitWeekday(weekday)
+            let weekday = CalendarUtils.weekdayComponentUTC(from: currentDate)
+            let habitWeekday = CalendarUtils.calendarWeekdayToHabitWeekday(weekday)
             
             if scheduledDays.contains(habitWeekday) {
                 if isHabitCompleted(habit: habit, logs: logs, date: currentDate) {
@@ -211,70 +199,12 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
                 }
             }
             
-            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         return Double(completedDays) / Double(expectedDays)
     }
     
-    private func calculateTimesPerWeekCompletionRate(
-        habit: Habit,
-        logs: [HabitLog],
-        weeklyTarget: Int,
-        startDate: Date,
-        endDate: Date
-    ) -> Double {
-        let habitStartDate = max(habit.startDate, startDate)
-        let habitEndDate = min(habit.endDate ?? endDate, endDate)
-        
-        guard habitStartDate <= habitEndDate else { 
-            return 0.0 
-        }
-        
-        // Group completed days by week
-        let completedDates = logs.compactMap { log -> Date? in
-            guard log.habitID == habit.id && isLogCompleted(log: log, habit: habit) else { return nil }
-            let logDate = calendar.startOfDay(for: log.date)
-            guard logDate >= habitStartDate && logDate <= habitEndDate else { return nil }
-            return logDate
-        }
-        
-        let completionsByWeek = Dictionary(grouping: completedDates) { date in
-            calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? date
-        }
-        
-        // Calculate weekly completion rates
-        var totalWeeklyTargets = 0
-        var totalWeeklyCompletions = 0
-        var currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: habitStartDate)?.start ?? habitStartDate
-        let endWeekStart = calendar.dateInterval(of: .weekOfYear, for: habitEndDate)?.start ?? habitEndDate
-        
-        var weekIndex = 0
-        while currentWeekStart <= endWeekStart {
-            let weekEnd = calendar.date(byAdding: .weekOfYear, value: 1, to: currentWeekStart) ?? currentWeekStart
-            
-            // Calculate target for this week (proportional if partial week)
-            let weekOverlap = calculateWeekOverlap(
-                weekStart: currentWeekStart,
-                weekEnd: weekEnd,
-                habitStart: habitStartDate,
-                habitEnd: habitEndDate
-            )
-            
-            let weekTarget = Int(ceil(Double(weeklyTarget) * weekOverlap))
-            let weekCompletions = min(completionsByWeek[currentWeekStart]?.count ?? 0, weekTarget)
-            
-            totalWeeklyTargets += weekTarget
-            totalWeeklyCompletions += weekCompletions
-            
-            currentWeekStart = weekEnd
-            weekIndex += 1
-        }
-        
-        let finalRate = totalWeeklyTargets > 0 ? Double(totalWeeklyCompletions) / Double(totalWeeklyTargets) : 0.0
-        
-        return finalRate
-    }
     
     private func calculateExpectedDaysForSchedule(
         scheduledDays: Set<Int>,
@@ -282,35 +212,21 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         endDate: Date
     ) -> Int {
         var expectedDays = 0
-        var currentDate = calendar.startOfDay(for: startDate)
-        let endOfRange = calendar.startOfDay(for: endDate)
+        var currentDate = CalendarUtils.startOfDayUTC(for: startDate)
+        let endOfRange = CalendarUtils.startOfDayUTC(for: endDate)
         
         while currentDate <= endOfRange {
-            let weekday = calendar.component(.weekday, from: currentDate)
-            let habitWeekday = DateUtils.calendarWeekdayToHabitWeekday(weekday)
+            let weekday = CalendarUtils.weekdayComponentUTC(from: currentDate)
+            let habitWeekday = CalendarUtils.calendarWeekdayToHabitWeekday(weekday)
             
             if scheduledDays.contains(habitWeekday) {
                 expectedDays += 1
             }
             
-            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         return expectedDays
     }
     
-    private func calculateWeekOverlap(
-        weekStart: Date,
-        weekEnd: Date,
-        habitStart: Date,
-        habitEnd: Date
-    ) -> Double {
-        let overlapStart = max(weekStart, habitStart)
-        let overlapEnd = min(weekEnd, habitEnd)
-        
-        guard overlapStart < overlapEnd else { return 0.0 }
-        
-        let overlapDays = calendar.dateComponents([.day], from: overlapStart, to: overlapEnd).day ?? 0
-        return Double(overlapDays) / 7.0
-    }
 }

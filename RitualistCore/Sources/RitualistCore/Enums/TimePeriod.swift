@@ -36,29 +36,28 @@ public enum TimePeriod: CaseIterable {
     ///
     /// - Returns: A tuple containing start and end dates for the period
     public var dateRange: (start: Date, end: Date) {
-        let calendar = Calendar.current
         let now = Date()
         
         switch self {
         case .thisWeek:
-            let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+            let startOfWeek = CalendarUtils.weekIntervalUTC(for: now)?.start ?? now
             return (start: startOfWeek, end: now)
             
         case .thisMonth:
-            let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
+            let startOfMonth = CalendarUtils.monthIntervalUTC(for: now)?.start ?? now
             return (start: startOfMonth, end: now)
             
         case .last6Months:
-            let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: now) ?? now
+            let sixMonthsAgo = CalendarUtils.addMonths(-6, to: now)
             return (start: sixMonthsAgo, end: now)
             
         case .lastYear:
-            let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: now) ?? now
+            let oneYearAgo = CalendarUtils.addYears(-1, to: now)
             return (start: oneYearAgo, end: now)
             
         case .allTime:
             // Use a date far in the past to capture all available data
-            let allTimeStart = calendar.date(byAdding: .year, value: -10, to: now) ?? now
+            let allTimeStart = CalendarUtils.addYears(-10, to: now)
             return (start: allTimeStart, end: now)
         }
     }

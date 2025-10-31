@@ -63,16 +63,6 @@ public struct HabitValidation {
             
             return .valid
             
-        case .timesPerWeek(let times):
-            if times <= 0 {
-                return .invalid(reason: "Times per week must be greater than 0")
-            }
-            
-            if times > 7 {
-                return .invalid(reason: "Times per week cannot exceed 7")
-            }
-            
-            return .valid
         }
     }
     

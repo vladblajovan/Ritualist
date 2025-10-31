@@ -14,6 +14,10 @@ import SwiftData
     public var avatarImageData: Data?
     public var appearance: String = "followSystem" // CloudKit requires default values
     
+    // Timezone preferences
+    public var homeTimezone: String? // Optional designated home timezone
+    public var displayTimezoneMode: String = "original" // DisplayTimezoneMode as string (CloudKit requires default values)
+    
     // Subscription info (consolidated from User entity)
     public var subscriptionPlan: String = "free" // CloudKit requires default values
     public var subscriptionExpiryDate: Date?
@@ -26,6 +30,8 @@ import SwiftData
                 name: String, 
                 avatarImageData: Data?, 
                 appearance: String,
+                homeTimezone: String? = nil,
+                displayTimezoneMode: String = "original",
                 subscriptionPlan: String = "free",
                 subscriptionExpiryDate: Date? = nil,
                 createdAt: Date = Date(),
@@ -34,6 +40,8 @@ import SwiftData
         self.name = name
         self.avatarImageData = avatarImageData
         self.appearance = appearance
+        self.homeTimezone = homeTimezone
+        self.displayTimezoneMode = displayTimezoneMode
         self.subscriptionPlan = subscriptionPlan
         self.subscriptionExpiryDate = subscriptionExpiryDate
         self.createdAt = createdAt
@@ -51,6 +59,8 @@ import SwiftData
             name: name, 
             avatarImageData: avatarImageData,
             appearance: appearance,
+            homeTimezone: homeTimezone,
+            displayTimezoneMode: displayTimezoneMode,
             subscriptionPlan: subscriptionPlan,
             subscriptionExpiryDate: subscriptionExpiryDate,
             createdAt: createdAt,
@@ -65,6 +75,8 @@ import SwiftData
             name: profile.name, 
             avatarImageData: profile.avatarImageData,
             appearance: String(profile.appearance),
+            homeTimezone: profile.homeTimezone,
+            displayTimezoneMode: profile.displayTimezoneMode,
             subscriptionPlan: profile.subscriptionPlan.rawValue,
             subscriptionExpiryDate: profile.subscriptionExpiryDate,
             createdAt: profile.createdAt,

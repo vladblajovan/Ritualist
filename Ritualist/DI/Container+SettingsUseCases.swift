@@ -45,7 +45,7 @@ extension Container {
     }
     
     var populateTestData: Factory<PopulateTestData> {
-        self { 
+        self {
             PopulateTestData(
                 debugService: self.debugService(),
                 habitSuggestionsService: self.habitSuggestionsService(),
@@ -55,7 +55,8 @@ extension Container {
                 habitRepository: self.habitRepository(),
                 categoryRepository: self.categoryRepository(),
                 habitCompletionService: self.habitCompletionService(),
-                testDataUtilities: self.testDataPopulationService()
+                testDataUtilities: self.testDataPopulationService(),
+                completeOnboardingUseCase: self.completeOnboarding()
             )
         }
     }

@@ -73,7 +73,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         
         // Get all habit logs for the last 30 days using batch optimization
         let endDate = Date()
-        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
+        let startDate = CalendarUtils.addDays(-30, to: endDate)
         
         // OPTIMIZATION: Use batch loading to avoid N+1 queries (was: N individual calls)
         let habitIds = activeHabits.map(\.id)
@@ -128,21 +128,20 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     // MARK: - Private Helpers
     
     private func calculateConsecutiveTrackingDays(logs: [HabitLog]) -> Int {
-        // Group logs by date
+        // Group logs by date using UTC-based business logic
         let logsByDate = Dictionary(grouping: logs, by: { 
-            Calendar.current.startOfDay(for: $0.date) 
+            CalendarUtils.startOfDayUTC(for: $0.date) 
         })
         
         let sortedDates = logsByDate.keys.sorted(by: >)
         
         var consecutiveDays = 0
-        let calendar = Calendar.current
-        var currentDate = Calendar.current.startOfDay(for: Date())
+        var currentDate = CalendarUtils.startOfDayUTC(for: Date())
         
         for date in sortedDates {
-            if calendar.isDate(date, inSameDayAs: currentDate) {
+            if CalendarUtils.areSameDayUTC(date, currentDate) {
                 consecutiveDays += 1
-                currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate) ?? currentDate
+                currentDate = CalendarUtils.addDays(-1, to: currentDate)
             } else if date < currentDate {
                 // Gap in tracking, stop counting
                 break

@@ -89,8 +89,6 @@ public enum Strings {
         public static let frequency = String(localized: "formFrequency")
         public static let daily = String(localized: "formDaily")
         public static let specificDays = String(localized: "formSpecificDays")
-        public static let timesPerWeek = String(localized: "formTimesPerWeek")
-        public static let timesPerWeekLabel = String(localized: "formTimesPerWeekLabel")
         public static let selectDays = String(localized: "formSelectDays")
         public static let emoji = String(localized: "formEmoji")
         public static let color = String(localized: "formColor")

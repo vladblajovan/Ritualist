@@ -54,16 +54,14 @@ public struct DashboardData {
     /// Get completion rate for a specific date (0.0 to 1.0)
     /// O(1) lookup - no database queries
     public func completionRate(for date: Date) -> Double {
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
+        let startOfDay = CalendarUtils.startOfDayUTC(for: date)
         return dailyCompletions[startOfDay]?.completionRate ?? 0.0
     }
     
     /// Get habits completed on a specific date
     /// O(1) lookup for habit IDs, then O(n) filtering where n is small
     public func habitsCompleted(on date: Date) -> [Habit] {
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
+        let startOfDay = CalendarUtils.startOfDayUTC(for: date)
         
         guard let dayCompletion = dailyCompletions[startOfDay] else { return [] }
         
@@ -73,8 +71,7 @@ public struct DashboardData {
     /// Get completed habit IDs for a specific date
     /// O(1) lookup - no database queries
     public func completedHabits(for date: Date) -> Set<UUID> {
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
+        let startOfDay = CalendarUtils.startOfDayUTC(for: date)
         return dailyCompletions[startOfDay]?.completedHabits ?? []
     }
     
@@ -104,12 +101,11 @@ public struct DashboardData {
     /// Get all chart data points for the date range
     /// O(n) where n is number of days - no database queries
     public func chartDataPoints() -> [ProgressChartDataPoint] {
-        let calendar = Calendar.current
         var dataPoints: [ProgressChartDataPoint] = []
         
         var currentDate = dateRange.lowerBound
         while currentDate <= dateRange.upperBound {
-            let startOfDay = calendar.startOfDay(for: currentDate)
+            let startOfDay = CalendarUtils.startOfDayUTC(for: currentDate)
             let completionRate = dailyCompletions[startOfDay]?.completionRate ?? 0.0
             
             dataPoints.append(ProgressChartDataPoint(
@@ -117,8 +113,7 @@ public struct DashboardData {
                 completionRate: completionRate
             ))
             
-            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
-            currentDate = nextDate
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         return dataPoints.sorted { $0.date < $1.date }
@@ -195,11 +190,10 @@ public struct DashboardData {
     /// This eliminates the need for per-day database queries and ensures single source of truth
     private static func calculateDailyCompletions(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, isHabitCompleted: IsHabitCompletedUseCase, calculateDailyProgress: CalculateDailyProgressUseCase, isScheduledDay: IsScheduledDayUseCase) -> [Date: DayCompletion] {
         var dailyCompletions: [Date: DayCompletion] = [:]
-        let calendar = Calendar.current
         
         var currentDate = dateRange.lowerBound
         while currentDate <= dateRange.upperBound {
-            let startOfDay = calendar.startOfDay(for: currentDate)
+            let startOfDay = CalendarUtils.startOfDayUTC(for: currentDate)
             
             // Get habits scheduled for this date
             let scheduledHabits = habits.filter { $0.schedule.isActiveOn(date: startOfDay) }
@@ -230,8 +224,7 @@ public struct DashboardData {
                 totalExpected: expectedHabits.count
             )
             
-            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
-            currentDate = nextDate
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         return dailyCompletions

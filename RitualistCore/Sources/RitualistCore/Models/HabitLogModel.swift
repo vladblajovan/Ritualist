@@ -12,19 +12,22 @@ import SwiftData
     @Attribute(.unique) public var id: UUID // TODO: Remove .unique when enabling CloudKit
     public var habitID: UUID = UUID() // CloudKit requires default values
     @Relationship var habit: HabitModel?
-    public var date: Date = Date() // CloudKit requires default values
+    public var date: Date = Date() // Always stored as UTC timestamp (CloudKit requires default values)
     public var value: Double?
-    public init(id: UUID, habitID: UUID, habit: HabitModel?, date: Date, value: Double?) {
+    public var timezone: String = "UTC" // IANA timezone identifier (CloudKit requires default values)
+    
+    public init(id: UUID, habitID: UUID, habit: HabitModel?, date: Date, value: Double?, timezone: String = "UTC") {
         self.id = id
         self.habitID = habitID
         self.date = date
         self.value = value
+        self.timezone = timezone
         self.habit = habit
     }
     
     /// Convert SwiftData model to domain entity
     public func toEntity() -> HabitLog {
-        return HabitLog(id: id, habitID: habitID, date: date, value: value)
+        return HabitLog(id: id, habitID: habitID, date: date, value: value, timezone: timezone)
     }
     
     /// Create SwiftData model from domain entity
@@ -35,6 +38,6 @@ import SwiftData
             let descriptor = FetchDescriptor<HabitModel>(predicate: #Predicate { $0.id == log.habitID })
             habit = try? context.fetch(descriptor).first
         }
-        return HabitLogModel(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value)
+        return HabitLogModel(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value, timezone: log.timezone)
     }
 }

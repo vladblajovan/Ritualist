@@ -10,9 +10,7 @@ extension Container {
     
     var personalityAnalysisDataSource: Factory<PersonalityAnalysisDataSourceProtocol> {
         self { 
-            guard let container = self.persistenceContainer()?.container else {
-                fatalError("Failed to get ModelContainer for PersonalityAnalysisDataSource")
-            }
+            let container = self.persistenceContainer().container
             return PersonalityAnalysisDataSource(modelContainer: container)
         }
         .singleton

@@ -187,7 +187,7 @@ private struct SizingConfiguration {
 // MARK: - Preview
 
 #Preview("Small Widget Navigation") {
-    let selectedDate = Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+    let selectedDate = CalendarUtils.addDays(-2, to: Date())
     let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
     let entry = RemainingHabitsEntry(
         date: Date(),
@@ -216,7 +216,7 @@ private struct SizingConfiguration {
 }
 
 #Preview("Large Widget Navigation - Historical") {
-    let selectedDate = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+    let selectedDate = CalendarUtils.addDays(-7, to: Date())
     let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
     let entry = RemainingHabitsEntry(
         date: Date(),
@@ -238,7 +238,7 @@ private struct SizingConfiguration {
                 date: Date(),
                 habitDisplayInfo: [],
                 completionPercentage: 0.0,
-                navigationInfo: WidgetNavigationInfo(selectedDate: Calendar.current.date(byAdding: .day, value: -30, to: Date())!)
+                navigationInfo: WidgetNavigationInfo(selectedDate: CalendarUtils.addDays(-30, to: Date()))
             ),
             size: .medium
         )
@@ -250,7 +250,7 @@ private struct SizingConfiguration {
                 date: Date(),
                 habitDisplayInfo: [],
                 completionPercentage: 0.0,
-                navigationInfo: WidgetNavigationInfo(selectedDate: Calendar.current.date(byAdding: .day, value: -5, to: Date())!)
+                navigationInfo: WidgetNavigationInfo(selectedDate: CalendarUtils.addDays(-5, to: Date()))
             ),
             size: .medium
         )

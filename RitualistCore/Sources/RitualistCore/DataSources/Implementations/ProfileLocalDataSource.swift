@@ -24,10 +24,12 @@ public actor ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
         )
         
         if let existing = try modelContext.fetch(descriptor).first {
-            // Update existing profile
+            // Update existing profile with timezone preferences
             existing.name = profile.name
             existing.avatarImageData = profile.avatarImageData
             existing.appearance = String(profile.appearance)
+            existing.homeTimezone = profile.homeTimezone
+            existing.displayTimezoneMode = profile.displayTimezoneMode
             existing.subscriptionPlan = profile.subscriptionPlan.rawValue
             existing.subscriptionExpiryDate = profile.subscriptionExpiryDate
             existing.updatedAt = profile.updatedAt

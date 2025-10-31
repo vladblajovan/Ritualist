@@ -14,14 +14,13 @@ public final class UpdateProfileSubscription: UpdateProfileSubscriptionUseCase {
     
     public func execute(product: Product) async throws {
         // Calculate expiry date based on product duration
-        let calendar = Calendar.current
         let expiryDate: Date?
         
         switch product.duration {
         case .monthly:
-            expiryDate = calendar.date(byAdding: .month, value: 1, to: Date())
+            expiryDate = CalendarUtils.addMonths(1, to: Date())
         case .annual:
-            expiryDate = calendar.date(byAdding: .year, value: 1, to: Date())
+            expiryDate = CalendarUtils.addYears(1, to: Date())
         }
         
         // Update subscription through user service (single source of truth)

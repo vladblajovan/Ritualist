@@ -36,6 +36,10 @@ public final class SettingsViewModel {
     public private(set) var isPopulatingTestData = false
     public private(set) var testDataProgress: Double = 0.0
     public private(set) var testDataProgressMessage: String = ""
+
+    // Performance monitoring
+    public var showFPSOverlay = false
+    public var showPerformanceStats = false
     #endif
     
     // Cache premium status to avoid async issues
@@ -226,14 +230,14 @@ public final class SettingsViewModel {
         isClearingDatabase = false
     }
     
-    public func populateTestData() async {
+    public func populateTestData(scenario: TestDataScenario = .full) async {
         guard var populateTestData = populateTestData else { return }
-        
+
         isPopulatingTestData = true
         testDataProgress = 0.0
         testDataProgressMessage = "Starting test data population..."
         error = nil
-        
+
         // Setup progress callback
         populateTestData.progressUpdate = { [weak self] message, progress in
             Task { @MainActor in
@@ -241,23 +245,57 @@ public final class SettingsViewModel {
                 self?.testDataProgress = progress
             }
         }
-        
+
         do {
-            try await populateTestData.execute()
-            
+            try await populateTestData.execute(scenario: scenario)
+
             // Reload stats after populating data
             databaseStats = try await getDatabaseStats.execute()
-            
-            // Track the debug action
-            userActionTracker.track(.custom(event: "debug_test_data_populated", parameters: [:]))
+
+            // Track the debug action with scenario info
+            userActionTracker.track(.custom(event: "debug_test_data_populated", parameters: ["scenario": scenario.rawValue]))
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "debug_test_data_population")
         }
-        
+
         isPopulatingTestData = false
         testDataProgress = 0.0
         testDataProgressMessage = ""
     }
     #endif
 }
+
+// MARK: - Performance Utilities
+
+#if DEBUG
+import Darwin
+
+extension SettingsViewModel {
+    /// Current memory usage in megabytes
+    ///
+    /// Uses mach_task_basic_info to get accurate resident memory size
+    /// Returns nil if unable to retrieve memory info
+    public var memoryUsageMB: Double? {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
+
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+
+        guard result == KERN_SUCCESS else { return nil }
+
+        // Convert bytes to megabytes
+        return Double(info.resident_size) / 1024.0 / 1024.0
+    }
+
+    /// Updates performance statistics (triggers view refresh)
+    public func updatePerformanceStats() {
+        // Access memoryUsageMB to trigger observable update
+        _ = memoryUsageMB
+    }
+}
+#endif

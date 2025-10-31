@@ -27,7 +27,12 @@
       "Bash(/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -typecheck -module-name RitualistTests RitualistTests/TestInfrastructure/Fixtures/PerformanceTestFixtures.swift -I /Users/vladblajovan/Library/Developer/Xcode/DerivedData/Ritualist-dseprqesjcstmoahbyhpxoqzsdrv/Build/Products/Debug-AllFeatures-iphonesimulator)",
       "Bash(/dev/null)",
       "Bash(timeout 120s xcodebuild test:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "mcp__XcodeBuildMCP__list_devices",
+      "mcp__XcodeBuildMCP__get_device_app_path",
+      "mcp__XcodeBuildMCP__get_app_bundle_id",
+      "Bash(plutil:*)",
+      "mcp__XcodeBuildMCP__launch_app_device"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

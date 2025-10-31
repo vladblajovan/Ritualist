@@ -195,23 +195,22 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
     }
     
     private func calculateNextAnalysisDate(from lastDate: Date, frequency: AnalysisFrequency) -> Date {
-        let calendar = Calendar.current
         let now = Date()
         
         let nextDate: Date
         switch frequency {
         case .daily:
-            nextDate = calendar.date(byAdding: .day, value: 1, to: lastDate) ?? now
+            nextDate = CalendarUtils.addDays(1, to: lastDate)
         case .weekly:
-            nextDate = calendar.date(byAdding: .weekOfYear, value: 1, to: lastDate) ?? now
+            nextDate = CalendarUtils.addWeeks(1, to: lastDate)
         case .monthly:
-            nextDate = calendar.date(byAdding: .month, value: 1, to: lastDate) ?? now
+            nextDate = CalendarUtils.addMonths(1, to: lastDate)
         case .manual:
             return Date.distantFuture // Never automatically schedule
         }
         
         // Ensure next date is in the future
-        return max(nextDate, calendar.date(byAdding: .minute, value: 5, to: now) ?? now)
+        return max(nextDate, CalendarUtils.addMinutes(5, to: now))
     }
     
     private func isFrequencyTimeMet(for userId: UUID, frequency: AnalysisFrequency) async -> Bool {

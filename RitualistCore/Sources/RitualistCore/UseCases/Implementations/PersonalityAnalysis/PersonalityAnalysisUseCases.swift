@@ -30,7 +30,7 @@ public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
         
         // Get enhanced completion statistics with schedule-aware calculations
         let endDate = Date()
-        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
+        let startDate = CalendarUtils.addDays(-30, to: endDate)
         let completionStats = try await repository.getHabitCompletionStats(for: userId, from: startDate, to: endDate)
         
         // Calculate personality scores using Service as utility
@@ -390,5 +390,105 @@ public final class DefaultValidateAnalysisDataUseCase: ValidateAnalysisDataUseCa
         }
         
         return maxDaysNeeded > 0 ? maxDaysNeeded : nil
+    }
+}
+
+// MARK: - Personality Analysis Preferences Use Cases
+
+public final class DefaultGetAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase {
+    private let repository: PersonalityAnalysisRepositoryProtocol
+    
+    public init(repository: PersonalityAnalysisRepositoryProtocol) {
+        self.repository = repository
+    }
+    
+    public func execute(for userId: UUID) async throws -> PersonalityAnalysisPreferences? {
+        return try await repository.getAnalysisPreferences(for: userId)
+    }
+}
+
+public final class DefaultSaveAnalysisPreferencesUseCase: SaveAnalysisPreferencesUseCase {
+    private let repository: PersonalityAnalysisRepositoryProtocol
+    
+    public init(repository: PersonalityAnalysisRepositoryProtocol) {
+        self.repository = repository
+    }
+    
+    public func execute(_ preferences: PersonalityAnalysisPreferences) async throws {
+        try await repository.saveAnalysisPreferences(preferences)
+    }
+}
+
+public final class DefaultDeletePersonalityDataUseCase: DeletePersonalityDataUseCase {
+    private let repository: PersonalityAnalysisRepositoryProtocol
+    
+    public init(repository: PersonalityAnalysisRepositoryProtocol) {
+        self.repository = repository
+    }
+    
+    public func execute(for userId: UUID) async throws {
+        try await repository.deleteAllPersonalityProfiles(for: userId)
+    }
+}
+
+// MARK: - Personality Analysis Scheduler Use Cases
+
+public final class DefaultStartAnalysisSchedulingUseCase: StartAnalysisSchedulingUseCase {
+    private let scheduler: PersonalityAnalysisSchedulerProtocol
+    
+    public init(scheduler: PersonalityAnalysisSchedulerProtocol) {
+        self.scheduler = scheduler
+    }
+    
+    public func execute(for userId: UUID) async {
+        await scheduler.startScheduling(for: userId)
+    }
+}
+
+public final class DefaultUpdateAnalysisSchedulingUseCase: UpdateAnalysisSchedulingUseCase {
+    private let scheduler: PersonalityAnalysisSchedulerProtocol
+    
+    public init(scheduler: PersonalityAnalysisSchedulerProtocol) {
+        self.scheduler = scheduler
+    }
+    
+    public func execute(for userId: UUID, preferences: PersonalityAnalysisPreferences) async {
+        await scheduler.updateScheduling(for: userId, preferences: preferences)
+    }
+}
+
+public final class DefaultGetNextScheduledAnalysisUseCase: GetNextScheduledAnalysisUseCase {
+    private let scheduler: PersonalityAnalysisSchedulerProtocol
+    
+    public init(scheduler: PersonalityAnalysisSchedulerProtocol) {
+        self.scheduler = scheduler
+    }
+    
+    public func execute(for userId: UUID) async -> Date? {
+        return await scheduler.getNextScheduledAnalysis(for: userId)
+    }
+}
+
+public final class DefaultTriggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase {
+    private let scheduler: PersonalityAnalysisSchedulerProtocol
+    
+    public init(scheduler: PersonalityAnalysisSchedulerProtocol) {
+        self.scheduler = scheduler
+    }
+    
+    public func execute(for userId: UUID) async {
+        await scheduler.triggerAnalysisCheck(for: userId)
+    }
+}
+
+public final class DefaultForceManualAnalysisUseCase: ForceManualAnalysisUseCase {
+    private let scheduler: PersonalityAnalysisSchedulerProtocol
+    
+    public init(scheduler: PersonalityAnalysisSchedulerProtocol) {
+        self.scheduler = scheduler
+    }
+    
+    public func execute(for userId: UUID) async {
+        await scheduler.forceManualAnalysis(for: userId)
     }
 }

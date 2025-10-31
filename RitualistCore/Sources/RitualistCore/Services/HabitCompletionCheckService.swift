@@ -93,8 +93,6 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
             switch habit.schedule {
             case .daily, .daysOfWeek:
                 return await shouldShowNotificationForDailyHabit(habit: habit, date: date)
-            case .timesPerWeek:
-                return await shouldShowNotificationForWeeklyHabit(habit: habit, date: date)
             }
             
         } catch {
@@ -132,25 +130,6 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
         }
     }
     
-    /// Handle notification logic for timesPerWeek habits
-    /// KEY FIX: Check weekly progress, not daily completion
-    private func shouldShowNotificationForWeeklyHabit(habit: Habit, date: Date) async -> Bool {
-        do {
-            // Fetch logs for this habit
-            let logs = try await logRepository.logs(for: habit.id)
-            
-            // Check if weekly target is already met
-            let (completed, target) = habitCompletionService.getWeeklyProgress(habit: habit, for: date, logs: logs)
-            
-            // Show notification only if weekly target not yet met
-            return completed < target
-            
-        } catch {
-            // Fail-safe: show notification on error
-            await logError("Failed to check weekly habit completion", error: error, context: ["habitId": habit.id.uuidString])
-            return true
-        }
-    }
     
     // MARK: - Error Handling
     

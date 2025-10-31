@@ -60,14 +60,12 @@ public final class GetHabitLogsForAnalytics: GetHabitLogsForAnalyticsUseCase {
 public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
     private let habitRepository: HabitRepository
     private let scheduleAnalyzer: HabitScheduleAnalyzerProtocol
-    private let calendar: Calendar
     private let getBatchLogs: GetBatchLogsUseCase
     
-    public init(habitRepository: HabitRepository, scheduleAnalyzer: HabitScheduleAnalyzerProtocol, getBatchLogs: GetBatchLogsUseCase, calendar: Calendar = Calendar.current) {
+    public init(habitRepository: HabitRepository, scheduleAnalyzer: HabitScheduleAnalyzerProtocol, getBatchLogs: GetBatchLogsUseCase) {
         self.habitRepository = habitRepository
         self.scheduleAnalyzer = scheduleAnalyzer
         self.getBatchLogs = getBatchLogs
-        self.calendar = calendar
     }
     
     public func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats {
@@ -87,7 +85,7 @@ public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
         let logs = logsByHabitId.values.flatMap { $0 }
         
         let totalHabits = habits.count
-        let logsByDate = Dictionary(grouping: logs, by: { calendar.startOfDay(for: $0.date) })
+        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayUTC(for: $0.date) })
         
         var totalExpectedDays = 0
         var totalCompletedDays = 0
@@ -96,7 +94,7 @@ public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
         // Calculate expected days based on each habit's schedule
         var currentDate = startDate
         while currentDate <= endDate {
-            let dayLogs = logsByDate[calendar.startOfDay(for: currentDate)] ?? []
+            let dayLogs = logsByDate[CalendarUtils.startOfDayUTC(for: currentDate)] ?? []
             
             for habit in habits {
                 if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
@@ -109,10 +107,7 @@ public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
                 }
             }
             
-            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: currentDate) else {
-                break
-            }
-            currentDate = nextDay
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         let completionRate = totalExpectedDays > 0 ? Double(totalCompletedDays) / Double(totalExpectedDays) : 0.0

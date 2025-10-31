@@ -10,13 +10,9 @@ public struct OverviewView: View {
     }
     
     public var body: some View {
-        ZStack {
-            // Beautiful gradient background
-            RitualistGradientBackground()
-            
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: CardDesign.cardSpacing) {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: CardDesign.cardSpacing) {
                 // Always show core cards
                 // Inspiration card moved to top position
                 if vm.shouldShowInspirationCard {
@@ -78,8 +74,9 @@ public struct OverviewView: View {
                         vm.goToToday()
                     }
                 )
-                //.simpleCard()
-                .glassmorphicCard()
+                // PERFORMANCE: Use simpleCard instead of glassmorphicCard for this massive 932-line card
+                // .thinMaterial blur recalculates on every scroll frame = expensive for complex content
+                .simpleCard()
                 .id("topCard")
                 
                 // Conditional cards based on user state
@@ -128,23 +125,9 @@ public struct OverviewView: View {
                 }
                 */
                 
-                // Core navigation and overview
-                WeeklyOverviewCard(
-                    progress: vm.weeklyProgress,
-                    onDateSelect: { date in
-                        vm.goToDate(date)
-                        // Scroll immediately after date selection (which happens after glow effect)
-                        withAnimation(.easeInOut(duration: 0.6)) {
-                            proxy.scrollTo("topCard", anchor: .top)
-                        }
-                    }
-                )
-                .simpleCard()
-                
-                // Expandable calendar section
+                // Monthly calendar section - heavily optimized for scroll performance
                 MonthlyCalendarCard(
-                    isExpanded: $vm.isCalendarExpanded,
-                    monthlyData: vm.isCalendarExpanded ? vm.monthlyCompletionData : vm.weeklyCompletionData,
+                    monthlyData: vm.monthlyCompletionData,
                     onDateSelect: { date in
                         vm.goToDate(date)
                         // Scroll immediately after date selection (which happens after glow effect)
@@ -188,52 +171,52 @@ public struct OverviewView: View {
                 Spacer(minLength: 100) // Tab bar padding
             }
             .padding(.horizontal, Spacing.screenMargin)
-        }
-        .refreshable {
-            await vm.refresh()
-        }
-        .task {
-            await vm.loadData()
-        }
-        .onAppear {
-            // RACE CONDITION FIX: Set view as visible immediately
-            vm.setViewVisible(true)
-            
-            Task {
-                await vm.refreshPersonalityInsights()
             }
-            
-            // Process pending numeric habit from notification with enhanced timing validation
-            // This now serves as a fallback since the observer pattern will catch most cases
-            processNumericHabitWithViewStateValidation()
-        }
-        .onDisappear {
-            // RACE CONDITION FIX: Set view as not visible
-            vm.setViewVisible(false)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            // Refresh data when app comes to foreground (after background notification actions)
-            Task {
+            .refreshable {
                 await vm.refresh()
             }
-        }
-        .sheet(isPresented: $vm.showingNumericSheet) {
-            if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
-                NumericHabitLogSheetDirect(
-                    habit: habit,
-                    viewingDate: vm.viewingDate,
-                    onSave: { newValue in
-                        await vm.updateNumericHabit(habit, value: newValue)
-                    },
-                    onCancel: {
-                        // Sheet dismisses automatically
-                    },
-                    initialValue: vm.getProgressSync(for: habit)
-                )
+            .task {
+                await vm.loadData()
             }
-        }
-            } // ScrollViewReader
-        } // ZStack
+            .onAppear {
+                // RACE CONDITION FIX: Set view as visible immediately
+                vm.setViewVisible(true)
+
+                Task {
+                    await vm.refreshPersonalityInsights()
+                }
+
+                // Process pending numeric habit from notification with enhanced timing validation
+                // This now serves as a fallback since the observer pattern will catch most cases
+                processNumericHabitWithViewStateValidation()
+            }
+            .onDisappear {
+                // RACE CONDITION FIX: Set view as not visible
+                vm.setViewVisible(false)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                // Refresh data when app comes to foreground (after background notification actions)
+                Task {
+                    await vm.refresh()
+                }
+            }
+            .sheet(isPresented: $vm.showingNumericSheet) {
+                if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
+                    NumericHabitLogSheetDirect(
+                        habit: habit,
+                        viewingDate: vm.viewingDate,
+                        onSave: { newValue in
+                            await vm.updateNumericHabit(habit, value: newValue)
+                        },
+                        onCancel: {
+                            // Sheet dismisses automatically
+                        },
+                        initialValue: vm.getProgressSync(for: habit)
+                    )
+                }
+            }
+            .background(Color(.systemGroupedBackground))
+        } // ScrollViewReader
     }
     
     // MARK: - Private Methods

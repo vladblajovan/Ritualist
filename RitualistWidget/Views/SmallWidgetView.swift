@@ -104,7 +104,7 @@ struct SmallWidgetView: View {
     let habitDisplayInfo = habits.enumerated().map { index, habit in
         HabitDisplayInfo(habit: habit, currentProgress: index * 5, isCompleted: false)
     }
-    let selectedDate = Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+    let selectedDate = CalendarUtils.addDays(-2, to: Date())
     let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
     let entry = RemainingHabitsEntry(
         date: Date(),

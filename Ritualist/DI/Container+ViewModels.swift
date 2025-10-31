@@ -88,7 +88,10 @@ extension Container {
     var paywallViewModel: Factory<PaywallViewModel> {
         self { @MainActor in
             PaywallViewModel(
-                paywallBusinessService: self.paywallBusinessService(),
+                loadPaywallProducts: self.loadPaywallProducts(),
+                purchaseProduct: self.purchaseProduct(),
+                restorePurchases: self.restorePurchases(),
+                checkProductPurchased: self.checkProductPurchased(),
                 updateProfileSubscription: self.updateProfileSubscription(),
                 errorHandler: self.errorHandler()
             )
@@ -150,8 +153,14 @@ extension Container {
                 analyzePersonalityUseCase: self.analyzePersonalityUseCase(),
                 getPersonalityProfileUseCase: self.getPersonalityProfileUseCase(),
                 validateAnalysisDataUseCase: self.validateAnalysisDataUseCase(),
-                personalityRepository: self.personalityAnalysisRepository(),
-                scheduler: self.personalityAnalysisScheduler(),
+                getAnalysisPreferencesUseCase: self.getAnalysisPreferencesUseCase(),
+                saveAnalysisPreferencesUseCase: self.saveAnalysisPreferencesUseCase(),
+                deletePersonalityDataUseCase: self.deletePersonalityDataUseCase(),
+                startAnalysisSchedulingUseCase: self.startAnalysisSchedulingUseCase(),
+                updateAnalysisSchedulingUseCase: self.updateAnalysisSchedulingUseCase(),
+                getNextScheduledAnalysisUseCase: self.getNextScheduledAnalysisUseCase(),
+                triggerAnalysisCheckUseCase: self.triggerAnalysisCheckUseCase(),
+                forceManualAnalysisUseCase: self.forceManualAnalysisUseCase(),
                 loadProfile: self.loadProfile()
             )
         }

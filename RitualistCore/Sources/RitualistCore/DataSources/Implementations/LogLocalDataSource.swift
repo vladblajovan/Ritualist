@@ -37,10 +37,11 @@ public actor LogLocalDataSource: LogLocalDataSourceProtocol {
         )
         
         if let existing = try modelContext.fetch(descriptor).first {
-            // Update existing log
+            // Update existing log with timezone context
             existing.habitID = log.habitID
             existing.date = log.date
             existing.value = log.value
+            existing.timezone = log.timezone
         } else {
             // Create new log in this ModelContext
             let habitLogModel = HabitLogModel.fromEntity(log, context: modelContext)

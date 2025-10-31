@@ -36,16 +36,11 @@ public struct HistoricalDateValidationConfig {
     /// Maximum number of days user can navigate back in history
     public let maxHistoryDays: Int
     
-    /// Calendar instance for date calculations
-    public let calendar: Calendar
-    
     /// Creates configuration with specified parameters
     /// - Parameters:
     ///   - maxHistoryDays: Maximum days back in history (default: 30)
-    ///   - calendar: Calendar for calculations (default: Calendar.current)
-    public init(maxHistoryDays: Int = 30, calendar: Calendar = Calendar.current) {
+    public init(maxHistoryDays: Int = 30) {
         self.maxHistoryDays = maxHistoryDays
-        self.calendar = calendar
     }
 }
 
@@ -113,8 +108,8 @@ public final class DefaultHistoricalDateValidationService: HistoricalDateValidat
     /// - Throws: HistoricalDateValidationError if validation fails
     /// - Returns: Normalized date (start of day) if validation succeeds
     public func validateHistoricalDate(_ date: Date) throws -> Date {
-        let normalizedDate = config.calendar.startOfDay(for: date)
-        let today = config.calendar.startOfDay(for: Date())
+        let normalizedDate = CalendarUtils.startOfDayUTC(for: date)
+        let today = CalendarUtils.startOfDayUTC(for: Date())
         
         // Check if date is in future
         if normalizedDate > today {
@@ -157,8 +152,8 @@ public final class DefaultHistoricalDateValidationService: HistoricalDateValidat
     /// Get the earliest allowed historical date
     /// - Returns: Earliest date that can be used for historical logging
     public func getEarliestAllowedDate() -> Date {
-        let today = config.calendar.startOfDay(for: Date())
-        return config.calendar.date(byAdding: .day, value: -config.maxHistoryDays, to: today) ?? today
+        let today = CalendarUtils.startOfDayUTC(for: Date())
+        return CalendarUtils.addDays(-config.maxHistoryDays, to: today)
     }
     
     /// Get current configuration

@@ -20,8 +20,7 @@ public enum TimeOfDay: CaseIterable {
     
     /// Get the time of day for a specific date
     private static func timeOfDay(for date: Date) -> TimeOfDay {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: date)
+        let hour = CalendarUtils.hourComponentUTC(from: date)
         
         switch hour {
         case 0..<11:

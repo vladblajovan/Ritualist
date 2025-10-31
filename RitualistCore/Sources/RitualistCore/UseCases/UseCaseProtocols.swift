@@ -67,7 +67,7 @@ public protocol ClearPurchasesUseCase {
 }
 
 public protocol PopulateTestDataUseCase {
-    func execute() async throws
+    func execute(scenario: TestDataScenario) async throws
     var progressUpdate: ((String, Double) -> Void)? { get set }
 }
 
@@ -396,6 +396,42 @@ public protocol ValidateAnalysisDataUseCase {
     func execute(for userId: UUID) async throws -> AnalysisEligibility
     func getProgressDetails(for userId: UUID) async throws -> [ThresholdRequirement]
     func getEstimatedDaysToEligibility(for userId: UUID) async throws -> Int?
+}
+
+// MARK: - Personality Analysis Preferences Use Cases
+
+public protocol GetAnalysisPreferencesUseCase {
+    func execute(for userId: UUID) async throws -> PersonalityAnalysisPreferences?
+}
+
+public protocol SaveAnalysisPreferencesUseCase {
+    func execute(_ preferences: PersonalityAnalysisPreferences) async throws
+}
+
+public protocol DeletePersonalityDataUseCase {
+    func execute(for userId: UUID) async throws
+}
+
+// MARK: - Personality Analysis Scheduler Use Cases
+
+public protocol StartAnalysisSchedulingUseCase {
+    func execute(for userId: UUID) async
+}
+
+public protocol UpdateAnalysisSchedulingUseCase {
+    func execute(for userId: UUID, preferences: PersonalityAnalysisPreferences) async
+}
+
+public protocol GetNextScheduledAnalysisUseCase {
+    func execute(for userId: UUID) async -> Date?
+}
+
+public protocol TriggerAnalysisCheckUseCase {
+    func execute(for userId: UUID) async
+}
+
+public protocol ForceManualAnalysisUseCase {
+    func execute(for userId: UUID) async
 }
 
 // MARK: - Debug Use Cases

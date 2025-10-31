@@ -47,4 +47,40 @@ extension Container {
     var isPersonalityAnalysisEnabledUseCase: Factory<IsPersonalityAnalysisEnabledUseCase> {
         self { DefaultIsPersonalityAnalysisEnabledUseCase(repository: self.personalityAnalysisRepository()) }
     }
+    
+    // MARK: - Personality Analysis Preferences Use Cases
+    
+    var getAnalysisPreferencesUseCase: Factory<GetAnalysisPreferencesUseCase> {
+        self { DefaultGetAnalysisPreferencesUseCase(repository: self.personalityAnalysisRepository()) }
+    }
+    
+    var saveAnalysisPreferencesUseCase: Factory<SaveAnalysisPreferencesUseCase> {
+        self { DefaultSaveAnalysisPreferencesUseCase(repository: self.personalityAnalysisRepository()) }
+    }
+    
+    var deletePersonalityDataUseCase: Factory<DeletePersonalityDataUseCase> {
+        self { DefaultDeletePersonalityDataUseCase(repository: self.personalityAnalysisRepository()) }
+    }
+    
+    // MARK: - Personality Analysis Scheduler Use Cases
+    
+    var startAnalysisSchedulingUseCase: Factory<StartAnalysisSchedulingUseCase> {
+        self { DefaultStartAnalysisSchedulingUseCase(scheduler: self.personalityAnalysisScheduler()) }
+    }
+    
+    var updateAnalysisSchedulingUseCase: Factory<UpdateAnalysisSchedulingUseCase> {
+        self { DefaultUpdateAnalysisSchedulingUseCase(scheduler: self.personalityAnalysisScheduler()) }
+    }
+    
+    var getNextScheduledAnalysisUseCase: Factory<GetNextScheduledAnalysisUseCase> {
+        self { DefaultGetNextScheduledAnalysisUseCase(scheduler: self.personalityAnalysisScheduler()) }
+    }
+    
+    var triggerAnalysisCheckUseCase: Factory<TriggerAnalysisCheckUseCase> {
+        self { DefaultTriggerAnalysisCheckUseCase(scheduler: self.personalityAnalysisScheduler()) }
+    }
+    
+    var forceManualAnalysisUseCase: Factory<ForceManualAnalysisUseCase> {
+        self { DefaultForceManualAnalysisUseCase(scheduler: self.personalityAnalysisScheduler()) }
+    }
 }

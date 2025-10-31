@@ -12,7 +12,6 @@ import RitualistCore
 public final class OverviewViewModel {
     // MARK: - Observable Properties
     public var todaysSummary: TodaysSummary?
-    public var weeklyProgress: WeeklyProgress?
     public var activeStreaks: [StreakInfo] = []
     public var smartInsights: [SmartInsight] = []
     public var personalityInsights: [OverviewPersonalityInsight] = []
@@ -21,8 +20,7 @@ public final class OverviewViewModel {
     public var personalityThresholdRequirements: [ThresholdRequirement] = [] // Current requirements status
     public var dominantPersonalityTrait: String? = nil
     public var selectedDate: Date = Date()
-    public var isCalendarExpanded: Bool = false
-    public var viewingDate: Date = Date() // The date being viewed in Today's Progress card
+    public var viewingDate: Date = CalendarUtils.startOfDayLocal(for: Date()) // The date being viewed in Today's Progress card
     public var showInspirationCard: Bool = false
     
     // Inspiration card tracking
@@ -72,25 +70,22 @@ public final class OverviewViewModel {
     }
     
     public var canGoToPreviousDay: Bool {
-        let calendar = Calendar.current
         let today = Date()
-        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: today) ?? today
-        let viewingDayStart = calendar.startOfDay(for: viewingDate)
-        let boundaryStart = calendar.startOfDay(for: thirtyDaysAgo)
+        let thirtyDaysAgo = CalendarUtils.addDays(-30, to: today)
+        let viewingDayStart = CalendarUtils.startOfDayUTC(for: viewingDate)
+        let boundaryStart = CalendarUtils.startOfDayUTC(for: thirtyDaysAgo)
         return viewingDayStart > boundaryStart
     }
     
     public var canGoToNextDay: Bool {
-        let calendar = Calendar.current
         let today = Date()
-        let viewingDayStart = calendar.startOfDay(for: viewingDate)
-        let todayStart = calendar.startOfDay(for: today)
+        let viewingDayStart = CalendarUtils.startOfDayUTC(for: viewingDate)
+        let todayStart = CalendarUtils.startOfDayUTC(for: today)
         return viewingDayStart < todayStart
     }
     
     public var isViewingToday: Bool {
-        let calendar = Calendar.current
-        return calendar.isDate(viewingDate, inSameDayAs: Date())
+        return CalendarUtils.areSameDayLocal(viewingDate, Date())
     }
     
     public var currentSlogan: String {
@@ -109,24 +104,6 @@ public final class OverviewViewModel {
     // InspirationTrigger moved to RitualistCore/Enums/MotivationEnums.swift
     private typealias InspirationTrigger = RitualistCore.InspirationTrigger
     
-    public var weeklyCompletionData: [Date: Double] {
-        // Return subset of monthly data for current week
-        let calendar = Calendar.current
-        let today = Date()
-        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
-        
-        var weeklyData: [Date: Double] = [:]
-        
-        // Get completion data for each day of the current week from monthly data
-        for i in 0..<7 {
-            if let date = calendar.date(byAdding: .day, value: i, to: startOfWeek) {
-                let startOfDay = calendar.startOfDay(for: date)
-                weeklyData[startOfDay] = monthlyCompletionData[startOfDay] ?? 0.0
-            }
-        }
-        
-        return weeklyData
-    }
     
     public var monthlyCompletionData: [Date: Double] = [:]
     
@@ -180,7 +157,6 @@ public final class OverviewViewModel {
             // Store the overview data and extract all card data from it using unified approach
             self.overviewData = overviewData
             self.todaysSummary = extractTodaysSummary(from: overviewData)
-            self.weeklyProgress = extractWeeklyProgress(from: overviewData)
             self.activeStreaks = extractActiveStreaks(from: overviewData)
             self.monthlyCompletionData = extractMonthlyData(from: overviewData)
             self.smartInsights = extractSmartInsights(from: overviewData)
@@ -219,12 +195,13 @@ public final class OverviewViewModel {
                 // Most numeric habit interactions should go through updateNumericHabit instead
                 await updateNumericHabit(habit, value: habit.dailyTarget ?? 1.0)
             } else {
-                // Binary habit - just create a log with value 1.0
+                // Binary habit - just create a log with value 1.0 using UTC timestamp and timezone context
                 let log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
-                    date: viewingDate,
-                    value: 1.0
+                    date: CalendarUtils.startOfDayUTC(for: viewingDate),
+                    value: 1.0,
+                    timezone: TimeZone.current.identifier
                 )
                 
                 try await logHabit.execute(log)
@@ -248,7 +225,7 @@ public final class OverviewViewModel {
     public func getCurrentProgress(for habit: Habit) async -> Double {
         do {
             let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
-            let logsForDate = allLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
+            let logsForDate = allLogs.filter { CalendarUtils.areSameDayUTC($0.date, viewingDate) }
             
             if habit.kind == .numeric {
                 return logsForDate.reduce(0.0) { $0 + ($1.value ?? 0.0) }
@@ -266,15 +243,16 @@ public final class OverviewViewModel {
         do {
             // Get existing logs for this habit on the viewing date
             let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
-            let existingLogsForDate = allLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
+            let existingLogsForDate = allLogs.filter { CalendarUtils.areSameDayUTC($0.date, viewingDate) }
             
             if existingLogsForDate.isEmpty {
-                // No existing log for this date - create new one
+                // No existing log for this date - create new one using UTC timestamp and timezone context
                 let log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
-                    date: viewingDate,
-                    value: value
+                    date: CalendarUtils.startOfDayUTC(for: viewingDate),
+                    value: value,
+                    timezone: TimeZone.current.identifier
                 )
                 try await logHabit.execute(log)
             } else if existingLogsForDate.count == 1 {
@@ -293,8 +271,9 @@ public final class OverviewViewModel {
                 let log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
-                    date: viewingDate,
-                    value: value
+                    date: CalendarUtils.startOfDayUTC(for: viewingDate),
+                    value: value,
+                    timezone: TimeZone.current.identifier
                 )
                 try await logHabit.execute(log)
             }
@@ -335,31 +314,31 @@ public final class OverviewViewModel {
         return HabitScheduleStatus.forHabit(habit, date: viewingDate, isScheduledDay: isScheduledDay)
     }
     
-    public func getWeeklyProgress(for habit: Habit) -> (completed: Int, target: Int) {
-        guard case .timesPerWeek = habit.schedule else {
-            return (completed: 0, target: 0)
-        }
-        
-        do {
-            // Get logs for the current week
-            let weekStart = Calendar.current.dateInterval(of: .weekOfYear, for: viewingDate)?.start ?? viewingDate
-            let weekEnd = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: weekStart) ?? viewingDate
-            let logs = try loadLogsSynchronously(for: habit.id, from: weekStart, to: weekEnd)
-            
-            // Calculate weekly progress using business logic
-            guard case .timesPerWeek(let weeklyTarget) = habit.schedule else { return (0, 0) }
-            let filteredLogs = logs.filter { log in
-                log.habitID == habit.id && log.value != nil && log.value! > 0
-            }
-            let uniqueDays = Set(filteredLogs.map { log in
-                Calendar.current.startOfDay(for: log.date)
-            })
-            
-            return (uniqueDays.count, weeklyTarget)
-        } catch {
-            return (completed: 0, target: 0)
-        }
-    }
+//    public func getWeeklyProgress(for habit: Habit) -> (completed: Int, target: Int) {
+//        guard case .timesPerWeek = habit.schedule else {
+//            return (completed: 0, target: 0)
+//        }
+//        
+//        do {
+//            // Get logs for the current week
+//            let weekStart = CalendarUtils.startOfWeekUTC(for: viewingDate)
+//            let weekEnd = CalendarUtils.endOfWeekUTC(for: viewingDate)
+//            let logs = try loadLogsSynchronously(for: habit.id, from: weekStart, to: weekEnd)
+//            
+//            // Calculate weekly progress using business logic
+//            guard case .timesPerWeek(let weeklyTarget) = habit.schedule else { return (0, 0) }
+//            let filteredLogs = logs.filter { log in
+//                log.habitID == habit.id && log.value != nil && log.value! > 0
+//            }
+//            let uniqueDays = Set(filteredLogs.map { log in
+//                CalendarUtils.startOfDayUTC(for: log.date)
+//            })
+//            
+//            return (uniqueDays.count, weeklyTarget)
+//        } catch {
+//            return (completed: 0, target: 0)
+//        }
+//    }
     
     private func loadLogsSynchronously(for habitId: UUID, from startDate: Date, to endDate: Date) throws -> [HabitLog] {
         // This is a simplified synchronous version - in production you'd want to cache this data
@@ -423,7 +402,7 @@ public final class OverviewViewModel {
         do {
             // Get existing logs for this habit on the viewing date
             let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
-            let existingLogsForDate = allLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
+            let existingLogsForDate = allLogs.filter { CalendarUtils.areSameDayUTC($0.date, viewingDate) }
             
             // Delete all logs for this habit on this date
             for log in existingLogsForDate {
@@ -446,10 +425,8 @@ public final class OverviewViewModel {
     }
     
     public func goToPreviousDay() {
-        let calendar = Calendar.current
-        if let previousDay = calendar.date(byAdding: .day, value: -1, to: viewingDate),
-           canGoToPreviousDay {
-            viewingDate = previousDay
+        if canGoToPreviousDay {
+            viewingDate = CalendarUtils.previousDay(from: viewingDate)
             Task {
                 await loadData()
             }
@@ -457,10 +434,8 @@ public final class OverviewViewModel {
     }
     
     public func goToNextDay() {
-        let calendar = Calendar.current
-        if let nextDay = calendar.date(byAdding: .day, value: 1, to: viewingDate),
-           canGoToNextDay {
-            viewingDate = nextDay
+        if canGoToNextDay {
+            viewingDate = CalendarUtils.nextDay(from: viewingDate)
             Task {
                 await loadData()
             }
@@ -468,7 +443,7 @@ public final class OverviewViewModel {
     }
     
     public func goToToday() {
-        viewingDate = Date()
+        viewingDate = CalendarUtils.startOfDayLocal(for: Date())
         Task {
             await loadData()
         }
@@ -513,8 +488,7 @@ public final class OverviewViewModel {
     
     private func checkForComebackStory(currentCompletion: Double) async -> Bool {
         // Check if today's progress is significantly better than yesterday
-        let calendar = Calendar.current
-        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) else { return false }
+        let yesterday = CalendarUtils.previousDay(from: Date())
         
         do {
             let yesterdayHabits = try await getActiveHabits.execute()
@@ -522,7 +496,7 @@ public final class OverviewViewModel {
             
             for habit in yesterdayHabits {
                 let logs = try await getLogs.execute(for: habit.id, since: yesterday, until: yesterday)
-                if logs.contains(where: { calendar.isDate($0.date, inSameDayAs: yesterday) }) {
+                if logs.contains(where: { CalendarUtils.areSameDayUTC($0.date, yesterday) }) {
                     yesterdayCompletedCount += 1
                 }
             }
@@ -563,13 +537,12 @@ public final class OverviewViewModel {
         let timeOfDay = currentTimeOfDay
         let completionRate = summary.completionPercentage
         let now = Date()
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: now)
-        let isWeekend = [1, 7].contains(calendar.component(.weekday, from: now))
+        let hour = CalendarUtils.hourComponentUTC(from: now)
+        let isWeekend = [1, 7].contains(CalendarUtils.weekdayComponentUTC(from: now))
         
         // Session Start (first load of the day)
-        if calendar.isDate(sessionStartTime, inSameDayAs: now) && 
-           calendar.dateComponents([.minute], from: sessionStartTime, to: now).minute! < 5 {
+        if CalendarUtils.areSameDayUTC(sessionStartTime, now) && 
+           CalendarUtils.daysBetweenUTC(sessionStartTime, now) == 0 {
             triggers.append(.sessionStart)
         }
         
@@ -628,9 +601,9 @@ public final class OverviewViewModel {
             
             // Check cooldown
             if let lastTrigger = lastShownInspirationTrigger,
-               lastTrigger == trigger,
-               let lastShownTime = Calendar.current.dateInterval(of: .day, for: now)?.start {
-                let cooldownEnd = Calendar.current.date(byAdding: .minute, value: trigger.cooldownMinutes, to: lastShownTime) ?? lastShownTime
+               lastTrigger == trigger {
+                let lastShownTime = CalendarUtils.startOfDayUTC(for: now)
+                let cooldownEnd = CalendarUtils.addMinutes(trigger.cooldownMinutes, to: lastShownTime)
                 return now >= cooldownEnd
             }
             return true
@@ -691,11 +664,8 @@ public final class OverviewViewModel {
         let habits = try await getActiveHabits.execute()
         
         // 2. Determine date range (past 30 days for monthly data)
-        let calendar = Calendar.current
         let today = Date()
-        guard let startDate = calendar.date(byAdding: .day, value: -30, to: today) else {
-            throw OverviewError.dateRangeCalculationFailed(reason: "Could not calculate date 30 days ago from today")
-        }
+        let startDate = CalendarUtils.addDays(-30, to: today)
         
         // 3. Load logs ONCE for entire date range using batch operation
         let habitIds = habits.map(\.id)
@@ -765,61 +735,25 @@ public final class OverviewViewModel {
         )
     }
     
-    /// Extract WeeklyProgress from overview data
-    private func extractWeeklyProgress(from data: OverviewData) -> WeeklyProgress {
-        let calendar = Calendar.current
-        let today = Date()
-        
-        // Get the start of the current week
-        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else {
-            return WeeklyProgress(daysCompleted: Array(repeating: false, count: 7), currentDayIndex: 0)
-        }
-        
-        var daysCompleted: [Bool] = []
-        // Calculate current day index relative to week start day
-        let todayWeekday = calendar.component(.weekday, from: today)
-        let firstWeekday = calendar.firstWeekday
-        let currentDayIndex = (todayWeekday - firstWeekday + 7) % 7
-        
-        // Check each day of the week
-        for dayOffset in 0..<7 {
-            if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: weekInterval.start) {
-                // Use HabitCompletionService for single source of truth
-                let scheduledHabits = data.scheduledHabits(for: dayDate)
-                let completedCount = scheduledHabits.count { habit in
-                    let logs = data.logs(for: habit.id, on: dayDate)
-                    return isHabitCompleted.execute(habit: habit, on: dayDate, logs: logs)
-                }
-                let isCompleted = !scheduledHabits.isEmpty && completedCount == scheduledHabits.count
-                daysCompleted.append(isCompleted)
-            } else {
-                daysCompleted.append(false)
-            }
-        }
-        
-        return WeeklyProgress(daysCompleted: daysCompleted, currentDayIndex: currentDayIndex)
-    }
     
     /// Extract monthly completion data from overview data
     private func extractMonthlyData(from data: OverviewData) -> [Date: Double] {
         var result: [Date: Double] = [:]
-        let calendar = Calendar.current
         
         // Get dates from range, ensuring we use startOfDay for consistency
         for dayOffset in 0...30 {
-            if let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) {
-                let startOfDay = calendar.startOfDay(for: date)
-                // Use HabitCompletionService for single source of truth completion rate
-                let scheduledHabits = data.scheduledHabits(for: startOfDay)
-                if scheduledHabits.isEmpty {
-                    result[startOfDay] = 0.0
-                } else {
-                    let completedCount = scheduledHabits.count { habit in
-                        let logs = data.logs(for: habit.id, on: startOfDay)
-                        return isHabitCompleted.execute(habit: habit, on: startOfDay, logs: logs)
-                    }
-                    result[startOfDay] = Double(completedCount) / Double(scheduledHabits.count)
+            let date = CalendarUtils.addDays(-dayOffset, to: Date())
+            let startOfDay = CalendarUtils.startOfDayUTC(for: date)
+            // Use HabitCompletionService for single source of truth completion rate
+            let scheduledHabits = data.scheduledHabits(for: startOfDay)
+            if scheduledHabits.isEmpty {
+                result[startOfDay] = 0.0
+            } else {
+                let completedCount = scheduledHabits.count { habit in
+                    let logs = data.logs(for: habit.id, on: startOfDay)
+                    return isHabitCompleted.execute(habit: habit, on: startOfDay, logs: logs)
                 }
+                result[startOfDay] = Double(completedCount) / Double(scheduledHabits.count)
             }
         }
         
@@ -859,13 +793,10 @@ public final class OverviewViewModel {
     /// Uses pre-loaded data and UseCases for consistency
     private func extractSmartInsights(from data: OverviewData) -> [SmartInsight] {
         var insights: [SmartInsight] = []
-        let calendar = Calendar.current
         let today = Date()
         
         // Get the proper week interval that respects user's first day of week preference
-        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else {
-            return insights
-        }
+        let weekInterval = CalendarUtils.weekIntervalUTC(for: today) ?? DateInterval(start: today, duration: 0)
         let startOfWeek = weekInterval.start
         
         // Use unified data instead of separate queries
@@ -885,12 +816,12 @@ public final class OverviewViewModel {
             
             // Count actual completions using IsHabitCompletedUseCase for single source of truth
             for log in recentLogs {
-                let dayLogs = logs.filter { calendar.isDate($0.date, inSameDayAs: log.date) }
+                let dayLogs = logs.filter { CalendarUtils.areSameDayUTC($0.date, log.date) }
                 if isHabitCompleted.execute(habit: habit, on: log.date, logs: dayLogs) {
                     totalCompletions += 1
                     
                     // Count completions per day
-                    let daysSinceStart = calendar.dateComponents([.day], from: startOfWeek, to: log.date).day ?? 0
+                    let daysSinceStart = CalendarUtils.daysBetweenUTC(startOfWeek, log.date)
                     if daysSinceStart >= 0 && daysSinceStart < 7 {
                         dailyCompletions[daysSinceStart] += 1
                     }
@@ -1040,13 +971,10 @@ public final class OverviewViewModel {
     
     private func generateBasicHabitInsights() async throws -> [SmartInsight] {
         var insights: [SmartInsight] = []
-        let calendar = Calendar.current
         let today = Date()
         
         // Get the proper week interval that respects user's first day of week preference
-        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else {
-            return insights
-        }
+        let weekInterval = CalendarUtils.weekIntervalUTC(for: today) ?? DateInterval(start: today, duration: 0)
         let startOfWeek = weekInterval.start
         
         // Get user's active habits and recent logs
@@ -1073,7 +1001,7 @@ public final class OverviewViewModel {
             
             // Count completions per day
             for log in recentLogs {
-                let daysSinceStart = calendar.dateComponents([.day], from: startOfWeek, to: log.date).day ?? 0
+                let daysSinceStart = CalendarUtils.daysBetweenUTC(startOfWeek, log.date)
                 if daysSinceStart >= 0 && daysSinceStart < 7 {
                     dailyCompletions[daysSinceStart] += 1
                 }
@@ -1113,9 +1041,7 @@ public final class OverviewViewModel {
         // Find best performing day
         if let bestDayIndex = dailyCompletions.enumerated().max(by: { $0.element < $1.element })?.offset {
             // Get the actual date for the best performing day
-            guard let bestDate = calendar.date(byAdding: .day, value: bestDayIndex, to: startOfWeek) else {
-                return insights
-            }
+            let bestDate = CalendarUtils.addDays(bestDayIndex, to: startOfWeek)
             
             // Get the day name using the proper date
             let dayFormatter = DateFormatter()
@@ -1146,12 +1072,11 @@ public final class OverviewViewModel {
     
     
     private func resetDismissedTriggersIfNewDay() {
-        let calendar = Calendar.current
         let today = Date()
         
         // Check if we've moved to a new day since last session
         if let lastResetDate = UserDefaults.standard.object(forKey: "lastInspirationResetDate") as? Date {
-            if !calendar.isDate(lastResetDate, inSameDayAs: today) {
+            if !CalendarUtils.areSameDayUTC(lastResetDate, today) {
                 dismissedTriggersToday.removeAll()
                 UserDefaults.standard.set(today, forKey: "lastInspirationResetDate")
             } else {

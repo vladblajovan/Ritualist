@@ -94,16 +94,13 @@ public final class CalculateHabitPerformanceUseCase: CalculateHabitPerformanceUs
 public final class GenerateProgressChartDataUseCase: GenerateProgressChartDataUseCaseProtocol {
     private let getHabitCompletionStatsUseCase: GetHabitCompletionStatsUseCase
     private let performanceAnalysisService: PerformanceAnalysisService
-    private let calendar: Calendar
     
     public init(
         getHabitCompletionStatsUseCase: GetHabitCompletionStatsUseCase,
-        performanceAnalysisService: PerformanceAnalysisService,
-        calendar: Calendar = Calendar.current
+        performanceAnalysisService: PerformanceAnalysisService
     ) {
         self.getHabitCompletionStatsUseCase = getHabitCompletionStatsUseCase
         self.performanceAnalysisService = performanceAnalysisService
-        self.calendar = calendar
     }
     
     public func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [ProgressChartDataPoint] {
@@ -111,7 +108,7 @@ public final class GenerateProgressChartDataUseCase: GenerateProgressChartDataUs
         var currentDate = startDate
         
         while currentDate <= endDate {
-            let dayEnd = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+            let dayEnd = CalendarUtils.addDays(1, to: currentDate)
             
             let dayStats = try await getHabitCompletionStatsUseCase.execute(
                 for: userId,
@@ -121,10 +118,7 @@ public final class GenerateProgressChartDataUseCase: GenerateProgressChartDataUs
             
             completionStatsByDate[currentDate] = dayStats
             
-            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: currentDate) else {
-                break
-            }
-            currentDate = nextDay
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         return performanceAnalysisService.generateProgressChartData(

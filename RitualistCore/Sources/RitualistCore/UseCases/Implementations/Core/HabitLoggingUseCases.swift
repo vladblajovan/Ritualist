@@ -20,7 +20,7 @@ public final class ToggleHabitLog: ToggleHabitLogUseCase {
         currentHabitLogValues: [Date: Double]
     ) async throws -> (loggedDates: Set<Date>, habitLogValues: [Date: Double]) {
         let existingLog = try await getLogForDate.execute(habitID: habit.id, date: date)
-        let normalizedDate = Calendar.current.startOfDay(for: date)
+        let normalizedDate = CalendarUtils.startOfDayUTC(for: date)
         
         var updatedLoggedDates = currentLoggedDates
         var updatedHabitLogValues = currentHabitLogValues
@@ -34,7 +34,7 @@ public final class ToggleHabitLog: ToggleHabitLogUseCase {
                 updatedHabitLogValues.removeValue(forKey: normalizedDate)
             } else {
                 // Add log
-                let newLog = HabitLog(habitID: habit.id, date: date, value: 1.0)
+                let newLog = HabitLog.withCurrentTimezone(habitID: habit.id, date: date, value: 1.0)
                 try await logHabit.execute(newLog)
                 updatedLoggedDates.insert(normalizedDate)
                 updatedHabitLogValues[normalizedDate] = 1.0
@@ -62,11 +62,11 @@ public final class ToggleHabitLog: ToggleHabitLogUseCase {
                 // Increment: update or create log
                 if let existingLog = existingLog {
                     // Update existing log
-                    let updatedLog = HabitLog(id: existingLog.id, habitID: habit.id, date: date, value: newValue)
+                    let updatedLog = HabitLog(id: existingLog.id, habitID: habit.id, date: date, value: newValue, timezone: existingLog.timezone)
                     try await logHabit.execute(updatedLog)
                 } else {
                     // Create new log
-                    let newLog = HabitLog(habitID: habit.id, date: date, value: newValue)
+                    let newLog = HabitLog.withCurrentTimezone(habitID: habit.id, date: date, value: newValue)
                     try await logHabit.execute(newLog)
                 }
                 

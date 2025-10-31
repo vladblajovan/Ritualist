@@ -41,6 +41,7 @@ private struct SettingsFormView: View {
     // Local form state
     @State private var name = ""
     @State private var appearance = 0
+    @State private var displayTimezoneMode = "original"
     
     var body: some View {
         Group {
@@ -157,6 +158,28 @@ private struct SettingsFormView: View {
                         }
                     }
                     
+                    Section("Time Display") {
+                        VStack(alignment: .leading, spacing: Spacing.small) {
+                            Picker("Display Mode", selection: $displayTimezoneMode) {
+                                Text("Original Time").tag("original")
+                                Text("Current Time").tag("current")
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .onChange(of: displayTimezoneMode) { _, newValue in
+                                Task {
+                                    vm.profile.displayTimezoneMode = newValue
+                                    _ = await vm.save()
+                                }
+                            }
+
+                            Text(timezoneExplanationText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, Spacing.small)
+                    }
+                    
                     Section("Data Management") {
                         GenericRowView.settingsRow(
                             title: "Manage Categories",
@@ -171,20 +194,7 @@ private struct SettingsFormView: View {
                     Section("Personality Insights") {
                         PersonalityInsightsSettingsRow()
                     }
-                    
-                    #if DEBUG
-                    Section("Debug") {
-                        GenericRowView.settingsRow(
-                            title: "Debug Menu",
-                            subtitle: "Development tools and database management",
-                            icon: "wrench.and.screwdriver",
-                            iconColor: .red
-                        ) {
-                            showingDebugMenu = true
-                        }
-                    }
-                    #endif
-                    
+
                     Section(Strings.Settings.notifications) {
                         HStack(spacing: Spacing.medium) {
                             Image(systemName: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill")
@@ -235,7 +245,20 @@ private struct SettingsFormView: View {
                         }
                         .padding(.vertical, Spacing.small)
                     }
-                    
+
+                    #if DEBUG
+                    Section("Debug") {
+                        GenericRowView.settingsRow(
+                            title: "Debug Menu",
+                            subtitle: "Development tools and database management",
+                            icon: "wrench.and.screwdriver",
+                            iconColor: .red
+                        ) {
+                            showingDebugMenu = true
+                        }
+                    }
+                    #endif
+
                 }
                 .refreshable {
                     await vm.load()
@@ -305,10 +328,21 @@ private struct SettingsFormView: View {
         vm.profile.name
     }
     
-    
+    private var timezoneExplanationText: String {
+        switch displayTimezoneMode {
+        case "original":
+            return "Show times as they were originally experienced (preserves timezone context)"
+        case "current":
+            return "Show all times in your current device timezone"
+        default:
+            return "Choose how to display timestamps in the app"
+        }
+    }
+
     private func updateLocalState() {
         name = vm.profile.name
         appearance = vm.profile.appearance
+        displayTimezoneMode = vm.profile.displayTimezoneMode
     }
     
     private func updateUserName() async {

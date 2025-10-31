@@ -34,7 +34,6 @@ final class WidgetValidateHabitSchedule: ValidateHabitScheduleUseCase {
     // MARK: - Private Helper Methods
     
     private func generateUserFriendlyReason(for habit: Habit, date: Date) -> String {
-        let calendar = Calendar.current
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .none
@@ -48,8 +47,8 @@ final class WidgetValidateHabitSchedule: ValidateHabitScheduleUseCase {
             
         case .daysOfWeek(let scheduledDays):
             let dayNames = scheduledDays.sorted().compactMap { dayNum in
-                let calWeekday = DateUtils.habitWeekdayToCalendarWeekday(dayNum)
-                return calendar.weekdaySymbols[calWeekday - 1]
+                let calWeekday = CalendarUtils.habitWeekdayToCalendarWeekday(dayNum)
+                return CalendarUtils.currentLocalCalendar.weekdaySymbols[calWeekday - 1]
             }
             
             if dayNames.count == 1 {
@@ -62,9 +61,6 @@ final class WidgetValidateHabitSchedule: ValidateHabitScheduleUseCase {
                 return "This habit is only scheduled for \(otherDays), and \(lastDay)s."
             }
             
-        case .timesPerWeek:
-            // This shouldn't happen since timesPerWeek habits can be logged any day, but provide a fallback
-            return "This habit is not available for logging on \(formattedDate)."
         }
     }
 }
@@ -96,20 +92,6 @@ final class WidgetLogHabit: LogHabitUseCase {
             throw HabitScheduleValidationError.habitUnavailable(habitName: habit.name)
         }
         
-        // For timesPerWeek habits, validate that user hasn't already logged today
-        if case .timesPerWeek = habit.schedule {
-            let dayStart = Calendar.current.startOfDay(for: log.date)
-            let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
-            
-            let existingLogs = try await logRepository.logs(for: habit.id)
-            let logsForToday = existingLogs.filter { existingLog in
-                existingLog.date >= dayStart && existingLog.date < dayEnd
-            }
-            
-            if !logsForToday.isEmpty {
-                throw HabitScheduleValidationError.alreadyLoggedToday(habitName: habit.name)
-            }
-        }
         
         // Validate schedule before logging
         let validationResult = try await validateSchedule.execute(habit: habit, date: log.date)

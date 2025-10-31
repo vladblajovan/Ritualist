@@ -211,8 +211,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
                     } else {
                         rigidScheduleCount += 1
                     }
-                case .timesPerWeek(_):
-                    flexibleScheduleCount += 1 // Times per week = high flexibility
                 }
             }
             
@@ -449,53 +447,82 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         // Start with neutral baseline - using consistent ordering to prevent fluctuations
         var weights: [String: Double] = [
             "openness": 0.05,
-            "conscientiousness": 0.05,  
+            "conscientiousness": 0.05,
             "extraversion": 0.05,
             "agreeableness": 0.05,
             "neuroticism": 0.05
         ]
-        
+
+        // Combine habit names and category name for comprehensive keyword analysis
+        let allText = ([category.name, category.displayName] + habits.map { $0.name }).joined(separator: " ").lowercased()
+
         // Behavior-based inference
         if !habits.isEmpty {
-            // High consistency = Conscientiousness
-            let avgCompletionRate = allLogs.reduce(0.0, +) / Double(max(allLogs.count, 1))
-            if avgCompletionRate > 0.7 {
-                weights["conscientiousness"] = 0.3
-            } else if avgCompletionRate < 0.3 {
-                weights["neuroticism"] = 0.2
+            // OPENNESS: Creativity, exploration, learning, novelty
+            let opennessKeywords = ["new", "learn", "explore", "creative", "experiment", "try",
+                                    "photography", "art", "music", "innovation", "discover", "curious",
+                                    "novel", "adventure", "imagination", "travel", "culture", "language"]
+            let opennessMatches = opennessKeywords.filter { allText.contains($0) }
+            if !opennessMatches.isEmpty {
+                weights["openness"] = 0.5
+            } else {
+                // Variety of different habits = Openness (fallback)
+                let uniqueHabitTypes = Set(habits.map { $0.name.prefix(3) })
+                if uniqueHabitTypes.count >= 3 && habits.count >= 3 {
+                    weights["openness"] = 0.25
+                }
             }
-            
-            // Social keywords = Extraversion
-            let socialHabits = habits.filter { habit in
-                habit.name.localizedCaseInsensitiveContains("social") ||
-                habit.name.localizedCaseInsensitiveContains("friend") ||
-                habit.name.localizedCaseInsensitiveContains("meet") ||
-                habit.name.localizedCaseInsensitiveContains("call") ||
-                habit.name.localizedCaseInsensitiveContains("visit")
+
+            // CONSCIENTIOUSNESS: Organization, planning, discipline, achievement
+            let conscientiousnessKeywords = ["plan", "organize", "routine", "track", "goal", "schedule",
+                                              "review", "discipline", "achievement", "complete", "morning",
+                                              "evening", "daily", "system", "structure", "checklist",
+                                              "preparation", "productivity", "order", "arrangement"]
+            let conscientiousnessMatches = conscientiousnessKeywords.filter { allText.contains($0) }
+            if !conscientiousnessMatches.isEmpty {
+                weights["conscientiousness"] = 0.5
+            } else {
+                // High consistency = Conscientiousness (fallback)
+                let avgCompletionRate = allLogs.reduce(0.0, +) / Double(max(allLogs.count, 1))
+                if avgCompletionRate > 0.7 {
+                    weights["conscientiousness"] = 0.3
+                }
             }
-            if !socialHabits.isEmpty {
-                weights["extraversion"] = 0.4
+
+            // EXTRAVERSION: Social interaction, energy, enthusiasm
+            let extraversionKeywords = ["social", "friend", "meet", "call", "visit", "party", "group",
+                                         "team", "networking", "event", "gathering", "club", "collaborate",
+                                         "community", "people", "conversation", "interaction", "outgoing"]
+            let extraversionMatches = extraversionKeywords.filter { allText.contains($0) }
+            if !extraversionMatches.isEmpty {
+                weights["extraversion"] = 0.5
             }
-            
-            // Variety of different habits = Openness
-            let uniqueHabitTypes = Set(habits.map { $0.name.prefix(3) })
-            if uniqueHabitTypes.count >= 3 && habits.count >= 3 {
-                weights["openness"] = 0.25
-            }
-            
-            // Relationship/care keywords = Agreeableness
-            let careHabits = habits.filter { habit in
-                habit.name.localizedCaseInsensitiveContains("love") ||
-                habit.name.localizedCaseInsensitiveContains("care") ||
-                habit.name.localizedCaseInsensitiveContains("help") ||
-                habit.name.localizedCaseInsensitiveContains("family") ||
-                habit.name.localizedCaseInsensitiveContains("relationship")
-            }
-            if !careHabits.isEmpty {
+
+            // AGREEABLENESS: Compassion, cooperation, caring
+            let agreeablenessKeywords = ["love", "care", "help", "family", "relationship", "volunteer",
+                                          "support", "kindness", "donate", "compassion", "empathy", "charity",
+                                          "giving", "nurturing", "altruism", "cooperation", "harmony"]
+            let agreeablenessMatches = agreeablenessKeywords.filter { allText.contains($0) }
+            if !agreeablenessMatches.isEmpty {
                 weights["agreeableness"] = 0.5
             }
+
+            // NEUROTICISM: Emotional instability, stress, anxiety
+            let neuroticismKeywords = ["stress", "anxiety", "mood", "therapy", "coping", "worry",
+                                        "self-care", "emotional", "mindful", "calm", "manage", "attempt",
+                                        "stability", "overwhelm", "tension", "nervous", "concern"]
+            let neuroticismMatches = neuroticismKeywords.filter { allText.contains($0) }
+            if !neuroticismMatches.isEmpty {
+                weights["neuroticism"] = 0.5
+            } else {
+                // Low consistency = Neuroticism (fallback)
+                let avgCompletionRate = allLogs.reduce(0.0, +) / Double(max(allLogs.count, 1))
+                if avgCompletionRate < 0.3 {
+                    weights["neuroticism"] = 0.3
+                }
+            }
         }
-        
+
         return weights
     }
     
@@ -571,13 +598,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             if days.count <= 3 {
                 // Selective days suggest thoughtful planning
                 modifiers[.openness] = (modifiers[.openness] ?? 1.0) * 1.05
-            }
-        case .timesPerWeek(let times):
-            // Flexible frequency suggests adaptability
-            modifiers[.openness] = (modifiers[.openness] ?? 1.0) * 1.1
-            if times >= 5 {
-                // High frequency suggests discipline
-                modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.05
             }
         }
         

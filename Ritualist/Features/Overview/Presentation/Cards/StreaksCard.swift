@@ -90,7 +90,8 @@ struct StreaksCard: View {
             }
         }
         .padding(20)
-        .glassmorphicMaximizedContentStyle()
+        // PERFORMANCE: Removed .glassmorphicMaximizedContentStyle() - unnecessary Button wrapper with animation
+        // Card is already wrapped in .simpleCard() in OverviewView
         .onAppear {
             if shouldAnimateBestStreak {
                 // Find the best streak to animate

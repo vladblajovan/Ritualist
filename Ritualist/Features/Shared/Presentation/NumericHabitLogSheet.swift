@@ -365,7 +365,7 @@ public struct NumericHabitLogSheetDirect: View {
         Task {
             do {
                 let logs = try await getLogs.execute(for: habit.id, since: nil, until: nil)
-                let targetDateLogs = logs.filter { Calendar.current.isDate($0.date, inSameDayAs: viewingDate) }
+                let targetDateLogs = logs.filter { CalendarUtils.areSameDayUTC($0.date, viewingDate) }
                 let totalValue = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
                 
                 await MainActor.run {

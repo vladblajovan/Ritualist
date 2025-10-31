@@ -71,11 +71,10 @@ extension DashboardViewModel {
         var totalActualCompletions = 0
         var habitsWithCompletions: Set<UUID> = []
         
-        let calendar = Calendar.current
         var currentDate = dateRange.lowerBound
         
         while currentDate <= dateRange.upperBound {
-            let startOfDay = calendar.startOfDay(for: currentDate)
+            let startOfDay = CalendarUtils.startOfDayUTC(for: currentDate)
             let scheduledHabits = dashboardData.scheduledHabits(for: startOfDay)
             let completionRate = dashboardData.completionRate(for: startOfDay)
             
@@ -88,8 +87,7 @@ extension DashboardViewModel {
                 habitsWithCompletions.formUnion(completedHabitsToday)
             }
             
-            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
-            currentDate = nextDate
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         let averageCompletionRate = totalPossibleCompletions > 0 ? Double(totalActualCompletions) / Double(totalPossibleCompletions) : 0.0
@@ -129,7 +127,7 @@ extension DashboardViewModel {
             return nil 
         }
         
-        let calendar = DateUtils.userCalendar() // Use system calendar with user's week start preference
+        let calendar = CalendarUtils.currentLocalCalendar // Use system calendar with user's week start preference
         var dayOfWeekStats: [Int: (completed: Int, total: Int)] = [:]
         
         // Initialize stats for all days of week (1 = Sunday, 7 = Saturday)
@@ -249,7 +247,7 @@ extension DashboardViewModel {
             
             // Only count as "data day" if there are logs for this date (actual user activity)
             let hasLogsForDate = dashboardData.habitLogs.values.flatMap { $0 }.contains { log in
-                Calendar.current.isDate(log.date, inSameDayAs: currentDate)
+                CalendarUtils.areSameDayUTC(log.date, currentDate)
             }
             
             if !scheduledHabits.isEmpty && hasLogsForDate {
@@ -269,8 +267,7 @@ extension DashboardViewModel {
                 print("🔍 [DEBUG] \(DateFormatter.debugDate.string(from: currentDate)) (\(dayName)): No habits scheduled")
             }
             
-            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
-            currentDate = nextDate
+            currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
         print("🔍 [DEBUG] Analysis complete: \(totalDaysAnalyzed) total days, \(daysWithData) days with scheduled habits")

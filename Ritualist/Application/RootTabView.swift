@@ -4,6 +4,7 @@ import RitualistCore
 
 public struct RootTabView: View {
     @Injected(\.rootTabViewModel) var viewModel
+    @Injected(\.settingsViewModel) var settingsViewModel
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var showingPersonalityAnalysis = false
@@ -47,6 +48,13 @@ public struct RootTabView: View {
                 }
                 //.modifier(TabBarMinimizeModifier())
                 .preferredColorScheme(vm.appearanceManager.colorScheme)
+                #if DEBUG
+                .overlay(alignment: .topTrailing) {
+                    if settingsViewModel.showFPSOverlay {
+                        FPSOverlay()
+                    }
+                }
+                #endif
             }
         }
         .task {

@@ -45,14 +45,12 @@ public protocol StreakCalculationService {
 public final class DefaultStreakCalculationService: StreakCalculationService {
     
     private let habitCompletionService: HabitCompletionService
-    private let calendar: Calendar
     
     public init(
-        habitCompletionService: HabitCompletionService,
-        calendar: Calendar = Calendar.current
+        habitCompletionService: HabitCompletionService
     ) {
         self.habitCompletionService = habitCompletionService
-        self.calendar = calendar
+        // Using CalendarUtils for UTC-based business logic consistency
     }
     
     // MARK: - Public Methods
@@ -63,8 +61,6 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
             return calculateDailyCurrentStreak(habit: habit, logs: logs, asOf: date)
         case .daysOfWeek:
             return calculateDaysOfWeekCurrentStreak(habit: habit, logs: logs, asOf: date)
-        case .timesPerWeek:
-            return calculateTimesPerWeekCurrentStreak(habit: habit, logs: logs, asOf: date)
         }
     }
     
@@ -74,24 +70,17 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
             return calculateDailyLongestStreak(habit: habit, logs: logs)
         case .daysOfWeek:
             return calculateDaysOfWeekLongestStreak(habit: habit, logs: logs)
-        case .timesPerWeek:
-            return calculateTimesPerWeekLongestStreak(habit: habit, logs: logs)
         }
     }
     
     public func getStreakBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date) -> [Date] {
-        switch habit.schedule {
-        case .timesPerWeek(let weeklyTarget):
-            return getTimesPerWeekBreakDates(habit: habit, logs: logs, asOf: date, weeklyTarget: weeklyTarget)
-        default:
-            return getDailyBreakDates(habit: habit, logs: logs, asOf: date)
-        }
+        return getDailyBreakDates(habit: habit, logs: logs, asOf: date)
     }
     
     private func getDailyBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date) -> [Date] {
         var breakDates: [Date] = []
-        var currentDate = calendar.startOfDay(for: date)
-        let habitStartDate = calendar.startOfDay(for: habit.startDate)
+        var currentDate = CalendarUtils.startOfDayUTC(for: date)
+        let habitStartDate = CalendarUtils.startOfDayUTC(for: habit.startDate)
         
         // Work backwards from the current date
         while currentDate >= habitStartDate {
@@ -102,52 +91,13 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 }
             }
             
-            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: currentDate) else { break }
-            currentDate = previousDay
+            currentDate = CalendarUtils.addDays(-1, to: currentDate)
+            // currentDate already updated above
         }
         
         return breakDates.reversed() // Return in chronological order
     }
     
-    private func getTimesPerWeekBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date, weeklyTarget: Int) -> [Date] {
-        var breakDates: [Date] = []
-        var weekDate = calendar.startOfDay(for: date)
-        let habitStartDate = habit.startDate
-        
-        // Check each week backwards
-        while weekDate >= habitStartDate {
-            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: weekDate) else { break }
-            
-            // Don't count future weeks or weeks before habit start
-            if weekInterval.start > date || weekInterval.end < habitStartDate {
-                break
-            }
-            
-            let weekLogs = logs.filter { log in
-                log.date >= weekInterval.start &&
-                log.date < weekInterval.end &&
-                isLogCompleted(log: log, habit: habit)
-            }
-            
-            // If weekly target isn't met, add all days in that week as break dates
-            if weekLogs.count < weeklyTarget {
-                var dayDate = weekInterval.start
-                while dayDate < weekInterval.end {
-                    if dayDate >= habitStartDate && dayDate <= date {
-                        breakDates.append(dayDate)
-                    }
-                    guard let nextDay = calendar.date(byAdding: .day, value: 1, to: dayDate) else { break }
-                    dayDate = nextDay
-                }
-            }
-            
-            // Move to previous week
-            guard let previousWeek = calendar.date(byAdding: .weekOfYear, value: -1, to: weekDate) else { break }
-            weekDate = previousWeek
-        }
-        
-        return breakDates.sorted() // Return in chronological order
-    }
     
     public func getNextScheduledDate(habit: Habit, after date: Date) -> Date? {
         // If habit has an end date and we're past it, no future schedule
@@ -155,8 +105,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
             return nil
         }
         
-        var searchDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date)) ?? date
-        let searchLimit = calendar.date(byAdding: .year, value: 1, to: date) ?? date // Prevent infinite loops
+        var searchDate = CalendarUtils.addDays(1, to: CalendarUtils.startOfDayUTC(for: date))
+        let searchLimit = CalendarUtils.addYears(1, to: date) // Prevent infinite loops
         
         while searchDate <= searchLimit {
             if habitCompletionService.isScheduledDay(habit: habit, date: searchDate) {
@@ -172,8 +122,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 }
             }
             
-            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: searchDate) else { break }
-            searchDate = nextDay
+            searchDate = CalendarUtils.addDays(1, to: searchDate)
         }
         
         return nil
@@ -183,8 +132,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     
     private func calculateDailyCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int {
         var streak = 0
-        var currentDate = calendar.startOfDay(for: date)
-        let habitStartDate = calendar.startOfDay(for: habit.startDate)
+        var currentDate = CalendarUtils.startOfDayUTC(for: date)
+        let habitStartDate = CalendarUtils.startOfDayUTC(for: habit.startDate)
         
         // For daily habits, check every day backwards
         while currentDate >= habitStartDate {
@@ -194,8 +143,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 break
             }
             
-            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: currentDate) else { break }
-            currentDate = previousDay
+            currentDate = CalendarUtils.addDays(-1, to: currentDate)
+            // currentDate already updated above
         }
         
         return streak
@@ -211,8 +160,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     
     private func calculateDaysOfWeekCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int {
         var streak = 0
-        var currentDate = calendar.startOfDay(for: date)
-        let habitStartDate = calendar.startOfDay(for: habit.startDate)
+        var currentDate = CalendarUtils.startOfDayUTC(for: date)
+        let habitStartDate = CalendarUtils.startOfDayUTC(for: habit.startDate)
         
         // For daysOfWeek habits, only count scheduled days
         while currentDate >= habitStartDate {
@@ -225,8 +174,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
             }
             // Skip non-scheduled days - they don't affect the streak
             
-            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: currentDate) else { break }
-            currentDate = previousDay
+            currentDate = CalendarUtils.addDays(-1, to: currentDate)
+            // currentDate already updated above
         }
         
         return streak
@@ -250,74 +199,13 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         )
     }
     
-    // MARK: - TimesPerWeek Schedule Algorithms
-    
-    private func calculateTimesPerWeekCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int {
-        guard case .timesPerWeek(let weeklyTarget) = habit.schedule else { return 0 }
-        
-        var streak = 0
-        var weekDate = calendar.startOfDay(for: date)
-        let habitStartDate = habit.startDate
-        
-        // Count consecutive weeks that meet the target
-        while weekDate >= habitStartDate {
-            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: weekDate) else { break }
-            
-            // Don't count future weeks or weeks before habit start
-            if weekInterval.start > date || weekInterval.end < habitStartDate {
-                break
-            }
-            
-            let weekLogs = logs.filter { log in
-                log.date >= weekInterval.start && 
-                log.date < weekInterval.end &&
-                isLogCompleted(log: log, habit: habit)
-            }
-            
-            if weekLogs.count >= weeklyTarget {
-                streak += 1
-            } else {
-                break
-            }
-            
-            // Move to previous week
-            guard let previousWeek = calendar.date(byAdding: .weekOfYear, value: -1, to: weekDate) else { break }
-            weekDate = previousWeek
-        }
-        
-        return streak
-    }
-    
-    private func calculateTimesPerWeekLongestStreak(habit: Habit, logs: [HabitLog]) -> Int {
-        guard case .timesPerWeek(let weeklyTarget) = habit.schedule else { return 0 }
-        
-        // Group logs by week and check which weeks meet target
-        let weeklyCompletions = groupLogsByWeek(logs: logs, habit: habit)
-        let sortedWeeks = weeklyCompletions.keys.sorted()
-        
-        var maxStreak = 0
-        var currentStreak = 0
-        
-        for weekStart in sortedWeeks {
-            let completions = weeklyCompletions[weekStart] ?? 0
-            
-            if completions >= weeklyTarget {
-                currentStreak += 1
-                maxStreak = max(maxStreak, currentStreak)
-            } else {
-                currentStreak = 0
-            }
-        }
-        
-        return maxStreak
-    }
     
     // MARK: - Helper Methods
     
     private func getCompliantDates(habit: Habit, logs: [HabitLog]) -> [Date] {
         return logs.compactMap { log in
             guard isLogCompleted(log: log, habit: habit) else { return nil }
-            return calendar.startOfDay(for: log.date)
+            return CalendarUtils.startOfDayUTC(for: log.date)
         }
         .sorted()
     }
@@ -330,7 +218,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         var currentStreak = 1
         
         for i in 1..<uniqueDates.count {
-            let daysBetween = calendar.dateComponents([.day], from: uniqueDates[i-1], to: uniqueDates[i]).day ?? 0
+            let daysBetween = CalendarUtils.daysBetweenUTC(uniqueDates[i-1], uniqueDates[i])
             
             if daysBetween == 1 {
                 currentStreak += 1
@@ -355,7 +243,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         var currentStreak = 0
         
         // Start from habit start date and check each scheduled day
-        var checkDate = calendar.startOfDay(for: startDate)
+        var checkDate = CalendarUtils.startOfDayUTC(for: startDate)
         let endDate = uniqueDates.last ?? startDate
         
         while checkDate <= endDate {
@@ -370,8 +258,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 }
             }
             
-            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: checkDate) else { break }
-            checkDate = nextDay
+            checkDate = CalendarUtils.addDays(1, to: checkDate)
         }
         
         return maxStreak
@@ -382,7 +269,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         
         for log in logs {
             guard isLogCompleted(log: log, habit: habit) else { continue }
-            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: log.date) else { continue }
+            guard let weekInterval = CalendarUtils.weekIntervalUTC(for: log.date) else { continue }
             
             let weekStart = weekInterval.start
             weeklyCompletions[weekStart, default: 0] += 1
@@ -392,8 +279,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     }
     
     private func getHabitWeekday(from date: Date) -> Int {
-        let calendarWeekday = calendar.component(.weekday, from: date)
-        return DateUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
+        let calendarWeekday = CalendarUtils.weekdayComponentUTC(from: date)
+        return CalendarUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
     }
     
     /// Check if a single log meets the completion criteria for its habit

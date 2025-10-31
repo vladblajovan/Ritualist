@@ -94,11 +94,6 @@
 			path = Ritualist;
 			sourceTree = "<group>";
 		};
-		91B730FB2E38E4C10050A48A /* RitualistTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = RitualistTests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -159,7 +154,6 @@
 				916F91602E55EC7000D77E0D /* Ritualist-AllFeatures.xctestplan */,
 				91A5C7EB2E53699B0095C251 /* RitualistWidgetExtension.entitlements */,
 				91B730EB2E38E4BC0050A48A /* Ritualist */,
-				91B730FB2E38E4C10050A48A /* RitualistTests */,
 				91A5C7D12E5369190095C251 /* RitualistWidget */,
 				91A5C7CC2E5369190095C251 /* Frameworks */,
 				91B730EA2E38E4BC0050A48A /* Products */,
@@ -247,9 +241,6 @@
 			);
 			dependencies = (
 				91B730FA2E38E4C10050A48A /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				91B730FB2E38E4C10050A48A /* RitualistTests */,
 			);
 			name = RitualistTests;
 			packageProductDependencies = (

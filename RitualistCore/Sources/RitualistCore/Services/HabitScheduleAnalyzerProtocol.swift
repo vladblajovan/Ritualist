@@ -17,27 +17,26 @@ public protocol HabitScheduleAnalyzerProtocol {
 }
 
 public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
-    private let calendar: Calendar
     
-    public init(calendar: Calendar = Calendar.current) {
-        self.calendar = calendar
+    public init() {
+        // Using CalendarUtils for UTC-based business logic consistency
     }
     
     public func calculateExpectedDays(for habit: Habit, from startDate: Date, to endDate: Date) -> Int {
         var expectedDays = 0
-        var currentDate = calendar.startOfDay(for: startDate)
-        let end = calendar.startOfDay(for: endDate)
+        var currentDate = CalendarUtils.startOfDayUTC(for: startDate)
+        let end = CalendarUtils.startOfDayUTC(for: endDate)
         
         while currentDate <= end {
             defer {
-                currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+                currentDate = CalendarUtils.addDays(1, to: currentDate)
             }
             
             // For retroactive logging: don't skip days before habit creation
             // The caller should handle the date range appropriately
             
             // Skip if habit ended before this date
-            if let habitEndDate = habit.endDate, currentDate > calendar.startOfDay(for: habitEndDate) {
+            if let habitEndDate = habit.endDate, currentDate > CalendarUtils.startOfDayUTC(for: habitEndDate) {
                 continue
             }
             
@@ -51,7 +50,7 @@ public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
     }
     
     public func isHabitExpectedOnDate(habit: Habit, date: Date) -> Bool {
-        let weekday = calendar.component(.weekday, from: date)
+        let weekday = CalendarUtils.weekdayComponentUTC(from: date)
         
         switch habit.schedule {
         case .daily:
@@ -67,10 +66,6 @@ public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
             }
             return days.contains(habitWeekday)
             
-        case .timesPerWeek(_):
-            // For times per week, we consider the habit expected every day
-            // The actual completion rate calculation will handle the flexible nature
-            return true
         }
     }
 }

@@ -51,15 +51,16 @@ public struct LogValidation {
     /// - Returns: Validation result with specific error message if invalid
     public static func validateLogDate(_ date: Date) -> ValidationResult {
         let now = Date()
-        let calendar = Calendar.current
         
         // Don't allow future dates beyond today
-        if calendar.compare(date, to: now, toGranularity: .day) == .orderedDescending {
+        let todayUTC = CalendarUtils.startOfDayUTC(for: now)
+        let logDateUTC = CalendarUtils.startOfDayUTC(for: date)
+        if logDateUTC > todayUTC {
             return .invalid(reason: "Cannot log habits for future dates")
         }
         
         // Don't allow dates too far in the past (1 year)
-        let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: now) ?? now
+        let oneYearAgo = CalendarUtils.addYears(-1, to: now)
         if date < oneYearAgo {
             return .invalid(reason: "Cannot log habits more than one year in the past")
         }

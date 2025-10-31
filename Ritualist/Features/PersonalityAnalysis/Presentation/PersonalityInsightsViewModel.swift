@@ -33,8 +33,14 @@ public final class PersonalityInsightsViewModel {
     private let analyzePersonalityUseCase: AnalyzePersonalityUseCase
     private let getPersonalityProfileUseCase: GetPersonalityProfileUseCase
     private let validateAnalysisDataUseCase: ValidateAnalysisDataUseCase
-    private let personalityRepository: PersonalityAnalysisRepositoryProtocol
-    private let scheduler: PersonalityAnalysisSchedulerProtocol
+    private let getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase
+    private let saveAnalysisPreferencesUseCase: SaveAnalysisPreferencesUseCase
+    private let deletePersonalityDataUseCase: DeletePersonalityDataUseCase
+    private let startAnalysisSchedulingUseCase: StartAnalysisSchedulingUseCase
+    private let updateAnalysisSchedulingUseCase: UpdateAnalysisSchedulingUseCase
+    private let getNextScheduledAnalysisUseCase: GetNextScheduledAnalysisUseCase
+    private let triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase
+    private let forceManualAnalysisUseCase: ForceManualAnalysisUseCase
     private let loadProfile: LoadProfileUseCase
     private var currentUserId: UUID?
     
@@ -44,15 +50,27 @@ public final class PersonalityInsightsViewModel {
         analyzePersonalityUseCase: AnalyzePersonalityUseCase,
         getPersonalityProfileUseCase: GetPersonalityProfileUseCase,
         validateAnalysisDataUseCase: ValidateAnalysisDataUseCase,
-        personalityRepository: PersonalityAnalysisRepositoryProtocol,
-        scheduler: PersonalityAnalysisSchedulerProtocol,
+        getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase,
+        saveAnalysisPreferencesUseCase: SaveAnalysisPreferencesUseCase,
+        deletePersonalityDataUseCase: DeletePersonalityDataUseCase,
+        startAnalysisSchedulingUseCase: StartAnalysisSchedulingUseCase,
+        updateAnalysisSchedulingUseCase: UpdateAnalysisSchedulingUseCase,
+        getNextScheduledAnalysisUseCase: GetNextScheduledAnalysisUseCase,
+        triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase,
+        forceManualAnalysisUseCase: ForceManualAnalysisUseCase,
         loadProfile: LoadProfileUseCase
     ) {
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
         self.getPersonalityProfileUseCase = getPersonalityProfileUseCase
         self.validateAnalysisDataUseCase = validateAnalysisDataUseCase
-        self.personalityRepository = personalityRepository
-        self.scheduler = scheduler
+        self.getAnalysisPreferencesUseCase = getAnalysisPreferencesUseCase
+        self.saveAnalysisPreferencesUseCase = saveAnalysisPreferencesUseCase
+        self.deletePersonalityDataUseCase = deletePersonalityDataUseCase
+        self.startAnalysisSchedulingUseCase = startAnalysisSchedulingUseCase
+        self.updateAnalysisSchedulingUseCase = updateAnalysisSchedulingUseCase
+        self.getNextScheduledAnalysisUseCase = getNextScheduledAnalysisUseCase
+        self.triggerAnalysisCheckUseCase = triggerAnalysisCheckUseCase
+        self.forceManualAnalysisUseCase = forceManualAnalysisUseCase
         self.loadProfile = loadProfile
         self.currentUserId = nil
     }
@@ -210,7 +228,7 @@ public final class PersonalityInsightsViewModel {
         }
         
         do {
-            let loadedPreferences = try await personalityRepository.getAnalysisPreferences(for: userId)
+            let loadedPreferences = try await getAnalysisPreferencesUseCase.execute(for: userId)
             
             if let loadedPreferences = loadedPreferences {
                 preferences = loadedPreferences
@@ -220,18 +238,18 @@ public final class PersonalityInsightsViewModel {
                 let defaultPreferences = PersonalityAnalysisPreferences(userId: userId)
                 
                 // Save defaults immediately to persist them
-                try? await personalityRepository.saveAnalysisPreferences(defaultPreferences)
+                try? await saveAnalysisPreferencesUseCase.execute(defaultPreferences)
                 
                 preferences = defaultPreferences
                 isLoadingPreferences = false
                 
                 // Start scheduling with default preferences
-                await scheduler.startScheduling(for: userId)
+                await startAnalysisSchedulingUseCase.execute(for: userId)
             }
             
             // Start scheduling if analysis is enabled
             if let prefs = preferences, prefs.isCurrentlyActive {
-                await scheduler.startScheduling(for: userId)
+                await startAnalysisSchedulingUseCase.execute(for: userId)
             }
         } catch {
             print("Error loading preferences: \(error)")
@@ -249,14 +267,14 @@ public final class PersonalityInsightsViewModel {
         isSavingPreferences = true
         
         do {
-            try await personalityRepository.saveAnalysisPreferences(newPreferences)
+            try await saveAnalysisPreferencesUseCase.execute(newPreferences)
             
             preferences = newPreferences
             isSavingPreferences = false
             
             // Update scheduler based on new preferences
             if let userId = await getCurrentUserId() {
-                await scheduler.updateScheduling(for: userId, preferences: newPreferences)
+                await updateAnalysisSchedulingUseCase.execute(for: userId, preferences: newPreferences)
             }
             
             // If analysis was disabled, we might need to update the view state
@@ -274,7 +292,7 @@ public final class PersonalityInsightsViewModel {
         
         do {
             // Delete all personality profiles
-            try await personalityRepository.deleteAllPersonalityProfiles(for: userId)
+            try await deletePersonalityDataUseCase.execute(for: userId)
             
             // Reset view state to trigger fresh analysis
             await loadPersonalityInsights()
@@ -352,7 +370,7 @@ public final class PersonalityInsightsViewModel {
     
     public func getNextScheduledAnalysisDate() async -> Date? {
         guard let userId = await getCurrentUserId() else { return nil }
-        return await scheduler.getNextScheduledAnalysis(for: userId)
+        return await getNextScheduledAnalysisUseCase.execute(for: userId)
     }
     
     public func triggerManualAnalysisCheck() async {
@@ -363,10 +381,10 @@ public final class PersonalityInsightsViewModel {
         
         // Check if user is in manual mode - if so, force analysis
         if let prefs = preferences, prefs.analysisFrequency == .manual {
-            await scheduler.forceManualAnalysis(for: userId)
+            await forceManualAnalysisUseCase.execute(for: userId)
         } else {
             // For other frequencies, use regular check
-            await scheduler.triggerAnalysisCheck(for: userId)
+            await triggerAnalysisCheckUseCase.execute(for: userId)
         }
         // Refresh view state after potential analysis
         await loadPersonalityInsights()

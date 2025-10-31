@@ -15,11 +15,13 @@ import RitualistCore
 struct RemainingHabitsProvider: TimelineProvider {
     typealias Entry = RemainingHabitsEntry
     
-    @Injected(\.widgetDataService) private var dataService
+    @Injected(\.widgetHabitsViewModel) private var viewModel
+    @Injected(\.widgetDateNavigationService) private var navigationService
     
     func placeholder(in context: Context) -> Entry {
         print("[WIDGET-DEBUG] RemainingHabitsProvider.placeholder called")
-        let selectedDate = WidgetDateState.shared.currentDate
+        
+        let selectedDate = navigationService.currentDate
         print("[WIDGET-DEBUG] Placeholder using selectedDate: \(selectedDate)")
         
         let placeholderHabits = createPlaceholderHabits()
@@ -40,88 +42,69 @@ struct RemainingHabitsProvider: TimelineProvider {
     func getSnapshot(in context: Context, completion: @escaping (Entry) -> Void) {
         print("[WIDGET-DEBUG] RemainingHabitsProvider.getSnapshot called")
         Task {
-            do {
-                print("[WIDGET-DEBUG] RemainingHabitsProvider.getSnapshot: Starting data fetch...")
-                
-                // Get selected date from WidgetDateState for proper navigation support
-                let selectedDate = WidgetDateState.shared.currentDate
-                let actualToday = Date()
-                let isToday = Calendar.current.isDate(selectedDate, inSameDayAs: actualToday)
-                print("[WIDGET-DEBUG] GetSnapshot - selectedDate: \(selectedDate), actualToday: \(actualToday), isToday: \(isToday)")
-                
-                let habitsWithProgress: [(habit: Habit, currentProgress: Int, isCompleted: Bool)]
-                let percentage: Double
-                
-                // Use date-aware methods that handle both today and historical dates
-                habitsWithProgress = try await dataService.getHabitsWithProgress(for: selectedDate)
-                percentage = try await dataService.getCompletionPercentage(for: selectedDate)
-                
-                if isToday {
-                    print("[WIDGET-DEBUG] Snapshot loaded today's data: \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
-                } else {
-                    print("[WIDGET-DEBUG] Snapshot loaded historical data for \(selectedDate): \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
-                }
-                
-                print("[WIDGET-DEBUG] RemainingHabitsProvider.getSnapshot: Got \(habitsWithProgress.count) habits, \(percentage * 100)% completion for \(selectedDate)")
-                
-                // Create entry using optimized value objects
-                let entry = Entry(
-                    date: Date(),
-                    habitsWithProgress: habitsWithProgress,
-                    completionPercentage: percentage,
-                    selectedDate: selectedDate
-                )
-                completion(entry)
-            } catch {
-                print("[WIDGET-DEBUG] RemainingHabitsProvider.getSnapshot: Error occurred: \(error)")
-                // Fallback to placeholder data on error with proper navigation state
-                completion(createFallbackEntry())
+            print("[WIDGET-DEBUG] RemainingHabitsProvider.getSnapshot: Starting data fetch...")
+            
+            // Use selected date from navigation state
+            let selectedDate = navigationService.currentDate
+            let actualToday = Date()
+            let isToday = CalendarUtils.areSameDayUTC(selectedDate, actualToday)
+            print("[WIDGET-DEBUG] GetSnapshot - selectedDate: \(selectedDate), actualToday: \(actualToday), isToday: \(isToday)")
+            
+            // Use ViewModel with main app's Use Cases
+            let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate)
+            let percentage = await viewModel.getCompletionPercentage(for: selectedDate)
+            
+            if isToday {
+                print("[WIDGET-DEBUG] Snapshot loaded today's data: \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
+            } else {
+                print("[WIDGET-DEBUG] Snapshot loaded historical data for \(selectedDate): \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
             }
+            
+            print("[WIDGET-DEBUG] RemainingHabitsProvider.getSnapshot: Got \(habitsWithProgress.count) habits, \(percentage * 100)% completion for \(selectedDate)")
+            
+            // Create entry using optimized value objects
+            let entry = Entry(
+                date: Date(),
+                habitsWithProgress: habitsWithProgress,
+                completionPercentage: percentage,
+                selectedDate: selectedDate
+            )
+            completion(entry)
         }
     }
     
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
         print("[WIDGET-DEBUG] RemainingHabitsProvider.getTimeline called")
         Task {
-            do {
-                print("[WIDGET-DEBUG] RemainingHabitsProvider.getTimeline: Starting data fetch...")
-                
-                // Get selected date from WidgetDateState for proper navigation support
-                let selectedDate = WidgetDateState.shared.currentDate
-                let actualToday = Date()
-                let isToday = Calendar.current.isDate(selectedDate, inSameDayAs: actualToday)
-                print("[WIDGET-DEBUG] GetTimeline - selectedDate: \(selectedDate), actualToday: \(actualToday), isToday: \(isToday)")
-                
-                let habitsWithProgress: [(habit: Habit, currentProgress: Int, isCompleted: Bool)]
-                let percentage: Double
-                
-                // Use date-aware methods that handle both today and historical dates
-                habitsWithProgress = try await dataService.getHabitsWithProgress(for: selectedDate)
-                percentage = try await dataService.getCompletionPercentage(for: selectedDate)
-                
-                if isToday {
-                    print("[WIDGET-DEBUG] Loaded today's data: \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
-                } else {
-                    print("[WIDGET-DEBUG] Loaded historical data for \(selectedDate): \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
-                }
-                
-                print("[WIDGET-DEBUG] RemainingHabitsProvider.getTimeline: Got \(habitsWithProgress.count) habits, \(percentage * 100)% completion for \(selectedDate)")
-                
-                // Generate optimized timeline entries based on viewing context
-                let timeline = generateOptimizedTimeline(
-                    habitsWithProgress: habitsWithProgress,
-                    percentage: percentage,
-                    selectedDate: selectedDate,
-                    isViewingToday: isToday
-                )
-                
-                completion(timeline)
-            } catch {
-                print("[WIDGET-DEBUG] RemainingHabitsProvider.getTimeline: Error occurred: \(error)")
-                // Fallback timeline on error
-                let fallbackTimeline = createFallbackTimeline()
-                completion(fallbackTimeline)
+            print("[WIDGET-DEBUG] RemainingHabitsProvider.getTimeline: Starting data fetch...")
+            
+            // Use selected date from navigation state
+            let selectedDate = navigationService.currentDate
+            let actualToday = Date()
+            let isToday = CalendarUtils.areSameDayUTC(selectedDate, actualToday)
+            print("[WIDGET-DEBUG] GetTimeline - selectedDate: \(selectedDate), actualToday: \(actualToday), isToday: \(isToday)")
+            
+            // Use ViewModel with main app's Use Cases
+            let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate)
+            let percentage = await viewModel.getCompletionPercentage(for: selectedDate)
+            
+            if isToday {
+                print("[WIDGET-DEBUG] Loaded today's data: \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
+            } else {
+                print("[WIDGET-DEBUG] Loaded historical data for \(selectedDate): \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
             }
+            
+            print("[WIDGET-DEBUG] RemainingHabitsProvider.getTimeline: Got \(habitsWithProgress.count) habits, \(percentage * 100)% completion for \(selectedDate)")
+            
+            // Generate optimized timeline entries based on viewing context
+            let timeline = generateOptimizedTimeline(
+                habitsWithProgress: habitsWithProgress,
+                percentage: percentage,
+                selectedDate: selectedDate,
+                isViewingToday: isToday
+            )
+            
+            completion(timeline)
         }
     }
     
@@ -153,7 +136,7 @@ struct RemainingHabitsProvider: TimelineProvider {
             print("[WIDGET-DEBUG] Generating today timeline with frequent updates")
             
             for hourOffset in 0..<WidgetConstants.timelineHours {
-                let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
+                let entryDate = CalendarUtils.utcCalendar.date(byAdding: .hour, value: hourOffset, to: currentDate)!
                 entries.append(Entry(
                     date: entryDate,
                     habitDisplayInfo: habitDisplayInfo,
@@ -163,7 +146,7 @@ struct RemainingHabitsProvider: TimelineProvider {
             }
             
             // Refresh every 30 minutes for today to catch habit completions
-            let nextRefresh = Calendar.current.date(byAdding: .minute, value: 30, to: currentDate) ?? currentDate.addingTimeInterval(1800)
+            let nextRefresh = CalendarUtils.addMinutes(30, to: currentDate)
             return Timeline(entries: entries, policy: .after(nextRefresh))
             
         } else {
@@ -172,7 +155,7 @@ struct RemainingHabitsProvider: TimelineProvider {
             
             // Create fewer entries for historical dates (every 2 hours instead of every hour)
             for hourOffset in stride(from: 0, to: WidgetConstants.timelineHours, by: 2) {
-                let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
+                let entryDate = CalendarUtils.utcCalendar.date(byAdding: .hour, value: hourOffset, to: currentDate)!
                 entries.append(Entry(
                     date: entryDate,
                     habitDisplayInfo: habitDisplayInfo,
@@ -182,7 +165,7 @@ struct RemainingHabitsProvider: TimelineProvider {
             }
             
             // Longer refresh interval for historical dates (2 hours vs 30 minutes)
-            let nextRefresh = Calendar.current.date(byAdding: .hour, value: 2, to: currentDate) ?? currentDate.addingTimeInterval(7200)
+            let nextRefresh = CalendarUtils.utcCalendar.date(byAdding: .hour, value: 2, to: currentDate) ?? currentDate.addingTimeInterval(7200)
             return Timeline(entries: entries, policy: .after(nextRefresh))
         }
     }
@@ -212,7 +195,8 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
     
     private func createFallbackEntry() -> Entry {
-        let navigationInfo = WidgetNavigationInfo(selectedDate: WidgetDateState.shared.currentDate)
+        let selectedDate = navigationService.currentDate
+        let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
         return Entry(
             date: Date(),
             habitDisplayInfo: [],
@@ -251,12 +235,12 @@ public struct WidgetNavigationInfo {
     
     init(selectedDate: Date) {
         // Use consistent calendar and date references to avoid midnight/timezone edge cases
-        let calendar = Calendar.current
+        let calendar = CalendarUtils.currentLocalCalendar
         let now = Date() // Single Date() call for consistency
         let today = calendar.startOfDay(for: now)
         let normalizedDate = calendar.startOfDay(for: selectedDate)
         let maxHistoryDays = 30
-        let earliestAllowed = calendar.date(byAdding: .day, value: -maxHistoryDays, to: today)!
+        let earliestAllowed = CalendarUtils.addDays(-maxHistoryDays, to: today)
         
         print("[WIDGET-NAV-INFO] WidgetNavigationInfo.init - input selectedDate: \(selectedDate)")
         print("[WIDGET-NAV-INFO] WidgetNavigationInfo.init - now: \(now), today: \(today), normalizedDate: \(normalizedDate)")
@@ -265,9 +249,25 @@ public struct WidgetNavigationInfo {
         self.selectedDate = normalizedDate
         self.canGoBack = normalizedDate > earliestAllowed
         self.canGoForward = normalizedDate < today
-        self.isViewingToday = calendar.isDate(normalizedDate, inSameDayAs: today)
+        self.isViewingToday = CalendarUtils.areSameDayLocal(normalizedDate, now)
         self.daysDifference = calendar.dateComponents([.day], from: today, to: normalizedDate).day ?? 0
         self.dateDisplayText = Self.formatDateForDisplay(normalizedDate, referenceToday: today, calendar: calendar)
+        
+        // DEBUG: Enhanced logging for isViewingToday calculation
+        print("[WIDGET-NAV-INFO-DEBUG] ====== ISVIEWINGTODAY CALCULATION ======")
+        print("[WIDGET-NAV-INFO-DEBUG] Input selectedDate: \(selectedDate)")
+        print("[WIDGET-NAV-INFO-DEBUG] Normalized selectedDate: \(normalizedDate)")
+        print("[WIDGET-NAV-INFO-DEBUG] Today reference: \(today)")
+        print("[WIDGET-NAV-INFO-DEBUG] Calendar timezone: \(calendar.timeZone)")
+        print("[WIDGET-NAV-INFO-DEBUG] Same day check result: \(self.isViewingToday)")
+        print("[WIDGET-NAV-INFO-DEBUG] Days difference: \(self.daysDifference)")
+        print("[WIDGET-NAV-INFO-DEBUG] Display text: \(self.dateDisplayText)")
+        if self.isViewingToday {
+            print("[WIDGET-NAV-INFO-DEBUG] ✅ User IS viewing today")
+        } else {
+            print("[WIDGET-NAV-INFO-DEBUG] ❌ User is NOT viewing today (viewing historical date)")
+        }
+        print("[WIDGET-NAV-INFO-DEBUG] ==========================================")
         
         print("[WIDGET-NAV-INFO] WidgetNavigationInfo.init - result: selectedDate=\(self.selectedDate), displayText=\(self.dateDisplayText), isViewingToday=\(self.isViewingToday)")
     }
@@ -290,13 +290,12 @@ public struct WidgetNavigationInfo {
         }
         
         // Yesterday
-        if let yesterday = calendar.date(byAdding: .day, value: -1, to: referenceToday) {
-            let isYesterday = calendar.isDate(normalizedDate, inSameDayAs: yesterday)
-            print("[WIDGET-FORMAT-DATE] yesterday: \(yesterday), isYesterday: \(isYesterday)")
-            if isYesterday {
-                print("[WIDGET-FORMAT-DATE] Returning 'Yesterday'")
-                return "Yesterday"
-            }
+        let yesterday = CalendarUtils.addDays(-1, to: referenceToday)
+        let isYesterday = calendar.isDate(normalizedDate, inSameDayAs: yesterday)
+        print("[WIDGET-FORMAT-DATE] yesterday: \(yesterday), isYesterday: \(isYesterday)")
+        if isYesterday {
+            print("[WIDGET-FORMAT-DATE] Returning 'Yesterday'")
+            return "Yesterday"
         }
         
         // This week (show weekday name)
@@ -330,7 +329,7 @@ public struct WidgetNavigationInfo {
     /// Legacy formatDateForDisplay method for backward compatibility
     /// Redirects to the consistent version using current date/calendar
     private static func formatDateForDisplay(_ date: Date) -> String {
-        let calendar = Calendar.current
+        let calendar = CalendarUtils.currentLocalCalendar
         let today = calendar.startOfDay(for: Date())
         return formatDateForDisplay(date, referenceToday: today, calendar: calendar)
     }

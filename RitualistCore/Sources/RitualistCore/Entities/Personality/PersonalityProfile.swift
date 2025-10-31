@@ -75,7 +75,10 @@ public struct PersonalityProfile: Identifiable, Codable, Hashable {
     
     /// Check if the analysis is recent (within specified days)
     public func isRecent(within days: Int) -> Bool {
-        let daysSinceAnalysis = Calendar.current.dateComponents([.day], from: analysisMetadata.analysisDate, to: Date()).day ?? 0
+        let daysSinceAnalysis = CalendarUtils.daysBetweenUTC(
+            analysisMetadata.analysisDate,
+            Date()
+        )
         return daysSinceAnalysis <= days
     }
     
@@ -358,7 +361,7 @@ public struct PersonalityAnalysisPreferences: Identifiable, Codable, Hashable {
     /// Whether data should be retained based on retention policy
     public func shouldRetainData(analysisDate: Date) -> Bool {
         guard dataRetentionDays != -1 else { return true } // Forever
-        let cutoffDate = Calendar.current.date(byAdding: .day, value: -dataRetentionDays, to: Date()) ?? Date()
+        let cutoffDate = CalendarUtils.addDays(-dataRetentionDays, to: Date())
         return analysisDate >= cutoffDate
     }
     

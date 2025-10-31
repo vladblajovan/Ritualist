@@ -16,7 +16,7 @@ struct QuickActionsCard: View {
     let onDeleteHabitLog: (Habit) -> Void // New callback for deleting habit log
     let getScheduleStatus: (Habit) -> HabitScheduleStatus // New callback for schedule status
     let getValidationMessage: (Habit) async -> String? // New callback for validation message
-    let getWeeklyProgress: ((Habit) -> (completed: Int, target: Int))? // For timesPerWeek progress
+    let getWeeklyProgress: ((Habit) -> (completed: Int, target: Int))? // For weekly progress
     
     @State private var animatingHabitId: UUID? = nil
     @State private var glowingHabitId: UUID? = nil
@@ -270,33 +270,17 @@ struct QuickActionsCard: View {
     @ViewBuilder
     private func habitStatusText(habit: Habit, isCompleted: Bool, isDisabled: Bool, scheduleStatus: HabitScheduleStatus) -> some View {
         if isCompleted {
-            // For timesPerWeek habits, show weekly progress even when today is completed
-            if case .timesPerWeek = habit.schedule, let getWeeklyProgress = getWeeklyProgress {
-                let progress = getWeeklyProgress(habit)
-                Text("Today ✓ (\(progress.completed)/\(progress.target) this week)")
-                    .font(.caption)
-                    .foregroundColor(.green)
-            } else {
-                Text("Completed")
-                    .font(.caption)
-                    .foregroundColor(.green)
-            }
+            Text("Completed")
+                .font(.caption)
+                .foregroundColor(.green)
         } else if isDisabled {
             Text(scheduleStatus.displayText)
                 .font(.caption)
                 .foregroundColor(scheduleStatus.color)
         } else {
-            // For timesPerWeek habits, show weekly progress
-            if case .timesPerWeek = habit.schedule, let getWeeklyProgress = getWeeklyProgress {
-                let progress = getWeeklyProgress(habit)
-                Text("Tap to complete (\(progress.completed)/\(progress.target) this week)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                Text("Tap to complete")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            Text("Tap to complete")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
     }
     
@@ -379,21 +363,18 @@ struct QuickActionsCard: View {
             getScheduleStatus: { habit in
                 // Mock schedule status based on habit schedule
                 switch habit.schedule {
-                case .daily, .timesPerWeek:
+                case .daily:
                     return .alwaysScheduled
                 case .daysOfWeek:
-                    return Calendar.current.component(.weekday, from: Date()) == 2 ? .scheduledToday : .notScheduledToday // Monday
+                    return CalendarUtils.weekdayComponentUTC(from: Date()) == 2 ? .scheduledToday : .notScheduledToday // Monday
                 }
             },
             getValidationMessage: { habit in
-                return habit.schedule == .daysOfWeek([2, 4, 6]) && Calendar.current.component(.weekday, from: Date()) != 2 
+                return habit.schedule == .daysOfWeek([2, 4, 6]) && CalendarUtils.weekdayComponentUTC(from: Date()) != 2 
                     ? "This habit is only scheduled for Monday, Wednesday, and Friday" 
                     : nil
             },
             getWeeklyProgress: { habit in
-                if case .timesPerWeek(let target) = habit.schedule {
-                    return (completed: 2, target: target) // Mock progress
-                }
                 return (completed: 0, target: 0)
             }
         )

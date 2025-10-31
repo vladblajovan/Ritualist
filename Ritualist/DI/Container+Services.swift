@@ -113,7 +113,7 @@ extension Container {
                 habitRepository: self.habitRepository(),
                 logRepository: self.logRepository(),
                 habitCompletionService: self.habitCompletionService(),
-                calendar: Calendar.current,
+                calendar: CalendarUtils.currentLocalCalendar,
                 errorHandler: self.errorHandler()
             )
         }
@@ -311,9 +311,7 @@ extension Container {
     #if DEBUG
     var debugService: Factory<DebugServiceProtocol> {
         self { 
-            guard let container = self.persistenceContainer() else {
-                fatalError("Failed to get PersistenceContainer for DebugService")
-            }
+            let container = self.persistenceContainer()
             return DebugService(persistenceContainer: container)
         }
         .singleton

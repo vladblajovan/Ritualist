@@ -56,9 +56,9 @@ public struct SimpleGradientDesign {
 @available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
 public struct SimpleGradientBackground: View {
     @Environment(\.colorScheme) private var colorScheme
-    
+
     public init() {}
-    
+
     public var body: some View {
         SimpleGradientDesign.backgroundGradient(for: colorScheme)
             .ignoresSafeArea()

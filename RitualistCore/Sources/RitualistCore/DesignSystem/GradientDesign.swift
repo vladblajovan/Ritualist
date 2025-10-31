@@ -4,34 +4,36 @@ import SwiftUI
 
 public struct RitualistGradientBackground: View {
     @Environment(\.colorScheme) private var colorScheme
-    
+
     public init() {}
-    
+
     public var body: some View {
+        // PERFORMANCE: Simplified 3-color gradient for smooth scrolling
+        // 5 color stops were causing significant GPU overhead during scroll
+        // NOTE: .drawingGroup() causes safe area rendering issues - removed
         LinearGradient(
-            gradient: Gradient(stops: gradientStops),
+            colors: colorScheme == .dark ? darkColors : lightColors,
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
         .ignoresSafeArea(.all, edges: .all)
     }
-    
-    private var gradientStops: [Gradient.Stop] {
-        if colorScheme == .dark {
-            return [
-                .init(color: .ritualistDarkNavy, location: 0.0),
-                .init(color: .ritualistDarkPurple, location: 0.5),
-                .init(color: .ritualistDarkTeal, location: 1.0)
-            ]
-        } else {
-            return [
-                .init(color: .ritualistWarmPeach, location: 0.0),
-                .init(color: .ritualistSoftRose, location: 0.25),
-                .init(color: .ritualistLilacMist, location: 0.55),
-                .init(color: .ritualistSkyAqua, location: 0.80),
-                .init(color: .ritualistMintGlow, location: 1.0)
-            ]
-        }
+
+    // PERFORMANCE: Use simple color arrays instead of Gradient.Stop for faster rendering
+    private var lightColors: [Color] {
+        [
+            .ritualistWarmPeach,
+            .ritualistLilacMist,
+            .ritualistSkyAqua
+        ]
+    }
+
+    private var darkColors: [Color] {
+        [
+            .ritualistDarkNavy,
+            .ritualistDarkPurple,
+            .ritualistDarkTeal
+        ]
     }
 }
 
@@ -41,12 +43,14 @@ public struct GlassmorphicCard<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     @ViewBuilder var content: () -> Content
     var cornerRadius: CGFloat = 20
-    
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             content()
         }
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        // PERFORMANCE: Use thin material instead of ultraThin for better scroll performance
+        // ultraThinMaterial causes expensive blur recalculations on every scroll frame
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(.white.opacity(colorScheme == .dark ? 0.2 : 0.3), lineWidth: 1)

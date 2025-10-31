@@ -7,12 +7,15 @@ import RitualistCore
 extension Container {
     
     // MARK: - Persistence Container
-    var persistenceContainer: Factory<RitualistCore.PersistenceContainer?> {
+    var persistenceContainer: Factory<RitualistCore.PersistenceContainer> {
         self { 
             do {
                 return try RitualistCore.PersistenceContainer()
             } catch {
-                return nil
+                print("[PERSISTENCE-ERROR] Failed to initialize persistence container: \(error)")
+                print("[PERSISTENCE-ERROR] App group: group.com.vladblajovan.Ritualist")
+                print("[PERSISTENCE-ERROR] This will cause onboarding to show every time and data to not persist")
+                fatalError("Persistence container is required for app functionality: \(error)")
             }
         }
         .singleton
@@ -22,9 +25,7 @@ extension Container {
     
     var habitDataSource: Factory<HabitLocalDataSourceProtocol> {
         self { 
-            guard let container = self.persistenceContainer()?.container else {
-                fatalError("Failed to get ModelContainer for HabitLocalDataSource")
-            }
+            let container = self.persistenceContainer().container
             return RitualistCore.HabitLocalDataSource(modelContainer: container)
         }
         .singleton
@@ -32,9 +33,7 @@ extension Container {
     
     var logDataSource: Factory<LogLocalDataSourceProtocol> {
         self { 
-            guard let container = self.persistenceContainer()?.container else {
-                fatalError("Failed to get ModelContainer for LogLocalDataSource")
-            }
+            let container = self.persistenceContainer().container
             return RitualistCore.LogLocalDataSource(modelContainer: container)
         }
         .singleton
@@ -42,9 +41,7 @@ extension Container {
     
     var profileDataSource: Factory<ProfileLocalDataSourceProtocol> {
         self { 
-            guard let container = self.persistenceContainer()?.container else {
-                fatalError("Failed to get ModelContainer for ProfileLocalDataSource")
-            }
+            let container = self.persistenceContainer().container
             return RitualistCore.ProfileLocalDataSource(modelContainer: container)
         }
         .singleton
@@ -57,9 +54,7 @@ extension Container {
     
     var onboardingDataSource: Factory<OnboardingLocalDataSourceProtocol> {
         self { 
-            guard let container = self.persistenceContainer()?.container else {
-                fatalError("Failed to get ModelContainer for OnboardingLocalDataSource")
-            }
+            let container = self.persistenceContainer().container
             return RitualistCore.OnboardingLocalDataSource(modelContainer: container)
         }
         .singleton
@@ -67,9 +62,7 @@ extension Container {
     
     var categoryDataSource: Factory<CategoryLocalDataSourceProtocol> {
         self { 
-            guard let container = self.persistenceContainer()?.container else {
-                fatalError("Failed to get ModelContainer for CategoryLocalDataSource")
-            }
+            let container = self.persistenceContainer().container
             return RitualistCore.CategoryLocalDataSource(modelContainer: container)
         }
         .singleton

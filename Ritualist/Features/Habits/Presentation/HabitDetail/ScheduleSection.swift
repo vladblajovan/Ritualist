@@ -18,7 +18,6 @@ public struct ScheduleSection: View {
             Picker(Strings.Form.frequency, selection: $vm.selectedSchedule) {
                 Text(Strings.Form.daily).tag(ScheduleType.daily)
                 Text(Strings.Form.specificDays).tag(ScheduleType.daysOfWeek)
-                Text(Strings.Form.timesPerWeek).tag(ScheduleType.timesPerWeek)
             }
             .pickerStyle(SegmentedPickerStyle())
             
@@ -34,12 +33,6 @@ public struct ScheduleSection: View {
                             .padding(.leading, 4)
                             .transition(.opacity)
                     }
-                }
-            case .timesPerWeek:
-                HStack {
-                    Text(Strings.Form.timesPerWeekLabel)
-                    Spacer()
-                    Stepper("\(vm.timesPerWeek)", value: $vm.timesPerWeek, in: 1...7)
                 }
             case .daily:
                 EmptyView()

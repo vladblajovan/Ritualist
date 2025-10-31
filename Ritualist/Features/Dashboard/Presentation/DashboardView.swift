@@ -145,13 +145,7 @@ public struct DashboardView: View {
                     x: .value("Date", point.date),
                     y: .value("Completion", point.completionRate)
                 )
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [AppColors.brand.opacity(0.3), AppColors.brand.opacity(0.1)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+                .foregroundStyle(GradientTokens.chartAreaFill)
                 .interpolationMethod(.catmullRom)
             }
             .frame(height: 200)

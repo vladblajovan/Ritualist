@@ -22,7 +22,7 @@ import UserNotifications
     var body: some Scene {
         WindowGroup {
             RootAppView()
-                .modelContainer(persistenceContainer?.container ?? createFallbackContainer())
+                .modelContainer(persistenceContainer.container)
                 .task {
                     await setupNotifications()
                     await scheduleInitialNotifications()
@@ -202,8 +202,8 @@ import UserNotifications
     private func navigateToDateInOverview(_ targetDate: Date) async {
         let overviewViewModel = Container.shared.overviewViewModel()
         
-        // Set the date first
-        overviewViewModel.viewingDate = targetDate
+        // Set the date first - normalize to local calendar's start of day
+        overviewViewModel.viewingDate = CalendarUtils.startOfDayLocal(for: targetDate)
         
         // Wait for data loading to complete before proceeding
         await overviewViewModel.loadData()

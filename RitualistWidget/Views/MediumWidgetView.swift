@@ -187,7 +187,7 @@ struct MediumWidgetView: View {
         HabitDisplayInfo(habit: habits[3], currentProgress: 0, isCompleted: false),  // Remaining
         HabitDisplayInfo(habit: habits[4], currentProgress: 3, isCompleted: false)   // Remaining
     ]
-    let selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+    let selectedDate = CalendarUtils.addDays(-1, to: Date())
     let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
     let entry = RemainingHabitsEntry(
         date: Date(),

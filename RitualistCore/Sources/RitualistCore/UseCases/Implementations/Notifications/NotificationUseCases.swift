@@ -69,7 +69,7 @@ public final class LogHabitFromNotification: LogHabitFromNotificationUseCase {
         if habit.kind == .binary {
             // Binary habit: log as complete if not already logged
             if existingLog == nil {
-                let log = HabitLog(habitID: habitId, date: date, value: 1.0)
+                let log = HabitLog.withCurrentTimezone(habitID: habitId, date: date, value: 1.0)
                 try await logHabit.execute(log)
             }
         } else {
@@ -78,10 +78,10 @@ public final class LogHabitFromNotification: LogHabitFromNotificationUseCase {
             let newValue = value ?? (currentValue + 1.0)
             
             if let existingLog = existingLog {
-                let updatedLog = HabitLog(id: existingLog.id, habitID: habitId, date: date, value: newValue)
+                let updatedLog = HabitLog(id: existingLog.id, habitID: habitId, date: date, value: newValue, timezone: existingLog.timezone)
                 try await logHabit.execute(updatedLog)
             } else {
-                let newLog = HabitLog(habitID: habitId, date: date, value: newValue)
+                let newLog = HabitLog.withCurrentTimezone(habitID: habitId, date: date, value: newValue)
                 try await logHabit.execute(newLog)
             }
         }

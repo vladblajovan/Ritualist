@@ -179,8 +179,6 @@ private struct HabitSuggestionRow: View {
                 day <= dayNames.count - 1 ? dayNames[day] : nil
             }
             return selectedDays.joined(separator: ", ")
-        case .timesPerWeek(let times):
-            return "\(times)× per week"
         }
     }
     
