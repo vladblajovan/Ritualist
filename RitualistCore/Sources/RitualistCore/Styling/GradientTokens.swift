@@ -12,45 +12,49 @@ import SwiftUI
 @available(iOS 13.0, *)
 public enum GradientTokens {
 
-    // MARK: - Chart Gradients
+    // MARK: - Chart Gradients (Icon-Inspired)
 
     /// Gradient for chart area fill (used in Dashboard analytics)
     ///
     /// Performance: Static allocation, reused across all chart instances
+    /// Design: Uses icon blue gradient for brand consistency
     /// Usage: DashboardView chart AreaMark fills
     public static let chartAreaFill = LinearGradient(
-        colors: [AppColors.brand.opacity(0.3), AppColors.brand.opacity(0.1)],
+        colors: [Color.ritualistBlue.opacity(0.3), Color.ritualistCyan.opacity(0.1)],
         startPoint: .top,
         endPoint: .bottom
     )
 
-    // MARK: - Paywall Gradients
+    // MARK: - Paywall Gradients (Icon-Inspired)
 
-    /// Premium crown icon gradient (orange to yellow)
+    /// Premium crown icon gradient (yellow-lime to orange - dark mode checkmark)
     ///
+    /// Design: Uses dark mode checkmark gradient for premium feel
     /// Usage: PaywallView header crown icon
     public static let premiumCrown = LinearGradient(
-        colors: [.orange, .yellow],
+        colors: [Color.ritualistYellowLime, Color.ritualistOrange],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
-    /// Purchase button gradient (blue to purple)
+    /// Purchase button gradient (cyan to blue - icon background)
     ///
+    /// Design: Uses light mode icon background gradient for trust
     /// Usage: PaywallView purchase button background
     public static let purchaseButton = LinearGradient(
-        colors: [.blue, .purple],
+        colors: [Color.ritualistCyan, Color.ritualistBlue],
         startPoint: .leading,
         endPoint: .trailing
     )
 
-    // MARK: - Profile/Personality Gradients
+    // MARK: - Profile/Personality Gradients (Icon-Inspired)
 
-    /// Profile icon gradient (blue to purple diagonal)
+    /// Profile icon gradient (cyan to blue - icon background)
     ///
+    /// Design: Uses icon background gradient for consistency
     /// Usage: PersonalityInsightsView profile icon
     public static let profileIcon = LinearGradient(
-        colors: [.blue, .purple],
+        colors: [Color.ritualistCyan, Color.ritualistBlue],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -72,64 +76,70 @@ public enum GradientTokens {
         endPoint: .trailing
     )
 
-    // MARK: - Inspiration Card Gradients (Context-Aware)
+    // MARK: - Inspiration Card Gradients (Context-Aware, Icon-Inspired)
 
-    /// Perfect day celebration gradient (green tones)
+    /// Perfect day celebration gradient (yellow-lime to orange - checkmark gradient!)
     ///
     /// Used when completion percentage >= 100%
-    /// Conveys achievement and success
+    /// Design: Uses dark mode checkmark gradient for ultimate success
+    /// Conveys achievement and completion
     public static let inspirationPerfect = LinearGradient(
-        colors: [Color.green.opacity(0.2), Color.mint.opacity(0.15)],
+        colors: [Color.ritualistYellowLime.opacity(0.25), Color.ritualistOrange.opacity(0.2)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
-    /// Strong progress gradient (blue tones)
+    /// Strong progress gradient (cyan to blue - icon background!)
     ///
     /// Used when completion percentage >= 75%
+    /// Design: Uses light mode icon background gradient
     /// Conveys momentum and strong performance
     public static let inspirationStrong = LinearGradient(
-        colors: [Color.blue.opacity(0.18), Color.cyan.opacity(0.12)],
+        colors: [Color.ritualistCyan.opacity(0.18), Color.ritualistBlue.opacity(0.12)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
-    /// Midway encouragement gradient (orange/yellow tones)
+    /// Midway encouragement gradient (gold accent)
     ///
     /// Used when completion percentage >= 50%
-    /// Conveys energy and encouragement
+    /// Design: Uses light mode checkmark gold for encouragement
+    /// Conveys energy and progress
     public static let inspirationMidway = LinearGradient(
-        colors: [Color.orange.opacity(0.16), Color.yellow.opacity(0.12)],
+        colors: [Color.ritualistGold.opacity(0.20), Color.ritualistOrange.opacity(0.15)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
-    /// Morning motivation gradient (pink/orange tones)
+    /// Morning motivation gradient (cyan tint)
     ///
     /// Used during morning time period (< 50% completion)
-    /// Conveys fresh start and sunrise energy
+    /// Design: Light cyan for fresh start energy
+    /// Conveys sunrise and new beginnings
     public static let inspirationMorning = LinearGradient(
-        colors: [Color.pink.opacity(0.15), Color.orange.opacity(0.1)],
+        colors: [Color.ritualistLightCyan.opacity(0.18), Color.ritualistCyan.opacity(0.12)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
-    /// Noon motivation gradient (indigo/blue tones)
+    /// Noon motivation gradient (blue focus)
     ///
     /// Used during noon time period (< 50% completion)
-    /// Conveys midday focus and clarity
+    /// Design: Uses icon blue for midday clarity
+    /// Conveys focus and determination
     public static let inspirationNoon = LinearGradient(
-        colors: [Color.indigo.opacity(0.15), Color.blue.opacity(0.1)],
+        colors: [Color.ritualistBlue.opacity(0.18), Color.ritualistLightBlue.opacity(0.12)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
-    /// Evening motivation gradient (purple/indigo tones)
+    /// Evening motivation gradient (deep navy calm)
     ///
     /// Used during evening time period (< 50% completion)
-    /// Conveys calm reflection and winding down
+    /// Design: Uses dark mode navy for evening reflection
+    /// Conveys calm and winding down
     public static let inspirationEvening = LinearGradient(
-        colors: [Color.purple.opacity(0.15), Color.indigo.opacity(0.1)],
+        colors: [Color.ritualistMidNavy.opacity(0.20), Color.ritualistDarkNavy.opacity(0.15)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )

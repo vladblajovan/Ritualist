@@ -44,7 +44,7 @@ struct MonthlyCalendarCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Header
+            // Header with navigation
             HStack {
                 Text(seasonIcon)
                     .font(.title2)
@@ -52,42 +52,38 @@ struct MonthlyCalendarCard: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                 Spacer()
-            }
 
-            // Navigation
-            HStack {
-                Button {
-                    changeMonth(by: -1)
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
+                // Navigation controls
+                HStack(spacing: 12) {
+                    if !isViewingCurrentMonth {
+                        Button {
+                            currentDate = Date()
+                        } label: {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.primary)
+                        }
+                    }
 
-                Spacer()
-
-                if !isViewingCurrentMonth {
                     Button {
-                        currentDate = Date()
+                        changeMonth(by: -1)
                     } label: {
-                        Text("Today")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.brand)
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Button {
+                        changeMonth(by: 1)
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.secondary)
                     }
                 }
-
-                Spacer()
-
-                Button {
-                    changeMonth(by: 1)
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
             }
 
-            // Weekday headers
+            // Weekday headers only
             HStack(spacing: 0) {
                 ForEach(weekdayHeaders, id: \.self) { day in
                     Text(day)
@@ -101,15 +97,18 @@ struct MonthlyCalendarCard: View {
             // PERFORMANCE: Use Canvas for GPU-accelerated rendering - SINGLE draw pass
             GeometryReader { geometry in
                 Canvas { context, size in
-                    let cellWidth = size.width / 7
-                    let cellHeight: CGFloat = 36
+                    let cellSize: CGFloat = 36  // Circle diameter
+                    let verticalSpacing: CGFloat = 6    // Relaxed spacing between rows
+
+                    // No arrow offset needed - day names use full width now
+                    let columnWidth = size.width / 7
 
                     for dayData in displayDays where dayData.isCurrentMonth {
-                        let x = CGFloat(dayData.col) * cellWidth
-                        let y = CGFloat(dayData.row) * cellHeight + CGFloat(dayData.row) * 8
+                        // Center circle in column (matching day name alignment)
+                        let x = CGFloat(dayData.col) * columnWidth + columnWidth / 2
+                        let y = CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
 
-                        let rect = CGRect(x: x, y: y, width: cellWidth - 8, height: cellHeight)
-                        let center = CGPoint(x: rect.midX, y: rect.midY)
+                        let center = CGPoint(x: x, y: y)
                         let radius: CGFloat = 18
 
                         // Draw background circle
@@ -131,11 +130,15 @@ struct MonthlyCalendarCard: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { location in
-                    // FIXED: Pass actual canvas width for accurate tap detection
                     handleTap(at: location, canvasWidth: geometry.size.width)
                 }
             }
-            .frame(height: CGFloat((displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4) + 1) * 44)
+            .frame(height: {
+                let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
+                let cellSize: CGFloat = 36
+                let verticalSpacing: CGFloat = 6
+                return CGFloat(maxRow + 1) * (cellSize + verticalSpacing)
+            }())
         }
         .padding(20)
         .onAppear {
@@ -227,13 +230,14 @@ struct MonthlyCalendarCard: View {
     }
 
     private func handleTap(at location: CGPoint, canvasWidth: CGFloat) {
-        // FIXED: Use actual canvas width instead of screen width
-        let cellWidth: CGFloat = canvasWidth / 7
-        // FIXED: Account for 8px spacing between rows
-        let cellHeight: CGFloat = 36 + 8
+        let cellSize: CGFloat = 36  // Circle diameter
+        let verticalSpacing: CGFloat = 6    // Spacing between rows
 
-        let col = Int(location.x / cellWidth)
-        let row = Int(location.y / cellHeight)
+        // No arrow offset - day names use full width
+        let columnWidth = canvasWidth / 7
+
+        let col = Int(location.x / columnWidth)
+        let row = Int(location.y / (cellSize + verticalSpacing))
 
         if let dayData = displayDays.first(where: { $0.row == row && $0.col == col && $0.isCurrentMonth }) {
             onDateSelect(dayData.date)

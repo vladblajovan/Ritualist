@@ -200,7 +200,7 @@ struct TodaysSummaryCard: View {
             if let summary = summary {
                 // Main Progress Section
                 HStack(alignment: .top, spacing: 32) {
-                    // Progress Ring
+                    // Progress Ring (Icon-Inspired Gradient)
                     ZStack {
                         Circle()
                             .stroke(CardDesign.secondaryBackground, lineWidth: 8)
@@ -208,14 +208,21 @@ struct TodaysSummaryCard: View {
 
                         Circle()
                             .trim(from: 0.0, to: summary.completionPercentage)
-                            .stroke(progressColor(for: summary.completionPercentage), lineWidth: 8)
+                            .stroke(
+                                .linearGradient(
+                                    colors: [Color.ritualistCyan, Color.ritualistBlue],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ),
+                                lineWidth: 8
+                            )
                             .frame(width: 80, height: 80)
                             .rotationEffect(.degrees(-90))
                             // PERFORMANCE: Removed animation - causes lag during scroll when data updates
 
                         Text("\(Int(summary.completionPercentage * 100))%")
                             .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(progressColor(for: summary.completionPercentage))
+                            .foregroundColor(.ritualistBlue)
                     }
                     
                     // Progress Details
@@ -223,7 +230,7 @@ struct TodaysSummaryCard: View {
                         // PERFORMANCE: Simplified to progress bar instead of 12-20+ circles with shadows/overlays
                         // Previous implementation was massive view hierarchy causing scroll lag
                         HStack(spacing: 8) {
-                            // Progress bar
+                            // Progress bar (Icon-Inspired Gradient)
                             GeometryReader { geometry in
                                 ZStack(alignment: .leading) {
                                     RoundedRectangle(cornerRadius: 4)
@@ -231,7 +238,13 @@ struct TodaysSummaryCard: View {
                                         .frame(height: 8)
 
                                     RoundedRectangle(cornerRadius: 4)
-                                        .fill(progressColor(for: summary.completionPercentage))
+                                        .fill(
+                                            .linearGradient(
+                                                colors: [Color.ritualistCyan, Color.ritualistBlue],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
                                         .frame(width: geometry.size.width * summary.completionPercentage, height: 8)
                                 }
                             }
@@ -247,16 +260,28 @@ struct TodaysSummaryCard: View {
                         
                         // Motivational Message (different styles for incomplete vs complete)
                         if summary.completionPercentage >= 1.0 {
-                            // Celebration message with special styling for completed days
+                            // Celebration message with icon checkmark gradient
                             HStack(spacing: 8) {
-                                Image(systemName: "party.popper.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.green)
-                                
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(
+                                        .linearGradient(
+                                            colors: [Color.ritualistYellowLime, Color.ritualistOrange],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+
                                 Text(summary.motivationalMessage)
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
-                                    .foregroundColor(.green)
+                                    .foregroundStyle(
+                                        .linearGradient(
+                                            colors: [Color.ritualistYellowLime, Color.ritualistOrange],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
                             }
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
@@ -353,15 +378,22 @@ struct TodaysSummaryCard: View {
                         .fill(Color(hex: habit.colorHex).opacity(0.15))
                         .frame(width: 44, height: 44)
                     
-                    // Progress border for numeric habits
+                    // Progress border for numeric habits (Icon-Inspired Gradient)
                     if habit.kind == .numeric {
                         let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
                         let progressValue = min(max(currentValue / target, 0.0), 1.0)
-                        
+
                         Circle()
                             .trim(from: 0, to: progressValue)
-                            .stroke(Color(hex: habit.colorHex), lineWidth: 3)
+                            .stroke(
+                                .linearGradient(
+                                    colors: [Color.ritualistCyan, Color.ritualistBlue],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 3
+                            )
                             .frame(width: 44, height: 44)
                             .rotationEffect(.degrees(-90))
                             // PERFORMANCE: Removed animation - numeric progress updates don't need animation
@@ -617,12 +649,6 @@ struct TodaysSummaryCard: View {
                 }
             }
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(CardDesign.secondaryBackground.opacity(0.5))
-        )
     }
     
     @ViewBuilder
@@ -659,15 +685,22 @@ struct TodaysSummaryCard: View {
                         .fill(Color(hex: habit.colorHex).opacity(0.15))
                         .frame(width: 32, height: 32)
                     
-                    // Progress ring for numeric habits
+                    // Progress ring for numeric habits (Icon-Inspired Gradient)
                     if habit.kind == .numeric && !isCompleted {
                         let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
                         let progressValue = min(max(currentValue / target, 0.0), 1.0)
-                        
+
                         Circle()
                             .trim(from: 0, to: progressValue)
-                            .stroke(Color(hex: habit.colorHex), lineWidth: 2)
+                            .stroke(
+                                .linearGradient(
+                                    colors: [Color.ritualistCyan, Color.ritualistBlue],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2
+                            )
                             .frame(width: 32, height: 32)
                             .rotationEffect(.degrees(-90))
                     }
