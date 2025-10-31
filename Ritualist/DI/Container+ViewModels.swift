@@ -45,7 +45,7 @@ extension Container {
                 getPredefinedCategoriesUseCase: self.getPredefinedCategoriesUseCase(),
                 getHabitsFromSuggestionsUseCase: self.getHabitsFromSuggestionsUseCase(),
                 getSuggestionsUseCase: self.getSuggestionsUseCase(),
-                userActionTracker: self.userActionTracker()
+                trackUserAction: self.trackUserAction()
             )
         }
         .singleton

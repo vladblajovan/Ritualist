@@ -16,7 +16,7 @@ public final class HabitsAssistantViewModel {
     private let getPredefinedCategoriesUseCase: GetPredefinedCategoriesUseCase
     private let getHabitsFromSuggestionsUseCase: GetHabitsFromSuggestionsUseCase
     private let getSuggestionsUseCase: GetSuggestionsUseCase
-    private let userActionTracker: UserActionTrackerService?
+    private let trackUserAction: TrackUserActionUseCase?
     
     // MARK: - State
     public private(set) var categories: [HabitCategory] = []
@@ -31,12 +31,12 @@ public final class HabitsAssistantViewModel {
         getPredefinedCategoriesUseCase: GetPredefinedCategoriesUseCase,
         getHabitsFromSuggestionsUseCase: GetHabitsFromSuggestionsUseCase,
         getSuggestionsUseCase: GetSuggestionsUseCase,
-        userActionTracker: UserActionTrackerService? = nil
+        trackUserAction: TrackUserActionUseCase? = nil
     ) {
         self.getPredefinedCategoriesUseCase = getPredefinedCategoriesUseCase
         self.getHabitsFromSuggestionsUseCase = getHabitsFromSuggestionsUseCase
         self.getSuggestionsUseCase = getSuggestionsUseCase
-        self.userActionTracker = userActionTracker
+        self.trackUserAction = trackUserAction
     }
     
     // MARK: - Public Methods
@@ -57,12 +57,12 @@ public final class HabitsAssistantViewModel {
     
     public func selectCategory(_ category: HabitCategory) {
         selectedCategory = category
-        userActionTracker?.track(.habitsAssistantCategorySelected(category: category.name))
+        trackUserAction?.execute(action: .habitsAssistantCategorySelected(category: category.name), context: [:])
     }
-    
+
     public func clearCategorySelection() {
         selectedCategory = nil
-        userActionTracker?.track(.habitsAssistantCategoryCleared)
+        trackUserAction?.execute(action: .habitsAssistantCategoryCleared, context: [:])
     }
     
     public func getSuggestions() -> [HabitSuggestion] {
@@ -105,40 +105,40 @@ public final class HabitsAssistantViewModel {
     
     // MARK: - Tracking Methods
     public func trackHabitSuggestionViewed(habitId: String, category: String) {
-        userActionTracker?.track(.habitsAssistantHabitSuggestionViewed(
+        trackUserAction?.execute(action: .habitsAssistantHabitSuggestionViewed(
             habitId: habitId,
             category: category
-        ))
+        ), context: [:])
     }
-    
+
     public func trackHabitAdded(habitId: String, habitName: String, category: String) {
-        userActionTracker?.track(.habitsAssistantHabitAdded(
+        trackUserAction?.execute(action: .habitsAssistantHabitAdded(
             habitId: habitId,
             habitName: habitName,
             category: category
-        ))
+        ), context: [:])
     }
-    
+
     public func trackHabitAddFailed(habitId: String, error: String) {
-        userActionTracker?.track(.habitsAssistantHabitAddFailed(
+        trackUserAction?.execute(action: .habitsAssistantHabitAddFailed(
             habitId: habitId,
             error: error
-        ))
+        ), context: [:])
     }
-    
+
     public func trackHabitRemoved(habitId: String, habitName: String, category: String) {
-        userActionTracker?.track(.habitsAssistantHabitRemoved(
+        trackUserAction?.execute(action: .habitsAssistantHabitRemoved(
             habitId: habitId,
             habitName: habitName,
             category: category
-        ))
+        ), context: [:])
     }
-    
+
     public func trackHabitRemoveFailed(habitId: String, error: String) {
-        userActionTracker?.track(.habitsAssistantHabitRemoveFailed(
+        trackUserAction?.execute(action: .habitsAssistantHabitRemoveFailed(
             habitId: habitId,
             error: error
-        ))
+        ), context: [:])
     }
     
     // MARK: - Private Methods
