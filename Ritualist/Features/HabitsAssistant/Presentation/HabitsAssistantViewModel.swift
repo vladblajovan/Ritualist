@@ -15,7 +15,7 @@ public final class HabitsAssistantViewModel {
     // MARK: - Dependencies
     private let getPredefinedCategoriesUseCase: GetPredefinedCategoriesUseCase
     private let getHabitsFromSuggestionsUseCase: GetHabitsFromSuggestionsUseCase
-    private let suggestionsService: HabitSuggestionsService
+    private let getSuggestionsUseCase: GetSuggestionsUseCase
     private let userActionTracker: UserActionTrackerService?
     
     // MARK: - State
@@ -30,12 +30,12 @@ public final class HabitsAssistantViewModel {
     public init(
         getPredefinedCategoriesUseCase: GetPredefinedCategoriesUseCase,
         getHabitsFromSuggestionsUseCase: GetHabitsFromSuggestionsUseCase,
-        suggestionsService: HabitSuggestionsService,
+        getSuggestionsUseCase: GetSuggestionsUseCase,
         userActionTracker: UserActionTrackerService? = nil
     ) {
         self.getPredefinedCategoriesUseCase = getPredefinedCategoriesUseCase
         self.getHabitsFromSuggestionsUseCase = getHabitsFromSuggestionsUseCase
-        self.suggestionsService = suggestionsService
+        self.getSuggestionsUseCase = getSuggestionsUseCase
         self.userActionTracker = userActionTracker
     }
     
@@ -67,21 +67,21 @@ public final class HabitsAssistantViewModel {
     
     public func getSuggestions() -> [HabitSuggestion] {
         if let selectedCategory = selectedCategory {
-            return suggestionsService.getSuggestions(for: selectedCategory.id)
+            return getSuggestionsUseCase.execute(categoryId: selectedCategory.id)
         } else {
             // Show all suggestions when no category is selected
-            return suggestionsService.getSuggestions()
+            return getSuggestionsUseCase.execute()
         }
     }
-    
+
     public func getAllSuggestions() -> [HabitSuggestion] {
         // Always return all suggestions regardless of category filter
-        return suggestionsService.getSuggestions()
+        return getSuggestionsUseCase.execute()
     }
-    
+
     public func initializeWithExistingHabits(_ existingHabits: [Habit]) {
         // Get all suggestion IDs from all categories
-        let allSuggestions = suggestionsService.getSuggestions()
+        let allSuggestions = getSuggestionsUseCase.execute()
         let allSuggestionIds = allSuggestions.map { $0.id }
         
         // Use simplified logic with addedFromSuggestion field

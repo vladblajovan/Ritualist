@@ -241,20 +241,30 @@ public extension View {
     }
 }
 
-/// ViewModifier that integrates presentation service with sheet presentation
+/// ViewModifier for presenting the Habits Assistant sheet
 private struct HabitsAssistantSheetModifier: ViewModifier {
-    @Injected(\.habitsAssistantPresentationService) private var presentationService
+    @Injected(\.paywallViewModel) private var paywallViewModel
     @Binding var isPresented: Bool
-    
+    @State private var showingPaywall = false
+    @State private var shouldReopenAssistant = false
+
     let existingHabits: [Habit]
     let onDataRefreshNeeded: () async -> Void
-    
+
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: $isPresented) {
                 HabitsAssistantSheet(
                     existingHabits: existingHabits,
-                    onShowPaywall: presentationService.showPaywallFromAssistant
+                    onShowPaywall: {
+                        shouldReopenAssistant = true
+                        isPresented = false
+                        Task {
+                            await paywallViewModel.load()
+                            paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
+                            showingPaywall = true
+                        }
+                    }
                 )
                 .deviceAwareSheetSizing(
                     compactMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
@@ -267,28 +277,26 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
                     }
                 }
             }
-            .sheet(item: Binding(
-                get: { presentationService.paywallItem },
-                set: { presentationService.paywallItem = $0 }
-            )) { item in
-                PaywallView(vm: item.viewModel)
-            }
-            .onChange(of: presentationService.paywallItem) { oldValue, newValue in
-                if oldValue != nil && newValue == nil {
-                    presentationService.handlePaywallDismissal()
-                }
-            }
-            .onAppear {
-                // Set up data refresh callback
-                presentationService.onDataRefreshNeeded = onDataRefreshNeeded
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView(vm: paywallViewModel)
+                    .onDisappear {
+                        paywallViewModel.trackPaywallDismissed()
+                        if shouldReopenAssistant {
+                            shouldReopenAssistant = false
+                            // Wait for dismissal animation before reopening
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                isPresented = true
+                            }
+                        }
+                    }
             }
     }
 }
 
-/// Usage example for integrating with HabitsAssistantPresentationService:
+/// Usage example:
 /// ```swift
 /// .habitsAssistantSheet(
-///     isPresented: $presentationService.showingHabitAssistant,
+///     isPresented: $showingHabitAssistant,
 ///     existingHabits: vm.items,
 ///     onDataRefreshNeeded: { await vm.load() }
 /// )

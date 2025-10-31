@@ -34,8 +34,6 @@ struct TodaysSummaryCard: View {
     @State private var visibleIncompleteHabits: [Habit] = []
     @State private var visibleCompletedHabits: [Habit] = []
 
-    @Injected(\.hapticFeedbackService) private var hapticService
-
     // PERFORMANCE: Static DateFormatters - created ONCE, reused forever
     // DateFormatter is extremely expensive to create (50ms+ overhead eliminated)
     private static let dateFormatter: DateFormatter = {
@@ -351,13 +349,10 @@ struct TodaysSummaryCard: View {
         Button {
             if scheduleStatus.isAvailable {
                 if habit.kind == .numeric {
-                    // Trigger light haptic for opening numeric sheet
-                    hapticService.trigger(.light)
                     onNumericHabitAction?(habit)
                 } else {
-                    // For binary habits, complete with glow effect and haptic
+                    // For binary habits, complete with glow effect
                     glowingHabitId = habit.id
-                    hapticService.triggerCompletion(type: .standard)
                     
                     // Small delay for glow effect, then complete
                     Task {
@@ -659,13 +654,10 @@ struct TodaysSummaryCard: View {
         Button {
             if !isCompleted && scheduleStatus.isAvailable {
                 if habit.kind == .numeric {
-                    // Trigger light haptic for opening numeric sheet
-                    hapticService.trigger(.light)
                     onNumericHabitAction?(habit)
                 } else {
-                    // Binary habit - animate completion with glow and haptic
+                    // Binary habit - animate completion with glow
                     glowingHabitId = habit.id
-                    hapticService.triggerCompletion(type: .standard)
                     performCompletionAnimation(for: habit)
                     
                     // Clear glow after animation

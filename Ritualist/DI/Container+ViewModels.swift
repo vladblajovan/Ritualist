@@ -44,7 +44,7 @@ extension Container {
             HabitsAssistantViewModel(
                 getPredefinedCategoriesUseCase: self.getPredefinedCategoriesUseCase(),
                 getHabitsFromSuggestionsUseCase: self.getHabitsFromSuggestionsUseCase(),
-                suggestionsService: self.habitSuggestionsService(),
+                getSuggestionsUseCase: self.getSuggestionsUseCase(),
                 userActionTracker: self.userActionTracker()
             )
         }
