@@ -172,9 +172,9 @@ public struct TestDataScenarioConfig {
             // - Creative/learning focus
             // - Moderate-high completion
             return TestDataScenarioConfig(
-                suggestedHabitCount: 7,       // Diverse suggestions
+                suggestedHabitCount: 4,       // Some diverse suggestions (40%)
                 customCategoryCount: 3,       // Creative custom categories
-                customHabitCount: 3,          // Unique custom habits (total: 10)
+                customHabitCount: 6,          // Many creative custom habits (60%, total: 10)
                 historyDays: 60,              // 2 months for pattern recognition
                 completionRateRange: 0.65...0.75  // Good but not perfectionist
             )
@@ -186,9 +186,9 @@ public struct TestDataScenarioConfig {
             // - Goal-oriented habits
             // - Consistent patterns
             return TestDataScenarioConfig(
-                suggestedHabitCount: 9,       // Structured suggestions
+                suggestedHabitCount: 4,       // Some structured suggestions (40%)
                 customCategoryCount: 3,       // Goal categories
-                customHabitCount: 3,          // Achievement habits (total: 12)
+                customHabitCount: 6,          // Many daily routine habits (60%, total: 10)
                 historyDays: 60,              // 2 months of consistency
                 completionRateRange: 0.85...0.95  // Very high completion
             )
@@ -228,9 +228,9 @@ public struct TestDataScenarioConfig {
             // - Emotional instability indicators
             // - Low overall completion
             return TestDataScenarioConfig(
-                suggestedHabitCount: 9,       // Many attempts
-                customCategoryCount: 3,       // Standard categories
-                customHabitCount: 3,          // Standard custom habits (total: 12)
+                suggestedHabitCount: 4,       // Some suggested habits (40%)
+                customCategoryCount: 3,       // Wellness/stress categories
+                customHabitCount: 6,          // Many coping custom habits (60%, total: 10)
                 historyDays: 60,              // 2 months of struggle
                 completionRateRange: 0.15...0.30  // Low, erratic completion
             )

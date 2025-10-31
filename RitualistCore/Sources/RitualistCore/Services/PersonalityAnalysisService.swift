@@ -89,38 +89,66 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             habitsByPredefinedCategory[categoryId, default: []].append(habit)
         }
         
-        // Process each predefined category
+        // Process each predefined category with ML-enhanced semantic analysis
         for (categoryId, categoryHabits) in habitsByPredefinedCategory {
             guard let category = input.habitCategories.first(where: { $0.id == categoryId }) else { continue }
             guard let weights = category.personalityWeights else { continue }
-            
-            
+
+            // ENHANCEMENT: Blend category prior with habit semantic analysis ONLY if semantic signal is strong
+            // This captures nuanced patterns like "Health category used for anxiety management"
+            // But avoids diluting category priors when habit names are generic (e.g., "Drink Water")
+
+            // Get semantic weights from habit names using ML (if available)
+            let habitCompletionRates = categoryHabits.compactMap { getCompletionRateForHabit(habit: $0, input: input) }
+            let semanticWeights = inferSemanticWeightsFromHabits(
+                habits: categoryHabits,
+                completionRates: habitCompletionRates
+            )
+
+            // Determine if semantic analysis found strong signals (any trait > 0.3)
+            let hasStrongSemanticSignal = semanticWeights.values.contains(where: { $0 > 0.3 })
+
+            // Blend category prior with semantic insights
+            var blendedWeights: [String: Double] = [:]
+            if hasStrongSemanticSignal {
+                // Strong semantic signal detected - blend with category prior
+                let categoryPriorWeight = 0.6
+                let semanticBlendWeight = 0.4
+                for (traitKey, categoryWeight) in weights {
+                    let semanticValue = semanticWeights[traitKey] ?? 0.05
+                    blendedWeights[traitKey] = (categoryWeight * categoryPriorWeight) + (semanticValue * semanticBlendWeight)
+                }
+            } else {
+                // No strong semantic signal - use category prior as-is (generic habit names)
+                blendedWeights = weights
+            }
+
             // Distribute category weight across habits in that category
             let habitWeight = 1.0 / Double(categoryHabits.count)
-            
+
             // Apply weights for each habit in this category with specific modifiers and completion weighting
             for habit in categoryHabits {
-                
+
                 // Get individual habit completion rate
                 let completionRate = getCompletionRateForHabit(habit: habit, input: input)
-                
+
                 // Calculate habit-specific modifiers
                 let habitModifiers = calculateHabitSpecificModifiers(habit: habit, input: input)
-                
+
                 // Calculate completion-based weighting (0.3 to 1.0 range)
                 // High completion rates get full weight, low completion rates get reduced weight
                 let completionWeighting = 0.3 + (completionRate * 0.7)
-                
-                for (traitKey, categoryWeight) in weights {
+
+                for (traitKey, blendedWeight) in blendedWeights {
                     if let trait = PersonalityTrait(rawValue: traitKey) {
-                        // Apply habit-specific modifier and completion weighting to base category weight
+                        // Apply habit-specific modifier and completion weighting to blended weight
                         let habitModifier = habitModifiers[trait] ?? 1.0
-                        let modifiedWeight = categoryWeight * habitModifier * completionWeighting
+                        let modifiedWeight = blendedWeight * habitModifier * completionWeighting
                         let contribution = modifiedWeight * habitWeight
-                        
+
                         traitAccumulators[trait, default: 0.0] += contribution
                         totalWeights[trait, default: 0.0] += abs(contribution)
-                        
+
                     }
                 }
             }
@@ -452,6 +480,132 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         } else {
             return inferPersonalityWeightsKeyword(for: category, habits: habits, allLogs: allLogs)
         }
+    }
+
+    /// Infers personality weights from habit names only (for predefined categories)
+    /// Uses ML semantic analysis when available, falls back to keywords
+    private func inferSemanticWeightsFromHabits(habits: [Habit], completionRates: [Double]) -> [String: Double] {
+        // Device capability check - use ML on iOS 17+ with NLEmbedding support
+        if #available(iOS 17.0, *), let _ = NLEmbedding.wordEmbedding(for: .english) {
+            return inferSemanticWeightsFromHabitsML(habits: habits, completionRates: completionRates)
+        } else {
+            return inferSemanticWeightsFromHabitsKeyword(habits: habits, completionRates: completionRates)
+        }
+    }
+
+    /// ML-based semantic weight inference from habit names only
+    @available(iOS 17.0, *)
+    private func inferSemanticWeightsFromHabitsML(habits: [Habit], completionRates: [Double]) -> [String: Double] {
+        guard let embedding = NLEmbedding.wordEmbedding(for: .english) else {
+            // Fallback to keyword if embedding unavailable
+            return inferSemanticWeightsFromHabitsKeyword(habits: habits, completionRates: completionRates)
+        }
+
+        var weights: [String: Double] = [:]
+
+        // Combine habit names for semantic analysis
+        let allText = habits.map { $0.name }.joined(separator: ". ")
+
+        // Calculate semantic similarity for each trait
+        for trait in PersonalityTrait.allCases {
+            let similarity = calculateSemanticSimilarity(
+                text: allText,
+                trait: trait,
+                embedding: embedding
+            )
+
+            // Convert similarity (0.0-1.0) to weight (0.05-0.5 range)
+            if similarity > 0.3 {
+                weights[trait.rawValue] = 0.05 + (similarity - 0.3) * 0.64
+            } else {
+                weights[trait.rawValue] = 0.05
+            }
+        }
+
+        // Enhance with completion rate behavior
+        let avgCompletionRate = completionRates.reduce(0.0, +) / Double(max(completionRates.count, 1))
+
+        if avgCompletionRate > 0.7 {
+            weights["conscientiousness"] = max(weights["conscientiousness"] ?? 0.05, 0.4)
+        }
+
+        if avgCompletionRate < 0.3 {
+            weights["neuroticism"] = max(weights["neuroticism"] ?? 0.05, 0.35)
+        }
+
+        return weights
+    }
+
+    /// Keyword-based semantic weight inference from habit names only
+    private func inferSemanticWeightsFromHabitsKeyword(habits: [Habit], completionRates: [Double]) -> [String: Double] {
+        var weights: [String: Double] = [
+            "openness": 0.05,
+            "conscientiousness": 0.05,
+            "extraversion": 0.05,
+            "agreeableness": 0.05,
+            "neuroticism": 0.05
+        ]
+
+        let allText = habits.map { $0.name }.joined(separator: " ").lowercased()
+
+        // OPENNESS keywords
+        let opennessKeywords = ["new", "learn", "explore", "creative", "experiment", "try",
+                                "photography", "art", "music", "innovation", "discover", "curious",
+                                "novel", "adventure", "imagination", "travel", "culture", "language"]
+        let opennessMatches = opennessKeywords.filter { allText.contains($0) }
+        if !opennessMatches.isEmpty {
+            weights["openness"] = 0.5
+        }
+
+        // CONSCIENTIOUSNESS keywords
+        let conscientiousnessKeywords = ["plan", "organize", "routine", "track", "goal", "schedule",
+                                          "review", "discipline", "achievement", "complete", "morning",
+                                          "evening", "daily", "system", "structure", "checklist",
+                                          "preparation", "productivity", "order", "arrangement"]
+        let conscientiousnessMatches = conscientiousnessKeywords.filter { allText.contains($0) }
+        if !conscientiousnessMatches.isEmpty {
+            weights["conscientiousness"] = 0.5
+        }
+
+        // EXTRAVERSION keywords
+        let extraversionKeywords = ["social", "friend", "meet", "call", "visit", "party", "group",
+                                     "team", "networking", "event", "gathering", "club", "collaborate",
+                                     "community", "people", "conversation", "interaction", "outgoing"]
+        let extraversionMatches = extraversionKeywords.filter { allText.contains($0) }
+        if !extraversionMatches.isEmpty {
+            weights["extraversion"] = 0.5
+        }
+
+        // AGREEABLENESS keywords
+        let agreeablenessKeywords = ["love", "care", "help", "family", "relationship", "volunteer",
+                                      "support", "kindness", "donate", "compassion", "empathy", "charity",
+                                      "giving", "nurturing", "altruism", "cooperation", "harmony"]
+        let agreeablenessMatches = agreeablenessKeywords.filter { allText.contains($0) }
+        if !agreeablenessMatches.isEmpty {
+            weights["agreeableness"] = 0.5
+        }
+
+        // NEUROTICISM keywords
+        let neuroticismKeywords = ["stress", "anxiety", "mood", "therapy", "coping", "worry",
+                                    "self-care", "emotional", "mindful", "calm", "manage", "attempt",
+                                    "stability", "overwhelm", "tension", "nervous", "concern"]
+        let neuroticismMatches = neuroticismKeywords.filter { allText.contains($0) }
+        if !neuroticismMatches.isEmpty {
+            weights["neuroticism"] = 0.5
+        }
+
+        // Enhance with completion rate behavior
+        let avgCompletionRate = completionRates.reduce(0.0, +) / Double(max(completionRates.count, 1))
+
+        if avgCompletionRate > 0.7 {
+            weights["conscientiousness"] = max(weights["conscientiousness"] ?? 0.05, 0.4)
+        }
+
+        if avgCompletionRate < 0.3 {
+            weights["neuroticism"] = max(weights["neuroticism"] ?? 0.05, 0.35)
+        }
+
+        return weights
     }
 
     /// Keyword-based personality weight inference (legacy implementation for iOS <17)

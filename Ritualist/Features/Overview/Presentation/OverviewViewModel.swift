@@ -27,6 +27,7 @@ public final class OverviewViewModel {
     @ObservationIgnored private var lastShownInspirationTrigger: InspirationTrigger?
     @ObservationIgnored private var sessionStartTime: Date = Date()
     @ObservationIgnored private var dismissedTriggersToday: Set<InspirationTrigger> = []
+    @ObservationIgnored private var cachedInspirationMessage: String?
     
     public var isLoading: Bool = false
     public var error: Error?
@@ -127,6 +128,7 @@ public final class OverviewViewModel {
     @ObservationIgnored @Injected(\.isScheduledDay) private var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     @ObservationIgnored @Injected(\.refreshWidget) private var refreshWidget
+    @ObservationIgnored @Injected(\.personalizedMessageGenerator) private var personalizedMessageGenerator
     
     private func getUserId() async -> UUID {
         await getCurrentUserProfile.execute().id
@@ -641,19 +643,22 @@ public final class OverviewViewModel {
                 return 1500  // Standard timing
             }
         }()
-        
+
         Task {
             try? await Task.sleep(for: .milliseconds(delay))
+
+            // Generate and cache personalized message before showing card
+            let message = await getPersonalizedMessage(for: trigger)
+            self.cachedInspirationMessage = message
+
             self.lastShownInspirationTrigger = trigger
             self.showInspirationCard = true
         }
     }
     
     public var currentInspirationMessage: String {
-        guard let trigger = lastShownInspirationTrigger else {
-            return getCurrentSlogan.execute()
-        }
-        return getPersonalizedMessage(for: trigger)
+        // Use cached message if available, otherwise fallback to slogan
+        return cachedInspirationMessage ?? getCurrentSlogan.execute()
     }
     
     // MARK: - Private Methods
@@ -1102,142 +1107,69 @@ public final class OverviewViewModel {
     }
     
     // MARK: - Personalized Inspiration Messages
-    
-    private func getPersonalizedMessage(for trigger: InspirationTrigger) -> String {
-        switch trigger {
-        case .sessionStart:
-            return getSessionStartMessage()
-        case .morningMotivation:
-            return getMorningMotivationMessage()
-        case .firstHabitComplete:
-            return getFirstHabitMessage()
-        case .halfwayPoint:
-            return getHalfwayPointMessage()
-        case .strugglingMidDay:
-            return getStrugglingMidDayMessage()
-        case .afternoonPush:
-            return getAfternoonPushMessage()
-        case .strongFinish:
-            return getStrongFinishMessage()
-        case .perfectDay:
-            return getPerfectDayMessage()
-        case .eveningReflection:
-            return getEveningReflectionMessage()
-        case .weekendMotivation:
-            return getWeekendMotivationMessage()
-        case .comebackStory:
-            return getComebackStoryMessage()
+
+    private func getPersonalizedMessage(for trigger: InspirationTrigger) async -> String {
+        // Load personality profile
+        let personalityProfile = await loadPersonalityProfileForMessage()
+
+        // Get current streak (longest streak from activeStreaks, or 0)
+        let currentStreakValue = activeStreaks.first?.currentStreak ?? 0
+
+        // Build message context
+        let context = MessageContext(
+            trigger: trigger,
+            personality: personalityProfile,
+            completionPercentage: todaysSummary?.completionPercentage ?? 0.0,
+            timeOfDay: currentTimeOfDay,
+            userName: userName,
+            currentStreak: currentStreakValue,
+            recentPattern: analyzeRecentPattern()
+        )
+
+        // Generate personalized message
+        let message = await personalizedMessageGenerator.generateMessage(for: context)
+        return message.content
+    }
+
+    private func loadPersonalityProfileForMessage() async -> PersonalityProfile? {
+        // Get user ID
+        let userId = await getUserId()
+
+        // Check if personality analysis is enabled and available
+        guard let isEnabled = try? await isPersonalityAnalysisEnabledUseCase.execute(for: userId),
+              isEnabled else {
+            return nil
+        }
+
+        // Get current personality profile
+        return try? await getPersonalityProfileUseCase.execute(for: userId)
+    }
+
+    private func analyzeRecentPattern() -> CompletionPattern {
+        // For Phase 1, return a basic pattern
+        // Phase 2 will implement more sophisticated pattern analysis
+        guard let completionPercentage = todaysSummary?.completionPercentage else {
+            return .insufficient
+        }
+
+        // Simple heuristic based on current completion
+        if completionPercentage >= 0.8 {
+            return .consistent
+        } else if completionPercentage >= 0.5 {
+            return .improving
+        } else if completionPercentage > 0 {
+            return .declining
+        } else {
+            return .insufficient
         }
     }
     
     private var cachedUserName: String? = nil
-    
+
     private func getUserName() async -> String? {
         let profile = await getCurrentUserProfile.execute()
         return profile.name.isEmpty ? nil : profile.name
     }
-    
+
     private var userName: String? { cachedUserName }
-    
-    private func getSessionStartMessage() -> String {
-        if let name = userName {
-            switch currentTimeOfDay {
-            case .morning:
-                return "Good morning, \(name)! Ready to make today incredible?"
-            case .noon:
-                return "Hey \(name)! Time to power through the day with purpose."
-            case .evening:
-                return "Evening, \(name)! Let's finish strong together."
-            }
-        } else {
-            switch currentTimeOfDay {
-            case .morning:
-                return "Welcome back! Ready to start your day with intention?"
-            case .noon:
-                return "Time to refocus and make the most of your day!"
-            case .evening:
-                return "Let's finish this day on a powerful note!"
-            }
-        }
-    }
-    
-    private func getMorningMotivationMessage() -> String {
-        if let name = userName {
-            return "Rise and shine, \(name)! Every great day starts with the first habit. You've got this! 🌅"
-        } else {
-            return "Morning energy is powerful energy! Start with one habit and watch the momentum build. 🌅"
-        }
-    }
-    
-    private func getFirstHabitMessage() -> String {
-        if let name = userName {
-            return "Fantastic start, \(name)! One habit down, momentum building. Keep the energy flowing! ⚡"
-        } else {
-            return "Excellent! Your first habit is complete. Feel that momentum? Let's keep it going! ⚡"
-        }
-    }
-    
-    private func getHalfwayPointMessage() -> String {
-        if let name = userName {
-            return "You're crushing it, \(name)! Halfway there and showing incredible consistency. 🎯"
-        } else {
-            return "Amazing progress! You're at the halfway mark. Your consistency is paying off! 🎯"
-        }
-    }
-    
-    private func getStrugglingMidDayMessage() -> String {
-        if let name = userName {
-            return "Hey \(name), midday can be tough, but you're tougher. One small step forward is all it takes. 💪"
-        } else {
-            return "Midday slump? No problem! You have the strength to push through. One habit at a time. 💪"
-        }
-    }
-    
-    private func getAfternoonPushMessage() -> String {
-        if let name = userName {
-            return "\(name), the afternoon is your time to shine! Turn up the energy and finish strong. 🔥"
-        } else {
-            return "Afternoon energy boost! This is your moment to accelerate and make it count. 🔥"
-        }
-    }
-    
-    private func getStrongFinishMessage() -> String {
-        if let name = userName {
-            return "\(name), you're absolutely on fire! So close to perfection. Let's make it happen! 🌟"
-        } else {
-            return "You're on fire today! Outstanding progress. Victory is within reach! 🌟"
-        }
-    }
-    
-    private func getPerfectDayMessage() -> String {
-        if let name = userName {
-            return "\(name), you did it! Perfect day achieved! Your dedication is truly inspiring!"
-        } else {
-            return "Perfect day complete! You've shown incredible dedication and consistency!"
-        }
-    }
-    
-    private func getEveningReflectionMessage() -> String {
-        if let name = userName {
-            return "Beautiful work today, \(name)! Your consistent effort is building something amazing. 🌙"
-        } else {
-            return "What a productive day! Your commitment to growth is truly admirable. 🌙"
-        }
-    }
-    
-    private func getWeekendMotivationMessage() -> String {
-        if let name = userName {
-            return "Weekend warrior mode, \(name)! Your dedication even on weekends sets you apart. 🏆"
-        } else {
-            return "Weekend dedication is next level! Your consistency knows no boundaries. 🏆"
-        }
-    }
-    
-    private func getComebackStoryMessage() -> String {
-        if let name = userName {
-            return "\(name), what a comeback! Yesterday was tough, but look at you now. This is resilience! 🚀"
-        } else {
-            return "Incredible comeback story! You've bounced back stronger than ever. Pure resilience! 🚀"
-        }
-    }
 }

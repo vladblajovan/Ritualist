@@ -514,13 +514,30 @@ struct ScenarioAnalysisDemoView: View {
                 .fontWeight(.semibold)
 
             if mlAvailable {
-                Text("On this device, semantic embeddings analyze the meaning and context of habit/category text, matching against trait descriptors using cosine similarity.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("• Custom Categories: 100% semantic analysis of habit/category names")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("• Predefined Categories: 60% psychology prior + 40% semantic habit analysis")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("Example: 'Health' category suggests conscientiousness, but habits like 'Manage anxiety symptoms' shift analysis toward neuroticism using semantic embeddings.")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .italic()
+                }
             } else {
-                Text("Keyword matching looks for specific words in habit/category names. ML semantic embeddings would provide better accuracy on iOS 17+ devices.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("• Keyword matching looks for specific words in habit/category names")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("• ML semantic embeddings (iOS 17+) would capture nuanced meaning and context, improving accuracy for predefined categories")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .onAppear {
