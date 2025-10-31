@@ -20,19 +20,20 @@ public struct RitualistGradientBackground: View {
     }
 
     // PERFORMANCE: Use simple color arrays instead of Gradient.Stop for faster rendering
+    // DESIGN: Icon-inspired gradients - matches app icon background
     private var lightColors: [Color] {
         [
-            .ritualistWarmPeach,
-            .ritualistLilacMist,
-            .ritualistSkyAqua
+            .ritualistCyan,        // Icon left: Cyan
+            .ritualistBlue,        // Icon right: Blue
+            .ritualistLightBlue    // Subtle variation for depth
         ]
     }
 
     private var darkColors: [Color] {
         [
-            .ritualistDarkNavy,
-            .ritualistDarkPurple,
-            .ritualistDarkTeal
+            .ritualistDeepNavy,    // Deep navy for depth
+            .ritualistDarkNavy,    // Icon background: Dark navy
+            .ritualistMidNavy      // Mid navy for variation
         ]
     }
 }

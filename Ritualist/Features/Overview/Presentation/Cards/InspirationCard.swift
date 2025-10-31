@@ -161,6 +161,8 @@ struct InspirationCard: View {
                 style.gradient
                     .clipShape(RoundedRectangle(cornerRadius: CardDesign.cornerRadius))
             )
+            .iconRingsOverlay(intensity: 0.25, ringCount: 3)
+            .clipShape(RoundedRectangle(cornerRadius: CardDesign.cornerRadius))
             .overlay(
                 RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
                     .stroke(style.color.opacity(0.2), lineWidth: 1)

@@ -18,13 +18,16 @@ public enum AppColors {
     public static let accentYellowColorName = "AccentYellow"
     public static let surfaceColorName = "Surface"
     public static let textPrimaryColorName = "TextPrimary"
-    
+
     #if canImport(SwiftUI)
     // SwiftUI Color objects (when SwiftUI is available)
+    // UPDATED: Icon-based brand colors for visual consistency
     @available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
-    public static let brand = Color("Brand")
+    public static let brand = Color(hex: 0x0D6EFD)  // Icon blue (primary brand)
     @available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
-    public static let accentYellow = Color("AccentYellow")
+    public static let accentYellow = Color(hex: 0xFF9500)  // Icon orange (dark mode checkmark)
+    @available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
+    public static let accentCyan = Color(hex: 0x17A2B8)  // Icon cyan (secondary brand)
     @available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
     public static let surface = Color("Surface")
     #if canImport(UIKit)
