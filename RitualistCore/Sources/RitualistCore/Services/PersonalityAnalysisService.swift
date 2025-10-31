@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import NaturalLanguage
 
 /// Service responsible for personality calculation utilities
 /// Business operations moved to AnalyzePersonalityUseCase
@@ -443,7 +444,18 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     }
     
     /// Infers personality weights for custom categories based on behavior patterns
+    /// Entry point with device capability check - switches between ML and keyword implementations
     private func inferPersonalityWeights(for category: HabitCategory, habits: [Habit], allLogs: [Double]) -> [String: Double] {
+        // Device capability check - use ML on iOS 17+ with NLEmbedding support
+        if #available(iOS 17.0, *), let _ = NLEmbedding.wordEmbedding(for: .english) {
+            return inferPersonalityWeightsML(for: category, habits: habits, allLogs: allLogs)
+        } else {
+            return inferPersonalityWeightsKeyword(for: category, habits: habits, allLogs: allLogs)
+        }
+    }
+
+    /// Keyword-based personality weight inference (legacy implementation for iOS <17)
+    private func inferPersonalityWeightsKeyword(for category: HabitCategory, habits: [Habit], allLogs: [Double]) -> [String: Double] {
         // Start with neutral baseline - using consistent ordering to prevent fluctuations
         var weights: [String: Double] = [
             "openness": 0.05,
@@ -525,7 +537,138 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
 
         return weights
     }
-    
+
+    /// ML-based personality weight inference using NLEmbedding (iOS 17+)
+    @available(iOS 17.0, *)
+    private func inferPersonalityWeightsML(for category: HabitCategory, habits: [Habit], allLogs: [Double]) -> [String: Double] {
+        guard let embedding = NLEmbedding.wordEmbedding(for: .english) else {
+            // Fallback to keyword if embedding unavailable
+            return inferPersonalityWeightsKeyword(for: category, habits: habits, allLogs: allLogs)
+        }
+
+        var weights: [String: Double] = [:]
+
+        // Combine category name + habit names for semantic analysis
+        let allText = ([category.name, category.displayName] + habits.map { $0.name })
+            .joined(separator: ". ")
+
+        // Calculate semantic similarity for each trait
+        for trait in PersonalityTrait.allCases {
+            let similarity = calculateSemanticSimilarity(
+                text: allText,
+                trait: trait,
+                embedding: embedding
+            )
+
+            // Convert similarity (0.0-1.0) to weight (0.05-0.5 range)
+            // Threshold: only assign significant weight if similarity > 0.3
+            if similarity > 0.3 {
+                weights[trait.rawValue] = 0.05 + (similarity - 0.3) * 0.64 // Maps 0.3-1.0 → 0.05-0.5
+            } else {
+                weights[trait.rawValue] = 0.05 // Baseline
+            }
+        }
+
+        // Enhance with behavior-based analysis (completion rates)
+        let avgCompletionRate = allLogs.reduce(0.0, +) / Double(max(allLogs.count, 1))
+
+        // High completion rate boosts conscientiousness
+        if avgCompletionRate > 0.7 {
+            weights["conscientiousness"] = max(weights["conscientiousness"] ?? 0.05, 0.4)
+        }
+
+        // Low completion rate suggests neuroticism
+        if avgCompletionRate < 0.3 {
+            weights["neuroticism"] = max(weights["neuroticism"] ?? 0.05, 0.35)
+        }
+
+        return weights
+    }
+
+    /// Calculate semantic similarity between text and personality trait using embeddings
+    @available(iOS 17.0, *)
+    private func calculateSemanticSimilarity(
+        text: String,
+        trait: PersonalityTrait,
+        embedding: NLEmbedding
+    ) -> Double {
+        // Get embedding for habit/category text
+        guard let textVector = embedding.vector(for: text.lowercased()) else {
+            return 0.0
+        }
+
+        // Trait descriptors - semantic phrases that define each trait
+        let traitDescriptors = getTraitDescriptors(for: trait)
+
+        // Calculate similarity to each trait descriptor, take maximum
+        var maxSimilarity = 0.0
+        for descriptor in traitDescriptors {
+            guard let descriptorVector = embedding.vector(for: descriptor) else { continue }
+            let similarity = cosineSimilarity(textVector, descriptorVector)
+            maxSimilarity = max(maxSimilarity, similarity)
+        }
+
+        return maxSimilarity
+    }
+
+    /// Get semantic descriptors for each personality trait
+    private func getTraitDescriptors(for trait: PersonalityTrait) -> [String] {
+        switch trait {
+        case .openness:
+            return [
+                "creativity imagination innovation",
+                "curiosity exploration discovery",
+                "learning new experiences adventure",
+                "artistic expression photography music",
+                "intellectual openness ideas culture"
+            ]
+        case .conscientiousness:
+            return [
+                "organization planning structure",
+                "discipline routine consistency",
+                "goal achievement productivity",
+                "responsibility reliability punctuality",
+                "order systems preparation"
+            ]
+        case .extraversion:
+            return [
+                "social interaction friends people",
+                "outgoing energy enthusiasm",
+                "networking community collaboration",
+                "conversation communication talking",
+                "group activities team events"
+            ]
+        case .agreeableness:
+            return [
+                "compassion empathy kindness",
+                "cooperation harmony helping",
+                "caring nurturing supportive",
+                "altruism charity volunteering",
+                "relationships family love"
+            ]
+        case .neuroticism:
+            return [
+                "stress anxiety worry concern",
+                "emotional instability mood",
+                "nervous tension overwhelm",
+                "coping therapy management",
+                "mindfulness calm stability"
+            ]
+        }
+    }
+
+    /// Calculate cosine similarity between two vectors
+    private func cosineSimilarity(_ vec1: [Double], _ vec2: [Double]) -> Double {
+        guard vec1.count == vec2.count, vec1.count > 0 else { return 0.0 }
+
+        let dotProduct = zip(vec1, vec2).map(*).reduce(0, +)
+        let magnitude1 = sqrt(vec1.map { $0 * $0 }.reduce(0, +))
+        let magnitude2 = sqrt(vec2.map { $0 * $0 }.reduce(0, +))
+
+        guard magnitude1 > 0, magnitude2 > 0 else { return 0.0 }
+        return dotProduct / (magnitude1 * magnitude2)
+    }
+
     /// Calculate habit-specific modifiers based on individual habit characteristics
     nonisolated private func calculateHabitSpecificModifiers(habit: Habit, input: HabitAnalysisInput) -> [PersonalityTrait: Double] {
         var modifiers: [PersonalityTrait: Double] = [:]
