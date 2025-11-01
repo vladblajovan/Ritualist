@@ -8,6 +8,8 @@ on:
       - 'Ritualist/Resources/**'
       - 'Ritualist.xcodeproj/**'
       - 'TestPlan.xctestplan'
+      - '.github/workflows/**'
+      - 'Scripts/**'
   pull_request:
     branches: [ main ]
     paths:
@@ -15,6 +17,8 @@ on:
       - 'Ritualist/Resources/**'
       - 'Ritualist.xcodeproj/**'
       - 'TestPlan.xctestplan'
+      - '.github/workflows/**'
+      - 'Scripts/**'
 
 jobs:
   string-validation:
@@ -105,7 +109,6 @@ jobs:
         TEST_TIME=$((TEST_END - TEST_START))
         echo "✅ Tests completed in ${TEST_TIME} seconds"
         echo "TEST_TIME=${TEST_TIME}" >> $GITHUB_ENV
-      continue-on-error: true
       
     - name: Generate Test Coverage Report
       run: |

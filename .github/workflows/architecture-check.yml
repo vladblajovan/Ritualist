@@ -6,11 +6,13 @@ on:
     paths:
       - 'Ritualist/**/*.swift'
       - 'RitualistCore/**/*.swift'
+      - '.github/workflows/**'
   pull_request:
     branches: [ main ]
     paths:
       - 'Ritualist/**/*.swift'
       - 'RitualistCore/**/*.swift'
+      - '.github/workflows/**'
 
 jobs:
   architecture-check:
@@ -30,8 +32,8 @@ jobs:
         # Check for Service properties in ViewModels
         SERVICE_PROPERTIES=$(grep -r ": .*Service" Ritualist/Features/*/Presentation/*ViewModel.swift || true)
         
-        # Check for Service in ViewModel file content
-        SERVICE_REFERENCES=$(grep -r "Service" Ritualist/Features/*/Presentation/*ViewModel.swift || true)
+        # Check for Service in ViewModel file content (exclude comments)
+        SERVICE_REFERENCES=$(grep -r "Service" Ritualist/Features/*/Presentation/*ViewModel.swift | grep -v "^\s*//" | grep -v "^\s*\*" || true)
         
         # Create violation report
         cat > architecture_violations_report.md << 'EOF'
