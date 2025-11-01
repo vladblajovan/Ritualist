@@ -159,21 +159,8 @@ struct InspirationCard: View {
             }
             .background(
                 style.gradient
-                    .clipShape(RoundedRectangle(cornerRadius: CardDesign.cornerRadius))
             )
-            .iconRingsOverlay(intensity: 0.25, ringCount: 3)
             .clipShape(RoundedRectangle(cornerRadius: CardDesign.cornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
-                    .stroke(style.color.opacity(0.2), lineWidth: 1)
-            )
-            // PERFORMANCE: Removed colored shadow and animations for smooth scrolling
-            .shadow(
-                color: .black.opacity(0.05),
-                radius: 4,
-                x: 0,
-                y: 2
-            )
             // PERFORMANCE: Reactive cache updates - only when dependencies change
             .onAppear {
                 updateCachedStyle()

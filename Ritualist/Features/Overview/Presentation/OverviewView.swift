@@ -28,7 +28,7 @@ public struct OverviewView: View {
                             }
                         }
                     )
-                    .simpleCard()
+                    .frame(maxWidth: .infinity)
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 

@@ -99,6 +99,7 @@ struct MonthlyCalendarCard: View {
                 Canvas { context, size in
                     let cellSize: CGFloat = 36  // Circle diameter
                     let verticalSpacing: CGFloat = 6    // Relaxed spacing between rows
+                    let strokePadding: CGFloat = 2  // Padding to prevent border stroke clipping
 
                     // No arrow offset needed - day names use full width now
                     let columnWidth = size.width / 7
@@ -106,7 +107,7 @@ struct MonthlyCalendarCard: View {
                     for dayData in displayDays where dayData.isCurrentMonth {
                         // Center circle in column (matching day name alignment)
                         let x = CGFloat(dayData.col) * columnWidth + columnWidth / 2
-                        let y = CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
+                        let y = strokePadding + CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
 
                         let center = CGPoint(x: x, y: y)
                         let radius: CGFloat = 18
@@ -137,7 +138,8 @@ struct MonthlyCalendarCard: View {
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let cellSize: CGFloat = 36
                 let verticalSpacing: CGFloat = 6
-                return CGFloat(maxRow + 1) * (cellSize + verticalSpacing)
+                let strokePadding: CGFloat = 2  // Padding for border stroke (top and bottom)
+                return strokePadding * 2 + CGFloat(maxRow + 1) * (cellSize + verticalSpacing)
             }())
         }
         .padding(20)
@@ -232,12 +234,13 @@ struct MonthlyCalendarCard: View {
     private func handleTap(at location: CGPoint, canvasWidth: CGFloat) {
         let cellSize: CGFloat = 36  // Circle diameter
         let verticalSpacing: CGFloat = 6    // Spacing between rows
+        let strokePadding: CGFloat = 2  // Padding for border stroke
 
         // No arrow offset - day names use full width
         let columnWidth = canvasWidth / 7
 
         let col = Int(location.x / columnWidth)
-        let row = Int(location.y / (cellSize + verticalSpacing))
+        let row = Int((location.y - strokePadding) / (cellSize + verticalSpacing))
 
         if let dayData = displayDays.first(where: { $0.row == row && $0.col == col && $0.isCurrentMonth }) {
             onDateSelect(dayData.date)
