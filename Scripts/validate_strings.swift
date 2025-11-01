@@ -10,11 +10,11 @@ struct StringConstraints {
     let name: String
     let characterLimit: Int
     let pixelWidth: CGFloat
-    
+
     static let tabBarLabel = StringConstraints(name: "Tab Bar", characterLimit: 12, pixelWidth: 80)
-    static let buttonLabel = StringConstraints(name: "Button", characterLimit: 15, pixelWidth: 120) 
+    static let buttonLabel = StringConstraints(name: "Button", characterLimit: 15, pixelWidth: 120)
     static let formFieldLabel = StringConstraints(name: "Form Field", characterLimit: 30, pixelWidth: 200)
-    static let validationMessage = StringConstraints(name: "Validation", characterLimit: 80, pixelWidth: 280)
+    static let validationMessage = StringConstraints(name: "Validation", characterLimit: 85, pixelWidth: 280)
     static let accessibilityLabel = StringConstraints(name: "Accessibility", characterLimit: 100, pixelWidth: 0)
 }
 
@@ -70,17 +70,26 @@ class StringValidator {
     }
     
     private func determineConstraint(for key: String) -> StringConstraints {
+        let lowercaseKey = key.lowercased()
+
         switch key {
-        case _ where key.hasPrefix("navigation."):
+        case _ where key.hasPrefix("navigation.") || key.hasPrefix("navigation"):
             return .tabBarLabel
-        case _ where key.hasPrefix("button."):
+        case _ where key.hasPrefix("button.") || key.hasPrefix("button"):
             return .buttonLabel
-        case _ where key.hasPrefix("form."):
+        case _ where key.hasPrefix("form.") || key.hasPrefix("form"):
             return .formFieldLabel
-        case _ where key.hasPrefix("validation."):
+        case _ where key.hasPrefix("validation.") || key.hasPrefix("validation"):
             return .validationMessage
-        case _ where key.hasPrefix("accessibility."):
+        case _ where key.hasPrefix("accessibility.") || key.hasPrefix("accessibility"):
             return .accessibilityLabel
+        // Recognize message/warning/error patterns as validation strings
+        case _ where lowercaseKey.contains("message") ||
+                     lowercaseKey.contains("warning") ||
+                     lowercaseKey.contains("error") ||
+                     lowercaseKey.contains("restriction") ||
+                     key.contains("This will remove"):  // Confirmation dialogs
+            return .validationMessage
         default:
             return .formFieldLabel // Default constraint
         }

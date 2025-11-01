@@ -8,6 +8,8 @@ on:
       - 'Ritualist/Resources/**'
       - 'Ritualist.xcodeproj/**'
       - 'TestPlan.xctestplan'
+      - '.github/workflows/**'
+      - 'Scripts/**'
   pull_request:
     branches: [ main ]
     paths:
@@ -15,6 +17,8 @@ on:
       - 'Ritualist/Resources/**'
       - 'Ritualist.xcodeproj/**'
       - 'TestPlan.xctestplan'
+      - '.github/workflows/**'
+      - 'Scripts/**'
 
 jobs:
   string-validation:
@@ -105,7 +109,6 @@ jobs:
         TEST_TIME=$((TEST_END - TEST_START))
         echo "✅ Tests completed in ${TEST_TIME} seconds"
         echo "TEST_TIME=${TEST_TIME}" >> $GITHUB_ENV
-      continue-on-error: true
       
     - name: Generate Test Coverage Report
       run: |
@@ -176,38 +179,96 @@ jobs:
     
     - name: Generate Build Report
       run: |
-        cat > build-report.md << 'EOF'
-        # 🔨 Ritualist Build Report
-        
-        ## Summary
-        This report shows the results of the build and test pipeline for the Ritualist app.
-        
-        ## Pipeline Results
-        - **String Validation**: ${{ needs.string-validation.result }}
-        - **Build & Test**: ${{ needs.build-test.result }}
-        - **SwiftLint**: ${{ needs.swiftlint.result }}
-        
-        ## Performance Metrics
-        Build performance data available in test-results-and-coverage artifacts.
-        
-        ## Phase 1A Improvements
-        - ✅ **Build Caching**: SwiftPM and DerivedData caching enabled
-        - ✅ **Performance Tracking**: Build and test times measured
-        - ✅ **Coverage Reporting**: Basic coverage data extracted
-        
-        ## Artifacts Available
-        - `string-validation-report` - Localization validation results
-        - `test-results-and-coverage` - Test results, coverage data, and performance metrics
-        - `build-report` - This comprehensive report
-        
-        ## Next Steps
-        - Review any failed builds or tests
-        - Check performance trends in artifacts
-        - Fix SwiftLint violations if any
-        - Update string translations if validation failed
-        
-        Generated on: $(date)
+        # Determine overall status
+        STRING_STATUS="${{ needs.string-validation.result }}"
+        BUILD_STATUS="${{ needs.build-test.result }}"
+        LINT_STATUS="${{ needs.swiftlint.result }}"
+
+        # Status emoji mapping
+        get_status_emoji() {
+          case $1 in
+            success) echo "✅" ;;
+            failure) echo "❌" ;;
+            skipped) echo "⚠️" ;;
+            *) echo "⚠️" ;;
+          esac
+        }
+
+        STRING_EMOJI=$(get_status_emoji "$STRING_STATUS")
+        BUILD_EMOJI=$(get_status_emoji "$BUILD_STATUS")
+        LINT_EMOJI=$(get_status_emoji "$LINT_STATUS")
+
+        # Check if any failures
+        HAS_FAILURES=false
+        if [[ "$STRING_STATUS" == "failure" ]] || [[ "$BUILD_STATUS" == "failure" ]] || [[ "$LINT_STATUS" == "failure" ]]; then
+          HAS_FAILURES=true
+          HEADER="# ⚠️ CI Pipeline - Action Required"
+        else
+          HEADER="# ✅ CI Pipeline Results"
+        fi
+
+        # Start building report
+        cat > build-report.md << EOF
+        $HEADER
+
+        ## Quality Checks
+        - $STRING_EMOJI **String Validation**: $(echo $STRING_STATUS | tr '[:lower:]' '[:upper:]')
+        - $BUILD_EMOJI **Build & Test**: $(echo $BUILD_STATUS | tr '[:lower:]' '[:upper:]')
+        - $LINT_EMOJI **SwiftLint**: $(echo $LINT_STATUS | tr '[:lower:]' '[:upper:]')
+
         EOF
+
+        # Add performance metrics if build succeeded
+        if [[ "$BUILD_STATUS" == "success" ]]; then
+          cat >> build-report.md << 'EOF'
+        ## 📊 Performance Metrics
+        Build and test performance data available in workflow artifacts.
+
+        EOF
+        fi
+
+        # Add action required section if there are failures
+        if [ "$HAS_FAILURES" = true ]; then
+          cat >> build-report.md << 'EOF'
+        ---
+
+        ## 🚨 Action Required
+
+        EOF
+
+          if [[ "$STRING_STATUS" == "failure" ]]; then
+            echo "### String Validation Failed" >> build-report.md
+            echo "Some localized strings exceed length constraints. Check the \`string-validation-report\` artifact for details." >> build-report.md
+            echo "" >> build-report.md
+          fi
+
+          if [[ "$BUILD_STATUS" == "failure" ]]; then
+            echo "### Build or Tests Failed" >> build-report.md
+            echo "Review build logs and test results in the \`test-results-and-coverage\` artifact." >> build-report.md
+            echo "" >> build-report.md
+          fi
+
+          if [[ "$LINT_STATUS" == "failure" ]]; then
+            echo "### SwiftLint Violations" >> build-report.md
+            echo "Code style violations detected. Run \`swiftlint\` locally to see and fix violations." >> build-report.md
+            echo "" >> build-report.md
+          fi
+        fi
+
+        # Add artifacts section
+        cat >> build-report.md << 'EOF'
+        ---
+
+        ## 📦 Artifacts
+        Detailed reports available in workflow artifacts:
+        - **string-validation-report** - Localization validation results
+        - **test-results-and-coverage** - Test results, coverage data, and performance metrics
+        - **build-report** - This comprehensive report
+
+        EOF
+
+        # Add timestamp
+        echo "_Report generated on $(date -u '+%b %d, %Y at %H:%M:%S UTC')_" >> build-report.md
     
     - name: Upload Build Report
       uses: actions/upload-artifact@v4

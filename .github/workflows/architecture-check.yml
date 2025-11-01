@@ -6,11 +6,13 @@ on:
     paths:
       - 'Ritualist/**/*.swift'
       - 'RitualistCore/**/*.swift'
+      - '.github/workflows/**'
   pull_request:
     branches: [ main ]
     paths:
       - 'Ritualist/**/*.swift'
       - 'RitualistCore/**/*.swift'
+      - '.github/workflows/**'
 
 jobs:
   architecture-check:
@@ -30,8 +32,9 @@ jobs:
         # Check for Service properties in ViewModels
         SERVICE_PROPERTIES=$(grep -r ": .*Service" Ritualist/Features/*/Presentation/*ViewModel.swift || true)
         
-        # Check for Service in ViewModel file content
-        SERVICE_REFERENCES=$(grep -r "Service" Ritualist/Features/*/Presentation/*ViewModel.swift || true)
+        # Check for Service in ViewModel file content (exclude comments)
+        # Use sed to remove comments before searching, then filter out multi-line comment markers
+        SERVICE_REFERENCES=$(grep -r "Service" Ritualist/Features/*/Presentation/*ViewModel.swift | sed 's://.*$::' | grep "Service" | grep -v "^\s*\*" || true)
         
         # Create violation report
         cat > architecture_violations_report.md << 'EOF'
@@ -125,30 +128,23 @@ jobs:
       with:
         script: |
           const fs = require('fs');
-          
+
           try {
             const report = fs.readFileSync('architecture_violations_report.md', 'utf8');
-            
-            // Check if violations were found
+
+            // Check if CRITICAL violations were found
             const hasViolations = report.includes('❌ **CRITICAL VIOLATION DETECTED**');
-            
+
+            // Only post comment if there are critical violations
             if (hasViolations) {
-              // Post violation report
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: `## 🚨 Architecture Violations Detected\n\n${report}\n\n**Action Required:** Please fix these violations before merging. The codebase achieved ZERO violations in Phase 0 - let's keep it that way! 🏆`
               });
-            } else {
-              // Post success message
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## 🎉 Architecture Validation Passed!\n\n${report}\n\nGreat job maintaining Clean Architecture compliance! 🏆`
-              });
             }
+            // Don't post success messages to reduce noise
           } catch (error) {
             console.error('Error posting comment:', error);
           }
