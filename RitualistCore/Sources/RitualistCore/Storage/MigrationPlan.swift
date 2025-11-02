@@ -35,9 +35,9 @@ enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// - Each version must have a unique versionIdentifier
     static var schemas: [any VersionedSchema.Type] {
         [
-            SchemaV1.self,
-            SchemaV2.self  // Added for migration testing
+            SchemaV1.self
             // Future versions go here:
+            // SchemaV2.self,
             // SchemaV3.self,
         ]
     }
@@ -46,63 +46,23 @@ enum RitualistMigrationPlan: SchemaMigrationPlan {
 
     /// Defines how to migrate between schema versions
     ///
-    /// Migrations are executed in order when the app detects a schema change.
-    /// Each migration stage defines how to transform data from one version to the next.
+    /// Currently empty because we only have V1.
+    /// Future migrations will be added here as new versions are created.
+    ///
+    /// ## Example Future Migration:
+    /// ```swift
+    /// static var stages: [MigrationStage] {
+    ///     [
+    ///         // V1 → V2: Add new property with lightweight migration
+    ///         migrateV1toV2
+    ///     ]
+    /// }
+    /// ```
     static var stages: [MigrationStage] {
-        [
-            // V1 → V2: Add isPinned property to HabitModel
-            migrateV1toV2
-        ]
+        []
         // Future migration stages will be added here:
-        // Example: migrateV2toV3, migrateV3toV4, etc.
+        // Example: migrateV1toV2, migrateV2toV3, etc.
     }
-
-    // MARK: - Migration Stage Implementations
-
-    /// Lightweight migration from V1 to V2
-    ///
-    /// Changes:
-    /// - Adds `isPinned: Bool` property to HabitModel with default value `false`
-    ///
-    /// This is a lightweight migration because:
-    /// - Only adding a new property
-    /// - Property has a default value
-    /// - No data transformation needed
-    /// - SwiftData handles it automatically
-    static let migrateV1toV2 = MigrationStage.custom(
-        fromVersion: SchemaV1.self,
-        toVersion: SchemaV2.self,
-        willMigrate: { context in
-            // Pre-migration: Create backup and log start
-            let backupManager = BackupManager()
-            do {
-                try backupManager.createBackup()
-                MigrationLogger.shared.logBackupCreation(success: true)
-            } catch {
-                MigrationLogger.shared.logBackupCreation(success: false)
-                // Don't fail migration if backup fails - just log it
-            }
-
-            MigrationLogger.shared.logMigrationStart(from: "1.0.0", to: "2.0.0")
-            MigrationLogger.shared.logCurrentSchemaVersion("2.0.0")
-        },
-        didMigrate: { context in
-            // Post-migration: Verify data and log success
-            let startTime = Date()
-
-            // Verify all habits were migrated
-            let habits = try context.fetch(FetchDescriptor<HabitModelV2>())
-            let habitsWithDefaultPinned = habits.filter { !$0.isPinned }
-
-            print("✅ Migration V1 → V2 completed:")
-            print("   - Migrated \(habits.count) habits")
-            print("   - All habits have isPinned = false (default)")
-            print("   - \(habitsWithDefaultPinned.count) habits confirmed with default value")
-
-            let duration = Date().timeIntervalSince(startTime)
-            MigrationLogger.shared.logMigrationSuccess(from: "1.0.0", to: "2.0.0", duration: duration)
-        }
-    )
 
     // MARK: - Future Migration Stages (Examples)
 
