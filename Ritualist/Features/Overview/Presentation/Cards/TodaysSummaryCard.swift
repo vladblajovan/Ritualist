@@ -2,8 +2,7 @@ import SwiftUI
 import RitualistCore
 import FactoryKit
 
-// swiftlint:disable type_body_length function_body_length
-struct TodaysSummaryCard: View {
+struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let summary: TodaysSummary?
     let viewingDate: Date
     let isViewingToday: Bool
@@ -54,7 +53,7 @@ struct TodaysSummaryCard: View {
     // PERFORMANCE: Pre-compute navigation button colors to avoid repeated calculations
     private var navigationButtonColor: Color {
         // Use same color as circular progress (Icon-Inspired Gradient)
-        return Color.ritualistBlue
+        Color.ritualistBlue
     }
 
     private var navigationButtonBackgroundColor: Color {
@@ -374,8 +373,9 @@ struct TodaysSummaryCard: View {
     }
 
     // MARK: - Enhanced Habits Section
-    
+
     @ViewBuilder
+    // swiftlint:disable:next function_body_length
     private func habitsSection(summary: TodaysSummary) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             // Section header
@@ -529,8 +529,9 @@ struct TodaysSummaryCard: View {
             }
         }
     }
-    
+
     @ViewBuilder
+    // swiftlint:disable:next function_body_length
     private func habitRow(habit: Habit, isCompleted: Bool) -> some View {
         let scheduleStatus = getScheduleStatus(habit)
         let isDisabled = !isCompleted && !scheduleStatus.isAvailable

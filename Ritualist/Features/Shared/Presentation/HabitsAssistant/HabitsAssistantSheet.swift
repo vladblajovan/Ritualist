@@ -186,12 +186,12 @@ public struct HabitsAssistantSheet: View {
     
     private func getAllSuggestions() -> [HabitSuggestion] {
         // Get ALL suggestions, not just the currently filtered ones
-        return habitsAssistantViewModel.getAllSuggestions()
+        habitsAssistantViewModel.getAllSuggestions()
     }
-    
+
     private func findHabitMatchingSuggestion(_ suggestion: HabitSuggestion) -> Habit? {
         // Find habit by matching key properties with the suggestion
-        return existingHabits.first { habit in
+        existingHabits.first { habit in
             habit.name == suggestion.name &&
             habit.emoji == suggestion.emoji &&
             habit.colorHex == suggestion.colorHex &&
@@ -217,7 +217,6 @@ private enum RequiredOperation: Equatable {
         }
     }
 }
-
 
 /// Extension providing convenient sheet presentation modifiers
 public extension View {

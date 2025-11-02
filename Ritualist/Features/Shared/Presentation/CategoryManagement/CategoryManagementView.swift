@@ -319,10 +319,7 @@ public struct CategoryManagementView: View {
         }
         selectedCategoryIds.removeAll()
     }
-    
 }
-
-
 
 #Preview {
     let vm = Container.shared.categoryManagementViewModel()

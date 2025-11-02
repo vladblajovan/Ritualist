@@ -11,7 +11,7 @@ import NaturalLanguage
 import os.log
 
 #if DEBUG
-struct DebugMenuView: View {
+struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     @Bindable var vm: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteAlert = false

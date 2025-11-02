@@ -3,13 +3,11 @@ import Foundation
 import FactoryKit
 import RitualistCore
 
-// swiftlint:disable file_length type_body_length
-
 // MARK: - ViewModel
 
 @MainActor
 @Observable
-public final class OverviewViewModel {
+public final class OverviewViewModel { // swiftlint:disable:this type_body_length
     // MARK: - Observable Properties
     public var todaysSummary: TodaysSummary?
     public var activeStreaks: [StreakInfo] = []
@@ -19,13 +17,13 @@ public final class OverviewViewModel {
     public var isPersonalityDataSufficient = false // Track if data is sufficient for new analysis
     public var personalityThresholdRequirements: [ThresholdRequirement] = [] // Current requirements status
     public var dominantPersonalityTrait: String? = nil
-    public var selectedDate: Date = Date()
-    public var viewingDate: Date = CalendarUtils.startOfDayLocal(for: Date()) // The date being viewed in Today's Progress card
+    public var selectedDate = Date()
+    public var viewingDate = CalendarUtils.startOfDayLocal(for: Date()) // The date being viewed in Today's Progress card
     public var showInspirationCard: Bool = false
     
     // Inspiration card tracking
     @ObservationIgnored private var lastShownInspirationTrigger: InspirationTrigger?
-    @ObservationIgnored private var sessionStartTime: Date = Date()
+    @ObservationIgnored private var sessionStartTime = Date()
     @ObservationIgnored private var dismissedTriggersToday: Set<InspirationTrigger> = []
     @ObservationIgnored private var cachedInspirationMessage: String?
     
@@ -59,17 +57,17 @@ public final class OverviewViewModel {
     
     public var shouldShowQuickActions: Bool {
         // Only show QuickActions when there are incomplete habits (completed habits now shown in Today's card)
-        return !incompleteHabits.isEmpty
+        !incompleteHabits.isEmpty
     }
-    
+
     public var shouldShowActiveStreaks: Bool {
         !activeStreaks.isEmpty
     }
-    
+
     public var shouldShowInsights: Bool {
         !smartInsights.isEmpty
     }
-    
+
     public var canGoToPreviousDay: Bool {
         let today = Date()
         let thirtyDaysAgo = CalendarUtils.addDays(-30, to: today)
@@ -77,16 +75,16 @@ public final class OverviewViewModel {
         let boundaryStart = CalendarUtils.startOfDayUTC(for: thirtyDaysAgo)
         return viewingDayStart > boundaryStart
     }
-    
+
     public var canGoToNextDay: Bool {
         let today = Date()
         let viewingDayStart = CalendarUtils.startOfDayUTC(for: viewingDate)
         let todayStart = CalendarUtils.startOfDayUTC(for: today)
         return viewingDayStart < todayStart
     }
-    
+
     public var isViewingToday: Bool {
-        return CalendarUtils.areSameDayLocal(viewingDate, Date())
+        CalendarUtils.areSameDayLocal(viewingDate, Date())
     }
     
     public var currentSlogan: String {
@@ -104,7 +102,6 @@ public final class OverviewViewModel {
     
     // InspirationTrigger moved to RitualistCore/Enums/MotivationEnums.swift
     private typealias InspirationTrigger = RitualistCore.InspirationTrigger
-    
     
     public var monthlyCompletionData: [Date: Double] = [:]
     
@@ -170,7 +167,6 @@ public final class OverviewViewModel {
             
             // Check if we should show inspiration card contextually
             self.checkAndShowInspirationCard()
-            
         } catch {
             self.error = error
         }
@@ -217,7 +213,6 @@ public final class OverviewViewModel {
                 // Refresh widget to show updated habit status
                 refreshWidget.execute(habitId: habit.id)
             }
-            
         } catch {
             self.error = error
             print("Failed to complete habit: \(error)")
@@ -240,7 +235,6 @@ public final class OverviewViewModel {
         }
     }
     
-    
     public func updateNumericHabit(_ habit: Habit, value: Double) async {
         do {
             // Get existing logs for this habit on the viewing date
@@ -262,7 +256,6 @@ public final class OverviewViewModel {
                 var updatedLog = existingLogsForDate[0]
                 updatedLog.value = value
                 try await logHabit.execute(updatedLog)
-                
             } else {
                 // Multiple logs exist for this date - this shouldn't happen for our UI
                 // But let's handle it properly: delete all existing logs and create one new log
@@ -282,13 +275,12 @@ public final class OverviewViewModel {
             
             // Refresh data to get updated values from database
             await loadData()
-            
+
             // Small delay to ensure data is committed to shared container before widget refresh
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-            
+
             // Refresh widget to show updated habit status
             refreshWidget.execute(habitId: habit.id)
-            
         } catch {
             self.error = error
             print("Failed to update numeric habit: \(error)")
@@ -313,7 +305,7 @@ public final class OverviewViewModel {
     // MARK: - Schedule Status and Validation Methods
     
     public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
-        return HabitScheduleStatus.forHabit(habit, date: viewingDate, isScheduledDay: isScheduledDay)
+        HabitScheduleStatus.forHabit(habit, date: viewingDate, isScheduledDay: isScheduledDay)
     }
     
 //    public func getWeeklyProgress(for habit: Habit) -> (completed: Int, target: Int) {
@@ -379,7 +371,7 @@ public final class OverviewViewModel {
     }
     
     public var isPendingHabitProcessed: Bool {
-        return hasPendingHabitBeenProcessed
+        hasPendingHabitBeenProcessed
     }
     
     public func setViewVisible(_ visible: Bool) {
@@ -413,13 +405,12 @@ public final class OverviewViewModel {
             
             // Refresh data to show updated UI
             await loadData()
-            
+
             // Small delay to ensure data is committed to shared container before widget refresh
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-            
+
             // Refresh widget to show updated habit status
             refreshWidget.execute(habitId: habit.id)
-            
         } catch {
             self.error = error
             print("Failed to delete habit log: \(error)")
@@ -658,7 +649,7 @@ public final class OverviewViewModel {
     
     public var currentInspirationMessage: String {
         // Use cached message if available, otherwise fallback to slogan
-        return cachedInspirationMessage ?? getCurrentSlogan.execute()
+        cachedInspirationMessage ?? getCurrentSlogan.execute()
     }
     
     // MARK: - Private Methods
@@ -739,7 +730,6 @@ public final class OverviewViewModel {
             incompleteHabits: incompleteHabits
         )
     }
-    
     
     /// Extract monthly completion data from overview data
     private func extractMonthlyData(from data: OverviewData) -> [Date: Double] {
@@ -868,9 +858,9 @@ public final class OverviewViewModel {
     }
     
     private func loadSmartInsights() async throws -> [SmartInsight] {
-        // DEPRECATED: This method is being replaced by extractSmartInsights() 
+        // DEPRECATED: This method is being replaced by extractSmartInsights()
         // which uses unified OverviewData instead of separate queries
-        return try await generateBasicHabitInsights()
+        try await generateBasicHabitInsights()
     }
     
     private func loadPersonalityInsights() async {
@@ -944,7 +934,6 @@ public final class OverviewViewModel {
                 personalityInsights = []
                 dominantPersonalityTrait = nil
             }
-            
         } catch {
             // Even on error, show the card but with empty state
             personalityInsights = []
@@ -968,7 +957,6 @@ public final class OverviewViewModel {
             // Use the proper eligibility validation UseCase
             let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
             return eligibility.isEligible
-            
         } catch {
             return false
         }
@@ -1073,8 +1061,6 @@ public final class OverviewViewModel {
         
         return insights
     }
-    
-    
     
     private func resetDismissedTriggersIfNewDay() {
         let today = Date()

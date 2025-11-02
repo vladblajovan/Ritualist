@@ -220,7 +220,6 @@ public struct StatCard: View {
         case .compact: return .center
         }
     }
-    
 }
 
 // MARK: - Supporting Types
@@ -342,7 +341,6 @@ private struct CardButtonStyle: ButtonStyle {
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
-
 
 // MARK: - Convenience Initializers
 

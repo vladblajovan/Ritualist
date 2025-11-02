@@ -21,7 +21,6 @@ public final class CategoryManagementViewModel {
     public private(set) var isLoading = false
     public private(set) var error: Error?
     
-    
     // MARK: - Computed Properties
     public var customCategories: [HabitCategory] {
         categories.filter { !$0.isPredefined }
@@ -236,7 +235,6 @@ public final class CategoryManagementViewModel {
             self.error = error
         }
     }
-    
     
     // MARK: - Error Handling
     

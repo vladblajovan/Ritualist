@@ -126,7 +126,6 @@ public final class PersonalityInsightsViewModel {
                 let estimatedDays = try await validateAnalysisDataUseCase.getEstimatedDaysToEligibility(for: userId)
                 viewState = .insufficientData(requirements: requirements, estimatedDays: estimatedDays)
             }
-            
         } catch let error as PersonalityAnalysisError {
             viewState = .error(error)
         } catch {

@@ -692,10 +692,8 @@ public struct DeviceCapabilities {
     
     /// Whether scrolling should be forced for accessibility
     static var shouldForceScrolling: Bool {
-        return hasAccessibilityDynamicType || isSmallScreen
+        hasAccessibilityDynamicType || isSmallScreen
     }
-    
-    
     
     /// Get optimized detents for a given sizing mode
     static func recommendedDetents(for sizing: SheetSizing, contentHeight: CGFloat = 0) -> Set<PresentationDetent> {
@@ -819,7 +817,6 @@ public struct ResponsiveSheetSizingModifier: ViewModifier {
         }
     }
 }
-
 
 #Preview("Base Sheets") {
     VStack(spacing: Spacing.medium) {

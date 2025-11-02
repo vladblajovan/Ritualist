@@ -26,7 +26,7 @@ public final class HabitsViewModel {
     // MARK: - Shared ViewModels
     
     // MARK: - Data State (Unified)
-    public private(set) var habitsData: HabitsData = HabitsData(habits: [], categories: [])
+    public private(set) var habitsData = HabitsData(habits: [], categories: [])
     public private(set) var isLoading = false
     public private(set) var error: Error?
     public private(set) var isCreating = false
@@ -45,7 +45,6 @@ public final class HabitsViewModel {
     public var showingHabitAssistant = false
     public var shouldReopenAssistantAfterPaywall = false
     public var isHandlingPaywallDismissal = false
-    
     
     // MARK: - Paywall Protection
     
@@ -251,12 +250,12 @@ public final class HabitsViewModel {
     
     /// Create habit detail ViewModel for editing/creating habits
     public func makeHabitDetailViewModel(for habit: Habit?) -> HabitDetailViewModel {
-        return HabitDetailViewModel(habit: habit)
+        HabitDetailViewModel(habit: habit)
     }
-    
+
     /// Create habit from suggestion (for assistant)
     public func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
-        return await createHabitFromSuggestionUseCase.execute(suggestion)
+        await createHabitFromSuggestionUseCase.execute(suggestion)
     }
     
     /// Handle create habit button tap from toolbar
@@ -269,7 +268,6 @@ public final class HabitsViewModel {
         }
     }
     
-    
     /// Show paywall
     public func showPaywall() {
         Task {
@@ -279,8 +277,6 @@ public final class HabitsViewModel {
         }
     }
     
-    
-    
     /// Handle when create habit sheet is dismissed - refresh data
     public func handleCreateHabitDismissal() {
         Task {
@@ -288,14 +284,12 @@ public final class HabitsViewModel {
         }
     }
     
-    
     /// Handle when habit detail sheet is dismissed - refresh data
     public func handleHabitDetailDismissal() {
         Task {
             await load()
         }
     }
-    
     
     /// Select a habit for editing
     public func selectHabit(_ habit: Habit) {
@@ -330,9 +324,9 @@ public final class HabitsViewModel {
     
     /// Check if a habit should be shown as actionable today using IsScheduledDayUseCase
     public func isHabitActionableToday(_ habit: Habit) -> Bool {
-        return isScheduledDay.execute(habit: habit, date: Date())
+        isScheduledDay.execute(habit: habit, date: Date())
     }
-    
+
     /// Get schedule validation message for a habit
     public func getScheduleValidationMessage(for habit: Habit) async -> String? {
         do {
@@ -342,10 +336,10 @@ public final class HabitsViewModel {
             return error.localizedDescription
         }
     }
-    
+
     /// Get the schedule status for a habit today
     public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
-        return HabitScheduleStatus.forHabit(habit, date: Date(), isScheduledDay: isScheduledDay)
+        HabitScheduleStatus.forHabit(habit, date: Date(), isScheduledDay: isScheduledDay)
     }
     
     /// Check if a habit's logging should be disabled based on schedule validation
@@ -416,10 +410,8 @@ public final class HabitsViewModel {
         }
     }
     
-    
     /// Handle category filter selection
     public func selectFilterCategory(_ category: HabitCategory?) {
         selectedFilterCategory = category
     }
-    
 }
