@@ -63,7 +63,6 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         value < dailyTarget + 50
     }
     
-    
     public var body: some View {
         NavigationView {
             VStack(spacing: 0) {

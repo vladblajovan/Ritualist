@@ -26,7 +26,7 @@ public final class HabitsViewModel {
     // MARK: - Shared ViewModels
     
     // MARK: - Data State (Unified)
-    public private(set) var habitsData: HabitsData = HabitsData(habits: [], categories: [])
+    public private(set) var habitsData = HabitsData(habits: [], categories: [])
     public private(set) var isLoading = false
     public private(set) var error: Error?
     public private(set) var isCreating = false
@@ -45,7 +45,6 @@ public final class HabitsViewModel {
     public var showingHabitAssistant = false
     public var shouldReopenAssistantAfterPaywall = false
     public var isHandlingPaywallDismissal = false
-    
     
     // MARK: - Paywall Protection
     
@@ -269,7 +268,6 @@ public final class HabitsViewModel {
         }
     }
     
-    
     /// Show paywall
     public func showPaywall() {
         Task {
@@ -279,8 +277,6 @@ public final class HabitsViewModel {
         }
     }
     
-    
-    
     /// Handle when create habit sheet is dismissed - refresh data
     public func handleCreateHabitDismissal() {
         Task {
@@ -288,14 +284,12 @@ public final class HabitsViewModel {
         }
     }
     
-    
     /// Handle when habit detail sheet is dismissed - refresh data
     public func handleHabitDetailDismissal() {
         Task {
             await load()
         }
     }
-    
     
     /// Select a habit for editing
     public func selectHabit(_ habit: Habit) {
@@ -415,7 +409,6 @@ public final class HabitsViewModel {
             await load()
         }
     }
-    
     
     /// Handle category filter selection
     public func selectFilterCategory(_ category: HabitCategory?) {

@@ -150,13 +150,3 @@ public struct AddCustomCategorySheet: View {
         }
     }
 }
-
-// MARK: - Preview
-
-#Preview {
-    AddCustomCategorySheet { name, emoji in
-        // Simulate save operation
-        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-        return true
-    }
-}

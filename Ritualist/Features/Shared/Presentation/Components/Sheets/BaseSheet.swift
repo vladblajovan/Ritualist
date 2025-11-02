@@ -695,8 +695,6 @@ public struct DeviceCapabilities {
         hasAccessibilityDynamicType || isSmallScreen
     }
     
-    
-    
     /// Get optimized detents for a given sizing mode
     static func recommendedDetents(for sizing: SheetSizing, contentHeight: CGFloat = 0) -> Set<PresentationDetent> {
         let screenHeight = self.screenHeight
@@ -819,7 +817,6 @@ public struct ResponsiveSheetSizingModifier: ViewModifier {
         }
     }
 }
-
 
 #Preview("Base Sheets") {
     VStack(spacing: Spacing.medium) {

@@ -100,7 +100,6 @@ public struct TipsBottomSheet: View {
     }
 }
 
-
 // MARK: - Tip Detail Content View for NavigationStack
 private struct TipDetailContentView: View {
     let tip: Tip

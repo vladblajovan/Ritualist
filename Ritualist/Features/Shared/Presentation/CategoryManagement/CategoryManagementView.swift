@@ -321,8 +321,6 @@ public struct CategoryManagementView: View {
     }
 }
 
-
-
 #Preview {
     let vm = Container.shared.categoryManagementViewModel()
     CategoryManagementView(vm: vm)

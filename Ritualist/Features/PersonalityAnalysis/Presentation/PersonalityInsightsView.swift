@@ -823,7 +823,6 @@ private extension ConfidenceLevel {
     }
 }
 
-
 #Preview {
     let sampleProfile = PersonalityProfile(
         id: UUID(),

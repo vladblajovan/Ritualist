@@ -351,8 +351,6 @@ private struct SettingsFormView: View {
         _ = await vm.save()
     }
     
-    
-    
     private func appearanceName(_ appearance: Int) -> String {
         switch appearance {
         case 0: return "Follow System"
@@ -362,7 +360,6 @@ private struct SettingsFormView: View {
         }
     }
 }
-
 
 #Preview {
     SettingsRoot()

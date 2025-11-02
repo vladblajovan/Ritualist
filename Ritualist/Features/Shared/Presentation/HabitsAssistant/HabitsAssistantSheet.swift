@@ -218,7 +218,6 @@ private enum RequiredOperation: Equatable {
     }
 }
 
-
 /// Extension providing convenient sheet presentation modifiers
 public extension View {
     /// Present the Habits Assistant as a sheet with integrated presentation logic

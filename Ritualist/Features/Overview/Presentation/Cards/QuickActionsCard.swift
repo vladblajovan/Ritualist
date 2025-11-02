@@ -239,7 +239,6 @@ struct QuickActionsCard: View {
         }
     }
     
-    
     @ViewBuilder
     private func numericHabitStatusText(habit: Habit, unitLabel: String, isCompleted: Bool, isDisabled: Bool) -> some View {
         if isCompleted {

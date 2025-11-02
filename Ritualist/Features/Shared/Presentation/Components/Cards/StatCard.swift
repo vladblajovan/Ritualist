@@ -342,7 +342,6 @@ private struct CardButtonStyle: ButtonStyle {
     }
 }
 
-
 // MARK: - Convenience Initializers
 
 public extension StatCard {

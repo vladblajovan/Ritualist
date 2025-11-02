@@ -17,13 +17,13 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public var isPersonalityDataSufficient = false // Track if data is sufficient for new analysis
     public var personalityThresholdRequirements: [ThresholdRequirement] = [] // Current requirements status
     public var dominantPersonalityTrait: String? = nil
-    public var selectedDate: Date = Date()
-    public var viewingDate: Date = CalendarUtils.startOfDayLocal(for: Date()) // The date being viewed in Today's Progress card
+    public var selectedDate = Date()
+    public var viewingDate = CalendarUtils.startOfDayLocal(for: Date()) // The date being viewed in Today's Progress card
     public var showInspirationCard: Bool = false
     
     // Inspiration card tracking
     @ObservationIgnored private var lastShownInspirationTrigger: InspirationTrigger?
-    @ObservationIgnored private var sessionStartTime: Date = Date()
+    @ObservationIgnored private var sessionStartTime = Date()
     @ObservationIgnored private var dismissedTriggersToday: Set<InspirationTrigger> = []
     @ObservationIgnored private var cachedInspirationMessage: String?
     
@@ -102,7 +102,6 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     // InspirationTrigger moved to RitualistCore/Enums/MotivationEnums.swift
     private typealias InspirationTrigger = RitualistCore.InspirationTrigger
-    
     
     public var monthlyCompletionData: [Date: Double] = [:]
     
@@ -235,7 +234,6 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             return 0.0
         }
     }
-    
     
     public func updateNumericHabit(_ habit: Habit, value: Double) async {
         do {
@@ -733,7 +731,6 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         )
     }
     
-    
     /// Extract monthly completion data from overview data
     private func extractMonthlyData(from data: OverviewData) -> [Date: Double] {
         var result: [Date: Double] = [:]
@@ -1064,8 +1061,6 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         
         return insights
     }
-    
-    
     
     private func resetDismissedTriggersIfNewDay() {
         let today = Date()

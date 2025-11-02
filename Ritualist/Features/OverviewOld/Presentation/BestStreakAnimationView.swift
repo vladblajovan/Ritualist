@@ -9,15 +9,9 @@ import SwiftUI
 
 // MARK: - Animation Configuration
 
-
-
 // MARK: - Celebration Animation Modifier
 
-
-
 // MARK: - Confetti Particle
-
-
 
 // MARK: - Convenience View Extension
 

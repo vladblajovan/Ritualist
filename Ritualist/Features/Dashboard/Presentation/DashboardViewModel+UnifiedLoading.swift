@@ -53,7 +53,6 @@ extension DashboardViewModel {
         )
     }
     
-    
     // MARK: - Data Extraction Methods (Phase 4)
     
     /// Extract completion statistics from unified dashboard data

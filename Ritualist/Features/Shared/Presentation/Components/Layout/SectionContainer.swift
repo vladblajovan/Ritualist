@@ -139,7 +139,6 @@ public extension SectionContainer {
     }
 }
 
-
 // MARK: - Specialized Containers
 
 /// Grid section for cards or stats
