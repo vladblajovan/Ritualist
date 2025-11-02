@@ -49,7 +49,12 @@ public final class MigrationLogger {
     /// - Parameters:
     ///   - fromVersion: Source schema version
     ///   - toVersion: Target schema version
-    public func logMigrationStart(from fromVersion: String, to toVersion: String) {
+    ///   - changeDescription: Description of what changed in this migration
+    public func logMigrationStart(
+        from fromVersion: String,
+        to toVersion: String,
+        changeDescription: String? = nil
+    ) {
         logger.info("🔄 Migration started: \(fromVersion) → \(toVersion)")
 
         let event = MigrationEvent(
@@ -59,7 +64,8 @@ public final class MigrationLogger {
             startTime: Date(),
             endTime: nil,
             duration: nil,
-            error: nil
+            error: nil,
+            changeDescription: changeDescription
         )
 
         saveMigrationEvent(event)
@@ -71,7 +77,13 @@ public final class MigrationLogger {
     ///   - fromVersion: Source schema version
     ///   - toVersion: Target schema version
     ///   - duration: Migration duration in seconds
-    public func logMigrationSuccess(from fromVersion: String, to toVersion: String, duration: TimeInterval) {
+    ///   - changeDescription: Description of what changed in this migration
+    public func logMigrationSuccess(
+        from fromVersion: String,
+        to toVersion: String,
+        duration: TimeInterval,
+        changeDescription: String? = nil
+    ) {
         logger.info("✅ Migration succeeded: \(fromVersion) → \(toVersion) (took \(String(format: "%.2f", duration))s)")
 
         let event = MigrationEvent(
@@ -81,7 +93,8 @@ public final class MigrationLogger {
             startTime: Date(timeIntervalSinceNow: -duration),
             endTime: Date(),
             duration: duration,
-            error: nil
+            error: nil,
+            changeDescription: changeDescription
         )
 
         saveMigrationEvent(event)
@@ -161,6 +174,64 @@ public final class MigrationLogger {
         logger.debug("Migration history cleared")
     }
 
+    /// Backfills change descriptions for existing migration events
+    /// This updates legacy migration events that were logged before changeDescription was added
+    public func backfillChangeDescriptions() {
+        var history = getMigrationHistory()
+        var updated = false
+
+        for (index, event) in history.enumerated() {
+            // Skip if already has a description
+            guard event.changeDescription == nil else { continue }
+
+            let migration = "\(event.fromVersion) → \(event.toVersion)"
+            let description = getChangeDescription(for: migration)
+
+            // Create new event with description
+            let updatedEvent = MigrationEvent(
+                id: event.id,
+                fromVersion: event.fromVersion,
+                toVersion: event.toVersion,
+                status: event.status,
+                startTime: event.startTime,
+                endTime: event.endTime,
+                duration: event.duration,
+                error: event.error,
+                changeDescription: description
+            )
+
+            history[index] = updatedEvent
+            updated = true
+            logger.info("Backfilled description for migration: \(migration)")
+        }
+
+        // Save updated history if changes were made
+        if updated, let data = try? JSONEncoder().encode(history) {
+            userDefaults.set(data, forKey: migrationHistoryKey)
+            logger.info("Successfully backfilled \(history.count) migration descriptions")
+        }
+    }
+
+    /// Gets change description for a migration
+    private func getChangeDescription(for migration: String) -> String {
+        switch migration {
+        case "2.0.0 → 3.0.0":
+            return "Added habit pinning feature - habits can now be pinned to the top of lists for quick access."
+
+        case "3.0.0 → 4.0.0":
+            return "Replaced pinning with notes system - habits now support rich text notes instead of simple pinning."
+
+        case "4.0.0 → 5.0.0":
+            return "Added last completion tracking - the app now remembers when each habit was last completed for better insights."
+
+        case "5.0.0 → 6.0.0":
+            return "Added habit archiving - habits can now be archived instead of deleted, preserving your history while decluttering active habits."
+
+        default:
+            return "Updated database schema."
+        }
+    }
+
     /// Gets a formatted summary of migration history
     ///
     /// - Returns: Formatted string with migration history
@@ -222,7 +293,8 @@ public final class MigrationLogger {
 // MARK: - Migration Event
 
 /// Represents a single migration event
-public struct MigrationEvent: Codable {
+public struct MigrationEvent: Codable, Identifiable {
+    public let id: UUID
     public let fromVersion: String
     public let toVersion: String
     public let status: MigrationStatus
@@ -230,16 +302,20 @@ public struct MigrationEvent: Codable {
     public let endTime: Date?
     public let duration: TimeInterval?
     public let error: String?
+    public let changeDescription: String?
 
     public init(
+        id: UUID = UUID(),
         fromVersion: String,
         toVersion: String,
         status: MigrationStatus,
         startTime: Date,
         endTime: Date?,
         duration: TimeInterval?,
-        error: String?
+        error: String?,
+        changeDescription: String? = nil
     ) {
+        self.id = id
         self.fromVersion = fromVersion
         self.toVersion = toVersion
         self.status = status
@@ -247,6 +323,23 @@ public struct MigrationEvent: Codable {
         self.endTime = endTime
         self.duration = duration
         self.error = error
+        self.changeDescription = changeDescription
+    }
+
+    // Custom decoding to handle legacy migration events without id field
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Generate new UUID if id is missing (for legacy migration events)
+        self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        self.fromVersion = try container.decode(String.self, forKey: .fromVersion)
+        self.toVersion = try container.decode(String.self, forKey: .toVersion)
+        self.status = try container.decode(MigrationStatus.self, forKey: .status)
+        self.startTime = try container.decode(Date.self, forKey: .startTime)
+        self.endTime = try container.decodeIfPresent(Date.self, forKey: .endTime)
+        self.duration = try container.decodeIfPresent(TimeInterval.self, forKey: .duration)
+        self.error = try container.decodeIfPresent(String.self, forKey: .error)
+        self.changeDescription = try container.decodeIfPresent(String.self, forKey: .changeDescription)
     }
 }
 

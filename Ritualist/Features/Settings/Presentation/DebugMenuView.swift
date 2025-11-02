@@ -7,6 +7,7 @@
 
 import SwiftUI
 import RitualistCore
+import FactoryKit
 import NaturalLanguage
 import os.log
 
@@ -168,36 +169,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     showingMigrationHistory = true
                 }
 
-                // Create Test Migration History (Debug only)
-                Button {
-                    createTestMigrationHistory()
-                } label: {
-                    HStack {
-                        Image(systemName: "wand.and.stars")
-                            .foregroundColor(.purple)
-
-                        Text("Create Test Migration Data")
-
-                        Spacer()
-                    }
-                }
-
-                // Clear Migration History (Debug only)
-                if migrationHistoryCount > 0 {
-                    Button(role: .destructive) {
-                        clearMigrationHistory()
-                    } label: {
-                        HStack {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
-
-                            Text("Clear Migration History")
-
-                            Spacer()
-                        }
-                    }
-                }
-
                 // Backup Management
                 GenericRowView.settingsRow(
                     title: "Database Backups",
@@ -208,20 +179,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     iconColor: .blue
                 ) {
                     showingBackupList = true
-                }
-
-                // Create Backup Button
-                Button {
-                    createBackup()
-                } label: {
-                    HStack {
-                        Image(systemName: "doc.badge.plus")
-                            .foregroundColor(.blue)
-
-                        Text("Create Backup Now")
-
-                        Spacer()
-                    }
                 }
             }
 
@@ -408,131 +365,10 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         migrationHistoryCount = migrationLogger.getMigrationHistory().count
     }
 
-    /// Creates a manual database backup
-    private func createBackup() {
-        Task {
-            do {
-                try backupManager.createBackup()
-                loadMigrationStats()
-            } catch {
-                Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
-                    .error("Failed to create backup: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    /// Creates test migration history data for demo purposes
-    private func createTestMigrationHistory() {
-        // Create realistic test migration events
-        let baseDate = Date().addingTimeInterval(-60 * 60 * 24 * 30) // 30 days ago
-
-        // Simulate V1 → V2 migration (30 days ago)
-        let v1ToV2Date = baseDate
-        migrationLogger.logMigrationSuccess(
-            from: "V1.0.0",
-            to: "V2.0.0",
-            duration: 0.45
-        )
-
-        // Simulate V2 → V3 migration (15 days ago)
-        let v2ToV3Date = baseDate.addingTimeInterval(60 * 60 * 24 * 15)
-        // Temporarily set the start time for realistic event dates
-        migrationLogger.logMigrationSuccess(
-            from: "V2.0.0",
-            to: "V3.0.0",
-            duration: 0.32
-        )
-
-        // Reload stats to show new counts
-        loadMigrationStats()
-
-        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
-            .info("✅ Created test migration history with 2 events")
-    }
-
-    /// Clears all migration history
-    private func clearMigrationHistory() {
-        migrationLogger.clearHistory()
-        loadMigrationStats()
-
-        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
-            .info("🗑️ Cleared migration history")
-    }
 }
 
 // MARK: - Migration History View
 
-struct MigrationHistoryView: View {
-    let logger: MigrationLogger
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        List {
-            let history = logger.getMigrationHistory()
-
-            if history.isEmpty {
-                ContentUnavailableView(
-                    "No Migration History",
-                    systemImage: "clock.arrow.circlepath",
-                    description: Text("Migrations will appear here when schema versions change")
-                )
-            } else {
-                ForEach(Array(history.enumerated()), id: \.offset) { _, event in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("\(event.status.emoji) \(event.fromVersion) → \(event.toVersion)")
-                                .font(.headline)
-
-                            Spacer()
-
-                            Text(event.status.rawValue)
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(statusColor(for: event.status).opacity(0.2))
-                                .foregroundColor(statusColor(for: event.status))
-                                .cornerRadius(8)
-                        }
-
-                        Text(event.startTime, style: .date)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        if let duration = event.duration {
-                            Text("Duration: \(String(format: "%.2f", duration))s")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        if let error = event.error {
-                            Text("Error: \(error)")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-        }
-        .navigationTitle("Migration History")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Done") {
-                    dismiss()
-                }
-            }
-        }
-    }
-
-    private func statusColor(for status: MigrationStatus) -> Color {
-        switch status {
-        case .started: return .blue
-        case .succeeded: return .green
-        case .failed: return .red
-        }
-    }
-}
 
 // MARK: - Backup List View
 
@@ -596,6 +432,14 @@ struct BackupListView: View {
         .navigationTitle("Database Backups")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    createBackup()
+                } label: {
+                    Label("Create Backup", systemImage: "doc.badge.plus")
+                }
+            }
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Done") {
                     dismiss()
@@ -681,6 +525,19 @@ struct BackupListView: View {
         // Parse ISO8601 date
         let formatter = ISO8601DateFormatter()
         return formatter.date(from: iso8601String)
+    }
+
+    private func createBackup() {
+        Task {
+            do {
+                try backupManager.createBackup()
+                loadBackups()
+                onRefresh()
+            } catch {
+                Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+                    .error("Failed to create backup: \(error.localizedDescription)")
+            }
+        }
     }
 }
 
