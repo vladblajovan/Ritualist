@@ -48,7 +48,7 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     // MARK: - Current Schema Helper
 
     /// Returns the current active schema version (the latest one in the migration plan)
-    public static var currentSchemaVersion: Version {
+    public static var currentSchemaVersion: Schema.Version {
         // The last schema in the array is always the current/active version
         guard let latestSchema = schemas.last else {
             fatalError("Migration plan must have at least one schema")
