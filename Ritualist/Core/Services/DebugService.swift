@@ -25,7 +25,7 @@ public final class DebugService: DebugServiceProtocol {
         // This respects SwiftData relationship constraints properly
         try await MainActor.run {
             // 1. Delete all habit logs first (child entities)
-            let habitLogs = try context.fetch(FetchDescriptor<HabitLogModel>())
+            let habitLogs = try context.fetch(FetchDescriptor<HabitLogModelV1>())
             for log in habitLogs {
                 context.delete(log)
             }
@@ -37,19 +37,19 @@ public final class DebugService: DebugServiceProtocol {
             }
             
             // 3. Delete habits (references categories)
-            let habits = try context.fetch(FetchDescriptor<HabitModel>())
+            let habits = try context.fetch(FetchDescriptor<HabitModelV1>())
             for habit in habits {
                 context.delete(habit)
             }
             
             // 4. Delete categories
-            let categories = try context.fetch(FetchDescriptor<HabitCategoryModel>())
+            let categories = try context.fetch(FetchDescriptor<HabitCategoryModelV1>())
             for category in categories {
                 context.delete(category)
             }
             
             // 5. Delete user profiles
-            let profiles = try context.fetch(FetchDescriptor<UserProfileModel>())
+            let profiles = try context.fetch(FetchDescriptor<UserProfileModelV1>())
             for profile in profiles {
                 context.delete(profile)
             }
@@ -69,10 +69,10 @@ public final class DebugService: DebugServiceProtocol {
         let context = persistenceContainer.context
         
         return try await MainActor.run {
-            let habitsCount = try context.fetchCount(FetchDescriptor<HabitModel>())
-            let logsCount = try context.fetchCount(FetchDescriptor<HabitLogModel>())
-            let categoriesCount = try context.fetchCount(FetchDescriptor<HabitCategoryModel>())
-            let profilesCount = try context.fetchCount(FetchDescriptor<UserProfileModel>())
+            let habitsCount = try context.fetchCount(FetchDescriptor<HabitModelV1>())
+            let logsCount = try context.fetchCount(FetchDescriptor<HabitLogModelV1>())
+            let categoriesCount = try context.fetchCount(FetchDescriptor<HabitCategoryModelV1>())
+            let profilesCount = try context.fetchCount(FetchDescriptor<UserProfileModelV1>())
             
             return DebugDatabaseStats(
                 habitsCount: habitsCount,

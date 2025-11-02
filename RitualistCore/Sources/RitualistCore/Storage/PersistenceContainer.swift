@@ -17,11 +17,10 @@ public final class PersistenceContainer {
     /// Initialize persistence container with app group support
     /// Enables data sharing between main app and widget extension
     ///
-    /// Note: Currently using direct model classes for simplicity.
-    /// Migration system (SchemaV1, MigrationPlan) is implemented but not active.
-    /// When we need schema migrations, we'll need to refactor datasources to use versioned types.
+    /// Uses versioned schema (SchemaV1) with migration plan to safely handle schema changes.
+    /// All datasources use versioned types (HabitModelV1, HabitLogModelV1, etc.)
     public init() throws {
-        Self.logger.info("🔍 Initializing PersistenceContainer with actual models")
+        Self.logger.info("🔍 Initializing PersistenceContainer with versioned schema (V1)")
 
         // Get shared container URL for app group
         let sharedContainerURL = PersistenceContainer.getSharedContainerURL()
@@ -38,26 +37,23 @@ public final class PersistenceContainer {
         )
 
         do {
-            Self.logger.info("📋 Creating ModelContainer with actual models")
-            Self.logger.debug("   Using models: HabitModel, HabitLogModel, HabitCategoryModel, UserProfileModel, OnboardingStateModel, PersonalityAnalysisModel")
+            Self.logger.info("📋 Creating Schema from SchemaV1")
+            Self.logger.debug("   SchemaV1 models: \(SchemaV1.models.map { String(describing: $0) })")
 
-            // CRITICAL FIX: Use actual model classes directly, not versioned schema
-            // Versioned schema requires ALL code to use the versioned types (SchemaV1.HabitModelV1)
-            // but our datasources use the actual types (HabitModel). This mismatch causes empty app.
-            //
-            // Future migrations: When we need V2, we'll need to either:
-            // 1. Update all datasources to use versioned types, OR
-            // 2. Use a different migration approach that preserves actual model types
+            let schema = Schema(versionedSchema: SchemaV1.self)
+            Self.logger.debug("   Schema version: \(SchemaV1.versionIdentifier)")
+
+            Self.logger.info("🚀 Initializing ModelContainer with schema and migration plan")
+
+            // Use versioned schema with migration plan
+            // This enables safe schema evolution without data loss
+            // All datasources now use versioned types (HabitModelV1, etc.)
             container = try ModelContainer(
-                for: HabitModel.self,
-                    HabitLogModel.self,
-                    HabitCategoryModel.self,
-                    UserProfileModel.self,
-                    OnboardingStateModel.self,
-                    PersonalityAnalysisModel.self,
+                for: schema,
+                migrationPlan: RitualistMigrationPlan.self,
                 configurations: configuration
             )
-            Self.logger.info("✅ Successfully initialized ModelContainer with actual models")
+            Self.logger.info("✅ Successfully initialized ModelContainer with versioned schema (V1)")
         } catch {
             Self.logger.error("❌ Failed to initialize ModelContainer: \(error.localizedDescription)")
             Self.logger.error("   Error details: \(String(describing: error))")
@@ -69,11 +65,11 @@ public final class PersistenceContainer {
         context = ModelContext(container)
         Self.logger.debug("✅ ModelContext created successfully")
 
-        // Log database stats
+        // Log database stats using versioned types
         do {
-            let habitCount = try context.fetchCount(FetchDescriptor<HabitModel>())
-            let logCount = try context.fetchCount(FetchDescriptor<HabitLogModel>())
-            let categoryCount = try context.fetchCount(FetchDescriptor<HabitCategoryModel>())
+            let habitCount = try context.fetchCount(FetchDescriptor<HabitModelV1>())
+            let logCount = try context.fetchCount(FetchDescriptor<HabitLogModelV1>())
+            let categoryCount = try context.fetchCount(FetchDescriptor<HabitCategoryModelV1>())
             Self.logger.info("📊 Database stats - Habits: \(habitCount), Logs: \(logCount), Categories: \(categoryCount)")
         } catch {
             Self.logger.warning("⚠️ Could not fetch database stats: \(error.localizedDescription)")

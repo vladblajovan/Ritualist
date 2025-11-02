@@ -16,10 +16,10 @@ import SwiftData
 ///
 /// This schema represents the first versioned snapshot of the database.
 /// Any future schema changes must create V2, V3, etc. with migration plans.
-enum SchemaV1: VersionedSchema {
-    static var versionIdentifier: Schema.Version = Schema.Version(1, 0, 0)
+public enum SchemaV1: VersionedSchema {
+    public static var versionIdentifier: Schema.Version = Schema.Version(1, 0, 0)
 
-    static var models: [any PersistentModel.Type] {
+    public static var models: [any PersistentModel.Type] {
         [
             HabitModelV1.self,
             HabitLogModelV1.self,
@@ -33,29 +33,29 @@ enum SchemaV1: VersionedSchema {
     // MARK: - HabitModel V1
 
     @Model
-    final class HabitModelV1 {
-        @Attribute(.unique) var id: UUID
-        var name: String = ""
-        var colorHex: String = "#007AFF"
-        var emoji: String?
-        var kindRaw: Int = 0
-        var unitLabel: String?
-        var dailyTarget: Double?
-        var scheduleData: Data = Data()
-        var remindersData: Data = Data()
-        var startDate: Date = Date()
-        var endDate: Date?
-        var isActive: Bool = true
-        var displayOrder: Int = 0
-        var suggestionId: String?
+    public final class HabitModelV1 {
+        @Attribute(.unique) public var id: UUID
+        public var name: String = ""
+        public var colorHex: String = "#007AFF"
+        public var emoji: String?
+        public var kindRaw: Int = 0
+        public var unitLabel: String?
+        public var dailyTarget: Double?
+        public var scheduleData: Data = Data()
+        public var remindersData: Data = Data()
+        public var startDate: Date = Date()
+        public var endDate: Date?
+        public var isActive: Bool = true
+        public var displayOrder: Int = 0
+        public var suggestionId: String?
 
         // MARK: - Relationships
         @Relationship(deleteRule: .cascade, inverse: \HabitLogModelV1.habit)
-        var logs: [HabitLogModelV1] = []
+        public var logs: [HabitLogModelV1] = []
 
-        var category: HabitCategoryModelV1?
+        public var category: HabitCategoryModelV1?
 
-        init(
+        public init(
             id: UUID,
             name: String,
             colorHex: String,
@@ -93,15 +93,15 @@ enum SchemaV1: VersionedSchema {
     // MARK: - HabitLogModel V1
 
     @Model
-    final class HabitLogModelV1 {
-        @Attribute(.unique) var id: UUID
-        var habitID: UUID = UUID()
+    public final class HabitLogModelV1 {
+        @Attribute(.unique) public var id: UUID
+        public var habitID: UUID = UUID()
         @Relationship var habit: HabitModelV1?
-        var date: Date = Date()
-        var value: Double?
-        var timezone: String = "UTC"
+        public var date: Date = Date()
+        public var value: Double?
+        public var timezone: String = "UTC"
 
-        init(
+        public init(
             id: UUID,
             habitID: UUID,
             habit: HabitModelV1?,
@@ -121,20 +121,20 @@ enum SchemaV1: VersionedSchema {
     // MARK: - HabitCategoryModel V1
 
     @Model
-    final class HabitCategoryModelV1 {
-        @Attribute(.unique) var id: String
-        var name: String = ""
-        var displayName: String = ""
-        var emoji: String = "📂"
-        var order: Int = 0
-        var isActive: Bool = true
-        var isPredefined: Bool = false
+    public final class HabitCategoryModelV1 {
+        @Attribute(.unique) public var id: String
+        public var name: String = ""
+        public var displayName: String = ""
+        public var emoji: String = "📂"
+        public var order: Int = 0
+        public var isActive: Bool = true
+        public var isPredefined: Bool = false
 
         // MARK: - Relationships
         @Relationship(deleteRule: .nullify, inverse: \HabitModelV1.category)
-        var habits: [HabitModelV1] = []
+        public var habits: [HabitModelV1] = []
 
-        init(
+        public init(
             id: String,
             name: String,
             displayName: String,
@@ -156,19 +156,19 @@ enum SchemaV1: VersionedSchema {
     // MARK: - UserProfileModel V1
 
     @Model
-    final class UserProfileModelV1 {
-        @Attribute(.unique) var id: String
-        var name: String = ""
-        var avatarImageData: Data?
-        var appearance: String = "followSystem"
-        var homeTimezone: String?
-        var displayTimezoneMode: String = "original"
-        var subscriptionPlan: String = "free"
-        var subscriptionExpiryDate: Date?
-        var createdAt: Date = Date()
-        var updatedAt: Date = Date()
+    public final class UserProfileModelV1 {
+        @Attribute(.unique) public var id: String
+        public var name: String = ""
+        public var avatarImageData: Data?
+        public var appearance: String = "followSystem"
+        public var homeTimezone: String?
+        public var displayTimezoneMode: String = "original"
+        public var subscriptionPlan: String = "free"
+        public var subscriptionExpiryDate: Date?
+        public var createdAt: Date = Date()
+        public var updatedAt: Date = Date()
 
-        init(
+        public init(
             id: String,
             name: String,
             avatarImageData: Data?,
@@ -196,14 +196,14 @@ enum SchemaV1: VersionedSchema {
     // MARK: - OnboardingStateModel V1
 
     @Model
-    final class OnboardingStateModelV1 {
-        @Attribute(.unique) var id: UUID
-        var isCompleted: Bool = false
-        var completedDate: Date?
-        var userName: String?
-        var hasGrantedNotifications: Bool = false
+    public final class OnboardingStateModelV1 {
+        @Attribute(.unique) public var id: UUID
+        public var isCompleted: Bool = false
+        public var completedDate: Date?
+        public var userName: String?
+        public var hasGrantedNotifications: Bool = false
 
-        init(
+        public init(
             id: UUID = UUID(),
             isCompleted: Bool = false,
             completedDate: Date? = nil,
@@ -221,22 +221,22 @@ enum SchemaV1: VersionedSchema {
     // MARK: - PersonalityAnalysisModel V1
 
     @Model
-    final class PersonalityAnalysisModelV1 {
-        @Attribute(.unique) var id: String
-        var userId: String
-        var analysisDate: Date
-        var dominantTraitRawValue: String
-        var confidenceRawValue: String
-        var version: String
-        var dataPointsAnalyzed: Int
-        var timeRangeAnalyzed: Int
-        var opennessScore: Double
-        var conscientiousnessScore: Double
-        var extraversionScore: Double
-        var agreeablenessScore: Double
-        var neuroticismScore: Double
+    public final class PersonalityAnalysisModelV1 {
+        @Attribute(.unique) public var id: String
+        public var userId: String
+        public var analysisDate: Date
+        public var dominantTraitRawValue: String
+        public var confidenceRawValue: String
+        public var version: String
+        public var dataPointsAnalyzed: Int
+        public var timeRangeAnalyzed: Int
+        public var opennessScore: Double
+        public var conscientiousnessScore: Double
+        public var extraversionScore: Double
+        public var agreeablenessScore: Double
+        public var neuroticismScore: Double
 
-        init(
+        public init(
             id: String,
             userId: String,
             analysisDate: Date,
@@ -272,9 +272,233 @@ enum SchemaV1: VersionedSchema {
 
 /// Type aliases for easier migration mapping between schema versions
 /// These help identify which V1 models correspond to current models
-typealias HabitModelV1 = SchemaV1.HabitModelV1
-typealias HabitLogModelV1 = SchemaV1.HabitLogModelV1
-typealias HabitCategoryModelV1 = SchemaV1.HabitCategoryModelV1
-typealias UserProfileModelV1 = SchemaV1.UserProfileModelV1
-typealias OnboardingStateModelV1 = SchemaV1.OnboardingStateModelV1
-typealias PersonalityAnalysisModelV1 = SchemaV1.PersonalityAnalysisModelV1
+public typealias HabitModelV1 = SchemaV1.HabitModelV1
+public typealias HabitLogModelV1 = SchemaV1.HabitLogModelV1
+public typealias HabitCategoryModelV1 = SchemaV1.HabitCategoryModelV1
+public typealias UserProfileModelV1 = SchemaV1.UserProfileModelV1
+public typealias OnboardingStateModelV1 = SchemaV1.OnboardingStateModelV1
+public typealias PersonalityAnalysisModelV1 = SchemaV1.PersonalityAnalysisModelV1
+
+// MARK: - Domain Entity Conversions
+
+/// Extensions to convert between SchemaV1 models and domain entities
+/// These methods enable the data layer to work with domain models while
+/// SwiftData uses versioned schema types
+
+extension SchemaV1.HabitModelV1 {
+    /// Convert SwiftData model to domain entity
+    public func toEntity() throws -> Habit {
+        let schedule = try JSONDecoder().decode(HabitSchedule.self, from: scheduleData)
+        let reminders = try JSONDecoder().decode([ReminderTime].self, from: remindersData)
+        let kind: HabitKind = (kindRaw == 0) ? .binary : .numeric
+
+        return Habit(
+            id: id,
+            name: name,
+            colorHex: colorHex,
+            emoji: emoji,
+            kind: kind,
+            unitLabel: unitLabel,
+            dailyTarget: dailyTarget,
+            schedule: schedule,
+            reminders: reminders,
+            startDate: startDate,
+            endDate: endDate,
+            isActive: isActive,
+            displayOrder: displayOrder,
+            categoryId: category?.id,
+            suggestionId: suggestionId
+        )
+    }
+
+    /// Create SwiftData model from domain entity
+    public static func fromEntity(_ habit: Habit, context: ModelContext? = nil) throws -> HabitModelV1 {
+        let schedule = try JSONEncoder().encode(habit.schedule)
+        let reminders = try JSONEncoder().encode(habit.reminders)
+        let kindRaw = (habit.kind == .binary) ? 0 : 1
+
+        // Set relationship from domain entity categoryId
+        var category: HabitCategoryModelV1?
+        if let categoryId = habit.categoryId, let context = context {
+            let descriptor = FetchDescriptor<HabitCategoryModelV1>(predicate: #Predicate { $0.id == categoryId })
+            category = try? context.fetch(descriptor).first
+        }
+
+        return HabitModelV1(
+            id: habit.id,
+            name: habit.name,
+            colorHex: habit.colorHex,
+            emoji: habit.emoji,
+            kindRaw: kindRaw,
+            unitLabel: habit.unitLabel,
+            dailyTarget: habit.dailyTarget,
+            scheduleData: schedule,
+            remindersData: reminders,
+            startDate: habit.startDate,
+            endDate: habit.endDate,
+            isActive: habit.isActive,
+            displayOrder: habit.displayOrder,
+            category: category,
+            suggestionId: habit.suggestionId
+        )
+    }
+}
+
+extension SchemaV1.HabitLogModelV1 {
+    /// Convert SwiftData model to domain entity
+    public func toEntity() -> HabitLog {
+        return HabitLog(id: id, habitID: habitID, date: date, value: value, timezone: timezone)
+    }
+
+    /// Create SwiftData model from domain entity
+    public static func fromEntity(_ log: HabitLog, context: ModelContext? = nil) -> HabitLogModelV1 {
+        // Store both habitID (for CloudKit) and relationship (for local queries)
+        var habit: HabitModelV1?
+        if let context = context {
+            let descriptor = FetchDescriptor<HabitModelV1>(predicate: #Predicate { $0.id == log.habitID })
+            habit = try? context.fetch(descriptor).first
+        }
+        return HabitLogModelV1(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value, timezone: log.timezone)
+    }
+}
+
+extension SchemaV1.HabitCategoryModelV1 {
+    /// Convert SwiftData model to domain entity
+    public func toEntity() -> HabitCategory {
+        HabitCategory(
+            id: id,
+            name: name,
+            displayName: displayName,
+            emoji: emoji,
+            order: order,
+            isActive: isActive,
+            isPredefined: isPredefined
+        )
+    }
+
+    /// Create SwiftData model from domain entity
+    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModelV1 {
+        HabitCategoryModelV1(
+            id: category.id,
+            name: category.name,
+            displayName: category.displayName,
+            emoji: category.emoji,
+            order: category.order,
+            isActive: category.isActive,
+            isPredefined: category.isPredefined
+        )
+    }
+}
+
+extension SchemaV1.UserProfileModelV1 {
+    /// Convert SwiftData model to domain entity
+    public func toEntity() -> UserProfile {
+        let subscriptionPlan = SubscriptionPlan(rawValue: self.subscriptionPlan) ?? .free
+        let id = UUID(uuidString: self.id) ?? UUID()
+        let appearance = Int(self.appearance) ?? 0
+
+        return UserProfile(
+            id: id,
+            name: name,
+            avatarImageData: avatarImageData,
+            appearance: appearance,
+            homeTimezone: homeTimezone,
+            displayTimezoneMode: displayTimezoneMode,
+            subscriptionPlan: subscriptionPlan,
+            subscriptionExpiryDate: subscriptionExpiryDate,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+
+    /// Create SwiftData model from domain entity
+    public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV1 {
+        return UserProfileModelV1(
+            id: profile.id.uuidString,
+            name: profile.name,
+            avatarImageData: profile.avatarImageData,
+            appearance: String(profile.appearance),
+            homeTimezone: profile.homeTimezone,
+            displayTimezoneMode: profile.displayTimezoneMode,
+            subscriptionPlan: profile.subscriptionPlan.rawValue,
+            subscriptionExpiryDate: profile.subscriptionExpiryDate,
+            createdAt: profile.createdAt,
+            updatedAt: profile.updatedAt
+        )
+    }
+}
+
+extension SchemaV1.OnboardingStateModelV1 {
+    /// Convert SwiftData model to domain entity
+    public func toEntity() -> OnboardingState {
+        return OnboardingState(
+            isCompleted: isCompleted,
+            completedDate: completedDate,
+            userName: userName,
+            hasGrantedNotifications: hasGrantedNotifications
+        )
+    }
+
+    /// Create SwiftData model from domain entity
+    public static func fromEntity(_ state: OnboardingState) -> OnboardingStateModelV1 {
+        return OnboardingStateModelV1(
+            isCompleted: state.isCompleted,
+            completedDate: state.completedDate,
+            userName: state.userName,
+            hasGrantedNotifications: state.hasGrantedNotifications
+        )
+    }
+}
+
+extension SchemaV1.PersonalityAnalysisModelV1 {
+    /// Convert SwiftData model to domain entity
+    public func toEntity() -> PersonalityProfile? {
+        guard let dominantTrait = PersonalityTrait(rawValue: dominantTraitRawValue),
+              let confidence = ConfidenceLevel(rawValue: confidenceRawValue) else {
+            return nil
+        }
+
+        let traitScores: [PersonalityTrait: Double] = [
+            .openness: opennessScore,
+            .conscientiousness: conscientiousnessScore,
+            .extraversion: extraversionScore,
+            .agreeableness: agreeablenessScore,
+            .neuroticism: neuroticismScore
+        ]
+
+        let metadata = AnalysisMetadata(
+            analysisDate: analysisDate,
+            dataPointsAnalyzed: dataPointsAnalyzed,
+            timeRangeAnalyzed: timeRangeAnalyzed,
+            version: version
+        )
+
+        return PersonalityProfile(
+            id: UUID(uuidString: id) ?? UUID(),
+            userId: UUID(uuidString: userId) ?? UUID(),
+            traitScores: traitScores,
+            dominantTrait: dominantTrait,
+            confidence: confidence,
+            analysisMetadata: metadata
+        )
+    }
+
+    /// Create SwiftData model from domain entity
+    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityAnalysisModelV1 {
+        PersonalityAnalysisModelV1(
+            id: entity.id.uuidString,
+            userId: entity.userId.uuidString,
+            analysisDate: entity.analysisMetadata.analysisDate,
+            dominantTraitRawValue: entity.dominantTrait.rawValue,
+            confidenceRawValue: entity.confidence.rawValue,
+            version: entity.analysisMetadata.version,
+            dataPointsAnalyzed: entity.analysisMetadata.dataPointsAnalyzed,
+            timeRangeAnalyzed: entity.analysisMetadata.timeRangeAnalyzed,
+            opennessScore: entity.traitScores[.openness] ?? 0.5,
+            conscientiousnessScore: entity.traitScores[.conscientiousness] ?? 0.5,
+            extraversionScore: entity.traitScores[.extraversion] ?? 0.5,
+            agreeablenessScore: entity.traitScores[.agreeableness] ?? 0.5,
+            neuroticismScore: entity.traitScores[.neuroticism] ?? 0.5
+        )
+    }
+}
