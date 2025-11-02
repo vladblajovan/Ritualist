@@ -38,6 +38,12 @@ public final class BackupManager {
     /// Logger for backup operations
     private let logger = Logger(subsystem: "com.vladblajovan.Ritualist", category: "BackupManager")
 
+    /// UserDefaults key for pending restore
+    private let pendingRestoreKey = "com.ritualist.pendingRestore"
+
+    /// UserDefaults for storing pending restore
+    private let userDefaults = UserDefaults.standard
+
     // MARK: - Initialization
 
     public init() {}
@@ -167,6 +173,61 @@ public final class BackupManager {
 
         try FileManager.default.removeItem(at: backupDirectory)
         logger.info("All backups deleted")
+    }
+
+    // MARK: - Pending Restore Management
+
+    /// Schedules a restore to happen on next app launch (before ModelContainer creation)
+    ///
+    /// This is the SAFE way to restore because it happens when no SQLite connection exists
+    ///
+    /// - Parameter backupURL: URL of the backup file to restore
+    public func schedulePendingRestore(from backupURL: URL) {
+        logger.info("Scheduling pending restore from: \(backupURL.lastPathComponent)")
+        userDefaults.set(backupURL.path, forKey: pendingRestoreKey)
+    }
+
+    /// Checks if there's a pending restore scheduled
+    ///
+    /// - Returns: True if a restore is pending
+    public func hasPendingRestore() -> Bool {
+        return userDefaults.string(forKey: pendingRestoreKey) != nil
+    }
+
+    /// Executes a pending restore if one exists
+    ///
+    /// MUST be called BEFORE creating ModelContainer to avoid SQLite violations
+    ///
+    /// - Throws: PersistenceError.restoreFailed if restore fails
+    public func executePendingRestoreIfNeeded() throws {
+        guard let backupPath = userDefaults.string(forKey: pendingRestoreKey) else {
+            return  // No pending restore
+        }
+
+        logger.info("Executing pending restore from: \(backupPath)")
+
+        let backupURL = URL(fileURLWithPath: backupPath)
+
+        // Verify backup still exists
+        guard FileManager.default.fileExists(atPath: backupURL.path) else {
+            logger.error("Pending restore backup not found: \(backupPath)")
+            clearPendingRestore()
+            throw PersistenceError.restoreFailed(BackupError.noBackupAvailable)
+        }
+
+        // Now it's safe to restore because ModelContainer hasn't been created yet
+        try restore(from: backupURL)
+
+        // Clear the pending restore flag
+        clearPendingRestore()
+
+        logger.info("Pending restore completed successfully")
+    }
+
+    /// Clears the pending restore flag
+    public func clearPendingRestore() {
+        userDefaults.removeObject(forKey: pendingRestoreKey)
+        logger.debug("Cleared pending restore flag")
     }
 
     // MARK: - Private Methods

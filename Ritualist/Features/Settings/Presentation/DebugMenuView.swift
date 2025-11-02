@@ -474,6 +474,7 @@ struct BackupListView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var backups: [URL] = []
     @State private var showingRestoreAlert = false
+    @State private var showingRestoreSuccessAlert = false
     @State private var selectedBackup: URL?
 
     var body: some View {
@@ -497,10 +498,14 @@ struct BackupListView: View {
                             Text(backup.lastPathComponent)
                                 .font(.headline)
 
-                            if let creationDate = try? backup.resourceValues(forKeys: [.creationDateKey]).creationDate {
-                                Text(creationDate, style: .date)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                            if let backupDate = extractBackupDate(from: backup) {
+                                HStack(spacing: 4) {
+                                    Text(backupDate, style: .date)
+                                    Text("at")
+                                    Text(backupDate, style: .time)
+                                }
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                             }
 
                             if let fileSize = try? backup.resourceValues(forKeys: [.fileSizeKey]).fileSize {
@@ -542,6 +547,14 @@ struct BackupListView: View {
         } message: {
             Text("This will replace the current database with the selected backup. The current database will be backed up first.\n\nThe app will need to restart after restoration.")
         }
+        .alert("Database Restored", isPresented: $showingRestoreSuccessAlert) {
+            Button("Restart App") {
+                // Restart the app to load the restored database
+                exit(0)
+            }
+        } message: {
+            Text("The database has been successfully restored. Tap 'Restart App' to reload the app with the restored data.")
+        }
     }
 
     private func loadBackups() {
@@ -560,28 +573,46 @@ struct BackupListView: View {
     private func restoreBackup() {
         guard let backup = selectedBackup else { return }
 
-        Task {
-            do {
-                // Create a backup of current database before restoring
-                try backupManager.createBackup()
-                // Restore from selected backup
-                try backupManager.restore(from: backup)
+        // Schedule the restore to happen on next app launch (BEFORE ModelContainer creation)
+        // This avoids SQLite integrity violations from deleting files while they're open
+        backupManager.schedulePendingRestore(from: backup)
 
-                // Notify user to restart
-                // In a real implementation, you'd show an alert and restart the app
-                Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
-                    .info("Database restored successfully from: \(backup.lastPathComponent)")
-
-                loadBackups()
-                onRefresh()
-                dismiss()
-            } catch {
-                Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
-                    .error("Failed to restore backup: \(error.localizedDescription)")
-            }
-        }
+        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+            .info("Scheduled restore from: \(backup.lastPathComponent)")
 
         selectedBackup = nil
+
+        // Show success alert with restart prompt
+        showingRestoreSuccessAlert = true
+    }
+
+    /// Extracts the backup date from filename
+    /// Format: Ritualist_backup_2025-11-02T18-08-08Z.sqlite
+    private func extractBackupDate(from url: URL) -> Date? {
+        let filename = url.lastPathComponent
+
+        // Extract timestamp between "Ritualist_backup_" and ".sqlite"
+        guard let timestampRange = filename.range(of: "Ritualist_backup_"),
+              let extensionRange = filename.range(of: ".sqlite") else {
+            return nil
+        }
+
+        let startIndex = timestampRange.upperBound
+        let endIndex = extensionRange.lowerBound
+        let timestamp = String(filename[startIndex..<endIndex])
+
+        // Convert back to ISO8601 format (replace - with : in time part)
+        // Format: 2025-11-02T18-08-08Z → 2025-11-02T18:08:08Z
+        let components = timestamp.components(separatedBy: "T")
+        guard components.count == 2 else { return nil }
+
+        let datePart = components[0]
+        let timePart = components[1].replacingOccurrences(of: "-", with: ":")
+        let iso8601String = "\(datePart)T\(timePart)"
+
+        // Parse ISO8601 date
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: iso8601String)
     }
 }
 

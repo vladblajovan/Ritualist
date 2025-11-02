@@ -194,107 +194,25 @@ struct TodaysSummaryCard: View {
             }
             
             if let summary = summary {
-                // Main Progress Section
-                HStack(alignment: .top, spacing: 32) {
-                    // Progress Ring (Icon-Inspired Gradient)
-                    ZStack {
-                        Circle()
-                            .stroke(CardDesign.secondaryBackground, lineWidth: 8)
-                            .frame(width: 80, height: 80)
+                // Main Progress Section - Full Width
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(CardDesign.secondaryBackground)
+                            .frame(height: 8)
 
-                        Circle()
-                            .trim(from: 0.0, to: summary.completionPercentage)
-                            .stroke(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
                                 .linearGradient(
                                     colors: [Color.ritualistCyan, Color.ritualistBlue],
                                     startPoint: .leading,
                                     endPoint: .trailing
-                                ),
-                                lineWidth: 8
+                                )
                             )
-                            .frame(width: 80, height: 80)
-                            .rotationEffect(.degrees(-90))
-                            // PERFORMANCE: Removed animation - causes lag during scroll when data updates
-
-                        Text("\(Int(summary.completionPercentage * 100))%")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(.ritualistBlue)
+                            .frame(width: geometry.size.width * summary.completionPercentage, height: 8)
                     }
-                    
-                    // Progress Details
-                    VStack(alignment: .leading, spacing: 12) {
-                        // PERFORMANCE: Simplified to progress bar instead of 12-20+ circles with shadows/overlays
-                        // Previous implementation was massive view hierarchy causing scroll lag
-                        HStack(spacing: 8) {
-                            // Progress bar (Icon-Inspired Gradient)
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(CardDesign.secondaryBackground)
-                                        .frame(height: 8)
-
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(
-                                            .linearGradient(
-                                                colors: [Color.ritualistCyan, Color.ritualistBlue],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                        .frame(width: geometry.size.width * summary.completionPercentage, height: 8)
-                                }
-                            }
-                            .frame(height: 8)
-                        }
-                        
-                        // Habit Count Text
-                        Text("\(summary.completedHabitsCount)/\(summary.totalHabits) habits completed")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.primary)
-                            .lineLimit(nil)
-                            .fixedSize(horizontal: false, vertical: true)
-                        
-                        // Motivational Message (different styles for incomplete vs complete)
-                        if summary.completionPercentage >= 1.0 {
-                            // Celebration message with icon checkmark gradient
-                            HStack(spacing: 8) {
-                                Image(systemName: "checkmark.seal.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(
-                                        .linearGradient(
-                                            colors: [Color.ritualistYellowLime, Color.ritualistOrange],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-
-                                Text(summary.motivationalMessage)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(
-                                        .linearGradient(
-                                            colors: [Color.ritualistYellowLime, Color.ritualistOrange],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                            }
-                            .lineLimit(nil)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .multilineTextAlignment(.leading)
-                        } else {
-                            // Regular motivational message for incomplete days
-                            Text(summary.motivationalMessage)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .lineLimit(nil)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .multilineTextAlignment(.leading)
-                        }
-                    }
-                    
-                    Spacer()
                 }
+                .frame(height: 8)
                 
                 // Enhanced Habits Section - show both completed and incomplete habits
                 if !summary.incompleteHabits.isEmpty || !summary.completedHabits.isEmpty {
@@ -385,7 +303,7 @@ struct TodaysSummaryCard: View {
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                lineWidth: 3
+                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
                             )
                             .frame(width: 44, height: 44)
                             .rotationEffect(.degrees(-90))
@@ -448,45 +366,13 @@ struct TodaysSummaryCard: View {
     
     @ViewBuilder
     private var loadingView: some View {
-        HStack(spacing: 24) {
-            // Loading Ring
-            Circle()
-                .stroke(CardDesign.secondaryBackground, lineWidth: 8)
-                .frame(width: 80, height: 80)
-                .overlay(
-                    ProgressView()
-                        .scaleEffect(0.8)
-                )
-            
-            VStack(alignment: .leading, spacing: 8) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(CardDesign.secondaryBackground)
-                    .frame(width: 120, height: 12)
-                
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(CardDesign.secondaryBackground)
-                    .frame(width: 80, height: 16)
-                
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(CardDesign.secondaryBackground)
-                    .frame(width: 160, height: 12)
-            }
-            
-            Spacer()
-        }
-        .redacted(reason: .placeholder)
+        // Loading progress bar placeholder
+        RoundedRectangle(cornerRadius: 4)
+            .fill(CardDesign.secondaryBackground)
+            .frame(height: 8)
+            .redacted(reason: .placeholder)
     }
-    
-    private func progressColor(for percentage: Double) -> Color {
-        if percentage >= 0.8 {
-            return CardDesign.progressGreen
-        } else if percentage >= 0.5 {
-            return CardDesign.progressOrange
-        } else {
-            return CardDesign.progressRed
-        }
-    }
-    
+
     // MARK: - Enhanced Habits Section
     
     @ViewBuilder
@@ -689,7 +575,7 @@ struct TodaysSummaryCard: View {
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                lineWidth: 2
+                                style: StrokeStyle(lineWidth: 2, lineCap: .round)
                             )
                             .frame(width: 32, height: 32)
                             .rotationEffect(.degrees(-90))
