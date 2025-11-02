@@ -145,7 +145,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                         Text("Schema Version")
                             .font(.headline)
                         Spacer()
-                        Text("V\(SchemaV3.versionIdentifier.description)")
+                        Text("V\(RitualistMigrationPlan.currentSchemaVersion.description)")
                             .fontWeight(.medium)
                             .foregroundColor(.green)
                     }
