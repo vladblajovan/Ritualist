@@ -1,0 +1,9 @@
+# Code Owners for Ritualist
+# These users will automatically be requested for review when a PR touches matching files
+
+# Default owner for everything in the repo
+* @vladblajovan
+
+# Specific ownership for critical files
+/.github/workflows/ @vladblajovan
+/Scripts/ @vladblajovan
