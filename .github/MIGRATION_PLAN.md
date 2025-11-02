@@ -135,10 +135,53 @@ RitualistTests/
 - openness, conscientiousness, extraversion, agreeableness, neuroticism
 - confidence, habitCount, completionRate
 
+## Current Status (Updated: Nov 2, 2025)
+
+### ⚠️ IMPORTANT: Versioned Schema System NOT ACTIVE
+
+The migration system (SchemaV1, MigrationPlan) is **implemented but not currently in use**.
+
+**Reason:** Architectural incompatibility discovered:
+- Versioned schemas require ALL code to use versioned model types (e.g., `SchemaV1.HabitModelV1`)
+- Our datasources use actual model types (e.g., `HabitModel`)
+- This type mismatch causes empty app (ModelContainer expects different types than datasources query)
+
+**Current Configuration:**
+```swift
+// PersistenceContainer.swift
+container = try ModelContainer(
+    for: HabitModel.self,
+        HabitLogModel.self,
+        HabitCategoryModel.self,
+        UserProfileModel.self,
+        OnboardingStateModel.self,
+        PersonalityAnalysisModel.self,
+    configurations: configuration
+)
+```
+
+**To Activate Migration System in Future:**
+We need to choose ONE of these approaches:
+
+1. **Option A: Refactor to Versioned Types (Recommended for production)**
+   - Update ALL datasources to use `SchemaV1.HabitModelV1` instead of `HabitModel`
+   - Update ALL repositories to work with versioned types
+   - More work upfront, but enables safe future migrations
+
+2. **Option B: Different Migration Strategy**
+   - Research SwiftData migration approaches that preserve actual model types
+   - May involve custom migration logic outside of VersionedSchema system
+   - Less invasive but potentially less safe
+
+**For Now:**
+- App uses direct models (same as before migration work)
+- Migration infrastructure exists but dormant
+- No schema evolution capability until we choose and implement Option A or B
+
 ## Notes
 
-- Current implementation uses direct models: **HIGH RISK** for production app
-- Migration system is **CRITICAL** before any schema changes
-- All 6 models must be versioned together in SchemaV1
-- App group sharing must be preserved: `group.com.vladblajovan.Ritualist`
-- CloudKit compatibility must be maintained
+- Current implementation uses direct models (reverted from versioned schema)
+- Migration system infrastructure exists but is not active
+- All 6 models must be versioned together when we activate the system
+- App group sharing preserved: `group.com.vladblajovan.Ritualist`
+- CloudKit compatibility maintained
