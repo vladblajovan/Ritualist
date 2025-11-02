@@ -9,7 +9,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     /// Fetch all habits from background thread, return Domain models
     public func fetchAll() async throws -> [Habit] {
         do {
-            let descriptor = FetchDescriptor<HabitModelV2>(
+            let descriptor = FetchDescriptor<HabitModelV3>(
                 sortBy: [SortDescriptor(\.displayOrder)]
             )
             let habits = try modelContext.fetch(descriptor)
@@ -24,7 +24,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     /// Fetch a single habit by ID from background thread, return Domain model
     public func fetch(by id: UUID) async throws -> Habit? {
         do {
-            let descriptor = FetchDescriptor<HabitModelV2>(
+            let descriptor = FetchDescriptor<HabitModelV3>(
                 predicate: #Predicate { $0.id == id }
             )
             let habits = try modelContext.fetch(descriptor)
@@ -40,7 +40,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     public func upsert(_ habit: Habit) async throws {
         do {
             // Check if habit already exists
-            let descriptor = FetchDescriptor<HabitModelV2>(
+            let descriptor = FetchDescriptor<HabitModelV3>(
                 predicate: #Predicate { $0.id == habit.id }
             )
 
@@ -60,7 +60,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
             existing.displayOrder = habit.displayOrder
             // Update category relationship
             if let categoryId = habit.categoryId {
-                let categoryDescriptor = FetchDescriptor<HabitCategoryModelV2>(predicate: #Predicate { $0.id == categoryId })
+                let categoryDescriptor = FetchDescriptor<HabitCategoryModelV3>(predicate: #Predicate { $0.id == categoryId })
                 existing.category = try? modelContext.fetch(categoryDescriptor).first
             } else {
                 existing.category = nil
@@ -68,7 +68,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
             existing.suggestionId = habit.suggestionId
         } else {
             // Create new habit in this ModelContext
-            let habitModel = try HabitModelV2.fromEntity(habit, context: modelContext)
+            let habitModel = try HabitModelV3.fromEntity(habit, context: modelContext)
             modelContext.insert(habitModel)
         }
 
@@ -82,7 +82,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     /// Delete habit by ID on background thread
     public func delete(id: UUID) async throws {
         do {
-            let descriptor = FetchDescriptor<HabitModelV2>(predicate: #Predicate { $0.id == id })
+            let descriptor = FetchDescriptor<HabitModelV3>(predicate: #Predicate { $0.id == id })
             let habits = try modelContext.fetch(descriptor)
 
             for habit in habits {
@@ -92,7 +92,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
             try modelContext.save()
 
             // Verify deletion worked
-            let verifyDescriptor = FetchDescriptor<HabitModelV2>(predicate: #Predicate { $0.id == id })
+            let verifyDescriptor = FetchDescriptor<HabitModelV3>(predicate: #Predicate { $0.id == id })
             let remainingHabits = try modelContext.fetch(verifyDescriptor)
         } catch {
             // TODO: Add error handler integration when DI allows it
@@ -104,11 +104,11 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     public func cleanupOrphanedHabits() async throws -> Int {
         do {
             // Get all habits
-            let habitDescriptor = FetchDescriptor<HabitModelV2>()
+            let habitDescriptor = FetchDescriptor<HabitModelV3>()
             let allHabits = try modelContext.fetch(habitDescriptor)
 
             // Get all existing category IDs
-            let categoryDescriptor = FetchDescriptor<HabitCategoryModelV2>()
+            let categoryDescriptor = FetchDescriptor<HabitCategoryModelV3>()
             let allCategories = try modelContext.fetch(categoryDescriptor)
             let existingCategoryIds = Set(allCategories.map { $0.id })
 

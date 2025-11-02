@@ -17,10 +17,10 @@ public final class PersistenceContainer {
     /// Initialize persistence container with app group support
     /// Enables data sharing between main app and widget extension
     ///
-    /// Uses versioned schema (SchemaV2) with migration plan to safely handle schema changes.
-    /// All datasources use versioned types (HabitModelV2, HabitLogModelV2, etc.)
+    /// Uses versioned schema (SchemaV3) with migration plan to safely handle schema changes.
+    /// All datasources use versioned types (HabitModelV3, HabitLogModelV3, etc.)
     public init() throws {
-        Self.logger.info("🔍 Initializing PersistenceContainer with versioned schema (V2)")
+        Self.logger.info("🔍 Initializing PersistenceContainer with versioned schema (V3)")
 
         // Get shared container URL for app group
         let sharedContainerURL = PersistenceContainer.getSharedContainerURL()
@@ -37,25 +37,25 @@ public final class PersistenceContainer {
         )
 
         do {
-            Self.logger.info("📋 Creating Schema from SchemaV2")
-            Self.logger.debug("   SchemaV2 models: \(SchemaV2.models.map { String(describing: $0) })")
+            Self.logger.info("📋 Creating Schema from SchemaV3")
+            Self.logger.debug("   SchemaV3 models: \(SchemaV3.models.map { String(describing: $0) })")
 
-            let schema = Schema(versionedSchema: SchemaV2.self)
-            Self.logger.debug("   Schema version: \(SchemaV2.versionIdentifier)")
+            let schema = Schema(versionedSchema: SchemaV3.self)
+            Self.logger.debug("   Schema version: \(SchemaV3.versionIdentifier)")
 
             Self.logger.info("🚀 Initializing ModelContainer with schema and migration plan")
-            Self.logger.info("   Migration plan will handle V1 → V2 upgrade automatically")
+            Self.logger.info("   Migration plan will handle V2 → V3 upgrade automatically")
 
             // Use versioned schema with migration plan
             // This enables safe schema evolution without data loss
-            // Migration: V1 data will be automatically upgraded to V2 (adds isPinned property)
-            // All datasources now use versioned types (HabitModelV2, etc.)
+            // Migration: V2 data will be automatically upgraded to V3 (adds isPinned property)
+            // All datasources now use versioned types (HabitModelV3, etc.)
             container = try ModelContainer(
                 for: schema,
                 migrationPlan: RitualistMigrationPlan.self,
                 configurations: configuration
             )
-            Self.logger.info("✅ Successfully initialized ModelContainer with versioned schema (V2)")
+            Self.logger.info("✅ Successfully initialized ModelContainer with versioned schema (V3)")
         } catch {
             Self.logger.error("❌ Failed to initialize ModelContainer: \(error.localizedDescription)")
             Self.logger.error("   Error details: \(String(describing: error))")
@@ -67,11 +67,11 @@ public final class PersistenceContainer {
         context = ModelContext(container)
         Self.logger.debug("✅ ModelContext created successfully")
 
-        // Log database stats using V2 types (post-migration)
+        // Log database stats using V3 types (post-migration)
         do {
-            let habitCount = try context.fetchCount(FetchDescriptor<HabitModelV2>())
-            let logCount = try context.fetchCount(FetchDescriptor<HabitLogModelV2>())
-            let categoryCount = try context.fetchCount(FetchDescriptor<HabitCategoryModelV2>())
+            let habitCount = try context.fetchCount(FetchDescriptor<HabitModelV3>())
+            let logCount = try context.fetchCount(FetchDescriptor<HabitLogModelV3>())
+            let categoryCount = try context.fetchCount(FetchDescriptor<HabitCategoryModelV3>())
             Self.logger.info("📊 Database stats - Habits: \(habitCount), Logs: \(logCount), Categories: \(categoryCount)")
         } catch {
             Self.logger.warning("⚠️ Could not fetch database stats: \(error.localizedDescription)")

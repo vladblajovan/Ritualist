@@ -36,9 +36,10 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
             SchemaV1.self,
-            SchemaV2.self  // Added isPinned property to HabitModel
+            SchemaV2.self,  // Baseline schema (existing database)
+            SchemaV3.self   // Added isPinned property to HabitModel
             // Future versions go here:
-            // SchemaV3.self,
+            // SchemaV4.self,
         ]
     }
 
@@ -47,35 +48,48 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// Defines how to migrate between schema versions
     ///
     /// Current migrations:
-    /// - V1 → V2: Added isPinned property to HabitModel (lightweight)
+    /// - V1 → V2: Lightweight (entity name normalization)
+    /// - V2 → V3: Added isPinned property to HabitModel (lightweight)
     ///
     /// ## Example Future Migration:
     /// ```swift
     /// static var stages: [MigrationStage] {
     ///     [
-    ///         // V1 → V2: Add new property with lightweight migration
-    ///         migrateV1toV2
+    ///         // V2 → V3: Add new property with lightweight migration
+    ///         migrateV2toV3
     ///     ]
     /// }
     /// ```
     public static var stages: [MigrationStage] {
         [
-            migrateV1toV2
+            migrateV1toV2,
+            migrateV2toV3
         ]
     }
 
     // MARK: - Migration Stages Implementation
 
-    /// V1 → V2: Added isPinned property to HabitModel
+    /// V1 → V2: Entity name normalization
+    ///
+    /// This is a LIGHTWEIGHT migration because:
+    /// - Both schemas use the same entity names (HabitModel, HabitLogModel, etc.)
+    /// - No property changes
+    /// - SwiftData can automatically migrate the data
+    static let migrateV1toV2 = MigrationStage.lightweight(
+        fromVersion: SchemaV1.self,
+        toVersion: SchemaV2.self
+    )
+
+    /// V2 → V3: Added isPinned property to HabitModel
     ///
     /// This is a LIGHTWEIGHT migration because:
     /// - Both schemas use the same entity names (HabitModel, HabitLogModel, etc.)
     /// - Only adding a new property with a default value (isPinned: Bool = false)
     /// - SwiftData can automatically migrate the data
     /// - No data transformation needed
-    static let migrateV1toV2 = MigrationStage.lightweight(
-        fromVersion: SchemaV1.self,
-        toVersion: SchemaV2.self
+    static let migrateV2toV3 = MigrationStage.lightweight(
+        fromVersion: SchemaV2.self,
+        toVersion: SchemaV3.self
     )
 
     // MARK: - Future Migration Stages (Examples)
