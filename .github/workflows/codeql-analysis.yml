@@ -40,11 +40,15 @@ jobs:
 
     - name: Build for CodeQL Analysis
       run: |
-        xcodebuild build \
+        # CodeQL requires clean build to properly analyze Swift code
+        xcodebuild clean build \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
-          -configuration Debug
+          -configuration Debug \
+          -quiet \
+          CODE_SIGNING_ALLOWED=NO \
+          | tee xcodebuild.log
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
