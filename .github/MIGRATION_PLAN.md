@@ -72,13 +72,39 @@
   - Checklist for schema changes
   - Common migration patterns and examples
 
+### Phase 4: Real-World Migration Testing (1-2 hours)
+
+- [x] **4.1 Create SchemaV2.swift** ✅
+  - File: `RitualistCore/Sources/RitualistCore/Storage/SchemaV2.swift`
+  - Added `isPinned: Bool = false` property to HabitModelV2
+  - All other models unchanged (V2 suffix, same structure)
+  - Test lightweight migration with property addition
+
+- [x] **4.2 Implement V1→V2 Migration** ✅
+  - Updated `MigrationPlan.swift` with V1→V2 migration stage
+  - Added `migrateV1toV2` custom migration with:
+    - `willMigrate`: Creates backup, logs migration start
+    - `didMigrate`: Verifies data, logs success, prints migration details
+  - Migration validates all habits migrated with isPinned default value
+
+- [x] **4.3 Update PersistenceContainer to V2** ✅
+  - Changed from `SchemaV1.self` to `SchemaV2.self`
+  - Updated logging to indicate V2 schema
+  - Ready for end-to-end migration testing
+
+- [x] **4.4 Update Debug UI** ✅
+  - Updated DebugMenuView to show "V2.0.0" (blue indicator)
+  - Updated description to "SwiftData versioned schema with V1→V2 migration"
+  - Build succeeded - ready for migration testing
+
 ## File Structure
 
 ```
 RitualistCore/Sources/RitualistCore/Storage/
-├── PersistenceContainer.swift (updated)
-├── SchemaV1.swift (new)
-├── MigrationPlan.swift (new)
+├── PersistenceContainer.swift (updated - now uses SchemaV2)
+├── SchemaV1.swift (new - baseline snapshot)
+├── SchemaV2.swift (new - V2 with isPinned property)
+├── MigrationPlan.swift (new - includes V1→V2 migration)
 ├── MigrationLogger.swift (new)
 └── BackupManager.swift (new)
 

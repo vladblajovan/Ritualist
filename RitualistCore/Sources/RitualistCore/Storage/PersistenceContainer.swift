@@ -36,13 +36,13 @@ public final class PersistenceContainer {
         do {
             // Use versioned schema with migration plan
             // This enables safe schema evolution without data loss
-            // Pass the schema (from migration plan) and the migration plan itself
+            // Using SchemaV2 to test migration from V1 → V2
             container = try ModelContainer(
-                for: Schema(versionedSchema: SchemaV1.self),
+                for: Schema(versionedSchema: SchemaV2.self),
                 migrationPlan: RitualistMigrationPlan.self,
                 configurations: configuration
             )
-            Self.logger.info("Successfully initialized ModelContainer with migration plan")
+            Self.logger.info("Successfully initialized ModelContainer with migration plan (V2)")
         } catch {
             Self.logger.error("Failed to initialize ModelContainer: \(error.localizedDescription)")
             throw PersistenceError.containerInitializationFailed(error)

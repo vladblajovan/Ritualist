@@ -145,12 +145,12 @@ struct DebugMenuView: View {
                         Text("Schema Version")
                             .font(.headline)
                         Spacer()
-                        Text("V1.0.0")
+                        Text("V2.0.0")
                             .fontWeight(.medium)
-                            .foregroundColor(.green)
+                            .foregroundColor(.blue)
                     }
 
-                    Text("SwiftData versioned schema system enabled")
+                    Text("SwiftData versioned schema with V1→V2 migration")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
