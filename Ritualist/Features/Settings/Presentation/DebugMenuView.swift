@@ -145,7 +145,7 @@ struct DebugMenuView: View {
                         Text("Schema Version")
                             .font(.headline)
                         Spacer()
-                        Text("V1.0.0")
+                        Text("V\(SchemaV3.versionIdentifier.description)")
                             .fontWeight(.medium)
                             .foregroundColor(.green)
                     }
@@ -159,7 +159,9 @@ struct DebugMenuView: View {
                 // Migration History
                 GenericRowView.settingsRow(
                     title: "Migration History",
-                    subtitle: "\(migrationHistoryCount) migration events recorded",
+                    subtitle: migrationHistoryCount > 0
+                        ? "\(migrationHistoryCount) manual migration(s) recorded"
+                        : "Lightweight migrations happen automatically",
                     icon: "clock.arrow.circlepath",
                     iconColor: .purple
                 ) {
@@ -169,7 +171,9 @@ struct DebugMenuView: View {
                 // Backup Management
                 GenericRowView.settingsRow(
                     title: "Database Backups",
-                    subtitle: "\(backupCount) backup(s) available",
+                    subtitle: backupCount > 0
+                        ? "\(backupCount) manual backup(s) available"
+                        : "No manual backups created yet",
                     icon: "externaldrive",
                     iconColor: .blue
                 ) {
