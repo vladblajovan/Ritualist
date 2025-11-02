@@ -20,11 +20,17 @@ on:
       - '.github/workflows/**'
       - 'Scripts/**'
 
+# Auto-cancel old runs when new commits are pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   string-validation:
     name: Validate Localized Strings
     runs-on: macos-latest
-    
+    timeout-minutes: 10
+
     steps:
     - uses: actions/checkout@v4
     
@@ -47,7 +53,8 @@ jobs:
   build-test:
     name: Build and Test
     runs-on: macos-latest
-    
+    timeout-minutes: 45
+
     steps:
     - uses: actions/checkout@v4
     
@@ -151,7 +158,8 @@ jobs:
   swiftlint:
     name: SwiftLint
     runs-on: macos-latest
-    
+    timeout-minutes: 10
+
     steps:
     - uses: actions/checkout@v4
     
@@ -184,13 +192,24 @@ jobs:
         BUILD_STATUS="${{ needs.build-test.result }}"
         LINT_STATUS="${{ needs.swiftlint.result }}"
 
-        # Status emoji mapping
+        # Status emoji and text mapping
         get_status_emoji() {
           case $1 in
             success) echo "✅" ;;
             failure) echo "❌" ;;
-            skipped) echo "⚠️" ;;
+            cancelled) echo "⚠️" ;;
+            skipped) echo "⏭️" ;;
             *) echo "⚠️" ;;
+          esac
+        }
+
+        get_status_text() {
+          case $1 in
+            success) echo "SUCCESS" ;;
+            failure) echo "FAILED" ;;
+            cancelled) echo "CANCELLED" ;;
+            skipped) echo "SKIPPED" ;;
+            *) echo "UNKNOWN" ;;
           esac
         }
 
@@ -198,11 +217,20 @@ jobs:
         BUILD_EMOJI=$(get_status_emoji "$BUILD_STATUS")
         LINT_EMOJI=$(get_status_emoji "$LINT_STATUS")
 
-        # Check if any failures
+        STRING_TEXT=$(get_status_text "$STRING_STATUS")
+        BUILD_TEXT=$(get_status_text "$BUILD_STATUS")
+        LINT_TEXT=$(get_status_text "$LINT_STATUS")
+
+        # Check if any REAL failures (not cancellations)
         HAS_FAILURES=false
+        HAS_CANCELLATIONS=false
+
         if [[ "$STRING_STATUS" == "failure" ]] || [[ "$BUILD_STATUS" == "failure" ]] || [[ "$LINT_STATUS" == "failure" ]]; then
           HAS_FAILURES=true
           HEADER="# ⚠️ CI Pipeline - Action Required"
+        elif [[ "$STRING_STATUS" == "cancelled" ]] || [[ "$BUILD_STATUS" == "cancelled" ]] || [[ "$LINT_STATUS" == "cancelled" ]]; then
+          HAS_CANCELLATIONS=true
+          HEADER="# ⚠️ CI Pipeline - Run Superseded"
         else
           HEADER="# ✅ CI Pipeline Results"
         fi
@@ -212,9 +240,9 @@ jobs:
         $HEADER
 
         ## Quality Checks
-        - $STRING_EMOJI **String Validation**: $(echo $STRING_STATUS | tr '[:lower:]' '[:upper:]')
-        - $BUILD_EMOJI **Build & Test**: $(echo $BUILD_STATUS | tr '[:lower:]' '[:upper:]')
-        - $LINT_EMOJI **SwiftLint**: $(echo $LINT_STATUS | tr '[:lower:]' '[:upper:]')
+        - $STRING_EMOJI **String Validation**: $STRING_TEXT
+        - $BUILD_EMOJI **Build & Test**: $BUILD_TEXT
+        - $LINT_EMOJI **SwiftLint**: $LINT_TEXT
 
         EOF
 
@@ -253,6 +281,18 @@ jobs:
             echo "Code style violations detected. Run \`swiftlint\` locally to see and fix violations." >> build-report.md
             echo "" >> build-report.md
           fi
+        elif [ "$HAS_CANCELLATIONS" = true ]; then
+          cat >> build-report.md << 'EOF'
+        ---
+
+        ## ℹ️ Run Cancelled
+
+        This workflow was automatically cancelled because a newer commit was pushed to the same branch.
+        The newer workflow run contains the most up-to-date validation results.
+
+        **No action required** - This is normal behavior when commits are pushed in quick succession.
+
+        EOF
         fi
 
         # Add artifacts section
@@ -286,13 +326,20 @@ jobs:
         script: |
           const fs = require('fs');
           const report = fs.readFileSync('build-report.md', 'utf8');
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: report
-          });
+
+          // Only post comment if there are real failures, not cancellations
+          const hasFailures = report.includes('# ⚠️ CI Pipeline - Action Required');
+          const hasSuccess = report.includes('# ✅ CI Pipeline Results');
+
+          if (hasFailures || hasSuccess) {
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+          }
+          // Skip posting for cancelled/superseded runs to reduce noise
 
 # Security: Limit permissions
 permissions:

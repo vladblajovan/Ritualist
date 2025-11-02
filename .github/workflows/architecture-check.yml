@@ -14,11 +14,17 @@ on:
       - 'RitualistCore/**/*.swift'
       - '.github/workflows/**'
 
+# Auto-cancel old runs when new commits are pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   architecture-check:
     name: Validate Clean Architecture
     runs-on: macos-latest
-    
+    timeout-minutes: 10
+
     steps:
     - uses: actions/checkout@v4
     
