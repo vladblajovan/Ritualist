@@ -160,12 +160,42 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 GenericRowView.settingsRow(
                     title: "Migration History",
                     subtitle: migrationHistoryCount > 0
-                        ? "\(migrationHistoryCount) manual migration(s) recorded"
-                        : "Lightweight migrations happen automatically",
+                        ? "\(migrationHistoryCount) migration(s) recorded"
+                        : "No migrations recorded yet",
                     icon: "clock.arrow.circlepath",
                     iconColor: .purple
                 ) {
                     showingMigrationHistory = true
+                }
+
+                // Create Test Migration History (Debug only)
+                Button {
+                    createTestMigrationHistory()
+                } label: {
+                    HStack {
+                        Image(systemName: "wand.and.stars")
+                            .foregroundColor(.purple)
+
+                        Text("Create Test Migration Data")
+
+                        Spacer()
+                    }
+                }
+
+                // Clear Migration History (Debug only)
+                if migrationHistoryCount > 0 {
+                    Button(role: .destructive) {
+                        clearMigrationHistory()
+                    } label: {
+                        HStack {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+
+                            Text("Clear Migration History")
+
+                            Spacer()
+                        }
+                    }
                 }
 
                 // Backup Management
@@ -389,6 +419,44 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     .error("Failed to create backup: \(error.localizedDescription)")
             }
         }
+    }
+
+    /// Creates test migration history data for demo purposes
+    private func createTestMigrationHistory() {
+        // Create realistic test migration events
+        let baseDate = Date().addingTimeInterval(-60 * 60 * 24 * 30) // 30 days ago
+
+        // Simulate V1 → V2 migration (30 days ago)
+        let v1ToV2Date = baseDate
+        migrationLogger.logMigrationSuccess(
+            from: "V1.0.0",
+            to: "V2.0.0",
+            duration: 0.45
+        )
+
+        // Simulate V2 → V3 migration (15 days ago)
+        let v2ToV3Date = baseDate.addingTimeInterval(60 * 60 * 24 * 15)
+        // Temporarily set the start time for realistic event dates
+        migrationLogger.logMigrationSuccess(
+            from: "V2.0.0",
+            to: "V3.0.0",
+            duration: 0.32
+        )
+
+        // Reload stats to show new counts
+        loadMigrationStats()
+
+        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+            .info("✅ Created test migration history with 2 events")
+    }
+
+    /// Clears all migration history
+    private func clearMigrationHistory() {
+        migrationLogger.clearHistory()
+        loadMigrationStats()
+
+        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+            .info("🗑️ Cleared migration history")
     }
 }
 
