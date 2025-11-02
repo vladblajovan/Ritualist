@@ -75,7 +75,13 @@ extension Container {
         self { RitualistCore.AppearanceManager() }
             .singleton
     }
-    
+
+    @MainActor
+    var migrationStatusService: Factory<MigrationStatusService> {
+        self { @MainActor in RitualistCore.MigrationStatusService.shared }
+            .singleton
+    }
+
     var habitSuggestionsService: Factory<HabitSuggestionsService> {
         self { DefaultHabitSuggestionsService() }
             .singleton

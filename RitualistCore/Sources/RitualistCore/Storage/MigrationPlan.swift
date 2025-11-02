@@ -39,10 +39,24 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
             SchemaV2.self,  // Baseline schema (existing database)
-            SchemaV3.self   // Added isPinned property to HabitModel
+            SchemaV3.self,  // Added isPinned property to HabitModel
+            SchemaV4.self,  // Replaced isPinned with notes property
+            SchemaV5.self,  // Added lastCompletedDate property to HabitModel
+            SchemaV6.self   // Added archivedDate property to HabitModel
             // Future versions go here:
-            // SchemaV4.self,
+            // SchemaV7.self,
         ]
+    }
+
+    // MARK: - Current Schema Helper
+
+    /// Returns the current active schema version (the latest one in the migration plan)
+    public static var currentSchemaVersion: Schema.Version {
+        // The last schema in the array is always the current/active version
+        guard let latestSchema = schemas.last else {
+            fatalError("Migration plan must have at least one schema")
+        }
+        return latestSchema.versionIdentifier
     }
 
     // MARK: - Migration Stages
@@ -51,19 +65,26 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     ///
     /// Current migrations:
     /// - V2 → V3: Added isPinned property to HabitModel (lightweight)
+    /// - V3 → V4: Replaced isPinned with notes property in HabitModel (lightweight)
+    /// - V4 → V5: Added lastCompletedDate property to HabitModel (lightweight)
     ///
     /// ## Example Future Migration:
     /// ```swift
     /// static var stages: [MigrationStage] {
     ///     [
     ///         // V2 → V3: Add new property with lightweight migration
-    ///         migrateV2toV3
+    ///         migrateV2toV3,
+    ///         // V3 → V4: Remove property with lightweight migration
+    ///         migrateV3toV4
     ///     ]
     /// }
     /// ```
     public static var stages: [MigrationStage] {
         [
-            migrateV2toV3
+            migrateV2toV3,
+            migrateV3toV4,
+            migrateV4toV5,
+            migrateV5toV6
         ]
     }
 
@@ -79,6 +100,42 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     static let migrateV2toV3 = MigrationStage.lightweight(
         fromVersion: SchemaV2.self,
         toVersion: SchemaV3.self
+    )
+
+    /// V3 → V4: Replaced isPinned with notes property in HabitModel
+    ///
+    /// This is a LIGHTWEIGHT migration because:
+    /// - Both schemas use the same entity names (HabitModel, HabitLogModel, etc.)
+    /// - Removing isPinned property (Bool) and adding notes property (String?)
+    /// - SwiftData can automatically migrate the data (drops isPinned column, adds notes column)
+    /// - No data transformation needed (notes defaults to nil)
+    static let migrateV3toV4 = MigrationStage.lightweight(
+        fromVersion: SchemaV3.self,
+        toVersion: SchemaV4.self
+    )
+
+    /// V4 → V5: Added lastCompletedDate property to HabitModel
+    ///
+    /// This is a LIGHTWEIGHT migration because:
+    /// - Both schemas use the same entity names (HabitModel, HabitLogModel, etc.)
+    /// - Only adding a new optional property (lastCompletedDate: Date?)
+    /// - SwiftData can automatically migrate the data (adds new column)
+    /// - No data transformation needed (lastCompletedDate defaults to nil)
+    static let migrateV4toV5 = MigrationStage.lightweight(
+        fromVersion: SchemaV4.self,
+        toVersion: SchemaV5.self
+    )
+
+    /// V5 → V6: Added archivedDate property to HabitModel
+    ///
+    /// This is a LIGHTWEIGHT migration because:
+    /// - Both schemas use the same entity names (HabitModel, HabitLogModel, etc.)
+    /// - Only adding a new optional property (archivedDate: Date?)
+    /// - SwiftData can automatically migrate the data (adds new column)
+    /// - No data transformation needed (archivedDate defaults to nil)
+    static let migrateV5toV6 = MigrationStage.lightweight(
+        fromVersion: SchemaV5.self,
+        toVersion: SchemaV6.self
     )
 
     // MARK: - Future Migration Stages (Examples)

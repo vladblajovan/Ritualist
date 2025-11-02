@@ -8,7 +8,7 @@ public actor LogLocalDataSource: LogLocalDataSourceProtocol {
     
     /// Fetch logs for specific habit from background thread, return Domain models
     public func logs(for habitID: UUID) async throws -> [HabitLog] {
-        let descriptor = FetchDescriptor<HabitLogModelV3>(
+        let descriptor = FetchDescriptor<ActiveHabitLogModel>(
             predicate: #Predicate { $0.habitID == habitID },
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
@@ -21,8 +21,8 @@ public actor LogLocalDataSource: LogLocalDataSourceProtocol {
         // Handle empty input gracefully
         guard !habitIDs.isEmpty else { return [] }
 
-        let descriptor = FetchDescriptor<HabitLogModelV3>(
-            predicate: #Predicate<HabitLogModelV3> { habitIDs.contains($0.habitID) },
+        let descriptor = FetchDescriptor<ActiveHabitLogModel>(
+            predicate: #Predicate<ActiveHabitLogModel> { habitIDs.contains($0.habitID) },
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
         let logs = try modelContext.fetch(descriptor)
@@ -32,7 +32,7 @@ public actor LogLocalDataSource: LogLocalDataSourceProtocol {
     /// Insert or update log on background thread - accepts Domain model
     public func upsert(_ log: HabitLog) async throws {
         // Check if log already exists
-        let descriptor = FetchDescriptor<HabitLogModelV3>(
+        let descriptor = FetchDescriptor<ActiveHabitLogModel>(
             predicate: #Predicate { $0.id == log.id }
         )
 
@@ -44,7 +44,7 @@ public actor LogLocalDataSource: LogLocalDataSourceProtocol {
             existing.timezone = log.timezone
         } else {
             // Create new log in this ModelContext
-            let habitLogModel = HabitLogModelV3.fromEntity(log, context: modelContext)
+            let habitLogModel = ActiveHabitLogModel.fromEntity(log, context: modelContext)
             modelContext.insert(habitLogModel)
         }
 
@@ -53,7 +53,7 @@ public actor LogLocalDataSource: LogLocalDataSourceProtocol {
 
     /// Delete log by ID on background thread
     public func delete(id: UUID) async throws {
-        let descriptor = FetchDescriptor<HabitLogModelV3>(predicate: #Predicate { $0.id == id })
+        let descriptor = FetchDescriptor<ActiveHabitLogModel>(predicate: #Predicate { $0.id == id })
         let logs = try modelContext.fetch(descriptor)
 
         for log in logs {

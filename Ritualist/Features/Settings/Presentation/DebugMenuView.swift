@@ -7,6 +7,7 @@
 
 import SwiftUI
 import RitualistCore
+import FactoryKit
 import NaturalLanguage
 import os.log
 
@@ -145,7 +146,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                         Text("Schema Version")
                             .font(.headline)
                         Spacer()
-                        Text("V\(SchemaV3.versionIdentifier.description)")
+                        Text("V\(RitualistMigrationPlan.currentSchemaVersion.description)")
                             .fontWeight(.medium)
                             .foregroundColor(.green)
                     }
@@ -160,8 +161,8 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 GenericRowView.settingsRow(
                     title: "Migration History",
                     subtitle: migrationHistoryCount > 0
-                        ? "\(migrationHistoryCount) manual migration(s) recorded"
-                        : "Lightweight migrations happen automatically",
+                        ? "\(migrationHistoryCount) migration(s) recorded"
+                        : "No migrations recorded yet",
                     icon: "clock.arrow.circlepath",
                     iconColor: .purple
                 ) {
@@ -178,20 +179,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     iconColor: .blue
                 ) {
                     showingBackupList = true
-                }
-
-                // Create Backup Button
-                Button {
-                    createBackup()
-                } label: {
-                    HStack {
-                        Image(systemName: "doc.badge.plus")
-                            .foregroundColor(.blue)
-
-                        Text("Create Backup Now")
-
-                        Spacer()
-                    }
                 }
             }
 
@@ -378,93 +365,10 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         migrationHistoryCount = migrationLogger.getMigrationHistory().count
     }
 
-    /// Creates a manual database backup
-    private func createBackup() {
-        Task {
-            do {
-                try backupManager.createBackup()
-                loadMigrationStats()
-            } catch {
-                Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
-                    .error("Failed to create backup: \(error.localizedDescription)")
-            }
-        }
-    }
 }
 
 // MARK: - Migration History View
 
-struct MigrationHistoryView: View {
-    let logger: MigrationLogger
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        List {
-            let history = logger.getMigrationHistory()
-
-            if history.isEmpty {
-                ContentUnavailableView(
-                    "No Migration History",
-                    systemImage: "clock.arrow.circlepath",
-                    description: Text("Migrations will appear here when schema versions change")
-                )
-            } else {
-                ForEach(Array(history.enumerated()), id: \.offset) { _, event in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("\(event.status.emoji) \(event.fromVersion) → \(event.toVersion)")
-                                .font(.headline)
-
-                            Spacer()
-
-                            Text(event.status.rawValue)
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(statusColor(for: event.status).opacity(0.2))
-                                .foregroundColor(statusColor(for: event.status))
-                                .cornerRadius(8)
-                        }
-
-                        Text(event.startTime, style: .date)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        if let duration = event.duration {
-                            Text("Duration: \(String(format: "%.2f", duration))s")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        if let error = event.error {
-                            Text("Error: \(error)")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-        }
-        .navigationTitle("Migration History")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Done") {
-                    dismiss()
-                }
-            }
-        }
-    }
-
-    private func statusColor(for status: MigrationStatus) -> Color {
-        switch status {
-        case .started: return .blue
-        case .succeeded: return .green
-        case .failed: return .red
-        }
-    }
-}
 
 // MARK: - Backup List View
 
@@ -528,6 +432,14 @@ struct BackupListView: View {
         .navigationTitle("Database Backups")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    createBackup()
+                } label: {
+                    Label("Create Backup", systemImage: "doc.badge.plus")
+                }
+            }
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Done") {
                     dismiss()
@@ -613,6 +525,19 @@ struct BackupListView: View {
         // Parse ISO8601 date
         let formatter = ISO8601DateFormatter()
         return formatter.date(from: iso8601String)
+    }
+
+    private func createBackup() {
+        Task {
+            do {
+                try backupManager.createBackup()
+                loadBackups()
+                onRefresh()
+            } catch {
+                Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+                    .error("Failed to create backup: \(error.localizedDescription)")
+            }
+        }
     }
 }
 
