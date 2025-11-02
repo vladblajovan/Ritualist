@@ -95,9 +95,15 @@ public final class PopulateTestData: PopulateTestDataUseCase {
 
         // Step 5: Generate historical data (scenario-dependent days and completion)
         progressUpdate?("Generating \(config.historyDays)-day history...", 0.7)
-        let allHabits = suggestedHabits + customHabits
+
+        // CRITICAL FIX: Re-fetch all habits from database to ensure context sync
+        // The @ModelActor isolation means created habits might not be immediately
+        // visible to subsequent queries. Force a fresh fetch to guarantee we see
+        // all persisted habits before generating logs.
+        let persistedHabits = try await habitRepository.fetchAllHabits()
+
         try await generateHistoricalData(
-            for: allHabits,
+            for: persistedHabits,
             days: config.historyDays,
             completionRange: config.completionRateRange
         )
