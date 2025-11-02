@@ -1,23 +1,23 @@
 //
-//  SchemaV1.swift
+//  SchemaV2.swift
 //  RitualistCore
 //
 //  Created by Claude on 11.02.2025.
 //
-//  Schema Version 1: Initial versioned schema snapshot
-//  This captures the current state of all SwiftData models as V1,
-//  enabling safe migrations for future schema changes.
+//  Schema Version 2: Added isPinned property to habits
+//  This schema adds the ability to pin important habits to the top of lists.
 //
 
 import Foundation
 import SwiftData
 
-/// Schema V1: Initial baseline schema for all Ritualist data models
+/// Schema V2: Added isPinned property to HabitModel
 ///
-/// This schema represents the first versioned snapshot of the database.
-/// Any future schema changes must create V2, V3, etc. with migration plans.
-public enum SchemaV1: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(1, 0, 0)
+/// Changes from V1:
+/// - HabitModel: Added `isPinned: Bool` property with default value `false`
+/// - Migration: Lightweight migration (new property with default value)
+public enum SchemaV2: VersionedSchema {
+    public static var versionIdentifier: Schema.Version = Schema.Version(2, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [
@@ -30,7 +30,7 @@ public enum SchemaV1: VersionedSchema {
         ]
     }
 
-    // MARK: - HabitModel V1
+    // MARK: - HabitModel V2
 
     @Model
     public final class HabitModel {
@@ -48,12 +48,13 @@ public enum SchemaV1: VersionedSchema {
         public var isActive: Bool = true
         public var displayOrder: Int = 0
         public var suggestionId: String?
+        public var isPinned: Bool = false  // ← NEW in V2
 
         // MARK: - Relationships
         @Relationship(deleteRule: .cascade, inverse: \HabitLogModel.habit)
         public var logs: [HabitLogModel] = []
 
-        public var category: SchemaV1.HabitCategoryModel?
+        public var category: SchemaV2.HabitCategoryModel?
 
         public init(
             id: UUID,
@@ -70,7 +71,8 @@ public enum SchemaV1: VersionedSchema {
             isActive: Bool,
             displayOrder: Int,
             category: HabitCategoryModel? = nil,
-            suggestionId: String?
+            suggestionId: String?,
+            isPinned: Bool = false
         ) {
             self.id = id
             self.name = name
@@ -86,11 +88,12 @@ public enum SchemaV1: VersionedSchema {
             self.isActive = isActive
             self.displayOrder = displayOrder
             self.suggestionId = suggestionId
+            self.isPinned = isPinned
             self.category = category
         }
     }
 
-    // MARK: - HabitLogModel V1
+    // MARK: - HabitLogModel V2 (unchanged from V1)
 
     @Model
     public final class HabitLogModel {
@@ -104,7 +107,7 @@ public enum SchemaV1: VersionedSchema {
         public init(
             id: UUID,
             habitID: UUID,
-            habit: HabitModelV1?,
+            habit: HabitModelV2?,
             date: Date,
             value: Double?,
             timezone: String = "UTC"
@@ -118,7 +121,7 @@ public enum SchemaV1: VersionedSchema {
         }
     }
 
-    // MARK: - HabitCategoryModel V1
+    // MARK: - HabitCategoryModel V2 (unchanged from V1)
 
     @Model
     public final class HabitCategoryModel {
@@ -153,7 +156,7 @@ public enum SchemaV1: VersionedSchema {
         }
     }
 
-    // MARK: - UserProfileModel V1
+    // MARK: - UserProfileModel V2 (unchanged from V1)
 
     @Model
     public final class UserProfileModel {
@@ -193,7 +196,7 @@ public enum SchemaV1: VersionedSchema {
         }
     }
 
-    // MARK: - OnboardingStateModel V1
+    // MARK: - OnboardingStateModel V2 (unchanged from V1)
 
     @Model
     public final class OnboardingStateModel {
@@ -218,7 +221,7 @@ public enum SchemaV1: VersionedSchema {
         }
     }
 
-    // MARK: - PersonalityAnalysisModel V1
+    // MARK: - PersonalityAnalysisModel V2 (unchanged from V1)
 
     @Model
     public final class PersonalityAnalysisModel {
@@ -271,21 +274,19 @@ public enum SchemaV1: VersionedSchema {
 // MARK: - Migration Type Aliases
 
 /// Type aliases for easier migration mapping between schema versions
-/// These help identify which V1 models correspond to current models
-public typealias HabitModelV1 = SchemaV1.HabitModel
-public typealias HabitLogModelV1 = SchemaV1.HabitLogModel
-public typealias HabitCategoryModelV1 = SchemaV1.HabitCategoryModel
-public typealias UserProfileModelV1 = SchemaV1.UserProfileModel
-public typealias OnboardingStateModelV1 = SchemaV1.OnboardingStateModel
-public typealias PersonalityAnalysisModelV1 = SchemaV1.PersonalityAnalysisModel
+public typealias HabitModelV2 = SchemaV2.HabitModel
+public typealias HabitLogModelV2 = SchemaV2.HabitLogModel
+public typealias HabitCategoryModelV2 = SchemaV2.HabitCategoryModel
+public typealias UserProfileModelV2 = SchemaV2.UserProfileModel
+public typealias OnboardingStateModelV2 = SchemaV2.OnboardingStateModel
+public typealias PersonalityAnalysisModelV2 = SchemaV2.PersonalityAnalysisModel
 
 // MARK: - Domain Entity Conversions
 
-/// Extensions to convert between SchemaV1 models and domain entities
-/// These methods enable the data layer to work with domain models while
-/// SwiftData uses versioned schema types
+/// Extensions to convert between SchemaV2 models and domain entities
+/// Note: isPinned property will be added to Habit domain entity
 
-extension SchemaV1.HabitModel {
+extension SchemaV2.HabitModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() throws -> Habit {
         let schedule = try JSONDecoder().decode(HabitSchedule.self, from: scheduleData)
@@ -308,24 +309,24 @@ extension SchemaV1.HabitModel {
             displayOrder: displayOrder,
             categoryId: category?.id,
             suggestionId: suggestionId,
-            isPinned: false  // V1 doesn't have isPinned, default to false
+            isPinned: isPinned  // ← NEW in V2
         )
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ habit: Habit, context: ModelContext? = nil) throws -> HabitModelV1 {
+    public static func fromEntity(_ habit: Habit, context: ModelContext? = nil) throws -> HabitModelV2 {
         let schedule = try JSONEncoder().encode(habit.schedule)
         let reminders = try JSONEncoder().encode(habit.reminders)
         let kindRaw = (habit.kind == .binary) ? 0 : 1
 
         // Set relationship from domain entity categoryId
-        var category: SchemaV1.HabitCategoryModel?
+        var category: SchemaV2.HabitCategoryModel?
         if let categoryId = habit.categoryId, let context = context {
-            let descriptor = FetchDescriptor<SchemaV1.HabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
+            let descriptor = FetchDescriptor<SchemaV2.HabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
             category = try? context.fetch(descriptor).first
         }
 
-        return SchemaV1.HabitModel(
+        return SchemaV2.HabitModel(
             id: habit.id,
             name: habit.name,
             colorHex: habit.colorHex,
@@ -340,30 +341,30 @@ extension SchemaV1.HabitModel {
             isActive: habit.isActive,
             displayOrder: habit.displayOrder,
             category: category,
-            suggestionId: habit.suggestionId
+            suggestionId: habit.suggestionId,
+            isPinned: habit.isPinned  // ← NEW in V2
         )
     }
 }
 
-extension SchemaV1.HabitLogModel {
+extension SchemaV2.HabitLogModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> HabitLog {
         return HabitLog(id: id, habitID: habitID, date: date, value: value, timezone: timezone)
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ log: HabitLog, context: ModelContext? = nil) -> HabitLogModelV1 {
-        // Store both habitID (for CloudKit) and relationship (for local queries)
-        var habit: HabitModelV1?
+    public static func fromEntity(_ log: HabitLog, context: ModelContext? = nil) -> HabitLogModelV2 {
+        var habit: HabitModelV2?
         if let context = context {
-            let descriptor = FetchDescriptor<SchemaV1.HabitModel>(predicate: #Predicate { $0.id == log.habitID })
+            let descriptor = FetchDescriptor<SchemaV2.HabitModel>(predicate: #Predicate { $0.id == log.habitID })
             habit = try? context.fetch(descriptor).first
         }
-        return SchemaV1.HabitLogModel(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value, timezone: log.timezone)
+        return SchemaV2.HabitLogModel(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value, timezone: log.timezone)
     }
 }
 
-extension SchemaV1.HabitCategoryModel {
+extension SchemaV2.HabitCategoryModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> HabitCategory {
         HabitCategory(
@@ -378,8 +379,8 @@ extension SchemaV1.HabitCategoryModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModelV1 {
-        HabitCategoryModelV1(
+    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModelV2 {
+        HabitCategoryModelV2(
             id: category.id,
             name: category.name,
             displayName: category.displayName,
@@ -391,7 +392,7 @@ extension SchemaV1.HabitCategoryModel {
     }
 }
 
-extension SchemaV1.UserProfileModel {
+extension SchemaV2.UserProfileModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> UserProfile {
         let subscriptionPlan = SubscriptionPlan(rawValue: self.subscriptionPlan) ?? .free
@@ -413,8 +414,8 @@ extension SchemaV1.UserProfileModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV1 {
-        return SchemaV1.UserProfileModel(
+    public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV2 {
+        return SchemaV2.UserProfileModel(
             id: profile.id.uuidString,
             name: profile.name,
             avatarImageData: profile.avatarImageData,
@@ -429,7 +430,7 @@ extension SchemaV1.UserProfileModel {
     }
 }
 
-extension SchemaV1.OnboardingStateModel {
+extension SchemaV2.OnboardingStateModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> OnboardingState {
         return OnboardingState(
@@ -441,8 +442,8 @@ extension SchemaV1.OnboardingStateModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ state: OnboardingState) -> OnboardingStateModelV1 {
-        return SchemaV1.OnboardingStateModel(
+    public static func fromEntity(_ state: OnboardingState) -> OnboardingStateModelV2 {
+        return SchemaV2.OnboardingStateModel(
             isCompleted: state.isCompleted,
             completedDate: state.completedDate,
             userName: state.userName,
@@ -451,7 +452,7 @@ extension SchemaV1.OnboardingStateModel {
     }
 }
 
-extension SchemaV1.PersonalityAnalysisModel {
+extension SchemaV2.PersonalityAnalysisModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> PersonalityProfile? {
         guard let dominantTrait = PersonalityTrait(rawValue: dominantTraitRawValue),
@@ -485,8 +486,8 @@ extension SchemaV1.PersonalityAnalysisModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityAnalysisModelV1 {
-        PersonalityAnalysisModelV1(
+    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityAnalysisModelV2 {
+        PersonalityAnalysisModelV2(
             id: entity.id.uuidString,
             userId: entity.userId.uuidString,
             analysisDate: entity.analysisMetadata.analysisDate,

@@ -52,7 +52,7 @@ import UserNotifications
             )
 
             // Use versioned schema with migration plan
-            let schema = Schema(versionedSchema: SchemaV1.self)
+            let schema = Schema(versionedSchema: SchemaV2.self)
             return try ModelContainer(
                 for: schema,
                 migrationPlan: RitualistMigrationPlan.self,

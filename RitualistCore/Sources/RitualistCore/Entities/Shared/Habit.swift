@@ -23,16 +23,18 @@ public struct Habit: Identifiable, Codable, Hashable {
     public var displayOrder: Int
     public var categoryId: String?
     public var suggestionId: String?
+    public var isPinned: Bool
     public init(id: UUID = UUID(), name: String, colorHex: String = "#2DA9E3", emoji: String? = nil,
                 kind: HabitKind = .binary, unitLabel: String? = nil, dailyTarget: Double? = nil,
                 schedule: HabitSchedule = .daily, reminders: [ReminderTime] = [],
                 startDate: Date = Date(), endDate: Date? = nil, isActive: Bool = true, displayOrder: Int = 0,
-                categoryId: String? = nil, suggestionId: String? = nil) {
+                categoryId: String? = nil, suggestionId: String? = nil, isPinned: Bool = false) {
         self.id = id; self.name = name; self.colorHex = colorHex; self.emoji = emoji
         self.kind = kind; self.unitLabel = unitLabel; self.dailyTarget = dailyTarget
         self.schedule = schedule; self.reminders = reminders
         self.startDate = startDate; self.endDate = endDate; self.isActive = isActive
         self.displayOrder = displayOrder
         self.categoryId = categoryId; self.suggestionId = suggestionId
+        self.isPinned = isPinned
     }
 }
