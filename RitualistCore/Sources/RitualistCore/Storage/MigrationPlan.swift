@@ -33,9 +33,11 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// - Append to the end of this array
     /// - Never remove or reorder existing versions
     /// - Each version must have a unique versionIdentifier
+    ///
+    /// Note: V1 removed because it had identical checksum to V2
+    /// Starting with V2 as baseline (matches existing database)
     public static var schemas: [any VersionedSchema.Type] {
         [
-            SchemaV1.self,
             SchemaV2.self,  // Baseline schema (existing database)
             SchemaV3.self   // Added isPinned property to HabitModel
             // Future versions go here:
@@ -48,7 +50,6 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// Defines how to migrate between schema versions
     ///
     /// Current migrations:
-    /// - V1 → V2: Lightweight (entity name normalization)
     /// - V2 → V3: Added isPinned property to HabitModel (lightweight)
     ///
     /// ## Example Future Migration:
@@ -62,23 +63,11 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// ```
     public static var stages: [MigrationStage] {
         [
-            migrateV1toV2,
             migrateV2toV3
         ]
     }
 
     // MARK: - Migration Stages Implementation
-
-    /// V1 → V2: Entity name normalization
-    ///
-    /// This is a LIGHTWEIGHT migration because:
-    /// - Both schemas use the same entity names (HabitModel, HabitLogModel, etc.)
-    /// - No property changes
-    /// - SwiftData can automatically migrate the data
-    static let migrateV1toV2 = MigrationStage.lightweight(
-        fromVersion: SchemaV1.self,
-        toVersion: SchemaV2.self
-    )
 
     /// V2 → V3: Added isPinned property to HabitModel
     ///
