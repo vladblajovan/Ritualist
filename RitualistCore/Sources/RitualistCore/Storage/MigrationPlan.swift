@@ -23,7 +23,7 @@ import SwiftData
 /// 2. Add it to `schemas` array
 /// 3. Add migration stage from V(X-1) to VX
 /// 4. Test migration with real data before release
-enum RitualistMigrationPlan: SchemaMigrationPlan {
+public enum RitualistMigrationPlan: SchemaMigrationPlan {
 
     // MARK: - Schema Versions
 
@@ -33,7 +33,7 @@ enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// - Append to the end of this array
     /// - Never remove or reorder existing versions
     /// - Each version must have a unique versionIdentifier
-    static var schemas: [any VersionedSchema.Type] {
+    public static var schemas: [any VersionedSchema.Type] {
         [
             SchemaV1.self
             // Future versions go here:
@@ -58,7 +58,7 @@ enum RitualistMigrationPlan: SchemaMigrationPlan {
     ///     ]
     /// }
     /// ```
-    static var stages: [MigrationStage] {
+    public static var stages: [MigrationStage] {
         []
         // Future migration stages will be added here:
         // Example: migrateV1toV2, migrateV2toV3, etc.

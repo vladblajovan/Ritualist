@@ -46,14 +46,16 @@ import UserNotifications
             guard let sharedContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.vladblajovan.Ritualist") else {
                 fatalError("Failed to get shared container URL for app group")
             }
-            
+
             let configuration = ModelConfiguration(
                 url: sharedContainerURL.appendingPathComponent("Ritualist.sqlite")
             )
-            
+
+            // Use versioned schema with migration plan
+            let schema = Schema(versionedSchema: SchemaV1.self)
             return try ModelContainer(
-                for: HabitModel.self, HabitLogModel.self, UserProfileModel.self, 
-                    HabitCategoryModel.self, OnboardingStateModel.self, PersonalityAnalysisModel.self,
+                for: schema,
+                migrationPlan: RitualistMigrationPlan.self,
                 configurations: configuration
             )
         } catch {

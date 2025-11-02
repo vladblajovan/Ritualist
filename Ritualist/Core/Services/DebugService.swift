@@ -31,7 +31,7 @@ public final class DebugService: DebugServiceProtocol {
             }
             
             // 2. Delete personality analysis data
-            let personalityAnalysis = try context.fetch(FetchDescriptor<PersonalityAnalysisModel>())
+            let personalityAnalysis = try context.fetch(FetchDescriptor<PersonalityAnalysisModelV1>())
             for analysis in personalityAnalysis {
                 context.delete(analysis)
             }
@@ -55,7 +55,7 @@ public final class DebugService: DebugServiceProtocol {
             }
             
             // 6. Delete onboarding state
-            let onboardingStates = try context.fetch(FetchDescriptor<OnboardingStateModel>())
+            let onboardingStates = try context.fetch(FetchDescriptor<OnboardingStateModelV1>())
             for state in onboardingStates {
                 context.delete(state)
             }
