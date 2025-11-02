@@ -3,7 +3,7 @@ import RitualistCore
 import FactoryKit
 
 // Simple direct sheet - no fucking caches
-public struct NumericHabitLogSheetDirect: View {
+public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_body_length
     let habit: Habit
     let viewingDate: Date
     let onSave: (Double) async -> Void

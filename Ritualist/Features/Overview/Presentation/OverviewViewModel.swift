@@ -7,7 +7,7 @@ import RitualistCore
 
 @MainActor
 @Observable
-public final class OverviewViewModel {
+public final class OverviewViewModel { // swiftlint:disable:this type_body_length
     // MARK: - Observable Properties
     public var todaysSummary: TodaysSummary?
     public var activeStreaks: [StreakInfo] = []
