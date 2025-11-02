@@ -36,7 +36,6 @@ public final class DashboardViewModel {
     @ObservationIgnored @Injected(\.isScheduledDay) internal var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     
-    
     public init() {}
     
     // MARK: - Data Models
@@ -269,7 +268,6 @@ public final class DashboardViewModel {
                 self.streakAnalysis = nil
                 self.categoryBreakdown = []
             }
-            
         } catch {
             self.error = error
             print("Failed to load dashboard data: \(error)")
@@ -306,7 +304,7 @@ public final class DashboardViewModel {
     
     /// Check if a habit should be shown as actionable on a specific date using IsScheduledDayUseCase
     public func isHabitActionable(_ habit: Habit, on date: Date) -> Bool {
-        return isScheduledDay.execute(habit: habit, date: date)
+        isScheduledDay.execute(habit: habit, date: date)
     }
     
     /// Get schedule validation message for a habit on a specific date
@@ -318,6 +316,5 @@ public final class DashboardViewModel {
             return error.localizedDescription
         }
     }
-    
 }
 // swiftlint:enable type_body_length

@@ -54,7 +54,6 @@ struct PersonalityInsightsSettingsRow: View {
                 }
             }
             .buttonStyle(.plain)
-            
         }
         .onAppear {
             Task {

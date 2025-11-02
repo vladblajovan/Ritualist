@@ -319,7 +319,6 @@ public struct CategoryManagementView: View {
         }
         selectedCategoryIds.removeAll()
     }
-    
 }
 
 

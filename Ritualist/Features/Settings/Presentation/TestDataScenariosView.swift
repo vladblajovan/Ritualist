@@ -374,7 +374,7 @@ struct ScenarioAnalysisDemoView: View {
 
 extension TestDataScenario {
     static var personalityProfileCases: [TestDataScenario] {
-        return [.opennessProfile, .conscientiousnessProfile, .extraversionProfile, .agreeablenessProfile, .neuroticismProfile]
+        [.opennessProfile, .conscientiousnessProfile, .extraversionProfile, .agreeablenessProfile, .neuroticismProfile]
     }
 }
 

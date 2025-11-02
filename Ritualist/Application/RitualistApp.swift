@@ -154,7 +154,6 @@ import UserNotifications
                     // The overview will show the habit status for that date
                     await navigateToDateInOverview(targetDate)
                 }
-                
             } else {
                 // Legacy deep link: Navigate to Overview tab and trigger habit completion flow
                 navigationService.navigateToOverview(shouldRefresh: true)
@@ -192,7 +191,6 @@ import UserNotifications
             // Set the habit as pending for progress sheet auto-opening
             // The sheet will open when OverviewView appears and calls processPendingNumericHabit()
             overviewViewModel.setPendingNumericHabit(habit)
-            
         } catch {
             print("[DEEP-LINK] Error fetching habit for progress action: \(error)")
         }
@@ -230,7 +228,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // Notification delegate is now handled by LocalNotificationService
         // Removed: UNUserNotificationCenter.current().delegate = self
         
-        return true
+        true
     }
     
     // Notification presentation handling removed - LocalNotificationService is now the sole delegate
@@ -240,7 +238,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         // Check if this is a habit notification
         let userInfo = response.notification.request.content.userInfo
-        if let habitId = userInfo["habitId"] as? String {
+        if userInfo["habitId"] is String {
             // This is a habit notification - handle it like a log action
             self.handleHabitNotification(response)
         } else {

@@ -220,7 +220,6 @@ public struct StatCard: View {
         case .compact: return .center
         }
     }
-    
 }
 
 // MARK: - Supporting Types

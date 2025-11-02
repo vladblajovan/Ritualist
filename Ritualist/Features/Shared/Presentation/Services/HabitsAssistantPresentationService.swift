@@ -37,7 +37,7 @@ public final class HabitsAssistantPresentationService {
     
     /// Create habit from suggestion (for assistant)
     public func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
-        return await createHabitFromSuggestionUseCase.execute(suggestion)
+        await createHabitFromSuggestionUseCase.execute(suggestion)
     }
     
     /// Show paywall from assistant (sets flag to reopen assistant after)

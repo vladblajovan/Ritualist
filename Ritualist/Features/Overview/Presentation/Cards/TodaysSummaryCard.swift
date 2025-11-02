@@ -2,7 +2,6 @@ import SwiftUI
 import RitualistCore
 import FactoryKit
 
-// swiftlint:disable type_body_length function_body_length
 struct TodaysSummaryCard: View {
     let summary: TodaysSummary?
     let viewingDate: Date
@@ -54,7 +53,7 @@ struct TodaysSummaryCard: View {
     // PERFORMANCE: Pre-compute navigation button colors to avoid repeated calculations
     private var navigationButtonColor: Color {
         // Use same color as circular progress (Icon-Inspired Gradient)
-        return Color.ritualistBlue
+        Color.ritualistBlue
     }
 
     private var navigationButtonBackgroundColor: Color {

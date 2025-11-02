@@ -365,12 +365,12 @@ struct QuickActionsCard: View {
                 }
             },
             getValidationMessage: { habit in
-                return habit.schedule == .daysOfWeek([2, 4, 6]) && CalendarUtils.weekdayComponentUTC(from: Date()) != 2 
-                    ? "This habit is only scheduled for Monday, Wednesday, and Friday" 
+                habit.schedule == .daysOfWeek([2, 4, 6]) && CalendarUtils.weekdayComponentUTC(from: Date()) != 2
+                    ? "This habit is only scheduled for Monday, Wednesday, and Friday"
                     : nil
             },
             getWeeklyProgress: { habit in
-                return (completed: 0, target: 0)
+                (completed: 0, target: 0)
             }
         )
         

@@ -692,7 +692,7 @@ public struct DeviceCapabilities {
     
     /// Whether scrolling should be forced for accessibility
     static var shouldForceScrolling: Bool {
-        return hasAccessibilityDynamicType || isSmallScreen
+        hasAccessibilityDynamicType || isSmallScreen
     }
     
     

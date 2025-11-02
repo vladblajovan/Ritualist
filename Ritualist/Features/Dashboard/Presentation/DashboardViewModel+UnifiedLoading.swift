@@ -360,6 +360,6 @@ extension DashboardViewModel {
     /// Example method showing proper UseCase usage for single habit queries
     /// Uses the new GetSingleHabitLogsUseCase with optimized batch loading
     func getLogsForSpecificHabit(_ habitId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
-        return try await getSingleHabitLogs.execute(for: habitId, from: startDate, to: endDate)
+        try await getSingleHabitLogs.execute(for: habitId, from: startDate, to: endDate)
     }
 }

@@ -76,7 +76,7 @@ public final class HabitsAssistantViewModel {
 
     public func getAllSuggestions() -> [HabitSuggestion] {
         // Always return all suggestions regardless of category filter
-        return getSuggestionsUseCase.execute()
+        getSuggestionsUseCase.execute()
     }
 
     public func initializeWithExistingHabits(_ existingHabits: [Habit]) {

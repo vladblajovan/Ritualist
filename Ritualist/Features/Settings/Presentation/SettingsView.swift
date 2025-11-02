@@ -258,7 +258,6 @@ private struct SettingsFormView: View {
                         }
                     }
                     #endif
-
                 }
                 .refreshable {
                     await vm.load()

@@ -154,11 +154,9 @@ public struct HabitsAssistantView: View {
                 error: "Failed to remove habit"
             )
         }
-        
+
         isDeletingHabit = false
     }
-    
-    
 }
 
 private struct HabitSuggestionRow: View {
