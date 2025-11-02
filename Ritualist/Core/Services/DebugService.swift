@@ -25,37 +25,37 @@ public final class DebugService: DebugServiceProtocol {
         // This respects SwiftData relationship constraints properly
         try await MainActor.run {
             // 1. Delete all habit logs first (child entities)
-            let habitLogs = try context.fetch(FetchDescriptor<HabitLogModel>())
+            let habitLogs = try context.fetch(FetchDescriptor<HabitLogModelV2>())
             for log in habitLogs {
                 context.delete(log)
             }
             
             // 2. Delete personality analysis data
-            let personalityAnalysis = try context.fetch(FetchDescriptor<PersonalityAnalysisModel>())
+            let personalityAnalysis = try context.fetch(FetchDescriptor<PersonalityAnalysisModelV2>())
             for analysis in personalityAnalysis {
                 context.delete(analysis)
             }
             
             // 3. Delete habits (references categories)
-            let habits = try context.fetch(FetchDescriptor<HabitModel>())
+            let habits = try context.fetch(FetchDescriptor<HabitModelV2>())
             for habit in habits {
                 context.delete(habit)
             }
             
             // 4. Delete categories
-            let categories = try context.fetch(FetchDescriptor<HabitCategoryModel>())
+            let categories = try context.fetch(FetchDescriptor<HabitCategoryModelV2>())
             for category in categories {
                 context.delete(category)
             }
             
             // 5. Delete user profiles
-            let profiles = try context.fetch(FetchDescriptor<UserProfileModel>())
+            let profiles = try context.fetch(FetchDescriptor<UserProfileModelV2>())
             for profile in profiles {
                 context.delete(profile)
             }
             
             // 6. Delete onboarding state
-            let onboardingStates = try context.fetch(FetchDescriptor<OnboardingStateModel>())
+            let onboardingStates = try context.fetch(FetchDescriptor<OnboardingStateModelV2>())
             for state in onboardingStates {
                 context.delete(state)
             }
@@ -69,10 +69,10 @@ public final class DebugService: DebugServiceProtocol {
         let context = persistenceContainer.context
         
         return try await MainActor.run {
-            let habitsCount = try context.fetchCount(FetchDescriptor<HabitModel>())
-            let logsCount = try context.fetchCount(FetchDescriptor<HabitLogModel>())
-            let categoriesCount = try context.fetchCount(FetchDescriptor<HabitCategoryModel>())
-            let profilesCount = try context.fetchCount(FetchDescriptor<UserProfileModel>())
+            let habitsCount = try context.fetchCount(FetchDescriptor<HabitModelV2>())
+            let logsCount = try context.fetchCount(FetchDescriptor<HabitLogModelV2>())
+            let categoriesCount = try context.fetchCount(FetchDescriptor<HabitCategoryModelV2>())
+            let profilesCount = try context.fetchCount(FetchDescriptor<UserProfileModelV2>())
             
             return DebugDatabaseStats(
                 habitsCount: habitsCount,

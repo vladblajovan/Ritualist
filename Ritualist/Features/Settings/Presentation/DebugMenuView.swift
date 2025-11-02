@@ -8,6 +8,7 @@
 import SwiftUI
 import RitualistCore
 import NaturalLanguage
+import os.log
 
 #if DEBUG
 struct DebugMenuView: View {
@@ -15,6 +16,12 @@ struct DebugMenuView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteAlert = false
     @State private var showingScenarios = false
+    @State private var showingMigrationHistory = false
+    @State private var showingBackupList = false
+    @State private var migrationLogger = MigrationLogger.shared
+    @State private var backupManager = BackupManager()
+    @State private var backupCount: Int = 0
+    @State private var migrationHistoryCount: Int = 0
     
     var body: some View {
         Form {
@@ -130,7 +137,64 @@ struct DebugMenuView: View {
                 }
                 .disabled(vm.isClearingDatabase)
             }
-            
+
+            Section("Migration Management") {
+                // Current Schema Version
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Schema Version")
+                            .font(.headline)
+                        Spacer()
+                        Text("V\(SchemaV3.versionIdentifier.description)")
+                            .fontWeight(.medium)
+                            .foregroundColor(.green)
+                    }
+
+                    Text("SwiftData versioned schema system enabled")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
+
+                // Migration History
+                GenericRowView.settingsRow(
+                    title: "Migration History",
+                    subtitle: migrationHistoryCount > 0
+                        ? "\(migrationHistoryCount) manual migration(s) recorded"
+                        : "Lightweight migrations happen automatically",
+                    icon: "clock.arrow.circlepath",
+                    iconColor: .purple
+                ) {
+                    showingMigrationHistory = true
+                }
+
+                // Backup Management
+                GenericRowView.settingsRow(
+                    title: "Database Backups",
+                    subtitle: backupCount > 0
+                        ? "\(backupCount) manual backup(s) available"
+                        : "No manual backups created yet",
+                    icon: "externaldrive",
+                    iconColor: .blue
+                ) {
+                    showingBackupList = true
+                }
+
+                // Create Backup Button
+                Button {
+                    createBackup()
+                } label: {
+                    HStack {
+                        Image(systemName: "doc.badge.plus")
+                            .foregroundColor(.blue)
+
+                        Text("Create Backup Now")
+
+                        Spacer()
+                    }
+                }
+            }
+
             Section("Performance Monitoring") {
                 // FPS Overlay Toggle
                 Toggle(isOn: $vm.showFPSOverlay) {
@@ -255,10 +319,22 @@ struct DebugMenuView: View {
         .task {
             // Load database stats when the view appears
             await vm.loadDatabaseStats()
+            // Load migration stats
+            loadMigrationStats()
         }
         .sheet(isPresented: $showingScenarios) {
             NavigationStack {
                 TestDataScenariosView(vm: vm)
+            }
+        }
+        .sheet(isPresented: $showingMigrationHistory) {
+            NavigationStack {
+                MigrationHistoryView(logger: migrationLogger)
+            }
+        }
+        .sheet(isPresented: $showingBackupList) {
+            NavigationStack {
+                BackupListView(backupManager: backupManager, onRefresh: loadMigrationStats)
             }
         }
         .alert("Clear Database?", isPresented: $showingDeleteAlert) {
@@ -292,6 +368,251 @@ struct DebugMenuView: View {
         } else {
             return .red         // High - approaching memory warning territory
         }
+    }
+
+    // MARK: - Migration Management
+
+    /// Loads migration statistics (backup count, migration history count)
+    private func loadMigrationStats() {
+        backupCount = (try? backupManager.listBackups().count) ?? 0
+        migrationHistoryCount = migrationLogger.getMigrationHistory().count
+    }
+
+    /// Creates a manual database backup
+    private func createBackup() {
+        Task {
+            do {
+                try backupManager.createBackup()
+                loadMigrationStats()
+            } catch {
+                Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+                    .error("Failed to create backup: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+// MARK: - Migration History View
+
+struct MigrationHistoryView: View {
+    let logger: MigrationLogger
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            let history = logger.getMigrationHistory()
+
+            if history.isEmpty {
+                ContentUnavailableView(
+                    "No Migration History",
+                    systemImage: "clock.arrow.circlepath",
+                    description: Text("Migrations will appear here when schema versions change")
+                )
+            } else {
+                ForEach(Array(history.enumerated()), id: \.offset) { _, event in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("\(event.status.emoji) \(event.fromVersion) → \(event.toVersion)")
+                                .font(.headline)
+
+                            Spacer()
+
+                            Text(event.status.rawValue)
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(statusColor(for: event.status).opacity(0.2))
+                                .foregroundColor(statusColor(for: event.status))
+                                .cornerRadius(8)
+                        }
+
+                        Text(event.startTime, style: .date)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        if let duration = event.duration {
+                            Text("Duration: \(String(format: "%.2f", duration))s")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        if let error = event.error {
+                            Text("Error: \(error)")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .navigationTitle("Migration History")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    private func statusColor(for status: MigrationStatus) -> Color {
+        switch status {
+        case .started: return .blue
+        case .succeeded: return .green
+        case .failed: return .red
+        }
+    }
+}
+
+// MARK: - Backup List View
+
+struct BackupListView: View {
+    let backupManager: BackupManager
+    let onRefresh: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var backups: [URL] = []
+    @State private var showingRestoreAlert = false
+    @State private var showingRestoreSuccessAlert = false
+    @State private var selectedBackup: URL?
+
+    var body: some View {
+        List {
+            if backups.isEmpty {
+                ContentUnavailableView(
+                    "No Backups Available",
+                    systemImage: "externaldrive.badge.xmark",
+                    description: Text("Database backups will appear here")
+                )
+            } else {
+                Section {
+                    Text("Backups are automatically created before migrations. You can also create manual backups.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Section("Available Backups") {
+                    ForEach(backups, id: \.self) { backup in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(backup.lastPathComponent)
+                                .font(.headline)
+
+                            if let backupDate = extractBackupDate(from: backup) {
+                                HStack(spacing: 4) {
+                                    Text(backupDate, style: .date)
+                                    Text("at")
+                                    Text(backupDate, style: .time)
+                                }
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            }
+
+                            if let fileSize = try? backup.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                                Text("Size: \(ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedBackup = backup
+                            showingRestoreAlert = true
+                        }
+                    }
+                    .onDelete(perform: deleteBackups)
+                }
+            }
+        }
+        .navigationTitle("Database Backups")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
+        .task {
+            loadBackups()
+        }
+        .alert("Restore Backup?", isPresented: $showingRestoreAlert) {
+            Button("Cancel", role: .cancel) {
+                selectedBackup = nil
+            }
+            Button("Restore", role: .destructive) {
+                restoreBackup()
+            }
+        } message: {
+            Text("This will replace the current database with the selected backup. The current database will be backed up first.\n\nThe app will need to restart after restoration.")
+        }
+        .alert("Database Restored", isPresented: $showingRestoreSuccessAlert) {
+            Button("Restart App") {
+                // Restart the app to load the restored database
+                exit(0)
+            }
+        } message: {
+            Text("The database has been successfully restored. Tap 'Restart App' to reload the app with the restored data.")
+        }
+    }
+
+    private func loadBackups() {
+        backups = (try? backupManager.listBackups()) ?? []
+    }
+
+    private func deleteBackups(at offsets: IndexSet) {
+        for index in offsets {
+            let backup = backups[index]
+            try? FileManager.default.removeItem(at: backup)
+        }
+        loadBackups()
+        onRefresh()
+    }
+
+    private func restoreBackup() {
+        guard let backup = selectedBackup else { return }
+
+        // Schedule the restore to happen on next app launch (BEFORE ModelContainer creation)
+        // This avoids SQLite integrity violations from deleting files while they're open
+        backupManager.schedulePendingRestore(from: backup)
+
+        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+            .info("Scheduled restore from: \(backup.lastPathComponent)")
+
+        selectedBackup = nil
+
+        // Show success alert with restart prompt
+        showingRestoreSuccessAlert = true
+    }
+
+    /// Extracts the backup date from filename
+    /// Format: Ritualist_backup_2025-11-02T18-08-08Z.sqlite
+    private func extractBackupDate(from url: URL) -> Date? {
+        let filename = url.lastPathComponent
+
+        // Extract timestamp between "Ritualist_backup_" and ".sqlite"
+        guard let timestampRange = filename.range(of: "Ritualist_backup_"),
+              let extensionRange = filename.range(of: ".sqlite") else {
+            return nil
+        }
+
+        let startIndex = timestampRange.upperBound
+        let endIndex = extensionRange.lowerBound
+        let timestamp = String(filename[startIndex..<endIndex])
+
+        // Convert back to ISO8601 format (replace - with : in time part)
+        // Format: 2025-11-02T18-08-08Z → 2025-11-02T18:08:08Z
+        let components = timestamp.components(separatedBy: "T")
+        guard components.count == 2 else { return nil }
+
+        let datePart = components[0]
+        let timePart = components[1].replacingOccurrences(of: "-", with: ":")
+        let iso8601String = "\(datePart)T\(timePart)"
+
+        // Parse ISO8601 date
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: iso8601String)
     }
 }
 

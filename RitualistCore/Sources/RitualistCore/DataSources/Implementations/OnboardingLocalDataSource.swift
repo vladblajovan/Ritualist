@@ -8,7 +8,7 @@ public actor OnboardingLocalDataSource: OnboardingLocalDataSourceProtocol {
     
     /// Load onboarding state from background thread, return Domain model
     public func load() async throws -> OnboardingState? {
-        let descriptor = FetchDescriptor<OnboardingStateModel>()
+        let descriptor = FetchDescriptor<OnboardingStateModelV3>()
         guard let state = try modelContext.fetch(descriptor).first else {
             return nil
         }
@@ -18,7 +18,7 @@ public actor OnboardingLocalDataSource: OnboardingLocalDataSourceProtocol {
     /// Save onboarding state on background thread - accepts Domain model
     public func save(_ state: OnboardingState) async throws {
         // Check if onboarding state already exists (should be only one)
-        let descriptor = FetchDescriptor<OnboardingStateModel>()
+        let descriptor = FetchDescriptor<OnboardingStateModelV3>()
         
         if let existing = try modelContext.fetch(descriptor).first {
             // Update existing state
@@ -28,7 +28,7 @@ public actor OnboardingLocalDataSource: OnboardingLocalDataSourceProtocol {
             existing.hasGrantedNotifications = state.hasGrantedNotifications
         } else {
             // Create new state in this ModelContext
-            let onboardingStateModel = OnboardingStateModel.fromEntity(state)
+            let onboardingStateModel = OnboardingStateModelV3.fromEntity(state)
             modelContext.insert(onboardingStateModel)
         }
         

@@ -13,8 +13,8 @@ public actor PersonalityAnalysisDataSource: PersonalityAnalysisDataSourceProtoco
     
     public func getLatestProfile(for userId: UUID) async throws -> PersonalityProfile? {
         let userIdString = userId.uuidString
-        let descriptor = FetchDescriptor<PersonalityAnalysisModel>(
-            predicate: #Predicate<PersonalityAnalysisModel> { profile in
+        let descriptor = FetchDescriptor<PersonalityAnalysisModelV3>(
+            predicate: #Predicate<PersonalityAnalysisModelV3> { profile in
                 profile.userId == userIdString
             },
             sortBy: [SortDescriptor(\.analysisDate, order: .reverse)]
@@ -25,15 +25,15 @@ public actor PersonalityAnalysisDataSource: PersonalityAnalysisDataSourceProtoco
     }
     
     public func saveProfile(_ profile: PersonalityProfile) async throws {
-        let personalityProfileModel = PersonalityAnalysisModel.fromEntity(profile)
+        let personalityProfileModel = PersonalityAnalysisModelV3.fromEntity(profile)
         modelContext.insert(personalityProfileModel)
         try modelContext.save()
     }
     
     public func getProfileHistory(for userId: UUID) async throws -> [PersonalityProfile] {
         let userIdString = userId.uuidString
-        let descriptor = FetchDescriptor<PersonalityAnalysisModel>(
-            predicate: #Predicate<PersonalityAnalysisModel> { profile in
+        let descriptor = FetchDescriptor<PersonalityAnalysisModelV3>(
+            predicate: #Predicate<PersonalityAnalysisModelV3> { profile in
                 profile.userId == userIdString
             },
             sortBy: [SortDescriptor(\.analysisDate, order: .reverse)]
@@ -44,8 +44,8 @@ public actor PersonalityAnalysisDataSource: PersonalityAnalysisDataSourceProtoco
     }
     
     public func deleteProfile(profileId: String) async throws {
-        let descriptor = FetchDescriptor<PersonalityAnalysisModel>(
-            predicate: #Predicate<PersonalityAnalysisModel> { profile in
+        let descriptor = FetchDescriptor<PersonalityAnalysisModelV3>(
+            predicate: #Predicate<PersonalityAnalysisModelV3> { profile in
                 profile.id == profileId
             }
         )
@@ -59,8 +59,8 @@ public actor PersonalityAnalysisDataSource: PersonalityAnalysisDataSourceProtoco
     
     public func deleteAllProfiles(for userId: UUID) async throws {
         let userIdString = userId.uuidString
-        let descriptor = FetchDescriptor<PersonalityAnalysisModel>(
-            predicate: #Predicate<PersonalityAnalysisModel> { profile in
+        let descriptor = FetchDescriptor<PersonalityAnalysisModelV3>(
+            predicate: #Predicate<PersonalityAnalysisModelV3> { profile in
                 profile.userId == userIdString
             }
         )

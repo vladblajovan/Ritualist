@@ -8,8 +8,13 @@ extension Container {
     
     // MARK: - Persistence Container
     var persistenceContainer: Factory<RitualistCore.PersistenceContainer> {
-        self { 
+        self {
             do {
+                // CRITICAL: Execute pending restore BEFORE creating ModelContainer
+                // This avoids SQLite integrity violations from replacing open database files
+                let backupManager = RitualistCore.BackupManager()
+                try backupManager.executePendingRestoreIfNeeded()
+
                 return try RitualistCore.PersistenceContainer()
             } catch {
                 print("[PERSISTENCE-ERROR] Failed to initialize persistence container: \(error)")

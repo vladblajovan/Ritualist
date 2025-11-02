@@ -97,7 +97,7 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
     }()
     
     private func getStoredCategories() async throws -> [HabitCategory] {
-        let descriptor = FetchDescriptor<HabitCategoryModel>()
+        let descriptor = FetchDescriptor<HabitCategoryModelV3>()
         let categories = try modelContext.fetch(descriptor)
         return categories.map { $0.toEntity() }
     }
@@ -125,13 +125,13 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
     }
     
     public func createCustomCategory(_ category: HabitCategory) async throws {
-        let categoryModel = HabitCategoryModel.fromEntity(category)
+        let categoryModel = HabitCategoryModelV3.fromEntity(category)
         modelContext.insert(categoryModel)
         try modelContext.save()
     }
     
     public func updateCategory(_ category: HabitCategory) async throws {
-        let descriptor = FetchDescriptor<HabitCategoryModel>(
+        let descriptor = FetchDescriptor<HabitCategoryModelV3>(
             predicate: #Predicate { $0.id == category.id }
         )
         
@@ -146,14 +146,14 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
             try modelContext.save()
         } else {
             // Create new category if it doesn't exist
-            let categoryModel = HabitCategoryModel.fromEntity(category)
+            let categoryModel = HabitCategoryModelV3.fromEntity(category)
             modelContext.insert(categoryModel)
             try modelContext.save()
         }
     }
     
     public func deleteCategory(id: String) async throws {
-        let descriptor = FetchDescriptor<HabitCategoryModel>(
+        let descriptor = FetchDescriptor<HabitCategoryModelV3>(
             predicate: #Predicate { $0.id == id }
         )
         

@@ -9,7 +9,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     /// Fetch all habits from background thread, return Domain models
     public func fetchAll() async throws -> [Habit] {
         do {
-            let descriptor = FetchDescriptor<HabitModel>(
+            let descriptor = FetchDescriptor<HabitModelV3>(
                 sortBy: [SortDescriptor(\.displayOrder)]
             )
             let habits = try modelContext.fetch(descriptor)
@@ -24,7 +24,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     /// Fetch a single habit by ID from background thread, return Domain model
     public func fetch(by id: UUID) async throws -> Habit? {
         do {
-            let descriptor = FetchDescriptor<HabitModel>(
+            let descriptor = FetchDescriptor<HabitModelV3>(
                 predicate: #Predicate { $0.id == id }
             )
             let habits = try modelContext.fetch(descriptor)
@@ -40,10 +40,10 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     public func upsert(_ habit: Habit) async throws {
         do {
             // Check if habit already exists
-            let descriptor = FetchDescriptor<HabitModel>(
+            let descriptor = FetchDescriptor<HabitModelV3>(
                 predicate: #Predicate { $0.id == habit.id }
             )
-            
+
             if let existing = try modelContext.fetch(descriptor).first {
                 // Update existing habit properties
                 existing.name = habit.name
@@ -60,7 +60,7 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
             existing.displayOrder = habit.displayOrder
             // Update category relationship
             if let categoryId = habit.categoryId {
-                let categoryDescriptor = FetchDescriptor<HabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
+                let categoryDescriptor = FetchDescriptor<HabitCategoryModelV3>(predicate: #Predicate { $0.id == categoryId })
                 existing.category = try? modelContext.fetch(categoryDescriptor).first
             } else {
                 existing.category = nil
@@ -68,10 +68,10 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
             existing.suggestionId = habit.suggestionId
         } else {
             // Create new habit in this ModelContext
-            let habitModel = try HabitModel.fromEntity(habit, context: modelContext)
+            let habitModel = try HabitModelV3.fromEntity(habit, context: modelContext)
             modelContext.insert(habitModel)
         }
-        
+
         try modelContext.save()
         } catch {
             // TODO: Add error handler integration when DI allows it
@@ -82,17 +82,17 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     /// Delete habit by ID on background thread
     public func delete(id: UUID) async throws {
         do {
-            let descriptor = FetchDescriptor<HabitModel>(predicate: #Predicate { $0.id == id })
+            let descriptor = FetchDescriptor<HabitModelV3>(predicate: #Predicate { $0.id == id })
             let habits = try modelContext.fetch(descriptor)
-            
+
             for habit in habits {
                 modelContext.delete(habit)
             }
-            
+
             try modelContext.save()
-            
+
             // Verify deletion worked
-            let verifyDescriptor = FetchDescriptor<HabitModel>(predicate: #Predicate { $0.id == id })
+            let verifyDescriptor = FetchDescriptor<HabitModelV3>(predicate: #Predicate { $0.id == id })
             let remainingHabits = try modelContext.fetch(verifyDescriptor)
         } catch {
             // TODO: Add error handler integration when DI allows it
@@ -104,15 +104,15 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     public func cleanupOrphanedHabits() async throws -> Int {
         do {
             // Get all habits
-            let habitDescriptor = FetchDescriptor<HabitModel>()
+            let habitDescriptor = FetchDescriptor<HabitModelV3>()
             let allHabits = try modelContext.fetch(habitDescriptor)
-            
+
             // Get all existing category IDs
-            let categoryDescriptor = FetchDescriptor<HabitCategoryModel>()
+            let categoryDescriptor = FetchDescriptor<HabitCategoryModelV3>()
             let allCategories = try modelContext.fetch(categoryDescriptor)
             let existingCategoryIds = Set(allCategories.map { $0.id })
-            
-            
+
+
             // Find habits with invalid category references through relationship
             let orphanedHabits = allHabits.filter { habit in
                 // Check if habit has a category relationship that points to a deleted category
@@ -122,16 +122,16 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
                 }
                 return false // Habits with nil category are fine
             }
-        
+
             // Delete orphaned habits
             for habit in orphanedHabits {
                 modelContext.delete(habit)
             }
-            
+
             try modelContext.save()
-            
+
             return orphanedHabits.count
-            
+
         } catch {
             print("🧹 [DEBUG] Error during orphaned habits cleanup: \(error)")
             throw error

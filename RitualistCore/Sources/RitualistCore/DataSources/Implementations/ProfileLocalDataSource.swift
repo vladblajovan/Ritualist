@@ -8,7 +8,7 @@ public actor ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
     
     /// Load user profile from background thread, return Domain model
     public func load() async throws -> UserProfile? {
-        let descriptor = FetchDescriptor<UserProfileModel>()
+        let descriptor = FetchDescriptor<UserProfileModelV3>()
         guard let orofile = try modelContext.fetch(descriptor).first else {
             return nil
         }
@@ -19,7 +19,7 @@ public actor ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
     public func save(_ profile: UserProfile) async throws {
         // Check if profile already exists
         let profileIdString = profile.id.uuidString
-        let descriptor = FetchDescriptor<UserProfileModel>(
+        let descriptor = FetchDescriptor<UserProfileModelV3>(
             predicate: #Predicate { $0.id == profileIdString }
         )
         
@@ -35,7 +35,7 @@ public actor ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
             existing.updatedAt = profile.updatedAt
         } else {
             // Create new profile in this ModelContext
-            let userProfileModel = UserProfileModel.fromEntity(profile)
+            let userProfileModel = UserProfileModelV3.fromEntity(profile)
             modelContext.insert(userProfileModel)
         }
         
