@@ -311,7 +311,10 @@ extension SchemaV5.HabitModel {
             displayOrder: displayOrder,
             categoryId: category?.id,
             suggestionId: suggestionId,
-            isPinned: false  // Default to false since property removed in V4
+            isPinned: false,  // Default to false since property removed in V4
+            notes: notes,
+            lastCompletedDate: lastCompletedDate,
+            archivedDate: nil  // V5 doesn't have archivedDate, added in V6
         )
     }
 
@@ -344,8 +347,9 @@ extension SchemaV5.HabitModel {
             displayOrder: habit.displayOrder,
             category: category,
             suggestionId: habit.suggestionId,
-            notes: nil,  // Notes not yet in domain entity
-            lastCompletedDate: nil  // Will be populated from habit logs in the future
+            notes: habit.notes,
+            lastCompletedDate: habit.lastCompletedDate
+            // Note: archivedDate not available in V5, only in V6
         )
     }
 }
