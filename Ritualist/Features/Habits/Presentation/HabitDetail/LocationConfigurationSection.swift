@@ -56,7 +56,7 @@ public struct LocationConfigurationSection: View {
 private struct LocationMapPreview: View {
     @Bindable var vm: HabitDetailViewModel
     @State private var cameraPosition: MapCameraPosition = .automatic
-    @State private var isMapReady = false
+    @State private var shouldLoadMap = false
 
     var body: some View {
         if let config = vm.locationConfiguration {
@@ -66,69 +66,69 @@ private struct LocationMapPreview: View {
                     vm.showMapPicker = true
                 } label: {
                     ZStack {
-                        // Placeholder while map loads
-                        if !isMapReady {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(height: 200)
-                                .overlay {
+                        // Always show placeholder first
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 200)
+                            .overlay {
+                                if !shouldLoadMap {
                                     ProgressView()
                                         .scaleEffect(1.2)
                                 }
-                        }
-
-                        // Actual map
-                        Map(position: $cameraPosition, interactionModes: []) {
-                            // Pin marker
-                            Annotation("", coordinate: config.coordinate) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.red)
-                                        .frame(width: 30, height: 30)
-
-                                    Image(systemName: "mappin.circle.fill")
-                                        .foregroundColor(.white)
-                                        .font(.title2)
-                                }
                             }
 
-                            // Radius circle
-                            MapCircle(center: config.coordinate, radius: config.radius)
-                                .foregroundStyle(Color.blue.opacity(0.2))
-                                .stroke(Color.blue, lineWidth: 2)
+                        // Only create Map view after delay to avoid blocking UI
+                        if shouldLoadMap {
+                            Map(position: $cameraPosition, interactionModes: []) {
+                                // Pin marker
+                                Annotation("", coordinate: config.coordinate) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.red)
+                                            .frame(width: 30, height: 30)
+
+                                        Image(systemName: "mappin.circle.fill")
+                                            .foregroundColor(.white)
+                                            .font(.title2)
+                                    }
+                                }
+
+                                // Radius circle
+                                MapCircle(center: config.coordinate, radius: config.radius)
+                                    .foregroundStyle(Color.blue.opacity(0.2))
+                                    .stroke(Color.blue, lineWidth: 2)
+                            }
+                            .mapStyle(.standard)
+                            .frame(height: 200)
+                            .cornerRadius(12)
+                            .overlay(alignment: .top) {
+                                // Location name overlay on map
+                                Text(config.locationLabel ?? "Selected Location")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.black.opacity(0.6))
+                                    )
+                                    .padding(.top, 12)
+                            }
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            )
+                            .transition(.opacity)
                         }
-                        .mapStyle(.standard)
-                        .frame(height: 200)
-                        .cornerRadius(12)
-                        .overlay(alignment: .top) {
-                            // Location name overlay on map
-                            Text(config.locationLabel ?? "Selected Location")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(Color.black.opacity(0.6))
-                                )
-                                .padding(.top, 12)
-                        }
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                        )
-                        .opacity(isMapReady ? 1 : 0)
                     }
                     .onAppear {
-                        // Center map on configured location
-                        updateCameraPosition(for: config)
-
-                        // Delay showing map to avoid blocking UI
+                        // Delay creating the Map view to keep UI responsive
                         Task {
-                            try? await Task.sleep(for: .milliseconds(250))
+                            try? await Task.sleep(for: .milliseconds(300))
+                            updateCameraPosition(for: config)
                             withAnimation {
-                                isMapReady = true
+                                shouldLoadMap = true
                             }
                         }
                     }
