@@ -143,7 +143,7 @@ private struct LocationMapPreview: View {
                     }
                     .foregroundColor(.secondary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 8)
             }
             .sheet(isPresented: $vm.showMapPicker) {
