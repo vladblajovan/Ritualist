@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import FactoryKit
 import RitualistCore
+import CoreLocation
 
 // Helper enum for schedule picker
 public enum ScheduleType: CaseIterable {
@@ -421,20 +422,34 @@ public final class HabitDetailViewModel {
                 if locationAuthStatus == .notDetermined {
                     let result = await requestLocationPermission(requestAlways: false)
 
-                    // If permission granted, show map picker to set location
+                    // If permission granted, create default config and show map picker
                     switch result {
                     case .granted:
+                        // Create default configuration so toggle stays ON
                         await MainActor.run {
+                            locationConfiguration = LocationConfiguration.create(
+                                from: CLLocationCoordinate2D(latitude: 0, longitude: 0), // Placeholder
+                                radius: LocationConfiguration.defaultRadius,
+                                triggerType: .entry,
+                                frequency: .oncePerDay,
+                                isEnabled: true
+                            )
                             showMapPicker = true
                         }
                     case .denied, .failed:
-                        // Permission denied - toggle back off
-                        // User will see the permission status UI
+                        // Permission denied - toggle stays off
                         break
                     }
                 } else if locationAuthStatus.canMonitorGeofences {
-                    // Permission already granted - show map picker
+                    // Permission already granted - create default config and show map picker
                     await MainActor.run {
+                        locationConfiguration = LocationConfiguration.create(
+                            from: CLLocationCoordinate2D(latitude: 0, longitude: 0), // Placeholder
+                            radius: LocationConfiguration.defaultRadius,
+                            triggerType: .entry,
+                            frequency: .oncePerDay,
+                            isEnabled: true
+                        )
                         showMapPicker = true
                     }
                 }

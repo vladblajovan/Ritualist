@@ -73,11 +73,16 @@ public struct MapLocationPickerView: View {
 
     private func loadExistingLocation() {
         if let config = vm.locationConfiguration {
-            selectedCoordinate = config.coordinate
-            position = .region(MKCoordinateRegion(
-                center: config.coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            ))
+            // Only load if this is a real coordinate (not the placeholder 0,0)
+            let isPlaceholder = config.coordinate.latitude == 0 && config.coordinate.longitude == 0
+            if !isPlaceholder {
+                selectedCoordinate = config.coordinate
+                position = .region(MKCoordinateRegion(
+                    center: config.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                ))
+            }
+            // If placeholder, keep position as .automatic to show user's location
         }
     }
 
