@@ -386,15 +386,59 @@ public final class HabitDetailViewModel {
     }
 
     public func toggleLocationEnabled(_ enabled: Bool) {
-        if var config = locationConfiguration {
-            config.isEnabled = enabled
-            locationConfiguration = config
+        guard enabled else {
+            // Disabling: just toggle the flag
+            if var config = locationConfiguration {
+                config.isEnabled = false
+                locationConfiguration = config
+                if let habitId = originalHabit?.id {
+                    Task {
+                        try await configureHabitLocation.execute(habitId: habitId, configuration: config)
+                    }
+                }
+            }
+            return
+        }
 
-            // Update in background if editing existing habit
+        // Enabling location reminders
+        if locationConfiguration != nil {
+            // Already have configuration - just enable it
+            var config = locationConfiguration!
+            config.isEnabled = true
+            locationConfiguration = config
             if let habitId = originalHabit?.id {
                 Task {
                     try await configureHabitLocation.execute(habitId: habitId, configuration: config)
                 }
+            }
+        } else {
+            // First time enabling - request permissions and show map picker
+            Task {
+                // Check current permission status
+                await checkLocationAuthStatus()
+
+                // Request permission if needed
+                if locationAuthStatus == .notDetermined {
+                    let result = await requestLocationPermission(requestAlways: false)
+
+                    // If permission granted, show map picker to set location
+                    switch result {
+                    case .granted:
+                        await MainActor.run {
+                            showMapPicker = true
+                        }
+                    case .denied, .failed:
+                        // Permission denied - toggle back off
+                        // User will see the permission status UI
+                        break
+                    }
+                } else if locationAuthStatus.canMonitorGeofences {
+                    // Permission already granted - show map picker
+                    await MainActor.run {
+                        showMapPicker = true
+                    }
+                }
+                // If permission is denied/restricted, user will see the permission status UI
             }
         }
     }

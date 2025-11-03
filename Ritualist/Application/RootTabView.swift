@@ -8,6 +8,7 @@ public struct RootTabView: View {
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var showingPersonalityAnalysis = false
+    @State private var migrationService = MigrationStatusService.shared
 
     public init() {}
 
@@ -55,6 +56,11 @@ public struct RootTabView: View {
                     }
                 }
                 #endif
+                .overlay {
+                    if migrationService.isMigrating {
+                        MigrationLoadingView(details: migrationService.migrationDetails)
+                    }
+                }
             }
         }
         .task {

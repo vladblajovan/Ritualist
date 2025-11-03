@@ -27,6 +27,7 @@ public struct HabitFormView: View {
         }
         .task {
             await vm.loadCategories()
+            await vm.checkLocationAuthStatus()
         }
     }
 }
