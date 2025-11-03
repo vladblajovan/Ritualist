@@ -110,15 +110,19 @@ public struct BasicInfoSection: View {
 
                         // Minus button
                         Button {
+                            let newValue: Double
                             if vm.dailyTarget > 1 {
-                                vm.dailyTarget -= 1
+                                newValue = vm.dailyTarget - 1
                             } else if vm.dailyTarget > 0.5 {
-                                vm.dailyTarget -= 0.5
+                                newValue = vm.dailyTarget - 0.5
+                            } else {
+                                return
                             }
+                            vm.dailyTarget = newValue
                         } label: {
                             Image(systemName: "minus.circle.fill")
                                 .font(.title2)
-                                .foregroundColor(vm.dailyTarget > 0.5 ? .blue : .gray)
+                                .foregroundColor(vm.dailyTarget > 0.5 ? .gray : Color(.systemGray4))
                         }
                         .disabled(vm.dailyTarget <= 0.5)
 
@@ -135,17 +139,19 @@ public struct BasicInfoSection: View {
 
                         // Plus button
                         Button {
+                            let newValue: Double
                             if vm.dailyTarget < 1 {
-                                vm.dailyTarget += 0.5
+                                newValue = vm.dailyTarget + 0.5
                             } else if vm.dailyTarget < 10 {
-                                vm.dailyTarget += 1
+                                newValue = vm.dailyTarget + 1
                             } else {
-                                vm.dailyTarget += 5
+                                newValue = vm.dailyTarget + 5
                             }
+                            vm.dailyTarget = newValue
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.gray)
                         }
                     }
 
