@@ -11,6 +11,7 @@ import MapKit
 
 public struct LocationConfigurationSection: View {
     @Bindable var vm: HabitDetailViewModel
+    @State private var shouldShowMap = false
 
     public var body: some View {
         Section {
@@ -28,8 +29,22 @@ public struct LocationConfigurationSection: View {
 
             // Show configuration UI when enabled
             if vm.locationConfiguration != nil && vm.locationConfiguration?.isEnabled == true {
-                LazyVStack {
+                if shouldShowMap {
                     LocationMapPreview(vm: vm)
+                } else {
+                    // Placeholder while deferring map load
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.systemGray6))
+                            .frame(height: 200)
+
+                        ProgressView()
+                            .scaleEffect(1.5)
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
                 }
             } else if vm.locationConfiguration == nil || vm.locationConfiguration?.isEnabled == false {
                 // Show explanation when disabled
@@ -50,6 +65,11 @@ public struct LocationConfigurationSection: View {
                     .font(.caption)
             }
         }
+        .task {
+            // Defer map loading completely - don't even create LocationMapPreview until after UI loads
+            try? await Task.sleep(for: .milliseconds(100))
+            shouldShowMap = true
+        }
     }
 }
 
@@ -58,7 +78,6 @@ public struct LocationConfigurationSection: View {
 private struct LocationMapPreview: View {
     @Bindable var vm: HabitDetailViewModel
     @State private var cameraPosition: MapCameraPosition = .automatic
-    @State private var shouldShowMap = false
 
     var body: some View {
         if let config = vm.locationConfiguration {
@@ -67,83 +86,56 @@ private struct LocationMapPreview: View {
                 Button {
                     vm.showMapPicker = true
                 } label: {
-                    if shouldShowMap {
-                        // Actual map - only created after view appears
-                        Map(position: $cameraPosition, interactionModes: []) {
-                            // Pin marker
-                            Annotation("", coordinate: config.coordinate) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.red)
-                                        .frame(width: 30, height: 30)
+                    Map(position: $cameraPosition, interactionModes: []) {
+                        // Pin marker
+                        Annotation("", coordinate: config.coordinate) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 30, height: 30)
 
-                                    Image(systemName: "mappin.circle.fill")
-                                        .foregroundColor(.white)
-                                        .font(.title2)
-                                }
+                                Image(systemName: "mappin.circle.fill")
+                                    .foregroundColor(.white)
+                                    .font(.title2)
                             }
+                        }
 
-                            // Radius circle
-                            MapCircle(center: config.coordinate, radius: config.radius)
-                                .foregroundStyle(Color.blue.opacity(0.2))
-                                .stroke(Color.blue, lineWidth: 2)
-                        }
-                        .mapStyle(.standard)
-                        .frame(height: 200)
-                        .cornerRadius(12)
-                        .overlay(alignment: .top) {
-                            // Location name overlay on map
-                            Text(config.locationLabel ?? "Selected Location")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(Color.black.opacity(0.6))
-                                )
-                                .padding(.top, 12)
-                        }
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                        )
-                        .transition(.opacity.animation(.easeInOut(duration: 0.3)))
-                        .onChange(of: vm.locationConfiguration) { _, newConfig in
-                            if let newConfig = newConfig {
-                                updateCameraPosition(for: newConfig)
-                            }
-                        }
-                    } else {
-                        // Lightweight placeholder - no Map view created
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGray6))
-                            .frame(height: 200)
-                            .overlay {
-                                VStack(spacing: 12) {
-                                    Image(systemName: "map")
-                                        .font(.system(size: 40))
-                                        .foregroundColor(.secondary)
-                                    Text("Tap to configure")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        // Radius circle
+                        MapCircle(center: config.coordinate, radius: config.radius)
+                            .foregroundStyle(Color.blue.opacity(0.2))
+                            .stroke(Color.blue, lineWidth: 2)
+                    }
+                    .mapStyle(.standard)
+                    .frame(height: 200)
+                    .cornerRadius(12)
+                    .overlay(alignment: .top) {
+                        // Location name overlay on map
+                        Text(config.locationLabel ?? "Selected Location")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.6))
                             )
+                            .padding(.top, 12)
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+                    .onAppear {
+                        updateCameraPosition(for: config)
+                    }
+                    .onChange(of: vm.locationConfiguration) { _, newConfig in
+                        if let newConfig = newConfig {
+                            updateCameraPosition(for: newConfig)
+                        }
                     }
                 }
                 .buttonStyle(.plain)
-                .onAppear {
-                    // Defer map creation until next run loop to avoid blocking
-                    DispatchQueue.main.async {
-                        updateCameraPosition(for: config)
-                        shouldShowMap = true
-                    }
-                }
 
                 // Configuration details below map
                 HStack(spacing: 16) {

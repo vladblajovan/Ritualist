@@ -16,8 +16,13 @@ public struct DeleteSection: View {
     
     public var body: some View {
         Section {
-            Button(Strings.Button.delete) {
+            Button {
                 showingDeleteAlert = true
+            } label: {
+                Label(
+                    Strings.Button.delete,
+                    systemImage: "trash.circle"
+                )
             }
             .foregroundColor(.red)
             .disabled(vm.isDeleting)
