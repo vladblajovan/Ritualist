@@ -151,7 +151,7 @@ public struct MapLocationPickerView: View {
         } label: {
             HStack {
                 Image(systemName: "gear")
-                Text("Configure Geofence Settings")
+                Text("Configure Location Details")
             }
             .padding()
             .frame(maxWidth: .infinity)
