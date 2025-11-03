@@ -172,39 +172,36 @@ private struct MapView: View {
     let radius: Double
 
     var body: some View {
-        Map(position: $position, interactionModes: .all) {
-            if let coordinate = selectedCoordinate {
-                // Pin marker
-                Annotation("", coordinate: coordinate) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 30, height: 30)
+        MapReader { proxy in
+            Map(position: $position, interactionModes: .all) {
+                if let coordinate = selectedCoordinate {
+                    // Pin marker
+                    Annotation("", coordinate: coordinate) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 30, height: 30)
 
-                        Image(systemName: "mappin.circle.fill")
-                            .foregroundColor(.white)
-                            .font(.title2)
+                            Image(systemName: "mappin.circle.fill")
+                                .foregroundColor(.white)
+                                .font(.title2)
+                        }
                     }
-                }
 
-                // Radius circle
-                MapCircle(center: coordinate, radius: radius)
-                    .foregroundStyle(Color.blue.opacity(0.2))
-                    .stroke(Color.blue, lineWidth: 2)
+                    // Radius circle
+                    MapCircle(center: coordinate, radius: radius)
+                        .foregroundStyle(Color.blue.opacity(0.2))
+                        .stroke(Color.blue, lineWidth: 2)
+                }
+            }
+            .mapStyle(.standard)
+            .onTapGesture { screenLocation in
+                // Convert screen tap location to map coordinate
+                if let coordinate = proxy.convert(screenLocation, from: .local) {
+                    selectedCoordinate = coordinate
+                }
             }
         }
-        .mapStyle(.standard)
-        .onTapGesture { location in
-            // Convert tap location to coordinate (approximation)
-            // Note: For production, you'd want to use proper coordinate conversion
-            selectedCoordinate = convertScreenToCoordinate(location)
-        }
-    }
-
-    private func convertScreenToCoordinate(_ screenPoint: CGPoint) -> CLLocationCoordinate2D {
-        // For simplicity, return the selected coordinate or a default
-        // In production, you'd convert the screen point to map coordinates properly
-        return selectedCoordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
     }
 }
 
