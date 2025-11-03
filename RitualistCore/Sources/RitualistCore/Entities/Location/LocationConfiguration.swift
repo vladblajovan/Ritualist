@@ -42,7 +42,7 @@ public enum NotificationFrequency: Codable, Equatable, Hashable {
     public var displayName: String {
         switch self {
         case .oncePerDay: return "Once Per Day"
-        case .everyEntry(let minutes): return "Every Entry (\(minutes)m cooldown)"
+        case .everyEntry: return "Every Entry"
         }
     }
 
