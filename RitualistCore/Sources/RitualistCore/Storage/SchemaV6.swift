@@ -314,7 +314,10 @@ extension SchemaV6.HabitModel {
             displayOrder: displayOrder,
             categoryId: category?.id,
             suggestionId: suggestionId,
-            isPinned: false  // Default to false since property removed in V4
+            isPinned: false,  // Default to false since property removed in V4
+            notes: notes,
+            lastCompletedDate: lastCompletedDate,
+            archivedDate: archivedDate
         )
     }
 
@@ -347,8 +350,9 @@ extension SchemaV6.HabitModel {
             displayOrder: habit.displayOrder,
             category: category,
             suggestionId: habit.suggestionId,
-            notes: nil,  // Notes not yet in domain entity
-            lastCompletedDate: nil  // Will be populated from habit logs in the future
+            notes: habit.notes,
+            lastCompletedDate: habit.lastCompletedDate,
+            archivedDate: habit.archivedDate
         )
     }
 }
@@ -385,8 +389,8 @@ extension SchemaV6.HabitCategoryModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModelV5 {
-        HabitCategoryModelV5(
+    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModelV6 {
+        HabitCategoryModelV6(
             id: category.id,
             name: category.name,
             displayName: category.displayName,
@@ -492,8 +496,8 @@ extension SchemaV6.PersonalityAnalysisModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityAnalysisModelV5 {
-        PersonalityAnalysisModelV5(
+    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityAnalysisModelV6 {
+        PersonalityAnalysisModelV6(
             id: entity.id.uuidString,
             userId: entity.userId.uuidString,
             analysisDate: entity.analysisMetadata.analysisDate,

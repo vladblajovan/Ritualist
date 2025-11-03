@@ -40,27 +40,10 @@ import UserNotifications
     }
     
     // Fallback container if dependency injection fails
+    // CRITICAL: This should never reference a specific schema version!
+    // Schema version should always come from PersistenceContainer
     private func createFallbackContainer() -> ModelContainer {
-        do {
-            // Use app group shared container for consistency
-            guard let sharedContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.vladblajovan.Ritualist") else {
-                fatalError("Failed to get shared container URL for app group")
-            }
-
-            let configuration = ModelConfiguration(
-                url: sharedContainerURL.appendingPathComponent("Ritualist.sqlite")
-            )
-
-            // Use versioned schema with migration plan
-            let schema = Schema(versionedSchema: SchemaV6.self)
-            return try ModelContainer(
-                for: schema,
-                migrationPlan: RitualistMigrationPlan.self,
-                configurations: configuration
-            )
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
+        fatalError("Fallback container should never be used - PersistenceContainer must be properly initialized via DI")
     }
     
     private func setupNotifications() async {
