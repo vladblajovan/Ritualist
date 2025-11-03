@@ -86,6 +86,20 @@ private struct LocationMapPreview: View {
                     .mapStyle(.standard)
                     .frame(height: 200)
                     .cornerRadius(12)
+                    .overlay(alignment: .top) {
+                        // Location name overlay on map
+                        Text(config.locationLabel ?? "Selected Location")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.6))
+                            )
+                            .padding(.top, 12)
+                    }
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
@@ -103,25 +117,31 @@ private struct LocationMapPreview: View {
                 }
                 .buttonStyle(.plain)
 
-                // Location info below map
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(config.locationLabel ?? "Selected Location")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    HStack(spacing: 12) {
-                        Label("\(Int(config.radius))m", systemImage: "circle.dashed")
+                // Configuration details below map
+                HStack(spacing: 16) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "circle.dashed")
                             .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Label(config.triggerType.displayName, systemImage: triggerIcon(for: config.triggerType))
+                        Text("\(Int(config.radius))m")
                             .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Label(config.frequency.displayName, systemImage: "clock")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
+                    .foregroundColor(.secondary)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: triggerIcon(for: config.triggerType))
+                            .font(.caption)
+                        Text(config.triggerType.displayName)
+                            .font(.caption)
+                    }
+                    .foregroundColor(.secondary)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.caption)
+                        Text(config.frequency.displayName)
+                            .font(.caption)
+                    }
+                    .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 8)
