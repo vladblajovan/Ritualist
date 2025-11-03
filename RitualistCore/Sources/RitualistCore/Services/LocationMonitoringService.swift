@@ -62,12 +62,7 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
             throw LocationError.invalidConfiguration("Invalid coordinates or radius")
         }
 
-        // Check if location services are enabled
-        guard CLLocationManager.locationServicesEnabled() else {
-            throw LocationError.locationServicesDisabled
-        }
-
-        // Check authorization status
+        // Check authorization status (includes location services enabled check)
         let authStatus = await getAuthorizationStatus()
         guard authStatus.canMonitorGeofences else {
             throw LocationError.permissionDenied
