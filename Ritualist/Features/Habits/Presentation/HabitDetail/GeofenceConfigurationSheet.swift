@@ -41,12 +41,12 @@ public struct GeofenceConfigurationSheet: View {
     public var body: some View {
         NavigationStack {
             Form {
+                LocationLabelSection(locationLabel: $locationLabel)
                 RadiusSection(radius: $radius)
                 TriggerTypeSection(triggerType: $triggerType)
                 FrequencySection(frequency: $frequency, cooldownMinutes: $cooldownMinutes)
-                LocationLabelSection(locationLabel: $locationLabel)
             }
-            .navigationTitle("Geofence Settings")
+            .navigationTitle("Location Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
