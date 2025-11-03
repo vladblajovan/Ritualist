@@ -75,8 +75,10 @@ public struct MapLocationPickerView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        saveLocation()
-                        dismiss()
+                        Task {
+                            await saveLocation()
+                            dismiss()
+                        }
                     }
                     .disabled(selectedCoordinate == nil)
                 }
@@ -121,16 +123,14 @@ public struct MapLocationPickerView: View {
         }
     }
 
-    private func saveLocation() {
+    private func saveLocation() async {
         guard let coordinate = selectedCoordinate else { return }
 
         if var config = vm.locationConfiguration {
             // Update existing configuration with new coordinates
             config.latitude = coordinate.latitude
             config.longitude = coordinate.longitude
-            Task {
-                await vm.updateLocationConfiguration(config)
-            }
+            await vm.updateLocationConfiguration(config)
         } else {
             // Create new configuration
             let newConfig = LocationConfiguration.create(
@@ -140,9 +140,7 @@ public struct MapLocationPickerView: View {
                 frequency: .oncePerDay,
                 isEnabled: true
             )
-            Task {
-                await vm.updateLocationConfiguration(newConfig)
-            }
+            await vm.updateLocationConfiguration(newConfig)
         }
     }
 
