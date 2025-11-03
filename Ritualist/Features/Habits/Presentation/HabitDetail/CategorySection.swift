@@ -73,8 +73,8 @@ public struct CategorySection: View {
                     .foregroundColor(.red)
             }
             
-            // Category validation feedback
-            if !vm.isCategoryValid && vm.selectedCategory == nil && !vm.categories.isEmpty && !vm.isLoadingCategories {
+            // Category validation feedback (only for non-suggested habits)
+            if !vm.isCategoryValid && vm.selectedCategory == nil && !vm.categories.isEmpty && !vm.isLoadingCategories && !(vm.originalHabit?.suggestionId != nil) {
                 Text(Strings.Validation.categoryRequired)
                     .font(.caption)
                     .foregroundColor(.red)
