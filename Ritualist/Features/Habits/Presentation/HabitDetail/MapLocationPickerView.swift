@@ -17,6 +17,7 @@ public struct MapLocationPickerView: View {
     @State private var selectedCoordinate: CLLocationCoordinate2D?
     @State private var searchText = ""
     @State private var isSearching = false
+    @Namespace private var mapScope
 
     public var body: some View {
         NavigationStack {
@@ -25,7 +26,8 @@ public struct MapLocationPickerView: View {
                 MapView(
                     selectedCoordinate: $selectedCoordinate,
                     position: $position,
-                    radius: vm.locationConfiguration?.radius ?? LocationConfiguration.defaultRadius
+                    radius: vm.locationConfiguration?.radius ?? LocationConfiguration.defaultRadius,
+                    mapScope: mapScope
                 )
                 .ignoresSafeArea()
 
@@ -149,9 +151,10 @@ private struct MapView: View {
     @Binding var selectedCoordinate: CLLocationCoordinate2D?
     @Binding var position: MapCameraPosition
     let radius: Double
+    let mapScope: Namespace.ID
 
     var body: some View {
-        Map(position: $position, interactionModes: .all) {
+        Map(position: $position, interactionModes: .all, scope: mapScope) {
             if let coordinate = selectedCoordinate {
                 // Pin marker
                 Annotation("", coordinate: coordinate) {
@@ -173,6 +176,9 @@ private struct MapView: View {
             }
         }
         .mapStyle(.standard)
+        .mapControls {
+            MapUserLocationButton()
+        }
         .onTapGesture { location in
             // Convert tap location to coordinate (approximation)
             // Note: For production, you'd want to use proper coordinate conversion

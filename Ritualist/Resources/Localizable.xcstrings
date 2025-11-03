@@ -901,9 +901,6 @@
         }
       }
     },
-    "Change Location" : {
-
-    },
     "Choose a test data scenario to populate the database. Each scenario represents a different user journey stage with specific data characteristics." : {
 
     },
@@ -2833,9 +2830,6 @@
     "Location" : {
 
     },
-    "Location access granted" : {
-
-    },
     "Location Name" : {
 
     },
@@ -3902,9 +3896,6 @@
 
     },
     "Select Location" : {
-
-    },
-    "Set Location" : {
 
     },
     "Setting up your premium experience" : {

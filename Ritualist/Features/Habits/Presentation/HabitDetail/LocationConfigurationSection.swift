@@ -55,6 +55,7 @@ public struct LocationConfigurationSection: View {
 
 private struct LocationMapPreview: View {
     @Bindable var vm: HabitDetailViewModel
+    @State private var cameraPosition: MapCameraPosition = .automatic
 
     var body: some View {
         if let config = vm.locationConfiguration {
@@ -63,7 +64,7 @@ private struct LocationMapPreview: View {
                 Button {
                     vm.showMapPicker = true
                 } label: {
-                    Map(interactionModes: []) {
+                    Map(position: $cameraPosition, interactionModes: []) {
                         // Pin marker
                         Annotation("", coordinate: config.coordinate) {
                             ZStack {
@@ -89,6 +90,16 @@ private struct LocationMapPreview: View {
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     )
+                    .onAppear {
+                        // Center map on configured location with appropriate zoom
+                        updateCameraPosition(for: config)
+                    }
+                    .onChange(of: vm.locationConfiguration) { _, newConfig in
+                        // Update camera when location config changes
+                        if let newConfig = newConfig {
+                            updateCameraPosition(for: newConfig)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
 
@@ -127,6 +138,22 @@ private struct LocationMapPreview: View {
         case .exit: return "arrow.up.circle"
         case .both: return "arrow.up.arrow.down.circle"
         }
+    }
+
+    private func calculateMapSpan(for radius: Double) -> MKCoordinateSpan {
+        // Show 4x the radius (2x on each side) to fit the circle nicely in view
+        // 1 degree latitude ≈ 111,000 meters
+        let displayRadius = radius * 4
+        let delta = displayRadius / 111_000.0
+        return MKCoordinateSpan(latitudeDelta: delta, longitudeDelta: delta)
+    }
+
+    private func updateCameraPosition(for config: LocationConfiguration) {
+        let span = calculateMapSpan(for: config.radius)
+        cameraPosition = .region(MKCoordinateRegion(
+            center: config.coordinate,
+            span: span
+        ))
     }
 }
 
