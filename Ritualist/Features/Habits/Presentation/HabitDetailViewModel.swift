@@ -84,7 +84,7 @@ public final class HabitDetailViewModel {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         (selectedKind == .binary || (dailyTarget > 0 && !unitLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)) &&
         (selectedSchedule != .daysOfWeek || !selectedDaysOfWeek.isEmpty) &&
-        selectedCategory != nil &&
+        (isEditMode || selectedCategory != nil) &&  // Allow nil category when editing (during async loading)
         !isDuplicateHabit
     }
     

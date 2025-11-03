@@ -2830,10 +2830,16 @@
         }
       }
     },
+    "Location" : {
+
+    },
     "Location access granted" : {
 
     },
     "Location Name" : {
+
+    },
+    "Location Permission" : {
 
     },
     "Location permission denied" : {
