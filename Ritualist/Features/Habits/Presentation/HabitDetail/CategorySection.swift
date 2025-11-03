@@ -35,28 +35,33 @@ public struct CategorySection: View {
                     }
                 )
                 .padding(.vertical, Spacing.small)
-            } else if let originalHabit = vm.originalHabit, originalHabit.suggestionId != nil {
-                // Show read-only category info for habits from suggestions
-                VStack(alignment: .leading, spacing: Spacing.small) {
-                    HStack {
-                        Text("Category")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        Spacer()
-                        
-                        Text(String(localized: "fromSuggestion"))
+            } else if let originalHabit = vm.originalHabit, originalHabit.suggestionId != nil, let selectedCategory = vm.selectedCategory {
+                // Show read-only category for habits from suggestions
+                HStack(spacing: Spacing.medium) {
+                    Text(selectedCategory.emoji)
+                        .font(.title)
+
+                    VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                        HStack {
+                            Text(selectedCategory.displayName)
+                                .font(.body)
+                                .fontWeight(.medium)
+
+                            Spacer()
+
+                            Text(String(localized: "fromSuggestion"))
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, Spacing.small)
+                                .padding(.vertical, 2)
+                                .background(AppColors.systemGray6, in: Capsule())
+                        }
+
+                        Text("Category cannot be changed for suggested habits")
                             .font(.caption)
-                            .fontWeight(.medium)
                             .foregroundColor(.secondary)
-                            .padding(.horizontal, Spacing.small)
-                            .padding(.vertical, Spacing.xxsmall)
-                            .background(AppColors.systemGray6, in: Capsule())
                     }
-                    
-                    Text(String(localized: "habitSuggestionRestriction"))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
                 .padding(.vertical, Spacing.small)
             }
