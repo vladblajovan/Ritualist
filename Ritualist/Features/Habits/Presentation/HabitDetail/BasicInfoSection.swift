@@ -103,11 +103,11 @@ public struct BasicInfoSection: View {
                 }
                 
                 VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                    Stepper(value: $vm.dailyTarget, in: 0.5...1000, step: 0.5) {
+                    Stepper(value: $vm.dailyTarget, in: 1...10000, step: 1) {
                         HStack {
                             Text(Strings.Form.dailyTarget)
                             Spacer()
-                            Text(NumberUtils.formatHabitValue(vm.dailyTarget))
+                            Text("\(Int(vm.dailyTarget))")
                                 .foregroundColor(.primary)
                         }
                     }
