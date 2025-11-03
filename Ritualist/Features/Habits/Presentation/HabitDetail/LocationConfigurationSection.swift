@@ -28,8 +28,7 @@ public struct LocationConfigurationSection: View {
 
             // Show configuration UI when enabled
             if vm.locationConfiguration != nil && vm.locationConfiguration?.isEnabled == true {
-                LocationSummaryRow(vm: vm)
-                ConfigureLocationButton(vm: vm)
+                LocationMapPreview(vm: vm)
             } else if vm.locationConfiguration == nil || vm.locationConfiguration?.isEnabled == false {
                 // Show explanation when disabled
                 Text("Get reminded when you arrive at or leave a specific location")
@@ -52,36 +51,73 @@ public struct LocationConfigurationSection: View {
     }
 }
 
-// MARK: - Location Summary Row
+// MARK: - Location Map Preview
 
-private struct LocationSummaryRow: View {
-    let vm: HabitDetailViewModel
+private struct LocationMapPreview: View {
+    @Bindable var vm: HabitDetailViewModel
 
     var body: some View {
         if let config = vm.locationConfiguration {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Image(systemName: "mappin.circle.fill")
-                        .foregroundColor(.red)
+            VStack(spacing: 0) {
+                // Static map preview
+                Button {
+                    vm.showMapPicker = true
+                } label: {
+                    Map(interactionModes: []) {
+                        // Pin marker
+                        Annotation("", coordinate: config.coordinate) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 30, height: 30)
+
+                                Image(systemName: "mappin.circle.fill")
+                                    .foregroundColor(.white)
+                                    .font(.title2)
+                            }
+                        }
+
+                        // Radius circle
+                        MapCircle(center: config.coordinate, radius: config.radius)
+                            .foregroundStyle(Color.blue.opacity(0.2))
+                            .stroke(Color.blue, lineWidth: 2)
+                    }
+                    .mapStyle(.standard)
+                    .frame(height: 200)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                // Location info below map
+                VStack(alignment: .leading, spacing: 8) {
                     Text(config.locationLabel ?? "Selected Location")
-                        .font(.body)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+
+                    HStack(spacing: 12) {
+                        Label("\(Int(config.radius))m", systemImage: "circle.dashed")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Label(config.triggerType.displayName, systemImage: triggerIcon(for: config.triggerType))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Label(config.frequency.displayName, systemImage: "clock")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
-
-                HStack(spacing: 12) {
-                    Label("\(Int(config.radius))m", systemImage: "circle.dashed")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Label(config.triggerType.displayName, systemImage: triggerIcon(for: config.triggerType))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Label(config.frequency.displayName, systemImage: "clock")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 8)
             }
-            .padding(.vertical, 4)
+            .sheet(isPresented: $vm.showMapPicker) {
+                MapLocationPickerView(vm: vm)
+            }
         }
     }
 
@@ -90,26 +126,6 @@ private struct LocationSummaryRow: View {
         case .entry: return "arrow.down.circle"
         case .exit: return "arrow.up.circle"
         case .both: return "arrow.up.arrow.down.circle"
-        }
-    }
-}
-
-// MARK: - Configure Location Button
-
-private struct ConfigureLocationButton: View {
-    @Bindable var vm: HabitDetailViewModel
-
-    var body: some View {
-        Button {
-            vm.showMapPicker = true
-        } label: {
-            HStack {
-                Image(systemName: "map")
-                Text(vm.locationConfiguration == nil ? "Set Location" : "Change Location")
-            }
-        }
-        .sheet(isPresented: $vm.showMapPicker) {
-            MapLocationPickerView(vm: vm)
         }
     }
 }
@@ -149,13 +165,7 @@ private struct LocationPermissionStatus: View {
             }
 
         case .authorizedAlways:
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-                Text("Location access granted")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            EmptyView()
         }
     }
 }
