@@ -190,9 +190,14 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
             // Call event handler
             await eventHandler?(event)
 
-            // Update last trigger date if notification was sent
+            // Update last trigger date for this specific event type
             var updatedConfig = configuration
-            updatedConfig.lastTriggerDate = Date()
+            switch eventType {
+            case .entry:
+                updatedConfig.lastEntryTriggerDate = Date()
+            case .exit:
+                updatedConfig.lastExitTriggerDate = Date()
+            }
             await updateConfiguration(habitId: habitId, configuration: updatedConfig)
         }
     }

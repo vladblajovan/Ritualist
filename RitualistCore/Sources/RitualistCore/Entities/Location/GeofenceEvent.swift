@@ -65,8 +65,8 @@ public struct GeofenceEvent {
 
         guard triggerMatches else { return false }
 
-        // Check frequency rules
-        return configuration.shouldTriggerNotification(now: timestamp)
+        // Check frequency rules for this specific event type
+        return configuration.shouldTriggerNotification(for: eventType, now: timestamp)
     }
 
     /// Human-readable description of the event

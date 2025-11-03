@@ -74,6 +74,12 @@ public struct LocationConfiguration: Codable, Equatable, Hashable {
     /// Last time a geofence event triggered a notification (for frequency tracking)
     public var lastTriggerDate: Date?
 
+    /// Last time an entry event triggered a notification (for separate entry/exit frequency tracking)
+    public var lastEntryTriggerDate: Date?
+
+    /// Last time an exit event triggered a notification (for separate entry/exit frequency tracking)
+    public var lastExitTriggerDate: Date?
+
     public init(
         latitude: Double,
         longitude: Double,
@@ -120,18 +126,27 @@ public struct LocationConfiguration: Codable, Equatable, Hashable {
     }
 
     /// Check if a notification should be sent based on frequency settings
-    public func shouldTriggerNotification(now: Date = Date()) -> Bool {
+    public func shouldTriggerNotification(for eventType: GeofenceEventType, now: Date = Date()) -> Bool {
         guard isEnabled else { return false }
+
+        // Get the appropriate last trigger date for this event type
+        let lastTrigger: Date?
+        switch eventType {
+        case .entry:
+            lastTrigger = lastEntryTriggerDate
+        case .exit:
+            lastTrigger = lastExitTriggerDate
+        }
 
         switch frequency {
         case .oncePerDay:
-            // Check if we already triggered today
-            guard let lastTrigger = lastTriggerDate else { return true }
+            // Check if we already triggered this event type today
+            guard let lastTrigger = lastTrigger else { return true }
             return !Calendar.current.isDate(lastTrigger, inSameDayAs: now)
 
         case .everyEntry(let cooldownMinutes):
-            // Check if cooldown period has passed
-            guard let lastTrigger = lastTriggerDate else { return true }
+            // Check if cooldown period has passed for this event type
+            guard let lastTrigger = lastTrigger else { return true }
             let cooldownSeconds = TimeInterval(cooldownMinutes * 60)
             return now.timeIntervalSince(lastTrigger) >= cooldownSeconds
         }
