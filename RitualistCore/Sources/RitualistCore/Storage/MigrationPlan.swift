@@ -42,9 +42,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             SchemaV3.self,  // Added isPinned property to HabitModel
             SchemaV4.self,  // Replaced isPinned with notes property
             SchemaV5.self,  // Added lastCompletedDate property to HabitModel
-            SchemaV6.self   // Added archivedDate property to HabitModel
-            // Future versions go here:
-            // SchemaV7.self,
+            SchemaV6.self,  // Added archivedDate property to HabitModel
+            SchemaV7.self   // Added location-aware habit support (locationConfigData, lastGeofenceTriggerDate)
         ]
     }
 
@@ -84,7 +83,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             migrateV2toV3,
             migrateV3toV4,
             migrateV4toV5,
-            migrateV5toV6
+            migrateV5toV6,
+            migrateV6toV7
         ]
     }
 
@@ -136,6 +136,21 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     static let migrateV5toV6 = MigrationStage.lightweight(
         fromVersion: SchemaV5.self,
         toVersion: SchemaV6.self
+    )
+
+    /// V6 → V7: Added location-aware habit support
+    ///
+    /// This is a LIGHTWEIGHT migration because:
+    /// - Both schemas use the same entity names (HabitModel, HabitLogModel, etc.)
+    /// - Only adding two new optional properties:
+    ///   - locationConfigData: Data? (JSON-encoded LocationConfiguration)
+    ///   - lastGeofenceTriggerDate: Date? (for frequency tracking)
+    /// - SwiftData can automatically migrate the data (adds new columns)
+    /// - No data transformation needed (both properties default to nil)
+    /// - Existing habits without location configuration remain unchanged
+    static let migrateV6toV7 = MigrationStage.lightweight(
+        fromVersion: SchemaV6.self,
+        toVersion: SchemaV7.self
     )
 
     // MARK: - Future Migration Stages (Examples)

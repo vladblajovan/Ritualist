@@ -27,13 +27,15 @@ public struct Habit: Identifiable, Codable, Hashable {
     public var notes: String?  // Added in SchemaV4
     public var lastCompletedDate: Date?  // Added in SchemaV5
     public var archivedDate: Date?  // Added in SchemaV6
+    public var locationConfiguration: LocationConfiguration?  // Added in SchemaV7
 
     public init(id: UUID = UUID(), name: String, colorHex: String = "#2DA9E3", emoji: String? = nil,
                 kind: HabitKind = .binary, unitLabel: String? = nil, dailyTarget: Double? = nil,
                 schedule: HabitSchedule = .daily, reminders: [ReminderTime] = [],
                 startDate: Date = Date(), endDate: Date? = nil, isActive: Bool = true, displayOrder: Int = 0,
                 categoryId: String? = nil, suggestionId: String? = nil, isPinned: Bool = false,
-                notes: String? = nil, lastCompletedDate: Date? = nil, archivedDate: Date? = nil) {
+                notes: String? = nil, lastCompletedDate: Date? = nil, archivedDate: Date? = nil,
+                locationConfiguration: LocationConfiguration? = nil) {
         self.id = id; self.name = name; self.colorHex = colorHex; self.emoji = emoji
         self.kind = kind; self.unitLabel = unitLabel; self.dailyTarget = dailyTarget
         self.schedule = schedule; self.reminders = reminders
@@ -44,5 +46,6 @@ public struct Habit: Identifiable, Codable, Hashable {
         self.notes = notes
         self.lastCompletedDate = lastCompletedDate
         self.archivedDate = archivedDate
+        self.locationConfiguration = locationConfiguration
     }
 }
