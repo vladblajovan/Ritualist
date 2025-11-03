@@ -103,57 +103,16 @@ public struct BasicInfoSection: View {
                 }
                 
                 VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                    HStack(spacing: Spacing.small) {
-                        Text(Strings.Form.dailyTarget)
-
-                        Spacer()
-
-                        // Minus button
-                        Button {
-                            withAnimation {
-                                if vm.dailyTarget > 1 {
-                                    vm.dailyTarget -= 1
-                                } else if vm.dailyTarget > 0.5 {
-                                    vm.dailyTarget -= 0.5
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(vm.dailyTarget > 0.5 ? .gray : Color(.systemGray4))
-                        }
-                        .disabled(vm.dailyTarget <= 0.5)
-
-                        // Text field
-                        TextField(Strings.Form.target, value: $vm.dailyTarget, formatter: NumberUtils.habitValueFormatter())
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(.plain)
-                            .multilineTextAlignment(.center)
-                            .frame(width: 60)
-                            .focused($focusedField, equals: .dailyTarget)
-                            .onSubmit {
-                                focusedField = nil // Close keyboard
-                            }
-
-                        // Plus button
-                        Button {
-                            withAnimation {
-                                if vm.dailyTarget < 1 {
-                                    vm.dailyTarget += 0.5
-                                } else if vm.dailyTarget < 10 {
-                                    vm.dailyTarget += 1
-                                } else {
-                                    vm.dailyTarget += 5
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.gray)
+                    Stepper(value: $vm.dailyTarget, in: 0.5...1000, step: 0.5) {
+                        HStack {
+                            Text(Strings.Form.dailyTarget)
+                            Spacer()
+                            Text(NumberUtils.formatHabitValue(vm.dailyTarget))
+                                .foregroundColor(.primary)
                         }
                     }
 
-                    if !vm.isDailyTargetValid && focusedField != .dailyTarget {
+                    if !vm.isDailyTargetValid {
                         Text(Strings.Validation.targetGreaterThanZero)
                             .font(.caption)
                             .foregroundColor(.red)
