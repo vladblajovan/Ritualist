@@ -56,6 +56,7 @@ public struct LocationConfigurationSection: View {
 private struct LocationMapPreview: View {
     @Bindable var vm: HabitDetailViewModel
     @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var isMapReady = false
 
     var body: some View {
         if let config = vm.locationConfiguration {
@@ -64,49 +65,72 @@ private struct LocationMapPreview: View {
                 Button {
                     vm.showMapPicker = true
                 } label: {
-                    Map(position: $cameraPosition, interactionModes: []) {
-                        // Pin marker
-                        Annotation("", coordinate: config.coordinate) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 30, height: 30)
-
-                                Image(systemName: "mappin.circle.fill")
-                                    .foregroundColor(.white)
-                                    .font(.title2)
-                            }
+                    ZStack {
+                        // Placeholder while map loads
+                        if !isMapReady {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.gray.opacity(0.2))
+                                .frame(height: 200)
+                                .overlay {
+                                    ProgressView()
+                                        .scaleEffect(1.2)
+                                }
                         }
 
-                        // Radius circle
-                        MapCircle(center: config.coordinate, radius: config.radius)
-                            .foregroundStyle(Color.blue.opacity(0.2))
-                            .stroke(Color.blue, lineWidth: 2)
+                        // Actual map
+                        Map(position: $cameraPosition, interactionModes: []) {
+                            // Pin marker
+                            Annotation("", coordinate: config.coordinate) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 30, height: 30)
+
+                                    Image(systemName: "mappin.circle.fill")
+                                        .foregroundColor(.white)
+                                        .font(.title2)
+                                }
+                            }
+
+                            // Radius circle
+                            MapCircle(center: config.coordinate, radius: config.radius)
+                                .foregroundStyle(Color.blue.opacity(0.2))
+                                .stroke(Color.blue, lineWidth: 2)
+                        }
+                        .mapStyle(.standard)
+                        .frame(height: 200)
+                        .cornerRadius(12)
+                        .overlay(alignment: .top) {
+                            // Location name overlay on map
+                            Text(config.locationLabel ?? "Selected Location")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.black.opacity(0.6))
+                                )
+                                .padding(.top, 12)
+                        }
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
+                        .opacity(isMapReady ? 1 : 0)
                     }
-                    .mapStyle(.standard)
-                    .frame(height: 200)
-                    .cornerRadius(12)
-                    .overlay(alignment: .top) {
-                        // Location name overlay on map
-                        Text(config.locationLabel ?? "Selected Location")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .fill(Color.black.opacity(0.6))
-                            )
-                            .padding(.top, 12)
-                    }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
                     .onAppear {
-                        // Center map on configured location with appropriate zoom
+                        // Center map on configured location
                         updateCameraPosition(for: config)
+
+                        // Delay showing map to avoid blocking UI
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(250))
+                            withAnimation {
+                                isMapReady = true
+                            }
+                        }
                     }
                     .onChange(of: vm.locationConfiguration) { _, newConfig in
                         // Update camera when location config changes
