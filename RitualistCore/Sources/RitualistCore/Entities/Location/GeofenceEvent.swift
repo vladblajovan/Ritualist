@@ -103,4 +103,20 @@ public enum LocationAuthorizationStatus: Equatable {
     public var hasAnyAuthorization: Bool {
         self == .authorizedWhenInUse || self == .authorizedAlways
     }
+
+    /// User-friendly display text for Settings UI
+    public var displayText: String {
+        switch self {
+        case .notDetermined:
+            return "Location access not determined - tap to request"
+        case .denied:
+            return "Location access denied - open Settings to enable"
+        case .restricted:
+            return "Location access restricted by device settings"
+        case .authorizedWhenInUse:
+            return "Location access granted while using app - tap to upgrade to Always"
+        case .authorizedAlways:
+            return "Location access granted - geofencing enabled"
+        }
+    }
 }

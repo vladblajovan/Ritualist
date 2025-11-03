@@ -9,6 +9,8 @@ public final class SettingsViewModel {
     private let saveProfile: SaveProfileUseCase
     private let requestNotificationPermission: RequestNotificationPermissionUseCase
     private let checkNotificationStatus: CheckNotificationStatusUseCase
+    private let requestLocationPermissions: RequestLocationPermissionsUseCase
+    private let getLocationAuthStatus: GetLocationAuthStatusUseCase
     private let clearPurchases: ClearPurchasesUseCase
     private let checkPremiumStatus: CheckPremiumStatusUseCase
     private let updateUserSubscription: UpdateUserSubscriptionUseCase
@@ -27,6 +29,8 @@ public final class SettingsViewModel {
     public private(set) var error: Error?
     public private(set) var hasNotificationPermission = false
     public private(set) var isRequestingNotifications = false
+    public private(set) var locationAuthStatus: LocationAuthorizationStatus = .notDetermined
+    public private(set) var isRequestingLocationPermission = false
     public private(set) var isCancellingSubscription = false
     public private(set) var isUpdatingUser = false
     
@@ -50,10 +54,12 @@ public final class SettingsViewModel {
         cachedPremiumStatus
     }
 
-    public init(loadProfile: LoadProfileUseCase, 
-                saveProfile: SaveProfileUseCase, 
+    public init(loadProfile: LoadProfileUseCase,
+                saveProfile: SaveProfileUseCase,
                 requestNotificationPermission: RequestNotificationPermissionUseCase,
                 checkNotificationStatus: CheckNotificationStatusUseCase,
+                requestLocationPermissions: RequestLocationPermissionsUseCase,
+                getLocationAuthStatus: GetLocationAuthStatusUseCase,
                 clearPurchases: ClearPurchasesUseCase,
                 checkPremiumStatus: CheckPremiumStatusUseCase,
                 updateUserSubscription: UpdateUserSubscriptionUseCase,
@@ -62,6 +68,8 @@ public final class SettingsViewModel {
         self.saveProfile = saveProfile
         self.requestNotificationPermission = requestNotificationPermission
         self.checkNotificationStatus = checkNotificationStatus
+        self.requestLocationPermissions = requestLocationPermissions
+        self.getLocationAuthStatus = getLocationAuthStatus
         self.clearPurchases = clearPurchases
         self.checkPremiumStatus = checkPremiumStatus
         self.updateUserSubscription = updateUserSubscription
@@ -74,12 +82,14 @@ public final class SettingsViewModel {
         do {
             profile = try await loadProfile.execute()
             hasNotificationPermission = await checkNotificationStatus.execute()
+            locationAuthStatus = await getLocationAuthStatus.execute()
             cachedPremiumStatus = await checkPremiumStatus.execute()
         } catch {
             self.error = error
             profile = UserProfile()
             userActionTracker.trackError(error, context: "settings_load")
             hasNotificationPermission = await checkNotificationStatus.execute()
+            locationAuthStatus = await getLocationAuthStatus.execute()
             cachedPremiumStatus = await checkPremiumStatus.execute()
         }
         isLoading = false
@@ -137,7 +147,33 @@ public final class SettingsViewModel {
     public func refreshNotificationStatus() async {
         hasNotificationPermission = await checkNotificationStatus.execute()
     }
-    
+
+    public func requestLocationPermission() async {
+        isRequestingLocationPermission = true
+        error = nil
+
+        let result = await requestLocationPermissions.execute(requestAlways: true)
+
+        switch result {
+        case .granted(let status):
+            locationAuthStatus = status
+            // Track location settings change
+            userActionTracker.track(.profileUpdated(field: "location_permission"))
+        case .denied:
+            locationAuthStatus = .denied
+        case .failed(let locationError):
+            self.error = locationError
+            userActionTracker.trackError(locationError, context: "location_permission_request")
+            locationAuthStatus = await getLocationAuthStatus.execute()
+        }
+
+        isRequestingLocationPermission = false
+    }
+
+    public func refreshLocationStatus() async {
+        locationAuthStatus = await getLocationAuthStatus.execute()
+    }
+
     // MARK: - Authentication Methods
     
     // Sign out is no longer needed since there's no authentication

@@ -106,6 +106,8 @@ extension Container {
                 saveProfile: self.saveProfile(),
                 requestNotificationPermission: self.requestNotificationPermission(),
                 checkNotificationStatus: self.checkNotificationStatus(),
+                requestLocationPermissions: self.requestLocationPermissions(),
+                getLocationAuthStatus: self.getLocationAuthStatus(),
                 clearPurchases: self.clearPurchases(),
                 checkPremiumStatus: self.checkPremiumStatus(),
                 updateUserSubscription: self.updateUserSubscription(),
