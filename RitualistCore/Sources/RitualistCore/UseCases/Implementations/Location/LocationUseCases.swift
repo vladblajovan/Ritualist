@@ -31,15 +31,15 @@ public struct ConfigureHabitLocationUseCaseImpl: ConfigureHabitLocationUseCase {
 
     public func execute(habitId: UUID, configuration: LocationConfiguration?) async throws {
         // Get current habit
-        guard var habit = try await habitRepository.getHabit(by: habitId) else {
-            throw HabitError.habitNotFound(habitId)
+        guard var habit = try await habitRepository.fetchHabit(by: habitId) else {
+            throw HabitError.habitNotFound(id: habitId)
         }
 
         // Update location configuration
         habit.locationConfiguration = configuration
 
         // Save updated habit
-        try await habitRepository.updateHabit(habit)
+        try await habitRepository.update(habit)
 
         // If configuration is enabled, start monitoring
         if let config = configuration, config.isEnabled {
@@ -72,9 +72,9 @@ public struct EnableLocationMonitoringUseCaseImpl: EnableLocationMonitoringUseCa
 
     public func execute(habitId: UUID) async throws {
         // Get habit with location configuration
-        guard var habit = try await habitRepository.getHabit(by: habitId),
+        guard var habit = try await habitRepository.fetchHabit(by: habitId),
               var locationConfig = habit.locationConfiguration else {
-            throw HabitError.habitNotFound(habitId)
+            throw HabitError.habitNotFound(id: habitId)
         }
 
         // Enable configuration
@@ -82,7 +82,7 @@ public struct EnableLocationMonitoringUseCaseImpl: EnableLocationMonitoringUseCa
         habit.locationConfiguration = locationConfig
 
         // Save updated habit
-        try await habitRepository.updateHabit(habit)
+        try await habitRepository.update(habit)
 
         // Start monitoring
         try await locationMonitoringService.startMonitoring(habitId: habitId, configuration: locationConfig)
@@ -110,9 +110,9 @@ public struct DisableLocationMonitoringUseCaseImpl: DisableLocationMonitoringUse
 
     public func execute(habitId: UUID) async throws {
         // Get habit with location configuration
-        guard var habit = try await habitRepository.getHabit(by: habitId),
+        guard var habit = try await habitRepository.fetchHabit(by: habitId),
               var locationConfig = habit.locationConfiguration else {
-            throw HabitError.habitNotFound(habitId)
+            throw HabitError.habitNotFound(id: habitId)
         }
 
         // Disable configuration
@@ -120,7 +120,7 @@ public struct DisableLocationMonitoringUseCaseImpl: DisableLocationMonitoringUse
         habit.locationConfiguration = locationConfig
 
         // Save updated habit
-        try await habitRepository.updateHabit(habit)
+        try await habitRepository.update(habit)
 
         // Stop monitoring
         await locationMonitoringService.stopMonitoring(habitId: habitId)
@@ -148,7 +148,7 @@ public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
 
     public func execute(event: GeofenceEvent) async throws {
         // Get habit
-        guard var habit = try await habitRepository.getHabit(by: event.habitId) else {
+        guard var habit = try await habitRepository.fetchHabit(by: event.habitId) else {
             print("⚠️  [HandleGeofenceEvent] Habit not found: \(event.habitId)")
             return
         }
@@ -179,7 +179,7 @@ public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
         habit.locationConfiguration = locationConfig
 
         // Save updated habit
-        try await habitRepository.updateHabit(habit)
+        try await habitRepository.update(habit)
 
         print("✅ [HandleGeofenceEvent] Notification sent for habit: \(habit.name)")
     }

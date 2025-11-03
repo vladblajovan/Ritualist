@@ -8,8 +8,9 @@ extension Container {
 
     // MARK: - Location Services
 
+    @MainActor
     var locationMonitoringService: Factory<LocationMonitoringService> {
-        self {
+        self { @MainActor in
             let service = DefaultLocationMonitoringService()
 
             // Set event handler to process geofence events
@@ -29,8 +30,9 @@ extension Container {
         .singleton
     }
 
+    @MainActor
     var locationPermissionService: Factory<LocationPermissionService> {
-        self {
+        self { @MainActor in
             DefaultLocationPermissionService()
         }
         .singleton

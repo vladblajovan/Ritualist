@@ -20,7 +20,7 @@ public enum GeofenceEventType: String, Codable, Equatable {
 }
 
 /// Represents a geofence boundary crossing event
-public struct GeofenceEvent: Equatable {
+public struct GeofenceEvent {
     /// The habit ID associated with this geofence
     public let habitId: UUID
 

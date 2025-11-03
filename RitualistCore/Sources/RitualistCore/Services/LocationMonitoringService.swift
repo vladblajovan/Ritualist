@@ -33,7 +33,8 @@ public protocol LocationMonitoringService: AnyObject {
 }
 
 /// Implementation of LocationMonitoringService using CoreLocation
-public actor DefaultLocationMonitoringService: NSObject, LocationMonitoringService {
+@MainActor
+public final class DefaultLocationMonitoringService: NSObject, LocationMonitoringService {
     // MARK: - Properties
 
     private let locationManager: CLLocationManager
@@ -143,7 +144,7 @@ public actor DefaultLocationMonitoringService: NSObject, LocationMonitoringServi
 
     // MARK: - Private Helpers
 
-    private func convertAuthorizationStatus(_ status: CLAuthorizationStatus) -> LocationAuthorizationStatus {
+    nonisolated private func convertAuthorizationStatus(_ status: CLAuthorizationStatus) -> LocationAuthorizationStatus {
         switch status {
         case .notDetermined:
             return .notDetermined
@@ -160,7 +161,7 @@ public actor DefaultLocationMonitoringService: NSObject, LocationMonitoringServi
         }
     }
 
-    private nonisolated func handleGeofenceEvent(
+    nonisolated private func handleGeofenceEvent(
         region: CLRegion,
         eventType: GeofenceEventType,
         location: CLLocation?

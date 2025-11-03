@@ -20,7 +20,10 @@ public final class HabitDetailViewModel {
     @ObservationIgnored @Injected(\.validateCategoryName) var validateCategoryName
     @ObservationIgnored @Injected(\.validateHabitUniqueness) var validateHabitUniqueness
     @ObservationIgnored @Injected(\.scheduleHabitReminders) var scheduleHabitReminders
-    
+    @ObservationIgnored @Injected(\.configureHabitLocation) var configureHabitLocation
+    @ObservationIgnored @Injected(\.requestLocationPermissions) var requestLocationPermissions
+    @ObservationIgnored @Injected(\.getLocationAuthStatus) var getLocationAuthStatus
+
     // Form state
     public var name = ""
     public var selectedKind: HabitKind = .binary
@@ -42,7 +45,15 @@ public final class HabitDetailViewModel {
     // Validation state
     public private(set) var isDuplicateHabit = false
     public private(set) var isValidatingDuplicate = false
-    
+
+    // Location state
+    public var locationConfiguration: LocationConfiguration?
+    public var locationAuthStatus: LocationAuthorizationStatus = .notDetermined
+    public private(set) var isCheckingLocationAuth = false
+    public private(set) var isRequestingLocationPermission = false
+    public var showMapPicker = false
+    public var showGeofenceSettings = false
+
     // State management
     public private(set) var isLoading = false
     public private(set) var isSaving = false
@@ -64,6 +75,7 @@ public final class HabitDetailViewModel {
         // Load categories for both new and edit mode
         Task {
             await loadCategories()
+            await checkLocationAuthStatus()
         }
     }
     
@@ -288,7 +300,8 @@ public final class HabitDetailViewModel {
         selectedColorHex = habit.colorHex
         reminders = habit.reminders
         isActive = habit.isActive
-        
+        locationConfiguration = habit.locationConfiguration
+
         // Parse schedule
         switch habit.schedule {
         case .daily:
@@ -335,7 +348,55 @@ public final class HabitDetailViewModel {
             endDate: originalHabit?.endDate,
             isActive: isActive,
             categoryId: finalCategoryId,
-            suggestionId: originalHabit?.suggestionId
+            suggestionId: originalHabit?.suggestionId,
+            locationConfiguration: locationConfiguration
         )
     }
+
+    // MARK: - Location Management
+
+    public func checkLocationAuthStatus() async {
+        isCheckingLocationAuth = true
+        locationAuthStatus = await getLocationAuthStatus.execute()
+        isCheckingLocationAuth = false
+    }
+
+    public func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionResult {
+        isRequestingLocationPermission = true
+        let result = await requestLocationPermissions.execute(requestAlways: requestAlways)
+        isRequestingLocationPermission = false
+
+        // Update auth status after request
+        await checkLocationAuthStatus()
+
+        return result
+    }
+
+    public func updateLocationConfiguration(_ config: LocationConfiguration?) async {
+        locationConfiguration = config
+
+        // If we have a saved habit, update it immediately
+        if let habitId = originalHabit?.id {
+            do {
+                try await configureHabitLocation.execute(habitId: habitId, configuration: config)
+            } catch {
+                self.error = error
+            }
+        }
+    }
+
+    public func toggleLocationEnabled(_ enabled: Bool) {
+        if var config = locationConfiguration {
+            config.isEnabled = enabled
+            locationConfiguration = config
+
+            // Update in background if editing existing habit
+            if let habitId = originalHabit?.id {
+                Task {
+                    try await configureHabitLocation.execute(habitId: habitId, configuration: config)
+                }
+            }
+        }
+    }
 }
+

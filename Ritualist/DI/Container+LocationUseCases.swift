@@ -8,8 +8,9 @@ extension Container {
 
     // MARK: - Location Configuration UseCases
 
+    @MainActor
     var configureHabitLocation: Factory<ConfigureHabitLocationUseCase> {
-        self {
+        self { @MainActor in
             ConfigureHabitLocationUseCaseImpl(
                 habitRepository: self.habitRepository(),
                 locationMonitoringService: self.locationMonitoringService()
@@ -17,8 +18,9 @@ extension Container {
         }
     }
 
+    @MainActor
     var enableLocationMonitoring: Factory<EnableLocationMonitoringUseCase> {
-        self {
+        self { @MainActor in
             EnableLocationMonitoringUseCaseImpl(
                 habitRepository: self.habitRepository(),
                 locationMonitoringService: self.locationMonitoringService()
@@ -26,8 +28,9 @@ extension Container {
         }
     }
 
+    @MainActor
     var disableLocationMonitoring: Factory<DisableLocationMonitoringUseCase> {
-        self {
+        self { @MainActor in
             DisableLocationMonitoringUseCaseImpl(
                 habitRepository: self.habitRepository(),
                 locationMonitoringService: self.locationMonitoringService()
@@ -46,24 +49,27 @@ extension Container {
 
     // MARK: - Location Permission UseCases
 
+    @MainActor
     var requestLocationPermissions: Factory<RequestLocationPermissionsUseCase> {
-        self {
+        self { @MainActor in
             RequestLocationPermissionsUseCaseImpl(
                 locationPermissionService: self.locationPermissionService()
             )
         }
     }
 
+    @MainActor
     var getLocationAuthStatus: Factory<GetLocationAuthStatusUseCase> {
-        self {
+        self { @MainActor in
             GetLocationAuthStatusUseCaseImpl(
                 locationPermissionService: self.locationPermissionService()
             )
         }
     }
 
+    @MainActor
     var getMonitoredHabits: Factory<GetMonitoredHabitsUseCase> {
-        self {
+        self { @MainActor in
             GetMonitoredHabitsUseCaseImpl(
                 locationMonitoringService: self.locationMonitoringService()
             )

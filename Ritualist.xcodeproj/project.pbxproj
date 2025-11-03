@@ -71,6 +71,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9164027C2EB8E284001FCF64 /* Exceptions for "Ritualist" folder in "Ritualist" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 91B730E82E38E4BC0050A48A /* Ritualist */;
+		};
 		91A5C7E92E5369230095C251 /* Exceptions for "RitualistWidget" folder in "RitualistWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -91,6 +98,9 @@
 		};
 		91B730EB2E38E4BC0050A48A /* Ritualist */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9164027C2EB8E284001FCF64 /* Exceptions for "Ritualist" folder in "Ritualist" target */,
+			);
 			path = Ritualist;
 			sourceTree = "<group>";
 		};
@@ -500,8 +510,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ritualist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ritualist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Ritualist monitors your location in the background to send habit reminders when you enter or leave specific areas.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ritualist needs your location to send reminders when you arrive at specific places.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -639,8 +652,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ritualist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ritualist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Ritualist monitors your location in the background to send habit reminders when you enter or leave specific areas.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ritualist needs your location to send reminders when you arrive at specific places.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -771,8 +787,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ritualist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ritualist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Ritualist monitors your location in the background to send habit reminders when you enter or leave specific areas.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ritualist needs your location to send reminders when you arrive at specific places.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -903,8 +922,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ritualist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ritualist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Ritualist monitors your location in the background to send habit reminders when you enter or leave specific areas.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ritualist needs your location to send reminders when you arrive at specific places.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1291,8 +1313,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ritualist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ritualist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Ritualist monitors your location in the background to send habit reminders when you enter or leave specific areas.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ritualist needs your location to send reminders when you arrive at specific places.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1328,8 +1353,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ritualist/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ritualist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Ritualist monitors your location in the background to send habit reminders when you enter or leave specific areas.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ritualist needs your location to send reminders when you arrive at specific places.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

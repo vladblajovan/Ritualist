@@ -10,6 +10,9 @@
 
 import Foundation
 import CoreLocation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Result of a permission request
 public enum LocationPermissionResult {
@@ -42,7 +45,8 @@ public protocol LocationPermissionService {
 }
 
 /// Implementation of LocationPermissionService
-public actor DefaultLocationPermissionService: NSObject, LocationPermissionService {
+@MainActor
+public final class DefaultLocationPermissionService: NSObject, LocationPermissionService {
     // MARK: - Properties
 
     private let locationManager: CLLocationManager
@@ -163,6 +167,7 @@ public actor DefaultLocationPermissionService: NSObject, LocationPermissionServi
     }
 
     public func openAppSettings() async {
+        #if canImport(UIKit)
         guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
             return
         }
@@ -172,6 +177,7 @@ public actor DefaultLocationPermissionService: NSObject, LocationPermissionServi
                 UIApplication.shared.open(settingsUrl)
             }
         }
+        #endif
     }
 
     // MARK: - Private Helpers
