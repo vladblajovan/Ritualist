@@ -277,7 +277,7 @@ private struct SettingsFormView: View {
                                         await vm.requestLocationPermission()
                                     }
                                 } label: {
-                                    Image(systemName: "location.badge.plus")
+                                    Image(systemName: "location.fill")
                                         .font(.title3)
                                         .foregroundColor(.blue)
                                 }
