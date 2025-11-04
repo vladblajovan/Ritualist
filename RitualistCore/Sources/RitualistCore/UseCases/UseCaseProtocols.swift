@@ -1,5 +1,13 @@
 import Foundation
 
+// MARK: - Migration Use Cases
+
+/// UseCase for checking if a migration is currently in progress
+public protocol GetMigrationStatusUseCase {
+    var isMigrating: Bool { get }
+    var migrationDetails: MigrationDetails? { get }
+}
+
 // MARK: - Habit Use Cases
 
 public protocol CreateHabitUseCase { 

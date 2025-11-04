@@ -4,7 +4,6 @@ import RitualistCore
 
 public struct OverviewView: View {
     @State var vm: OverviewViewModel
-    @Injected(\.migrationStatusService) private var migrationStatusService
 
     public init(vm: OverviewViewModel) {
         self.vm = vm
@@ -219,9 +218,9 @@ public struct OverviewView: View {
             .background(Color(.systemGroupedBackground))
             .overlay {
                 // Show migration loading modal when schema migration is in progress
-                if migrationStatusService.isMigrating {
-                    MigrationLoadingView(details: migrationStatusService.migrationDetails)
-                        .animation(.easeInOut(duration: 0.3), value: migrationStatusService.isMigrating)
+                if vm.isMigrating {
+                    MigrationLoadingView(details: vm.migrationDetails)
+                        .animation(.easeInOut(duration: 0.3), value: vm.isMigrating)
                 }
             }
         } // ScrollViewReader

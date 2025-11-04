@@ -109,4 +109,11 @@ extension Container {
     var getPaywallMessage: Factory<GetPaywallMessage> {
         self { GetPaywallMessage(featureGatingService: self.featureGatingService()) }
     }
+
+    // MARK: - Migration Status
+
+    @MainActor
+    var getMigrationStatus: Factory<GetMigrationStatusUseCase> {
+        self { @MainActor in GetMigrationStatusUseCaseImpl(migrationStatusService: self.migrationStatusService()) }
+    }
 }

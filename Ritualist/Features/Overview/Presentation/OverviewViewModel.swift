@@ -104,7 +104,19 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     private typealias InspirationTrigger = RitualistCore.InspirationTrigger
     
     public var monthlyCompletionData: [Date: Double] = [:]
-    
+
+    // MARK: - Migration State (exposed via UseCase)
+
+    /// Whether a migration is currently in progress
+    public var isMigrating: Bool {
+        getMigrationStatus.isMigrating
+    }
+
+    /// Current migration details (from version → to version)
+    public var migrationDetails: MigrationDetails? {
+        getMigrationStatus.migrationDetails
+    }
+
     // MARK: - Dependencies
     @ObservationIgnored @Injected(\.getActiveHabits) private var getActiveHabits
     @ObservationIgnored @Injected(\.getLogs) private var getLogs
@@ -126,6 +138,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     @ObservationIgnored @Injected(\.refreshWidget) private var refreshWidget
     @ObservationIgnored @Injected(\.personalizedMessageGenerator) private var personalizedMessageGenerator
+    @ObservationIgnored @Injected(\.getMigrationStatus) private var getMigrationStatus
     
     private func getUserId() async -> UUID {
         await getCurrentUserProfile.execute().id
