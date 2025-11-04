@@ -28,6 +28,7 @@ public struct Habit: Identifiable, Codable, Hashable {
     public var lastCompletedDate: Date?  // Added in SchemaV5
     public var archivedDate: Date?  // Added in SchemaV6
     public var locationConfiguration: LocationConfiguration?  // Added in SchemaV7
+    public var priorityLevel: Int?  // Added in SchemaV8 (1=Low, 2=Medium, 3=High)
 
     public init(id: UUID = UUID(), name: String, colorHex: String = "#2DA9E3", emoji: String? = nil,
                 kind: HabitKind = .binary, unitLabel: String? = nil, dailyTarget: Double? = nil,
@@ -35,7 +36,7 @@ public struct Habit: Identifiable, Codable, Hashable {
                 startDate: Date = Date(), endDate: Date? = nil, isActive: Bool = true, displayOrder: Int = 0,
                 categoryId: String? = nil, suggestionId: String? = nil, isPinned: Bool = false,
                 notes: String? = nil, lastCompletedDate: Date? = nil, archivedDate: Date? = nil,
-                locationConfiguration: LocationConfiguration? = nil) {
+                locationConfiguration: LocationConfiguration? = nil, priorityLevel: Int? = nil) {
         self.id = id; self.name = name; self.colorHex = colorHex; self.emoji = emoji
         self.kind = kind; self.unitLabel = unitLabel; self.dailyTarget = dailyTarget
         self.schedule = schedule; self.reminders = reminders
@@ -47,5 +48,6 @@ public struct Habit: Identifiable, Codable, Hashable {
         self.lastCompletedDate = lastCompletedDate
         self.archivedDate = archivedDate
         self.locationConfiguration = locationConfiguration
+        self.priorityLevel = priorityLevel
     }
 }
