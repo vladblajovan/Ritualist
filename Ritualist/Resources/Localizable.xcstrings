@@ -3162,12 +3162,12 @@
         }
       }
     },
-    "Notifications will be sent when you %@ within %lldm of the location." : {
+    "Alerts when %@ within %lldm" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Notifications will be sent when you %1$@ within %2$lldm of the location."
+            "value" : "Alerts when %1$@ within %2$lldm"
           }
         }
       }

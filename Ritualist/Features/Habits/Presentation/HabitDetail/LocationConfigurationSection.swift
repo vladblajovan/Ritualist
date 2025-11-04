@@ -86,7 +86,7 @@ public struct LocationConfigurationSection: View {
             Text("Location-Based")
         } footer: {
             if let config = vm.locationConfiguration, config.isEnabled {
-                Text("Notifications will be sent when you \(config.triggerType.displayName.lowercased()) within \(Int(config.radius))m of the location.")
+                Text("Alerts when \(config.triggerType.displayName.lowercased()) within \(Int(config.radius))m")
                     .font(.caption)
             }
         }
