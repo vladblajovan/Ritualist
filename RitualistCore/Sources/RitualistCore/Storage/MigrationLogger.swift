@@ -227,6 +227,9 @@ public final class MigrationLogger {
         case "5.0.0 → 6.0.0":
             return "Added habit archiving - habits can now be archived instead of deleted, preserving your history while decluttering active habits."
 
+        case "6.0.0 → 7.0.0":
+            return "Added location-aware habits - habits can now send notifications when you enter or exit specific locations with configurable geofencing."
+
         default:
             return "Updated database schema."
         }

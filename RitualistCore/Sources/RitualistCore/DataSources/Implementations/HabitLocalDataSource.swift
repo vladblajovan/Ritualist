@@ -66,6 +66,14 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
                 existing.category = nil
             }
             existing.suggestionId = habit.suggestionId
+                // Update location configuration
+                if let locationConfig = habit.locationConfiguration {
+                    existing.locationConfigData = try? JSONEncoder().encode(locationConfig)
+                    existing.lastGeofenceTriggerDate = locationConfig.lastTriggerDate
+                } else {
+                    existing.locationConfigData = nil
+                    existing.lastGeofenceTriggerDate = nil
+                }
         } else {
             // Create new habit in this ModelContext
             let habitModel = try ActiveHabitModel.fromEntity(habit, context: modelContext)

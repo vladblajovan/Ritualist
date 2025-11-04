@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import FactoryKit
 import RitualistCore
+import CoreLocation
 
 // Helper enum for schedule picker
 public enum ScheduleType: CaseIterable {
@@ -20,7 +21,10 @@ public final class HabitDetailViewModel {
     @ObservationIgnored @Injected(\.validateCategoryName) var validateCategoryName
     @ObservationIgnored @Injected(\.validateHabitUniqueness) var validateHabitUniqueness
     @ObservationIgnored @Injected(\.scheduleHabitReminders) var scheduleHabitReminders
-    
+    @ObservationIgnored @Injected(\.configureHabitLocation) var configureHabitLocation
+    @ObservationIgnored @Injected(\.requestLocationPermissions) var requestLocationPermissions
+    @ObservationIgnored @Injected(\.getLocationAuthStatus) var getLocationAuthStatus
+
     // Form state
     public var name = ""
     public var selectedKind: HabitKind = .binary
@@ -42,7 +46,15 @@ public final class HabitDetailViewModel {
     // Validation state
     public private(set) var isDuplicateHabit = false
     public private(set) var isValidatingDuplicate = false
-    
+
+    // Location state
+    public var locationConfiguration: LocationConfiguration?
+    public var locationAuthStatus: LocationAuthorizationStatus = .notDetermined
+    public private(set) var isCheckingLocationAuth = false
+    public private(set) var isRequestingLocationPermission = false
+    public var showMapPicker = false
+    public var showGeofenceSettings = false
+
     // State management
     public private(set) var isLoading = false
     public private(set) var isSaving = false
@@ -64,6 +76,7 @@ public final class HabitDetailViewModel {
         // Load categories for both new and edit mode
         Task {
             await loadCategories()
+            await checkLocationAuthStatus()
         }
     }
     
@@ -71,7 +84,7 @@ public final class HabitDetailViewModel {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         (selectedKind == .binary || (dailyTarget > 0 && !unitLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)) &&
         (selectedSchedule != .daysOfWeek || !selectedDaysOfWeek.isEmpty) &&
-        selectedCategory != nil &&
+        (isEditMode || selectedCategory != nil) &&  // Allow nil category when editing (during async loading)
         !isDuplicateHabit
     }
     
@@ -288,7 +301,8 @@ public final class HabitDetailViewModel {
         selectedColorHex = habit.colorHex
         reminders = habit.reminders
         isActive = habit.isActive
-        
+        locationConfiguration = habit.locationConfiguration
+
         // Parse schedule
         switch habit.schedule {
         case .daily:
@@ -335,7 +349,113 @@ public final class HabitDetailViewModel {
             endDate: originalHabit?.endDate,
             isActive: isActive,
             categoryId: finalCategoryId,
-            suggestionId: originalHabit?.suggestionId
+            suggestionId: originalHabit?.suggestionId,
+            locationConfiguration: locationConfiguration
         )
     }
+
+    // MARK: - Location Management
+
+    public func checkLocationAuthStatus() async {
+        isCheckingLocationAuth = true
+        locationAuthStatus = await getLocationAuthStatus.execute()
+        isCheckingLocationAuth = false
+    }
+
+    public func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionResult {
+        isRequestingLocationPermission = true
+        let result = await requestLocationPermissions.execute(requestAlways: requestAlways)
+        isRequestingLocationPermission = false
+
+        // Update auth status after request
+        await checkLocationAuthStatus()
+
+        return result
+    }
+
+    public func updateLocationConfiguration(_ config: LocationConfiguration?) async {
+        locationConfiguration = config
+
+        // If we have a saved habit, update it immediately
+        if let habitId = originalHabit?.id {
+            do {
+                try await configureHabitLocation.execute(habitId: habitId, configuration: config)
+            } catch {
+                self.error = error
+            }
+        }
+    }
+
+    public func toggleLocationEnabled(_ enabled: Bool) {
+        guard enabled else {
+            // Disabling: just toggle the flag
+            if var config = locationConfiguration {
+                config.isEnabled = false
+                locationConfiguration = config
+                if let habitId = originalHabit?.id {
+                    Task {
+                        try await configureHabitLocation.execute(habitId: habitId, configuration: config)
+                    }
+                }
+            }
+            return
+        }
+
+        // Enabling location reminders
+        if locationConfiguration != nil {
+            // Already have configuration - just enable it
+            var config = locationConfiguration!
+            config.isEnabled = true
+            locationConfiguration = config
+            if let habitId = originalHabit?.id {
+                Task {
+                    try await configureHabitLocation.execute(habitId: habitId, configuration: config)
+                }
+            }
+        } else {
+            // First time enabling - request permissions and show map picker
+            Task {
+                // Check current permission status
+                await checkLocationAuthStatus()
+
+                // Request permission if needed
+                if locationAuthStatus == .notDetermined {
+                    let result = await requestLocationPermission(requestAlways: false)
+
+                    // If permission granted, create default config and show map picker
+                    switch result {
+                    case .granted:
+                        // Create default configuration so toggle stays ON
+                        await MainActor.run {
+                            locationConfiguration = LocationConfiguration.create(
+                                from: CLLocationCoordinate2D(latitude: 0, longitude: 0), // Placeholder
+                                radius: LocationConfiguration.defaultRadius,
+                                triggerType: .entry,
+                                frequency: .oncePerDay,
+                                isEnabled: true
+                            )
+                            showMapPicker = true
+                        }
+                    case .denied, .failed:
+                        // Permission denied - toggle stays off
+                        break
+                    }
+                } else if locationAuthStatus.canMonitorGeofences {
+                    // Permission already granted - create default config and show map picker
+                    await MainActor.run {
+                        locationConfiguration = LocationConfiguration.create(
+                            from: CLLocationCoordinate2D(latitude: 0, longitude: 0), // Placeholder
+                            radius: LocationConfiguration.defaultRadius,
+                            triggerType: .entry,
+                            frequency: .oncePerDay,
+                            isEnabled: true
+                        )
+                        showMapPicker = true
+                    }
+                }
+                // If permission is denied/restricted, user will see the permission status UI
+            }
+        }
+    }
 }
+

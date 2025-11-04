@@ -13,19 +13,22 @@ public struct HabitFormView: View {
     @Bindable var vm: HabitDetailViewModel
     
     public var body: some View {
-        Form {
+        List {
             BasicInfoSection(vm: vm)
             CategorySection(vm: vm)
             ScheduleSection(vm: vm)
             ReminderSection(vm: vm)
+            LocationConfigurationSection(vm: vm)
             AppearanceSection(vm: vm)
             if vm.isEditMode {
                 ActiveStatusSection(vm: vm)
                 DeleteSection(vm: vm)
             }
         }
+        .listStyle(.insetGrouped)
         .task {
             await vm.loadCategories()
+            await vm.checkLocationAuthStatus()
         }
     }
 }

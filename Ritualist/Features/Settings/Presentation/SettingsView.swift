@@ -246,6 +246,56 @@ private struct SettingsFormView: View {
                         .padding(.vertical, Spacing.small)
                     }
 
+                    // Location Permissions Section
+                    Section("Location") {
+                        HStack(spacing: Spacing.medium) {
+                            Image(systemName: vm.locationAuthStatus.canMonitorGeofences ? "location.fill" : "location.slash.fill")
+                                .foregroundColor(vm.locationAuthStatus.canMonitorGeofences ? .green : .orange)
+                                .font(.title2)
+                                .frame(width: IconSize.large)
+
+                            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                                Text("Location Permission")
+                                    .font(.headline)
+                                    .fontWeight(.medium)
+
+                                Text(vm.locationAuthStatus.displayText)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            Spacer()
+
+                            // Action button on the right
+                            if vm.isRequestingLocationPermission {
+                                ProgressView()
+                                    .scaleEffect(ScaleFactors.smallMedium)
+                            } else if !vm.locationAuthStatus.canMonitorGeofences {
+                                Button {
+                                    Task {
+                                        await vm.requestLocationPermission()
+                                    }
+                                } label: {
+                                    Image(systemName: "location.fill")
+                                        .font(.title3)
+                                        .foregroundColor(.blue)
+                                }
+                            } else {
+                                Button {
+                                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(settingsUrl)
+                                    }
+                                } label: {
+                                    Image(systemName: "gearshape.fill")
+                                        .font(.title3)
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                        }
+                        .padding(.vertical, Spacing.small)
+                    }
+
                     #if DEBUG
                     Section("Debug") {
                         GenericRowView.settingsRow(
@@ -267,6 +317,7 @@ private struct SettingsFormView: View {
                     updateLocalState()
                     Task {
                         await vm.refreshNotificationStatus()
+                        await vm.refreshLocationStatus()
                     }
                 }
                 .sheet(isPresented: $showingImagePicker) {

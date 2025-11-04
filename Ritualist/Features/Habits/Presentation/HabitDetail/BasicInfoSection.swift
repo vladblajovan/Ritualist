@@ -103,18 +103,16 @@ public struct BasicInfoSection: View {
                 }
                 
                 VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                    HStack {
-                        Text(Strings.Form.dailyTarget)
-                        TextField(Strings.Form.target, value: $vm.dailyTarget, formatter: NumberUtils.habitValueFormatter())
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(.plain)
-                            .focused($focusedField, equals: .dailyTarget)
-                            .onSubmit {
-                                focusedField = nil // Close keyboard
-                            }
+                    Stepper(value: $vm.dailyTarget, in: 1...10000, step: 1) {
+                        HStack {
+                            Text(Strings.Form.dailyTarget)
+                            Spacer()
+                            Text("\(Int(vm.dailyTarget))")
+                                .foregroundColor(.primary)
+                        }
                     }
-                    
-                    if !vm.isDailyTargetValid && focusedField != .dailyTarget {
+
+                    if !vm.isDailyTargetValid {
                         Text(Strings.Validation.targetGreaterThanZero)
                             .font(.caption)
                             .foregroundColor(.red)

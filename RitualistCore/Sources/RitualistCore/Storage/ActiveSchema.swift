@@ -22,13 +22,13 @@ import SwiftData
 /// 4. Update these type aliases below to point to V7 types
 /// 5. All data sources will automatically use the new schema!
 
-// Current active schema: V6
-public typealias ActiveHabitModel = HabitModelV6
-public typealias ActiveHabitLogModel = HabitLogModelV6
-public typealias ActiveHabitCategoryModel = HabitCategoryModelV6
-public typealias ActiveUserProfileModel = UserProfileModelV6
-public typealias ActiveOnboardingStateModel = OnboardingStateModelV6
-public typealias ActivePersonalityAnalysisModel = PersonalityAnalysisModelV6
+// Current active schema: V7
+public typealias ActiveHabitModel = HabitModelV7
+public typealias ActiveHabitLogModel = HabitLogModelV7
+public typealias ActiveHabitCategoryModel = HabitCategoryModelV7
+public typealias ActiveUserProfileModel = UserProfileModelV7
+public typealias ActiveOnboardingStateModel = OnboardingStateModelV7
+public typealias ActivePersonalityAnalysisModel = PersonalityAnalysisModelV7
 
 // MARK: - Migration History
 //
@@ -37,9 +37,5 @@ public typealias ActivePersonalityAnalysisModel = PersonalityAnalysisModelV6
 // - V3: Added isPinned property to HabitModel
 // - V4: Replaced isPinned with notes property in HabitModel
 // - V5: Added lastCompletedDate property to HabitModel
-// - V6: Added archivedDate property to HabitModel (current)
-//
-// When V5 is added, uncomment and update:
-// - V5: [Description of changes]
-// public typealias ActiveHabitModel = HabitModelV5
-// ... (update all other type aliases)
+// - V6: Added archivedDate property to HabitModel
+// - V7: Added location-aware habit support (locationConfigData, lastGeofenceTriggerDate) (current)

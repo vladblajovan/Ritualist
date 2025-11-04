@@ -36,6 +36,9 @@ public protocol NotificationService {
     func sendPersonalityAnalysisCompleted(userId: UUID, profile: PersonalityProfile) async throws
     func cancelPersonalityAnalysis(userId: UUID) async
     func getNotificationSettings() async -> NotificationAuthorizationStatus
+
+    // Location-based notification methods
+    func sendLocationTriggeredNotification(for habitID: UUID, habitName: String, event: GeofenceEvent) async throws
 }
 
 public final class LocalNotificationService: NSObject, NotificationService {
@@ -747,5 +750,47 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
                 ]
             )
         }
+    }
+
+    // MARK: - Location-Based Notifications
+
+    /// Send a notification triggered by a geofence event
+    public func sendLocationTriggeredNotification(
+        for habitID: UUID,
+        habitName: String,
+        event: GeofenceEvent
+    ) async throws {
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+
+        // Customize title and body based on event type
+        let locationLabel = event.configuration.locationLabel ?? "this location"
+        switch event.eventType {
+        case .entry:
+            content.title = "📍 You're near \(locationLabel)"
+            content.body = "Time for your \(habitName) habit!"
+        case .exit:
+            content.title = "👋 Leaving \(locationLabel)"
+            content.body = "Don't forget: \(habitName)"
+        }
+
+        content.sound = .default
+        content.categoryIdentifier = Self.habitReminderCategory
+
+        // Store habit information in userInfo
+        content.userInfo = [
+            "habitId": habitID.uuidString,
+            "habitName": habitName,
+            "eventType": event.eventType.rawValue,
+            "locationLabel": event.configuration.locationLabel ?? "",
+            "isLocationTriggered": true
+        ]
+
+        // Send immediate notification (no trigger)
+        let identifier = "\(habitID.uuidString)-location-\(Date().timeIntervalSince1970)"
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
+
+        try await center.add(request)
+        print("✅ [NotificationService] Sent location-triggered notification for habit: \(habitName)")
     }
 }
