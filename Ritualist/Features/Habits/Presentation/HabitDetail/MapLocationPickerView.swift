@@ -189,7 +189,7 @@ private struct MapView: View {
                     // Radius circle
                     MapCircle(center: coordinate, radius: radius)
                         .foregroundStyle(Color.blue.opacity(0.2))
-                        .stroke(Color.blue, lineWidth: 2)
+                        .stroke(Color.blue, lineWidth: 1)
                 }
             }
             .mapStyle(.standard)

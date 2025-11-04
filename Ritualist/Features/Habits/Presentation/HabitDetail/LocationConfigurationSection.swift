@@ -11,7 +11,6 @@ import MapKit
 
 public struct LocationConfigurationSection: View {
     @Bindable var vm: HabitDetailViewModel
-    @State private var shouldShowMap = false
 
     public var body: some View {
         Section {
@@ -28,23 +27,49 @@ public struct LocationConfigurationSection: View {
             }
 
             // Show configuration UI when enabled
-            if vm.locationConfiguration != nil && vm.locationConfiguration?.isEnabled == true {
-                if shouldShowMap {
-                    LocationMapPreview(vm: vm)
-                } else {
-                    // Placeholder while deferring map load
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGray6))
-                            .frame(height: 200)
-
-                        ProgressView()
-                            .scaleEffect(1.5)
+            if let config = vm.locationConfiguration, config.isEnabled {
+                // Use AsyncMapSnapshot - loads asynchronously without blocking UI
+                VStack(spacing: 0) {
+                    AsyncMapSnapshot(
+                        coordinate: config.coordinate,
+                        radius: config.radius,
+                        locationLabel: config.locationLabel
+                    ) {
+                        vm.showMapPicker = true
                     }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
+                    .padding(.horizontal, 16)
+
+                    // Configuration details below map
+                    HStack(spacing: 16) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "circle.dashed")
+                                .font(.caption)
+                            Text("\(Int(config.radius))m")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.secondary)
+
+                        HStack(spacing: 4) {
+                            Image(systemName: triggerIcon(for: config.triggerType))
+                                .font(.caption)
+                            Text(config.triggerType.displayName)
+                                .font(.caption)
+                        }
+                        .foregroundColor(.secondary)
+
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.caption)
+                            Text(config.frequency.displayName)
+                                .font(.caption)
+                        }
+                        .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 8)
+                }
+                .sheet(isPresented: $vm.showMapPicker) {
+                    MapLocationPickerView(vm: vm)
                 }
             } else if vm.locationConfiguration == nil || vm.locationConfiguration?.isEnabled == false {
                 // Show explanation when disabled
@@ -65,111 +90,6 @@ public struct LocationConfigurationSection: View {
                     .font(.caption)
             }
         }
-        .task {
-            // Defer map loading completely - don't even create LocationMapPreview until after UI loads
-            try? await Task.sleep(for: .milliseconds(100))
-            shouldShowMap = true
-        }
-    }
-}
-
-// MARK: - Location Map Preview
-
-private struct LocationMapPreview: View {
-    @Bindable var vm: HabitDetailViewModel
-    @State private var cameraPosition: MapCameraPosition = .automatic
-
-    var body: some View {
-        if let config = vm.locationConfiguration {
-            VStack(spacing: 0) {
-                // Static map preview
-                Button {
-                    vm.showMapPicker = true
-                } label: {
-                    Map(position: $cameraPosition, interactionModes: []) {
-                        // Pin marker
-                        Annotation("", coordinate: config.coordinate) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 30, height: 30)
-
-                                Image(systemName: "mappin.circle.fill")
-                                    .foregroundColor(.white)
-                                    .font(.title2)
-                            }
-                        }
-
-                        // Radius circle
-                        MapCircle(center: config.coordinate, radius: config.radius)
-                            .foregroundStyle(Color.blue.opacity(0.2))
-                            .stroke(Color.blue, lineWidth: 2)
-                    }
-                    .mapStyle(.standard)
-                    .frame(height: 200)
-                    .cornerRadius(12)
-                    .overlay(alignment: .top) {
-                        // Location name overlay on map
-                        Text(config.locationLabel ?? "Selected Location")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .fill(Color.black.opacity(0.6))
-                            )
-                            .padding(.top, 12)
-                    }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-                    .onAppear {
-                        updateCameraPosition(for: config)
-                    }
-                    .onChange(of: vm.locationConfiguration) { _, newConfig in
-                        if let newConfig = newConfig {
-                            updateCameraPosition(for: newConfig)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-
-                // Configuration details below map
-                HStack(spacing: 16) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "circle.dashed")
-                            .font(.caption)
-                        Text("\(Int(config.radius))m")
-                            .font(.caption)
-                    }
-                    .foregroundColor(.secondary)
-
-                    HStack(spacing: 4) {
-                        Image(systemName: triggerIcon(for: config.triggerType))
-                            .font(.caption)
-                        Text(config.triggerType.displayName)
-                            .font(.caption)
-                    }
-                    .foregroundColor(.secondary)
-
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.caption)
-                        Text(config.frequency.displayName)
-                            .font(.caption)
-                    }
-                    .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, 8)
-            }
-            .sheet(isPresented: $vm.showMapPicker) {
-                MapLocationPickerView(vm: vm)
-            }
-        }
     }
 
     private func triggerIcon(for trigger: GeofenceTrigger) -> String {
@@ -178,22 +98,6 @@ private struct LocationMapPreview: View {
         case .exit: return "arrow.up.circle"
         case .both: return "arrow.up.arrow.down.circle"
         }
-    }
-
-    private func calculateMapSpan(for radius: Double) -> MKCoordinateSpan {
-        // Show 4x the radius (2x on each side) to fit the circle nicely in view
-        // 1 degree latitude ≈ 111,000 meters
-        let displayRadius = radius * 4
-        let delta = displayRadius / 111_000.0
-        return MKCoordinateSpan(latitudeDelta: delta, longitudeDelta: delta)
-    }
-
-    private func updateCameraPosition(for config: LocationConfiguration) {
-        let span = calculateMapSpan(for: config.radius)
-        cameraPosition = .region(MKCoordinateRegion(
-            center: config.coordinate,
-            span: span
-        ))
     }
 }
 
