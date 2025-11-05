@@ -209,7 +209,10 @@ struct MonthlyCalendarCard: View {
             }()
 
             let textColor: Color = {
-                if isToday { return .white }
+                if isToday {
+                    // Use darker text color when today has no/low progress for better contrast
+                    return completion >= 0.8 ? .white : .primary
+                }
                 if isFuture { return .secondary }
                 return completion >= 0.8 ? .white : .primary
             }()
