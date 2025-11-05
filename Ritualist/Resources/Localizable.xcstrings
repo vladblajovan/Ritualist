@@ -3167,7 +3167,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Alerts when %1$@ within %2$lldm"
+            "value" : "Alert: %1$@ within %2$lldm"
           }
         }
       }
