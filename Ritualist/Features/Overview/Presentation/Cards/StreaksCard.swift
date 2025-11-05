@@ -122,7 +122,7 @@ struct StreaksCard: View {
             } else {
                 // Horizontal Scrolling Grid (horizontal-first filling)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    VStack(spacing: rowSpacing) {
+                    VStack(alignment: .leading, spacing: rowSpacing) {
                         ForEach(Array(streakRows.enumerated()), id: \.offset) { rowIndex, rowStreaks in
                             HStack(spacing: itemSpacing) {
                                 ForEach(rowStreaks) { streak in
