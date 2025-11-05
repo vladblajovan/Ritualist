@@ -6,10 +6,41 @@ struct StreaksCard: View {
     let shouldAnimateBestStreak: Bool
     let onAnimationComplete: () -> Void
     let isLoading: Bool
-    
+
     @State private var animatingStreakId: String? = nil
     @State private var sheetStreak: StreakInfo? = nil
-    
+
+    // MARK: - Layout Configuration
+
+    /// Height of each streak item
+    private let itemHeight: CGFloat = 100
+
+    /// Spacing between rows
+    private let rowSpacing: CGFloat = 12
+
+    /// Calculate the number of rows needed based on streak count
+    /// - For 1 streak: 1 row
+    /// - For 2+ streaks: 2 rows (allows horizontal scrolling)
+    private var numberOfRows: Int {
+        streaks.isEmpty ? 1 : min(2, max(1, streaks.count))
+    }
+
+    /// Calculate the dynamic height based on number of rows
+    /// - 1 row: itemHeight
+    /// - 2 rows: itemHeight * 2 + rowSpacing
+    private var gridHeight: CGFloat {
+        let baseHeight = CGFloat(numberOfRows) * itemHeight
+        let spacingHeight = numberOfRows > 1 ? CGFloat(numberOfRows - 1) * rowSpacing : 0
+        return baseHeight + spacingHeight
+    }
+
+    /// Create grid rows dynamically based on streak count
+    private var gridRows: [GridItem] {
+        (0..<numberOfRows).map { _ in
+            GridItem(.flexible(), spacing: rowSpacing)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
@@ -73,12 +104,9 @@ struct StreaksCard: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
             } else {
-                // Horizontal Scrolling 2x2 Grid
+                // Horizontal Scrolling Grid (dynamic rows)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHGrid(rows: [
-                        GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12)
-                    ], spacing: 12) {
+                    LazyHGrid(rows: gridRows, spacing: 12) {
                         ForEach(streaks) { streak in
                             streakItem(for: streak)
                                 .frame(width: 140) // Fixed width for consistent sizing
@@ -86,7 +114,7 @@ struct StreaksCard: View {
                     }
                     .padding(.trailing, 16)
                 }
-                .frame(height: 220) // Fixed height for 2 rows
+                .frame(height: gridHeight) // Dynamic height based on row count
             }
         }
         .padding(20)
@@ -176,6 +204,46 @@ struct StreaksCard: View {
 
 #Preview {
     VStack(spacing: 20) {
+        // Single streak (should use 1 row, compact height)
+        StreaksCard(
+            streaks: [
+                StreakInfo(
+                    id: "1",
+                    habitName: "Morning Workout",
+                    emoji: "💪",
+                    currentStreak: 7,
+                    isActive: true
+                )
+            ],
+            shouldAnimateBestStreak: false,
+            onAnimationComplete: {},
+            isLoading: false
+        )
+
+        // Two streaks (should use 2 rows)
+        StreaksCard(
+            streaks: [
+                StreakInfo(
+                    id: "1",
+                    habitName: "Morning Workout",
+                    emoji: "💪",
+                    currentStreak: 7,
+                    isActive: true
+                ),
+                StreakInfo(
+                    id: "2",
+                    habitName: "Reading",
+                    emoji: "📚",
+                    currentStreak: 3,
+                    isActive: true
+                )
+            ],
+            shouldAnimateBestStreak: false,
+            onAnimationComplete: {},
+            isLoading: false
+        )
+
+        // Multiple streaks (should use 2 rows, horizontal scroll)
         StreaksCard(
             streaks: [
                 StreakInfo(
@@ -204,7 +272,7 @@ struct StreaksCard: View {
             onAnimationComplete: {},
             isLoading: false
         )
-        
+
         // Loading state
         StreaksCard(
             streaks: [],
@@ -212,7 +280,7 @@ struct StreaksCard: View {
             onAnimationComplete: {},
             isLoading: true
         )
-        
+
         // Empty state
         StreaksCard(
             streaks: [],
