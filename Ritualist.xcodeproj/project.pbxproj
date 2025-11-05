@@ -10,14 +10,18 @@
 		911237F92E41210800A57BFC /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 911237F82E41210800A57BFC /* Factory */; };
 		911237FB2E41210800A57BFC /* FactoryKit in Frameworks */ = {isa = PBXBuildFile; productRef = 911237FA2E41210800A57BFC /* FactoryKit */; };
 		911237FD2E41210800A57BFC /* FactoryTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 911237FC2E41210800A57BFC /* FactoryTesting */; };
+		9127F1242EBB9BFA007847C5 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9127F1232EBB9BFA007847C5 /* RitualistCore */; };
+		9127F1262EBB9C53007847C5 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9127F1252EBB9C53007847C5 /* RitualistCore */; };
+		9127F12B2EBB9F36007847C5 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9127F12A2EBB9F36007847C5 /* RitualistCore */; };
+		9127F12D2EBB9F42007847C5 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9127F12C2EBB9F42007847C5 /* RitualistCore */; };
 		918031A42E5F27D100B6FAF6 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 918031A32E5F27D100B6FAF6 /* RitualistCore */; };
 		9196AAED2E4E49C300D5F386 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9196AAEC2E4E49C300D5F386 /* RitualistCore */; };
 		91A5C7CE2E5369190095C251 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91A5C7CD2E5369190095C251 /* WidgetKit.framework */; };
 		91A5C7D02E5369190095C251 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91A5C7CF2E5369190095C251 /* SwiftUI.framework */; };
 		91A5C7E12E5369230095C251 /* RitualistWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		91A5C8032E53A0240095C251 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8022E53A0240095C251 /* RitualistCore */; };
 		91A5C8052E53A25C0095C251 /* FactoryKit in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8042E53A25C0095C251 /* FactoryKit */; };
 		91A5C8072E53C5830095C251 /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8062E53C5830095C251 /* Factory */; };
+		91C956A72EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */; };
 		91C9ACD92E4A887C0077EF5C /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C9ACD82E4A887C0077EF5C /* RitualistCore */; };
 /* End PBXBuildFile section */
 
@@ -60,7 +64,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		916F91602E55EC7000D77E0D /* Ritualist-AllFeatures.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Ritualist-AllFeatures.xctestplan"; sourceTree = "<group>"; };
 		91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RitualistWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		91A5C7CD2E5369190095C251 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		91A5C7CF2E5369190095C251 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -68,6 +71,7 @@
 		91B730E92E38E4BC0050A48A /* Ritualist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ritualist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91B730F82E38E4C10050A48A /* RitualistTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		91B731022E38E4C10050A48A /* RitualistUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyCalendarViewLogicTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -111,9 +115,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				91A5C8032E53A0240095C251 /* RitualistCore in Frameworks */,
 				91A5C8072E53C5830095C251 /* Factory in Frameworks */,
+				9127F1262EBB9C53007847C5 /* RitualistCore in Frameworks */,
 				91A5C7D02E5369190095C251 /* SwiftUI.framework in Frameworks */,
+				9127F12D2EBB9F42007847C5 /* RitualistCore in Frameworks */,
 				91A5C8052E53A25C0095C251 /* FactoryKit in Frameworks */,
 				91A5C7CE2E5369190095C251 /* WidgetKit.framework in Frameworks */,
 			);
@@ -126,7 +131,9 @@
 				91C9ACD92E4A887C0077EF5C /* RitualistCore in Frameworks */,
 				918031A42E5F27D100B6FAF6 /* RitualistCore in Frameworks */,
 				911237FB2E41210800A57BFC /* FactoryKit in Frameworks */,
+				9127F1242EBB9BFA007847C5 /* RitualistCore in Frameworks */,
 				911237F92E41210800A57BFC /* Factory in Frameworks */,
+				9127F12B2EBB9F36007847C5 /* RitualistCore in Frameworks */,
 				9196AAED2E4E49C300D5F386 /* RitualistCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -161,12 +168,12 @@
 		91B730E02E38E4BC0050A48A = {
 			isa = PBXGroup;
 			children = (
-				916F91602E55EC7000D77E0D /* Ritualist-AllFeatures.xctestplan */,
 				91A5C7EB2E53699B0095C251 /* RitualistWidgetExtension.entitlements */,
 				91B730EB2E38E4BC0050A48A /* Ritualist */,
 				91A5C7D12E5369190095C251 /* RitualistWidget */,
 				91A5C7CC2E5369190095C251 /* Frameworks */,
 				91B730EA2E38E4BC0050A48A /* Products */,
+				91C9569F2EBBAFFD0088AB2D /* RitualistTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -179,6 +186,46 @@
 				91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		91C9569A2EBBAFFD0088AB2D /* Presentation */ = {
+			isa = PBXGroup;
+			children = (
+				91C956A62EBBB10F0088AB2D /* ViewLogic */,
+			);
+			path = Presentation;
+			sourceTree = "<group>";
+		};
+		91C9569B2EBBAFFD0088AB2D /* Overview */ = {
+			isa = PBXGroup;
+			children = (
+				91C9569A2EBBAFFD0088AB2D /* Presentation */,
+			);
+			path = Overview;
+			sourceTree = "<group>";
+		};
+		91C9569C2EBBAFFD0088AB2D /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				91C9569B2EBBAFFD0088AB2D /* Overview */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		91C9569F2EBBAFFD0088AB2D /* RitualistTests */ = {
+			isa = PBXGroup;
+			children = (
+				91C9569C2EBBAFFD0088AB2D /* Features */,
+			);
+			path = RitualistTests;
+			sourceTree = "<group>";
+		};
+		91C956A62EBBB10F0088AB2D /* ViewLogic */ = {
+			isa = PBXGroup;
+			children = (
+				91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */,
+			);
+			path = ViewLogic;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -201,9 +248,10 @@
 			);
 			name = RitualistWidgetExtension;
 			packageProductDependencies = (
-				91A5C8022E53A0240095C251 /* RitualistCore */,
 				91A5C8042E53A25C0095C251 /* FactoryKit */,
 				91A5C8062E53C5830095C251 /* Factory */,
+				9127F1252EBB9C53007847C5 /* RitualistCore */,
+				9127F12C2EBB9F42007847C5 /* RitualistCore */,
 			);
 			productName = RitualistWidgetExtension;
 			productReference = 91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */;
@@ -234,6 +282,8 @@
 				91C9ACD82E4A887C0077EF5C /* RitualistCore */,
 				9196AAEC2E4E49C300D5F386 /* RitualistCore */,
 				918031A32E5F27D100B6FAF6 /* RitualistCore */,
+				9127F1232EBB9BFA007847C5 /* RitualistCore */,
+				9127F12A2EBB9F36007847C5 /* RitualistCore */,
 			);
 			productName = Ritualist;
 			productReference = 91B730E92E38E4BC0050A48A /* Ritualist.app */;
@@ -298,6 +348,7 @@
 					};
 					91B730F72E38E4C10050A48A = {
 						CreatedOnToolsVersion = 16.4;
+						LastSwiftMigration = 2610;
 						TestTargetID = 91B730E82E38E4BC0050A48A;
 					};
 					91B731012E38E4C10050A48A = {
@@ -317,7 +368,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				911237F72E41210800A57BFC /* XCRemoteSwiftPackageReference "Factory" */,
-				91C9ACD72E4A887C0077EF5C /* XCLocalSwiftPackageReference "RitualistCore" */,
+				9127F1292EBB9F36007847C5 /* XCLocalSwiftPackageReference "RitualistCore" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 91B730EA2E38E4BC0050A48A /* Products */;
@@ -403,6 +454,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91C956A72EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -543,6 +595,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -552,6 +605,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ritualist.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Ritualist";
@@ -685,6 +739,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -694,6 +749,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ritualist.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Ritualist";
@@ -820,6 +876,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -955,6 +1012,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -1385,6 +1443,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -1394,6 +1453,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.vladblajovan.RitualistTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ritualist.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Ritualist";
@@ -1404,6 +1464,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PK53CW8644;
@@ -1526,7 +1587,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		91C9ACD72E4A887C0077EF5C /* XCLocalSwiftPackageReference "RitualistCore" */ = {
+		9127F1292EBB9F36007847C5 /* XCLocalSwiftPackageReference "RitualistCore" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = RitualistCore;
 		};
@@ -1559,17 +1620,28 @@
 			package = 911237F72E41210800A57BFC /* XCRemoteSwiftPackageReference "Factory" */;
 			productName = FactoryTesting;
 		};
+		9127F1232EBB9BFA007847C5 /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
+		};
+		9127F1252EBB9C53007847C5 /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
+		};
+		9127F12A2EBB9F36007847C5 /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
+		};
+		9127F12C2EBB9F42007847C5 /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
+		};
 		918031A32E5F27D100B6FAF6 /* RitualistCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RitualistCore;
 		};
 		9196AAEC2E4E49C300D5F386 /* RitualistCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = RitualistCore;
-		};
-		91A5C8022E53A0240095C251 /* RitualistCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 91C9ACD72E4A887C0077EF5C /* XCLocalSwiftPackageReference "RitualistCore" */;
 			productName = RitualistCore;
 		};
 		91A5C8042E53A25C0095C251 /* FactoryKit */ = {

@@ -34,7 +34,8 @@
       "Bash(plutil:*)",
       "mcp__XcodeBuildMCP__launch_app_device",
       "Bash(RitualistCore/Sources/RitualistCore/Storage/SchemaV2.swift)",
-      "Bash(RitualistCore/Sources/RitualistCore/Storage/SchemaV1.swift)"
+      "Bash(RitualistCore/Sources/RitualistCore/Storage/SchemaV1.swift)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

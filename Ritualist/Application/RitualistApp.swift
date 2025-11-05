@@ -18,6 +18,7 @@ import UserNotifications
     @Injected(\.urlValidationService) private var urlValidationService
     @Injected(\.navigationService) private var navigationService
     @Injected(\.dailyNotificationScheduler) private var dailyNotificationScheduler
+    @Injected(\.restoreGeofenceMonitoring) private var restoreGeofenceMonitoring
     
     var body: some Scene {
         WindowGroup {
@@ -26,6 +27,7 @@ import UserNotifications
                 .task {
                     await setupNotifications()
                     await scheduleInitialNotifications()
+                    await restoreGeofences()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     // Re-schedule notifications when app becomes active (handles day changes while backgrounded)
@@ -72,6 +74,17 @@ import UserNotifications
             try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
         } catch {
             print("⚠️ [App] Failed to re-schedule notifications: \(error)")
+        }
+    }
+
+    /// Restore geofence monitoring for habits with location-based reminders
+    /// This is called on app launch to restore geofences after app restart/kill
+    private func restoreGeofences() async {
+        do {
+            print("🌍 [App] Restoring geofence monitoring on app launch")
+            try await restoreGeofenceMonitoring.execute()
+        } catch {
+            print("⚠️ [App] Failed to restore geofence monitoring: \(error)")
         }
     }
     

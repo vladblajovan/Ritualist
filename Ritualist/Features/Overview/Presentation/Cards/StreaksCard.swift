@@ -6,10 +6,57 @@ struct StreaksCard: View {
     let shouldAnimateBestStreak: Bool
     let onAnimationComplete: () -> Void
     let isLoading: Bool
-    
+
     @State private var animatingStreakId: String? = nil
     @State private var sheetStreak: StreakInfo? = nil
-    
+
+    // MARK: - Layout Configuration
+
+    /// Height of each streak item
+    private let itemHeight: CGFloat = 100
+
+    /// Spacing between rows
+    private let rowSpacing: CGFloat = 12
+
+    /// Spacing between items in a row
+    private let itemSpacing: CGFloat = 12
+
+    /// Calculate the number of rows needed based on streak count
+    /// - For 1-2 streaks: 1 row
+    /// - For 3+ streaks: 2 rows
+    private var numberOfRows: Int {
+        if streaks.isEmpty { return 1 }
+        return streaks.count <= 2 ? 1 : 2
+    }
+
+    /// Calculate the dynamic height based on number of rows
+    /// - 1 row: itemHeight
+    /// - 2 rows: itemHeight * 2 + rowSpacing
+    private var gridHeight: CGFloat {
+        let baseHeight = CGFloat(numberOfRows) * itemHeight
+        let spacingHeight = numberOfRows > 1 ? CGFloat(numberOfRows - 1) * rowSpacing : 0
+        return baseHeight + spacingHeight
+    }
+
+    /// Organize streaks into rows for horizontal-first filling
+    /// - Row 1: First ceil(count/2) items
+    /// - Row 2: Remaining items
+    private var streakRows: [[StreakInfo]] {
+        guard !streaks.isEmpty else { return [] }
+
+        if numberOfRows == 1 {
+            // Single row: all streaks
+            return [Array(streaks)]
+        } else {
+            // Two rows: distribute evenly
+            // First row gets ceil(count/2), second row gets floor(count/2)
+            let midpoint = (streaks.count + 1) / 2
+            let row1 = Array(streaks.prefix(midpoint))
+            let row2 = Array(streaks.dropFirst(midpoint))
+            return [row1, row2]
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
@@ -73,20 +120,21 @@ struct StreaksCard: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
             } else {
-                // Horizontal Scrolling 2x2 Grid
+                // Horizontal Scrolling Grid (horizontal-first filling)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHGrid(rows: [
-                        GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12)
-                    ], spacing: 12) {
-                        ForEach(streaks) { streak in
-                            streakItem(for: streak)
-                                .frame(width: 140) // Fixed width for consistent sizing
+                    VStack(alignment: .leading, spacing: rowSpacing) {
+                        ForEach(Array(streakRows.enumerated()), id: \.offset) { rowIndex, rowStreaks in
+                            HStack(spacing: itemSpacing) {
+                                ForEach(rowStreaks) { streak in
+                                    streakItem(for: streak)
+                                        .frame(width: 140) // Fixed width for consistent sizing
+                                }
+                            }
                         }
                     }
                     .padding(.trailing, 16)
                 }
-                .frame(height: 220) // Fixed height for 2 rows
+                .frame(height: gridHeight) // Dynamic height based on row count
             }
         }
         .padding(20)
@@ -175,52 +223,90 @@ struct StreaksCard: View {
 }
 
 #Preview {
-    VStack(spacing: 20) {
-        StreaksCard(
-            streaks: [
-                StreakInfo(
-                    id: "1",
-                    habitName: "Morning Workout",
-                    emoji: "💪",
-                    currentStreak: 7,
-                    isActive: true
-                ),
-                StreakInfo(
-                    id: "2",
-                    habitName: "Reading",
-                    emoji: "📚",
-                    currentStreak: 3,
-                    isActive: true
-                ),
-                StreakInfo(
-                    id: "3",
-                    habitName: "Water Intake",
-                    emoji: "💧",
-                    currentStreak: 12,
-                    isActive: true
-                )
-            ],
-            shouldAnimateBestStreak: false,
-            onAnimationComplete: {},
-            isLoading: false
-        )
-        
-        // Loading state
-        StreaksCard(
-            streaks: [],
-            shouldAnimateBestStreak: false,
-            onAnimationComplete: {},
-            isLoading: true
-        )
-        
-        // Empty state
-        StreaksCard(
-            streaks: [],
-            shouldAnimateBestStreak: false,
-            onAnimationComplete: {},
-            isLoading: false
-        )
+    ScrollView {
+        VStack(spacing: 20) {
+            Text("Horizontal-First Fill Pattern")
+                .font(.headline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+
+            // 1 streak: Row 1 [1]
+            StreaksCard(
+                streaks: [
+                    StreakInfo(id: "1", habitName: "Workout", emoji: "💪", currentStreak: 7, isActive: true)
+                ],
+                shouldAnimateBestStreak: false,
+                onAnimationComplete: {},
+                isLoading: false
+            )
+
+            // 2 streaks: Row 1 [1, 2]
+            StreaksCard(
+                streaks: [
+                    StreakInfo(id: "1", habitName: "Workout", emoji: "💪", currentStreak: 7, isActive: true),
+                    StreakInfo(id: "2", habitName: "Reading", emoji: "📚", currentStreak: 3, isActive: true)
+                ],
+                shouldAnimateBestStreak: false,
+                onAnimationComplete: {},
+                isLoading: false
+            )
+
+            // 3 streaks: Row 1 [1, 2] Row 2 [3]
+            StreaksCard(
+                streaks: [
+                    StreakInfo(id: "1", habitName: "Workout", emoji: "💪", currentStreak: 7, isActive: true),
+                    StreakInfo(id: "2", habitName: "Reading", emoji: "📚", currentStreak: 3, isActive: true),
+                    StreakInfo(id: "3", habitName: "Water", emoji: "💧", currentStreak: 12, isActive: true)
+                ],
+                shouldAnimateBestStreak: false,
+                onAnimationComplete: {},
+                isLoading: false
+            )
+
+            // 4 streaks: Row 1 [1, 2] Row 2 [3, 4]
+            StreaksCard(
+                streaks: [
+                    StreakInfo(id: "1", habitName: "Workout", emoji: "💪", currentStreak: 7, isActive: true),
+                    StreakInfo(id: "2", habitName: "Reading", emoji: "📚", currentStreak: 3, isActive: true),
+                    StreakInfo(id: "3", habitName: "Water", emoji: "💧", currentStreak: 12, isActive: true),
+                    StreakInfo(id: "4", habitName: "Meditation", emoji: "🧘", currentStreak: 5, isActive: true)
+                ],
+                shouldAnimateBestStreak: false,
+                onAnimationComplete: {},
+                isLoading: false
+            )
+
+            // 5 streaks: Row 1 [1, 2, 3] Row 2 [4, 5]
+            StreaksCard(
+                streaks: [
+                    StreakInfo(id: "1", habitName: "Workout", emoji: "💪", currentStreak: 7, isActive: true),
+                    StreakInfo(id: "2", habitName: "Reading", emoji: "📚", currentStreak: 3, isActive: true),
+                    StreakInfo(id: "3", habitName: "Water", emoji: "💧", currentStreak: 12, isActive: true),
+                    StreakInfo(id: "4", habitName: "Meditation", emoji: "🧘", currentStreak: 5, isActive: true),
+                    StreakInfo(id: "5", habitName: "Journaling", emoji: "📝", currentStreak: 9, isActive: true)
+                ],
+                shouldAnimateBestStreak: false,
+                onAnimationComplete: {},
+                isLoading: false
+            )
+
+            // Loading state
+            StreaksCard(
+                streaks: [],
+                shouldAnimateBestStreak: false,
+                onAnimationComplete: {},
+                isLoading: true
+            )
+
+            // Empty state
+            StreaksCard(
+                streaks: [],
+                shouldAnimateBestStreak: false,
+                onAnimationComplete: {},
+                isLoading: false
+            )
+        }
+        .padding()
     }
-    .padding()
     .background(Color(.systemGroupedBackground))
 }

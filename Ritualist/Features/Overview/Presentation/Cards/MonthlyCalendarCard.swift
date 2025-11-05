@@ -192,39 +192,27 @@ struct MonthlyCalendarCard: View {
 
         displayDays = days.enumerated().map { index, date in
             let dayNumber = calendar.component(.day, from: date)
-            let isCurrentMonth = calendar.component(.month, from: date) == currentMonth
-            let isToday = calendar.isDateInToday(date)
-            let isFuture = date > today
-
             let normalizedDate = CalendarUtils.startOfDayUTC(for: date)
             let completion = monthlyData[normalizedDate] ?? 0.0
 
-            // Pre-compute colors
-            let bgColor: Color = {
-                if isFuture { return CardDesign.secondaryBackground }
-                if completion >= 1.0 { return CardDesign.progressGreen }
-                if completion >= 0.8 { return CardDesign.progressOrange }
-                if completion > 0 { return CardDesign.progressRed.opacity(0.6) }
-                return CardDesign.secondaryBackground
-            }()
-
-            let textColor: Color = {
-                if isToday { return .white }
-                if isFuture { return .secondary }
-                return completion >= 0.8 ? .white : .primary
-            }()
-
-            let opacity: Double = isFuture ? 0.3 : 1.0
+            // Use ViewLogic for all display calculations
+            let context = MonthlyCalendarViewLogic.DayContext(
+                date: date,
+                completion: completion,
+                today: today,
+                currentMonth: currentMonth,
+                calendar: calendar
+            )
 
             return DayDisplayData(
                 id: normalizedDate.timeIntervalSince1970.description,
                 date: date,
                 dayNumber: dayNumber,
-                bgColor: bgColor,
-                textColor: textColor,
-                hasBorder: isToday,
-                opacity: opacity,
-                isCurrentMonth: isCurrentMonth,
+                bgColor: MonthlyCalendarViewLogic.backgroundColor(for: context),
+                textColor: MonthlyCalendarViewLogic.textColor(for: context),
+                hasBorder: MonthlyCalendarViewLogic.shouldShowBorder(for: context),
+                opacity: MonthlyCalendarViewLogic.opacity(for: context),
+                isCurrentMonth: context.isCurrentMonth,
                 row: index / 7,
                 col: index % 7
             )
