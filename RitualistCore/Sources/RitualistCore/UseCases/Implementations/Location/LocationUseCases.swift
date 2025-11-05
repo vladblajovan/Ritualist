@@ -245,3 +245,68 @@ public struct GetMonitoredHabitsUseCaseImpl: GetMonitoredHabitsUseCase {
         return await locationMonitoringService.getMonitoredHabitIds()
     }
 }
+
+// MARK: - Restore Geofence Monitoring UseCase
+
+/// Restore geofence monitoring for all habits with enabled location configurations
+/// This should be called on app launch to restore geofences after app restart/kill
+public protocol RestoreGeofenceMonitoringUseCase {
+    func execute() async throws
+}
+
+public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUseCase {
+    private let habitRepository: HabitRepository
+    private let locationMonitoringService: LocationMonitoringService
+
+    public init(
+        habitRepository: HabitRepository,
+        locationMonitoringService: LocationMonitoringService
+    ) {
+        self.habitRepository = habitRepository
+        self.locationMonitoringService = locationMonitoringService
+    }
+
+    public func execute() async throws {
+        print("🔄 [RestoreGeofences] Starting geofence restoration on app launch")
+
+        // Check if location services are available
+        let authStatus = await locationMonitoringService.getAuthorizationStatus()
+        guard authStatus.canMonitorGeofences else {
+            print("⚠️  [RestoreGeofences] Location permission not granted - skipping restoration")
+            return
+        }
+
+        // Get all habits from repository
+        let allHabits = try await habitRepository.fetchAllHabits()
+
+        // Filter habits with enabled location configurations
+        let habitsWithLocation = allHabits.filter { habit in
+            guard let config = habit.locationConfiguration else { return false }
+            return config.isEnabled && habit.isActive
+        }
+
+        print("📍 [RestoreGeofences] Found \(habitsWithLocation.count) habits with enabled location monitoring")
+
+        // Restore monitoring for each habit
+        var restoredCount = 0
+        var failedCount = 0
+
+        for habit in habitsWithLocation {
+            guard let configuration = habit.locationConfiguration else { continue }
+
+            do {
+                try await locationMonitoringService.startMonitoring(
+                    habitId: habit.id,
+                    configuration: configuration
+                )
+                restoredCount += 1
+                print("✅ [RestoreGeofences] Restored monitoring for habit: \(habit.name)")
+            } catch {
+                failedCount += 1
+                print("❌ [RestoreGeofences] Failed to restore monitoring for habit '\(habit.name)': \(error)")
+            }
+        }
+
+        print("🎯 [RestoreGeofences] Restoration complete - Success: \(restoredCount), Failed: \(failedCount)")
+    }
+}

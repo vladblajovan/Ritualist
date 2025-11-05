@@ -75,4 +75,14 @@ extension Container {
             )
         }
     }
+
+    @MainActor
+    var restoreGeofenceMonitoring: Factory<RestoreGeofenceMonitoringUseCase> {
+        self { @MainActor in
+            RestoreGeofenceMonitoringUseCaseImpl(
+                habitRepository: self.habitRepository(),
+                locationMonitoringService: self.locationMonitoringService()
+            )
+        }
+    }
 }

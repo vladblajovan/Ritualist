@@ -57,19 +57,24 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
     // MARK: - LocationMonitoringService Implementation
 
     public func startMonitoring(habitId: UUID, configuration: LocationConfiguration) async throws {
+        print("📍 [LocationMonitoring] Starting monitoring for habit \(habitId)")
+
         // Validate configuration
         guard configuration.isValid else {
+            print("❌ [LocationMonitoring] Invalid configuration for habit \(habitId)")
             throw LocationError.invalidConfiguration("Invalid coordinates or radius")
         }
 
         // Check authorization status (includes location services enabled check)
         let authStatus = await getAuthorizationStatus()
         guard authStatus.canMonitorGeofences else {
+            print("❌ [LocationMonitoring] Permission denied for habit \(habitId)")
             throw LocationError.permissionDenied
         }
 
         // Check if we've reached iOS geofence limit (20)
         if monitoredHabits.count >= 20 && monitoredHabits[habitId] == nil {
+            print("❌ [LocationMonitoring] Geofence limit reached (20), cannot add habit \(habitId)")
             throw LocationError.geofenceLimitReached
         }
 
@@ -95,18 +100,26 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
 
         // Stop existing monitoring if already monitoring this habit
         if monitoredHabits[habitId] != nil {
+            print("🔄 [LocationMonitoring] Updating existing monitoring for habit \(habitId)")
             locationManager.stopMonitoring(for: region)
         }
 
         // Start monitoring
         locationManager.startMonitoring(for: region)
 
-        // Store configuration
+        // Store configuration in memory
         monitoredHabits[habitId] = configuration
+
+        print("✅ [LocationMonitoring] Now monitoring \(monitoredHabits.count) habit(s)")
     }
 
     public func stopMonitoring(habitId: UUID) async {
-        guard monitoredHabits[habitId] != nil else { return }
+        guard monitoredHabits[habitId] != nil else {
+            print("⚠️  [LocationMonitoring] Habit \(habitId) not currently monitored")
+            return
+        }
+
+        print("🛑 [LocationMonitoring] Stopping monitoring for habit \(habitId)")
 
         let region = CLCircularRegion(
             center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
@@ -116,13 +129,19 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
 
         locationManager.stopMonitoring(for: region)
         monitoredHabits.removeValue(forKey: habitId)
+
+        print("✅ [LocationMonitoring] Now monitoring \(monitoredHabits.count) habit(s)")
     }
 
     public func stopAllMonitoring() async {
+        print("🛑 [LocationMonitoring] Stopping all monitoring (\(locationManager.monitoredRegions.count) regions)")
+
         for monitoredRegion in locationManager.monitoredRegions {
             locationManager.stopMonitoring(for: monitoredRegion)
         }
         monitoredHabits.removeAll()
+
+        print("✅ [LocationMonitoring] All monitoring stopped")
     }
 
     public func getMonitoredHabitIds() async -> [UUID] {
@@ -163,12 +182,18 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
     ) {
         guard let circularRegion = region as? CLCircularRegion,
               let habitId = UUID(uuidString: region.identifier) else {
+            print("⚠️  [LocationMonitoring] Invalid region or habit ID in geofence event")
             return
         }
 
         Task {
+            print("📍 [LocationMonitoring] Geofence event: \(eventType) for habit \(habitId)")
+
             // Get configuration for this habit
-            guard let configuration = await monitoredHabits[habitId] else { return }
+            guard let configuration = await monitoredHabits[habitId] else {
+                print("⚠️  [LocationMonitoring] No configuration found for habit \(habitId)")
+                return
+            }
 
             // Create geofence event
             let event = GeofenceEvent(
@@ -180,12 +205,20 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
             )
 
             // Check if event should trigger notification
-            guard event.shouldTriggerNotification() else { return }
+            guard event.shouldTriggerNotification() else {
+                print("⏭️  [LocationMonitoring] Skipping notification due to frequency rules")
+                return
+            }
 
-            // Call event handler
+            print("🔔 [LocationMonitoring] Triggering notification for habit \(habitId)")
+
+            // Call event handler (which will update the database with new trigger dates)
+            // The event handler (HandleGeofenceEventUseCase) will update the database
             await eventHandler?(event)
 
-            // Update last trigger date for this specific event type
+            // IMPORTANT: After the event handler updates the database, we need to sync
+            // our in-memory state. However, the event handler updates the database,
+            // so we update our in-memory state here to match.
             var updatedConfig = configuration
             switch eventType {
             case .entry:
@@ -194,11 +227,14 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
                 updatedConfig.lastExitTriggerDate = Date()
             }
             await updateConfiguration(habitId: habitId, configuration: updatedConfig)
+
+            print("✅ [LocationMonitoring] Event handled and configuration updated")
         }
     }
 
     private func updateConfiguration(habitId: UUID, configuration: LocationConfiguration) {
         monitoredHabits[habitId] = configuration
+        print("🔄 [LocationMonitoring] Updated in-memory configuration for habit \(habitId)")
     }
 }
 
