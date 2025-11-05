@@ -47,10 +47,18 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
         self.locationManager = CLLocationManager()
         super.init()
         self.locationManager.delegate = self
+
         // Use kCLLocationAccuracyHundredMeters for battery efficiency
+        // This provides optimal balance between accuracy and battery consumption for geofences
         self.locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        // Allow background monitoring
+
+        // REQUIRED for background geofence monitoring
+        // Must be paired with UIBackgroundModes "location" in Info.plist
+        // Allows geofence events to fire even when app is backgrounded/killed
         self.locationManager.allowsBackgroundLocationUpdates = true
+
+        // For region monitoring, this setting has minimal impact since we use geofences
+        // Set to false to ensure consistent behavior across all scenarios
         self.locationManager.pausesLocationUpdatesAutomatically = false
     }
 
