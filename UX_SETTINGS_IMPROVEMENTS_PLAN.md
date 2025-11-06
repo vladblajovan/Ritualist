@@ -24,7 +24,7 @@ The Settings page demonstrates solid iOS patterns and follows many Apple HIG pri
 
 ### **🔴 IMMEDIATE (This Sprint) - Safety & Accessibility Critical**
 
-#### 1. Add Confirmation Dialog for Cancel Subscription ⚠️
+#### - [ ] 1. Add Confirmation Dialog for Cancel Subscription ⚠️
 **Priority:** CRITICAL - Safety Issue
 **File:** `SettingsView.swift` (line 106-123)
 **Problem:** Users can accidentally cancel subscription with no confirmation
@@ -52,7 +52,7 @@ Button {
 
 ---
 
-#### 2. Add Accessibility Labels to Icon-Only Buttons ♿
+#### - [ ] 2. Add Accessibility Labels to Icon-Only Buttons ♿
 **Priority:** CRITICAL - Accessibility Compliance
 **Files:** `SettingsView.swift` (lines 229-233, 239-243, 279-283, 289-293)
 **Problem:** VoiceOver users cannot understand button purposes
@@ -96,7 +96,7 @@ AvatarView(...)
 
 ---
 
-#### 3. Reorder Sections - Permissions First 🎯
+#### - [ ] 3. Reorder Sections - Permissions First 🎯
 **Priority:** HIGH - UX Critical
 **File:** `SettingsView.swift` (lines 58-313)
 **Problem:** Critical permissions buried at bottom, users can't find them
@@ -126,7 +126,7 @@ AvatarView(...)
 
 ---
 
-#### 4. Rename "Profile" Section to "Appearance" 📝
+#### - [ ] 4. Rename "Profile" Section to "Appearance" 📝
 **Priority:** HIGH - Clarity
 **File:** `SettingsView.swift` (line 141)
 **Problem:** Section named "Profile" only contains appearance setting - misleading
@@ -146,7 +146,7 @@ Also update `Localizable.xcstrings` and `Strings` file if needed.
 
 ### **🟡 NEXT SPRINT - Consistency & UX Polish**
 
-#### 5. Standardize Row Patterns 🎨
+#### - [ ] 5. Standardize Row Patterns 🎨
 **Priority:** MEDIUM - Visual Consistency
 **Files:** `SettingsView.swift` (multiple locations)
 **Problem:** Three different visual patterns for settings rows
@@ -161,7 +161,7 @@ Also update `Localizable.xcstrings` and `Strings` file if needed.
 
 ---
 
-#### 6. Add Save Confirmation for Name Field 💾
+#### - [ ] 6. Add Save Confirmation for Name Field 💾
 **Priority:** MEDIUM - UX Improvement
 **File:** `SettingsView.swift` (line 74-82)
 **Problem:** No visual affordance for saving changes, requires keyboard submit
@@ -185,7 +185,7 @@ HStack {
 
 ---
 
-#### 7. Add Color-Independent Status Indicators ♿
+#### - [ ] 7. Add Color-Independent Status Indicators ♿
 **Priority:** MEDIUM - Accessibility (WCAG Compliance)
 **File:** `SettingsView.swift` (line 99-101)
 **Problem:** Subscription status uses only color to convey meaning
@@ -210,7 +210,7 @@ HStack {
 
 ---
 
-#### 8. Shorten Timezone Explanations 📝
+#### - [ ] 8. Shorten Timezone Explanations 📝
 **Priority:** MEDIUM - Clarity
 **File:** `SettingsView.swift` (line 384-392)
 **Problem:** Explanation text is very long and technical
@@ -235,7 +235,7 @@ case "current":
 
 ### **🟢 BACKLOG - Future Enhancements**
 
-#### 9. Create "Advanced" Section for Niche Settings 📂
+#### - [ ] 9. Create "Advanced" Section for Niche Settings 📂
 **Priority:** LOW - Information Architecture
 **Benefit:** Reduces cognitive load on main settings page
 
@@ -243,7 +243,7 @@ case "current":
 
 ---
 
-#### 10. Add Contextual Menus to Settings Buttons 🎛️
+#### - [ ] 10. Add Contextual Menus to Settings Buttons 🎛️
 **Priority:** LOW - Enhanced Interactions
 **Benefit:** Provides additional options without cluttering UI
 
@@ -259,7 +259,7 @@ Menu {
 
 ---
 
-#### 11. Test Dynamic Type at All Sizes ♿
+#### - [ ] 11. Test Dynamic Type at All Sizes ♿
 **Priority:** LOW - Accessibility Polish
 **Action Items:**
 - Test with AX1-AX5 text sizes
@@ -269,7 +269,7 @@ Menu {
 
 ---
 
-#### 12. Add Auto-Save Toast Notifications 💬
+#### - [ ] 12. Add Auto-Save Toast Notifications 💬
 **Priority:** LOW - Feedback Improvement
 **Benefit:** User knows when changes are saved
 
