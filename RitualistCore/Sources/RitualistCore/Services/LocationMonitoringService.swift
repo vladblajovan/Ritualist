@@ -22,8 +22,11 @@ public protocol LocationMonitoringService: AnyObject {
     /// Stop monitoring all geofences
     func stopAllMonitoring() async
 
-    /// Get currently monitored habit IDs
+    /// Get currently monitored habit IDs (from in-memory tracking)
     func getMonitoredHabitIds() async -> [UUID]
+
+    /// Get habit IDs that iOS CLLocationManager is actively monitoring (from system-level geofences)
+    func getSystemMonitoredHabitIds() async -> [UUID]
 
     /// Get authorization status for location services
     func getAuthorizationStatus() async -> LocationAuthorizationStatus
@@ -119,6 +122,15 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
         monitoredHabits[habitId] = configuration
 
         print("✅ [LocationMonitoring] Now monitoring \(monitoredHabits.count) habit(s)")
+
+        // Request initial state for logging/debugging purposes
+        // Note: This does NOT trigger notifications - only actual boundary crossings do
+        // Delayed by 500ms to avoid race condition with iOS's automatic state determination
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            locationManager.requestState(for: region)
+            print("🔍 [LocationMonitoring] Requested state check for region: \(habitId)")
+        }
     }
 
     public func stopMonitoring(habitId: UUID) async {
@@ -154,6 +166,19 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
 
     public func getMonitoredHabitIds() async -> [UUID] {
         return Array(monitoredHabits.keys)
+    }
+
+    public func getSystemMonitoredHabitIds() async -> [UUID] {
+        // Get all regions iOS CLLocationManager is actively monitoring
+        let monitoredRegions = locationManager.monitoredRegions
+
+        // Convert region identifiers to UUIDs (our habit IDs)
+        let habitIds = monitoredRegions.compactMap { region -> UUID? in
+            return UUID(uuidString: region.identifier)
+        }
+
+        print("📋 [LocationMonitoring] iOS is monitoring \(habitIds.count) geofence regions")
+        return habitIds
     }
 
     public func getAuthorizationStatus() async -> LocationAuthorizationStatus {
@@ -296,6 +321,28 @@ extension DefaultLocationMonitoringService: CLLocationManagerDelegate {
             Task {
                 await stopAllMonitoring()
             }
+        }
+    }
+
+    nonisolated public func locationManager(
+        _ manager: CLLocationManager,
+        didDetermineState state: CLRegionState,
+        for region: CLRegion
+    ) {
+        // State determination is ONLY for informational purposes
+        // Do NOT trigger notifications - only actual boundary crossings (didEnter/didExit) should notify
+        // This prevents false positives when app restarts while user is already inside a region
+        print("📍 [LocationMonitoring] Determined initial state for region \(region.identifier): \(state.rawValue == 1 ? "inside" : state.rawValue == 2 ? "outside" : "unknown")")
+
+        switch state {
+        case .inside:
+            print("🏠 [LocationMonitoring] Device is currently inside region (no notification - waiting for actual boundary crossing)")
+        case .outside:
+            print("🌍 [LocationMonitoring] Device is currently outside region (ready for entry event)")
+        case .unknown:
+            print("❓ [LocationMonitoring] Region state unknown - waiting for location update")
+        @unknown default:
+            print("⚠️  [LocationMonitoring] Unknown region state: \(state.rawValue)")
         }
     }
 }

@@ -22,6 +22,8 @@
 		91A5C8052E53A25C0095C251 /* FactoryKit in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8042E53A25C0095C251 /* FactoryKit */; };
 		91A5C8072E53C5830095C251 /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8062E53C5830095C251 /* Factory */; };
 		91C956A72EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */; };
+		91C95A282EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C95A272EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift */; };
+		91C95A2C2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C95A2B2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift */; };
 		91C9ACD92E4A887C0077EF5C /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C9ACD82E4A887C0077EF5C /* RitualistCore */; };
 /* End PBXBuildFile section */
 
@@ -72,6 +74,10 @@
 		91B730F82E38E4C10050A48A /* RitualistTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		91B731022E38E4C10050A48A /* RitualistUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyCalendarViewLogicTests.swift; sourceTree = "<group>"; };
+		91C95A272EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreaksLayoutViewLogicTests.swift; sourceTree = "<group>"; };
+		91C95A2B2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationStyleViewLogicTests.swift; sourceTree = "<group>"; };
+		91C95A2D2EBBEBD00088AB2D /* GettingHome.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = GettingHome.gpx; path = SimulatorLocations/GettingHome.gpx; sourceTree = "<group>"; };
+		91C95A2E2EBBF0A10088AB2D /* LeavingHome.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = LeavingHome.gpx; path = SimulatorLocations/LeavingHome.gpx; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -168,6 +174,8 @@
 		91B730E02E38E4BC0050A48A = {
 			isa = PBXGroup;
 			children = (
+				91C95A2E2EBBF0A10088AB2D /* LeavingHome.gpx */,
+				91C95A2D2EBBEBD00088AB2D /* GettingHome.gpx */,
 				91A5C7EB2E53699B0095C251 /* RitualistWidgetExtension.entitlements */,
 				91B730EB2E38E4BC0050A48A /* Ritualist */,
 				91A5C7D12E5369190095C251 /* RitualistWidget */,
@@ -224,6 +232,8 @@
 			isa = PBXGroup;
 			children = (
 				91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */,
+				91C95A272EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift */,
+				91C95A2B2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift */,
 			);
 			path = ViewLogic;
 			sourceTree = "<group>";
@@ -455,6 +465,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				91C956A72EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift in Sources */,
+				91C95A2C2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift in Sources */,
+				91C95A282EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -54,14 +54,7 @@ public struct HabitPerformanceRow: View {
     }
     
     private var progressColor: Color {
-        switch completionRate {
-        case 0.8...1.0:
-            return .green
-        case 0.5..<0.8:
-            return .orange
-        default:
-            return .red
-        }
+        ProgressColorViewLogic.color(for: completionRate)
     }
 }
 

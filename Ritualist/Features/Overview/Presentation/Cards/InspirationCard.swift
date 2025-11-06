@@ -11,7 +11,7 @@ struct InspirationCard: View {
 
     // PERFORMANCE OPTIMIZATION: Cache computed style to prevent recomputation on every render
     // This eliminates repeated gradient creation and branching logic evaluation
-    @State private var cachedStyle: (gradient: LinearGradient, icon: String, color: Color)?
+    @State private var cachedStyle: InspirationStyleViewLogic.Style?
 
     init(message: String, slogan: String, timeOfDay: TimeOfDay, completionPercentage: Double = 0.0, shouldShow: Bool = true, onDismiss: @escaping () -> Void) {
         self.message = message
@@ -24,72 +24,22 @@ struct InspirationCard: View {
 
     // MARK: - Style Computation
 
-    /// Computes the appropriate style based on completion and time
-    /// Uses pre-cached gradients from GradientTokens for optimal performance
-    /// Only called when dependencies change (not on every render)
-    private func computeStyle(
-        completionPercentage: Double,
-        timeOfDay: TimeOfDay
-    ) -> (gradient: LinearGradient, icon: String, color: Color) {
-
-        // Progress-based styling (takes priority)
-        if completionPercentage >= 1.0 {
-            // Perfect day celebration
-            return (
-                GradientTokens.inspirationPerfect,
-                "party.popper.fill",
-                .green
-            )
-        } else if completionPercentage >= 0.75 {
-            // Strong progress celebration
-            return (
-                GradientTokens.inspirationStrong,
-                "flame.fill",
-                .blue
-            )
-        } else if completionPercentage >= 0.5 {
-            // Midway encouragement
-            return (
-                GradientTokens.inspirationMidway,
-                "bolt.fill",
-                .orange
-            )
-        } else {
-            // Time-based motivation
-            switch timeOfDay {
-            case .morning:
-                return (
-                    GradientTokens.inspirationMorning,
-                    "sunrise.fill",
-                    .pink
-                )
-            case .noon:
-                return (
-                    GradientTokens.inspirationNoon,
-                    "sun.max.fill",
-                    .indigo
-                )
-            case .evening:
-                return (
-                    GradientTokens.inspirationEvening,
-                    "moon.stars.fill",
-                    .purple
-                )
-            }
-        }
-    }
-
     /// Updates the cached style when dependencies change
     private func updateCachedStyle() {
-        cachedStyle = computeStyle(
+        let context = InspirationStyleViewLogic.StyleContext(
             completionPercentage: completionPercentage,
             timeOfDay: timeOfDay
         )
+        cachedStyle = InspirationStyleViewLogic.computeStyle(for: context)
     }
 
     /// Fallback style for initial render before cache is populated
-    private var defaultStyle: (gradient: LinearGradient, icon: String, color: Color) {
-        (GradientTokens.inspirationMorning, "sunrise.fill", .pink)
+    private var defaultStyle: InspirationStyleViewLogic.Style {
+        InspirationStyleViewLogic.Style(
+            gradient: GradientTokens.inspirationMorning,
+            iconName: "sunrise.fill",
+            accentColor: .pink
+        )
     }
     
     var body: some View {
@@ -100,9 +50,9 @@ struct InspirationCard: View {
             VStack(spacing: 0) {
                 HStack {
                     // Time-based icon
-                    Image(systemName: style.icon)
+                    Image(systemName: style.iconName)
                         .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(style.color)
+                        .foregroundColor(style.accentColor)
 
                     Spacer()
 
@@ -114,7 +64,7 @@ struct InspirationCard: View {
                             .frame(width: 28, height: 28)
                             .background(
                                 Circle()
-                                    .fill(style.color)
+                                    .fill(style.accentColor)
                             )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -136,7 +86,7 @@ struct InspirationCard: View {
                     if message != slogan && !slogan.isEmpty {
                         Text(slogan)
                             .font(.system(size: 14, weight: .medium, design: .rounded))
-                            .foregroundColor(style.color)
+                            .foregroundColor(style.accentColor)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .italic()
@@ -148,7 +98,7 @@ struct InspirationCard: View {
                     HStack(spacing: 6) {
                         ForEach(0..<3, id: \.self) { _ in
                             Circle()
-                                .fill(style.color.opacity(0.6))
+                                .fill(style.accentColor.opacity(0.6))
                                 .frame(width: 6, height: 6)
                         }
                     }
