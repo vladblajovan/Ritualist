@@ -99,19 +99,26 @@ jobs:
         echo "✅ Build completed in ${BUILD_TIME} seconds"
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
     
+    - name: Boot Simulator First
+      run: |
+        echo "🚀 Booting simulator..."
+        xcrun simctl boot "iPhone 16" || xcrun simctl boot "iPhone 15 Pro" || echo "Simulator already booted"
+        xcrun simctl list devices | grep Booted
+
     - name: Run Tests (including Swift Testing)
-      timeout-minutes: 10
+      timeout-minutes: 5
       run: |
         echo "🧪 Starting tests at $(date)"
         TEST_START=$(date +%s)
 
-        xcodebuild test \
+        set -o pipefail && xcodebuild test \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
           -only-testing:RitualistTests \
           -resultBundlePath TestResults.xcresult \
-          -derivedDataPath ~/Library/Developer/Xcode/DerivedData
+          -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
+          2>&1 | tee xcodebuild.log | grep -E "Test Suite|Test Case|passed|failed|Testing started|Testing cancelled"
 
         TEST_END=$(date +%s)
         TEST_TIME=$((TEST_END - TEST_START))
