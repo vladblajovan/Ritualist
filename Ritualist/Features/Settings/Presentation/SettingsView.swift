@@ -296,6 +296,9 @@ private struct SettingsFormView: View {
                         .padding(.vertical, Spacing.small)
                     }
 
+                    // Social Media Section
+                    SocialMediaLinksView()
+
                     #if DEBUG
                     Section("Debug") {
                         GenericRowView.settingsRow(
@@ -364,7 +367,7 @@ private struct SettingsFormView: View {
     }
     
     // MARK: - Helper Methods
-    
+
     private func showPaywall() {
         Task { @MainActor in
             await paywallViewModel.load()
