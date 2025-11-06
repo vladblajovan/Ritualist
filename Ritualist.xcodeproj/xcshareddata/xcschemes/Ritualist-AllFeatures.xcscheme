@@ -9,16 +9,6 @@
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
-            <TestPlanReference
-               reference = "container:Ritualist-AllFeatures.xctestplan">
-            </TestPlanReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
             buildForRunning = "YES"
             buildForProfiling = "YES"
             buildForArchiving = "YES"
@@ -37,13 +27,8 @@
       buildConfiguration = "Debug-AllFeatures"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES">
-      <TestPlans>
-         <TestPlanReference
-            reference = "container:Ritualist-AllFeatures.xctestplan"
-            default = "YES">
-         </TestPlanReference>
-      </TestPlans>
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      shouldAutocreateTestPlan = "YES">
       <Testables>
          <TestableReference
             skipped = "NO"
