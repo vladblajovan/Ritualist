@@ -107,8 +107,8 @@ private struct PermissionRow: View {
                 .accessibilityHint(requestAccessibilityHint)
             } else {
                 Button(action: settingsAction) {
-                    Image(systemName: "arrow.up.right.square")
-                        .font(.title3)
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 .accessibilityLabel(settingsAccessibilityLabel)
