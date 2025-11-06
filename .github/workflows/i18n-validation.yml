@@ -111,14 +111,13 @@ jobs:
         echo "🧪 Starting tests at $(date)"
         TEST_START=$(date +%s)
 
-        set -o pipefail && xcodebuild test \
+        xcodebuild test \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
           -only-testing:RitualistTests \
           -resultBundlePath TestResults.xcresult \
-          -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
-          2>&1 | tee xcodebuild.log | grep -E "Test Suite|Test Case|passed|failed|Testing started|Testing cancelled"
+          -derivedDataPath ~/Library/Developer/Xcode/DerivedData
 
         TEST_END=$(date +%s)
         TEST_TIME=$((TEST_END - TEST_START))
