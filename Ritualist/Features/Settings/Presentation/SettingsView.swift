@@ -30,13 +30,12 @@ private struct SettingsFormView: View {
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
     @State private var paywallItem: PaywallItem?
-    @State private var showingCategoryManagement = false
-    
+    @State private var showingCancelConfirmation = false
+
     #if DEBUG
     @State private var showingDebugMenu = false
     #endif
     @Injected(\.paywallViewModel) var paywallViewModel
-    @Injected(\.categoryManagementViewModel) var categoryManagementVM
     
     // Local form state
     @State private var name = ""
@@ -56,248 +55,39 @@ private struct SettingsFormView: View {
                 }
             } else {
                 Form {
-                    
                     // Account Section
-                    Section("Account") {
-                            // Avatar and Name row
-                            HStack(spacing: Spacing.medium) {
-                                AvatarView(
-                                    name: displayName,
-                                    imageData: vm.profile.avatarImageData,
-                                    size: 60,
-                                    showEditBadge: true
-                                ) {
-                                    showingImagePicker = true
-                                }
-                                
-                                VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                                    TextField(Strings.Form.name, text: $name)
-                                        .textFieldStyle(.plain)
-                                        .focused($isNameFieldFocused)
-                                        .onSubmit {
-                                            isNameFieldFocused = false
-                                            Task {
-                                                await updateUserName()
-                                            }
-                                        }
-                                    
-                                    if vm.isUpdatingUser {
-                                        HStack {
-                                            ProgressView()
-                                                .scaleEffect(ScaleFactors.tiny)
-                                            Text("Updating...")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                }
-                            }
-                            // Subscription info
-                            HStack {
-                                Label("Subscription", systemImage: "crown")
-                                Spacer()
-                                Text(vm.isPremiumUser ? "Pro" : "Free")
-                                    .foregroundColor(vm.isPremiumUser ? .orange : .secondary)
-                                    .fontWeight(vm.isPremiumUser ? .medium : .regular)
-                            }
-                            
-                            // Cancel subscription for premium users or Subscribe for free users
-                            if vm.isPremiumUser {
-                                Button {
-                                    Task {
-                                        await vm.cancelSubscription()
-                                    }
-                                } label: {
-                                    HStack {
-                                        if vm.isCancellingSubscription {
-                                            ProgressView()
-                                                .scaleEffect(ScaleFactors.smallMedium)
-                                            Text("Cancelling...")
-                                        } else {
-                                            Label("Cancel Subscription", systemImage: "xmark.circle")
-                                        }
-                                        Spacer()
-                                    }
-                                    .foregroundColor(.orange)
-                                }
-                                .disabled(vm.isCancellingSubscription)
-                            } else {
-                                // Subscribe button for free users
-                                Button {
-                                    showPaywall()
-                                } label: {
-                                    HStack {
-                                        Label("Subscribe to Pro", systemImage: "crown.fill")
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .foregroundColor(.blue)
-                                }
-                            }
-                    }
-                    
-                    Section(Strings.Settings.profile) {
-                        
-                        HStack {
-                            Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
-                                Text(Strings.Settings.followSystem).tag(0)
-                                Text(Strings.Settings.light).tag(1)
-                                Text(Strings.Settings.dark).tag(2)
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                            .onChange(of: appearance) { _, newValue in
-                                Task {
-                                    // Auto-save appearance changes
-                                    vm.profile.appearance = newValue
-                                    _ = await vm.save()
-                                    await vm.updateAppearance(newValue)
-                                }
-                            }
-                        }
-                    }
-                    
-                    Section("Time Display") {
-                        VStack(alignment: .leading, spacing: Spacing.small) {
-                            Picker("Display Mode", selection: $displayTimezoneMode) {
-                                Text("Original Time").tag("original")
-                                Text("Current Time").tag("current")
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                            .onChange(of: displayTimezoneMode) { _, newValue in
-                                Task {
-                                    vm.profile.displayTimezoneMode = newValue
-                                    _ = await vm.save()
-                                }
-                            }
+                    AccountSectionView(
+                        vm: vm,
+                        name: $name,
+                        appearance: $appearance,
+                        displayTimezoneMode: $displayTimezoneMode,
+                        isNameFieldFocused: $isNameFieldFocused,
+                        showingImagePicker: $showingImagePicker,
+                        showingCancelConfirmation: $showingCancelConfirmation,
+                        showPaywall: showPaywall,
+                        updateUserName: updateUserName
+                    )
 
-                            Text(timezoneExplanationText)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .padding(.vertical, Spacing.small)
-                    }
-                    
-                    Section("Data Management") {
-                        GenericRowView.settingsRow(
-                            title: "Manage Categories",
-                            subtitle: "Add, edit, or delete habit categories",
-                            icon: "folder.badge.gearshape",
-                            iconColor: .orange
-                        ) {
-                            showingCategoryManagement = true
-                        }
-                    }
-                    
-                    Section("Personality Insights") {
-                        PersonalityInsightsSettingsRow()
-                    }
-
-                    Section(Strings.Settings.notifications) {
-                        HStack(spacing: Spacing.medium) {
-                            Image(systemName: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill")
-                                .foregroundColor(vm.hasNotificationPermission ? .green : .orange)
-                                .font(.title2)
-                                .frame(width: IconSize.large)
-                            
-                            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                                Text(Strings.Settings.notificationPermission)
-                                    .font(.headline)
-                                    .fontWeight(.medium)
-                                
-                                Text(vm.hasNotificationPermission ? 
-                                     Strings.Settings.notificationsEnabled :
-                                     Strings.Settings.notificationsDisabled)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            
-                            Spacer()
-                            
-                            // Action button on the right
-                            if vm.isRequestingNotifications {
-                                ProgressView()
-                                    .scaleEffect(ScaleFactors.smallMedium)
-                            } else if !vm.hasNotificationPermission {
-                                Button {
-                                    Task {
-                                        await vm.requestNotifications()
-                                    }
-                                } label: {
-                                    Image(systemName: "bell.badge")
-                                        .font(.title3)
-                                        .foregroundColor(.blue)
-                                }
-                            } else {
-                                Button {
-                                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                                        UIApplication.shared.open(settingsUrl)
-                                    }
-                                } label: {
-                                    Image(systemName: "gearshape.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-                        .padding(.vertical, Spacing.small)
-                    }
-
-                    // Location Permissions Section
-                    Section("Location") {
-                        HStack(spacing: Spacing.medium) {
-                            Image(systemName: vm.locationAuthStatus.canMonitorGeofences ? "location.fill" : "location.slash.fill")
-                                .foregroundColor(vm.locationAuthStatus.canMonitorGeofences ? .green : .orange)
-                                .font(.title2)
-                                .frame(width: IconSize.large)
-
-                            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                                Text("Location Permission")
-                                    .font(.headline)
-                                    .fontWeight(.medium)
-
-                                Text(vm.locationAuthStatus.displayText)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            Spacer()
-
-                            // Action button on the right
-                            if vm.isRequestingLocationPermission {
-                                ProgressView()
-                                    .scaleEffect(ScaleFactors.smallMedium)
-                            } else if !vm.locationAuthStatus.canMonitorGeofences {
-                                Button {
-                                    Task {
-                                        await vm.requestLocationPermission()
-                                    }
-                                } label: {
-                                    Image(systemName: "location.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.blue)
-                                }
-                            } else {
-                                Button {
-                                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                                        UIApplication.shared.open(settingsUrl)
-                                    }
-                                } label: {
-                                    Image(systemName: "gearshape.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-                        .padding(.vertical, Spacing.small)
-                    }
+                    // Permissions Section (Notifications + Location)
+                    PermissionsSectionView(vm: vm)
 
                     // Social Media Section
                     SocialMediaLinksView()
+
+                    // Advanced Section
+                    Section("Advanced") {
+                        NavigationLink {
+                            AdvancedSettingsView(
+                                vm: vm,
+                                displayTimezoneMode: $displayTimezoneMode
+                            )
+                        } label: {
+                            HStack {
+                                Label("Advanced Settings", systemImage: "gearshape.2")
+                                Spacer()
+                            }
+                        }
+                    }
 
                     #if DEBUG
                     Section("Debug") {
@@ -315,13 +105,6 @@ private struct SettingsFormView: View {
                 .refreshable {
                     await vm.load()
                     updateLocalState()
-                }
-                .onAppear {
-                    updateLocalState()
-                    Task {
-                        await vm.refreshNotificationStatus()
-                        await vm.refreshLocationStatus()
-                    }
                 }
                 .sheet(isPresented: $showingImagePicker) {
                     AvatarImagePicker(
@@ -342,12 +125,7 @@ private struct SettingsFormView: View {
                 .sheet(item: $paywallItem) { item in
                     PaywallView(vm: item.viewModel)
                 }
-                .sheet(isPresented: $showingCategoryManagement) {
-                    NavigationStack {
-                        CategoryManagementView(vm: categoryManagementVM)
-                    }
-                }
-                
+
                 #if DEBUG
                 .sheet(isPresented: $showingDebugMenu) {
                     NavigationStack {
@@ -356,14 +134,18 @@ private struct SettingsFormView: View {
                 }
                 #endif
                 .onAppear {
-                    // Refresh premium status when settings page appears
+                    // Initialize local state and refresh all statuses
+                    updateLocalState()
                     Task {
+                        await vm.refreshNotificationStatus()
+                        await vm.refreshLocationStatus()
                         await vm.refreshPremiumStatus()
                     }
-                    updateLocalState()
                 }
             }
         }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.large)
     }
     
     // MARK: - Helper Methods
@@ -379,17 +161,6 @@ private struct SettingsFormView: View {
     
     private var displayName: String {
         vm.profile.name
-    }
-    
-    private var timezoneExplanationText: String {
-        switch displayTimezoneMode {
-        case "original":
-            return "Show times as they were originally experienced (preserves timezone context)"
-        case "current":
-            return "Show all times in your current device timezone"
-        default:
-            return "Choose how to display timestamps in the app"
-        }
     }
 
     private func updateLocalState() {

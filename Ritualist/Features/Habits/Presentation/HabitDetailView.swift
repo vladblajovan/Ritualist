@@ -6,7 +6,8 @@ public struct HabitDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var vm: HabitDetailViewModel
     @ObservationIgnored @Injected(\.categoryManagementViewModel) var categoryManagementVM
-    
+    @State private var showingCategoryManagement = false
+
     public init(vm: HabitDetailViewModel) {
         self.vm = vm
     }
@@ -24,11 +25,20 @@ public struct HabitDetailView: View {
                         await vm.retry()
                     }
                 } else {
-                    HabitFormView(vm: vm)
+                    HabitFormView(vm: vm, showingCategoryManagement: $showingCategoryManagement)
                 }
             }
             .navigationTitle(vm.isEditMode ? Strings.Navigation.editHabit : Strings.Navigation.newHabit)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showingCategoryManagement, onDismiss: {
+                Task {
+                    await vm.loadCategories()
+                }
+            }) {
+                NavigationStack {
+                    CategoryManagementView(vm: categoryManagementVM)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(Strings.Button.cancel) {

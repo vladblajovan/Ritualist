@@ -191,9 +191,9 @@ private struct HabitSuggestionRow: View {
             // Emoji and color indicator
             ZStack {
                 Circle()
-                    .fill(AppColors.brand)
+                    .fill(Color(.secondarySystemBackground))
                     .frame(width: 50, height: 50)
-                
+
                 Text(suggestion.emoji)
                     .font(.title2)
             }

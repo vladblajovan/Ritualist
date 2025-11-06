@@ -50,6 +50,8 @@ public struct DashboardView: View {
         .refreshable {
             await vm.refresh()
         }
+        .navigationTitle("Dashboard")
+        .navigationBarTitleDisplayMode(.large)
         .task {
             await vm.loadData()
         }

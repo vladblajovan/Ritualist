@@ -4,56 +4,98 @@ import RitualistCore
 
 public struct HabitsRoot: View {
     @Injected(\.habitsViewModel) var vm
-    
+    @Injected(\.categoryManagementViewModel) var categoryManagementVM
+    @State private var showingCategoryManagement = false
+
     public init() {}
-    
+
     public var body: some View {
-        HabitsContentView(vm: vm)
-            .task {
+        HabitsContentView(
+            vm: vm,
+            showingCategoryManagement: $showingCategoryManagement
+        )
+        .task {
+            await vm.load()
+        }
+        .sheet(isPresented: $showingCategoryManagement, onDismiss: {
+            Task {
                 await vm.load()
             }
+        }) {
+            NavigationStack {
+                CategoryManagementView(vm: categoryManagementVM)
+            }
+        }
     }
 }
 
 private struct HabitsContentView: View {
+    @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
-    
+    @Binding var showingCategoryManagement: Bool
+    @State private var dragOffset = CGSize.zero
+
+    private var isEditMode: Bool {
+        editMode?.wrappedValue.isEditing == true
+    }
+
     var body: some View {
-        HabitsListView(vm: vm)
+        GeometryReader { geometry in
+            HabitsListView(
+                vm: vm,
+                showingCategoryManagement: $showingCategoryManagement
+            )
+            .navigationTitle("Habits")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        vm.handleAssistantTap(source: "toolbar")
-                    } label: {
-                        HStack(spacing: Spacing.small) {
-                            Image(systemName: "lightbulb.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(.blue)
-                            Text("Assistant")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .accessibilityLabel("Habits Assistant")
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                        .foregroundColor(AppColors.brand)
-                        .buttonStyle(PlainButtonStyle())
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
+                // Primary action: Add Habit
+                ToolbarItem(placement: .primaryAction) {
                     Button {
                         vm.handleCreateHabitTap()
                     } label: {
-                        Text("Add")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(AppColors.brand)
+                        Image(systemName: "plus")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.blue, .cyan],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .accessibilityLabel("Add Habit")
+                    .accessibilityHint("Create a new habit to track")
+                }
+
+                // Secondary action: Edit mode
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EditButton()
+                        .foregroundColor(.secondary)
                 }
             }
+            .overlay(alignment: .bottomTrailing) {
+                // Draggable Floating AI Assistant button - hidden in edit mode
+                if !isEditMode {
+                    DraggableFloatingButton(
+                        dragOffset: $dragOffset,
+                        screenSize: geometry.size,
+                        safeAreaInsets: geometry.safeAreaInsets,
+                        onTap: {
+                            vm.handleAssistantTap(source: "fab")
+                        }
+                    )
+                    .padding(.trailing, Spacing.large)
+                    .padding(.bottom, Spacing.large)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                // Ensure content doesn't get hidden by FAB - only when FAB is visible
+                if !isEditMode {
+                    Color.clear.frame(height: 80)
+                }
+            }
+        }
             .sheet(isPresented: $vm.showingCreateHabit) {
                 let detailVM = vm.makeHabitDetailViewModel(for: nil)
                 HabitDetailView(vm: detailVM)
@@ -84,6 +126,7 @@ private struct HabitsContentView: View {
 private struct HabitsListView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
+    @Binding var showingCategoryManagement: Bool
     @State private var showingDeleteConfirmation = false
     @State private var showingBatchDeleteConfirmation = false
     @State private var showingDeactivateConfirmation = false
@@ -104,22 +147,22 @@ private struct HabitsListView: View {
             } else if vm.filteredHabits.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
-                        CategoryFilterCarousel(
-                            selectedCategory: Binding(
-                                get: { vm.selectedFilterCategory },
-                                set: { vm.selectFilterCategory($0) }
-                            ),
-                            categories: vm.categories,
-                            isLoading: vm.isLoadingCategories,
-                            onCategorySelect: { category in
+                        // Reusable category carousel with cogwheel
+                        CategoryCarouselWithManagement(
+                            categories: vm.displayCategories,
+                            selectedCategory: vm.selectedFilterCategory,
+                            onCategoryTap: { category in
                                 vm.selectFilterCategory(category)
                             },
-                            onManageCategories: nil,
-                            onAddHabit: nil,
-                            onAssistant: nil
+                            onManageTap: {
+                                showingCategoryManagement = true
+                            },
+                            scrollToStartOnSelection: true,
+                            allowDeselection: true
                         )
+                        .padding(.top, Spacing.small)
                         .padding(.bottom, Spacing.medium)
-                        
+
                         VStack(spacing: Spacing.xlarge) {
                             if vm.selectedFilterCategory != nil {
                                 ContentUnavailableView(
@@ -156,25 +199,19 @@ private struct HabitsListView: View {
                         .padding(.vertical, Spacing.medium)
                         .background(Color(.systemBackground))
                     } else {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: Spacing.medium) {
-                                ForEach(vm.categories, id: \.id) { category in
-                                    Chip(
-                                        text: category.displayName,
-                                        emoji: category.emoji,
-                                        isSelected: vm.selectedFilterCategory?.id == category.id
-                                    )
-                                    .onTapGesture {
-                                        if vm.selectedFilterCategory?.id == category.id {
-                                            vm.selectFilterCategory(nil)
-                                        } else {
-                                            vm.selectFilterCategory(category)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, Spacing.screenMargin)
-                        }
+                        // Reusable category carousel with cogwheel
+                        CategoryCarouselWithManagement(
+                            categories: vm.displayCategories,
+                            selectedCategory: vm.selectedFilterCategory,
+                            onCategoryTap: { category in
+                                vm.selectFilterCategory(category)
+                            },
+                            onManageTap: {
+                                showingCategoryManagement = true
+                            },
+                            scrollToStartOnSelection: true,
+                            allowDeselection: true
+                        )
                         .padding(.vertical, Spacing.small)
                         .background(Color(.systemBackground))
                     }
@@ -468,7 +505,7 @@ private struct OperationStatusView: View {
     let isCreating: Bool
     let isUpdating: Bool
     let isDeleting: Bool
-    
+
     var body: some View {
         HStack {
             if isCreating {
@@ -488,6 +525,99 @@ private struct OperationStatusView: View {
         .padding(.horizontal, Spacing.large)
         .padding(.vertical, Spacing.small)
         .background(.ultraThinMaterial, in: Capsule())
+    }
+}
+
+private struct DraggableFloatingButton: View {
+    @Binding var dragOffset: CGSize
+    let screenSize: CGSize
+    let safeAreaInsets: EdgeInsets
+    let onTap: () -> Void
+
+    @GestureState private var temporaryOffset: CGSize = .zero
+    @State private var isDragging = false
+
+    private let buttonSize: CGFloat = 60
+    private let padding: CGFloat = 16
+
+    var body: some View {
+        ZStack {
+            // Glassmorphic background
+            Circle()
+                .fill(.ultraThinMaterial)
+                .shadow(color: .blue.opacity(0.3), radius: 12, x: 0, y: 4)
+                .shadow(color: .blue.opacity(0.2), radius: 4, x: 0, y: 2)
+
+            // AI icon with gradient
+            Image(systemName: "sparkles")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.blue, .purple],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .symbolRenderingMode(.hierarchical)
+        }
+        .frame(width: buttonSize, height: buttonSize)
+        .scaleEffect(isDragging ? 0.92 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isDragging)
+        .accessibilityLabel("AI Habits Assistant")
+        .accessibilityHint("Drag to reposition or tap to open. Get personalized habit suggestions and insights")
+        .offset(
+            x: dragOffset.width + temporaryOffset.width,
+            y: dragOffset.height + temporaryOffset.height
+        )
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .updating($temporaryOffset) { value, state, _ in
+                    state = value.translation
+                    isDragging = true
+                }
+                .onEnded { value in
+                    isDragging = false
+
+                    // Calculate drag distance
+                    let dragDistance = sqrt(
+                        value.translation.width * value.translation.width +
+                        value.translation.height * value.translation.height
+                    )
+
+                    // If drag distance is less than 10 points, treat it as a tap
+                    if dragDistance < 10 {
+                        onTap()
+                    } else {
+                        // It was a drag - accumulate the offset with boundary constraints
+                        let newOffsetWidth = dragOffset.width + value.translation.width
+                        let newOffsetHeight = dragOffset.height + value.translation.height
+
+                        // Calculate available draggable area respecting safe areas
+                        // Button starts at bottom-trailing with padding
+                        // Available width for dragging (accounting for safe areas)
+                        let availableWidth = screenSize.width - safeAreaInsets.leading - safeAreaInsets.trailing - buttonSize - padding * 2
+                        let availableHeight = screenSize.height - safeAreaInsets.top - safeAreaInsets.bottom - buttonSize - padding * 2 - 80 // 80 for bottom safe area inset
+
+                        // Max left: can drag to left edge (respecting leading safe area)
+                        let maxLeft = -availableWidth
+                        let maxRight: CGFloat = 0
+                        // Max up: can drag to top (respecting top safe area)
+                        let maxUp = -availableHeight
+                        let maxDown: CGFloat = 0
+
+                        let constrainedWidth = max(maxLeft, min(maxRight, newOffsetWidth))
+                        let constrainedHeight = max(maxUp, min(maxDown, newOffsetHeight))
+
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            dragOffset = CGSize(
+                                width: constrainedWidth,
+                                height: constrainedHeight
+                            )
+                        }
+                    }
+                }
+        )
+        .transition(.scale.combined(with: .opacity))
     }
 }
 

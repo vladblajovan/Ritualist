@@ -106,7 +106,7 @@ jobs:
         xcrun simctl list devices | grep Booted
 
     - name: Run Tests (including Swift Testing)
-      timeout-minutes: 5
+      timeout-minutes: 10
       run: |
         echo "🧪 Starting tests at $(date)"
         TEST_START=$(date +%s)

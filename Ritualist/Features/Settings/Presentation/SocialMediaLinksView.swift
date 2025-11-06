@@ -54,8 +54,8 @@ private struct SocialMediaButton: View {
             HStack(spacing: Spacing.medium) {
                 Image(systemName: iconName)
                     .foregroundColor(iconColor)
-                    .font(.title3)
-                    .frame(width: IconSize.medium)
+                    .font(.title2)
+                    .frame(width: IconSize.large)
 
                 Text(title)
                     .foregroundColor(.primary)

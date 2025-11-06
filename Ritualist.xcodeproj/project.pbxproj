@@ -14,8 +14,10 @@
 		9127F1262EBB9C53007847C5 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9127F1252EBB9C53007847C5 /* RitualistCore */; };
 		9127F12B2EBB9F36007847C5 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9127F12A2EBB9F36007847C5 /* RitualistCore */; };
 		9127F12D2EBB9F42007847C5 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9127F12C2EBB9F42007847C5 /* RitualistCore */; };
+		916AAFB22EBD285A00E39161 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 916AAFB12EBD285A00E39161 /* RitualistCore */; };
 		918031A42E5F27D100B6FAF6 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 918031A32E5F27D100B6FAF6 /* RitualistCore */; };
 		9196AAED2E4E49C300D5F386 /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9196AAEC2E4E49C300D5F386 /* RitualistCore */; };
+		91997EE42EBD28FD00204A1E /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91997EE32EBD28FD00204A1E /* RitualistCore */; };
 		91A5C7CE2E5369190095C251 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91A5C7CD2E5369190095C251 /* WidgetKit.framework */; };
 		91A5C7D02E5369190095C251 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91A5C7CF2E5369190095C251 /* SwiftUI.framework */; };
 		91A5C7E12E5369230095C251 /* RitualistWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -24,6 +26,9 @@
 		91C956A72EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */; };
 		91C95A282EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C95A272EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift */; };
 		91C95A2C2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C95A2B2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift */; };
+		91C95DB62EBCF4050088AB2D /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C95DB52EBCF4050088AB2D /* RitualistCore */; };
+		91C95DB82EBCF41A0088AB2D /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C95DB72EBCF41A0088AB2D /* RitualistCore */; };
+		91C95DBE2EBD19CA0088AB2D /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C95DBD2EBD19CA0088AB2D /* RitualistCore */; };
 		91C9ACD92E4A887C0077EF5C /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C9ACD82E4A887C0077EF5C /* RitualistCore */; };
 /* End PBXBuildFile section */
 
@@ -126,6 +131,7 @@
 				91A5C7D02E5369190095C251 /* SwiftUI.framework in Frameworks */,
 				9127F12D2EBB9F42007847C5 /* RitualistCore in Frameworks */,
 				91A5C8052E53A25C0095C251 /* FactoryKit in Frameworks */,
+				91C95DB82EBCF41A0088AB2D /* RitualistCore in Frameworks */,
 				91A5C7CE2E5369190095C251 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -135,12 +141,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				91C9ACD92E4A887C0077EF5C /* RitualistCore in Frameworks */,
+				916AAFB22EBD285A00E39161 /* RitualistCore in Frameworks */,
 				918031A42E5F27D100B6FAF6 /* RitualistCore in Frameworks */,
+				91997EE42EBD28FD00204A1E /* RitualistCore in Frameworks */,
 				911237FB2E41210800A57BFC /* FactoryKit in Frameworks */,
+				91C95DBE2EBD19CA0088AB2D /* RitualistCore in Frameworks */,
 				9127F1242EBB9BFA007847C5 /* RitualistCore in Frameworks */,
 				911237F92E41210800A57BFC /* Factory in Frameworks */,
 				9127F12B2EBB9F36007847C5 /* RitualistCore in Frameworks */,
 				9196AAED2E4E49C300D5F386 /* RitualistCore in Frameworks */,
+				91C95DB62EBCF4050088AB2D /* RitualistCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -262,6 +272,7 @@
 				91A5C8062E53C5830095C251 /* Factory */,
 				9127F1252EBB9C53007847C5 /* RitualistCore */,
 				9127F12C2EBB9F42007847C5 /* RitualistCore */,
+				91C95DB72EBCF41A0088AB2D /* RitualistCore */,
 			);
 			productName = RitualistWidgetExtension;
 			productReference = 91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */;
@@ -294,6 +305,10 @@
 				918031A32E5F27D100B6FAF6 /* RitualistCore */,
 				9127F1232EBB9BFA007847C5 /* RitualistCore */,
 				9127F12A2EBB9F36007847C5 /* RitualistCore */,
+				91C95DB52EBCF4050088AB2D /* RitualistCore */,
+				91C95DBD2EBD19CA0088AB2D /* RitualistCore */,
+				916AAFB12EBD285A00E39161 /* RitualistCore */,
+				91997EE32EBD28FD00204A1E /* RitualistCore */,
 			);
 			productName = Ritualist;
 			productReference = 91B730E92E38E4BC0050A48A /* Ritualist.app */;
@@ -1648,11 +1663,19 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = RitualistCore;
 		};
+		916AAFB12EBD285A00E39161 /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
+		};
 		918031A32E5F27D100B6FAF6 /* RitualistCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RitualistCore;
 		};
 		9196AAEC2E4E49C300D5F386 /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
+		};
+		91997EE32EBD28FD00204A1E /* RitualistCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RitualistCore;
 		};
@@ -1665,6 +1688,18 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 911237F72E41210800A57BFC /* XCRemoteSwiftPackageReference "Factory" */;
 			productName = Factory;
+		};
+		91C95DB52EBCF4050088AB2D /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
+		};
+		91C95DB72EBCF41A0088AB2D /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
+		};
+		91C95DBD2EBD19CA0088AB2D /* RitualistCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RitualistCore;
 		};
 		91C9ACD82E4A887C0077EF5C /* RitualistCore */ = {
 			isa = XCSwiftPackageProductDependency;

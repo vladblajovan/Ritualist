@@ -11,11 +11,12 @@ import RitualistCore
 
 public struct HabitFormView: View {
     @Bindable var vm: HabitDetailViewModel
-    
+    @Binding var showingCategoryManagement: Bool
+
     public var body: some View {
         List {
             BasicInfoSection(vm: vm)
-            CategorySection(vm: vm)
+            CategorySection(vm: vm, showingCategoryManagement: $showingCategoryManagement)
             ScheduleSection(vm: vm)
             ReminderSection(vm: vm)
             LocationConfigurationSection(vm: vm)
