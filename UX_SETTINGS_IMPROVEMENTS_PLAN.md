@@ -2,25 +2,33 @@
 
 ## 🎯 Executive Summary
 
-**Current Grade: B+ (Good, with room for improvement)**
+**Current Grade: A- (Excellent, with minor polish opportunities)**
 
-The Settings page demonstrates solid iOS patterns and follows many Apple HIG principles. This document outlines prioritized improvements for information architecture, visual hierarchy, and accessibility compliance.
+The Settings page demonstrates excellent iOS patterns and follows Apple HIG principles. Major safety, accessibility, and consistency improvements have been implemented. This document tracks completed improvements and remaining polish opportunities.
 
 **Key Strengths:**
 - ✅ Clean section organization
 - ✅ Good use of loading/error states
 - ✅ Consistent spacing tokens
 - ✅ Pull-to-refresh support
+- ✅ Full accessibility labels on all interactive elements
+- ✅ Confirmation dialogs for destructive actions
+- ✅ Consistent visual patterns and icon sizes
+- ✅ Category management integrated into workflow
 
-**Areas for Improvement:**
-- ⚠️ Information architecture could be more logical
-- ⚠️ Missing accessibility labels on interactive elements
-- ⚠️ Inconsistent visual patterns between sections
-- ⚠️ Destructive action (Cancel Subscription) lacks safety measures
+**Remaining Areas for Improvement:**
+- ⏳ Save confirmation for name field
+- ⏳ Color-independent status indicators (WCAG compliance)
 
 ---
 
 ## 📋 PRIORITIZED IMPROVEMENTS
+
+**Progress: 9 of 16 items completed (56%)**
+- ✅ 4 IMMEDIATE items completed
+- ✅ 5 NEXT SPRINT items completed
+- ⏳ 2 NEXT SPRINT items remaining
+- ⏳ 4 BACKLOG items
 
 ### **🔴 IMMEDIATE (This Sprint) - Safety & Accessibility Critical**
 
@@ -112,18 +120,18 @@ AvatarView(...)
 
 ### **🟡 NEXT SPRINT - Consistency & UX Polish**
 
-#### - [ ] 5. Standardize Row Patterns 🎨
+#### - [x] 5. Standardize Row Patterns 🎨
 **Priority:** MEDIUM - Visual Consistency
-**Files:** `SettingsView.swift` (multiple locations)
+**Files:** `SettingsView.swift`, `PermissionsSectionView.swift` (NEW), `SocialMediaLinksView.swift`
 **Problem:** Three different visual patterns for settings rows
 **HIG Reference:** [Consistency](https://developer.apple.com/design/human-interface-guidelines/consistency)
 
-**Current Patterns:**
-- Pattern A: Custom layout (Avatar + Name)
-- Pattern B: Icon + Label + Description + Action Button (Notifications/Location)
-- Pattern C: GenericRowView.settingsRow (Data Management)
-
-**Recommendation:** Standardize on Pattern B (most iOS-like) or create unified SettingsRow component
+**Implementation:**
+- Standardized all icon sizes to `IconSize.large` with `.title2` font
+- Created unified `PermissionsSectionView` with reusable `PermissionRow` component
+- Grouped Notifications and Location in single "Permissions" section
+- Changed redirect icon from `gearshape.fill` to `arrow.up.right.square` for better UX
+- Consistent HStack layout: Icon + VStack(Title + Subtitle) + Spacer + Action Button
 
 ---
 
@@ -178,30 +186,70 @@ HStack {
 
 #### - [x] 8. Shorten Timezone Explanations 📝
 **Priority:** MEDIUM - Clarity
-**File:** `SettingsView.swift` (line 384-392)
+**File:** `AccountSectionView.swift`
 **Problem:** Explanation text is very long and technical
 
-**Current:**
-```swift
-case "original":
-    return "Show times as they were originally experienced (preserves timezone context)"
-case "current":
-    return "Show all times in your current device timezone"
-```
+**Implementation:**
+- Removed "(preserves timezone context)" from original timezone description
+- Changed to "Show times as they were originally experienced"
+- Kept current timezone as "Show all times in your current device timezone"
 
-**Recommended:**
-```swift
-case "original":
-    return "Display times in their original timezone"
-case "current":
-    return "Convert all times to your current timezone"
-```
+---
+
+#### - [x] 9. Change Permission Action Icons to Grey 🎨
+**Priority:** MEDIUM - Visual Consistency
+**File:** `PermissionsSectionView.swift`
+**Problem:** Blue action icons stood out too much, inconsistent with social media section
+
+**Implementation:**
+- Changed action button icons from `.blue` to `.secondary` (grey)
+- Kept status icons (bell/location) with original green/orange colors
+- Matches cleaner look of social media section
+- More subtle and consistent UI
+
+---
+
+#### - [x] 10. Move Manage Categories to Habits Screen 🔄
+**Priority:** MEDIUM - Information Architecture
+**Files:** `HabitsView.swift`, `SettingsView.swift`
+**Problem:** Category management in Settings was disconnected from habit creation workflow
+
+**Implementation:**
+- Added cogwheel button as **first item** in Habits screen category carousel
+- Styled as category pill with grey background
+- Opens CategoryManagementView when tapped
+- Removed entire "Data Management" section from Settings page
+- Better UX - manage categories where you use them
+
+---
+
+#### - [x] 11. Simplify Location Permission Text 📝
+**Priority:** LOW - Clarity
+**File:** `GeofenceEvent.swift` (RitualistCore)
+**Problem:** "Location access granted - geofencing enabled" was technical jargon
+
+**Implementation:**
+- Changed from "Location access granted - geofencing enabled"
+- To simple "Location access granted"
+- Removed technical term that users don't need to understand
+
+---
+
+#### - [x] 12. Remove Personality Insights from Settings 🔄
+**Priority:** MEDIUM - Information Architecture
+**File:** `SettingsView.swift`
+**Problem:** Personality Insights better belongs in Overview context, not Settings
+
+**Implementation:**
+- Removed entire "Personality Insights" section from Settings page
+- Users will access it from Overview screen where it's more contextually relevant
+- Settings should focus on app configuration, not feature access
 
 ---
 
 ### **🟢 BACKLOG - Future Enhancements**
 
-#### - [ ] 9. Create "Advanced" Section for Niche Settings 📂
+#### - [ ] 13. Create "Advanced" Section for Niche Settings 📂
 **Priority:** LOW - Information Architecture
 **Benefit:** Reduces cognitive load on main settings page
 
@@ -209,7 +257,7 @@ case "current":
 
 ---
 
-#### - [ ] 10. Add Contextual Menus to Settings Buttons 🎛️
+#### - [ ] 14. Add Contextual Menus to Settings Buttons 🎛️
 **Priority:** LOW - Enhanced Interactions
 **Benefit:** Provides additional options without cluttering UI
 
@@ -225,7 +273,7 @@ Menu {
 
 ---
 
-#### - [ ] 11. Test Dynamic Type at All Sizes ♿
+#### - [ ] 15. Test Dynamic Type at All Sizes ♿
 **Priority:** LOW - Accessibility Polish
 **Action Items:**
 - Test with AX1-AX5 text sizes
@@ -235,7 +283,7 @@ Menu {
 
 ---
 
-#### - [ ] 12. Add Auto-Save Toast Notifications 💬
+#### - [ ] 16. Add Auto-Save Toast Notifications 💬
 **Priority:** LOW - Feedback Improvement
 **Benefit:** User knows when changes are saved
 
@@ -445,5 +493,16 @@ Menu {
 ---
 
 **Last Updated:** 2025-11-06
-**Review Status:** Pending Implementation
-**Estimated Effort:** 4 weeks (1 week per phase)
+**Review Status:** 9 of 16 items completed (56% progress)
+**Completed Items:**
+- ✅ Confirmation dialog for cancel subscription
+- ✅ Accessibility labels for all interactive elements
+- ✅ Consolidated Account section
+- ✅ Standardized row patterns and icon sizes
+- ✅ Shortened timezone explanations
+- ✅ Changed permission icons to grey
+- ✅ Moved category management to Habits screen
+- ✅ Simplified location permission text
+- ✅ Removed Personality Insights from Settings
+
+**Remaining Work:** 2 medium-priority items, 4 backlog items

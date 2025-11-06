@@ -4,22 +4,36 @@ import RitualistCore
 
 public struct HabitsRoot: View {
     @Injected(\.habitsViewModel) var vm
-    
+    @Injected(\.categoryManagementViewModel) var categoryManagementVM
+    @State private var showingCategoryManagement = false
+
     public init() {}
-    
+
     public var body: some View {
-        HabitsContentView(vm: vm)
-            .task {
-                await vm.load()
+        HabitsContentView(
+            vm: vm,
+            showingCategoryManagement: $showingCategoryManagement
+        )
+        .task {
+            await vm.load()
+        }
+        .sheet(isPresented: $showingCategoryManagement) {
+            NavigationStack {
+                CategoryManagementView(vm: categoryManagementVM)
             }
+        }
     }
 }
 
 private struct HabitsContentView: View {
     @Bindable var vm: HabitsViewModel
-    
+    @Binding var showingCategoryManagement: Bool
+
     var body: some View {
-        HabitsListView(vm: vm)
+        HabitsListView(
+            vm: vm,
+            showingCategoryManagement: $showingCategoryManagement
+        )
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
@@ -84,6 +98,7 @@ private struct HabitsContentView: View {
 private struct HabitsListView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
+    @Binding var showingCategoryManagement: Bool
     @State private var showingDeleteConfirmation = false
     @State private var showingBatchDeleteConfirmation = false
     @State private var showingDeactivateConfirmation = false
@@ -158,6 +173,24 @@ private struct HabitsListView: View {
                     } else {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: Spacing.medium) {
+                                // Manage Categories button
+                                Button {
+                                    showingCategoryManagement = true
+                                } label: {
+                                    HStack(spacing: Spacing.small) {
+                                        Image(systemName: "gearshape")
+                                            .font(.system(size: 15, weight: .medium))
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 25)
+                                            .fill(Color(.secondarySystemBackground))
+                                    )
+                                    .foregroundColor(.primary)
+                                }
+                                .accessibilityLabel("Manage Categories")
+
                                 ForEach(vm.categories, id: \.id) { category in
                                     Chip(
                                         text: category.displayName,

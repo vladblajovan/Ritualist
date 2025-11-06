@@ -30,14 +30,12 @@ private struct SettingsFormView: View {
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
     @State private var paywallItem: PaywallItem?
-    @State private var showingCategoryManagement = false
     @State private var showingCancelConfirmation = false
 
     #if DEBUG
     @State private var showingDebugMenu = false
     #endif
     @Injected(\.paywallViewModel) var paywallViewModel
-    @Injected(\.categoryManagementViewModel) var categoryManagementVM
     
     // Local form state
     @State private var name = ""
@@ -69,130 +67,9 @@ private struct SettingsFormView: View {
                         showPaywall: showPaywall,
                         updateUserName: updateUserName
                     )
-                    
-                    Section("Data Management") {
-                        GenericRowView.settingsRow(
-                            title: "Manage Categories",
-                            subtitle: "Add, edit, or delete habit categories",
-                            icon: "folder.badge.gearshape",
-                            iconColor: .orange
-                        ) {
-                            showingCategoryManagement = true
-                        }
-                    }
-                    
-                    Section("Personality Insights") {
-                        PersonalityInsightsSettingsRow()
-                    }
 
-                    Section(Strings.Settings.notifications) {
-                        HStack(spacing: Spacing.medium) {
-                            Image(systemName: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill")
-                                .foregroundColor(vm.hasNotificationPermission ? .green : .orange)
-                                .font(.title2)
-                                .frame(width: IconSize.large)
-                            
-                            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                                Text(Strings.Settings.notificationPermission)
-                                    .font(.headline)
-                                    .fontWeight(.medium)
-                                
-                                Text(vm.hasNotificationPermission ? 
-                                     Strings.Settings.notificationsEnabled :
-                                     Strings.Settings.notificationsDisabled)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            
-                            Spacer()
-                            
-                            // Action button on the right
-                            if vm.isRequestingNotifications {
-                                ProgressView()
-                                    .scaleEffect(ScaleFactors.smallMedium)
-                            } else if !vm.hasNotificationPermission {
-                                Button {
-                                    Task {
-                                        await vm.requestNotifications()
-                                    }
-                                } label: {
-                                    Image(systemName: "bell.badge")
-                                        .font(.title3)
-                                        .foregroundColor(.blue)
-                                }
-                                .accessibilityLabel("Request notification permission")
-                                .accessibilityHint("Tap to enable notifications")
-                            } else {
-                                Button {
-                                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                                        UIApplication.shared.open(settingsUrl)
-                                    }
-                                } label: {
-                                    Image(systemName: "gearshape.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.gray)
-                                }
-                                .accessibilityLabel("Open notification settings")
-                                .accessibilityHint("Opens iOS Settings app")
-                            }
-                        }
-                        .padding(.vertical, Spacing.small)
-                    }
-
-                    // Location Permissions Section
-                    Section("Location") {
-                        HStack(spacing: Spacing.medium) {
-                            Image(systemName: vm.locationAuthStatus.canMonitorGeofences ? "location.fill" : "location.slash.fill")
-                                .foregroundColor(vm.locationAuthStatus.canMonitorGeofences ? .green : .orange)
-                                .font(.title2)
-                                .frame(width: IconSize.large)
-
-                            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                                Text("Location Permission")
-                                    .font(.headline)
-                                    .fontWeight(.medium)
-
-                                Text(vm.locationAuthStatus.displayText)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            Spacer()
-
-                            // Action button on the right
-                            if vm.isRequestingLocationPermission {
-                                ProgressView()
-                                    .scaleEffect(ScaleFactors.smallMedium)
-                            } else if !vm.locationAuthStatus.canMonitorGeofences {
-                                Button {
-                                    Task {
-                                        await vm.requestLocationPermission()
-                                    }
-                                } label: {
-                                    Image(systemName: "location.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.blue)
-                                }
-                                .accessibilityLabel("Request location permission")
-                                .accessibilityHint("Tap to enable location services")
-                            } else {
-                                Button {
-                                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                                        UIApplication.shared.open(settingsUrl)
-                                    }
-                                } label: {
-                                    Image(systemName: "gearshape.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.gray)
-                                }
-                                .accessibilityLabel("Open location settings")
-                                .accessibilityHint("Opens iOS Settings app")
-                            }
-                        }
-                        .padding(.vertical, Spacing.small)
-                    }
+                    // Permissions Section (Notifications + Location)
+                    PermissionsSectionView(vm: vm)
 
                     // Social Media Section
                     SocialMediaLinksView()
@@ -240,12 +117,7 @@ private struct SettingsFormView: View {
                 .sheet(item: $paywallItem) { item in
                     PaywallView(vm: item.viewModel)
                 }
-                .sheet(isPresented: $showingCategoryManagement) {
-                    NavigationStack {
-                        CategoryManagementView(vm: categoryManagementVM)
-                    }
-                }
-                
+
                 #if DEBUG
                 .sheet(isPresented: $showingDebugMenu) {
                     NavigationStack {

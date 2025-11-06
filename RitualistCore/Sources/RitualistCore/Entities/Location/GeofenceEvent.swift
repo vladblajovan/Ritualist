@@ -116,7 +116,7 @@ public enum LocationAuthorizationStatus: Equatable {
         case .authorizedWhenInUse:
             return "Location access granted while using app - tap to upgrade to Always"
         case .authorizedAlways:
-            return "Location access granted - geofencing enabled"
+            return "Location access granted"
         }
     }
 }
