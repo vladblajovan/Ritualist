@@ -127,37 +127,18 @@ struct AccountSectionView: View {
                 }
             }
 
-            // Time Display Picker
-            VStack(alignment: .leading, spacing: Spacing.small) {
-                Picker("Display Mode", selection: $displayTimezoneMode) {
-                    Text("Original Time").tag("original")
-                    Text("Current Time").tag("current")
+            // Advanced Settings Navigation
+            NavigationLink {
+                AdvancedSettingsView(
+                    vm: vm,
+                    displayTimezoneMode: $displayTimezoneMode
+                )
+            } label: {
+                HStack {
+                    Label("Advanced", systemImage: "gearshape.2")
+                    Spacer()
                 }
-                .pickerStyle(MenuPickerStyle())
-                .onChange(of: displayTimezoneMode) { _, newValue in
-                    Task {
-                        vm.profile.displayTimezoneMode = newValue
-                        _ = await vm.save()
-                    }
-                }
-
-                Text(timezoneExplanationText)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.vertical, Spacing.small)
-        }
-    }
-
-    private var timezoneExplanationText: String {
-        switch displayTimezoneMode {
-        case "original":
-            return "Show times as they were originally experienced"
-        case "current":
-            return "Show all times in your current device timezone"
-        default:
-            return "Choose how to display timestamps in the app"
         }
     }
 }
