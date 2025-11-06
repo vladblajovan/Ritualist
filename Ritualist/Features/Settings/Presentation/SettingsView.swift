@@ -74,6 +74,21 @@ private struct SettingsFormView: View {
                     // Social Media Section
                     SocialMediaLinksView()
 
+                    // Advanced Section
+                    Section("Advanced") {
+                        NavigationLink {
+                            AdvancedSettingsView(
+                                vm: vm,
+                                displayTimezoneMode: $displayTimezoneMode
+                            )
+                        } label: {
+                            HStack {
+                                Label("Advanced Settings", systemImage: "gearshape.2")
+                                Spacer()
+                            }
+                        }
+                    }
+
                     #if DEBUG
                     Section("Debug") {
                         GenericRowView.settingsRow(

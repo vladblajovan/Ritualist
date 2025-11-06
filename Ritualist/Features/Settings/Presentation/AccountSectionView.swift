@@ -112,31 +112,26 @@ struct AccountSectionView: View {
             }
 
             // Appearance Picker
-            Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
-                Text(Strings.Settings.followSystem).tag(0)
-                Text(Strings.Settings.light).tag(1)
-                Text(Strings.Settings.dark).tag(2)
-            }
-            .pickerStyle(MenuPickerStyle())
-            .onChange(of: appearance) { _, newValue in
-                Task {
-                    // Auto-save appearance changes
-                    vm.profile.appearance = newValue
-                    _ = await vm.save()
-                    await vm.updateAppearance(newValue)
-                }
-            }
-
-            // Advanced Settings Navigation
-            NavigationLink {
-                AdvancedSettingsView(
-                    vm: vm,
-                    displayTimezoneMode: $displayTimezoneMode
-                )
-            } label: {
-                HStack {
-                    Label("Advanced", systemImage: "gearshape.2")
-                    Spacer()
+            HStack {
+                Label {
+                    Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
+                        Text(Strings.Settings.followSystem).tag(0)
+                        Text(Strings.Settings.light).tag(1)
+                        Text(Strings.Settings.dark).tag(2)
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                    .onChange(of: appearance) { _, newValue in
+                        Task {
+                            // Auto-save appearance changes
+                            vm.profile.appearance = newValue
+                            _ = await vm.save()
+                            await vm.updateAppearance(newValue)
+                        }
+                    }
+                } icon: {
+                    Image(systemName: "circle.lefthalf.filled")
+                        .font(.title2)
+                        .foregroundColor(.blue)
                 }
             }
         }
