@@ -31,7 +31,8 @@ private struct SettingsFormView: View {
     @State private var selectedImageData: Data?
     @State private var paywallItem: PaywallItem?
     @State private var showingCategoryManagement = false
-    
+    @State private var showingCancelConfirmation = false
+
     #if DEBUG
     @State private var showingDebugMenu = false
     #endif
@@ -56,129 +57,18 @@ private struct SettingsFormView: View {
                 }
             } else {
                 Form {
-                    
                     // Account Section
-                    Section("Account") {
-                            // Avatar and Name row
-                            HStack(spacing: Spacing.medium) {
-                                AvatarView(
-                                    name: displayName,
-                                    imageData: vm.profile.avatarImageData,
-                                    size: 60,
-                                    showEditBadge: true
-                                ) {
-                                    showingImagePicker = true
-                                }
-                                
-                                VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                                    TextField(Strings.Form.name, text: $name)
-                                        .textFieldStyle(.plain)
-                                        .focused($isNameFieldFocused)
-                                        .onSubmit {
-                                            isNameFieldFocused = false
-                                            Task {
-                                                await updateUserName()
-                                            }
-                                        }
-                                    
-                                    if vm.isUpdatingUser {
-                                        HStack {
-                                            ProgressView()
-                                                .scaleEffect(ScaleFactors.tiny)
-                                            Text("Updating...")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                }
-                            }
-                            // Subscription info
-                            HStack {
-                                Label("Subscription", systemImage: "crown")
-                                Spacer()
-                                Text(vm.isPremiumUser ? "Pro" : "Free")
-                                    .foregroundColor(vm.isPremiumUser ? .orange : .secondary)
-                                    .fontWeight(vm.isPremiumUser ? .medium : .regular)
-                            }
-                            
-                            // Cancel subscription for premium users or Subscribe for free users
-                            if vm.isPremiumUser {
-                                Button {
-                                    Task {
-                                        await vm.cancelSubscription()
-                                    }
-                                } label: {
-                                    HStack {
-                                        if vm.isCancellingSubscription {
-                                            ProgressView()
-                                                .scaleEffect(ScaleFactors.smallMedium)
-                                            Text("Cancelling...")
-                                        } else {
-                                            Label("Cancel Subscription", systemImage: "xmark.circle")
-                                        }
-                                        Spacer()
-                                    }
-                                    .foregroundColor(.orange)
-                                }
-                                .disabled(vm.isCancellingSubscription)
-                            } else {
-                                // Subscribe button for free users
-                                Button {
-                                    showPaywall()
-                                } label: {
-                                    HStack {
-                                        Label("Subscribe to Pro", systemImage: "crown.fill")
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .foregroundColor(.blue)
-                                }
-                            }
-                    }
-                    
-                    Section(Strings.Settings.profile) {
-                        
-                        HStack {
-                            Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
-                                Text(Strings.Settings.followSystem).tag(0)
-                                Text(Strings.Settings.light).tag(1)
-                                Text(Strings.Settings.dark).tag(2)
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                            .onChange(of: appearance) { _, newValue in
-                                Task {
-                                    // Auto-save appearance changes
-                                    vm.profile.appearance = newValue
-                                    _ = await vm.save()
-                                    await vm.updateAppearance(newValue)
-                                }
-                            }
-                        }
-                    }
-                    
-                    Section("Time Display") {
-                        VStack(alignment: .leading, spacing: Spacing.small) {
-                            Picker("Display Mode", selection: $displayTimezoneMode) {
-                                Text("Original Time").tag("original")
-                                Text("Current Time").tag("current")
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                            .onChange(of: displayTimezoneMode) { _, newValue in
-                                Task {
-                                    vm.profile.displayTimezoneMode = newValue
-                                    _ = await vm.save()
-                                }
-                            }
-
-                            Text(timezoneExplanationText)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .padding(.vertical, Spacing.small)
-                    }
+                    AccountSectionView(
+                        vm: vm,
+                        name: $name,
+                        appearance: $appearance,
+                        displayTimezoneMode: $displayTimezoneMode,
+                        isNameFieldFocused: $isNameFieldFocused,
+                        showingImagePicker: $showingImagePicker,
+                        showingCancelConfirmation: $showingCancelConfirmation,
+                        showPaywall: showPaywall,
+                        updateUserName: updateUserName
+                    )
                     
                     Section("Data Management") {
                         GenericRowView.settingsRow(
@@ -231,6 +121,8 @@ private struct SettingsFormView: View {
                                         .font(.title3)
                                         .foregroundColor(.blue)
                                 }
+                                .accessibilityLabel("Request notification permission")
+                                .accessibilityHint("Tap to enable notifications")
                             } else {
                                 Button {
                                     if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
@@ -241,6 +133,8 @@ private struct SettingsFormView: View {
                                         .font(.title3)
                                         .foregroundColor(.gray)
                                 }
+                                .accessibilityLabel("Open notification settings")
+                                .accessibilityHint("Opens iOS Settings app")
                             }
                         }
                         .padding(.vertical, Spacing.small)
@@ -281,6 +175,8 @@ private struct SettingsFormView: View {
                                         .font(.title3)
                                         .foregroundColor(.blue)
                                 }
+                                .accessibilityLabel("Request location permission")
+                                .accessibilityHint("Tap to enable location services")
                             } else {
                                 Button {
                                     if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
@@ -291,6 +187,8 @@ private struct SettingsFormView: View {
                                         .font(.title3)
                                         .foregroundColor(.gray)
                                 }
+                                .accessibilityLabel("Open location settings")
+                                .accessibilityHint("Opens iOS Settings app")
                             }
                         }
                         .padding(.vertical, Spacing.small)
@@ -379,17 +277,6 @@ private struct SettingsFormView: View {
     
     private var displayName: String {
         vm.profile.name
-    }
-    
-    private var timezoneExplanationText: String {
-        switch displayTimezoneMode {
-        case "original":
-            return "Show times as they were originally experienced (preserves timezone context)"
-        case "current":
-            return "Show all times in your current device timezone"
-        default:
-            return "Choose how to display timestamps in the app"
-        }
     }
 
     private func updateLocalState() {
