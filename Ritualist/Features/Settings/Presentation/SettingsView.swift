@@ -87,6 +87,8 @@ private struct SettingsFormView: View {
                     }
                     #endif
                 }
+                .navigationTitle("Settings")
+                .navigationBarTitleDisplayMode(.large)
                 .refreshable {
                     await vm.load()
                     updateLocalState()
