@@ -51,24 +51,23 @@ struct AccountSectionView: View {
                 }
             }
 
-            // Subscription info
-            HStack {
-                Label("Subscription", systemImage: "crown")
-                Spacer()
-                HStack(spacing: 4) {
-                    if vm.isPremiumUser {
+            // Subscription section - different for Free vs Pro users
+            if vm.isPremiumUser {
+                // Pro users: Show subscription status
+                HStack {
+                    Label("Subscription", systemImage: "crown")
+                    Spacer()
+                    HStack(spacing: 4) {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
                             .font(.caption)
+                        Text("Pro")
+                            .foregroundColor(.orange)
+                            .fontWeight(.medium)
                     }
-                    Text(vm.isPremiumUser ? "Pro" : "Free")
-                        .foregroundColor(vm.isPremiumUser ? .orange : .secondary)
-                        .fontWeight(vm.isPremiumUser ? .medium : .regular)
                 }
-            }
 
-            // Cancel subscription for premium users or Subscribe for free users
-            if vm.isPremiumUser {
+                // Pro users: Show cancel subscription button
                 Button {
                     showingCancelConfirmation = true
                 } label: {
@@ -96,7 +95,7 @@ struct AccountSectionView: View {
                     Text("Your Pro benefits will end at the end of your billing period.")
                 }
             } else {
-                // Subscribe button for free users
+                // Free users: Only show upgrade button (no "Subscription: Free" row)
                 Button {
                     showPaywall()
                 } label: {
