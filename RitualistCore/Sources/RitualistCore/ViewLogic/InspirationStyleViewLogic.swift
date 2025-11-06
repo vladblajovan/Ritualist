@@ -15,14 +15,26 @@ public enum InspirationStyleViewLogic {
         }
     }
 
+    /// Gradient type identifier for testability
+    public enum GradientType: Equatable {
+        case perfect
+        case strong
+        case midway
+        case morning
+        case noon
+        case evening
+    }
+
     /// Complete style information for inspiration card display
     public struct Style {
         public let gradient: LinearGradient
+        public let gradientType: GradientType
         public let iconName: String
         public let accentColor: Color
 
-        public init(gradient: LinearGradient, iconName: String, accentColor: Color) {
+        public init(gradient: LinearGradient, gradientType: GradientType, iconName: String, accentColor: Color) {
             self.gradient = gradient
+            self.gradientType = gradientType
             self.iconName = iconName
             self.accentColor = accentColor
         }
@@ -46,6 +58,7 @@ public enum InspirationStyleViewLogic {
             // Perfect day celebration
             return Style(
                 gradient: GradientTokens.inspirationPerfect,
+                gradientType: .perfect,
                 iconName: "party.popper.fill",
                 accentColor: .green
             )
@@ -53,6 +66,7 @@ public enum InspirationStyleViewLogic {
             // Strong progress celebration
             return Style(
                 gradient: GradientTokens.inspirationStrong,
+                gradientType: .strong,
                 iconName: "flame.fill",
                 accentColor: .blue
             )
@@ -60,6 +74,7 @@ public enum InspirationStyleViewLogic {
             // Midway encouragement
             return Style(
                 gradient: GradientTokens.inspirationMidway,
+                gradientType: .midway,
                 iconName: "bolt.fill",
                 accentColor: .orange
             )
@@ -79,18 +94,21 @@ public enum InspirationStyleViewLogic {
         case .morning:
             return Style(
                 gradient: GradientTokens.inspirationMorning,
+                gradientType: .morning,
                 iconName: "sunrise.fill",
                 accentColor: .pink
             )
         case .noon:
             return Style(
                 gradient: GradientTokens.inspirationNoon,
+                gradientType: .noon,
                 iconName: "sun.max.fill",
                 accentColor: .indigo
             )
         case .evening:
             return Style(
                 gradient: GradientTokens.inspirationEvening,
+                gradientType: .evening,
                 iconName: "moon.stars.fill",
                 accentColor: .purple
             )

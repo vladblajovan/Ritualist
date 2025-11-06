@@ -37,6 +37,7 @@ struct InspirationCard: View {
     private var defaultStyle: InspirationStyleViewLogic.Style {
         InspirationStyleViewLogic.Style(
             gradient: GradientTokens.inspirationMorning,
+            gradientType: .morning,
             iconName: "sunrise.fill",
             accentColor: .pink
         )

@@ -17,7 +17,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationPerfect)
+        #expect(style.gradientType == .perfect)
         #expect(style.iconName == "party.popper.fill")
         #expect(style.accentColor == .green)
     }
@@ -31,7 +31,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationPerfect)
+        #expect(style.gradientType == .perfect)
         #expect(style.iconName == "party.popper.fill")
         #expect(style.accentColor == .green, "Time doesn't matter for perfect day - always uses perfect gradient")
     }
@@ -45,7 +45,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationPerfect)
+        #expect(style.gradientType == .perfect)
         #expect(style.iconName == "party.popper.fill")
         #expect(style.accentColor == .green)
     }
@@ -61,7 +61,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationStrong)
+        #expect(style.gradientType == .strong)
         #expect(style.iconName == "flame.fill")
         #expect(style.accentColor == .blue)
     }
@@ -75,7 +75,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationStrong)
+        #expect(style.gradientType == .strong)
         #expect(style.iconName == "flame.fill")
         #expect(style.accentColor == .blue)
     }
@@ -89,7 +89,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationStrong)
+        #expect(style.gradientType == .strong)
         #expect(style.iconName == "flame.fill")
         #expect(style.accentColor == .blue, "Just below 100% should still use strong progress")
     }
@@ -105,7 +105,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationMidway)
+        #expect(style.gradientType == .midway)
         #expect(style.iconName == "bolt.fill")
         #expect(style.accentColor == .orange)
     }
@@ -119,7 +119,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationMidway)
+        #expect(style.gradientType == .midway)
         #expect(style.iconName == "bolt.fill")
         #expect(style.accentColor == .orange)
     }
@@ -133,7 +133,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationMidway)
+        #expect(style.gradientType == .midway)
         #expect(style.iconName == "bolt.fill")
         #expect(style.accentColor == .orange, "Just below 75% should use midway style")
     }
@@ -149,7 +149,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationMorning)
+        #expect(style.gradientType == .morning)
         #expect(style.iconName == "sunrise.fill")
         #expect(style.accentColor == .pink)
     }
@@ -163,7 +163,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationMorning)
+        #expect(style.gradientType == .morning)
         #expect(style.iconName == "sunrise.fill")
         #expect(style.accentColor == .pink)
     }
@@ -177,7 +177,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationMorning)
+        #expect(style.gradientType == .morning)
         #expect(style.iconName == "sunrise.fill")
         #expect(style.accentColor == .pink, "Just below 50% should still use time-based style")
     }
@@ -191,7 +191,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationNoon)
+        #expect(style.gradientType == .noon)
         #expect(style.iconName == "sun.max.fill")
         #expect(style.accentColor == .indigo)
     }
@@ -205,7 +205,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationNoon)
+        #expect(style.gradientType == .noon)
         #expect(style.iconName == "sun.max.fill")
         #expect(style.accentColor == .indigo)
     }
@@ -219,7 +219,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationEvening)
+        #expect(style.gradientType == .evening)
         #expect(style.iconName == "moon.stars.fill")
         #expect(style.accentColor == .purple)
     }
@@ -233,7 +233,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationEvening)
+        #expect(style.gradientType == .evening)
         #expect(style.iconName == "moon.stars.fill")
         #expect(style.accentColor == .purple)
     }
@@ -250,7 +250,7 @@ struct InspirationStyleViewLogicTests {
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
         // Should use strong progress, NOT morning style
-        #expect(style.gradient == GradientTokens.inspirationStrong)
+        #expect(style.gradientType == .strong)
         #expect(style.iconName == "flame.fill")
         #expect(style.accentColor == .blue, "Completion percentage takes priority over time")
     }
@@ -265,7 +265,7 @@ struct InspirationStyleViewLogicTests {
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
         // Should use midway, NOT evening style
-        #expect(style.gradient == GradientTokens.inspirationMidway)
+        #expect(style.gradientType == .midway)
         #expect(style.iconName == "bolt.fill")
         #expect(style.accentColor == .orange, "Midway completion overrides time of day")
     }
@@ -281,7 +281,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationMidway, "Exactly 50% should trigger midway style")
+        #expect(style.gradientType == .midway, "Exactly 50% should trigger midway style")
     }
 
     @Test("Exact 75% boundary triggers strong progress style")
@@ -293,7 +293,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationStrong, "Exactly 75% should trigger strong progress")
+        #expect(style.gradientType == .strong, "Exactly 75% should trigger strong progress")
     }
 
     @Test("Exact 100% boundary triggers perfect day style")
@@ -305,7 +305,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationPerfect, "Exactly 100% should trigger perfect day")
+        #expect(style.gradientType == .perfect, "Exactly 100% should trigger perfect day")
     }
 
     // MARK: - Edge Cases
@@ -319,7 +319,7 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationMorning, "Negative completion should use time-based style")
+        #expect(style.gradientType == .morning, "Negative completion should use time-based style")
     }
 
     @Test("Over 100% completion still uses perfect day style")
@@ -331,6 +331,6 @@ struct InspirationStyleViewLogicTests {
 
         let style = InspirationStyleViewLogic.computeStyle(for: context)
 
-        #expect(style.gradient == GradientTokens.inspirationPerfect, "Over 100% should still use perfect day style")
+        #expect(style.gradientType == .perfect, "Over 100% should still use perfect day style")
     }
 }
