@@ -100,7 +100,9 @@ private struct HabitsContentView: View {
                 let detailVM = vm.makeHabitDetailViewModel(for: nil)
                 HabitDetailView(vm: detailVM)
                     .onDisappear {
-                        vm.handleCreateHabitDismissal()
+                        if detailVM.didMakeChanges {
+                            vm.handleCreateHabitDismissal()
+                        }
                     }
             }
             .sheet(item: $vm.paywallItem) { item in
@@ -289,7 +291,9 @@ private struct HabitsListView: View {
             let detailVM = vm.makeHabitDetailViewModel(for: habit)
             HabitDetailView(vm: detailVM)
                 .onDisappear {
-                    vm.handleHabitDetailDismissal()
+                    if detailVM.didMakeChanges {
+                        vm.handleHabitDetailDismissal()
+                    }
                 }
         }
         .confirmationDialog(
