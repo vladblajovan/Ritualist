@@ -108,25 +108,28 @@ public final class HabitDetailViewModel {
     public var isCategoryValid: Bool {
         selectedCategory != nil
     }
-    
+
+    public var didMakeChanges = false
+
     public func save() async -> Bool {
         guard isFormValid else { return false }
-        
+
         isSaving = true
         error = nil
-        
+
         do {
             let habit = createHabitFromForm()
-            
+
             if isEditMode {
                 try await updateHabit.execute(habit)
             } else {
                 _ = try await createHabit.execute(habit)
             }
-            
+
             // Schedule notifications for the habit
             try await scheduleHabitReminders.execute(habit: habit)
-            
+
+            didMakeChanges = true
             isSaving = false
             return true
         } catch {
