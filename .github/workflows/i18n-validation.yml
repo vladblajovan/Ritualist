@@ -82,36 +82,43 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-xcode-deriveddata-
     
-    - name: Build Project (with timing)
+    - name: Build for Testing (with timing)
       run: |
-        echo "⏱️ Starting build at $(date)"
+        echo "⏱️ Starting build-for-testing at $(date)"
         BUILD_START=$(date +%s)
-        
-        xcodebuild build \
+
+        xcodebuild build-for-testing \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
           -configuration Debug \
           -derivedDataPath ~/Library/Developer/Xcode/DerivedData
-        
+
         BUILD_END=$(date +%s)
         BUILD_TIME=$((BUILD_END - BUILD_START))
         echo "✅ Build completed in ${BUILD_TIME} seconds"
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
     
+    - name: Boot Simulator First
+      run: |
+        echo "🚀 Booting simulator..."
+        xcrun simctl boot "iPhone 16" || xcrun simctl boot "iPhone 15 Pro" || echo "Simulator already booted"
+        xcrun simctl list devices | grep Booted
+
     - name: Run Tests (including Swift Testing)
+      timeout-minutes: 5
       run: |
         echo "🧪 Starting tests at $(date)"
         TEST_START=$(date +%s)
-        
-        xcodebuild test \
+
+        xcodebuild test-without-building \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
           -only-testing:RitualistTests \
           -resultBundlePath TestResults.xcresult \
           -derivedDataPath ~/Library/Developer/Xcode/DerivedData
-        
+
         TEST_END=$(date +%s)
         TEST_TIME=$((TEST_END - TEST_START))
         echo "✅ Tests completed in ${TEST_TIME} seconds"

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1"
+     creator="Ritualist Location Testing"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+
+    <!-- Simulate departing from a location (e.g., home) -->
+    <!-- Starting point: Inside geofence radius -->
+    <wpt lat="37.3349" lon="-122.0090">
+        <name>Start - Inside Geofence</name>
+        <time>2025-01-01T08:00:00Z</time>
+    </wpt>
+
+    <!-- Path showing gradual departure from location -->
+    <trk>
+        <name>Departing From Location</name>
+        <trkseg>
+            <!-- Point 1: Still inside (0m from center) -->
+            <trkpt lat="37.3349" lon="-122.0090">
+                <time>2025-01-01T08:00:00Z</time>
+                <name>Inside - 0m</name>
+            </trkpt>
+
+            <!-- Point 2: Moving away (~50m) -->
+            <trkpt lat="37.3353" lon="-122.0095">
+                <time>2025-01-01T08:01:00Z</time>
+                <name>Inside - 50m</name>
+            </trkpt>
+
+            <!-- Point 3: Near edge (~100m) -->
+            <trkpt lat="37.3358" lon="-122.0100">
+                <time>2025-01-01T08:02:00Z</time>
+                <name>Edge - 100m</name>
+            </trkpt>
+
+            <!-- Point 4: Just outside (~150m) - EXIT EVENT TRIGGERS -->
+            <trkpt lat="37.3363" lon="-122.0105">
+                <time>2025-01-01T08:03:00Z</time>
+                <name>Outside - 150m - EXIT TRIGGERED</name>
+            </trkpt>
+
+            <!-- Point 5: Far away (~200m) -->
+            <trkpt lat="37.3368" lon="-122.0110">
+                <time>2025-01-01T08:04:00Z</time>
+                <name>Outside - 200m</name>
+            </trkpt>
+
+            <!-- Point 6: Very far (~500m) -->
+            <trkpt lat="37.3394" lon="-122.0140">
+                <time>2025-01-01T08:10:00Z</time>
+                <name>Outside - 500m</name>
+            </trkpt>
+        </trkseg>
+    </trk>
+</gpx>

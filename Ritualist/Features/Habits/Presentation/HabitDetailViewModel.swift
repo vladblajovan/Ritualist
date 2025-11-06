@@ -436,6 +436,11 @@ public final class HabitDetailViewModel {
                             )
                             showMapPicker = true
                         }
+
+                        // Save placeholder config immediately so toggle persists even if user cancels map picker
+                        if let habitId = originalHabit?.id, let config = locationConfiguration {
+                            try? await configureHabitLocation.execute(habitId: habitId, configuration: config)
+                        }
                     case .denied, .failed:
                         // Permission denied - toggle stays off
                         break
@@ -451,6 +456,11 @@ public final class HabitDetailViewModel {
                             isEnabled: true
                         )
                         showMapPicker = true
+                    }
+
+                    // Save placeholder config immediately so toggle persists even if user cancels map picker
+                    if let habitId = originalHabit?.id, let config = locationConfiguration {
+                        try? await configureHabitLocation.execute(habitId: habitId, configuration: config)
                     }
                 }
                 // If permission is denied/restricted, user will see the permission status UI

@@ -307,6 +307,19 @@ public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUse
             }
         }
 
-        print("🎯 [RestoreGeofences] Restoration complete - Success: \(restoredCount), Failed: \(failedCount)")
+        // Clean up orphaned geofences (regions iOS is monitoring but app no longer needs)
+        let validHabitIds = Set(habitsWithLocation.map { $0.id })
+        let systemMonitoredHabitIds = await locationMonitoringService.getSystemMonitoredHabitIds()
+        let orphanedHabitIds = systemMonitoredHabitIds.filter { !validHabitIds.contains($0) }
+
+        if !orphanedHabitIds.isEmpty {
+            print("🧹 [RestoreGeofences] Cleaning up \(orphanedHabitIds.count) orphaned geofences")
+            for orphanedId in orphanedHabitIds {
+                await locationMonitoringService.stopMonitoring(habitId: orphanedId)
+                print("🗑️ [RestoreGeofences] Removed orphaned geofence: \(orphanedId)")
+            }
+        }
+
+        print("🎯 [RestoreGeofences] Restoration complete - Success: \(restoredCount), Failed: \(failedCount), Cleaned: \(orphanedHabitIds.count)")
     }
 }

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1"
+     creator="Ritualist Location Testing"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+
+    <!-- Simulate arriving at a location (e.g., home) -->
+    <!-- Starting point: Far away from geofence -->
+    <wpt lat="37.3394" lon="-122.0140">
+        <name>Start - Far Away</name>
+        <time>2025-01-01T18:00:00Z</time>
+    </wpt>
+
+    <!-- Path showing gradual approach to location -->
+    <trk>
+        <name>Arriving At Location</name>
+        <trkseg>
+            <!-- Point 1: Far away (~500m) -->
+            <trkpt lat="37.3394" lon="-122.0140">
+                <time>2025-01-01T18:00:00Z</time>
+                <name>Outside - 500m</name>
+            </trkpt>
+
+            <!-- Point 2: Getting closer (~200m) -->
+            <trkpt lat="37.3368" lon="-122.0110">
+                <time>2025-01-01T18:05:00Z</time>
+                <name>Outside - 200m</name>
+            </trkpt>
+
+            <!-- Point 3: Near edge (~150m) -->
+            <trkpt lat="37.3363" lon="-122.0105">
+                <time>2025-01-01T18:06:00Z</time>
+                <name>Outside - 150m</name>
+            </trkpt>
+
+            <!-- Point 4: Crossing threshold (~100m) - ENTRY EVENT TRIGGERS -->
+            <trkpt lat="37.3358" lon="-122.0100">
+                <time>2025-01-01T18:07:00Z</time>
+                <name>Inside - 100m - ENTRY TRIGGERED</name>
+            </trkpt>
+
+            <!-- Point 5: Moving toward center (~50m) -->
+            <trkpt lat="37.3353" lon="-122.0095">
+                <time>2025-01-01T18:08:00Z</time>
+                <name>Inside - 50m</name>
+            </trkpt>
+
+            <!-- Point 6: At destination (0m from center) -->
+            <trkpt lat="37.3349" lon="-122.0090">
+                <time>2025-01-01T18:09:00Z</time>
+                <name>Arrived - 0m</name>
+            </trkpt>
+        </trkseg>
+    </trk>
+</gpx>

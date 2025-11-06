@@ -24,7 +24,7 @@ import UserNotifications
         WindowGroup {
             RootAppView()
                 .modelContainer(persistenceContainer.container)
-                .task {
+                .task { @MainActor in
                     await setupNotifications()
                     await scheduleInitialNotifications()
                     await restoreGeofences()

@@ -21,40 +21,34 @@ struct StreaksCard: View {
     /// Spacing between items in a row
     private let itemSpacing: CGFloat = 12
 
+    /// Layout context for view logic calculations
+    private var layoutContext: StreaksLayoutViewLogic.LayoutContext {
+        StreaksLayoutViewLogic.LayoutContext(
+            itemCount: streaks.count,
+            itemHeight: itemHeight,
+            rowSpacing: rowSpacing
+        )
+    }
+
     /// Calculate the number of rows needed based on streak count
     /// - For 1-2 streaks: 1 row
     /// - For 3+ streaks: 2 rows
     private var numberOfRows: Int {
-        if streaks.isEmpty { return 1 }
-        return streaks.count <= 2 ? 1 : 2
+        StreaksLayoutViewLogic.numberOfRows(for: streaks.count)
     }
 
     /// Calculate the dynamic height based on number of rows
     /// - 1 row: itemHeight
     /// - 2 rows: itemHeight * 2 + rowSpacing
     private var gridHeight: CGFloat {
-        let baseHeight = CGFloat(numberOfRows) * itemHeight
-        let spacingHeight = numberOfRows > 1 ? CGFloat(numberOfRows - 1) * rowSpacing : 0
-        return baseHeight + spacingHeight
+        StreaksLayoutViewLogic.gridHeight(for: layoutContext)
     }
 
     /// Organize streaks into rows for horizontal-first filling
     /// - Row 1: First ceil(count/2) items
     /// - Row 2: Remaining items
     private var streakRows: [[StreakInfo]] {
-        guard !streaks.isEmpty else { return [] }
-
-        if numberOfRows == 1 {
-            // Single row: all streaks
-            return [Array(streaks)]
-        } else {
-            // Two rows: distribute evenly
-            // First row gets ceil(count/2), second row gets floor(count/2)
-            let midpoint = (streaks.count + 1) / 2
-            let row1 = Array(streaks.prefix(midpoint))
-            let row2 = Array(streaks.dropFirst(midpoint))
-            return [row1, row2]
-        }
+        StreaksLayoutViewLogic.distributeItems(streaks)
     }
 
     var body: some View {

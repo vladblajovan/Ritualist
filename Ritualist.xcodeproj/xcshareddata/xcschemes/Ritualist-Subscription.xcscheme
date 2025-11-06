@@ -29,6 +29,30 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
+      <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "91B730F72E38E4C10050A48A"
+               BuildableName = "RitualistTests.xctest"
+               BlueprintName = "RitualistTests"
+               ReferencedContainer = "container:Ritualist.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "91B731012E38E4C10050A48A"
+               BuildableName = "RitualistUITests.xctest"
+               BlueprintName = "RitualistUITests"
+               ReferencedContainer = "container:Ritualist.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug-Subscription"
