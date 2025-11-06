@@ -35,7 +35,8 @@ public final class HabitsViewModel {
     
     // MARK: - Category Filtering State
     public var selectedFilterCategory: HabitCategory?
-    
+    private var originalCategoryOrder: [HabitCategory] = []
+
     // MARK: - Navigation State
     public var showingCreateHabit = false
     public var selectedHabit: Habit?
@@ -67,7 +68,27 @@ public final class HabitsViewModel {
     public var categories: [HabitCategory] {
         habitsData.categories
     }
-    
+
+    /// Display categories with selected category moved to position 1 (after cogwheel)
+    public var displayCategories: [HabitCategory] {
+        guard let selected = selectedFilterCategory else {
+            // No selection - return original order
+            return originalCategoryOrder.isEmpty ? habitsData.categories : originalCategoryOrder
+        }
+
+        // Selected category exists - move it to first position
+        var reordered = originalCategoryOrder.isEmpty ? habitsData.categories : originalCategoryOrder
+
+        // Find and remove selected category
+        if let selectedIndex = reordered.firstIndex(where: { $0.id == selected.id }) {
+            let selectedCategory = reordered.remove(at: selectedIndex)
+            // Insert at position 0 (will be position 1 after cogwheel in UI)
+            reordered.insert(selectedCategory, at: 0)
+        }
+
+        return reordered
+    }
+
     /// Loading state for categories (always false for unified loading)
     public var isLoadingCategories: Bool {
         isLoading
@@ -82,10 +103,15 @@ public final class HabitsViewModel {
         let startTime = Date()
         isLoading = true
         error = nil
-        
-        do { 
+
+        do {
             habitsData = try await loadHabitsData.execute()
-            
+
+            // Store original category order on first load or when empty
+            if originalCategoryOrder.isEmpty {
+                originalCategoryOrder = habitsData.categories
+            }
+
             // Track performance metrics
             let loadTime = Date().timeIntervalSince(startTime)
             userActionTracker.trackPerformance(
@@ -94,12 +120,12 @@ public final class HabitsViewModel {
                 unit: "ms",
                 additionalProperties: ["habits_count": habitsData.totalHabitsCount, "categories_count": habitsData.categoriesCount]
             )
-        } catch { 
+        } catch {
             self.error = error
             habitsData = HabitsData(habits: [], categories: [])
             userActionTracker.trackError(error, context: "habits_load")
         }
-        
+
         isLoading = false
     }
     

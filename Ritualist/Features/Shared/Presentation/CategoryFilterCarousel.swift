@@ -9,7 +9,8 @@ public struct CategoryFilterCarousel: View {
     let onManageCategories: (() -> Void)?
     let onAddHabit: (() -> Void)?
     let onAssistant: (() -> Void)?
-    
+    let showHeader: Bool
+
     public init(
         selectedCategory: Binding<HabitCategory?>,
         categories: [HabitCategory],
@@ -17,7 +18,8 @@ public struct CategoryFilterCarousel: View {
         onCategorySelect: @escaping (HabitCategory?) -> Void,
         onManageCategories: (() -> Void)? = nil,
         onAddHabit: (() -> Void)? = nil,
-        onAssistant: (() -> Void)? = nil
+        onAssistant: (() -> Void)? = nil,
+        showHeader: Bool = true
     ) {
         self._selectedCategory = selectedCategory
         self.categories = categories
@@ -26,64 +28,67 @@ public struct CategoryFilterCarousel: View {
         self.onManageCategories = onManageCategories
         self.onAddHabit = onAddHabit
         self.onAssistant = onAssistant
+        self.showHeader = showHeader
     }
     
     public var body: some View {
         VStack(alignment: .leading, spacing: Spacing.small) {
             // Header with title, manage button and add habit button
-            HStack {
-                Text("Categories")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                
-                if let onManageCategories = onManageCategories {
-                    Button {
-                        onManageCategories()
-                    } label: {
-                        HStack(spacing: Spacing.xsmall) {
-                            Image(systemName: "gear")
-                                .font(.caption)
-                            Text("Manage")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                        }
-                        .foregroundColor(.secondary)
-                    }
-                }
-                
-                Spacer()
-                
-                HStack(spacing: Spacing.small) {
-                    if let onAssistant = onAssistant {
+            if showHeader {
+                HStack {
+                    Text("Categories")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+
+                    if let onManageCategories = onManageCategories {
                         Button {
-                            onAssistant()
+                            onManageCategories()
                         } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.blue.opacity(0.1))
-                                    .frame(width: 28, height: 28)
-                                
-                                Text("🤖")
-                                    .font(.system(size: 16))
+                            HStack(spacing: Spacing.xsmall) {
+                                Image(systemName: "gear")
+                                    .font(.caption)
+                                Text("Manage")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
                             }
+                            .foregroundColor(.secondary)
                         }
-                        .accessibilityLabel("Habits Assistant")
                     }
-                    
-                    if let onAddHabit = onAddHabit {
-                        Button {
-                            onAddHabit()
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(AppColors.brand)
+
+                    Spacer()
+
+                    HStack(spacing: Spacing.small) {
+                        if let onAssistant = onAssistant {
+                            Button {
+                                onAssistant()
+                            } label: {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.blue.opacity(0.1))
+                                        .frame(width: 28, height: 28)
+
+                                    Text("🤖")
+                                        .font(.system(size: 16))
+                                }
+                            }
+                            .accessibilityLabel("Habits Assistant")
                         }
-                        .accessibilityLabel("Add Habit")
+
+                        if let onAddHabit = onAddHabit {
+                            Button {
+                                onAddHabit()
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(AppColors.brand)
+                            }
+                            .accessibilityLabel("Add Habit")
+                        }
                     }
                 }
+                .padding(.horizontal, Spacing.large)
             }
-            .padding(.horizontal, Spacing.large)
-            
+
             // Category filter carousel
             if isLoading {
                 HStack {

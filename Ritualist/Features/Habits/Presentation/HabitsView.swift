@@ -119,21 +119,54 @@ private struct HabitsListView: View {
             } else if vm.filteredHabits.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
-                        CategoryFilterCarousel(
-                            selectedCategory: Binding(
-                                get: { vm.selectedFilterCategory },
-                                set: { vm.selectFilterCategory($0) }
-                            ),
-                            categories: vm.categories,
-                            isLoading: vm.isLoadingCategories,
-                            onCategorySelect: { category in
-                                vm.selectFilterCategory(category)
-                            },
-                            onManageCategories: nil,
-                            onAddHabit: nil,
-                            onAssistant: nil
-                        )
-                        .padding(.bottom, Spacing.medium)
+                        // Category carousel with cogwheel
+                        ScrollViewReader { proxy in
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: Spacing.medium) {
+                                    // Manage Categories button
+                                    Button {
+                                        showingCategoryManagement = true
+                                    } label: {
+                                        HStack(spacing: Spacing.small) {
+                                            Image(systemName: "gearshape")
+                                                .font(.system(size: 15, weight: .medium))
+                                        }
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 25)
+                                                .fill(Color(.secondarySystemBackground))
+                                        )
+                                        .foregroundColor(.primary)
+                                    }
+                                    .accessibilityLabel("Manage Categories")
+                                    .id("cogwheel-empty")
+
+                                    ForEach(vm.displayCategories, id: \.id) { category in
+                                        Chip(
+                                            text: category.displayName,
+                                            emoji: category.emoji,
+                                            isSelected: vm.selectedFilterCategory?.id == category.id
+                                        )
+                                        .onTapGesture {
+                                            let isCurrentlySelected = vm.selectedFilterCategory?.id == category.id
+                                            if isCurrentlySelected {
+                                                // Deselecting - don't scroll
+                                                vm.selectFilterCategory(nil)
+                                            } else {
+                                                // Selecting - scroll to start
+                                                vm.selectFilterCategory(category)
+                                                withAnimation {
+                                                    proxy.scrollTo("cogwheel-empty", anchor: .leading)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, Spacing.screenMargin)
+                            }
+                            .padding(.vertical, Spacing.small)
+                        }
                         
                         VStack(spacing: Spacing.xlarge) {
                             if vm.selectedFilterCategory != nil {
@@ -171,45 +204,54 @@ private struct HabitsListView: View {
                         .padding(.vertical, Spacing.medium)
                         .background(Color(.systemBackground))
                     } else {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: Spacing.medium) {
-                                // Manage Categories button
-                                Button {
-                                    showingCategoryManagement = true
-                                } label: {
-                                    HStack(spacing: Spacing.small) {
-                                        Image(systemName: "gearshape")
-                                            .font(.system(size: 15, weight: .medium))
+                        ScrollViewReader { proxy in
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: Spacing.medium) {
+                                    // Manage Categories button
+                                    Button {
+                                        showingCategoryManagement = true
+                                    } label: {
+                                        HStack(spacing: Spacing.small) {
+                                            Image(systemName: "gearshape")
+                                                .font(.system(size: 15, weight: .medium))
+                                        }
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 25)
+                                                .fill(Color(.secondarySystemBackground))
+                                        )
+                                        .foregroundColor(.primary)
                                     }
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 25)
-                                            .fill(Color(.secondarySystemBackground))
-                                    )
-                                    .foregroundColor(.primary)
-                                }
-                                .accessibilityLabel("Manage Categories")
+                                    .accessibilityLabel("Manage Categories")
+                                    .id("cogwheel")
 
-                                ForEach(vm.categories, id: \.id) { category in
-                                    Chip(
-                                        text: category.displayName,
-                                        emoji: category.emoji,
-                                        isSelected: vm.selectedFilterCategory?.id == category.id
-                                    )
-                                    .onTapGesture {
-                                        if vm.selectedFilterCategory?.id == category.id {
-                                            vm.selectFilterCategory(nil)
-                                        } else {
-                                            vm.selectFilterCategory(category)
+                                    ForEach(vm.displayCategories, id: \.id) { category in
+                                        Chip(
+                                            text: category.displayName,
+                                            emoji: category.emoji,
+                                            isSelected: vm.selectedFilterCategory?.id == category.id
+                                        )
+                                        .onTapGesture {
+                                            let isCurrentlySelected = vm.selectedFilterCategory?.id == category.id
+                                            if isCurrentlySelected {
+                                                // Deselecting - don't scroll
+                                                vm.selectFilterCategory(nil)
+                                            } else {
+                                                // Selecting - scroll to start
+                                                vm.selectFilterCategory(category)
+                                                withAnimation {
+                                                    proxy.scrollTo("cogwheel", anchor: .leading)
+                                                }
+                                            }
                                         }
                                     }
                                 }
+                                .padding(.horizontal, Spacing.screenMargin)
                             }
-                            .padding(.horizontal, Spacing.screenMargin)
+                            .padding(.vertical, Spacing.small)
+                            .background(Color(.systemBackground))
                         }
-                        .padding(.vertical, Spacing.small)
-                        .background(Color(.systemBackground))
                     }
                     
                     // Scrollable content with categories header, buttons and habits
