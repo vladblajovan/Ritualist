@@ -100,18 +100,19 @@ jobs:
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
     
     - name: Run Tests (including Swift Testing)
+      timeout-minutes: 10
       run: |
         echo "🧪 Starting tests at $(date)"
         TEST_START=$(date +%s)
-        
-        xcodebuild test \
+
+        timeout 120s xcodebuild test \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
           -only-testing:RitualistTests \
           -resultBundlePath TestResults.xcresult \
           -derivedDataPath ~/Library/Developer/Xcode/DerivedData
-        
+
         TEST_END=$(date +%s)
         TEST_TIME=$((TEST_END - TEST_START))
         echo "✅ Tests completed in ${TEST_TIME} seconds"
