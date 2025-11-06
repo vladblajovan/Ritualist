@@ -117,38 +117,110 @@ jobs:
           -destination 'platform=iOS Simulator,name=iPhone 16' \
           -only-testing:RitualistTests \
           -resultBundlePath TestResults.xcresult \
-          -derivedDataPath ~/Library/Developer/Xcode/DerivedData
+          -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
+          -enableCodeCoverage YES
 
         TEST_END=$(date +%s)
         TEST_TIME=$((TEST_END - TEST_START))
         echo "✅ Tests completed in ${TEST_TIME} seconds"
         echo "TEST_TIME=${TEST_TIME}" >> $GITHUB_ENV
       
-    - name: Generate Test Coverage Report
+    - name: Calculate Code Coverage
       run: |
-        # Extract basic test results
         if [ -d "TestResults.xcresult" ]; then
-          echo "📊 Extracting test coverage information..."
-          xcrun xccov view --report --json TestResults.xcresult > coverage.json || echo "Coverage extraction failed"
-          
-          # Create simple coverage report
-          cat > test_coverage_report.md << 'EOF'
-        # 📊 Test Coverage Report
-        
+          echo "📊 Extracting code coverage data..."
+
+          # Extract coverage JSON
+          xcrun xccov view --report --json TestResults.xcresult > coverage.json 2>&1
+
+          if [ $? -eq 0 ] && [ -s coverage.json ]; then
+            echo "✅ Coverage data extracted successfully"
+
+            # Parse JSON and extract coverage percentages using jq (or Python if jq unavailable)
+            if command -v jq &> /dev/null; then
+              # Extract total coverage
+              TOTAL_COVERAGE=$(jq -r '.lineCoverage' coverage.json 2>/dev/null || echo "0")
+
+              # Convert to percentage (multiply by 100)
+              TOTAL_COVERAGE_PCT=$(echo "$TOTAL_COVERAGE * 100" | bc -l 2>/dev/null || echo "0")
+              TOTAL_COVERAGE_DISPLAY=$(printf "%.2f" $TOTAL_COVERAGE_PCT)
+
+              echo "📈 Total Code Coverage: ${TOTAL_COVERAGE_DISPLAY}%"
+              echo "COVERAGE_PERCENTAGE=${TOTAL_COVERAGE_DISPLAY}" >> $GITHUB_ENV
+
+              # Create detailed coverage report
+              cat > test_coverage_report.md << EOF
+        # 📊 Code Coverage Report
+
+        ## Coverage Summary
+        - **Total Coverage**: ${TOTAL_COVERAGE_DISPLAY}%
+
+        ## Build Performance
+        - **Build Time**: ${BUILD_TIME} seconds
+        - **Test Time**: ${TEST_TIME} seconds
+        - **Total CI Time**: $((BUILD_TIME + TEST_TIME)) seconds
+
+        ## Coverage Details
+        Full coverage data available in \`coverage.json\` artifact.
+
+        ### Coverage Breakdown by Target
+        EOF
+
+              # Extract per-target coverage (targets array in JSON)
+              jq -r '.targets[] | "- **\(.name)**: \((.lineCoverage * 100) | tostring)%"' coverage.json 2>/dev/null >> test_coverage_report.md || echo "- Coverage breakdown not available" >> test_coverage_report.md
+
+              echo "" >> test_coverage_report.md
+              echo "---" >> test_coverage_report.md
+              echo "_Report generated on $(date -u '+%b %d, %Y at %H:%M:%S UTC')_" >> test_coverage_report.md
+
+              echo "✅ Coverage report generated with ${TOTAL_COVERAGE_DISPLAY}% total coverage"
+            else
+              echo "⚠️ jq not available - using basic coverage report"
+
+              # Fallback: create basic report
+              cat > test_coverage_report.md << EOF
+        # 📊 Code Coverage Report
+
+        ## Build Performance
+        - **Build Time**: ${BUILD_TIME} seconds
+        - **Test Time**: ${TEST_TIME} seconds
+        - **Total CI Time**: $((BUILD_TIME + TEST_TIME)) seconds
+
+        ## Coverage Data
+        Coverage data extracted but jq unavailable for parsing.
+        Full coverage data available in \`coverage.json\` artifact.
+
+        _Report generated on $(date -u '+%b %d, %Y at %H:%M:%S UTC')_
+        EOF
+
+              echo "COVERAGE_PERCENTAGE=N/A" >> $GITHUB_ENV
+            fi
+          else
+            echo "⚠️ Coverage extraction failed or returned empty data"
+
+            # Create fallback report
+            cat > test_coverage_report.md << 'EOF'
+        # 📊 Code Coverage Report
+
+        ## ⚠️ Coverage Data Unavailable
+
+        Coverage extraction failed. This may happen if:
+        - Tests failed to run
+        - Code coverage was not enabled in the scheme
+        - xcresult bundle is corrupted
+
         ## Build Performance
         EOF
-          echo "- **Build Time**: ${BUILD_TIME} seconds" >> test_coverage_report.md
-          echo "- **Test Time**: ${TEST_TIME} seconds" >> test_coverage_report.md
-          echo "- **Total CI Time**: $((BUILD_TIME + TEST_TIME)) seconds" >> test_coverage_report.md
-          echo "" >> test_coverage_report.md
-          
-          echo "## Test Results" >> test_coverage_report.md
-          echo "- Test results available in TestResults.xcresult" >> test_coverage_report.md
-          echo "- Generated on: $(date)" >> test_coverage_report.md
-          
-          echo "✅ Coverage report generated"
+            echo "- **Build Time**: ${BUILD_TIME} seconds" >> test_coverage_report.md
+            echo "- **Test Time**: ${TEST_TIME} seconds" >> test_coverage_report.md
+            echo "" >> test_coverage_report.md
+            echo "_Report generated on $(date -u '+%b %d, %Y at %H:%M:%S UTC')_" >> test_coverage_report.md
+
+            echo "COVERAGE_PERCENTAGE=N/A" >> $GITHUB_ENV
+          fi
         else
           echo "❌ TestResults.xcresult not found - tests may have failed to run"
+          echo "COVERAGE_PERCENTAGE=N/A" >> $GITHUB_ENV
         fi
           
     - name: Upload Test Results
@@ -253,13 +325,25 @@ jobs:
 
         EOF
 
-        # Add performance metrics if build succeeded
+        # Add performance metrics and coverage if build succeeded
         if [[ "$BUILD_STATUS" == "success" ]]; then
           cat >> build-report.md << 'EOF'
         ## 📊 Performance Metrics
         Build and test performance data available in workflow artifacts.
 
         EOF
+
+          # Try to extract coverage from test_coverage_report.md if available
+          if [ -f "artifacts/test-results-and-coverage/test_coverage_report.md" ]; then
+            COVERAGE_LINE=$(grep "Total Coverage" artifacts/test-results-and-coverage/test_coverage_report.md | head -1)
+            if [ -n "$COVERAGE_LINE" ]; then
+              echo "### Code Coverage" >> build-report.md
+              echo "$COVERAGE_LINE" >> build-report.md
+              echo "" >> build-report.md
+              echo "📄 Full coverage breakdown available in the \`test-results-and-coverage\` artifact." >> build-report.md
+              echo "" >> build-report.md
+            fi
+          fi
         fi
 
         # Add action required section if there are failures
