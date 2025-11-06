@@ -24,7 +24,7 @@ The Settings page demonstrates solid iOS patterns and follows many Apple HIG pri
 
 ### **🔴 IMMEDIATE (This Sprint) - Safety & Accessibility Critical**
 
-#### - [ ] 1. Add Confirmation Dialog for Cancel Subscription ⚠️
+#### - [x] 1. Add Confirmation Dialog for Cancel Subscription ⚠️
 **Priority:** CRITICAL - Safety Issue
 **File:** `SettingsView.swift` (line 106-123)
 **Problem:** Users can accidentally cancel subscription with no confirmation
@@ -52,7 +52,7 @@ Button {
 
 ---
 
-#### - [ ] 2. Add Accessibility Labels to Icon-Only Buttons ♿
+#### - [x] 2. Add Accessibility Labels to Icon-Only Buttons ♿
 **Priority:** CRITICAL - Accessibility Compliance
 **Files:** `SettingsView.swift` (lines 229-233, 239-243, 279-283, 289-293)
 **Problem:** VoiceOver users cannot understand button purposes
@@ -96,51 +96,17 @@ AvatarView(...)
 
 ---
 
-#### - [ ] 3. Reorder Sections - Permissions First 🎯
-**Priority:** HIGH - UX Critical
-**File:** `SettingsView.swift` (lines 58-313)
-**Problem:** Critical permissions buried at bottom, users can't find them
-**HIG Reference:** [Organizing Settings](https://developer.apple.com/design/human-interface-guidelines/settings#Organizing-settings)
-
-**Current Order:**
-1. Account
-2. Profile (Appearance)
-3. Time Display
-4. Data Management
-5. Personality Insights
-6. Notifications
-7. Location
-8. Connect With Us
-
-**Recommended Order:**
-1. Account (identity/subscription - high priority)
-2. Notifications (critical permission) ⬆️ Move up
-3. Location (critical permission) ⬆️ Move up
-4. Appearance (rename from "Profile")
-5. Data Management (categories)
-6. Personality Insights
-7. Time Display (niche setting)
-8. Connect With Us (promotional)
-
-**Implementation:** Reorder sections in Form { } block
-
----
-
-#### - [ ] 4. Rename "Profile" Section to "Appearance" 📝
+#### - [x] 4. Consolidate Account Section 📝
 **Priority:** HIGH - Clarity
-**File:** `SettingsView.swift` (line 141)
-**Problem:** Section named "Profile" only contains appearance setting - misleading
+**Files:** `SettingsView.swift`, `AccountSectionView.swift` (NEW)
+**Problem:** Separate "Profile" and "Time Display" sections fragmented related settings
 
 **Implementation:**
-```swift
-// Change from:
-Section(Strings.Settings.profile) {
-
-// To:
-Section("Appearance") {
-```
-
-Also update `Localizable.xcstrings` and `Strings` file if needed.
+- Moved Appearance picker into Account section
+- Moved Time Display picker into Account section
+- Removed separate "Profile" and "Time Display" sections
+- Extracted to AccountSectionView component for SwiftLint compliance
+- Creates cohesive grouping of account-related settings
 
 ---
 
@@ -210,7 +176,7 @@ HStack {
 
 ---
 
-#### - [ ] 8. Shorten Timezone Explanations 📝
+#### - [x] 8. Shorten Timezone Explanations 📝
 **Priority:** MEDIUM - Clarity
 **File:** `SettingsView.swift` (line 384-392)
 **Problem:** Explanation text is very long and technical
