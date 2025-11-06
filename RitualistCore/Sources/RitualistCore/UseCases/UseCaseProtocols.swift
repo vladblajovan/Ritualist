@@ -74,11 +74,6 @@ public protocol ClearPurchasesUseCase {
     func execute()
 }
 
-public protocol PopulateTestDataUseCase {
-    func execute(scenario: TestDataScenario) async throws
-    var progressUpdate: ((String, Double) -> Void)? { get set }
-}
-
 public protocol CreateHabitFromSuggestionUseCase {
     func execute(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult
 }
@@ -451,6 +446,11 @@ public protocol GetDatabaseStatsUseCase {
 
 public protocol ClearDatabaseUseCase {
     func execute() async throws
+}
+
+public protocol PopulateTestDataUseCase {
+    func execute(scenario: TestDataScenario) async throws
+    var progressUpdate: ((String, Double) -> Void)? { get set }
 }
 
 #endif

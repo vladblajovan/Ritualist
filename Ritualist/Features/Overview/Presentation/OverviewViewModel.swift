@@ -666,24 +666,24 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     // MARK: - Private Methods
-    
+
     /// Load overview data from database
     private func loadOverviewData() async throws -> OverviewData {
         // 1. Load habits ONCE
         let habits = try await getActiveHabits.execute()
-        
+
         // 2. Determine date range (past 30 days for monthly data)
         let today = Date()
         let startDate = CalendarUtils.addDays(-30, to: today)
-        
+
         // 3. Load logs ONCE for entire date range using batch operation
         let habitIds = habits.map(\.id)
         let habitLogs = try await getBatchLogs.execute(
-            for: habitIds, 
-            since: startDate, 
+            for: habitIds,
+            since: startDate,
             until: today
         )
-        
+
         return OverviewData(
             habits: habits,
             habitLogs: habitLogs,

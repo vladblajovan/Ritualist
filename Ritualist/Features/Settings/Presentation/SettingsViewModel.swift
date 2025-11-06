@@ -3,6 +3,15 @@ import Observation
 import FactoryKit
 import RitualistCore
 
+// Type alias to handle DEBUG-only protocol from RitualistCore
+// In DEBUG: references actual PopulateTestDataUseCase
+// In Release: dummy protocol (never instantiated, just for compilation)
+#if DEBUG
+public typealias TestDataGenerator = PopulateTestDataUseCase
+#else
+public protocol TestDataGenerator {}
+#endif
+
 @MainActor @Observable
 public final class SettingsViewModel {
     private let loadProfile: LoadProfileUseCase
@@ -16,8 +25,10 @@ public final class SettingsViewModel {
     private let updateUserSubscription: UpdateUserSubscriptionUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
-    
-    private let populateTestData: PopulateTestDataUseCase?
+
+    // Only populated in DEBUG builds via DI
+    private let populateTestData: TestDataGenerator?
+
     #if DEBUG
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
     @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase
@@ -63,7 +74,7 @@ public final class SettingsViewModel {
                 clearPurchases: ClearPurchasesUseCase,
                 checkPremiumStatus: CheckPremiumStatusUseCase,
                 updateUserSubscription: UpdateUserSubscriptionUseCase,
-                populateTestData: PopulateTestDataUseCase? = nil) {
+                populateTestData: TestDataGenerator? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
         self.requestNotificationPermission = requestNotificationPermission
