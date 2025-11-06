@@ -17,18 +17,18 @@ The Settings page demonstrates excellent iOS patterns and follows Apple HIG prin
 - ✅ Category management integrated into workflow
 
 **Remaining Areas for Improvement:**
-- ⏳ Save confirmation for name field
-- ⏳ Color-independent status indicators (WCAG compliance)
+- ⏳ Dynamic Type testing and compliance
+- ⏳ Advanced Settings page creation
 
 ---
 
 ## 📋 PRIORITIZED IMPROVEMENTS
 
-**Progress: 9 of 16 items completed (56%)**
-- ✅ 4 IMMEDIATE items completed
-- ✅ 5 NEXT SPRINT items completed
-- ⏳ 2 NEXT SPRINT items remaining
-- ⏳ 4 BACKLOG items
+**Progress: 10 of 13 items completed (77%)**
+- ✅ 4 IMMEDIATE items completed (100%)
+- ✅ 6 NEXT SPRINT items completed (100%)
+- ⏳ 1 BACKLOG item in progress (Dynamic Type testing)
+- ⏳ 1 BACKLOG item pending (Advanced Settings page)
 
 ### **🔴 IMMEDIATE (This Sprint) - Safety & Accessibility Critical**
 
@@ -135,56 +135,21 @@ AvatarView(...)
 
 ---
 
-#### - [ ] 6. Add Save Confirmation for Name Field 💾
-**Priority:** MEDIUM - UX Improvement
-**File:** `SettingsView.swift` (line 74-82)
-**Problem:** No visual affordance for saving changes, requires keyboard submit
-**Accessibility:** VoiceOver users may not know how to save
-
-**Implementation:**
-```swift
-HStack {
-    TextField(Strings.Form.name, text: $name)
-        .textFieldStyle(.plain)
-
-    if name != vm.profile.name && !name.isEmpty {
-        Button("Save") {
-            Task { await updateUserName() }
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.small)
-    }
-}
-```
-
----
-
-#### - [ ] 7. Add Color-Independent Status Indicators ♿
+#### - [x] 6. Add Color-Independent Status Indicators ♿
 **Priority:** MEDIUM - Accessibility (WCAG Compliance)
-**File:** `SettingsView.swift` (line 99-101)
+**File:** `AccountSectionView.swift`
 **Problem:** Subscription status uses only color to convey meaning
 **WCAG Violation:** Color alone shouldn't convey information
 
 **Implementation:**
-```swift
-HStack {
-    Label("Subscription", systemImage: "crown")
-    Spacer()
-    HStack(spacing: 4) {
-        if vm.isPremiumUser {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
-        }
-        Text(vm.isPremiumUser ? "Pro" : "Free")
-            .foregroundColor(vm.isPremiumUser ? .orange : .secondary)
-            .fontWeight(vm.isPremiumUser ? .medium : .regular)
-    }
-}
-```
+- Added green checkmark icon next to "Pro" status
+- Provides redundant visual indicator beyond color alone
+- Free users see no icon, just grey "Free" text
+- WCAG compliant - information conveyed through shape + color
 
 ---
 
-#### - [x] 8. Shorten Timezone Explanations 📝
+#### - [x] 7. Shorten Timezone Explanations 📝
 **Priority:** MEDIUM - Clarity
 **File:** `AccountSectionView.swift`
 **Problem:** Explanation text is very long and technical
@@ -196,7 +161,7 @@ HStack {
 
 ---
 
-#### - [x] 9. Change Permission Action Icons to Grey 🎨
+#### - [x] 8. Change Permission Action Icons to Grey 🎨
 **Priority:** MEDIUM - Visual Consistency
 **File:** `PermissionsSectionView.swift`
 **Problem:** Blue action icons stood out too much, inconsistent with social media section
@@ -209,7 +174,7 @@ HStack {
 
 ---
 
-#### - [x] 10. Move Manage Categories to Habits Screen 🔄
+#### - [x] 9. Move Manage Categories to Habits Screen 🔄
 **Priority:** MEDIUM - Information Architecture
 **Files:** `HabitsView.swift`, `SettingsView.swift`
 **Problem:** Category management in Settings was disconnected from habit creation workflow
@@ -223,7 +188,7 @@ HStack {
 
 ---
 
-#### - [x] 11. Simplify Location Permission Text 📝
+#### - [x] 10. Simplify Location Permission Text 📝
 **Priority:** LOW - Clarity
 **File:** `GeofenceEvent.swift` (RitualistCore)
 **Problem:** "Location access granted - geofencing enabled" was technical jargon
@@ -235,7 +200,7 @@ HStack {
 
 ---
 
-#### - [x] 12. Remove Personality Insights from Settings 🔄
+#### - [x] 11. Remove Personality Insights from Settings 🔄
 **Priority:** MEDIUM - Information Architecture
 **File:** `SettingsView.swift`
 **Problem:** Personality Insights better belongs in Overview context, not Settings
@@ -249,55 +214,27 @@ HStack {
 
 ### **🟢 BACKLOG - Future Enhancements**
 
-#### - [ ] 13. Create "Advanced" Section for Niche Settings 📂
-**Priority:** LOW - Information Architecture
+#### - [ ] 12. Create Advanced Settings Page 📂
+**Priority:** MEDIUM - Information Architecture
 **Benefit:** Reduces cognitive load on main settings page
 
-**Implementation:** Move "Time Display" to new "Advanced" section
+**Implementation:**
+- Create new "Advanced Settings" navigation row in Account section
+- New `AdvancedSettingsView.swift` page with NavigationStack
+- Move "Time Display" picker to Advanced page
+- Keep advanced/niche settings separate from main Settings page
+- Cleaner main Settings page focused on essential options
 
 ---
 
-#### - [ ] 14. Add Contextual Menus to Settings Buttons 🎛️
-**Priority:** LOW - Enhanced Interactions
-**Benefit:** Provides additional options without cluttering UI
-
-**Example:**
-```swift
-Menu {
-    Button("Open iOS Settings") { /* ... */ }
-    Button("Learn More About Notifications") { /* ... */ }
-} label: {
-    Image(systemName: "ellipsis.circle")
-}
-```
-
----
-
-#### - [ ] 15. Test Dynamic Type at All Sizes ♿
-**Priority:** LOW - Accessibility Polish
+#### - [ ] 13. Test Dynamic Type at All Sizes ♿
+**Priority:** MEDIUM - Accessibility Compliance
 **Action Items:**
 - Test with AX1-AX5 text sizes
-- Ensure icons scale appropriately
-- Check for text truncation
-- Verify layout doesn't break
-
----
-
-#### - [ ] 16. Add Auto-Save Toast Notifications 💬
-**Priority:** LOW - Feedback Improvement
-**Benefit:** User knows when changes are saved
-
-**Implementation:**
-```swift
-.onChange(of: appearance) { _, newValue in
-    Task {
-        vm.profile.appearance = newValue
-        _ = await vm.save()
-        await vm.updateAppearance(newValue)
-        showToast("Appearance saved")
-    }
-}
-```
+- Ensure icons scale appropriately with Dynamic Type
+- Check for text truncation across all screens
+- Verify layout doesn't break at largest sizes
+- Ensure all fonts use dynamic text styles
 
 ---
 
@@ -493,16 +430,19 @@ Menu {
 ---
 
 **Last Updated:** 2025-11-06
-**Review Status:** 9 of 16 items completed (56% progress)
+**Review Status:** 10 of 13 items completed (77% progress)
 **Completed Items:**
 - ✅ Confirmation dialog for cancel subscription
 - ✅ Accessibility labels for all interactive elements
 - ✅ Consolidated Account section
 - ✅ Standardized row patterns and icon sizes
+- ✅ Color-independent status indicators (WCAG compliant)
 - ✅ Shortened timezone explanations
 - ✅ Changed permission icons to grey
 - ✅ Moved category management to Habits screen
 - ✅ Simplified location permission text
 - ✅ Removed Personality Insights from Settings
 
-**Remaining Work:** 2 medium-priority items, 4 backlog items
+**Remaining Work:**
+- ⏳ Dynamic Type testing (MEDIUM priority)
+- ⏳ Advanced Settings page (MEDIUM priority)

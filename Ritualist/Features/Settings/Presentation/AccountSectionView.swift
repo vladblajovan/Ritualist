@@ -55,9 +55,16 @@ struct AccountSectionView: View {
             HStack {
                 Label("Subscription", systemImage: "crown")
                 Spacer()
-                Text(vm.isPremiumUser ? "Pro" : "Free")
-                    .foregroundColor(vm.isPremiumUser ? .orange : .secondary)
-                    .fontWeight(vm.isPremiumUser ? .medium : .regular)
+                HStack(spacing: 4) {
+                    if vm.isPremiumUser {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                    }
+                    Text(vm.isPremiumUser ? "Pro" : "Free")
+                        .foregroundColor(vm.isPremiumUser ? .orange : .secondary)
+                        .fontWeight(vm.isPremiumUser ? .medium : .regular)
+                }
             }
 
             // Cancel subscription for premium users or Subscribe for free users
