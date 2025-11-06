@@ -1090,6 +1090,9 @@
     "Current Time" : {
 
     },
+    "Dashboard" : {
+
+    },
     "dashboardAllTime" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -126,7 +126,7 @@ private struct HabitsListView: View {
                         // Category carousel with cogwheel
                         ScrollViewReader { proxy in
                             ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: Spacing.medium) {
+                                HStack(spacing: Spacing.small) {
                                     // Manage Categories button
                                     Button {
                                         showingCategoryManagement = true
