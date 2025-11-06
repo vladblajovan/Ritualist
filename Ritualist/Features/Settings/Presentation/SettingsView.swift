@@ -102,18 +102,9 @@ private struct SettingsFormView: View {
                     }
                     #endif
                 }
-                .navigationTitle("Settings")
-                .navigationBarTitleDisplayMode(.large)
                 .refreshable {
                     await vm.load()
                     updateLocalState()
-                }
-                .onAppear {
-                    updateLocalState()
-                    Task {
-                        await vm.refreshNotificationStatus()
-                        await vm.refreshLocationStatus()
-                    }
                 }
                 .sheet(isPresented: $showingImagePicker) {
                     AvatarImagePicker(
@@ -143,14 +134,18 @@ private struct SettingsFormView: View {
                 }
                 #endif
                 .onAppear {
-                    // Refresh premium status when settings page appears
+                    // Initialize local state and refresh all statuses
+                    updateLocalState()
                     Task {
+                        await vm.refreshNotificationStatus()
+                        await vm.refreshLocationStatus()
                         await vm.refreshPremiumStatus()
                     }
-                    updateLocalState()
                 }
             }
         }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.large)
     }
     
     // MARK: - Helper Methods
