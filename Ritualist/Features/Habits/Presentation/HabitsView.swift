@@ -17,7 +17,11 @@ public struct HabitsRoot: View {
         .task {
             await vm.load()
         }
-        .sheet(isPresented: $showingCategoryManagement) {
+        .sheet(isPresented: $showingCategoryManagement, onDismiss: {
+            Task {
+                await vm.load()
+            }
+        }) {
             NavigationStack {
                 CategoryManagementView(vm: categoryManagementVM)
             }
@@ -163,9 +167,23 @@ private struct HabitsListView: View {
                                         }
                                     }
                                 }
-                                .padding(.horizontal, Spacing.screenMargin)
+                                .padding(.leading, Spacing.screenMargin)
+                                .padding(.trailing, Spacing.screenMargin)
                             }
-                            .padding(.vertical, Spacing.small)
+                            .mask(
+                                LinearGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: .clear, location: 0),
+                                        .init(color: .black, location: 0.05),
+                                        .init(color: .black, location: 0.95),
+                                        .init(color: .clear, location: 1)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .padding(.top, Spacing.small)
+                            .padding(.bottom, Spacing.medium)
                         }
                         
                         VStack(spacing: Spacing.xlarge) {
@@ -247,8 +265,21 @@ private struct HabitsListView: View {
                                         }
                                     }
                                 }
-                                .padding(.horizontal, Spacing.screenMargin)
+                                .padding(.leading, Spacing.screenMargin)
+                                .padding(.trailing, Spacing.screenMargin)
                             }
+                            .mask(
+                                LinearGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: .clear, location: 0),
+                                        .init(color: .black, location: 0.05),
+                                        .init(color: .black, location: 0.95),
+                                        .init(color: .clear, location: 1)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                             .padding(.vertical, Spacing.small)
                             .background(Color(.systemBackground))
                         }

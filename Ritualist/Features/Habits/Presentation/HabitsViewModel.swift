@@ -107,10 +107,8 @@ public final class HabitsViewModel {
         do {
             habitsData = try await loadHabitsData.execute()
 
-            // Store original category order on first load or when empty
-            if originalCategoryOrder.isEmpty {
-                originalCategoryOrder = habitsData.categories
-            }
+            // Always update original category order to include newly added categories
+            originalCategoryOrder = habitsData.categories
 
             // Track performance metrics
             let loadTime = Date().timeIntervalSince(startTime)
