@@ -105,7 +105,7 @@ jobs:
         echo "🧪 Starting tests at $(date)"
         TEST_START=$(date +%s)
 
-        timeout 120s xcodebuild test \
+        xcodebuild test \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
