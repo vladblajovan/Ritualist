@@ -139,3 +139,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built with SwiftUI and SwiftData
 - Dependency injection powered by Factory
 - UI design inspired by modern iOS design patterns
+
+<!-- Test commit to verify GitHub Actions status -->
