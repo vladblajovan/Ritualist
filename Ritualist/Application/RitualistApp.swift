@@ -280,6 +280,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
 // MARK: - App Delegate cleanup completed - notification handling moved to LocalNotificationService
 
+// TEST: Dummy change to trigger CI verification
+
 // Separate view to properly observe AppearanceManager changes
 struct RootAppView: View {
     var body: some View {
