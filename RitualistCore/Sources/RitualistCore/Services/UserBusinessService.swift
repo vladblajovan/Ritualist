@@ -152,6 +152,7 @@ public final class MockUserBusinessService: UserBusinessService {
 public final class ICloudUserBusinessService: UserBusinessService {
     private var _currentProfile: UserProfile
     private let errorHandler: ErrorHandler?
+    private let syncErrorHandler: CloudSyncErrorHandler
     private let container: CKContainer
     private let privateDatabase: CKDatabase
 
@@ -159,6 +160,11 @@ public final class ICloudUserBusinessService: UserBusinessService {
     /// - Parameter errorHandler: Optional error handler for logging
     public init(errorHandler: ErrorHandler? = nil) {
         self.errorHandler = errorHandler
+        self.syncErrorHandler = CloudSyncErrorHandler(
+            errorHandler: errorHandler,
+            maxRetries: 3,
+            baseDelay: 1.0
+        )
 
         // Initialize CloudKit container
         self.container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
@@ -167,12 +173,26 @@ public final class ICloudUserBusinessService: UserBusinessService {
         // Initialize with default profile
         self._currentProfile = UserProfile()
 
-        // Load profile from CloudKit on init (async)
+        // Validate CloudKit availability and load profile (async)
         Task {
             do {
-                _currentProfile = try await loadProfileFromCloud()
+                // Check if user is signed into iCloud
+                try await syncErrorHandler.validateCloudKitAvailability()
+
+                // Load profile from CloudKit with retry logic
+                _currentProfile = try await syncErrorHandler.executeWithRetry(
+                    operation: { try await self.loadProfileFromCloud() },
+                    operationName: "initial_profile_load"
+                )
+            } catch let error as CloudKitAvailabilityError {
+                // iCloud not available - log and continue with local-only mode
+                await errorHandler?.logError(
+                    error,
+                    context: ErrorContext.sync + "_icloud_unavailable",
+                    additionalProperties: ["operation": "init_load_profile", "mode": "local_only"]
+                )
             } catch {
-                // Log error but continue with default profile
+                // Other errors - log but continue with default profile
                 await errorHandler?.logError(
                     error,
                     context: ErrorContext.sync + "_cloud_initial_load",
@@ -183,16 +203,19 @@ public final class ICloudUserBusinessService: UserBusinessService {
     }
 
     public func getCurrentProfile() async throws -> UserProfile {
-        // Fetch latest from CloudKit to ensure freshness
+        // Fetch latest from CloudKit with retry logic
         do {
-            let cloudProfile = try await loadProfileFromCloud()
+            let cloudProfile = try await syncErrorHandler.executeWithRetry(
+                operation: { try await self.loadProfileFromCloud() },
+                operationName: "get_current_profile"
+            )
             _currentProfile = cloudProfile
             return cloudProfile
         } catch {
-            // If CloudKit fetch fails, return cached profile
+            // If CloudKit fetch fails after retries, return cached profile
             await errorHandler?.logError(
                 error,
-                context: ErrorContext.sync + "_cloud_get_profile",
+                context: ErrorContext.sync + "_cloud_get_profile_failed",
                 additionalProperties: ["operation": "getCurrentProfile", "using_cached": "true"]
             )
             return _currentProfile
@@ -213,8 +236,11 @@ public final class ICloudUserBusinessService: UserBusinessService {
         var updatedProfile = profile
         updatedProfile.updatedAt = Date()
 
-        // Save to CloudKit
-        try await saveProfileToCloud(updatedProfile)
+        // Save to CloudKit with retry logic
+        try await syncErrorHandler.executeWithRetry(
+            operation: { try await self.saveProfileToCloud(updatedProfile) },
+            operationName: "update_profile"
+        )
 
         // Update local cache
         _currentProfile = updatedProfile
@@ -226,23 +252,32 @@ public final class ICloudUserBusinessService: UserBusinessService {
         updatedProfile.subscriptionExpiryDate = expiryDate
         updatedProfile.updatedAt = Date()
 
-        // Save to CloudKit
-        try await saveProfileToCloud(updatedProfile)
+        // Save to CloudKit with retry logic
+        try await syncErrorHandler.executeWithRetry(
+            operation: { try await self.saveProfileToCloud(updatedProfile) },
+            operationName: "update_subscription"
+        )
 
         // Update local cache
         _currentProfile = updatedProfile
     }
 
     public func syncWithiCloud() async throws {
-        // Fetch latest from CloudKit
-        let cloudProfile = try await loadProfileFromCloud()
+        // Fetch latest from CloudKit with retry logic
+        let cloudProfile = try await syncErrorHandler.executeWithRetry(
+            operation: { try await self.loadProfileFromCloud() },
+            operationName: "sync_fetch"
+        )
 
         // Resolve conflicts using Last-Write-Wins
         let resolvedProfile = resolveConflict(local: _currentProfile, cloud: cloudProfile)
 
-        // If resolved profile is different from cloud, push update
+        // If resolved profile is different from cloud, push update with retry
         if resolvedProfile.updatedAt > cloudProfile.updatedAt {
-            try await saveProfileToCloud(resolvedProfile)
+            try await syncErrorHandler.executeWithRetry(
+                operation: { try await self.saveProfileToCloud(resolvedProfile) },
+                operationName: "sync_push"
+            )
         }
 
         // Update local cache
