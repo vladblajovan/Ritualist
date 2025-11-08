@@ -90,7 +90,7 @@ jobs:
         xcodebuild build-for-testing \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
-          -destination 'platform=iOS Simulator,name=iPhone 16' \
+          -destination 'platform=iOS Simulator,OS=latest' \
           -configuration Debug \
           -derivedDataPath ~/Library/Developer/Xcode/DerivedData
 
@@ -102,7 +102,11 @@ jobs:
     - name: Boot Simulator First
       run: |
         echo "🚀 Booting simulator..."
-        xcrun simctl boot "iPhone 16" || xcrun simctl boot "iPhone 15 Pro" || echo "Simulator already booted"
+        # Find and boot any available iOS simulator (auto-select first available)
+        SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | grep -oE '\([A-F0-9-]+\)' | tr -d '()')
+        if [ -n "$SIMULATOR_ID" ]; then
+          xcrun simctl boot "$SIMULATOR_ID" || echo "Simulator already booted"
+        fi
         xcrun simctl list devices | grep Booted
 
     - name: Run Tests (including Swift Testing)
@@ -114,7 +118,7 @@ jobs:
         xcodebuild test-without-building \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
-          -destination 'platform=iOS Simulator,name=iPhone 16' \
+          -destination 'platform=iOS Simulator,OS=latest' \
           -only-testing:RitualistTests \
           -resultBundlePath TestResults.xcresult \
           -derivedDataPath ~/Library/Developer/Xcode/DerivedData \

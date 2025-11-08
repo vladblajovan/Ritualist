@@ -41,10 +41,11 @@ jobs:
     - name: Build for CodeQL Analysis
       run: |
         # CodeQL requires clean build to properly analyze Swift code
+        # Use 'OS=latest' to automatically select an available simulator
         xcodebuild clean build \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
-          -destination 'platform=iOS Simulator,name=iPhone 16' \
+          -destination 'platform=iOS Simulator,OS=latest' \
           -configuration Debug \
           -quiet \
           CODE_SIGNING_ALLOWED=NO \
