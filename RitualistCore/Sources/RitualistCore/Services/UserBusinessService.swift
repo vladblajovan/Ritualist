@@ -305,9 +305,17 @@ public final class ICloudUserBusinessService: UserBusinessService {
             return profile
 
         } catch let error as CKError where error.code == .unknownItem {
-            // Profile doesn't exist in CloudKit yet - this is expected on first use
-            // Return default profile
-            return UserProfile()
+            // Profile doesn't exist in CloudKit yet - this is first-time sync
+            // Upload local profile to preserve user data instead of replacing with empty profile
+
+            // Only upload if we have meaningful local data
+            if !_currentProfile.name.isEmpty || _currentProfile.avatarImageData != nil {
+                // Upload current local profile to CloudKit
+                try await saveProfileToCloud(_currentProfile)
+            }
+
+            // Return local profile (preserve data, don't lose it!)
+            return _currentProfile
 
         } catch {
             throw CloudKitSyncError.fetchFailed(

@@ -21,9 +21,16 @@ public enum UserProfileCloudMapper {
     /// CloudKit zone for UserProfile records (private database, default zone)
     public static let zoneID = CKRecordZone.default().zoneID
 
+    // MARK: - Schema Versioning
+
+    /// Current CloudKit schema version for UserProfile records
+    /// Increment when adding/removing/changing fields to support migration
+    private static let currentSchemaVersion = "v1"
+
     // MARK: - Field Names (must match CloudKit schema)
 
     private enum FieldKey {
+        static let schemaVersion = "schemaVersion"  // Version tracking for migrations
         static let recordID = "recordID"
         static let name = "name"
         static let appearance = "appearance"
@@ -49,6 +56,9 @@ public enum UserProfileCloudMapper {
             zoneID: zoneID
         )
         let record = CKRecord(recordType: recordType, recordID: recordID)
+
+        // Set schema version for migration tracking
+        record[FieldKey.schemaVersion] = currentSchemaVersion
 
         // Map basic fields
         record[FieldKey.recordID] = profile.id.uuidString
@@ -91,6 +101,10 @@ public enum UserProfileCloudMapper {
     /// - Returns: UserProfile domain entity
     /// - Throws: CloudMapperError if required fields are missing or invalid
     public static func fromCKRecord(_ record: CKRecord) throws -> UserProfile {
+        // Read schema version for backward compatibility
+        // Default to v1 for old records that don't have schemaVersion field
+        let schemaVersion = record[FieldKey.schemaVersion] as? String ?? "v1"
+
         // Extract and validate required fields
         guard let recordIDString = record[FieldKey.recordID] as? String,
               let id = UUID(uuidString: recordIDString) else {
@@ -148,6 +162,21 @@ public enum UserProfileCloudMapper {
         // Extract optional fields
         let homeTimezone = record[FieldKey.homeTimezone] as? String
         let subscriptionExpiryDate = record[FieldKey.subscriptionExpiryDate] as? Date
+
+        // FUTURE: When adding new fields in v2+, use schemaVersion for conditional parsing
+        // Example pattern for version-aware field parsing:
+        //
+        // let favoriteColor: String?
+        // if schemaVersion >= "v2" {
+        //     favoriteColor = record[FieldKey.favoriteColor] as? String
+        // } else {
+        //     favoriteColor = nil  // v1 records don't have this field
+        // }
+        //
+        // This ensures:
+        // - v2.0 app reads v1 records → favoriteColor = nil (safe)
+        // - v1.0 app reads v2 records → ignores favoriteColor (safe)
+        // - No crashes, no data loss
 
         // Extract avatar image from CKAsset
         var avatarImageData: Data?
