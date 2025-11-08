@@ -90,7 +90,7 @@ jobs:
         xcodebuild build-for-testing \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+          -destination 'platform=iOS Simulator,name=iPhone 16' \
           -configuration Debug \
           -derivedDataPath ~/Library/Developer/Xcode/DerivedData
 
@@ -114,7 +114,7 @@ jobs:
         xcodebuild test-without-building \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+          -destination 'platform=iOS Simulator,name=iPhone 16' \
           -only-testing:RitualistTests \
           -resultBundlePath TestResults.xcresult \
           -derivedDataPath ~/Library/Developer/Xcode/DerivedData \

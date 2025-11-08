@@ -44,7 +44,7 @@ jobs:
         xcodebuild clean build \
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+          -destination 'platform=iOS Simulator,name=iPhone 16' \
           -configuration Debug \
           -quiet \
           CODE_SIGNING_ALLOWED=NO \
