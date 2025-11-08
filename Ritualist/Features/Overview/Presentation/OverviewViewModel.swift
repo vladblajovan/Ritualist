@@ -45,7 +45,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     // Single source of truth for all overview data
     public var overviewData: OverviewData?
-    
+
+    // MARK: - Cache Invalidation State
+
+    /// Track previous migration state to detect completion
+    @ObservationIgnored private var wasMigrating = false
+
+    /// Track if initial data has been loaded to prevent duplicate loads
+    @ObservationIgnored private var hasLoadedInitialData = false
+
     // MARK: - Computed Properties
     public var incompleteHabits: [Habit] {
         todaysSummary?.incompleteHabits ?? []
@@ -152,22 +160,47 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     // MARK: - Public Methods
     
     public func loadData() async {
-        guard !isLoading else { 
-            return 
+        // Prevent duplicate loads while one is already in progress
+        guard !isLoading else {
+            print("⚠️ LOAD BLOCKED: Already loading (preventing duplicate)")
+            return
         }
-        
+
+        // MIGRATION GUARD: Check migration state on first load
+        // Handles: (1) App restart during migration, (2) ViewModel created after migration
+        if !hasLoadedInitialData && getMigrationStatus.isMigrating {
+            print("⏳ MIGRATION IN PROGRESS: Deferring data load until migration completes")
+            wasMigrating = true
+            return  // Don't load during migration - wait for completion
+        }
+
+        // MIGRATION CHECK: Detect completion and invalidate cache if needed
+        if checkMigrationAndInvalidateCache() {
+            print("🔄 MIGRATION COMPLETED: Cache invalidated, proceeding with fresh load")
+        }
+
+        // Skip redundant loads after initial data is loaded
+        // Allow loads if: cache is nil OR migration just completed
+        if hasLoadedInitialData && overviewData != nil {
+            print("⚠️ LOAD SKIPPED: Data already loaded (use refresh() to force reload)")
+            return
+        }
+
+        print("🔄 FULL RELOAD: Loading data from database")
         isLoading = true
         error = nil
-        
+
         do {
             // Cache user name for synchronous message generation
             cachedUserName = await getUserName()
-            
+
             // Load unified data once instead of multiple parallel operations
             let overviewData = try await loadOverviewData()
-            
+            print("✅ FULL RELOAD: Loaded \(overviewData.habits.count) habits, \(overviewData.habitLogs.values.flatMap { $0 }.count) logs")
+
             // Store the overview data and extract all card data from it using unified approach
             self.overviewData = overviewData
+            self.hasLoadedInitialData = true
             self.todaysSummary = extractTodaysSummary(from: overviewData)
             self.activeStreaks = extractActiveStreaks(from: overviewData)
             self.monthlyCompletionData = extractMonthlyData(from: overviewData)
@@ -188,9 +221,20 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     public func refresh() async {
+        print("🔄 MANUAL REFRESH: User requested refresh")
+        hasLoadedInitialData = false  // Allow reload
         await loadData()
     }
-    
+
+    public func invalidateCacheForTabSwitch() {
+        // Restore pre-cache-sync behavior: reload on tab switch
+        // This ensures users see new habits/categories created in other tabs
+        if hasLoadedInitialData {
+            print("🔄 TAB SWITCH: Invalidating cache for fresh data")
+            hasLoadedInitialData = false
+        }
+    }
+
     public func openPersonalityAnalysis() {
         personalityDeepLinkCoordinator.showPersonalityAnalysisDirectly()
     }
@@ -200,6 +244,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     public func completeHabit(_ habit: Habit) async {
+        // MIGRATION CHECK: Invalidate cache if migration just completed
+        if checkMigrationAndInvalidateCache() {
+            await loadData()
+        }
+
         do {
             if habit.kind == .numeric {
                 // For numeric habits, set to daily target (this should primarily be used for binary habits)
@@ -214,15 +263,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                     value: 1.0,
                     timezone: TimeZone.current.identifier
                 )
-                
+
                 try await logHabit.execute(log)
-                
-                // Refresh data to show updated progress
-                await loadData()
-                
+
+                // CACHE SYNC: Update cache instead of full reload
+                updateCachedLog(log)
+
                 // Small delay to ensure data is committed to shared container before widget refresh
                 try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                
+
                 // Refresh widget to show updated habit status
                 refreshWidget.execute(habitId: habit.id)
             }
@@ -249,14 +298,20 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     public func updateNumericHabit(_ habit: Habit, value: Double) async {
+        // MIGRATION CHECK: Invalidate cache if migration just completed
+        if checkMigrationAndInvalidateCache() {
+            await loadData()
+        }
+
         do {
-            // Get existing logs for this habit on the viewing date
-            let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
-            let existingLogsForDate = allLogs.filter { CalendarUtils.areSameDayUTC($0.date, viewingDate) }
-            
+            // Get existing logs FROM CACHE (not database)
+            let existingLogsForDate = overviewData?.logs(for: habit.id, on: viewingDate) ?? []
+
+            let log: HabitLog
+
             if existingLogsForDate.isEmpty {
                 // No existing log for this date - create new one using UTC timestamp and timezone context
-                let log = HabitLog(
+                log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
                     date: CalendarUtils.startOfDayUTC(for: viewingDate),
@@ -268,15 +323,16 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 // Single existing log - update it
                 var updatedLog = existingLogsForDate[0]
                 updatedLog.value = value
-                try await logHabit.execute(updatedLog)
+                log = updatedLog
+                try await logHabit.execute(log)
             } else {
                 // Multiple logs exist for this date - this shouldn't happen for our UI
                 // But let's handle it properly: delete all existing logs and create one new log
                 for existingLog in existingLogsForDate {
                     try await deleteLog.execute(id: existingLog.id)
                 }
-                
-                let log = HabitLog(
+
+                log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
                     date: CalendarUtils.startOfDayUTC(for: viewingDate),
@@ -285,9 +341,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 )
                 try await logHabit.execute(log)
             }
-            
-            // Refresh data to get updated values from database
-            await loadData()
+
+            // CACHE SYNC: Update cache instead of full reload
+            updateCachedLog(log)
 
             // Small delay to ensure data is committed to shared container before widget refresh
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
@@ -406,18 +462,22 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     public func deleteHabitLog(_ habit: Habit) async {
+        // MIGRATION CHECK: Invalidate cache if migration just completed
+        if checkMigrationAndInvalidateCache() {
+            await loadData()
+        }
+
         do {
-            // Get existing logs for this habit on the viewing date
-            let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
-            let existingLogsForDate = allLogs.filter { CalendarUtils.areSameDayUTC($0.date, viewingDate) }
-            
-            // Delete all logs for this habit on this date
+            // Get logs FROM CACHE (not database)
+            let existingLogsForDate = overviewData?.logs(for: habit.id, on: viewingDate) ?? []
+
+            // Delete from database
             for log in existingLogsForDate {
                 try await deleteLog.execute(id: log.id)
             }
-            
-            // Refresh data to show updated UI
-            await loadData()
+
+            // CACHE SYNC: Update cache instead of full reload
+            removeCachedLogs(habitId: habit.id, on: viewingDate)
 
             // Small delay to ensure data is committed to shared container before widget refresh
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
@@ -431,34 +491,82 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     public func goToPreviousDay() {
-        if canGoToPreviousDay {
-            viewingDate = CalendarUtils.previousDay(from: viewingDate)
-            Task {
-                await loadData()
-            }
+        guard canGoToPreviousDay else { return }
+
+        viewingDate = CalendarUtils.previousDay(from: viewingDate)
+
+        // MIGRATION CHECK: Invalidate cache if migration just completed
+        if checkMigrationAndInvalidateCache() {
+            Task { await loadData() }
+            return
+        }
+
+        // SELECTIVE RELOAD: Only if date out of cached range
+        if needsReload(for: viewingDate) {
+            hasLoadedInitialData = false  // Allow reload
+            Task { await loadData() }
+        } else {
+            guard let data = overviewData else { return }
+            refreshUIState(with: data)
         }
     }
-    
+
     public func goToNextDay() {
-        if canGoToNextDay {
-            viewingDate = CalendarUtils.nextDay(from: viewingDate)
-            Task {
-                await loadData()
-            }
+        guard canGoToNextDay else { return }
+
+        viewingDate = CalendarUtils.nextDay(from: viewingDate)
+
+        // MIGRATION CHECK: Invalidate cache if migration just completed
+        if checkMigrationAndInvalidateCache() {
+            Task { await loadData() }
+            return
+        }
+
+        // SELECTIVE RELOAD: Only if date out of cached range
+        if needsReload(for: viewingDate) {
+            hasLoadedInitialData = false  // Allow reload
+            Task { await loadData() }
+        } else {
+            guard let data = overviewData else { return }
+            refreshUIState(with: data)
         }
     }
-    
+
     public func goToToday() {
         viewingDate = CalendarUtils.startOfDayLocal(for: Date())
-        Task {
-            await loadData()
+
+        // MIGRATION CHECK: Invalidate cache if migration just completed
+        if checkMigrationAndInvalidateCache() {
+            Task { await loadData() }
+            return
+        }
+
+        // SELECTIVE RELOAD: Only if date out of cached range
+        if needsReload(for: Date()) {
+            hasLoadedInitialData = false  // Allow reload
+            Task { await loadData() }
+        } else {
+            guard let data = overviewData else { return }
+            refreshUIState(with: data)
         }
     }
-    
+
     public func goToDate(_ date: Date) {
         viewingDate = date
-        Task {
-            await loadData()
+
+        // MIGRATION CHECK: Invalidate cache if migration just completed
+        if checkMigrationAndInvalidateCache() {
+            Task { await loadData() }
+            return
+        }
+
+        // SELECTIVE RELOAD: Only if date out of cached range
+        if needsReload(for: date) {
+            hasLoadedInitialData = false  // Allow reload
+            Task { await loadData() }
+        } else {
+            guard let data = overviewData else { return }
+            refreshUIState(with: data)
         }
     }
     
@@ -690,7 +798,116 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             dateRange: startDate...today
         )
     }
-    
+
+    /// Check if migration just completed and invalidate cache if needed
+    /// Returns true if cache was invalidated (caller should reload)
+    private func checkMigrationAndInvalidateCache() -> Bool {
+        let currentlyMigrating = getMigrationStatus.isMigrating
+
+        // Detect migration completion: was migrating, now not
+        let justCompletedMigration = wasMigrating && !currentlyMigrating
+
+        // Update tracking state
+        wasMigrating = currentlyMigrating
+
+        if justCompletedMigration {
+            // Migration just completed - cache is STALE
+            print("🔄 Migration completed - invalidating cache")
+            overviewData = nil  // Force reload
+            hasLoadedInitialData = false  // Allow reload
+            return true
+        }
+
+        return false
+    }
+
+    // MARK: - Cache Update Helpers (Memory Leak Fix)
+
+    /// Update cache after successful database write
+    /// This eliminates the need for full database reload
+    private func updateCachedLog(_ log: HabitLog) {
+        guard var data = overviewData else {
+            print("⚠️ CACHE MISS: No cache available, skipping update")
+            return
+        }
+
+        var habitLogs = data.habitLogs[log.habitID] ?? []
+
+        // Check if log already exists (update scenario)
+        if let existingIndex = habitLogs.firstIndex(where: { $0.id == log.id }) {
+            habitLogs[existingIndex] = log
+            print("✅ CACHE SYNC: Updated existing log for habit \(log.habitID)")
+        } else {
+            habitLogs.append(log)
+            print("✅ CACHE SYNC: Added new log for habit \(log.habitID)")
+        }
+
+        var updatedHabitLogs = data.habitLogs
+        updatedHabitLogs[log.habitID] = habitLogs
+
+        let updatedData = OverviewData(
+            habits: data.habits,
+            habitLogs: updatedHabitLogs,
+            dateRange: data.dateRange
+        )
+
+        refreshUIState(with: updatedData)
+    }
+
+    /// Remove logs from cache after successful database delete
+    private func removeCachedLogs(habitId: UUID, on date: Date) {
+        guard var data = overviewData else {
+            print("⚠️ CACHE MISS: No cache available for delete")
+            return
+        }
+
+        var habitLogs = data.habitLogs[habitId] ?? []
+        let beforeCount = habitLogs.count
+        habitLogs.removeAll { log in
+            CalendarUtils.areSameDayUTC(log.date, date)
+        }
+        let removedCount = beforeCount - habitLogs.count
+        print("✅ CACHE SYNC: Removed \(removedCount) log(s) for habit \(habitId)")
+
+        var updatedHabitLogs = data.habitLogs
+        updatedHabitLogs[habitId] = habitLogs
+
+        let updatedData = OverviewData(
+            habits: data.habits,
+            habitLogs: updatedHabitLogs,
+            dateRange: data.dateRange
+        )
+
+        refreshUIState(with: updatedData)
+    }
+
+    /// Refresh all derived UI properties from OverviewData
+    /// Ensures consistency across all cards
+    private func refreshUIState(with data: OverviewData) {
+        self.overviewData = data
+        self.todaysSummary = extractTodaysSummary(from: data)
+        self.activeStreaks = extractActiveStreaks(from: data)
+        self.monthlyCompletionData = extractMonthlyData(from: data)
+        self.smartInsights = extractSmartInsights(from: data)
+        self.checkAndShowInspirationCard()
+    }
+
+    /// Check if date requires database reload (outside cached range)
+    private func needsReload(for date: Date) -> Bool {
+        guard let data = overviewData else {
+            print("🔄 RELOAD NEEDED: No cache available")
+            return true
+        }
+        let dateStart = CalendarUtils.startOfDayUTC(for: date)
+        let needsReload = !data.dateRange.contains(dateStart)
+        if needsReload {
+            print("🔄 RELOAD NEEDED: Date \(dateStart) outside cached range")
+        } else {
+            print("⚡ CACHE HIT: Date \(dateStart) within cached range")
+        }
+        return needsReload
+    }
+
     // MARK: - Data Extraction Methods
     
     /// Extract TodaysSummary from overview data
