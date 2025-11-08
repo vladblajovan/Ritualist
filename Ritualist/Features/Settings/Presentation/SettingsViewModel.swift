@@ -14,9 +14,13 @@ public final class SettingsViewModel {
     private let clearPurchases: ClearPurchasesUseCase
     private let checkPremiumStatus: CheckPremiumStatusUseCase
     private let updateUserSubscription: UpdateUserSubscriptionUseCase
+    private let syncWithiCloud: SyncWithiCloudUseCase
+    private let checkiCloudStatus: CheckiCloudStatusUseCase
+    private let getLastSyncDate: GetLastSyncDateUseCase
+    private let updateLastSyncDate: UpdateLastSyncDateUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
-    
+
     private let populateTestData: PopulateTestDataUseCase?
     #if DEBUG
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
@@ -33,6 +37,12 @@ public final class SettingsViewModel {
     public private(set) var isRequestingLocationPermission = false
     public private(set) var isCancellingSubscription = false
     public private(set) var isUpdatingUser = false
+
+    // iCloud Sync state
+    public private(set) var isSyncing = false
+    public private(set) var lastSyncDate: Date?
+    public private(set) var iCloudStatus: iCloudSyncStatus = .unknown
+    public private(set) var isCheckingCloudStatus = false
     
     #if DEBUG
     public private(set) var isClearingDatabase = false
@@ -63,6 +73,10 @@ public final class SettingsViewModel {
                 clearPurchases: ClearPurchasesUseCase,
                 checkPremiumStatus: CheckPremiumStatusUseCase,
                 updateUserSubscription: UpdateUserSubscriptionUseCase,
+                syncWithiCloud: SyncWithiCloudUseCase,
+                checkiCloudStatus: CheckiCloudStatusUseCase,
+                getLastSyncDate: GetLastSyncDateUseCase,
+                updateLastSyncDate: UpdateLastSyncDateUseCase,
                 populateTestData: PopulateTestDataUseCase? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
@@ -73,6 +87,10 @@ public final class SettingsViewModel {
         self.clearPurchases = clearPurchases
         self.checkPremiumStatus = checkPremiumStatus
         self.updateUserSubscription = updateUserSubscription
+        self.syncWithiCloud = syncWithiCloud
+        self.checkiCloudStatus = checkiCloudStatus
+        self.getLastSyncDate = getLastSyncDate
+        self.updateLastSyncDate = updateLastSyncDate
         self.populateTestData = populateTestData
     }
     
@@ -84,6 +102,8 @@ public final class SettingsViewModel {
             hasNotificationPermission = await checkNotificationStatus.execute()
             locationAuthStatus = await getLocationAuthStatus.execute()
             cachedPremiumStatus = await checkPremiumStatus.execute()
+            lastSyncDate = await getLastSyncDate.execute()
+            await refreshiCloudStatus()
         } catch {
             self.error = error
             profile = UserProfile()
@@ -91,6 +111,7 @@ public final class SettingsViewModel {
             hasNotificationPermission = await checkNotificationStatus.execute()
             locationAuthStatus = await getLocationAuthStatus.execute()
             cachedPremiumStatus = await checkPremiumStatus.execute()
+            lastSyncDate = await getLastSyncDate.execute()
         }
         isLoading = false
     }
@@ -226,14 +247,51 @@ public final class SettingsViewModel {
     public func updateAppearance(_ appearance: Int) async {
         // Update the profile appearance setting
         profile.appearance = appearance
-        
+
         // Apply the appearance change to the appearance manager
         appearanceManager.updateFromProfile(profile)
-        
+
         // Track appearance change
         userActionTracker.track(.profileUpdated(field: "appearance"))
     }
-    
+
+    // MARK: - iCloud Sync Methods
+
+    /// Manually trigger iCloud sync
+    public func syncNow() async {
+        isSyncing = true
+        error = nil
+
+        do {
+            try await syncWithiCloud.execute()
+            await updateLastSyncDate.execute(Date())
+            lastSyncDate = Date()
+
+            // Track sync action
+            userActionTracker.track(.custom(event: "icloud_manual_sync", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "icloud_manual_sync")
+        }
+
+        isSyncing = false
+    }
+
+    /// Refresh iCloud account status
+    public func refreshiCloudStatus() async {
+        isCheckingCloudStatus = true
+
+        do {
+            iCloudStatus = try await checkiCloudStatus.execute()
+        } catch {
+            iCloudStatus = .unknown
+            // Log error but don't surface it as a blocking error
+            userActionTracker.trackError(error, context: "icloud_status_check")
+        }
+
+        isCheckingCloudStatus = false
+    }
+
     // MARK: - Debug Methods
     
     #if DEBUG

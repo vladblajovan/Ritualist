@@ -71,6 +71,9 @@ private struct SettingsFormView: View {
                     // Permissions Section (Notifications + Location)
                     PermissionsSectionView(vm: vm)
 
+                    // iCloud Sync Section
+                    ICloudSyncSectionView(vm: vm)
+
                     // Social Media Section
                     SocialMediaLinksView()
 
@@ -140,6 +143,7 @@ private struct SettingsFormView: View {
                         await vm.refreshNotificationStatus()
                         await vm.refreshLocationStatus()
                         await vm.refreshPremiumStatus()
+                        await vm.refreshiCloudStatus()
                     }
                 }
             }

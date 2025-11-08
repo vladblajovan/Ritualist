@@ -29,13 +29,35 @@ extension Container {
     }
     
     // MARK: - Premium Status Operations
-    
+
     var checkPremiumStatus: Factory<CheckPremiumStatus> {
         self { CheckPremiumStatus(userService: self.userService()) }
     }
-    
+
     var updateUserSubscription: Factory<UpdateUserSubscription> {
         self { UpdateUserSubscription(userService: self.userService()) }
+    }
+
+    // MARK: - iCloud Sync Operations
+
+    var syncWithiCloud: Factory<SyncWithiCloudUseCase> {
+        self { DefaultSyncWithiCloudUseCase(userBusinessService: self.userBusinessService()) }
+    }
+
+    var checkiCloudStatus: Factory<CheckiCloudStatusUseCase> {
+        self {
+            DefaultCheckiCloudStatusUseCase(
+                syncErrorHandler: CloudSyncErrorHandler(errorHandler: self.errorHandler())
+            )
+        }
+    }
+
+    var getLastSyncDate: Factory<GetLastSyncDateUseCase> {
+        self { DefaultGetLastSyncDateUseCase() }
+    }
+
+    var updateLastSyncDate: Factory<UpdateLastSyncDateUseCase> {
+        self { DefaultUpdateLastSyncDateUseCase() }
     }
     
     // MARK: - Development Operations
