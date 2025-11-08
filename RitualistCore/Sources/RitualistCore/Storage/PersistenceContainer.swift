@@ -65,7 +65,9 @@ public final class PersistenceContainer {
         let configuration = ModelConfiguration(
             url: databaseURL,
             allowsSave: true,
-            cloudKitDatabase: .none  // CloudKit setup for future use
+            cloudKitDatabase: .private(  // CloudKit private database for UserProfile sync
+                "iCloud.com.vladblajovan.Ritualist"
+            )
         )
 
         let migrationStartTime = Date()
