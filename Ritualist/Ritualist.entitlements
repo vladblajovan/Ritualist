@@ -6,6 +6,21 @@
 	<array>
 		<string>group.com.vladblajovan.Ritualist</string>
 	</array>
+	<!--
+	⚠️ iCloud/CloudKit entitlements DISABLED - Requires paid Apple Developer Program ($99/year)
+
+	Free Apple Developer accounts cannot use iCloud/CloudKit capabilities.
+	All iCloud sync code is implemented and ready in the codebase (~1,010 LOC).
+
+	TO RE-ENABLE (after purchasing Apple Developer Program):
+	1. Uncomment the lines below
+	2. Enable iCloud capability in Apple Developer Portal
+	3. Configure CloudKit Dashboard (see CLOUDKIT-SETUP-GUIDE.md)
+	4. Clean build folder and rebuild
+
+	See ICLOUD-INVESTIGATION-SUMMARY.md for complete unblocking guide.
+	-->
+	<!--
 	<key>com.apple.developer.icloud-services</key>
 	<array>
 		<string>CloudKit</string>
@@ -14,5 +29,6 @@
 	<array>
 		<string>iCloud.com.vladblajovan.Ritualist</string>
 	</array>
+	-->
 </dict>
 </plist>
