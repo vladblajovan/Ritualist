@@ -59,7 +59,47 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
         validatedPurchases.removeAll()
         saveMockPurchases()
     }
-    
+
+    public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
+        // Check for lifetime purchase first (highest priority)
+        // Support both com.ritualist.* and com.vladblajovan.ritualist.* product IDs
+        if validatedPurchases.contains("com.ritualist.lifetime") ||
+           validatedPurchases.contains("com.vladblajovan.ritualist.lifetime") {
+            return .lifetime
+        }
+
+        // Check for annual subscription
+        if validatedPurchases.contains("com.ritualist.annual") ||
+           validatedPurchases.contains("com.vladblajovan.ritualist.annual") {
+            return .annual
+        }
+
+        // Check for monthly subscription
+        if validatedPurchases.contains("com.ritualist.monthly") ||
+           validatedPurchases.contains("com.vladblajovan.ritualist.monthly") {
+            return .monthly
+        }
+
+        // Default to free if no purchases
+        return .free
+    }
+
+    public func getSubscriptionExpiryDate() async -> Date? {
+        let plan = await getCurrentSubscriptionPlan()
+
+        switch plan {
+        case .monthly:
+            // Mock expiry: 30 days from now
+            return Date().addingTimeInterval(30 * 24 * 60 * 60)
+        case .annual:
+            // Mock expiry: 365 days from now
+            return Date().addingTimeInterval(365 * 24 * 60 * 60)
+        case .lifetime, .free:
+            // No expiry for lifetime or free
+            return nil
+        }
+    }
+
     // MARK: - Private Helpers
     
     /// Load mock purchases from UserDefaults for development convenience

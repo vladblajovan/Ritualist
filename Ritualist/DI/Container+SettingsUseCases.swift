@@ -31,11 +31,11 @@ extension Container {
     // MARK: - Premium Status Operations
 
     var checkPremiumStatus: Factory<CheckPremiumStatus> {
-        self { CheckPremiumStatus(userService: self.userService()) }
+        self { CheckPremiumStatus(subscriptionService: self.subscriptionService()) }
     }
 
     var updateUserSubscription: Factory<UpdateUserSubscription> {
-        self { UpdateUserSubscription(userService: self.userService()) }
+        self { UpdateUserSubscription() }
     }
 
     // MARK: - iCloud Sync Operations

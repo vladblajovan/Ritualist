@@ -2,8 +2,8 @@
 
 ## Current Status (January 2025)
 
-**Branch:** `feature/storekit-monetization`
-**Overall Progress:** ~90% Complete (Backend ✅, UI ✅, Bugs ✅, Testing ❌)
+**Branch:** `investigation/icloud-storage-release`
+**Overall Progress:** ~95% Complete (Backend ✅, UI ✅, Bugs ✅, Schema Migration ✅, Testing ❌)
 
 | Phase | Status | Progress |
 |-------|--------|----------|
@@ -14,18 +14,22 @@
 | Phase 5: Documentation | ✅ Complete | 100% |
 | Phase 6: Code Organization | ✅ Complete | 100% |
 | **Bug Fixes** | ✅ Complete | 100% |
+| **Schema V8 Migration** | ✅ Complete | 100% |
 
 **What's Working NOW:**
 - ✅ Production StoreKit services (ready to uncomment)
 - ✅ Mock fallbacks (both schemes build successfully)
 - ✅ Lifetime purchase support
 - ✅ Complete activation documentation
-- ✅ SubscriptionManagementSectionView UI
+- ✅ SubscriptionManagementSectionView UI (with conditional Restore Purchases button)
 - ✅ PaywallView shows all 3 products dynamically
 - ✅ ALL_FEATURES_ENABLED bypass working correctly
 - ✅ Assistant paywall integration
-- ✅ Over-limit banner UI
+- ✅ Over-limit banner UI (hidden for premium users)
 - ✅ Business constants centralized
+- ✅ **Single source of truth: SubscriptionService** (subscription removed from database)
+- ✅ **Schema V8**: Removed subscription fields from UserProfile
+- ✅ **Debug Menu**: Clear Mock Purchases for easy testing
 
 **What's Missing:**
 - ❌ Unit tests for StoreKit services (Phase 4)
@@ -487,6 +491,96 @@ See `BUILD-CONFIGURATION-STRATEGY.md` for detailed analysis of:
 - ✅ Restore purchases works with device Apple ID
 
 **Time Spent**: ~4 hours debugging + fixes + business rules documentation
+
+---
+
+### Critical Bug #5: Settings Page Not Updating After Purchase
+
+**Status**: ✅ RESOLVED - Removed subscription from database (Schema V8 migration)
+
+**Symptom**:
+- User purchases lifetime subscription via Paywall
+- Purchase completes successfully
+- Settings page still shows "Free" subscription status
+- Habits page banner doesn't hide after purchase
+
+**Root Cause**:
+- **Two sources of truth** causing sync issues:
+  1. `UserProfile.subscriptionPlan` (database field)
+  2. `SubscriptionService.isPremiumUser()` (UserDefaults/StoreKit)
+- PaywallViewModel updates SubscriptionService after purchase
+- SettingsViewModel reads from database (stale data)
+- Feature gating services were checking deprecated UserService (database)
+
+**Solution - Schema V8 Migration**:
+
+**1. Remove Subscription from Database**:
+- Created Schema V8 removing `subscriptionPlan` and `subscriptionExpiryDate` from `UserProfileModel`
+- Lightweight migration (V7 → V8)
+- Database verified to have NO subscription fields
+
+**2. Establish Single Source of Truth**:
+- **Only** `SubscriptionService` manages subscription status
+- Mock: UserDefaults (`secure_mock_purchases`)
+- Production: StoreKit 2 transactions
+- All feature gating queries the service
+
+**3. Update All Dependencies**:
+- `DefaultFeatureGatingService`: Changed from `UserService` to `SubscriptionService`
+- `DefaultFeatureGatingBusinessService`: Changed from `UserService` to `SubscriptionService`
+- `CheckPremiumStatusUseCase`: Now queries `SubscriptionService.isPremiumUser()`
+- `UpdateUserSubscription`: Made no-op (subscription not in DB)
+- `UpdateProfileSubscription`: Made no-op (subscription not in DB)
+
+**4. UI Fixes**:
+- SettingsViewModel caches subscription from service
+- "Restore Purchases" button only shows for free users
+- Habits banner correctly hides for premium users
+- PaywallView preview fixed
+
+**5. Developer Experience**:
+- Added "Clear Mock Purchases" to Debug Menu
+- Works instantly without app restart
+- Shows current subscription status
+- Only available in Subscription scheme
+
+**Files Changed** (11 total):
+1. `RitualistCore/Sources/RitualistCore/Storage/SchemaV8.swift` (NEW)
+2. `RitualistCore/Sources/RitualistCore/Storage/MigrationPlan.swift`
+3. `RitualistCore/Sources/RitualistCore/Storage/ActiveSchema.swift`
+4. `RitualistCore/Sources/RitualistCore/Storage/PersistenceContainer.swift`
+5. `RitualistCore/Sources/RitualistCore/Services/SecureSubscriptionService.swift`
+6. `RitualistCore/Sources/RitualistCore/Services/MockSecureSubscriptionService.swift`
+7. `Ritualist/Core/Services/StoreKitSubscriptionService.swift`
+8. `RitualistCore/Sources/RitualistCore/Services/DefaultFeatureGatingService.swift`
+9. `RitualistCore/Sources/RitualistCore/Services/DefaultFeatureGatingBusinessService.swift`
+10. `RitualistCore/Sources/RitualistCore/UseCases/Implementations/Core/UserUseCases.swift`
+11. `Ritualist/DI/Container+Services.swift`
+12. `Ritualist/DI/Container+SettingsUseCases.swift`
+13. `Ritualist/DI/Container+PaywallUseCases.swift`
+14. `Ritualist/Features/Settings/Presentation/SettingsViewModel.swift`
+15. `Ritualist/Features/Settings/Presentation/Components/SubscriptionManagementSectionView.swift`
+16. `Ritualist/Features/Settings/Presentation/SettingsView.swift`
+17. `Ritualist/Features/Paywall/Presentation/PaywallView.swift`
+18. `Ritualist/Features/Settings/Presentation/DebugMenuView.swift`
+19. `RitualistCore/Sources/RitualistCore/DataSources/Implementations/ProfileLocalDataSource.swift`
+20. `SCHEMA-MIGRATION-GUIDE.md`
+
+**Testing Completed**:
+- ✅ Purchase lifetime → Settings shows "Lifetime" immediately
+- ✅ Settings doesn't show "Restore Purchases" for premium users
+- ✅ Habits banner hidden for premium users (6+ habits)
+- ✅ Debug Menu → Clear Purchases → Returns to free tier instantly
+- ✅ AllFeatures mode: No subscription testing UI (makes no sense)
+- ✅ Database verified: No subscription fields exist
+
+**Architecture Win**:
+- **Before**: Two sources of truth, sync bugs, Settings not updating
+- **After**: Single source of truth (SubscriptionService), instant updates, no sync issues
+
+**Time Spent**: ~6 hours (schema design, migration, testing, DI updates, debug tools)
+
+**Priority**: P0 - Critical for launch ✅ **RESOLVED**
 
 ---
 

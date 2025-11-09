@@ -98,6 +98,56 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         lastCacheUpdate = .distantPast
     }
 
+    public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
+        // Refresh cache if needed
+        await refreshCacheIfNeeded()
+
+        // Check for lifetime purchase first (highest priority)
+        if cachedValidPurchases.contains("com.ritualist.lifetime") ||
+           cachedValidPurchases.contains("com.vladblajovan.ritualist.lifetime") {
+            return .lifetime
+        }
+
+        // Check for annual subscription
+        if cachedValidPurchases.contains("com.ritualist.annual") ||
+           cachedValidPurchases.contains("com.vladblajovan.ritualist.annual") {
+            return .annual
+        }
+
+        // Check for monthly subscription
+        if cachedValidPurchases.contains("com.ritualist.monthly") ||
+           cachedValidPurchases.contains("com.vladblajovan.ritualist.monthly") {
+            return .monthly
+        }
+
+        // Default to free if no purchases
+        return .free
+    }
+
+    public func getSubscriptionExpiryDate() async -> Date? {
+        // Refresh cache if needed
+        await refreshCacheIfNeeded()
+
+        // Query StoreKit for current entitlements to get expiration date
+        for await result in Transaction.currentEntitlements {
+            // Verify transaction cryptographically
+            guard let transaction = try? checkVerified(result) else {
+                continue
+            }
+
+            // Check if this is a time-limited subscription
+            if transaction.productID.contains("monthly") || transaction.productID.contains("annual") {
+                // Return the expiration date if it exists
+                if let expirationDate = transaction.expirationDate {
+                    return expirationDate
+                }
+            }
+        }
+
+        // No expiry date found (lifetime purchase or free user)
+        return nil
+    }
+
     // MARK: - Private Methods
 
     /// Refresh cache from StoreKit if cache is stale

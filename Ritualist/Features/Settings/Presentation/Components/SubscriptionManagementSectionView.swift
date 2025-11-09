@@ -48,7 +48,7 @@ struct SubscriptionManagementSectionView: View {
 
             #if !ALL_FEATURES_ENABLED
             // Subscribe Button (for free users only)
-            if vm.profile.subscriptionPlan == .free {
+            if vm.subscriptionPlan == .free {
                 Button {
                     showPaywall()
                 } label: {
@@ -63,8 +63,8 @@ struct SubscriptionManagementSectionView: View {
             }
 
             // Expiry Date Row (for time-limited subscriptions)
-            if let expiryDate = vm.profile.subscriptionExpiryDate,
-               vm.profile.subscriptionPlan != .lifetime {
+            if let expiryDate = vm.subscriptionExpiryDate,
+               vm.subscriptionPlan != .lifetime {
                 HStack {
                     Label("Renews", systemImage: "calendar")
                         .foregroundStyle(.secondary)
@@ -77,8 +77,29 @@ struct SubscriptionManagementSectionView: View {
                 }
             }
 
+            // Restore Purchases Button (for free users only - in case they have a purchase not synced)
+            if vm.subscriptionPlan == .free {
+                Button {
+                    Task {
+                        await restorePurchases()
+                    }
+                } label: {
+                    HStack {
+                        if isRestoringPurchases {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Restoring...")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Label("Restore Purchases", systemImage: "arrow.clockwise")
+                        }
+                    }
+                }
+                .disabled(isRestoringPurchases)
+            }
+
             // Manage Subscription Button (for active subscriptions only)
-            if vm.profile.subscriptionPlan == .monthly || vm.profile.subscriptionPlan == .annual {
+            if vm.subscriptionPlan == .monthly || vm.subscriptionPlan == .annual {
                 Button {
                     openSubscriptionManagement()
                 } label: {
@@ -91,25 +112,6 @@ struct SubscriptionManagementSectionView: View {
                     }
                 }
             }
-
-            // Restore Purchases Button
-            Button {
-                Task {
-                    await restorePurchases()
-                }
-            } label: {
-                HStack {
-                    if isRestoringPurchases {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Restoring...")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Label("Restore Purchases", systemImage: "arrow.clockwise")
-                    }
-                }
-            }
-            .disabled(isRestoringPurchases)
             #endif
 
         } header: {
@@ -127,7 +129,7 @@ struct SubscriptionManagementSectionView: View {
     // MARK: - Subscription Icon
 
     private var subscriptionIcon: String {
-        switch vm.profile.subscriptionPlan {
+        switch vm.subscriptionPlan {
         case .free:
             return "person"
         case .monthly, .annual:
@@ -143,7 +145,7 @@ struct SubscriptionManagementSectionView: View {
     private var subscriptionStatusBadge: some View {
         HStack(spacing: 6) {
             statusIndicator
-            Text(vm.profile.subscriptionPlan.displayName)
+            Text(vm.subscriptionPlan.displayName)
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(statusColor)
@@ -158,7 +160,7 @@ struct SubscriptionManagementSectionView: View {
 
     @ViewBuilder
     private var statusIndicator: some View {
-        switch vm.profile.subscriptionPlan {
+        switch vm.subscriptionPlan {
         case .free:
             Image(systemName: "circle")
                 .foregroundStyle(.secondary)
@@ -175,7 +177,7 @@ struct SubscriptionManagementSectionView: View {
     }
 
     private var statusColor: Color {
-        switch vm.profile.subscriptionPlan {
+        switch vm.subscriptionPlan {
         case .free:
             return .secondary
         case .monthly, .annual:
@@ -192,7 +194,7 @@ struct SubscriptionManagementSectionView: View {
         #if ALL_FEATURES_ENABLED
         Text("All premium features are unlocked in this build for testing purposes. This is a TestFlight/development build.")
         #else
-        switch vm.profile.subscriptionPlan {
+        switch vm.subscriptionPlan {
         case .free:
             Text("Upgrade to Ritualist Pro to unlock unlimited habits, advanced analytics, and premium features.")
         case .monthly:

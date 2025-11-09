@@ -252,6 +252,54 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 .padding(.vertical, 4)
             }
 
+            Section("Subscription Testing") {
+                #if !ALL_FEATURES_ENABLED
+                // Show current subscription status
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Current Subscription")
+                            .font(.headline)
+                        Spacer()
+                        Text(vm.subscriptionPlan.displayName)
+                            .fontWeight(.medium)
+                            .foregroundColor(subscriptionColor(for: vm.subscriptionPlan))
+                    }
+
+                    if vm.subscriptionPlan != .free {
+                        Text("Mock subscription stored in UserDefaults")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+
+                // Clear Mock Purchases button
+                Button(role: .destructive) {
+                    Task {
+                        await clearMockPurchases()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "xmark.circle")
+                            .foregroundColor(.orange)
+
+                        Text("Clear Mock Purchases")
+
+                        Spacer()
+                    }
+                }
+                .disabled(vm.subscriptionPlan == .free)
+
+                Text("Clears mock subscription from UserDefaults to test free tier")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                #else
+                Text("Subscription testing is not available in AllFeatures mode")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                #endif
+            }
+
             Section("Build Information") {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -261,7 +309,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                             .fontWeight(.medium)
                             .foregroundColor(.orange)
                     }
-                    
+
                     HStack {
                         Text("All Features Enabled:")
                         Spacer()
@@ -275,7 +323,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                             .foregroundColor(.red)
                         #endif
                     }
-                    
+
                     HStack {
                         Text("Subscription Enabled:")
                         Spacer()
@@ -363,6 +411,37 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     private func loadMigrationStats() {
         backupCount = (try? backupManager.listBackups().count) ?? 0
         migrationHistoryCount = migrationLogger.getMigrationHistory().count
+    }
+
+    // MARK: - Subscription Testing
+
+    /// Clears mock purchases from UserDefaults to reset to free tier
+    private func clearMockPurchases() async {
+        do {
+            // Clear purchases via the service (clears both memory and UserDefaults)
+            try await vm.subscriptionService.clearPurchases()
+
+            // Refresh the subscription status in the ViewModel
+            await vm.refreshSubscriptionStatus()
+
+            Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+                .info("Cleared mock purchases")
+        } catch {
+            Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+                .error("Failed to clear mock purchases: \(error.localizedDescription)")
+        }
+    }
+
+    /// Returns appropriate color for subscription tier
+    private func subscriptionColor(for plan: SubscriptionPlan) -> Color {
+        switch plan {
+        case .free:
+            return .secondary
+        case .monthly, .annual:
+            return .green
+        case .lifetime:
+            return .orange
+        }
     }
 
 }

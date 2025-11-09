@@ -240,6 +240,11 @@ extension Container {
         }
         .singleton
     }
+
+    // Alias for subscription service (used by ViewModels)
+    var subscriptionService: Factory<SecureSubscriptionService> {
+        secureSubscriptionService
+    }
     
     // MARK: - Paywall Business Service
     
@@ -304,14 +309,14 @@ extension Container {
     }
     
     // MARK: - Standard Feature Gating Services
-    
+
     var defaultFeatureGatingService: Factory<FeatureGatingService> {
-        self { DefaultFeatureGatingService(userService: self.userService(), errorHandler: self.errorHandler()) }
+        self { DefaultFeatureGatingService(subscriptionService: self.subscriptionService(), errorHandler: self.errorHandler()) }
             .singleton
     }
-    
+
     var defaultFeatureGatingBusinessService: Factory<FeatureGatingBusinessService> {
-        self { DefaultFeatureGatingBusinessService(userService: self.userService(), errorHandler: self.errorHandler()) }
+        self { DefaultFeatureGatingBusinessService(subscriptionService: self.subscriptionService(), errorHandler: self.errorHandler()) }
             .singleton
     }
     

@@ -33,11 +33,6 @@ extension Container {
     }
     
     var updateProfileSubscription: Factory<UpdateProfileSubscriptionUseCase> {
-        self {
-            UpdateProfileSubscription(
-                userService: self.userService(),
-                paywallService: self.paywallService()
-            )
-        }
+        self { UpdateProfileSubscription() }
     }
 }

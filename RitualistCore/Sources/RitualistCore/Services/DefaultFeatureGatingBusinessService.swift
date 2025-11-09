@@ -10,14 +10,14 @@ import Foundation
 // MARK: - Default Feature Gating Business Service
 
 public final class DefaultFeatureGatingBusinessService: FeatureGatingBusinessService {
-    private let userService: UserService
+    private let subscriptionService: SecureSubscriptionService
     private let errorHandler: ErrorHandler?
-    
+
     // Free tier limits (using centralized BusinessConstants)
     private static let freeMaxHabits = BusinessConstants.freeMaxHabits
-    
-    public init(userService: UserService, errorHandler: ErrorHandler? = nil) {
-        self.userService = userService
+
+    public init(subscriptionService: SecureSubscriptionService, errorHandler: ErrorHandler? = nil) {
+        self.subscriptionService = subscriptionService
         self.errorHandler = errorHandler
     }
     
@@ -97,7 +97,7 @@ public final class DefaultFeatureGatingBusinessService: FeatureGatingBusinessSer
     
     private var isPremiumUser: Bool {
         get async {
-            return userService.isPremiumUser
+            return await subscriptionService.isPremiumUser()
         }
     }
 }

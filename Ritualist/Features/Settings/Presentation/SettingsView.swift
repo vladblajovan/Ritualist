@@ -159,6 +159,7 @@ private struct SettingsFormView: View {
                             // Refresh subscription status after paywall dismissal
                             Task {
                                 try? await Task.sleep(nanoseconds: 100_000_000)
+                                await vm.refreshSubscriptionStatus()
                                 await vm.load()
                             }
                         }
