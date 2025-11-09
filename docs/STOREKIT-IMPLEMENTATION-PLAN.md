@@ -227,8 +227,8 @@ return MockPaywallService(...)
 5. ✅ **COMPLETE** - `SubscriptionPlan.swift` - Added `.lifetime` case with helpers
 6. ✅ **COMPLETE** - `UserProfile.swift` - Updated `hasActiveSubscription` for lifetime
 7. ✅ **COMPLETE** - `Container+Services.swift` - DI container with mock fallbacks
-8. ❌ **TODO** - `SubscriptionManagementView.swift` - Settings UI component
-9. ❌ **TODO** - Updated `PaywallView.swift` - Show all 3 product options
+8. ✅ **COMPLETE** - `SubscriptionManagementSectionView.swift` - Settings UI component
+9. ✅ **COMPLETE** - Updated `PaywallView.swift` - Show all 3 product options
 10. ❌ **TODO** - Test files - Unit & integration tests
 
 ### Documentation (Status as of January 2025)
@@ -241,7 +241,7 @@ return MockPaywallService(...)
 
 ### Status Summary
 - **Backend Implementation:** ✅ 100% Complete - Production-ready, uses mocks until enabled
-- **UI Components:** ❌ 0% Complete - Not started yet
+- **UI Components:** ✅ 100% Complete - SubscriptionManagementSectionView, PaywallView, over-limit banner
 - **Testing:** ❌ 0% Complete - No unit tests yet
 - **Documentation:** ✅ 100% Complete - All guides written
 - **Activation Time:** 5-10 minutes code changes + 30-45 minutes App Store Connect setup
@@ -270,8 +270,6 @@ return MockPaywallService(...)
 - ✅ Integrated into SettingsView
 
 ### ❌ Remaining
-- 🔴 **BLOCKER**: Fix ALL_FEATURES_ENABLED bypass bugs (see Known Issues section below)
-- 🔴 **BLOCKER**: Fix inconsistent habit display between screens
 - ❌ Comprehensive test coverage (unit tests for StoreKit services)
 - ❌ Integration tests for purchase flows
 
