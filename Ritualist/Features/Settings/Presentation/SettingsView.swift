@@ -41,7 +41,16 @@ private struct SettingsFormView: View {
     @State private var name = ""
     @State private var appearance = 0
     @State private var displayTimezoneMode = "original"
-    
+
+    // Version information
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+    }
+
     var body: some View {
         Group {
             if vm.isLoading {
@@ -71,6 +80,9 @@ private struct SettingsFormView: View {
                     // Permissions Section (Notifications + Location)
                     PermissionsSectionView(vm: vm)
 
+                    // iCloud Sync Section
+                    ICloudSyncSectionView(vm: vm)
+
                     // Social Media Section
                     SocialMediaLinksView()
 
@@ -87,6 +99,27 @@ private struct SettingsFormView: View {
                                 Spacer()
                             }
                         }
+                    }
+
+                    // About Section
+                    Section("About") {
+                        // Version (always visible)
+                        HStack {
+                            Text("Version")
+                            Spacer()
+                            Text(appVersion)
+                                .foregroundColor(.secondary)
+                        }
+
+                        #if DEBUG
+                        // Build number (only in debug/TestFlight builds)
+                        HStack {
+                            Text("Build")
+                            Spacer()
+                            Text("(\(buildNumber))")
+                                .foregroundColor(.secondary)
+                        }
+                        #endif
                     }
 
                     #if DEBUG
@@ -140,6 +173,7 @@ private struct SettingsFormView: View {
                         await vm.refreshNotificationStatus()
                         await vm.refreshLocationStatus()
                         await vm.refreshPremiumStatus()
+                        await vm.refreshiCloudStatus()
                     }
                 }
             }

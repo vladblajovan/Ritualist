@@ -3,15 +3,6 @@ import Observation
 import FactoryKit
 import RitualistCore
 
-// Type alias to handle DEBUG-only protocol from RitualistCore
-// In DEBUG: references actual PopulateTestDataUseCase
-// In Release: dummy protocol (never instantiated, just for compilation)
-#if DEBUG
-public typealias TestDataGenerator = PopulateTestDataUseCase
-#else
-public protocol TestDataGenerator {}
-#endif
-
 @MainActor @Observable
 public final class SettingsViewModel {
     private let loadProfile: LoadProfileUseCase
@@ -23,11 +14,14 @@ public final class SettingsViewModel {
     private let clearPurchases: ClearPurchasesUseCase
     private let checkPremiumStatus: CheckPremiumStatusUseCase
     private let updateUserSubscription: UpdateUserSubscriptionUseCase
+    private let syncWithiCloud: SyncWithiCloudUseCase
+    private let checkiCloudStatus: CheckiCloudStatusUseCase
+    private let getLastSyncDate: GetLastSyncDateUseCase
+    private let updateLastSyncDate: UpdateLastSyncDateUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
 
-    // Only populated in DEBUG builds via DI
-    private let populateTestData: TestDataGenerator?
+    private let populateTestData: PopulateTestDataUseCase?
 
     #if DEBUG
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
@@ -44,6 +38,12 @@ public final class SettingsViewModel {
     public private(set) var isRequestingLocationPermission = false
     public private(set) var isCancellingSubscription = false
     public private(set) var isUpdatingUser = false
+
+    // iCloud Sync state
+    public private(set) var isSyncing = false
+    public private(set) var lastSyncDate: Date?
+    public private(set) var iCloudStatus: iCloudSyncStatus = .unknown
+    public private(set) var isCheckingCloudStatus = false
     
     #if DEBUG
     public private(set) var isClearingDatabase = false
@@ -74,7 +74,11 @@ public final class SettingsViewModel {
                 clearPurchases: ClearPurchasesUseCase,
                 checkPremiumStatus: CheckPremiumStatusUseCase,
                 updateUserSubscription: UpdateUserSubscriptionUseCase,
-                populateTestData: TestDataGenerator? = nil) {
+                syncWithiCloud: SyncWithiCloudUseCase,
+                checkiCloudStatus: CheckiCloudStatusUseCase,
+                getLastSyncDate: GetLastSyncDateUseCase,
+                updateLastSyncDate: UpdateLastSyncDateUseCase,
+                populateTestData: PopulateTestDataUseCase? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
         self.requestNotificationPermission = requestNotificationPermission
@@ -84,6 +88,10 @@ public final class SettingsViewModel {
         self.clearPurchases = clearPurchases
         self.checkPremiumStatus = checkPremiumStatus
         self.updateUserSubscription = updateUserSubscription
+        self.syncWithiCloud = syncWithiCloud
+        self.checkiCloudStatus = checkiCloudStatus
+        self.getLastSyncDate = getLastSyncDate
+        self.updateLastSyncDate = updateLastSyncDate
         self.populateTestData = populateTestData
     }
     
@@ -95,6 +103,8 @@ public final class SettingsViewModel {
             hasNotificationPermission = await checkNotificationStatus.execute()
             locationAuthStatus = await getLocationAuthStatus.execute()
             cachedPremiumStatus = await checkPremiumStatus.execute()
+            lastSyncDate = await getLastSyncDate.execute()
+            await refreshiCloudStatus()
         } catch {
             self.error = error
             profile = UserProfile()
@@ -102,6 +112,7 @@ public final class SettingsViewModel {
             hasNotificationPermission = await checkNotificationStatus.execute()
             locationAuthStatus = await getLocationAuthStatus.execute()
             cachedPremiumStatus = await checkPremiumStatus.execute()
+            lastSyncDate = await getLastSyncDate.execute()
         }
         isLoading = false
     }
@@ -237,14 +248,46 @@ public final class SettingsViewModel {
     public func updateAppearance(_ appearance: Int) async {
         // Update the profile appearance setting
         profile.appearance = appearance
-        
+
         // Apply the appearance change to the appearance manager
         appearanceManager.updateFromProfile(profile)
-        
+
         // Track appearance change
         userActionTracker.track(.profileUpdated(field: "appearance"))
     }
-    
+
+    // MARK: - iCloud Sync Methods
+
+    /// Manually trigger iCloud sync
+    public func syncNow() async {
+        isSyncing = true
+        error = nil
+
+        do {
+            try await syncWithiCloud.execute()
+            await updateLastSyncDate.execute(Date())
+            lastSyncDate = Date()
+
+            // Track sync action
+            userActionTracker.track(.custom(event: "icloud_manual_sync", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "icloud_manual_sync")
+        }
+
+        isSyncing = false
+    }
+
+    /// Refresh iCloud account status
+    public func refreshiCloudStatus() async {
+        isCheckingCloudStatus = true
+
+        // Note: checkiCloudStatus never throws - it returns .unknown for all error cases
+        iCloudStatus = await checkiCloudStatus.execute()
+
+        isCheckingCloudStatus = false
+    }
+
     // MARK: - Debug Methods
     
     #if DEBUG

@@ -111,6 +111,10 @@ extension Container {
                 clearPurchases: self.clearPurchases(),
                 checkPremiumStatus: self.checkPremiumStatus(),
                 updateUserSubscription: self.updateUserSubscription(),
+                syncWithiCloud: self.syncWithiCloud(),
+                checkiCloudStatus: self.checkiCloudStatus(),
+                getLastSyncDate: self.getLastSyncDate(),
+                updateLastSyncDate: self.updateLastSyncDate(),
                 populateTestData: {
                     #if DEBUG
                     return self.populateTestData()
