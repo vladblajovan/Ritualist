@@ -281,13 +281,8 @@ public final class SettingsViewModel {
     public func refreshiCloudStatus() async {
         isCheckingCloudStatus = true
 
-        do {
-            iCloudStatus = try await checkiCloudStatus.execute()
-        } catch {
-            iCloudStatus = .unknown
-            // Log error but don't surface it as a blocking error
-            userActionTracker.trackError(error, context: "icloud_status_check")
-        }
+        // Note: checkiCloudStatus never throws - it returns .unknown for all error cases
+        iCloudStatus = await checkiCloudStatus.execute()
 
         isCheckingCloudStatus = false
     }

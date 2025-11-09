@@ -29,7 +29,17 @@ public final class DefaultSyncWithiCloudUseCase: SyncWithiCloudUseCase {
 // MARK: - Check iCloud Status UseCase
 
 public protocol CheckiCloudStatusUseCase {
-    func execute() async throws -> iCloudSyncStatus
+    func execute() async -> iCloudSyncStatus
+}
+
+/// Mock implementation that returns .unknown when CloudKit is disabled
+public final class DisabledCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
+    public init() {}
+
+    public func execute() async -> iCloudSyncStatus {
+        // CloudKit entitlements are disabled - return unknown status
+        return .unknown
+    }
 }
 
 public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
@@ -39,21 +49,42 @@ public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
         self.syncErrorHandler = syncErrorHandler
     }
 
-    public func execute() async throws -> iCloudSyncStatus {
-        let accountStatus = try await syncErrorHandler.checkiCloudAccountStatus()
+    public func execute() async -> iCloudSyncStatus {
+        do {
+            let accountStatus = try await syncErrorHandler.checkiCloudAccountStatus()
 
-        switch accountStatus {
-        case .available:
-            return .available
-        case .noAccount:
-            return .notSignedIn
-        case .restricted:
-            return .restricted
-        case .couldNotDetermine:
-            return .unknown
-        case .temporarilyUnavailable:
-            return .temporarilyUnavailable
-        @unknown default:
+            switch accountStatus {
+            case .available:
+                return .available
+            case .noAccount:
+                return .notSignedIn
+            case .restricted:
+                return .restricted
+            case .couldNotDetermine:
+                return .unknown
+            case .temporarilyUnavailable:
+                return .temporarilyUnavailable
+            @unknown default:
+                return .unknown
+            }
+        } catch let error as CloudKitAvailabilityError {
+            // Handle CloudKit availability errors gracefully
+            switch error {
+            case .entitlementsNotConfigured:
+                // CloudKit entitlements not configured - return unknown status
+                // This is expected when iCloud is disabled in entitlements
+                return .unknown
+            case .notSignedIn:
+                return .notSignedIn
+            case .restricted:
+                return .restricted
+            case .temporarilyUnavailable:
+                return .temporarilyUnavailable
+            case .couldNotDetermine, .unknown:
+                return .unknown
+            }
+        } catch {
+            // Any other error - return unknown
             return .unknown
         }
     }

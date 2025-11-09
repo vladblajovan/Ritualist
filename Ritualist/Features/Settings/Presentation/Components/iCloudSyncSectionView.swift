@@ -197,7 +197,7 @@ private struct MockSyncWithiCloud: SyncWithiCloudUseCase {
 }
 
 private struct MockCheckiCloudStatus: CheckiCloudStatusUseCase {
-    func execute() async throws -> iCloudSyncStatus {
+    func execute() async -> iCloudSyncStatus {
         .available
     }
 }

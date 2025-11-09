@@ -112,9 +112,16 @@ public actor CloudSyncErrorHandler {
 
     /// Check if user is signed into iCloud
     /// - Returns: Account status
+    /// - Throws: CloudKitAvailabilityError if CloudKit is not configured or unavailable
     public func checkiCloudAccountStatus() async throws -> CKAccountStatus {
-        let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
-        return try await container.accountStatus()
+        do {
+            let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
+            return try await container.accountStatus()
+        } catch {
+            // If we can't access CloudKit container (e.g., entitlements not configured),
+            // throw a specific error indicating CloudKit is unavailable
+            throw CloudKitAvailabilityError.entitlementsNotConfigured(underlying: error)
+        }
     }
 
     /// Validate that CloudKit is available and user is signed in
@@ -300,6 +307,7 @@ public enum CloudKitAvailabilityError: LocalizedError {
     case couldNotDetermine
     case temporarilyUnavailable
     case unknown
+    case entitlementsNotConfigured(underlying: Error)
 
     public var errorDescription: String? {
         switch self {
@@ -313,6 +321,8 @@ public enum CloudKitAvailabilityError: LocalizedError {
             return "iCloud is temporarily unavailable. Try again in a few moments."
         case .unknown:
             return "Unknown iCloud account status."
+        case .entitlementsNotConfigured:
+            return "iCloud sync is not configured. CloudKit entitlements are not enabled."
         }
     }
 
@@ -326,6 +336,8 @@ public enum CloudKitAvailabilityError: LocalizedError {
             return "Wait a moment and try again. Check network connection."
         case .unknown:
             return "Restart the app and try again."
+        case .entitlementsNotConfigured:
+            return "iCloud sync will be available in a future update. Contact support for more information."
         }
     }
 }
