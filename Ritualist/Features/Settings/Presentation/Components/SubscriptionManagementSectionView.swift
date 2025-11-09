@@ -7,7 +7,6 @@ struct SubscriptionManagementSectionView: View {
     @State private var isRestoringPurchases = false
     @State private var showingRestoreAlert = false
     @State private var restoreAlertMessage = ""
-    @State private var paywallItem: PaywallItem?
 
     var body: some View {
         Section {
@@ -123,9 +122,6 @@ struct SubscriptionManagementSectionView: View {
         } message: {
             Text(restoreAlertMessage)
         }
-        .sheet(item: $paywallItem) { item in
-            PaywallView(vm: item.viewModel)
-        }
     }
 
     // MARK: - Subscription Icon
@@ -212,10 +208,7 @@ struct SubscriptionManagementSectionView: View {
     // MARK: - Actions
 
     private func showPaywall() {
-        Task { @MainActor in
-            await vm.loadPaywall()
-            paywallItem = PaywallItem(viewModel: vm.paywallViewModel)
-        }
+        vm.showPaywall()
     }
 
     private func openSubscriptionManagement() {

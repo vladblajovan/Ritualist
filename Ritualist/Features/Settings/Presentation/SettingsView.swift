@@ -153,6 +153,16 @@ private struct SettingsFormView: View {
                         showingImagePicker = false
                     }
                 }
+                .sheet(item: $vm.paywallItem) { item in
+                    PaywallView(vm: item.viewModel)
+                        .onDisappear {
+                            // Refresh subscription status after paywall dismissal
+                            Task {
+                                try? await Task.sleep(nanoseconds: 100_000_000)
+                                await vm.load()
+                            }
+                        }
+                }
 
                 #if DEBUG
                 .sheet(isPresented: $showingDebugMenu) {

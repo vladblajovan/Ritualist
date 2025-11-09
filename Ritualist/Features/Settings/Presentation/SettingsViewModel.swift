@@ -60,7 +60,10 @@ public final class SettingsViewModel {
     
     // Cache premium status to avoid async issues
     private var cachedPremiumStatus = false
-    
+
+    // Paywall state
+    public var paywallItem: PaywallItem?
+
     // Computed properties
     public var isPremiumUser: Bool {
         cachedPremiumStatus
@@ -388,12 +391,18 @@ extension SettingsViewModel {
         // Access memoryUsageMB to trigger observable update
         _ = memoryUsageMB
     }
+}
 #endif
 
-    // MARK: - Paywall
+// MARK: - Paywall
 
-    /// Load paywall view model for subscription management
-    public func loadPaywall() async {
-        await paywallViewModel.load()
+extension SettingsViewModel {
+    /// Show paywall for subscription management
+    public func showPaywall() {
+        Task {
+            await paywallViewModel.load()
+            paywallViewModel.trackPaywallShown(source: "settings", trigger: "subscribe_button")
+            paywallItem = PaywallItem(viewModel: paywallViewModel)
+        }
     }
 }
