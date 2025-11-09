@@ -19,6 +19,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     @State private var showingScenarios = false
     @State private var showingMigrationHistory = false
     @State private var showingBackupList = false
+    @State private var showingMigrationSimulationAlert = false
     @State private var migrationLogger = MigrationLogger.shared
     @State private var backupManager = BackupManager()
     @State private var backupCount: Int = 0
@@ -151,11 +152,59 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                             .foregroundColor(.green)
                     }
 
+                    // Show last known version from UserDefaults
+                    if let lastVersion = UserDefaults.standard.string(forKey: "com.ritualist.lastSchemaVersion") {
+                        Text("Last Known: \(lastVersion)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("No migration history (first launch)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                     Text("SwiftData versioned schema system enabled")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 4)
+
+                // Simulate migration button (for testing)
+                Button(role: .destructive) {
+                    simulateMigration()
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .foregroundColor(.purple)
+
+                        Text("Simulate Migration from V\(getPreviousVersionNumber())")
+
+                        Spacer()
+                    }
+                }
+
+                Text("Sets schema version to \(getPreviousVersionNumber()).0.0 to trigger migration on next app launch")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                // Clean duplicate migrations button
+                Button(role: .destructive) {
+                    cleanDuplicateMigrations()
+                } label: {
+                    HStack {
+                        Image(systemName: "trash.circle")
+                            .foregroundColor(.orange)
+
+                        Text("Clean Duplicate Migrations")
+
+                        Spacer()
+                    }
+                }
+                .disabled(migrationHistoryCount <= 1)
+
+                Text("Removes duplicate migration entries, keeping only the latest for each version transition")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
 
                 // Migration History
                 GenericRowView.settingsRow(
@@ -382,6 +431,17 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         } message: {
             Text("This will permanently delete all habits, logs, categories, and user data from the local database. This action cannot be undone.\n\nThis is useful for testing with a clean slate.")
         }
+        .alert("Migration Simulation Ready", isPresented: $showingMigrationSimulationAlert) {
+            Button("Restart App") {
+                // Restart the app to trigger migration detection
+                exit(0)
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            let previousVersion = getPreviousVersionNumber()
+            let currentVersionString = RitualistMigrationPlan.currentSchemaVersion.description
+            Text("Schema version has been set to \(previousVersion).0.0. Tap 'Restart App' to see the V\(previousVersion) → V\(currentVersionString) migration modal and test the migration flow.")
+        }
         .refreshable {
             await vm.loadDatabaseStats()
         }
@@ -411,6 +471,70 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     private func loadMigrationStats() {
         backupCount = (try? backupManager.listBackups().count) ?? 0
         migrationHistoryCount = migrationLogger.getMigrationHistory().count
+    }
+
+    // MARK: - Migration Testing
+
+    /// Gets the previous schema version number (current - 1)
+    private func getPreviousVersionNumber() -> Int {
+        let currentVersion = RitualistMigrationPlan.currentSchemaVersion.description
+        // Extract major version number from "8.0.0" format
+        if let majorVersion = Int(currentVersion.split(separator: ".").first ?? "0") {
+            return max(majorVersion - 1, 1) // Ensure we don't go below V1
+        }
+        return 1
+    }
+
+    /// Simulates a migration scenario by setting schema version to (current - 1)
+    /// On next app restart, the system will detect migration and show modal
+    private func simulateMigration() {
+        let previousVersion = getPreviousVersionNumber()
+        let versionString = "\(previousVersion).0.0"
+
+        UserDefaults.standard.set(versionString, forKey: "com.ritualist.lastSchemaVersion")
+
+        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+            .info("Set schema version to \(versionString) - restart app to see migration modal")
+
+        // Show alert to restart app
+        showingMigrationSimulationAlert = true
+    }
+
+    /// Removes duplicate migration entries from history
+    /// Keeps only the latest migration for each version transition
+    private func cleanDuplicateMigrations() {
+        let history = migrationLogger.getMigrationHistory()
+        var uniqueMigrations: [String: MigrationEvent] = [:]
+
+        // Keep only the latest migration for each version transition
+        for event in history {
+            let key = "\(event.fromVersion) → \(event.toVersion)"
+            // If we haven't seen this transition, or this event is newer, keep it
+            if let existing = uniqueMigrations[key] {
+                if event.startTime > existing.startTime {
+                    uniqueMigrations[key] = event
+                }
+            } else {
+                uniqueMigrations[key] = event
+            }
+        }
+
+        // Clear history and save only unique migrations
+        migrationLogger.clearHistory()
+
+        // Re-save unique migrations using the standard save method
+        // This ensures proper encoding and persistence
+        let encoder = JSONEncoder()
+        if let data = try? encoder.encode(Array(uniqueMigrations.values)),
+           let key = "com.ritualist.migration.history" as String? {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+
+        // Reload stats to update UI
+        loadMigrationStats()
+
+        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+            .info("Cleaned migration history: \(history.count) → \(uniqueMigrations.count) entries")
     }
 
     // MARK: - Subscription Testing

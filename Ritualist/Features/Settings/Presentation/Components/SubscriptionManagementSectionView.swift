@@ -98,13 +98,17 @@ struct SubscriptionManagementSectionView: View {
                 .disabled(isRestoringPurchases)
             }
 
-            // Manage Subscription Button (for active subscriptions only)
-            if vm.subscriptionPlan == .monthly || vm.subscriptionPlan == .annual {
+            // Manage Subscription / View Purchase History Button (for all premium users)
+            if vm.subscriptionPlan == .monthly || vm.subscriptionPlan == .annual || vm.subscriptionPlan == .lifetime {
                 Button {
                     openSubscriptionManagement()
                 } label: {
                     HStack {
-                        Label("Manage Subscription", systemImage: "gearshape")
+                        if vm.subscriptionPlan == .lifetime {
+                            Label("View Purchase History", systemImage: "clock.arrow.circlepath")
+                        } else {
+                            Label("Manage Subscription", systemImage: "gearshape")
+                        }
                         Spacer()
                         Image(systemName: "arrow.up.right.square")
                             .font(.caption)
