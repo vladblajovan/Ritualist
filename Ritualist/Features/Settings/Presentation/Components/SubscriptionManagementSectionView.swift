@@ -7,6 +7,7 @@ struct SubscriptionManagementSectionView: View {
     @State private var isRestoringPurchases = false
     @State private var showingRestoreAlert = false
     @State private var restoreAlertMessage = ""
+    @State private var paywallItem: PaywallItem?
 
     var body: some View {
         Section {
@@ -47,6 +48,21 @@ struct SubscriptionManagementSectionView: View {
             #endif
 
             #if !ALL_FEATURES_ENABLED
+            // Subscribe Button (for free users only)
+            if vm.profile.subscriptionPlan == .free {
+                Button {
+                    showPaywall()
+                } label: {
+                    HStack {
+                        Label("Subscribe to Pro", systemImage: "crown.fill")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             // Expiry Date Row (for time-limited subscriptions)
             if let expiryDate = vm.profile.subscriptionExpiryDate,
                vm.profile.subscriptionPlan != .lifetime {
@@ -106,6 +122,9 @@ struct SubscriptionManagementSectionView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(restoreAlertMessage)
+        }
+        .sheet(item: $paywallItem) { item in
+            PaywallView(vm: item.viewModel)
         }
     }
 
@@ -191,6 +210,13 @@ struct SubscriptionManagementSectionView: View {
     }
 
     // MARK: - Actions
+
+    private func showPaywall() {
+        Task { @MainActor in
+            await vm.loadPaywall()
+            paywallItem = PaywallItem(viewModel: vm.paywallViewModel)
+        }
+    }
 
     private func openSubscriptionManagement() {
         // Open App Store subscription management

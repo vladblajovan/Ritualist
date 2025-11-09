@@ -20,6 +20,7 @@ public final class SettingsViewModel {
     private let updateLastSyncDate: UpdateLastSyncDateUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
+    @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
 
     private let populateTestData: PopulateTestDataUseCase?
 
@@ -387,5 +388,12 @@ extension SettingsViewModel {
         // Access memoryUsageMB to trigger observable update
         _ = memoryUsageMB
     }
-}
 #endif
+
+    // MARK: - Paywall
+
+    /// Load paywall view model for subscription management
+    public func loadPaywall() async {
+        await paywallViewModel.load()
+    }
+}
