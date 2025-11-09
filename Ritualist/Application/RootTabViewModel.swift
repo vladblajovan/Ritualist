@@ -1,6 +1,7 @@
 import SwiftUI
 import Foundation
 import FactoryKit
+import RitualistCore
 
 @MainActor
 @Observable
