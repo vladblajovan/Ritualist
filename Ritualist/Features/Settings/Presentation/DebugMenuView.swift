@@ -440,7 +440,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         } message: {
             let previousVersion = getPreviousVersionNumber()
             let currentVersionString = RitualistMigrationPlan.currentSchemaVersion.description
-            Text("Schema version has been set to \(previousVersion).0.0. Tap 'Restart App' to see the V\(previousVersion) → V\(currentVersionString) migration modal and test the migration flow.")
+            Text("Set to V\(previousVersion).0.0. Restart to see V\(previousVersion) → V\(currentVersionString) migration.")
         }
         .refreshable {
             await vm.loadDatabaseStats()

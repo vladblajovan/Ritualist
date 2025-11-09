@@ -285,9 +285,7 @@ struct SubscriptionManagementSectionView: View {
 
 @MainActor
 private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> SettingsViewModel {
-    var profile = UserProfile()
-    profile.subscriptionPlan = plan
-    profile.subscriptionExpiryDate = expiryDate
+    let profile = UserProfile()
 
     let vm = SettingsViewModel(
         loadProfile: MockLoadProfile(profile: profile),
@@ -298,6 +296,8 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
         getLocationAuthStatus: MockGetLocationAuthStatus(),
         clearPurchases: MockClearPurchases(),
         checkPremiumStatus: MockCheckPremiumStatus(isPremium: plan.isPremium),
+        getCurrentSubscriptionPlan: MockGetCurrentSubscriptionPlan(plan: plan),
+        getSubscriptionExpiryDate: MockGetSubscriptionExpiryDate(expiryDate: expiryDate),
         updateUserSubscription: MockUpdateUserSubscription(),
         syncWithiCloud: MockSyncWithiCloud(),
         checkiCloudStatus: MockCheckiCloudStatus(),
@@ -374,4 +374,16 @@ private struct MockGetLastSyncDate: GetLastSyncDateUseCase {
 
 private struct MockUpdateLastSyncDate: UpdateLastSyncDateUseCase {
     func execute(_ date: Date) async {}
+}
+
+private struct MockGetCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase {
+    let plan: SubscriptionPlan
+
+    func execute() async -> SubscriptionPlan { plan }
+}
+
+private struct MockGetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
+    let expiryDate: Date?
+
+    func execute() async -> Date? { expiryDate }
 }

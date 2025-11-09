@@ -29,6 +29,30 @@ public final class CheckPremiumStatus: CheckPremiumStatusUseCase {
     }
 }
 
+public final class GetCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase {
+    private let subscriptionService: SecureSubscriptionService
+
+    public init(subscriptionService: SecureSubscriptionService) {
+        self.subscriptionService = subscriptionService
+    }
+
+    public func execute() async -> SubscriptionPlan {
+        await subscriptionService.getCurrentSubscriptionPlan()
+    }
+}
+
+public final class GetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
+    private let subscriptionService: SecureSubscriptionService
+
+    public init(subscriptionService: SecureSubscriptionService) {
+        self.subscriptionService = subscriptionService
+    }
+
+    public func execute() async -> Date? {
+        await subscriptionService.getSubscriptionExpiryDate()
+    }
+}
+
 public final class GetCurrentUserProfile: GetCurrentUserProfileUseCase {
     private let userService: UserService
     

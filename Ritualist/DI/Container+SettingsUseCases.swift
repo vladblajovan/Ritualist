@@ -34,6 +34,14 @@ extension Container {
         self { CheckPremiumStatus(subscriptionService: self.subscriptionService()) }
     }
 
+    var getCurrentSubscriptionPlan: Factory<GetCurrentSubscriptionPlan> {
+        self { GetCurrentSubscriptionPlan(subscriptionService: self.subscriptionService()) }
+    }
+
+    var getSubscriptionExpiryDate: Factory<GetSubscriptionExpiryDate> {
+        self { GetSubscriptionExpiryDate(subscriptionService: self.subscriptionService()) }
+    }
+
     var updateUserSubscription: Factory<UpdateUserSubscription> {
         self { UpdateUserSubscription() }
     }

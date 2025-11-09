@@ -13,6 +13,8 @@ public final class SettingsViewModel {
     private let getLocationAuthStatus: GetLocationAuthStatusUseCase
     private let clearPurchases: ClearPurchasesUseCase
     private let checkPremiumStatus: CheckPremiumStatusUseCase
+    private let getCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase
+    private let getSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase
     private let updateUserSubscription: UpdateUserSubscriptionUseCase
     private let syncWithiCloud: SyncWithiCloudUseCase
     private let checkiCloudStatus: CheckiCloudStatusUseCase
@@ -93,6 +95,8 @@ public final class SettingsViewModel {
                 getLocationAuthStatus: GetLocationAuthStatusUseCase,
                 clearPurchases: ClearPurchasesUseCase,
                 checkPremiumStatus: CheckPremiumStatusUseCase,
+                getCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase,
+                getSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase,
                 updateUserSubscription: UpdateUserSubscriptionUseCase,
                 syncWithiCloud: SyncWithiCloudUseCase,
                 checkiCloudStatus: CheckiCloudStatusUseCase,
@@ -107,6 +111,8 @@ public final class SettingsViewModel {
         self.getLocationAuthStatus = getLocationAuthStatus
         self.clearPurchases = clearPurchases
         self.checkPremiumStatus = checkPremiumStatus
+        self.getCurrentSubscriptionPlan = getCurrentSubscriptionPlan
+        self.getSubscriptionExpiryDate = getSubscriptionExpiryDate
         self.updateUserSubscription = updateUserSubscription
         self.syncWithiCloud = syncWithiCloud
         self.checkiCloudStatus = checkiCloudStatus
@@ -127,8 +133,8 @@ public final class SettingsViewModel {
             await refreshiCloudStatus()
 
             // Cache subscription data from service (not database)
-            cachedSubscriptionPlan = await subscriptionService.getCurrentSubscriptionPlan()
-            cachedSubscriptionExpiryDate = await subscriptionService.getSubscriptionExpiryDate()
+            cachedSubscriptionPlan = await getCurrentSubscriptionPlan.execute()
+            cachedSubscriptionExpiryDate = await getSubscriptionExpiryDate.execute()
             print("🔍 [SettingsViewModel.load()] Cached subscription from service:")
             print("   Plan: \(cachedSubscriptionPlan)")
             print("   Expiry: \(cachedSubscriptionExpiryDate?.description ?? "nil")")
@@ -142,8 +148,8 @@ public final class SettingsViewModel {
             lastSyncDate = await getLastSyncDate.execute()
 
             // Cache subscription data from service even on error
-            cachedSubscriptionPlan = await subscriptionService.getCurrentSubscriptionPlan()
-            cachedSubscriptionExpiryDate = await subscriptionService.getSubscriptionExpiryDate()
+            cachedSubscriptionPlan = await getCurrentSubscriptionPlan.execute()
+            cachedSubscriptionExpiryDate = await getSubscriptionExpiryDate.execute()
         }
         isLoading = false
     }

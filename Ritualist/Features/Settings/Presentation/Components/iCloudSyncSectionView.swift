@@ -139,6 +139,8 @@ struct ICloudSyncSectionView: View {
             getLocationAuthStatus: MockGetLocationAuthStatus(),
             clearPurchases: MockClearPurchases(),
             checkPremiumStatus: MockCheckPremiumStatus(),
+            getCurrentSubscriptionPlan: MockGetCurrentSubscriptionPlan(),
+            getSubscriptionExpiryDate: MockGetSubscriptionExpiryDate(),
             updateUserSubscription: MockUpdateUserSubscription(),
             syncWithiCloud: MockSyncWithiCloud(),
             checkiCloudStatus: MockCheckiCloudStatus(),
@@ -186,6 +188,14 @@ private struct MockClearPurchases: ClearPurchasesUseCase {
 
 private struct MockCheckPremiumStatus: CheckPremiumStatusUseCase {
     func execute() async -> Bool { false }
+}
+
+private struct MockGetCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase {
+    func execute() async -> SubscriptionPlan { .free }
+}
+
+private struct MockGetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
+    func execute() async -> Date? { nil }
 }
 
 private struct MockUpdateUserSubscription: UpdateUserSubscriptionUseCase {

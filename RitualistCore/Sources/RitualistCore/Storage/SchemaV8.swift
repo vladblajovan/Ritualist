@@ -429,7 +429,6 @@ extension SchemaV8.HabitCategoryModel {
 
 extension SchemaV8.UserProfileModel {
     /// Convert SwiftData model to domain entity
-    /// Note: Subscription fields NOT set from database - queried from SubscriptionService
     public func toEntity() -> UserProfile {
         let id = UUID(uuidString: self.id) ?? UUID()
         let appearance = Int(self.appearance) ?? 0
@@ -441,8 +440,6 @@ extension SchemaV8.UserProfileModel {
             appearance: appearance,
             homeTimezone: homeTimezone,
             displayTimezoneMode: displayTimezoneMode,
-            subscriptionPlan: .free,  // Default - actual value from SubscriptionService
-            subscriptionExpiryDate: nil,  // Default - actual value from SubscriptionService
             createdAt: createdAt,
             updatedAt: updatedAt
         )

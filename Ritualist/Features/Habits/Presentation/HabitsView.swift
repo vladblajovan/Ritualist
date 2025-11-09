@@ -665,7 +665,7 @@ private struct OverLimitBannerView: View {
 
             // Message
             VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                Text("You have \(currentCount)/\(maxCount) habits (Free Plan)")
+                Text("\(currentCount)/\(maxCount) habits (Free)")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.primary)

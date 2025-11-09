@@ -52,7 +52,7 @@ public final class MockUserBusinessService: UserBusinessService {
         self.errorHandler = errorHandler
         
         // Initialize with default profile - will be loaded from repository if available
-        _currentProfile = UserProfile(name: "", subscriptionPlan: .free)
+        _currentProfile = UserProfile(name: "")
         
         // Load actual profile data from repository
         Task {
@@ -65,11 +65,12 @@ public final class MockUserBusinessService: UserBusinessService {
     }
     
     public func isPremiumUser() async throws -> Bool {
-        // If all features are enabled at build time, always return true for mock service
+        // NOTE: Subscription status is now managed by SubscriptionService
+        // This method is deprecated and always returns true in ALL_FEATURES mode
         #if ALL_FEATURES_ENABLED
         return true
         #else
-        return _currentProfile.isPremiumUser
+        return false  // Use SubscriptionService for actual premium checks
         #endif
     }
     
@@ -101,14 +102,10 @@ public final class MockUserBusinessService: UserBusinessService {
     }
     
     public func updateSubscription(plan: SubscriptionPlan, expiryDate: Date?) async throws {
-        // Simulate network delay
+        // NOTE: Subscription management is now handled by SubscriptionService
+        // This method is deprecated and no longer updates profile
+        // Simulate network delay for compatibility
         try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-        
-        _currentProfile.subscriptionPlan = plan
-        _currentProfile.subscriptionExpiryDate = expiryDate
-        _currentProfile.updatedAt = Date()
-        
-        // TODO: In production, also sync to iCloud here
     }
     
     public func syncWithiCloud() async throws {
@@ -136,14 +133,11 @@ public final class MockUserBusinessService: UserBusinessService {
     }
     
     // MARK: - Test Helpers
-    
+
     /// Switch to a different test subscription state (for development)
+    /// NOTE: Deprecated - subscription state is now managed by SubscriptionService
     public func switchToTestSubscription(_ type: String) {
-        guard let (plan, expiryDate) = testSubscriptionStates[type] else { return }
-        
-        _currentProfile.subscriptionPlan = plan
-        _currentProfile.subscriptionExpiryDate = expiryDate
-        _currentProfile.updatedAt = Date()
+        // No-op: Subscription state no longer stored in profile
     }
 }
 
@@ -223,12 +217,12 @@ public final class ICloudUserBusinessService: UserBusinessService {
     }
 
     public func isPremiumUser() async throws -> Bool {
-        // If all features are enabled at build time, always return true
+        // NOTE: Subscription status is now managed by SubscriptionService
+        // This method is deprecated and always returns true in ALL_FEATURES mode
         #if ALL_FEATURES_ENABLED
         return true
         #else
-        let profile = try await getCurrentProfile()
-        return profile.isPremiumUser
+        return false  // Use SubscriptionService for actual premium checks
         #endif
     }
 
@@ -247,19 +241,9 @@ public final class ICloudUserBusinessService: UserBusinessService {
     }
 
     public func updateSubscription(plan: SubscriptionPlan, expiryDate: Date?) async throws {
-        var updatedProfile = _currentProfile
-        updatedProfile.subscriptionPlan = plan
-        updatedProfile.subscriptionExpiryDate = expiryDate
-        updatedProfile.updatedAt = Date()
-
-        // Save to CloudKit with retry logic
-        try await syncErrorHandler.executeWithRetry(
-            operation: { try await self.saveProfileToCloud(updatedProfile) },
-            operationName: "update_subscription"
-        )
-
-        // Update local cache
-        _currentProfile = updatedProfile
+        // NOTE: Subscription management is now handled by SubscriptionService
+        // This method is deprecated and no longer updates profile
+        // No-op for compatibility
     }
 
     public func syncWithiCloud() async throws {

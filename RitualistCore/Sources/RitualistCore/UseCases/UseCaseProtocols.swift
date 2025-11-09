@@ -135,6 +135,14 @@ public protocol CheckPremiumStatusUseCase {
     func execute() async -> Bool
 }
 
+public protocol GetCurrentSubscriptionPlanUseCase {
+    func execute() async -> SubscriptionPlan
+}
+
+public protocol GetSubscriptionExpiryDateUseCase {
+    func execute() async -> Date?
+}
+
 public protocol GetCurrentUserProfileUseCase {
     func execute() async -> UserProfile
 }
