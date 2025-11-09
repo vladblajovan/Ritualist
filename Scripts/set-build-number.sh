@@ -3,12 +3,10 @@
 # set-build-number.sh
 #
 # Automatically sets the build number (CFBundleVersion) based on git commit count.
-# This script should be run as an Xcode build phase before compilation.
+# This script updates the Info.plist in the built product during Xcode build.
 #
 # Usage: Called automatically by Xcode build phase
 #
-
-set -e  # Exit on error
 
 # Determine source root (works both in Xcode and standalone)
 if [ -z "${SOURCE_ROOT}" ]; then
@@ -19,26 +17,19 @@ fi
 # Calculate build number from git commit count
 BUILD_NUMBER=$(git -C "${SOURCE_ROOT}" rev-list --count HEAD 2>/dev/null || echo "1")
 
-echo "🔢 Auto Build Number: ${BUILD_NUMBER} (from ${SOURCE_ROOT})"
+echo "Auto Build Number: ${BUILD_NUMBER}"
 
-# When running in Xcode build phase, update the Info.plist
+# Only update Info.plist if running in Xcode build (has TARGET_BUILD_DIR)
 if [ -n "${TARGET_BUILD_DIR}" ] && [ -n "${INFOPLIST_PATH}" ]; then
+    # Info.plist location in built product
     PLIST_PATH="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
 
-    # Wait for plist to be copied (may not exist yet early in build)
+    # Update CFBundleVersion in the built Info.plist
+    # This runs AFTER Info.plist is processed, so we update the final output
     if [ -f "${PLIST_PATH}" ]; then
         /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER}" "${PLIST_PATH}" 2>/dev/null || true
-        echo "✅ Updated ${INFOPLIST_PATH} CFBundleVersion to ${BUILD_NUMBER}"
-    else
-        echo "⏳ Info.plist not yet available at ${PLIST_PATH}"
+        echo "SUCCESS: Build number set to ${BUILD_NUMBER}"
     fi
 else
-    # Running standalone - update project.pbxproj CURRENT_PROJECT_VERSION
-    PROJECT_FILE="${SOURCE_ROOT}/Ritualist.xcodeproj/project.pbxproj"
-
-    if [ -f "${PROJECT_FILE}" ]; then
-        # Update all occurrences of CURRENT_PROJECT_VERSION
-        sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${BUILD_NUMBER};/g" "${PROJECT_FILE}"
-        echo "✅ Updated project.pbxproj CURRENT_PROJECT_VERSION to ${BUILD_NUMBER}"
-    fi
+    echo "INFO: Not running in Xcode build, skipping"
 fi
