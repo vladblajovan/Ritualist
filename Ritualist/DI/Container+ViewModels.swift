@@ -110,6 +110,8 @@ extension Container {
                 getLocationAuthStatus: self.getLocationAuthStatus(),
                 clearPurchases: self.clearPurchases(),
                 checkPremiumStatus: self.checkPremiumStatus(),
+                getCurrentSubscriptionPlan: self.getCurrentSubscriptionPlan(),
+                getSubscriptionExpiryDate: self.getSubscriptionExpiryDate(),
                 updateUserSubscription: self.updateUserSubscription(),
                 syncWithiCloud: self.syncWithiCloud(),
                 checkiCloudStatus: self.checkiCloudStatus(),

@@ -29,13 +29,10 @@ private struct SettingsFormView: View {
     @FocusState private var isNameFieldFocused: Bool
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
-    @State private var paywallItem: PaywallItem?
-    @State private var showingCancelConfirmation = false
 
     #if DEBUG
     @State private var showingDebugMenu = false
     #endif
-    @Injected(\.paywallViewModel) var paywallViewModel
     
     // Local form state
     @State private var name = ""
@@ -72,10 +69,11 @@ private struct SettingsFormView: View {
                         displayTimezoneMode: $displayTimezoneMode,
                         isNameFieldFocused: $isNameFieldFocused,
                         showingImagePicker: $showingImagePicker,
-                        showingCancelConfirmation: $showingCancelConfirmation,
-                        showPaywall: showPaywall,
                         updateUserName: updateUserName
                     )
+
+                    // Subscription Section
+                    SubscriptionManagementSectionView(vm: vm)
 
                     // Permissions Section (Notifications + Location)
                     PermissionsSectionView(vm: vm)
@@ -155,8 +153,16 @@ private struct SettingsFormView: View {
                         showingImagePicker = false
                     }
                 }
-                .sheet(item: $paywallItem) { item in
+                .sheet(item: $vm.paywallItem) { item in
                     PaywallView(vm: item.viewModel)
+                        .onDisappear {
+                            // Refresh subscription status after paywall dismissal
+                            Task {
+                                try? await Task.sleep(nanoseconds: 100_000_000)
+                                await vm.refreshSubscriptionStatus()
+                                await vm.load()
+                            }
+                        }
                 }
 
                 #if DEBUG
@@ -180,15 +186,6 @@ private struct SettingsFormView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
-    }
-    
-    // MARK: - Helper Methods
-
-    private func showPaywall() {
-        Task { @MainActor in
-            await paywallViewModel.load()
-            paywallItem = PaywallItem(viewModel: paywallViewModel)
-        }
     }
     
     // MARK: - Computed Properties

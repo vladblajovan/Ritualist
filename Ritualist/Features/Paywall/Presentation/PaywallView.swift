@@ -412,22 +412,15 @@ private struct PricingCard: View {
 
 #Preview {
     let mockSecureSubscriptionService = MockSecureSubscriptionService()
-    let mockBusinessService = MockPaywallBusinessService()
-    let mockUserService = MockUserService()
-    let updateProfileSubscription = UpdateProfileSubscription(
-        userService: mockUserService,
-        paywallService: MockPaywallService(subscriptionService: mockSecureSubscriptionService) // Legacy for now
-    )
-    
     let mockPaywallService = MockPaywallService(subscriptionService: mockSecureSubscriptionService)
-    
+
     let vm = PaywallViewModel(
         loadPaywallProducts: LoadPaywallProducts(paywallService: mockPaywallService),
         purchaseProduct: PurchaseProduct(paywallService: mockPaywallService),
         restorePurchases: RestorePurchases(paywallService: mockPaywallService),
         checkProductPurchased: CheckProductPurchased(paywallService: mockPaywallService),
-        updateProfileSubscription: updateProfileSubscription
+        updateProfileSubscription: UpdateProfileSubscription()
     )
-    
+
     PaywallView(vm: vm)
 }

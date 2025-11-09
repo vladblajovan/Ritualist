@@ -230,6 +230,9 @@ public final class MigrationLogger {
         case "6.0.0 → 7.0.0":
             return "Added location-aware habits - habits can now send notifications when you enter or exit specific locations with configurable geofencing."
 
+        case "7.0.0 → 8.0.0":
+            return "Removed subscription fields from database - subscription status is now managed entirely by StoreKit, establishing a single source of truth for premium features."
+
         default:
             return "Updated database schema."
         }
@@ -272,6 +275,14 @@ public final class MigrationLogger {
     /// Saves a migration event to history
     private func saveMigrationEvent(_ event: MigrationEvent) {
         var history = getMigrationHistory()
+
+        // Remove any existing event with the same version transition
+        // This prevents duplicate entries for the same migration (e.g., from testing/simulation)
+        history.removeAll { existingEvent in
+            existingEvent.fromVersion == event.fromVersion &&
+            existingEvent.toVersion == event.toVersion
+        }
+
         history.append(event)
 
         // Keep only the last 50 migration events

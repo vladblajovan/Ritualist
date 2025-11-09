@@ -13,14 +13,14 @@ import Observation
 @available(*, deprecated, message: "Use FeatureGatingUIService instead")
 @Observable
 public final class DefaultFeatureGatingService: FeatureGatingService {
-    private let userService: UserService
+    private let subscriptionService: SecureSubscriptionService
     private let errorHandler: ErrorHandler?
-    
-    // Free tier limits
-    private static let freeMaxHabits = 5
-    
-    public init(userService: UserService, errorHandler: ErrorHandler? = nil) {
-        self.userService = userService
+
+    // Free tier limits (using centralized BusinessConstants)
+    private static let freeMaxHabits = BusinessConstants.freeMaxHabits
+
+    public init(subscriptionService: SecureSubscriptionService, errorHandler: ErrorHandler? = nil) {
+        self.subscriptionService = subscriptionService
         self.errorHandler = errorHandler
     }
     
@@ -87,6 +87,6 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
     }
     
     private var isPremiumUser: Bool {
-        userService.isPremiumUser
+        subscriptionService.isPremiumUser()
     }
 }

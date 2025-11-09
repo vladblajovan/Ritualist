@@ -221,10 +221,29 @@ extension Container {
     }
     
     // MARK: - Subscription Service
-    
+
     var secureSubscriptionService: Factory<SecureSubscriptionService> {
-        self { RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler()) }
+        self {
+            // ⚠️ TEMPORARY: Using MockSecureSubscriptionService
+            // StoreKit entitlements require Apple Developer Program subscription ($99/year)
+            //
+            // TO RE-ENABLE StoreKit:
+            // 1. Purchase Apple Developer Program membership
+            // 2. Create IAP products in App Store Connect (see StoreKitConstants.swift)
+            // 3. Uncomment StoreKitSubscriptionService below
+            // 4. Follow docs/STOREKIT-SETUP-GUIDE.md for complete setup
+
+            return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
+
+            // Production StoreKit implementation (ready to enable):
+            // return StoreKitSubscriptionService(errorHandler: self.errorHandler())
+        }
         .singleton
+    }
+
+    // Alias for subscription service (used by ViewModels)
+    var subscriptionService: Factory<SecureSubscriptionService> {
+        secureSubscriptionService
     }
     
     // MARK: - Paywall Business Service
@@ -245,23 +264,39 @@ extension Container {
     }
     
     // MARK: - Legacy Paywall Service (Deprecated)
-    
+
     @available(*, deprecated, message: "Use paywallUIService instead")
     var paywallService: Factory<PaywallService> {
         self {
-            #if DEBUG
+            // ⚠️ TEMPORARY: Using MockPaywallService for all builds
+            // StoreKit entitlements require Apple Developer Program subscription ($99/year)
+            //
+            // TO RE-ENABLE StoreKit:
+            // 1. Purchase Apple Developer Program membership
+            // 2. Create IAP products in App Store Connect (see StoreKitConstants.swift)
+            // 3. Uncomment the #if/#else branches below
+            // 4. Follow docs/STOREKIT-SETUP-GUIDE.md for complete setup
+
             let mockPaywall = MockPaywallService(
                 subscriptionService: self.secureSubscriptionService(),
                 testingScenario: .randomResults
             )
             mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
             return mockPaywall
-            #else
-            // Production StoreKit implementation (stub for now)
-            return MainActor.assumeIsolated {
-                StoreKitPaywallService()
-            }
-            #endif
+
+            // #if DEBUG
+            // let mockPaywall = MockPaywallService(
+            //     subscriptionService: self.secureSubscriptionService(),
+            //     testingScenario: .randomResults
+            // )
+            // mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
+            // return mockPaywall
+            // #else
+            // // Production StoreKit implementation (ready to enable)
+            // return MainActor.assumeIsolated {
+            //     StoreKitPaywallService(subscriptionService: self.secureSubscriptionService())
+            // }
+            // #endif
         }
         .singleton
     }
@@ -274,14 +309,14 @@ extension Container {
     }
     
     // MARK: - Standard Feature Gating Services
-    
+
     var defaultFeatureGatingService: Factory<FeatureGatingService> {
-        self { DefaultFeatureGatingService(userService: self.userService(), errorHandler: self.errorHandler()) }
+        self { DefaultFeatureGatingService(subscriptionService: self.subscriptionService(), errorHandler: self.errorHandler()) }
             .singleton
     }
-    
+
     var defaultFeatureGatingBusinessService: Factory<FeatureGatingBusinessService> {
-        self { DefaultFeatureGatingBusinessService(userService: self.userService(), errorHandler: self.errorHandler()) }
+        self { DefaultFeatureGatingBusinessService(subscriptionService: self.subscriptionService(), errorHandler: self.errorHandler()) }
             .singleton
     }
     

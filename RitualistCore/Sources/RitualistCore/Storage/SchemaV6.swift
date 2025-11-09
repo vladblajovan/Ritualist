@@ -405,7 +405,6 @@ extension SchemaV6.HabitCategoryModel {
 extension SchemaV6.UserProfileModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> UserProfile {
-        let subscriptionPlan = SubscriptionPlan(rawValue: self.subscriptionPlan) ?? .free
         let id = UUID(uuidString: self.id) ?? UUID()
         let appearance = Int(self.appearance) ?? 0
 
@@ -416,8 +415,6 @@ extension SchemaV6.UserProfileModel {
             appearance: appearance,
             homeTimezone: homeTimezone,
             displayTimezoneMode: displayTimezoneMode,
-            subscriptionPlan: subscriptionPlan,
-            subscriptionExpiryDate: subscriptionExpiryDate,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -432,8 +429,8 @@ extension SchemaV6.UserProfileModel {
             appearance: String(profile.appearance),
             homeTimezone: profile.homeTimezone,
             displayTimezoneMode: profile.displayTimezoneMode,
-            subscriptionPlan: profile.subscriptionPlan.rawValue,
-            subscriptionExpiryDate: profile.subscriptionExpiryDate,
+            subscriptionPlan: "free",  // Default - removed from UserProfile in V8
+            subscriptionExpiryDate: nil,  // Default - removed from UserProfile in V8
             createdAt: profile.createdAt,
             updatedAt: profile.updatedAt
         )

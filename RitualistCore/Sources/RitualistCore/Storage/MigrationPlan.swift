@@ -44,7 +44,7 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             SchemaV5.self,  // Added lastCompletedDate property to HabitModel
             SchemaV6.self,  // Added archivedDate property to HabitModel
             SchemaV7.self,  // Added location-aware habit support (locationConfigData, lastGeofenceTriggerDate)
-            SchemaV8.self   // Added habit priority support (priorityLevel)
+            SchemaV8.self   // Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
         ]
     }
 
@@ -69,7 +69,7 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// - V4 → V5: Added lastCompletedDate property to HabitModel (lightweight)
     /// - V5 → V6: Added archivedDate property to HabitModel (lightweight)
     /// - V6 → V7: Added location configuration (locationConfigData, lastGeofenceTriggerDate) (lightweight)
-    /// - V7 → V8: Added priorityLevel property to HabitModel (lightweight)
+    /// - V7 → V8: Removed subscription fields from UserProfileModel (lightweight)
     ///
     /// ## Example Future Migration:
     /// ```swift
@@ -158,15 +158,16 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
         toVersion: SchemaV7.self
     )
 
-    /// V7 → V8: Added habit priority support
+    /// V7 → V8: Removed subscription fields from UserProfileModel
     ///
     /// This is a LIGHTWEIGHT migration because:
-    /// - Both schemas use the same entity names (HabitModel, HabitLogModel, etc.)
-    /// - Only adding one new optional property:
-    ///   - priorityLevel: Int? (1=Low, 2=Medium, 3=High)
-    /// - SwiftData can automatically migrate the data (adds new column)
-    /// - No data transformation needed (property defaults to nil)
-    /// - Existing habits without priority remain unchanged
+    /// - Both schemas use the same entity names (HabitModel, UserProfileModel, etc.)
+    /// - Only removing two optional properties from UserProfileModel:
+    ///   - subscriptionPlan: String (removed)
+    ///   - subscriptionExpiryDate: Date? (removed)
+    /// - SwiftData can automatically migrate the data (drops columns)
+    /// - No data transformation needed
+    /// - Subscription status now queried from SubscriptionService (single source of truth)
     static let migrateV7toV8 = MigrationStage.lightweight(
         fromVersion: SchemaV7.self,
         toVersion: SchemaV8.self

@@ -178,6 +178,14 @@ public struct OverviewView: View {
             .task {
                 await vm.loadData()
             }
+            .onChange(of: vm.isMigrating) { wasMigrating, isMigrating in
+                // When migration completes, reload data immediately
+                if wasMigrating && !isMigrating {
+                    Task {
+                        await vm.refresh()
+                    }
+                }
+            }
             .onAppear {
                 // RACE CONDITION FIX: Set view as visible immediately
                 vm.setViewVisible(true)
@@ -220,13 +228,6 @@ public struct OverviewView: View {
                 }
             }
             .background(Color(.systemGroupedBackground))
-            .overlay {
-                // Show migration loading modal when schema migration is in progress
-                if vm.isMigrating {
-                    MigrationLoadingView(details: vm.migrationDetails)
-                        .animation(.easeInOut(duration: 0.3), value: vm.isMigrating)
-                }
-            }
         } // ScrollViewReader
     }
     

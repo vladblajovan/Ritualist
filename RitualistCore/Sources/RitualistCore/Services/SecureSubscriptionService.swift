@@ -28,4 +28,12 @@ public protocol SecureSubscriptionService {
     
     /// Clear all purchases (for mock implementation and testing)
     func clearPurchases() async throws
+
+    /// Get current subscription plan based on active purchases
+    /// Returns .free if no active subscription
+    func getCurrentSubscriptionPlan() async -> SubscriptionPlan
+
+    /// Get subscription expiry date for time-limited subscriptions
+    /// Returns nil for lifetime subscriptions or free users
+    func getSubscriptionExpiryDate() async -> Date?
 }

@@ -2,20 +2,22 @@
 //  SchemaV8.swift
 //  RitualistCore
 //
-//  Created by Claude on 04.11.2025.
+//  Created by Claude on 09.11.2025.
 //
-//  Schema Version 8: Added habit priority support
-//  This schema enables users to set priority levels for their habits.
+//  Schema Version 8: Removed subscription fields from UserProfile
+//  Subscription status now queried from SubscriptionService for improved security.
 //
 
 import Foundation
 import SwiftData
 
-/// Schema V8: Added priority level for habit ranking
+/// Schema V8: Removed subscription fields from UserProfile
 ///
 /// Changes from V7:
-/// - HabitModel: Added `priorityLevel: Int?` property (1=Low, 2=Medium, 3=High)
-/// - Migration: Lightweight migration (new optional property)
+/// - UserProfileModel: Removed `subscriptionPlan: String` property
+/// - UserProfileModel: Removed `subscriptionExpiryDate: Date?` property
+/// - Migration: Lightweight migration (removing optional properties)
+/// - Rationale: Subscription status now managed by SubscriptionService (single source of truth)
 public enum SchemaV8: VersionedSchema {
     public static var versionIdentifier: Schema.Version = Schema.Version(8, 0, 0)
 
@@ -30,7 +32,7 @@ public enum SchemaV8: VersionedSchema {
         ]
     }
 
-    // MARK: - HabitModel V8
+    // MARK: - HabitModel V8 (unchanged from V7)
 
     @Model
     public final class HabitModel {
@@ -53,7 +55,6 @@ public enum SchemaV8: VersionedSchema {
         public var archivedDate: Date?
         public var locationConfigData: Data?
         public var lastGeofenceTriggerDate: Date?
-        public var priorityLevel: Int?  // NEW in V8: Priority ranking (1=Low, 2=Medium, 3=High)
 
         // MARK: - Relationships
         @Relationship(deleteRule: .cascade, inverse: \HabitLogModel.habit)
@@ -81,8 +82,7 @@ public enum SchemaV8: VersionedSchema {
             lastCompletedDate: Date? = nil,
             archivedDate: Date? = nil,
             locationConfigData: Data? = nil,
-            lastGeofenceTriggerDate: Date? = nil,
-            priorityLevel: Int? = nil
+            lastGeofenceTriggerDate: Date? = nil
         ) {
             self.id = id
             self.name = name
@@ -103,12 +103,11 @@ public enum SchemaV8: VersionedSchema {
             self.archivedDate = archivedDate
             self.locationConfigData = locationConfigData
             self.lastGeofenceTriggerDate = lastGeofenceTriggerDate
-            self.priorityLevel = priorityLevel
             self.category = category
         }
     }
 
-    // MARK: - HabitLogModel V8 (unchanged from previous versions)
+    // MARK: - HabitLogModel V8 (unchanged from V7)
 
     @Model
     public final class HabitLogModel {
@@ -136,7 +135,7 @@ public enum SchemaV8: VersionedSchema {
         }
     }
 
-    // MARK: - HabitCategoryModel V8 (unchanged from previous versions)
+    // MARK: - HabitCategoryModel V8 (unchanged from V7)
 
     @Model
     public final class HabitCategoryModel {
@@ -171,7 +170,9 @@ public enum SchemaV8: VersionedSchema {
         }
     }
 
-    // MARK: - UserProfileModel V8 (unchanged from previous versions)
+    // MARK: - UserProfileModel V8
+    // REMOVED in V8: subscriptionPlan, subscriptionExpiryDate
+    // Subscription status now queried from SubscriptionService
 
     @Model
     public final class UserProfileModel {
@@ -181,8 +182,6 @@ public enum SchemaV8: VersionedSchema {
         public var appearance: String = "followSystem"
         public var homeTimezone: String?
         public var displayTimezoneMode: String = "original"
-        public var subscriptionPlan: String = "free"
-        public var subscriptionExpiryDate: Date?
         public var createdAt: Date = Date()
         public var updatedAt: Date = Date()
 
@@ -193,8 +192,6 @@ public enum SchemaV8: VersionedSchema {
             appearance: String,
             homeTimezone: String? = nil,
             displayTimezoneMode: String = "original",
-            subscriptionPlan: String = "free",
-            subscriptionExpiryDate: Date? = nil,
             createdAt: Date = Date(),
             updatedAt: Date = Date()
         ) {
@@ -204,14 +201,12 @@ public enum SchemaV8: VersionedSchema {
             self.appearance = appearance
             self.homeTimezone = homeTimezone
             self.displayTimezoneMode = displayTimezoneMode
-            self.subscriptionPlan = subscriptionPlan
-            self.subscriptionExpiryDate = subscriptionExpiryDate
             self.createdAt = createdAt
             self.updatedAt = updatedAt
         }
     }
 
-    // MARK: - OnboardingStateModel V8 (unchanged from previous versions)
+    // MARK: - OnboardingStateModel V8 (unchanged from V7)
 
     @Model
     public final class OnboardingStateModel {
@@ -236,7 +231,7 @@ public enum SchemaV8: VersionedSchema {
         }
     }
 
-    // MARK: - PersonalityAnalysisModel V8 (unchanged from previous versions)
+    // MARK: - PersonalityAnalysisModel V8 (unchanged from V7)
 
     @Model
     public final class PersonalityAnalysisModel {
@@ -337,8 +332,7 @@ extension SchemaV8.HabitModel {
             notes: notes,
             lastCompletedDate: lastCompletedDate,
             archivedDate: archivedDate,
-            locationConfiguration: locationConfig,
-            priorityLevel: priorityLevel
+            locationConfiguration: locationConfig
         )
     }
 
@@ -383,8 +377,7 @@ extension SchemaV8.HabitModel {
             lastCompletedDate: habit.lastCompletedDate,
             archivedDate: habit.archivedDate,
             locationConfigData: locationData,
-            lastGeofenceTriggerDate: lastTriggerDate,
-            priorityLevel: habit.priorityLevel
+            lastGeofenceTriggerDate: lastTriggerDate
         )
     }
 }
@@ -437,7 +430,6 @@ extension SchemaV8.HabitCategoryModel {
 extension SchemaV8.UserProfileModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> UserProfile {
-        let subscriptionPlan = SubscriptionPlan(rawValue: self.subscriptionPlan) ?? .free
         let id = UUID(uuidString: self.id) ?? UUID()
         let appearance = Int(self.appearance) ?? 0
 
@@ -448,14 +440,13 @@ extension SchemaV8.UserProfileModel {
             appearance: appearance,
             homeTimezone: homeTimezone,
             displayTimezoneMode: displayTimezoneMode,
-            subscriptionPlan: subscriptionPlan,
-            subscriptionExpiryDate: subscriptionExpiryDate,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
     }
 
     /// Create SwiftData model from domain entity
+    /// Note: Subscription fields NOT saved to database - managed by SubscriptionService
     public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV8 {
         return SchemaV8.UserProfileModel(
             id: profile.id.uuidString,
@@ -464,8 +455,6 @@ extension SchemaV8.UserProfileModel {
             appearance: String(profile.appearance),
             homeTimezone: profile.homeTimezone,
             displayTimezoneMode: profile.displayTimezoneMode,
-            subscriptionPlan: profile.subscriptionPlan.rawValue,
-            subscriptionExpiryDate: profile.subscriptionExpiryDate,
             createdAt: profile.createdAt,
             updatedAt: profile.updatedAt
         )

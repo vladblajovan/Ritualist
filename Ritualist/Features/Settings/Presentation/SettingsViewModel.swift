@@ -13,6 +13,8 @@ public final class SettingsViewModel {
     private let getLocationAuthStatus: GetLocationAuthStatusUseCase
     private let clearPurchases: ClearPurchasesUseCase
     private let checkPremiumStatus: CheckPremiumStatusUseCase
+    private let getCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase
+    private let getSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase
     private let updateUserSubscription: UpdateUserSubscriptionUseCase
     private let syncWithiCloud: SyncWithiCloudUseCase
     private let checkiCloudStatus: CheckiCloudStatusUseCase
@@ -20,6 +22,8 @@ public final class SettingsViewModel {
     private let updateLastSyncDate: UpdateLastSyncDateUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
+    @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
+    @ObservationIgnored @Injected(\.subscriptionService) var subscriptionService
 
     private let populateTestData: PopulateTestDataUseCase?
 
@@ -59,10 +63,28 @@ public final class SettingsViewModel {
     
     // Cache premium status to avoid async issues
     private var cachedPremiumStatus = false
-    
+
+    // Cache subscription data from service to avoid async issues in UI
+    private var cachedSubscriptionPlan: SubscriptionPlan = .free
+    private var cachedSubscriptionExpiryDate: Date?
+
+    // Paywall state
+    public var paywallItem: PaywallItem?
+
     // Computed properties
     public var isPremiumUser: Bool {
         cachedPremiumStatus
+    }
+
+    /// Current subscription plan from service (not database)
+    public var subscriptionPlan: SubscriptionPlan {
+        cachedSubscriptionPlan
+    }
+
+    /// Subscription expiry date from service (not database)
+    /// Returns nil for lifetime subscriptions or free users
+    public var subscriptionExpiryDate: Date? {
+        cachedSubscriptionExpiryDate
     }
 
     public init(loadProfile: LoadProfileUseCase,
@@ -73,6 +95,8 @@ public final class SettingsViewModel {
                 getLocationAuthStatus: GetLocationAuthStatusUseCase,
                 clearPurchases: ClearPurchasesUseCase,
                 checkPremiumStatus: CheckPremiumStatusUseCase,
+                getCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase,
+                getSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase,
                 updateUserSubscription: UpdateUserSubscriptionUseCase,
                 syncWithiCloud: SyncWithiCloudUseCase,
                 checkiCloudStatus: CheckiCloudStatusUseCase,
@@ -87,6 +111,8 @@ public final class SettingsViewModel {
         self.getLocationAuthStatus = getLocationAuthStatus
         self.clearPurchases = clearPurchases
         self.checkPremiumStatus = checkPremiumStatus
+        self.getCurrentSubscriptionPlan = getCurrentSubscriptionPlan
+        self.getSubscriptionExpiryDate = getSubscriptionExpiryDate
         self.updateUserSubscription = updateUserSubscription
         self.syncWithiCloud = syncWithiCloud
         self.checkiCloudStatus = checkiCloudStatus
@@ -105,6 +131,13 @@ public final class SettingsViewModel {
             cachedPremiumStatus = await checkPremiumStatus.execute()
             lastSyncDate = await getLastSyncDate.execute()
             await refreshiCloudStatus()
+
+            // Cache subscription data from service (not database)
+            cachedSubscriptionPlan = await getCurrentSubscriptionPlan.execute()
+            cachedSubscriptionExpiryDate = await getSubscriptionExpiryDate.execute()
+            print("🔍 [SettingsViewModel.load()] Cached subscription from service:")
+            print("   Plan: \(cachedSubscriptionPlan)")
+            print("   Expiry: \(cachedSubscriptionExpiryDate?.description ?? "nil")")
         } catch {
             self.error = error
             profile = UserProfile()
@@ -113,6 +146,10 @@ public final class SettingsViewModel {
             locationAuthStatus = await getLocationAuthStatus.execute()
             cachedPremiumStatus = await checkPremiumStatus.execute()
             lastSyncDate = await getLastSyncDate.execute()
+
+            // Cache subscription data from service even on error
+            cachedSubscriptionPlan = await getCurrentSubscriptionPlan.execute()
+            cachedSubscriptionExpiryDate = await getSubscriptionExpiryDate.execute()
         }
         isLoading = false
     }
@@ -389,3 +426,28 @@ extension SettingsViewModel {
     }
 }
 #endif
+
+// MARK: - Paywall
+
+extension SettingsViewModel {
+    /// Show paywall for subscription management
+    public func showPaywall() {
+        Task {
+            await paywallViewModel.load()
+            paywallViewModel.trackPaywallShown(source: "settings", trigger: "subscribe_button")
+            paywallItem = PaywallItem(viewModel: paywallViewModel)
+        }
+    }
+
+    /// Refresh subscription status from service after purchase
+    /// Call this after paywall dismissal to update Settings UI
+    public func refreshSubscriptionStatus() async {
+        print("🔄 [SettingsViewModel] Refreshing subscription status from service")
+        cachedSubscriptionPlan = await subscriptionService.getCurrentSubscriptionPlan()
+        cachedSubscriptionExpiryDate = await subscriptionService.getSubscriptionExpiryDate()
+        cachedPremiumStatus = await checkPremiumStatus.execute()
+        print("   ✅ Updated subscription plan: \(cachedSubscriptionPlan)")
+        print("   ✅ Updated expiry date: \(cachedSubscriptionExpiryDate?.description ?? "nil")")
+        print("   ✅ Updated premium status: \(cachedPremiumStatus)")
+    }
+}

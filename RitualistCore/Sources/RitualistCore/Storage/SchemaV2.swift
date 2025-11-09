@@ -391,7 +391,6 @@ extension SchemaV2.HabitCategoryModel {
 extension SchemaV2.UserProfileModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> UserProfile {
-        let subscriptionPlan = SubscriptionPlan(rawValue: self.subscriptionPlan) ?? .free
         let id = UUID(uuidString: self.id) ?? UUID()
         let appearance = Int(self.appearance) ?? 0
 
@@ -402,14 +401,13 @@ extension SchemaV2.UserProfileModel {
             appearance: appearance,
             homeTimezone: homeTimezone,
             displayTimezoneMode: displayTimezoneMode,
-            subscriptionPlan: subscriptionPlan,
-            subscriptionExpiryDate: subscriptionExpiryDate,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
     }
 
     /// Create SwiftData model from domain entity
+    /// NOTE: Subscription fields use defaults - actual data comes from migration, not domain entity
     public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV2 {
         return SchemaV2.UserProfileModel(
             id: profile.id.uuidString,
@@ -418,8 +416,8 @@ extension SchemaV2.UserProfileModel {
             appearance: String(profile.appearance),
             homeTimezone: profile.homeTimezone,
             displayTimezoneMode: profile.displayTimezoneMode,
-            subscriptionPlan: profile.subscriptionPlan.rawValue,
-            subscriptionExpiryDate: profile.subscriptionExpiryDate,
+            subscriptionPlan: "free",  // Default - removed from UserProfile in V8
+            subscriptionExpiryDate: nil,  // Default - removed from UserProfile in V8
             createdAt: profile.createdAt,
             updatedAt: profile.updatedAt
         )

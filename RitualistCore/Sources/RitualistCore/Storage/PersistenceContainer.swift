@@ -20,10 +20,10 @@ public final class PersistenceContainer {
     /// Initialize persistence container with app group support
     /// Enables data sharing between main app and widget extension
     ///
-    /// Uses versioned schema (SchemaV7) with migration plan to safely handle schema changes.
+    /// Uses versioned schema (SchemaV8) with migration plan to safely handle schema changes.
     /// All datasources use Active* type aliases that point to current schema version.
     public init() throws {
-        Self.logger.info("🔍 Initializing PersistenceContainer with versioned schema (V7)")
+        Self.logger.info("🔍 Initializing PersistenceContainer with versioned schema (V8)")
 
         // Get the current schema version for migration tracking
         let currentSchemaVersion = RitualistMigrationPlan.currentSchemaVersion
@@ -74,25 +74,25 @@ public final class PersistenceContainer {
         let migrationStartTime = Date()
 
         do {
-            Self.logger.info("📋 Creating Schema from SchemaV7")
-            Self.logger.debug("   SchemaV7 models: \(SchemaV7.models.map { String(describing: $0) })")
+            Self.logger.info("📋 Creating Schema from SchemaV8")
+            Self.logger.debug("   SchemaV8 models: \(SchemaV8.models.map { String(describing: $0) })")
 
-            let schema = Schema(versionedSchema: SchemaV7.self)
-            Self.logger.debug("   Schema version: \(SchemaV7.versionIdentifier)")
+            let schema = Schema(versionedSchema: SchemaV8.self)
+            Self.logger.debug("   Schema version: \(SchemaV8.versionIdentifier)")
 
             Self.logger.info("🚀 Initializing ModelContainer with schema and migration plan")
-            Self.logger.info("   Migration plan will handle V2 → V3 → V4 → V5 → V6 → V7 upgrades automatically")
+            Self.logger.info("   Migration plan will handle V2 → V3 → V4 → V5 → V6 → V7 → V8 upgrades automatically")
 
             // Use versioned schema with migration plan
             // This enables safe schema evolution without data loss
-            // Migrations: V2 → V3 (adds isPinned) → V4 (replaces with notes) → V5 (adds lastCompletedDate) → V6 (adds archivedDate) → V7 (adds location support)
+            // Migrations: V2 → V3 (adds isPinned) → V4 (replaces with notes) → V5 (adds lastCompletedDate) → V6 (adds archivedDate) → V7 (adds location support) → V8 (removes subscription fields)
             // All datasources use Active* type aliases pointing to current schema
             container = try ModelContainer(
                 for: schema,
                 migrationPlan: RitualistMigrationPlan.self,
                 configurations: configuration
             )
-            Self.logger.info("✅ Successfully initialized ModelContainer with versioned schema (V7)")
+            Self.logger.info("✅ Successfully initialized ModelContainer with versioned schema (V8)")
 
             // Calculate migration duration
             let migrationDuration = Date().timeIntervalSince(migrationStartTime)
@@ -194,6 +194,9 @@ public final class PersistenceContainer {
 
         case "6.0.0 → 7.0.0":
             return "Added location-aware habits - habits can now send notifications when you enter or exit specific locations with configurable geofencing."
+
+        case "7.0.0 → 8.0.0":
+            return "Removed subscription fields from database - subscription status now queried from StoreKit service for improved security and accuracy."
 
         default:
             // For unknown migrations, provide a generic description

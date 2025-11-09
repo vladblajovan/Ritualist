@@ -36,8 +36,6 @@ public enum UserProfileCloudMapper {
         static let appearance = "appearance"
         static let homeTimezone = "homeTimezone"
         static let displayTimezoneMode = "displayTimezoneMode"
-        static let subscriptionPlan = "subscriptionPlan"
-        static let subscriptionExpiryDate = "subscriptionExpiryDate"
         static let createdAt = "createdAt"
         static let updatedAt = "updatedAt"
         static let avatarAsset = "avatarAsset"
@@ -65,17 +63,12 @@ public enum UserProfileCloudMapper {
         record[FieldKey.name] = profile.name
         record[FieldKey.appearance] = Int64(profile.appearance)
         record[FieldKey.displayTimezoneMode] = profile.displayTimezoneMode
-        record[FieldKey.subscriptionPlan] = profile.subscriptionPlan.rawValue
         record[FieldKey.createdAt] = profile.createdAt
         record[FieldKey.updatedAt] = profile.updatedAt
 
         // Map optional fields
         if let homeTimezone = profile.homeTimezone {
             record[FieldKey.homeTimezone] = homeTimezone
-        }
-
-        if let expiryDate = profile.subscriptionExpiryDate {
-            record[FieldKey.subscriptionExpiryDate] = expiryDate
         }
 
         // Map avatar image as CKAsset
@@ -136,15 +129,6 @@ public enum UserProfileCloudMapper {
             )
         }
 
-        guard let subscriptionPlanString = record[FieldKey.subscriptionPlan] as? String,
-              let subscriptionPlan = SubscriptionPlan(rawValue: subscriptionPlanString) else {
-            throw CloudMapperError.invalidFieldValue(
-                field: FieldKey.subscriptionPlan,
-                value: record[FieldKey.subscriptionPlan] as Any,
-                expectedType: "SubscriptionPlan"
-            )
-        }
-
         guard let createdAt = record[FieldKey.createdAt] as? Date else {
             throw CloudMapperError.missingRequiredField(
                 field: FieldKey.createdAt,
@@ -161,7 +145,6 @@ public enum UserProfileCloudMapper {
 
         // Extract optional fields
         let homeTimezone = record[FieldKey.homeTimezone] as? String
-        let subscriptionExpiryDate = record[FieldKey.subscriptionExpiryDate] as? Date
 
         // FUTURE: When adding new fields in v2+, use schemaVersion for conditional parsing
         // Example pattern for version-aware field parsing:
@@ -198,8 +181,6 @@ public enum UserProfileCloudMapper {
             appearance: appearance,
             homeTimezone: homeTimezone,
             displayTimezoneMode: displayTimezoneMode,
-            subscriptionPlan: subscriptionPlan,
-            subscriptionExpiryDate: subscriptionExpiryDate,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
