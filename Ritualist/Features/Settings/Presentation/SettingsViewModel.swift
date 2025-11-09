@@ -22,6 +22,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
 
     private let populateTestData: PopulateTestDataUseCase?
+
     #if DEBUG
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
     @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase

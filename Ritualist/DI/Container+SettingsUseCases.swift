@@ -69,11 +69,12 @@ extension Container {
     }
     
     // MARK: - Development Operations
-    
+
     var clearPurchases: Factory<ClearPurchases> {
         self { ClearPurchases(paywallService: self.paywallService()) }
     }
-    
+
+    #if DEBUG
     var populateTestData: Factory<PopulateTestData> {
         self {
             PopulateTestData(
@@ -90,8 +91,7 @@ extension Container {
             )
         }
     }
-    
-    #if DEBUG
+
     var getDatabaseStats: Factory<GetDatabaseStats> {
         self { GetDatabaseStats(debugService: self.debugService()) }
     }

@@ -5,12 +5,13 @@ import SwiftData
 import RitualistCore
 import FactoryKit
 
+#if DEBUG
+
 // Re-export protocol from RitualistCore
 public typealias DebugServiceProtocol = RitualistCore.DebugServiceProtocol
 public typealias DebugDatabaseStats = RitualistCore.DebugDatabaseStats
 
 // Implementation remains in app layer due to SwiftData model dependencies
-#if DEBUG
 public final class DebugService: DebugServiceProtocol {
     private let persistenceContainer: PersistenceContainer
     
@@ -89,17 +90,5 @@ public final class DebugService: DebugServiceProtocol {
         }
     }
 }
-#else
-// Release build stub - never instantiated
-public final class DebugService: DebugServiceProtocol {
-    public init(persistenceContainer: PersistenceContainer) {}
-    
-    public func clearDatabase() async throws {
-        // No-op in release builds
-    }
-    
-    public func getDatabaseStats() async throws -> DebugDatabaseStats {
-        DebugDatabaseStats(habitsCount: 0, logsCount: 0, categoriesCount: 0, profilesCount: 0)
-    }
-}
+
 #endif

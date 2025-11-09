@@ -257,7 +257,7 @@ extension Container {
             mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
             return mockPaywall
             #else
-            // MainActor-isolated service creation
+            // Production StoreKit implementation (stub for now)
             return MainActor.assumeIsolated {
                 StoreKitPaywallService()
             }

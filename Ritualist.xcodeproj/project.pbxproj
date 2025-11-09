@@ -23,9 +23,6 @@
 		91A5C7E12E5369230095C251 /* RitualistWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		91A5C8052E53A25C0095C251 /* FactoryKit in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8042E53A25C0095C251 /* FactoryKit */; };
 		91A5C8072E53C5830095C251 /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 91A5C8062E53C5830095C251 /* Factory */; };
-		91C956A72EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */; };
-		91C95A282EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C95A272EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift */; };
-		91C95A2C2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C95A2B2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift */; };
 		91C95DB62EBCF4050088AB2D /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C95DB52EBCF4050088AB2D /* RitualistCore */; };
 		91C95DB82EBCF41A0088AB2D /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C95DB72EBCF41A0088AB2D /* RitualistCore */; };
 		91C95DBE2EBD19CA0088AB2D /* RitualistCore in Frameworks */ = {isa = PBXBuildFile; productRef = 91C95DBD2EBD19CA0088AB2D /* RitualistCore */; };
@@ -78,11 +75,6 @@
 		91B730E92E38E4BC0050A48A /* Ritualist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ritualist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		91B730F82E38E4C10050A48A /* RitualistTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		91B731022E38E4C10050A48A /* RitualistUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitualistUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyCalendarViewLogicTests.swift; sourceTree = "<group>"; };
-		91C95A272EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreaksLayoutViewLogicTests.swift; sourceTree = "<group>"; };
-		91C95A2B2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspirationStyleViewLogicTests.swift; sourceTree = "<group>"; };
-		91C95A2D2EBBEBD00088AB2D /* GettingHome.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = GettingHome.gpx; path = SimulatorLocations/GettingHome.gpx; sourceTree = "<group>"; };
-		91C95A2E2EBBF0A10088AB2D /* LeavingHome.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = LeavingHome.gpx; path = SimulatorLocations/LeavingHome.gpx; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -103,6 +95,16 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		91997EF02EBF1EBE00204A1E /* Simulator Locations */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Simulator Locations";
+			sourceTree = "<group>";
+		};
+		91997F042EBF20AE00204A1E /* RitualistTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = RitualistTests;
+			sourceTree = "<group>";
+		};
 		91A5C7D12E5369190095C251 /* RitualistWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -184,14 +186,13 @@
 		91B730E02E38E4BC0050A48A = {
 			isa = PBXGroup;
 			children = (
-				91C95A2E2EBBF0A10088AB2D /* LeavingHome.gpx */,
-				91C95A2D2EBBEBD00088AB2D /* GettingHome.gpx */,
+				91997EF02EBF1EBE00204A1E /* Simulator Locations */,
 				91A5C7EB2E53699B0095C251 /* RitualistWidgetExtension.entitlements */,
 				91B730EB2E38E4BC0050A48A /* Ritualist */,
 				91A5C7D12E5369190095C251 /* RitualistWidget */,
+				91997F042EBF20AE00204A1E /* RitualistTests */,
 				91A5C7CC2E5369190095C251 /* Frameworks */,
 				91B730EA2E38E4BC0050A48A /* Products */,
-				91C9569F2EBBAFFD0088AB2D /* RitualistTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -204,48 +205,6 @@
 				91A5C7CB2E5369190095C251 /* RitualistWidgetExtension.appex */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		91C9569A2EBBAFFD0088AB2D /* Presentation */ = {
-			isa = PBXGroup;
-			children = (
-				91C956A62EBBB10F0088AB2D /* ViewLogic */,
-			);
-			path = Presentation;
-			sourceTree = "<group>";
-		};
-		91C9569B2EBBAFFD0088AB2D /* Overview */ = {
-			isa = PBXGroup;
-			children = (
-				91C9569A2EBBAFFD0088AB2D /* Presentation */,
-			);
-			path = Overview;
-			sourceTree = "<group>";
-		};
-		91C9569C2EBBAFFD0088AB2D /* Features */ = {
-			isa = PBXGroup;
-			children = (
-				91C9569B2EBBAFFD0088AB2D /* Overview */,
-			);
-			path = Features;
-			sourceTree = "<group>";
-		};
-		91C9569F2EBBAFFD0088AB2D /* RitualistTests */ = {
-			isa = PBXGroup;
-			children = (
-				91C9569C2EBBAFFD0088AB2D /* Features */,
-			);
-			path = RitualistTests;
-			sourceTree = "<group>";
-		};
-		91C956A62EBBB10F0088AB2D /* ViewLogic */ = {
-			isa = PBXGroup;
-			children = (
-				91C956A52EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift */,
-				91C95A272EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift */,
-				91C95A2B2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift */,
-			);
-			path = ViewLogic;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -327,6 +286,9 @@
 			);
 			dependencies = (
 				91B730FA2E38E4C10050A48A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				91997F042EBF20AE00204A1E /* RitualistTests */,
 			);
 			name = RitualistTests;
 			packageProductDependencies = (
@@ -498,9 +460,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				91C956A72EBBB10F0088AB2D /* MonthlyCalendarViewLogicTests.swift in Sources */,
-				91C95A2C2EBBDCA80088AB2D /* InspirationStyleViewLogicTests.swift in Sources */,
-				91C95A282EBBDB500088AB2D /* StreaksLayoutViewLogicTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

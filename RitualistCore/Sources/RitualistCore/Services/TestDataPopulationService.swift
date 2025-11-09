@@ -9,6 +9,8 @@ import Foundation
 
 // swiftlint:disable large_tuple
 
+#if DEBUG
+
 /// Utility service for test data pattern generation and calculations
 /// PHASE 2: Business orchestration moved to PopulateTestDataUseCase
 /// This service now contains only utility methods for pattern generation
@@ -30,8 +32,6 @@ public protocol TestDataPopulationServiceProtocol {
 }
 
 // MARK: - Implementation
-
-#if DEBUG
 public final class TestDataPopulationService: TestDataPopulationServiceProtocol {
     // PHASE 2: Now utility-only service - no business orchestration
     // All business logic moved to PopulateTestDataUseCase
@@ -373,29 +373,5 @@ public final class TestDataPopulationService: TestDataPopulationServiceProtocol 
         return max(0.0, min(1.0, completionRate))
     }
 }
-#else
-// Release build stub - never instantiated
-public final class TestDataPopulationService: TestDataPopulationServiceProtocol {
-    public init() {}
 
-    public func getCustomCategoryData() -> [(name: String, displayName: String, emoji: String)] {
-        return []
-    }
-
-    public func getCustomHabitData() -> [(name: String, emoji: String, colorHex: String, kind: HabitKind, unitLabel: String?, dailyTarget: Double?, schedule: HabitSchedule)] {
-        return []
-    }
-
-    public func getPersonalityCategories(for scenario: TestDataScenario) -> [(name: String, displayName: String, emoji: String)] {
-        return []
-    }
-
-    public func getPersonalityHabits(for scenario: TestDataScenario) -> [(name: String, emoji: String, colorHex: String, kind: HabitKind, unitLabel: String?, dailyTarget: Double?, schedule: HabitSchedule)] {
-        return []
-    }
-
-    public func generateDailyCompletionRates(for dateRange: [Date]) -> [Date: Double] {
-        return [:]
-    }
-}
 #endif

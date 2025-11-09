@@ -19,12 +19,12 @@ public enum ProgressColorViewLogic {
     /// - Returns: Color representing progress level
     ///
     /// Color mapping:
-    /// - Green: 80-100% (high completion)
+    /// - Green: 80%+ (high completion, including over 100%)
     /// - Orange: 50-79% (medium completion)
     /// - Red: 0-49% (low completion)
     public static func color(for completionRate: Double) -> Color {
         switch completionRate {
-        case highCompletionThreshold...1.0:
+        case highCompletionThreshold...:
             return .green
         case mediumCompletionThreshold..<highCompletionThreshold:
             return .orange

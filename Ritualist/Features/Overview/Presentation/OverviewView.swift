@@ -182,6 +182,10 @@ public struct OverviewView: View {
                 // RACE CONDITION FIX: Set view as visible immediately
                 vm.setViewVisible(true)
 
+                // CACHE INVALIDATION: Reset flag to allow fresh data load on tab switch
+                // This restores pre-cache-sync behavior where tab switches reloaded data
+                vm.invalidateCacheForTabSwitch()
+
                 Task {
                     await vm.refreshPersonalityInsights()
                 }
