@@ -81,6 +81,12 @@ The project includes multiple build configurations:
 - **Debug-Subscription** - Subscription-based feature gating
 - **Release-Subscription** - Production configuration with subscription model
 
+**When to use which:**
+- Development & TestFlight → Use `Ritualist-AllFeatures`
+- App Store Production → Use `Ritualist-Subscription`
+
+See `docs/BUILD-CONFIGURATION-GUIDE.md` for complete details on scheme selection and distribution.
+
 ### Building for Simulator
 
 ```bash
@@ -163,8 +169,11 @@ Scripts/                  # Automation scripts
 └── update-build-number-manual.sh
 
 docs/                     # Documentation
-├── VERSIONING.md        # Versioning strategy
-├── BUILD-NUMBER-SETUP.md
+├── VERSIONING.md                    # Versioning strategy
+├── BUILD-NUMBER-SETUP.md            # Automated build numbers
+├── BUILD-CONFIGURATION-GUIDE.md     # Scheme selection guide
+├── BUILD-CONFIGURATION-STRATEGY.md  # Industry best practices
+├── STOREKIT-IMPLEMENTATION-PLAN.md  # StoreKit roadmap
 └── [Feature guides]
 ```
 
