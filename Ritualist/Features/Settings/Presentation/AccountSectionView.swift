@@ -1,7 +1,7 @@
 import SwiftUI
 import RitualistCore
 
-/// Account section for Settings page including profile, subscription, appearance, and time display
+/// Account section for Settings page including profile, appearance, and time display
 struct AccountSectionView: View {
     @Bindable var vm: SettingsViewModel
     @Binding var name: String
@@ -9,8 +9,6 @@ struct AccountSectionView: View {
     @Binding var displayTimezoneMode: String
     @FocusState.Binding var isNameFieldFocused: Bool
     @Binding var showingImagePicker: Bool
-    @Binding var showingCancelConfirmation: Bool
-    let showPaywall: () -> Void
     let updateUserName: () async -> Void
 
     var body: some View {
@@ -48,65 +46,6 @@ struct AccountSectionView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                }
-            }
-
-            // Subscription section - different for Free vs Pro users
-            if vm.isPremiumUser {
-                // Pro users: Show subscription status
-                HStack {
-                    Label("Subscription", systemImage: "crown")
-                    Spacer()
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.caption)
-                        Text("Pro")
-                            .foregroundColor(.orange)
-                            .fontWeight(.medium)
-                    }
-                }
-
-                // Pro users: Show cancel subscription button
-                Button {
-                    showingCancelConfirmation = true
-                } label: {
-                    HStack {
-                        if vm.isCancellingSubscription {
-                            ProgressView()
-                                .scaleEffect(ScaleFactors.smallMedium)
-                            Text("Cancelling...")
-                        } else {
-                            Label("Cancel Subscription", systemImage: "xmark.circle")
-                        }
-                        Spacer()
-                    }
-                    .foregroundColor(.orange)
-                }
-                .disabled(vm.isCancellingSubscription)
-                .confirmationDialog("Cancel Subscription?", isPresented: $showingCancelConfirmation) {
-                    Button("Cancel Subscription", role: .destructive) {
-                        Task {
-                            await vm.cancelSubscription()
-                        }
-                    }
-                    Button("Keep Subscription", role: .cancel) {}
-                } message: {
-                    Text("Your Pro benefits will end at the end of your billing period.")
-                }
-            } else {
-                // Free users: Only show upgrade button (no "Subscription: Free" row)
-                Button {
-                    showPaywall()
-                } label: {
-                    HStack {
-                        Label("Subscribe to Pro", systemImage: "crown.fill")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .foregroundColor(.blue)
                 }
             }
 

@@ -29,13 +29,10 @@ private struct SettingsFormView: View {
     @FocusState private var isNameFieldFocused: Bool
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
-    @State private var paywallItem: PaywallItem?
-    @State private var showingCancelConfirmation = false
 
     #if DEBUG
     @State private var showingDebugMenu = false
     #endif
-    @Injected(\.paywallViewModel) var paywallViewModel
     
     // Local form state
     @State private var name = ""
@@ -72,8 +69,6 @@ private struct SettingsFormView: View {
                         displayTimezoneMode: $displayTimezoneMode,
                         isNameFieldFocused: $isNameFieldFocused,
                         showingImagePicker: $showingImagePicker,
-                        showingCancelConfirmation: $showingCancelConfirmation,
-                        showPaywall: showPaywall,
                         updateUserName: updateUserName
                     )
 
@@ -158,9 +153,6 @@ private struct SettingsFormView: View {
                         showingImagePicker = false
                     }
                 }
-                .sheet(item: $paywallItem) { item in
-                    PaywallView(vm: item.viewModel)
-                }
 
                 #if DEBUG
                 .sheet(isPresented: $showingDebugMenu) {
@@ -183,15 +175,6 @@ private struct SettingsFormView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
-    }
-    
-    // MARK: - Helper Methods
-
-    private func showPaywall() {
-        Task { @MainActor in
-            await paywallViewModel.load()
-            paywallItem = PaywallItem(viewModel: paywallViewModel)
-        }
     }
     
     // MARK: - Computed Properties
