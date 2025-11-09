@@ -12,12 +12,20 @@ import Foundation
 public struct BusinessConstants {
     
     // MARK: - Habit Limits
-    
+
     /// Maximum number of habits allowed for free users
     public static let freeMaxHabits = 5
-    
+
     /// Maximum number of habits allowed for premium users (unlimited)
     public static let premiumMaxHabits = Int.max
+
+    // MARK: - Category Limits
+
+    /// Maximum number of categories for all users (unlimited)
+    /// Rationale: Categories are lightweight organization tools. The 5-habit limit
+    /// naturally constrains category usage, making an explicit limit unnecessary.
+    /// Organization features should remain free to avoid user frustration.
+    public static let maxCategories = Int.max
     
     /// Maximum length for habit names
     public static let habitNameMaxLength = 50

@@ -3,26 +3,29 @@
 ## Current Status (January 2025)
 
 **Branch:** `feature/storekit-monetization`
-**Overall Progress:** ~60% Complete (Backend ✅, UI/Testing ❌)
+**Overall Progress:** ~75% Complete (Backend ✅, UI ✅, Testing ❌, **Bugs 🔴**)
 
 | Phase | Status | Progress |
 |-------|--------|----------|
 | Phase 1: Foundation | ✅ Complete | 100% |
 | Phase 2: StoreKit 2 Implementation | ✅ Complete | 100% |
-| Phase 3: UI Enhancements | ❌ Not Started | 0% |
+| Phase 3: UI Enhancements | ✅ Complete | 100% |
 | Phase 4: Testing Infrastructure | ❌ Not Started | 0% |
 | Phase 5: Documentation | ✅ Complete | 100% |
 | Phase 6: Code Organization | ✅ Complete | 100% |
+| **Bug Fixes** | 🔴 **BLOCKER** | 0% |
 
 **What's Working NOW:**
 - ✅ Production StoreKit services (ready to uncomment)
 - ✅ Mock fallbacks (both schemes build successfully)
 - ✅ Lifetime purchase support
 - ✅ Complete activation documentation
+- ✅ SubscriptionManagementSectionView UI
+- ✅ PaywallView shows all 3 products dynamically
 
 **What's Missing:**
-- ❌ SubscriptionManagementView UI
-- ❌ Updated PaywallView (show 3 products)
+- 🔴 **BLOCKER**: ALL_FEATURES_ENABLED bypass not working (see Known Issues)
+- 🔴 **BLOCKER**: Inconsistent habit display between screens
 - ❌ Unit tests
 
 ## Approach
@@ -259,9 +262,14 @@ return MockPaywallService(...)
 - ✅ Zero impact on current app functionality
 - ✅ Ready to enable in 5-10 minutes (code) + 30-45 minutes (App Store Connect)
 
+### ✅ Phase 3 Complete (UI Components)
+- ✅ SubscriptionManagementSectionView UI component (Settings screen)
+- ✅ PaywallView already shows all 3 product options dynamically
+- ✅ Integrated into SettingsView
+
 ### ❌ Remaining
-- ❌ SubscriptionManagementView UI component (Settings screen)
-- ❌ PaywallView updated with all 3 product options
+- 🔴 **BLOCKER**: Fix ALL_FEATURES_ENABLED bypass bugs (see Known Issues section below)
+- 🔴 **BLOCKER**: Fix inconsistent habit display between screens
 - ❌ Comprehensive test coverage (unit tests for StoreKit services)
 - ❌ Integration tests for purchase flows
 
@@ -284,3 +292,278 @@ See `BUILD-CONFIGURATION-STRATEGY.md` for detailed analysis of:
 - Industry best practices
 - Recommended strategy going forward
 - Integration with StoreKit testing
+
+---
+
+## 🐛 Known Issues (January 2025)
+
+### Critical Bug #1: ALL_FEATURES_ENABLED Bypass Not Working Completely
+
+**Status**: 🔴 BLOCKER - User testing revealed feature gating still enforced in AllFeatures scheme
+
+**Symptom**:
+- User tested Ritualist-AllFeatures scheme (which should bypass all paywalls)
+- **Issue 1**: Attempted to create 6th habit → nothing happens (paywall triggered instead)
+- **Issue 2**: Habits screen shows only 5 habits, Overview screen shows all habits (inconsistent)
+
+**Expected Behavior**:
+- Unlimited habit creation with no paywall in AllFeatures scheme
+- All screens should display all habits consistently
+
+**Investigation Results**:
+
+1. **DI Container Configuration** (`Container+Services.swift:339-351`):
+   ```swift
+   var featureGatingService: Factory<FeatureGatingService> {
+       #if ALL_FEATURES_ENABLED
+       return MockFeatureGatingService(errorHandler: self.errorHandler())
+       #else
+       return BuildConfigFeatureGatingService(...)
+       #endif
+   }
+   ```
+   ✅ Correctly returns MockFeatureGatingService when ALL_FEATURES_ENABLED is set
+
+2. **MockFeatureGatingService Implementation**:
+   ```swift
+   public var maxHabitsAllowed: Int { Int.max }
+   public func canCreateMoreHabits(currentCount: Int) -> Bool { true }
+   ```
+   ✅ Correctly returns unlimited habits
+
+3. **Feature Gating Flow**:
+   ```
+   HabitsViewModel.handleCreateHabitTap()
+     → canCreateMoreHabits (computed property)
+     → CheckHabitCreationLimit.execute(currentCount: 5)
+     → featureGatingService.canCreateMoreHabits(currentCount: 5)
+     → Should return true but doesn't
+   ```
+
+**Root Cause** (Hypothesis):
+- Either DI injection failing at runtime despite compile-time flag being set
+- Or there's additional filtering logic somewhere limiting habit display to 5
+- Inconsistent behavior between Overview (shows all) and Habits (shows 5) suggests UI-level filtering
+
+**Impact**:
+- 🔴 **BLOCKER**: Cannot test AllFeatures scheme properly
+- 🔴 **BLOCKER**: TestFlight users would still hit paywalls
+- 🟡 **MAJOR**: Inconsistent habit display across screens
+
+**Priority**: P0 - Must fix before TestFlight/launch
+
+---
+
+### Critical Bug #2: Inconsistent Habit Display Between Screens
+
+**Status**: 🔴 BLOCKER - Data display inconsistency
+
+**Symptom**:
+- **Overview screen**: Shows ALL habits (e.g., 10+ habits visible)
+- **Habits screen**: Shows only 5 habits (despite having more)
+
+**Investigation**:
+
+1. **Data Loading** (`LoadHabitsData` UseCase):
+   ```swift
+   async let habitsResult = habitRepo.fetchAllHabits()  // ✅ No filtering
+   ```
+
+2. **HabitLocalDataSource**:
+   ```swift
+   FetchDescriptor<ActiveHabitModel>(
+       sortBy: [SortDescriptor(\.displayOrder)]
+   )  // ✅ No limit applied
+   ```
+
+3. **HabitsData Model**:
+   ```swift
+   public func filteredHabits(for selectedCategory: HabitCategory?) -> [Habit] {
+       // Only filters by category, not by count ✅
+   }
+   ```
+
+4. **HabitsView UI**:
+   ```swift
+   ForEach(vm.filteredHabits, id: \.id) { habit in
+       // Uses filteredHabits which should contain all habits
+   }
+   ```
+
+**Root Cause** (Unknown):
+- No obvious code limiting to 5 habits found in data flow
+- Possible hidden filtering logic somewhere in the UI layer
+- OR the issue is with how habits are being loaded/cached
+
+**Next Steps**:
+1. Add debug logging to trace actual habit counts at each layer
+2. Verify what Overview is using vs what Habits is using
+3. Check if there's category filtering accidentally limiting results
+
+---
+
+### Issue #3: StoreKit Restore Purchases - Apple ID Binding
+
+**Status**: 🟡 CLARIFICATION NEEDED - User asked about restore behavior
+
+**Question**: "should restore work with the icloud account registered in the phone or allow some other account?"
+
+**Answer**:
+- ✅ **Restore uses device's Apple ID ONLY** (cannot use different account)
+- StoreKit associates purchases with the Apple ID signed into Settings → App Store
+- `restorePurchases()` in SubscriptionManagementSectionView uses:
+  - `AppStore.sync()` - syncs with App Store for current Apple ID
+  - `Transaction.currentEntitlements` - retrieves purchases for current Apple ID
+- **No way to restore purchases from a different Apple ID without:**
+  1. Signing out of current Apple ID
+  2. Signing into different Apple ID
+  3. Running restore purchases
+
+**Implementation**: Working as designed ✅
+
+**Documentation Needed**: Add to STOREKIT-SETUP-GUIDE.md under "Testing Restore Purchases"
+
+---
+
+---
+
+### Critical Bug #4: Missing Feature Gate in Assistant Creation Flow
+
+**Status**: 🔴 BLOCKER - Discovered during testing
+
+**Symptom**:
+- User can create habits from 2 paths:
+  1. **Add Sheet** (+ button in toolbar) - HAS feature gate check ✅
+  2. **Habit Assistant** - NO feature gate check ❌
+
+**Issue**:
+- Assistant creation bypasses feature gating completely
+- Users can create unlimited habits via Assistant even in Subscription scheme
+- Inconsistent behavior between the two creation paths
+
+**Location**:
+- `HabitsViewModel.createHabitFromSuggestion()`
+
+**Fix Required**:
+- Add feature gate check before creating habit from suggestion
+- Show paywall if limit reached
+- Ensure consistent behavior across both creation paths
+
+**Priority**: P0 - Must fix before launch
+
+---
+
+### Action Plan to Fix Critical Bugs
+
+**Immediate Priority** (Before any commit):
+
+1. ✅ **Document all bugs** (this section)
+2. ✅ **Add debug logging** to trace execution flow
+3. 🔴 **Test with logging**: Run app with debug logs to see what's actually happening
+4. 🔴 **Fix ALL_FEATURES_ENABLED bypass**:
+   - Verify which service is being injected at runtime
+   - Fix any DI container issues
+   - Ensure BuildConfigurationService is working correctly
+5. 🔴 **Fix inconsistent habit display**:
+   - Compare Overview vs Habits data loading paths
+   - Audit all filtering logic
+   - Ensure both screens use same data source
+6. 🔴 **Add feature gate to Assistant creation**:
+   - Check habit limit before creating from suggestion
+   - Show paywall if limit reached
+   - Ensure consistent with Add Sheet behavior
+7. 🟡 **Audit all feature gating points**:
+   - Search for other places using feature gating
+   - Ensure ALL respect ALL_FEATURES_ENABLED flag
+   - Test each feature gate individually
+
+**Testing Checklist** (After fixes):
+- [ ] AllFeatures scheme: Create 6+ habits via Add Sheet successfully
+- [ ] AllFeatures scheme: Create 6+ habits via Assistant successfully
+- [ ] AllFeatures scheme: No paywall appears anywhere
+- [ ] Habits screen shows same count as Overview screen
+- [ ] Subscription scheme: Paywall works correctly for both paths
+- [ ] Subscription scheme: Shows correct habit limit message
+- [ ] Restore purchases works with device Apple ID
+
+**ETA**: 3-5 hours debugging + fixes
+
+---
+
+## 📊 Business Rules & Monetization Decisions
+
+### Habit Limits
+
+**Free Tier**: 5 habits maximum
+- Centralized in `BusinessConstants.freeMaxHabits`
+- Referenced by all feature gating services
+
+**Premium Tier**: Unlimited habits (`Int.max`)
+- All premium subscription plans (Monthly, Annual, Lifetime)
+- Centralized in `BusinessConstants.premiumMaxHabits`
+
+### Category Limits Decision
+
+**Decision**: Categories remain unlimited for all users (free and premium)
+
+**Constant**: `BusinessConstants.maxCategories = Int.max`
+
+**Rationale** (Analyzed from 10+ perspectives):
+
+1. **Natural Constraint from Habit Limit**:
+   - Free users limited to 5 habits
+   - 5 habits naturally constrains category usage
+   - Creating many categories with few habits provides no value
+
+2. **Low Monetization Value**:
+   - Categories are organizational tools, not content
+   - Industry norm: organization features remain free (Todoist, Trello, Notion)
+   - Limiting categories would frustrate users without significant revenue gain
+
+3. **Technical Simplicity**:
+   - Categories are lightweight (name + emoji + color)
+   - No storage/performance concerns
+   - Easy to implement, maintain unlimited access
+
+4. **User Psychology**:
+   - Limiting organization tools increases frustration
+   - Users feel "nickel-and-dimed" by organizing restrictions
+   - Better to limit content (habits) than organization (categories)
+
+5. **Competitive Alignment**:
+   - Todoist: Unlimited projects for free
+   - Trello: Unlimited boards for free
+   - Notion: Unlimited pages for free (limits blocks)
+   - **Pattern**: Limit content/complexity, not organization
+
+6. **Support Burden**:
+   - Category limits would generate support tickets
+   - Users wouldn't understand why organization is restricted
+   - Clear value prop: "Upgrade for more habits" > "Upgrade for more folders"
+
+7. **Implementation Flexibility**:
+   - Constant defined allows future changes if needed
+   - Can always introduce limit later if abuse detected
+   - Starting unlimited avoids negative PR from restriction
+
+8. **UX Consistency**:
+   - Settings page doesn't show category count
+   - No need to add category management complexity
+   - Keeps free tier simple and focused
+
+**Implementation**:
+```swift
+// BusinessConstants.swift
+public static let maxCategories = Int.max
+
+// Rationale: Categories are lightweight organization tools.
+// The 5-habit limit naturally constrains category usage,
+// making an explicit limit unnecessary. Organization features
+// should remain free to avoid user frustration.
+```
+
+**Future Consideration**:
+- Monitor category creation patterns in analytics
+- If abuse detected (e.g., 100+ categories), can introduce limit later
+- Constant already defined for easy policy change
+

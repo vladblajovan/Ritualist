@@ -77,6 +77,9 @@ private struct SettingsFormView: View {
                         updateUserName: updateUserName
                     )
 
+                    // Subscription Section
+                    SubscriptionManagementSectionView(vm: vm)
+
                     // Permissions Section (Notifications + Location)
                     PermissionsSectionView(vm: vm)
 

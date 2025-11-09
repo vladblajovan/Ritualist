@@ -55,13 +55,13 @@ public final class CheckFeatureAccess: CheckFeatureAccessUseCase {
 
 public final class CheckHabitCreationLimit: CheckHabitCreationLimitUseCase {
     private let featureGatingService: FeatureGatingService
-    
+
     public init(featureGatingService: FeatureGatingService) {
         self.featureGatingService = featureGatingService
     }
-    
+
     public func execute(currentCount: Int) -> Bool {
-        featureGatingService.canCreateMoreHabits(currentCount: currentCount)
+        return featureGatingService.canCreateMoreHabits(currentCount: currentCount)
     }
 }
 

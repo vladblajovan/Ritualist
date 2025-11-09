@@ -53,6 +53,23 @@ public final class HabitsViewModel {
     public var canCreateMoreHabits: Bool {
         checkHabitCreationLimit.execute(currentCount: habitsData.totalHabitsCount)
     }
+
+    /// Check if user has more habits than the free plan allows
+    public var isOverFreeLimit: Bool {
+        // Only show banner if:
+        // 1. User has more than 5 habits (free limit)
+        // 2. User is NOT in AllFeatures mode (build config check)
+        #if ALL_FEATURES_ENABLED
+        return false  // Never show in AllFeatures mode
+        #else
+        return habitsData.totalHabitsCount > freeMaxHabits && !canCreateMoreHabits
+        #endif
+    }
+
+    /// Free plan max habits constant
+    public var freeMaxHabits: Int {
+        BusinessConstants.freeMaxHabits
+    }
     
     /// Filtered habits based on selected category and active categories only
     public var filteredHabits: [Habit] {
@@ -278,8 +295,10 @@ public final class HabitsViewModel {
     }
 
     /// Create habit from suggestion (for assistant)
+    /// Note: Feature gating is handled by CreateHabitFromSuggestion UseCase
+    /// and HabitsAssistantSheet's onShowPaywall callback
     public func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
-        await createHabitFromSuggestionUseCase.execute(suggestion)
+        return await createHabitFromSuggestionUseCase.execute(suggestion)
     }
     
     /// Handle create habit button tap from toolbar

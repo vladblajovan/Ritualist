@@ -16,8 +16,8 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
     private let userService: UserService
     private let errorHandler: ErrorHandler?
     
-    // Free tier limits
-    private static let freeMaxHabits = 5
+    // Free tier limits (using centralized BusinessConstants)
+    private static let freeMaxHabits = BusinessConstants.freeMaxHabits
     
     public init(userService: UserService, errorHandler: ErrorHandler? = nil) {
         self.userService = userService

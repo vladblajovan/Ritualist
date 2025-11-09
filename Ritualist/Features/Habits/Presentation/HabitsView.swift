@@ -110,7 +110,17 @@ private struct HabitsContentView: View {
             }
             .sheet(isPresented: $vm.showingHabitAssistant) {
                 HabitsAssistantSheet(
-                    existingHabits: vm.items
+                    existingHabits: vm.items,
+                    onShowPaywall: {
+                        // Dismiss Assistant and show paywall
+                        vm.showingHabitAssistant = false
+                        Task {
+                            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                            await MainActor.run {
+                                vm.showPaywall()
+                            }
+                        }
+                    }
                 )
                 .onDisappear {
                     vm.handleAssistantDismissal()
@@ -217,7 +227,21 @@ private struct HabitsListView: View {
                         .padding(.vertical, Spacing.small)
                         .background(Color(.systemBackground))
                     }
-                    
+
+                    // Over-limit banner (if user has more habits than free plan allows)
+                    if vm.isOverFreeLimit {
+                        OverLimitBannerView(
+                            currentCount: vm.habitsData.totalHabitsCount,
+                            maxCount: vm.freeMaxHabits,
+                            onUpgradeTap: {
+                                vm.showPaywall()
+                            }
+                        )
+                        .padding(.horizontal, Spacing.screenMargin)
+                        .padding(.vertical, Spacing.small)
+                        .background(Color(.systemBackground))
+                    }
+
                     // Scrollable content with categories header, buttons and habits
                     List(selection: $selection) {
                         
@@ -622,6 +646,64 @@ private struct DraggableFloatingButton: View {
                 }
         )
         .transition(.scale.combined(with: .opacity))
+    }
+}
+
+// MARK: - Over-Limit Banner
+
+private struct OverLimitBannerView: View {
+    let currentCount: Int
+    let maxCount: Int
+    let onUpgradeTap: () -> Void
+
+    var body: some View {
+        HStack(spacing: Spacing.medium) {
+            // Info icon
+            Image(systemName: "info.circle.fill")
+                .font(.title3)
+                .foregroundStyle(.blue)
+
+            // Message
+            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                Text("You have \(currentCount)/\(maxCount) habits (Free Plan)")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.primary)
+
+                Text("Upgrade to Pro for unlimited habits")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            // Upgrade button
+            Button(action: onUpgradeTap) {
+                Text("Upgrade")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, Spacing.medium)
+                    .padding(.vertical, Spacing.small)
+                    .background(
+                        LinearGradient(
+                            colors: [.blue, .cyan],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(Spacing.medium)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 
