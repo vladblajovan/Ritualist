@@ -56,7 +56,7 @@ public final class MockPaywallService: PaywallService {
             isPopular: false
         ),
         Product(
-            id: "ritualist_monthly",
+            id: "com.vladblajovan.ritualist.monthly",
             name: "Ritualist Pro",
             description: "Most flexible option",
             price: "$9.99",
@@ -74,9 +74,9 @@ public final class MockPaywallService: PaywallService {
             isPopular: false
         ),
         Product(
-            id: "ritualist_annual",
+            id: "com.vladblajovan.ritualist.annual",
             name: "Ritualist Pro",
-            description: "Best value - Save 58%!",
+            description: "Best value - Save 58%! Includes 7-day free trial",
             price: "$49.99",
             localizedPrice: "$49.99/year",
             subscriptionPlan: .annual,
@@ -89,17 +89,18 @@ public final class MockPaywallService: PaywallService {
                 "Dark mode & premium themes",
                 "Priority support",
                 "Early access to new features",
-                "Cloud backup & sync"
+                "Cloud backup & sync",
+                "7-day free trial"
             ],
             isPopular: true,
             discount: "Save 58%"
         ),
         Product(
-            id: "ritualist_lifetime",
+            id: "com.vladblajovan.ritualist.lifetime",
             name: "Ritualist Pro Lifetime",
             description: "One-time purchase, lifetime access",
-            price: "$149.99",
-            localizedPrice: "$149.99 once",
+            price: "$100.00",
+            localizedPrice: "$100.00 once",
             subscriptionPlan: .monthly, // Using monthly as there's no lifetime enum
             duration: .monthly,
             features: [
