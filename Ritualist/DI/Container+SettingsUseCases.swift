@@ -29,13 +29,43 @@ extension Container {
     }
     
     // MARK: - Premium Status Operations
-    
+
     var checkPremiumStatus: Factory<CheckPremiumStatus> {
         self { CheckPremiumStatus(userService: self.userService()) }
     }
-    
+
     var updateUserSubscription: Factory<UpdateUserSubscription> {
         self { UpdateUserSubscription(userService: self.userService()) }
+    }
+
+    // MARK: - iCloud Sync Operations
+
+    var syncWithiCloud: Factory<SyncWithiCloudUseCase> {
+        self { DefaultSyncWithiCloudUseCase(userBusinessService: self.userBusinessService()) }
+    }
+
+    var checkiCloudStatus: Factory<CheckiCloudStatusUseCase> {
+        self {
+            // ⚠️ TEMPORARY: Using disabled implementation while CloudKit entitlements are off
+            // This prevents crashes when trying to access CKContainer without entitlements
+            //
+            // TO RE-ENABLE: Uncomment the DefaultCheckiCloudStatusUseCase below when
+            // CloudKit entitlements are restored (see ICLOUD-INVESTIGATION-SUMMARY.md)
+
+            DisabledCheckiCloudStatusUseCase()
+
+            // DefaultCheckiCloudStatusUseCase(
+            //     syncErrorHandler: CloudSyncErrorHandler(errorHandler: self.errorHandler())
+            // )
+        }
+    }
+
+    var getLastSyncDate: Factory<GetLastSyncDateUseCase> {
+        self { DefaultGetLastSyncDateUseCase() }
+    }
+
+    var updateLastSyncDate: Factory<UpdateLastSyncDateUseCase> {
+        self { DefaultUpdateLastSyncDateUseCase() }
     }
     
     // MARK: - Development Operations
