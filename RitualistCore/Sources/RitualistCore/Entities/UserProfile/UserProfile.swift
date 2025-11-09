@@ -49,13 +49,18 @@ public struct UserProfile: Identifiable, Codable, Hashable {
     
     public var hasActiveSubscription: Bool {
         switch subscriptionPlan {
-        case .free: return false
+        case .free:
+            return false
         case .monthly, .annual:
+            // Recurring subscriptions require valid expiry date
             guard let expiryDate = subscriptionExpiryDate else { return false }
             return expiryDate > Date()
+        case .lifetime:
+            // Lifetime purchases never expire
+            return true
         }
     }
-    
+
     public var isPremiumUser: Bool {
         hasActiveSubscription
     }

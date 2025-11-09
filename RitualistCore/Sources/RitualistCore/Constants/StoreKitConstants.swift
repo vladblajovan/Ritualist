@@ -97,10 +97,12 @@ public enum StoreKitProductID {
     /// - Returns: The corresponding `SubscriptionPlan`, or `.free` if unknown
     public static func subscriptionPlan(for productID: String) -> SubscriptionPlan {
         switch productID {
-        case monthly, lifetime:
-            return .monthly  // Lifetime maps to monthly for UserProfile compatibility
+        case monthly:
+            return .monthly
         case annual:
             return .annual
+        case lifetime:
+            return .lifetime
         default:
             return .free
         }

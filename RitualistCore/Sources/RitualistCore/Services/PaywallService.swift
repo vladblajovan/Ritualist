@@ -101,7 +101,7 @@ public final class MockPaywallService: PaywallService {
             description: "One-time purchase, lifetime access",
             price: "$100.00",
             localizedPrice: "$100.00 once",
-            subscriptionPlan: .monthly, // Using monthly as there's no lifetime enum
+            subscriptionPlan: .lifetime,
             duration: .monthly,
             features: [
                 "Everything in Pro",
