@@ -65,7 +65,7 @@ public struct CategoryCarouselWithManagement: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 25)
-                .fill(Color(.secondarySystemBackground))
+                .fill(Color(.tertiarySystemBackground))
         )
         .foregroundColor(.primary)
     }
