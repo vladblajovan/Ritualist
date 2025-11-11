@@ -20,6 +20,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     @State private var showingMigrationHistory = false
     @State private var showingBackupList = false
     @State private var showingMigrationSimulationAlert = false
+    @State private var showingMotivationCardDemo = false
     @State private var migrationLogger = MigrationLogger.shared
     @State private var backupManager = BackupManager()
     @State private var backupCount: Int = 0
@@ -61,6 +62,17 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                             .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                     }
                     .padding(.vertical, 4)
+                }
+            }
+
+            Section("UI Components") {
+                GenericRowView.settingsRow(
+                    title: "Motivation Cards Demo",
+                    subtitle: "View all message variants and trigger types",
+                    icon: "sparkles",
+                    iconColor: .orange
+                ) {
+                    showingMotivationCardDemo = true
                 }
             }
 
@@ -420,6 +432,9 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
             NavigationStack {
                 BackupListView(backupManager: backupManager, onRefresh: loadMigrationStats)
             }
+        }
+        .sheet(isPresented: $showingMotivationCardDemo) {
+            MotivationCardDemoView()
         }
         .alert("Clear Database?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
