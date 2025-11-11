@@ -9,6 +9,7 @@ import Foundation
 
 public enum SubscriptionPlan: String, Codable, CaseIterable {
     case free
+    case weekly
     case monthly
     case annual
     case lifetime
@@ -16,6 +17,7 @@ public enum SubscriptionPlan: String, Codable, CaseIterable {
     public var displayName: String {
         switch self {
         case .free: return "Free"
+        case .weekly: return "Weekly"
         case .monthly: return "Monthly"
         case .annual: return "Annual"
         case .lifetime: return "Lifetime"
@@ -25,6 +27,7 @@ public enum SubscriptionPlan: String, Codable, CaseIterable {
     public var price: String {
         switch self {
         case .free: return "$0"
+        case .weekly: return "$2.99"
         case .monthly: return "$9.99"
         case .annual: return "$49.99"
         case .lifetime: return "$100.00"
@@ -36,7 +39,7 @@ public enum SubscriptionPlan: String, Codable, CaseIterable {
         switch self {
         case .free, .lifetime:
             return false
-        case .monthly, .annual:
+        case .weekly, .monthly, .annual:
             return true
         }
     }
@@ -46,7 +49,7 @@ public enum SubscriptionPlan: String, Codable, CaseIterable {
         switch self {
         case .free:
             return false
-        case .monthly, .annual, .lifetime:
+        case .weekly, .monthly, .annual, .lifetime:
             return true
         }
     }

@@ -8,14 +8,53 @@ public struct HabitsAssistantSheet: View {
     @Injected(\.habitsAssistantViewModel) private var habitsAssistantViewModel
     @Injected(\.createHabitFromSuggestionUseCase) private var createHabitFromSuggestionUseCase
     @Injected(\.removeHabitFromSuggestionUseCase) private var removeHabitFromSuggestionUseCase
+    @Injected(\.checkHabitCreationLimit) private var checkHabitCreationLimit
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var originalState: [String: Bool] = [:]
     @State private var userIntentions: [String: Bool] = [:]
     @State private var isProcessingActions = false
-    
+
     private let existingHabits: [Habit]
     private let onShowPaywall: (() -> Void)?
+
+    /// Calculate projected habit count based on user intentions
+    private var projectedHabitCount: Int {
+        // Start with existing habits count
+        var count = existingHabits.count
+
+        // Add newly intended habits (not originally present)
+        for (suggestionId, intended) in userIntentions {
+            let wasOriginallyAdded = originalState[suggestionId] ?? false
+            if intended && !wasOriginallyAdded {
+                count += 1  // User wants to add this
+            } else if !intended && wasOriginallyAdded {
+                count -= 1  // User wants to remove this
+            }
+        }
+
+        return count
+    }
+
+    /// Check if user can create more habits (for feature gating)
+    private var canCreateMoreHabits: Bool {
+        return checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
+    }
+
+    /// Should show limit banner for free users
+    private var shouldShowLimitBanner: Bool {
+        #if ALL_FEATURES_ENABLED
+        return false  // Never show in AllFeatures mode
+        #else
+        // Only show banner for free users who can't create more habits (at or over limit)
+        return !canCreateMoreHabits
+        #endif
+    }
+
+    /// Max habits allowed (from BusinessConstants)
+    private var maxHabitsAllowed: Int {
+        BusinessConstants.freeMaxHabits
+    }
     
     /// Initialize the reusable Habits Assistant sheet
     /// - Parameters:
@@ -34,6 +73,12 @@ public struct HabitsAssistantSheet: View {
             HabitsAssistantView(
                 vm: habitsAssistantViewModel,
                 existingHabits: existingHabits,
+                shouldShowLimitBanner: shouldShowLimitBanner,
+                maxHabitsAllowed: maxHabitsAllowed,
+                getCurrentHabitCount: { [self] in
+                    // Return the projected count based on user intentions
+                    projectedHabitCount
+                },
                 onHabitCreate: { suggestion in
                     // Track user's intention to have this habit
                     toggleHabitIntention(suggestion.id, intended: true)

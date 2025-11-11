@@ -136,7 +136,7 @@ struct SubscriptionManagementSectionView: View {
         switch vm.subscriptionPlan {
         case .free:
             return "person"
-        case .monthly, .annual:
+        case .weekly, .monthly, .annual:
             return "star.circle.fill"
         case .lifetime:
             return "crown.fill"
@@ -169,7 +169,7 @@ struct SubscriptionManagementSectionView: View {
             Image(systemName: "circle")
                 .foregroundStyle(.secondary)
                 .font(.caption2)
-        case .monthly, .annual:
+        case .weekly, .monthly, .annual:
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
                 .font(.caption)
@@ -184,7 +184,7 @@ struct SubscriptionManagementSectionView: View {
         switch vm.subscriptionPlan {
         case .free:
             return .secondary
-        case .monthly, .annual:
+        case .weekly, .monthly, .annual:
             return .green
         case .lifetime:
             return .orange
@@ -201,6 +201,8 @@ struct SubscriptionManagementSectionView: View {
         switch vm.subscriptionPlan {
         case .free:
             Text("Upgrade to Ritualist Pro to unlock unlimited habits, advanced analytics, and premium features.")
+        case .weekly:
+            Text("Your weekly subscription gives you access to all premium features. Manage or cancel anytime in App Store.")
         case .monthly:
             Text("Your monthly subscription gives you access to all premium features. Manage or cancel anytime in App Store.")
         case .annual:

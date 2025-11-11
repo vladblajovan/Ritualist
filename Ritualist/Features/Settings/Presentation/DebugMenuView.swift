@@ -561,7 +561,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         switch plan {
         case .free:
             return .secondary
-        case .monthly, .annual:
+        case .weekly, .monthly, .annual:
             return .green
         case .lifetime:
             return .orange
