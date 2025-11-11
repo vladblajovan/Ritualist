@@ -120,7 +120,7 @@ struct MotivationCardDemoView: View {
     private func generateMessage(for trigger: InspirationTrigger) -> String {
         switch trigger {
         case .sessionStart:
-            return "Time to execute your daily plan with precision. 🎯"
+            return "Time to execute your daily plan with precision."
         case .morningMotivation:
             return "Good morning! Ready to make today incredible?"
         case .firstHabitComplete:
@@ -134,7 +134,7 @@ struct MotivationCardDemoView: View {
         case .strongFinish:
             return "Incredible progress! 75% complete and climbing!"
         case .perfectDay:
-            return "🎊 Perfect day achieved! You've shown incredible dedication!"
+            return "Perfect day achieved! You've shown incredible dedication!"
         case .eveningReflection:
             return "Great day! You completed 70% of your habits."
         case .weekendMotivation:
