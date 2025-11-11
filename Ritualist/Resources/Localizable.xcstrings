@@ -3996,7 +3996,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Set to V%1$lld.0.0. Restart to see V%2$lld → V%3$@ migration."
+            "value" : "V%1$lld → V%2$lld migration"
           }
         }
       }
