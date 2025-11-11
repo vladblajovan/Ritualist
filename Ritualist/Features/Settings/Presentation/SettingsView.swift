@@ -72,17 +72,31 @@ private struct SettingsFormView: View {
                         updateUserName: updateUserName
                     )
 
+                    #if DEBUG
+                    // Debug Section (positioned after Account for easy access)
+                    Section("Debug") {
+                        GenericRowView.settingsRow(
+                            title: "Debug Menu",
+                            subtitle: "Development tools and database management",
+                            icon: "wrench.and.screwdriver",
+                            iconColor: .red
+                        ) {
+                            showingDebugMenu = true
+                        }
+                    }
+                    #endif
+
                     // Subscription Section
                     SubscriptionManagementSectionView(vm: vm)
+
+                    // Social Media Section
+                    SocialMediaLinksView()
 
                     // Permissions Section (Notifications + Location)
                     PermissionsSectionView(vm: vm)
 
                     // iCloud Sync Section
                     ICloudSyncSectionView(vm: vm)
-
-                    // Social Media Section
-                    SocialMediaLinksView()
 
                     // Advanced Section
                     Section("Advanced") {
@@ -119,19 +133,6 @@ private struct SettingsFormView: View {
                         }
                         #endif
                     }
-
-                    #if DEBUG
-                    Section("Debug") {
-                        GenericRowView.settingsRow(
-                            title: "Debug Menu",
-                            subtitle: "Development tools and database management",
-                            icon: "wrench.and.screwdriver",
-                            iconColor: .red
-                        ) {
-                            showingDebugMenu = true
-                        }
-                    }
-                    #endif
                 }
                 .refreshable {
                     await vm.load()

@@ -48,65 +48,60 @@ struct InspirationCard: View {
             // Use cached style - single access, no recomputation
             let style = cachedStyle ?? defaultStyle
 
-            VStack(spacing: 0) {
-                HStack {
-                    // Time-based icon
-                    Image(systemName: style.iconName)
-                        .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(style.accentColor)
+            ZStack(alignment: .bottomTrailing) {
+                VStack(spacing: 0) {
+                    // Header with icon and title
+                    HStack(alignment: .center, spacing: 12) {
+                        // Time-based icon with fixed frame and padding for consistency
+                        Image(systemName: style.iconName)
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundColor(style.accentColor)
+                            .frame(width: 32, height: 32)
 
-                    Spacer()
-
-                    // Dismiss button
-                    Button(action: onDismiss) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: 28, height: 28)
-                            .background(
-                                Circle()
-                                    .fill(style.accentColor)
-                            )
+                        // Main message on same line as icon
+                        Text(message)
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-
-                // Main content
-                VStack(spacing: 12) {
-                    Text(message)
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 20)
+                    .padding(.trailing, 20)
+                    .padding(.top, 20)
 
                     // Show original slogan as subtitle when message and slogan are different
                     if message != slogan && !slogan.isEmpty {
                         Text(slogan)
                             .font(.system(size: 14, weight: .medium, design: .rounded))
-                            .foregroundColor(style.accentColor)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(3)
                             .italic()
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 20)
+                            .padding(.top, 12)
                     }
 
-                    // PERFORMANCE: Removed infinite animations - caused constant GPU work during scrolling
-                    // Static dots instead of animated ones for smooth scrolling
-                    HStack(spacing: 6) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Circle()
-                                .fill(style.accentColor.opacity(0.6))
-                                .frame(width: 6, height: 6)
-                        }
-                    }
-                    .padding(.bottom, 4)
+                    Spacer(minLength: 16)
                 }
-                .padding(.horizontal, 20)
                 .padding(.bottom, 20)
+
+                // Acknowledgement button in bottom-right
+                Button(action: onDismiss) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(.secondary.opacity(0.15))
+                        )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.trailing, 16)
+                .padding(.bottom, 16)
             }
             .background(
                 style.gradient

@@ -187,101 +187,101 @@ public final class PersonalizedMessageGenerator: PersonalizedMessageGeneratorPro
         return [
             // Session Start Messages
             .sessionStart: [
-                .openness: "What new possibilities will today bring? 🌟",
-                .conscientiousness: "Time to execute your daily plan with precision. 🎯",
-                .extraversion: "Let's bring the energy today! You've got this! ⚡",
-                .agreeableness: "Ready to make a positive difference today? 🌸",
-                .neuroticism: "One step at a time. You've got this. 💪"
+                .openness: "What new possibilities will today bring?",
+                .conscientiousness: "Time to execute your daily plan with precision.",
+                .extraversion: "Let's bring the energy today! You've got this!",
+                .agreeableness: "Ready to make a positive difference today?",
+                .neuroticism: "One step at a time. You've got this."
             ],
 
             // Morning Motivation Messages
             .morningMotivation: [
-                .openness: "Morning is full of possibilities! What will you discover today? 🌅",
-                .conscientiousness: "Morning routine activated. Time to execute with discipline. 🌅",
-                .extraversion: "Rise and shine! Let's make today amazing with high energy! 🌅",
-                .agreeableness: "Good morning! Your caring actions will brighten someone's day. 🌅",
-                .neuroticism: "Take a deep breath. Start with one small habit. You've got this. 🌅"
+                .openness: "Morning is full of possibilities! What will you discover today?",
+                .conscientiousness: "Morning routine activated. Time to execute with discipline.",
+                .extraversion: "Rise and shine! Let's make today amazing with high energy!",
+                .agreeableness: "Good morning! Your caring actions will brighten someone's day.",
+                .neuroticism: "Take a deep breath. Start with one small habit. You've got this."
             ],
 
             // First Habit Complete Messages
             .firstHabitComplete: [
-                .openness: "Fantastic start! You're building momentum in your unique way. ⚡",
-                .conscientiousness: "First habit complete. Executing the plan perfectly. ⚡",
-                .extraversion: "Yes! First win of the day! Feel that energy building? ⚡",
-                .agreeableness: "Beautiful start! Your first positive action is complete. ⚡",
-                .neuroticism: "One down! You're doing it. Keep going at your own pace. ⚡"
+                .openness: "Fantastic start! You're building momentum in your unique way.",
+                .conscientiousness: "First habit complete. Executing the plan perfectly.",
+                .extraversion: "Yes! First win of the day! Feel that energy building?",
+                .agreeableness: "Beautiful start! Your first positive action is complete.",
+                .neuroticism: "One down! You're doing it. Keep going at your own pace."
             ],
 
             // Halfway Point Messages
             .halfwayPoint: [
-                .openness: "You're discovering your rhythm! Halfway through with steady progress. 🎨",
-                .conscientiousness: "Systematic progress! 50% completion rate maintained. On track. ✅",
-                .extraversion: "You're building momentum! Halfway through with solid energy! 🔥",
-                .agreeableness: "Beautiful progress! Your caring actions are creating positive change. 🌸",
-                .neuroticism: "You're making real progress! Halfway there—one step at a time. 💪"
+                .openness: "You're discovering your rhythm! Halfway through with steady progress.",
+                .conscientiousness: "Systematic progress! 50% completion rate maintained. On track.",
+                .extraversion: "You're building momentum! Halfway through with solid energy!",
+                .agreeableness: "Beautiful progress! Your caring actions are creating positive change.",
+                .neuroticism: "You're making real progress! Halfway there—one step at a time."
             ],
 
             // Struggling Mid-Day Messages
             .strugglingMidDay: [
-                .openness: "Midday is a chance to try something different! What works for you? 🌿",
-                .conscientiousness: "Recalibrating. Break down the next habit into smaller steps. 📋",
-                .extraversion: "Energy dip is temporary! Let's find your second wind together. 💫",
-                .agreeableness: "Be kind to yourself. Every small effort counts. 🤗",
-                .neuroticism: "You're not alone in this. One tiny step forward is enough. 🕊️"
+                .openness: "Midday is a chance to try something different! What works for you?",
+                .conscientiousness: "Recalibrating. Break down the next habit into smaller steps.",
+                .extraversion: "Energy dip is temporary! Let's find your second wind together.",
+                .agreeableness: "Be kind to yourself. Every small effort counts.",
+                .neuroticism: "You're not alone in this. One tiny step forward is enough."
             ],
 
             // Afternoon Push Messages
             .afternoonPush: [
-                .openness: "Afternoon adventure time! Let's explore what you can accomplish. 🚀",
-                .conscientiousness: "Afternoon execution phase. Time to hit remaining targets. 🎯",
-                .extraversion: "Afternoon energy boost! This is your time to shine! 🔥",
-                .agreeableness: "You're doing great! Let's finish strong for yourself and others. 🌟",
-                .neuroticism: "You've made it this far. That's already success. Keep breathing. 🌊"
+                .openness: "Afternoon adventure time! Let's explore what you can accomplish.",
+                .conscientiousness: "Afternoon execution phase. Time to hit remaining targets.",
+                .extraversion: "Afternoon energy boost! This is your time to shine!",
+                .agreeableness: "You're doing great! Let's finish strong for yourself and others.",
+                .neuroticism: "You've made it this far. That's already success. Keep breathing."
             ],
 
             // Strong Finish Messages
             .strongFinish: [
-                .openness: "Incredible variety today! You're so close to exploring it all! 🎨",
-                .conscientiousness: "75%+ achieved. Excellence within reach. Execute the finish. 🏆",
-                .extraversion: "You're absolutely on fire! Let's finish with maximum energy! ⚡",
-                .agreeableness: "You're making such a positive impact! Almost there! 💝",
-                .neuroticism: "You're doing amazing! You've come so far. Breathe and finish strong. 🌈"
+                .openness: "Incredible variety today! You're so close to exploring it all!",
+                .conscientiousness: "75%+ achieved. Excellence within reach. Execute the finish.",
+                .extraversion: "You're absolutely on fire! Let's finish with maximum energy!",
+                .agreeableness: "You're making such a positive impact! Almost there!",
+                .neuroticism: "You're doing amazing! You've come so far. Breathe and finish strong."
             ],
 
             // Perfect Day Messages
             .perfectDay: [
-                .openness: "Perfect day achieved! You explored every possibility today! 🌟✨",
-                .conscientiousness: "100% completion. Perfect execution. Goals achieved. 🎯✅",
-                .extraversion: "YES! Perfect day! Your energy made this happen! 🎉🔥",
-                .agreeableness: "Perfect day! Your caring actions made a real difference! 💝🌸",
-                .neuroticism: "You did it! All habits complete. You showed real strength today. 💪🌈"
+                .openness: "Perfect day achieved! You explored every possibility today!",
+                .conscientiousness: "100% completion. Perfect execution. Goals achieved.",
+                .extraversion: "YES! Perfect day! Your energy made this happen!",
+                .agreeableness: "Perfect day! Your caring actions made a real difference!",
+                .neuroticism: "You did it! All habits complete. You showed real strength today."
             ],
 
             // Evening Reflection Messages
             .eveningReflection: [
-                .openness: "What a journey today! You explored new patterns and grew. 🌙",
-                .conscientiousness: "End of day review: Strong performance. Consistent execution. 🌙",
-                .extraversion: "What energy you brought today! Rest and recharge! 🌙",
-                .agreeableness: "You made today matter. Your kindness created ripples. 🌙",
-                .neuroticism: "You made it through today. That's worthy of recognition. Rest now. 🌙"
+                .openness: "What a journey today! You explored new patterns and grew.",
+                .conscientiousness: "End of day review: Strong performance. Consistent execution.",
+                .extraversion: "What energy you brought today! Rest and recharge!",
+                .agreeableness: "You made today matter. Your kindness created ripples.",
+                .neuroticism: "You made it through today. That's worthy of recognition. Rest now."
             ],
 
             // Weekend Motivation Messages
             .weekendMotivation: [
-                .openness: "Weekend freedom! Perfect time to explore habits in new ways! 🏆",
-                .conscientiousness: "Weekend discipline sets you apart. Consistency knows no calendar. 🏆",
-                .extraversion: "Weekend energy! Your commitment even now is inspiring! 🏆",
-                .agreeableness: "Weekend dedication shows true care for your growth! 🏆",
-                .neuroticism: "Weekends can be tough. You're here anyway. That's strength. 🏆"
+                .openness: "Weekend freedom! Perfect time to explore habits in new ways!",
+                .conscientiousness: "Weekend discipline sets you apart. Consistency knows no calendar.",
+                .extraversion: "Weekend energy! Your commitment even now is inspiring!",
+                .agreeableness: "Weekend dedication shows true care for your growth!",
+                .neuroticism: "Weekends can be tough. You're here anyway. That's strength."
             ],
 
             // Comeback Story Messages
             .comebackStory: [
-                .openness: "What a comeback! You adapted and found your way back! 🚀",
-                .conscientiousness: "Recovery complete. You've recalibrated and returned to form. 🚀",
-                .extraversion: "Incredible comeback energy! You bounced back stronger! 🚀",
-                .agreeableness: "Beautiful resilience! You showed up for yourself again! 🚀",
-                .neuroticism: "You came back. After a hard day, you're here. That's real courage. 🚀"
+                .openness: "What a comeback! You adapted and found your way back!",
+                .conscientiousness: "Recovery complete. You've recalibrated and returned to form.",
+                .extraversion: "Incredible comeback energy! You bounced back stronger!",
+                .agreeableness: "Beautiful resilience! You showed up for yourself again!",
+                .neuroticism: "You came back. After a hard day, you're here. That's real courage."
             ]
         ]
     }
