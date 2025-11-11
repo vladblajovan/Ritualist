@@ -52,10 +52,11 @@ struct InspirationCard: View {
                 VStack(spacing: 0) {
                     // Header with icon and title
                     HStack(alignment: .top, spacing: 12) {
-                        // Time-based icon
+                        // Time-based icon with fixed frame for consistency
                         Image(systemName: style.iconName)
                             .font(.system(size: 24, weight: .medium))
                             .foregroundColor(style.accentColor)
+                            .frame(width: 24, height: 24)
 
                         // Main message on same line as icon
                         Text(message)
