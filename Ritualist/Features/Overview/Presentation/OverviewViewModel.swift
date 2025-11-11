@@ -635,13 +635,22 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     private func checkAndShowInspirationCard() {
-        guard isViewingToday, let summary = todaysSummary else { return }
-        
+        guard isViewingToday, let summary = todaysSummary else {
+            print("🎯 INSPIRATION: Not checking - isViewingToday=\(isViewingToday), hasSummary=\(todaysSummary != nil)")
+            return
+        }
+
+        print("🎯 INSPIRATION: Checking triggers for completion=\(summary.completionPercentage)")
+
         Task {
             let triggers = await evaluateInspirationTriggers(summary: summary)
-            
+            print("🎯 INSPIRATION: Evaluated triggers: \(triggers.map { $0.displayName })")
+
             if let bestTrigger = selectBestTrigger(from: triggers) {
+                print("🎯 INSPIRATION: Selected trigger: \(bestTrigger.displayName)")
                 showInspirationWithTrigger(bestTrigger)
+            } else {
+                print("🎯 INSPIRATION: No trigger selected (all filtered or empty)")
             }
         }
     }
@@ -705,14 +714,17 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     private func selectBestTrigger(from triggers: [InspirationTrigger]) -> InspirationTrigger? {
         let now = Date()
-        
+
+        print("🎯 INSPIRATION: Dismissed triggers today: \(dismissedTriggersToday.map { $0.displayName })")
+
         // Filter out triggers that are on cooldown or dismissed today
         let availableTriggers = triggers.filter { trigger in
             // Skip if already dismissed today
             if dismissedTriggersToday.contains(trigger) {
+                print("🎯 INSPIRATION: Skipping \(trigger.displayName) - already dismissed")
                 return false
             }
-            
+
             // Check cooldown
             if let lastTrigger = lastShownInspirationTrigger,
                lastTrigger == trigger {
@@ -756,6 +768,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             }
         }()
 
+        print("🎯 INSPIRATION: Showing trigger '\(trigger.displayName)' after \(delay)ms delay")
+
         Task {
             try? await Task.sleep(for: .milliseconds(delay))
 
@@ -763,6 +777,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             let message = await getPersonalizedMessage(for: trigger)
             self.cachedInspirationMessage = message
 
+            print("🎯 INSPIRATION: Setting showInspirationCard=true for '\(trigger.displayName)'")
             self.lastShownInspirationTrigger = trigger
             self.showInspirationCard = true
         }
