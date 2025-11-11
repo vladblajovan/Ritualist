@@ -59,13 +59,13 @@ struct InspirationCard: View {
 
                     // Dismiss button
                     Button(action: onDismiss) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: 28, height: 28)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .frame(width: 44, height: 44)
                             .background(
                                 Circle()
-                                    .fill(style.accentColor)
+                                    .fill(.secondary.opacity(0.15))
                             )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -81,29 +81,18 @@ struct InspirationCard: View {
                         .multilineTextAlignment(.center)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 16)
 
                     // Show original slogan as subtitle when message and slogan are different
                     if message != slogan && !slogan.isEmpty {
                         Text(slogan)
                             .font(.system(size: 14, weight: .medium, design: .rounded))
-                            .foregroundColor(style.accentColor)
+                            .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .italic()
                             .padding(.horizontal, 20)
                     }
 
-                    // PERFORMANCE: Removed infinite animations - caused constant GPU work during scrolling
-                    // Static dots instead of animated ones for smooth scrolling
-                    HStack(spacing: 6) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Circle()
-                                .fill(style.accentColor.opacity(0.6))
-                                .frame(width: 6, height: 6)
-                        }
-                    }
-                    .padding(.bottom, 4)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
