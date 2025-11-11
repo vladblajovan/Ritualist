@@ -46,8 +46,8 @@ public final class MockPaywallService: PaywallService {
             description: "Weekly trial - Perfect to get started",
             price: "$2.99",
             localizedPrice: "$2.99/week",
-            subscriptionPlan: .monthly, // Using monthly for now as there's no weekly enum
-            duration: .monthly,
+            subscriptionPlan: .weekly,
+            duration: .monthly,  // Keep monthly duration for now (can add weekly to ProductDuration later if needed)
             features: [
                 "Unlimited habits",
                 "Basic analytics",

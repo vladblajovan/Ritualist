@@ -5,9 +5,13 @@ import RitualistCore
 public struct RootTabView: View {
     @Injected(\.rootTabViewModel) var viewModel
     @Injected(\.settingsViewModel) var settingsViewModel
+    @Injected(\.loadHabitsData) var loadHabitsData
+    @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var showingPersonalityAnalysis = false
+    @State private var showingPostOnboardingAssistant = false
+    @State private var existingHabits: [Habit] = []
     @State private var migrationService = MigrationStatusService.shared
 
     public init() {}
@@ -70,7 +74,22 @@ public struct RootTabView: View {
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingFlowView(onComplete: {
                 showOnboarding = false
+                Task {
+                    await handlePostOnboarding()
+                }
             })
+        }
+        .sheet(isPresented: $showingPostOnboardingAssistant) {
+            HabitsAssistantSheet(
+                existingHabits: existingHabits,
+                onShowPaywall: nil
+            )
+            .onDisappear {
+                Task {
+                    // Refresh habits after assistant dismissal
+                    await loadCurrentHabits()
+                }
+            }
         }
         .onChange(of: vm.personalityDeepLinkCoordinator.shouldShowPersonalityAnalysis) { oldValue, shouldShow in
             if shouldShow {
@@ -112,6 +131,35 @@ public struct RootTabView: View {
         await viewModel.checkOnboardingStatus()
         showOnboarding = viewModel.showOnboarding
         isCheckingOnboarding = viewModel.isCheckingOnboarding
+    }
+
+    /// Handle post-onboarding flow - open assistant if user can add more habits
+    private func handlePostOnboarding() async {
+        await loadCurrentHabits()
+
+        let currentHabitCount = existingHabits.count
+        let canAddMoreHabits = checkHabitCreationLimit.execute(currentCount: currentHabitCount)
+
+        // Only open assistant if user hasn't reached the limit
+        // For premium users or users with < 5 habits
+        if canAddMoreHabits {
+            // Small delay to ensure onboarding dismissal animation completes
+            try? await Task.sleep(for: .milliseconds(500))
+            showingPostOnboardingAssistant = true
+        }
+        // If at limit (5+ habits for free users), don't open assistant
+        // User will land on Overview tab naturally
+    }
+
+    /// Load current habits to check count
+    private func loadCurrentHabits() async {
+        do {
+            let habitsData = try await loadHabitsData.execute()
+            existingHabits = habitsData.habits
+        } catch {
+            print("Failed to load habits for post-onboarding check: \(error)")
+            existingHabits = []
+        }
     }
 }
 

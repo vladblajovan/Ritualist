@@ -54,15 +54,16 @@ public final class HabitsViewModel {
         checkHabitCreationLimit.execute(currentCount: habitsData.totalHabitsCount)
     }
 
-    /// Check if user has more habits than the free plan allows
+    /// Check if user is at or over the free limit
     public var isOverFreeLimit: Bool {
-        // Only show banner if:
-        // 1. User has more than 5 habits (free limit)
+        // Show banner if:
+        // 1. User has reached or exceeded the free limit (>= 5 habits)
         // 2. User is NOT in AllFeatures mode (build config check)
+        // 3. User cannot create more habits (not premium)
         #if ALL_FEATURES_ENABLED
         return false  // Never show in AllFeatures mode
         #else
-        return habitsData.totalHabitsCount > freeMaxHabits && !canCreateMoreHabits
+        return habitsData.totalHabitsCount >= freeMaxHabits && !canCreateMoreHabits
         #endif
     }
 

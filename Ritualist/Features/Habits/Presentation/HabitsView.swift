@@ -656,12 +656,16 @@ private struct OverLimitBannerView: View {
     let maxCount: Int
     let onUpgradeTap: () -> Void
 
+    private var isAtLimit: Bool {
+        currentCount >= maxCount
+    }
+
     var body: some View {
         HStack(spacing: Spacing.medium) {
-            // Info icon
-            Image(systemName: "info.circle.fill")
+            // Info icon - changes to warning when at limit
+            Image(systemName: isAtLimit ? "exclamationmark.circle.fill" : "info.circle.fill")
                 .font(.title3)
-                .foregroundStyle(.blue)
+                .foregroundStyle(isAtLimit ? .orange : .blue)
 
             // Message
             VStack(alignment: .leading, spacing: Spacing.xxsmall) {
@@ -670,7 +674,9 @@ private struct OverLimitBannerView: View {
                     .fontWeight(.medium)
                     .foregroundStyle(.primary)
 
-                Text("Upgrade to Pro for unlimited habits")
+                Text(isAtLimit
+                     ? "Limit reached. Upgrade to Pro for unlimited habits"
+                     : "Upgrade to Pro for unlimited habits")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -702,7 +708,7 @@ private struct OverLimitBannerView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadius.medium)
-                .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                .stroke((isAtLimit ? Color.orange : Color.blue).opacity(0.3), lineWidth: 1)
         )
     }
 }

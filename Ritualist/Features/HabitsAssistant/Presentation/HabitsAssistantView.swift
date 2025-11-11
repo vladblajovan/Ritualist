@@ -13,19 +13,28 @@ public struct HabitsAssistantView: View {
     @Bindable var vm: HabitsAssistantViewModel
     @State private var isCreatingHabit = false
     @State private var isDeletingHabit = false
-    
+
     private let existingHabits: [Habit]
     private let onHabitCreate: (HabitSuggestion) async -> CreateHabitFromSuggestionResult
     private let onHabitRemove: (UUID) async -> Bool
     private let onShowPaywall: () -> Void
-    
+    private let shouldShowLimitBanner: Bool
+    private let maxHabitsAllowed: Int
+    private let getCurrentHabitCount: () -> Int
+
     public init(vm: HabitsAssistantViewModel,
                 existingHabits: [Habit] = [],
+                shouldShowLimitBanner: Bool = false,
+                maxHabitsAllowed: Int = BusinessConstants.freeMaxHabits,
+                getCurrentHabitCount: @escaping () -> Int = { 0 },
                 onHabitCreate: @escaping (HabitSuggestion) async -> CreateHabitFromSuggestionResult,
                 onHabitRemove: @escaping (UUID) async -> Bool,
                 onShowPaywall: @escaping () -> Void) {
         self.vm = vm
         self.existingHabits = existingHabits
+        self.shouldShowLimitBanner = shouldShowLimitBanner
+        self.maxHabitsAllowed = maxHabitsAllowed
+        self.getCurrentHabitCount = getCurrentHabitCount
         self.onHabitCreate = onHabitCreate
         self.onHabitRemove = onHabitRemove
         self.onShowPaywall = onShowPaywall
@@ -34,9 +43,27 @@ public struct HabitsAssistantView: View {
     private var suggestions: [HabitSuggestion] {
         vm.getSuggestions()
     }
-    
+
+    private var totalHabitCount: Int {
+        // Use the closure provided by the parent to get the current/projected count
+        // This allows the parent (HabitsAssistantSheet) to track user intentions
+        getCurrentHabitCount()
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
+            // Habit limit banner for free users
+            if shouldShowLimitBanner {
+                HabitLimitBannerView(
+                    currentCount: totalHabitCount,
+                    maxCount: maxHabitsAllowed,
+                    onUpgradeTap: onShowPaywall
+                )
+                .padding(.horizontal, Spacing.medium)
+                .padding(.top, Spacing.medium)
+                .padding(.bottom, Spacing.small)
+            }
+
             // Sticky category selector at top
             if vm.isLoadingCategories {
                 ProgressView("Loading categories...")

@@ -80,6 +80,13 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
             return .monthly
         }
 
+        // Check for weekly subscription
+        if validatedPurchases.contains("ritualist_weekly") ||
+           validatedPurchases.contains("com.ritualist.weekly") ||
+           validatedPurchases.contains("com.vladblajovan.ritualist.weekly") {
+            return .weekly
+        }
+
         // Default to free if no purchases
         return .free
     }
@@ -88,6 +95,9 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
         let plan = await getCurrentSubscriptionPlan()
 
         switch plan {
+        case .weekly:
+            // Mock expiry: 7 days from now
+            return Date().addingTimeInterval(7 * 24 * 60 * 60)
         case .monthly:
             // Mock expiry: 30 days from now
             return Date().addingTimeInterval(30 * 24 * 60 * 60)
