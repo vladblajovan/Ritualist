@@ -12,19 +12,27 @@ import RitualistCore
 struct MotivationCardDemoView: View {
     @Environment(\.dismiss) private var dismiss
 
+    // Demo scenario configuration
+    private struct DemoScenario {
+        let title: String
+        let trigger: InspirationTrigger
+        let completion: Double
+        let timeOfDay: TimeOfDay
+    }
+
     // Demo configurations for different scenarios
-    private let demoScenarios: [(title: String, trigger: InspirationTrigger, completion: Double, timeOfDay: TimeOfDay)] = [
-        ("Session Start - Morning", .sessionStart, 0.0, .morning),
-        ("Morning Motivation", .morningMotivation, 0.0, .morning),
-        ("First Habit Complete", .firstHabitComplete, 0.2, .morning),
-        ("Halfway Point", .halfwayPoint, 0.5, .noon),
-        ("Struggling Mid-Day", .strugglingMidDay, 0.35, .noon),
-        ("Afternoon Push", .afternoonPush, 0.55, .noon),
-        ("Strong Finish", .strongFinish, 0.75, .noon),
-        ("Perfect Day", .perfectDay, 1.0, .evening),
-        ("Evening Reflection", .eveningReflection, 0.70, .evening),
-        ("Weekend Motivation", .weekendMotivation, 0.45, .noon),
-        ("Comeback Story", .comebackStory, 0.60, .evening)
+    private let demoScenarios: [DemoScenario] = [
+        DemoScenario(title: "Session Start - Morning", trigger: .sessionStart, completion: 0.0, timeOfDay: .morning),
+        DemoScenario(title: "Morning Motivation", trigger: .morningMotivation, completion: 0.0, timeOfDay: .morning),
+        DemoScenario(title: "First Habit Complete", trigger: .firstHabitComplete, completion: 0.2, timeOfDay: .morning),
+        DemoScenario(title: "Halfway Point", trigger: .halfwayPoint, completion: 0.5, timeOfDay: .noon),
+        DemoScenario(title: "Struggling Mid-Day", trigger: .strugglingMidDay, completion: 0.35, timeOfDay: .noon),
+        DemoScenario(title: "Afternoon Push", trigger: .afternoonPush, completion: 0.55, timeOfDay: .noon),
+        DemoScenario(title: "Strong Finish", trigger: .strongFinish, completion: 0.75, timeOfDay: .noon),
+        DemoScenario(title: "Perfect Day", trigger: .perfectDay, completion: 1.0, timeOfDay: .evening),
+        DemoScenario(title: "Evening Reflection", trigger: .eveningReflection, completion: 0.70, timeOfDay: .evening),
+        DemoScenario(title: "Weekend Motivation", trigger: .weekendMotivation, completion: 0.45, timeOfDay: .noon),
+        DemoScenario(title: "Comeback Story", trigger: .comebackStory, completion: 0.60, timeOfDay: .evening)
     ]
 
     var body: some View {
