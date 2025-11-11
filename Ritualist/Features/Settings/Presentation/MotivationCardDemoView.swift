@@ -22,14 +22,14 @@ struct MotivationCardDemoView: View {
 
     // Demo configurations for different scenarios
     private let demoScenarios: [DemoScenario] = [
+        DemoScenario(title: "Perfect Day - 100% Complete (Green)", trigger: .perfectDay, completion: 1.0, timeOfDay: .evening),
+        DemoScenario(title: "Strong Finish - 75%+ (Blue)", trigger: .strongFinish, completion: 0.75, timeOfDay: .noon),
+        DemoScenario(title: "Halfway Point - 50% (Orange)", trigger: .halfwayPoint, completion: 0.5, timeOfDay: .noon),
         DemoScenario(title: "Session Start - Morning", trigger: .sessionStart, completion: 0.0, timeOfDay: .morning),
         DemoScenario(title: "Morning Motivation", trigger: .morningMotivation, completion: 0.0, timeOfDay: .morning),
         DemoScenario(title: "First Habit Complete", trigger: .firstHabitComplete, completion: 0.2, timeOfDay: .morning),
-        DemoScenario(title: "Halfway Point", trigger: .halfwayPoint, completion: 0.5, timeOfDay: .noon),
         DemoScenario(title: "Struggling Mid-Day", trigger: .strugglingMidDay, completion: 0.35, timeOfDay: .noon),
         DemoScenario(title: "Afternoon Push", trigger: .afternoonPush, completion: 0.55, timeOfDay: .noon),
-        DemoScenario(title: "Strong Finish", trigger: .strongFinish, completion: 0.75, timeOfDay: .noon),
-        DemoScenario(title: "Perfect Day", trigger: .perfectDay, completion: 1.0, timeOfDay: .evening),
         DemoScenario(title: "Evening Reflection", trigger: .eveningReflection, completion: 0.70, timeOfDay: .evening),
         DemoScenario(title: "Weekend Motivation", trigger: .weekendMotivation, completion: 0.45, timeOfDay: .noon),
         DemoScenario(title: "Comeback Story", trigger: .comebackStory, completion: 0.60, timeOfDay: .evening)
