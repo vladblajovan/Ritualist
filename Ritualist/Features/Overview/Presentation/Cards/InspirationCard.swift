@@ -48,54 +48,57 @@ struct InspirationCard: View {
             // Use cached style - single access, no recomputation
             let style = cachedStyle ?? defaultStyle
 
-            VStack(spacing: 0) {
-                HStack {
-                    // Time-based icon
-                    Image(systemName: style.iconName)
-                        .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(style.accentColor)
+            ZStack(alignment: .bottomTrailing) {
+                VStack(spacing: 0) {
+                    // Header with icon and title
+                    HStack(alignment: .top, spacing: 12) {
+                        // Time-based icon
+                        Image(systemName: style.iconName)
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundColor(style.accentColor)
 
-                    Spacer()
-
-                    // Dismiss button
-                    Button(action: onDismiss) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .frame(width: 44, height: 44)
-                            .background(
-                                Circle()
-                                    .fill(.secondary.opacity(0.15))
-                            )
+                        // Main message on same line as icon
+                        Text(message)
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-
-                // Main content
-                VStack(spacing: 12) {
-                    Text(message)
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
 
                     // Show original slogan as subtitle when message and slogan are different
                     if message != slogan && !slogan.isEmpty {
                         Text(slogan)
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(3)
                             .italic()
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 20)
+                            .padding(.top, 12)
                     }
 
+                    Spacer(minLength: 16)
                 }
-                .padding(.horizontal, 20)
                 .padding(.bottom, 20)
+
+                // Dismiss button in bottom-right
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(.secondary.opacity(0.15))
+                        )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.trailing, 16)
+                .padding(.bottom, 16)
             }
             .background(
                 style.gradient
