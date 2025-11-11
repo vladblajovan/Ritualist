@@ -51,12 +51,12 @@ struct InspirationCard: View {
             ZStack(alignment: .bottomTrailing) {
                 VStack(spacing: 0) {
                     // Header with icon and title
-                    HStack(alignment: .top, spacing: 12) {
-                        // Time-based icon with fixed frame for consistency
+                    HStack(alignment: .center, spacing: 12) {
+                        // Time-based icon with fixed frame and padding for consistency
                         Image(systemName: style.iconName)
                             .font(.system(size: 24, weight: .medium))
                             .foregroundColor(style.accentColor)
-                            .frame(width: 24, height: 24)
+                            .frame(width: 32, height: 32)
 
                         // Main message on same line as icon
                         Text(message)
@@ -66,8 +66,9 @@ struct InspirationCard: View {
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                    .padding(.leading, 20)
+                    .padding(.trailing, 20)
+                    .padding(.top, 20)
 
                     // Show original slogan as subtitle when message and slogan are different
                     if message != slogan && !slogan.isEmpty {
