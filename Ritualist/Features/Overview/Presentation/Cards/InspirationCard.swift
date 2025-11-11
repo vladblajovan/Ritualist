@@ -66,6 +66,7 @@ struct InspirationCard: View {
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.leading, 20)
                     .padding(.trailing, 20)
                     .padding(.top, 20)
