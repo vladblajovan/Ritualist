@@ -197,106 +197,105 @@ private struct HabitsListView: View {
                     await vm.load()
                 }
             } else {
-                VStack(spacing: 0) {
-                    // Sticky category chips only
-                    if vm.isLoadingCategories {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Loading categories...")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal, Spacing.screenMargin)
-                        .padding(.vertical, Spacing.medium)
-                        .background(Color(.systemBackground))
-                    } else {
-                        // Reusable category carousel with cogwheel
-                        CategoryCarouselWithManagement(
-                            categories: vm.displayCategories,
-                            selectedCategory: vm.selectedFilterCategory,
-                            onCategoryTap: { category in
-                                vm.selectFilterCategory(category)
-                            },
-                            onManageTap: {
-                                showingCategoryManagement = true
-                            },
-                            scrollToStartOnSelection: true,
-                            allowDeselection: true
-                        )
-                        .padding(.vertical, Spacing.small)
-                        .background(Color(.systemBackground))
-                    }
-
-                    // Over-limit banner (if user has more habits than free plan allows)
-                    if vm.isOverFreeLimit {
-                        OverLimitBannerView(
-                            currentCount: vm.habitsData.totalHabitsCount,
-                            maxCount: vm.freeMaxHabits,
-                            onUpgradeTap: {
-                                vm.showPaywall()
+                // Unified scrolling: Everything inside List
+                List(selection: $selection) {
+                    // Categories and banner section (scrolls with list)
+                    Section {
+                        if vm.isLoadingCategories {
+                            HStack {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Loading categories...")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
-                        )
-                        .padding(.horizontal, Spacing.screenMargin)
-                        .padding(.vertical, Spacing.small)
-                        .background(Color(.systemBackground))
-                    }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.medium)
+                            .listRowInsets(EdgeInsets(top: 0, leading: Spacing.screenMargin, bottom: 0, trailing: Spacing.screenMargin))
+                        } else {
+                            // Reusable category carousel with cogwheel
+                            CategoryCarouselWithManagement(
+                                categories: vm.displayCategories,
+                                selectedCategory: vm.selectedFilterCategory,
+                                onCategoryTap: { category in
+                                    vm.selectFilterCategory(category)
+                                },
+                                onManageTap: {
+                                    showingCategoryManagement = true
+                                },
+                                scrollToStartOnSelection: true,
+                                allowDeselection: true
+                            )
+                            .padding(.vertical, Spacing.small)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        }
 
-                    // Scrollable content with categories header, buttons and habits
-                    List(selection: $selection) {
-                        
-                        // Habits section
-                        Section {
-                            ForEach(vm.filteredHabits, id: \.id) { habit in
-                                GenericRowView.habitRowWithSchedule(
-                                    habit: habit,
-                                    scheduleStatus: vm.getScheduleStatus(for: habit)
-                                ) {
-                                    vm.selectHabit(habit)
+                        // Over-limit banner (if user has more habits than free plan allows)
+                        if vm.isOverFreeLimit {
+                            OverLimitBannerView(
+                                currentCount: vm.habitsData.totalHabitsCount,
+                                maxCount: vm.freeMaxHabits,
+                                onUpgradeTap: {
+                                    vm.showPaywall()
                                 }
-                                .tag(habit.id)
-                                .swipeActions(edge: .leading) {
-                                    if editMode?.wrappedValue != .active {
-                                        Button {
-                                            Task {
-                                                await vm.toggleActiveStatus(id: habit.id)
-                                            }
-                                        } label: {
-                                            Label(
-                                                habit.isActive ? Strings.Button.deactivate : Strings.Button.activate,
-                                                systemImage: habit.isActive ? "pause.circle" : "play.circle"
-                                            )
+                            )
+                            .padding(.vertical, Spacing.small)
+                            .listRowInsets(EdgeInsets(top: 0, leading: Spacing.screenMargin, bottom: 0, trailing: Spacing.screenMargin))
+                        }
+                    }
+                    .listRowBackground(Color(.systemGroupedBackground))
+
+                    // Habits section
+                    Section {
+                        ForEach(vm.filteredHabits, id: \.id) { habit in
+                            GenericRowView.habitRowWithSchedule(
+                                habit: habit,
+                                scheduleStatus: vm.getScheduleStatus(for: habit)
+                            ) {
+                                vm.selectHabit(habit)
+                            }
+                            .tag(habit.id)
+                            .swipeActions(edge: .leading) {
+                                if editMode?.wrappedValue != .active {
+                                    Button {
+                                        Task {
+                                            await vm.toggleActiveStatus(id: habit.id)
                                         }
-                                        .tint(habit.isActive ? .orange : .green)
+                                    } label: {
+                                        Label(
+                                            habit.isActive ? Strings.Button.deactivate : Strings.Button.activate,
+                                            systemImage: habit.isActive ? "pause.circle" : "play.circle"
+                                        )
                                     }
+                                    .tint(habit.isActive ? .orange : .green)
                                 }
                             }
-                            .onDelete(perform: { indexSet in
-                                if let index = indexSet.first {
-                                    habitToDelete = vm.filteredHabits[index]
-                                    showingDeleteConfirmation = true
-                                }
-                            })
-                            .onMove(perform: { source, destination in
-                                Task {
-                                    await handleMove(from: source, to: destination)
-                                }
-                            })
                         }
+                        .onDelete(perform: { indexSet in
+                            if let index = indexSet.first {
+                                habitToDelete = vm.filteredHabits[index]
+                                showingDeleteConfirmation = true
+                            }
+                        })
+                        .onMove(perform: { source, destination in
+                            Task {
+                                await handleMove(from: source, to: destination)
+                            }
+                        })
                     }
-                    .refreshable {
-                        await vm.load()
+                }
+                .refreshable {
+                    await vm.load()
+                }
+                .onChange(of: editMode?.wrappedValue) { oldValue, newValue in
+                    if oldValue == .active && newValue != .active {
+                        selection.removeAll()
                     }
-                    .onChange(of: editMode?.wrappedValue) { oldValue, newValue in
-                        if oldValue == .active && newValue != .active {
-                            selection.removeAll()
-                        }
-                    }
-                    .listStyle(.insetGrouped)
-                    .overlay(alignment: .bottom) {
-                        if !selection.isEmpty {
-                            editModeToolbar
-                        }
+                }
+                .listStyle(.insetGrouped)
+                .overlay(alignment: .bottom) {
+                    if !selection.isEmpty {
+                        editModeToolbar
                     }
                 }
             }

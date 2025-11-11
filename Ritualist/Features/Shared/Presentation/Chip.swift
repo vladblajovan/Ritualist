@@ -31,7 +31,7 @@ public struct Chip: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 25)
-                .fill(isSelected ? (color ?? AppColors.brand) : Color(.secondarySystemBackground))
+                .fill(isSelected ? (color ?? AppColors.brand) : Color(.tertiarySystemBackground))
         )
         .foregroundColor(
             isSelected ? .white : .primary
