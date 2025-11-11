@@ -19,12 +19,12 @@ struct MotivationCardDemoView: View {
         ("First Habit Complete", .firstHabitComplete, 0.2, .morning),
         ("Halfway Point", .halfwayPoint, 0.5, .noon),
         ("Struggling Mid-Day", .strugglingMidDay, 0.35, .noon),
-        ("Afternoon Push", .afternoonPush, 0.55, .afternoon),
-        ("Strong Finish", .strongFinish, 0.75, .afternoon),
+        ("Afternoon Push", .afternoonPush, 0.55, .noon),
+        ("Strong Finish", .strongFinish, 0.75, .noon),
         ("Perfect Day", .perfectDay, 1.0, .evening),
         ("Evening Reflection", .eveningReflection, 0.70, .evening),
         ("Weekend Motivation", .weekendMotivation, 0.45, .noon),
-        ("Comeback Story", .comebackStory, 0.60, .afternoon)
+        ("Comeback Story", .comebackStory, 0.60, .evening)
     ]
 
     var body: some View {
