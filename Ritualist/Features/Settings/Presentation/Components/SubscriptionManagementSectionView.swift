@@ -117,7 +117,6 @@ struct SubscriptionManagementSectionView: View {
                 }
             }
             #endif
-
         } header: {
             Text("Subscription")
         } footer: {

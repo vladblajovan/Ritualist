@@ -257,9 +257,15 @@ public struct CalendarUtils {
         return utcCalendar.dateComponents(components, from: date)
     }
     
-    /// Get weekday component (1=Sunday...7=Saturday)
+    /// Get weekday component in UTC (1=Sunday...7=Saturday)
     public static func weekdayComponentUTC(from date: Date) -> Int {
         return utcCalendar.component(.weekday, from: date)
+    }
+
+    /// Get weekday component in local timezone (1=Sunday...7=Saturday)
+    public static func weekdayComponentLocal(from date: Date, timezone: TimeZone = .current) -> Int {
+        let calendar = localCalendar(for: timezone)
+        return calendar.component(.weekday, from: date)
     }
     
     /// Get hour component (0-23)
