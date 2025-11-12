@@ -80,7 +80,7 @@ struct CacheSyncLogicTests {
         ]
 
         for date in testDates {
-            let dateStart = CalendarUtils.startOfDayUTC(for: date)
+            let dateStart = CalendarUtils.startOfDayLocal(for: date)
             let needsReload = !data.dateRange.contains(dateStart)
             #expect(!needsReload, "Date \(date) should be in cache range")
         }
@@ -93,7 +93,7 @@ struct CacheSyncLogicTests {
 
         // Act: Test date before cache start
         let dateBeforeRange = TestDates.yesterday
-        let dateStart = CalendarUtils.startOfDayUTC(for: dateBeforeRange)
+        let dateStart = CalendarUtils.startOfDayLocal(for: dateBeforeRange)
         let needsReload = !data.dateRange.contains(dateStart)
 
         // Assert
@@ -107,7 +107,7 @@ struct CacheSyncLogicTests {
 
         // Act: Test date after cache end (day 30, outside 0-29 range)
         let dateAfterRange = TestDates.daysFromNow(30)
-        let dateStart = CalendarUtils.startOfDayUTC(for: dateAfterRange)
+        let dateStart = CalendarUtils.startOfDayLocal(for: dateAfterRange)
         let needsReload = !data.dateRange.contains(dateStart)
 
         // Assert
@@ -121,7 +121,7 @@ struct CacheSyncLogicTests {
         let data = OverviewDataBuilder.empty(startDate: startDate)
 
         // Act
-        let dateStart = CalendarUtils.startOfDayUTC(for: startDate)
+        let dateStart = CalendarUtils.startOfDayLocal(for: startDate)
         let isInRange = data.dateRange.contains(dateStart)
 
         // Assert
@@ -136,7 +136,7 @@ struct CacheSyncLogicTests {
 
         // Act: Day 29 (0-indexed, so 30 days total)
         let lastDay = TestDates.daysFromNow(29)
-        let dateStart = CalendarUtils.startOfDayUTC(for: lastDay)
+        let dateStart = CalendarUtils.startOfDayLocal(for: lastDay)
         let isInRange = data.dateRange.contains(dateStart)
 
         // Assert
@@ -151,7 +151,7 @@ struct CacheSyncLogicTests {
 
         // Act: Day 30 (outside 0-29 range)
         let day30 = TestDates.daysFromNow(30)
-        let dateStart = CalendarUtils.startOfDayUTC(for: day30)
+        let dateStart = CalendarUtils.startOfDayLocal(for: day30)
         let needsReload = !data.dateRange.contains(dateStart)
 
         // Assert
@@ -292,7 +292,7 @@ struct CacheSyncLogicTests {
         // Act: Simulate removing logs for today
         var habitLogs = data.habitLogs[habit.id] ?? []
         habitLogs.removeAll { log in
-            CalendarUtils.areSameDayUTC(log.date, TestDates.today)
+            CalendarUtils.areSameDayLocal(log.date, TestDates.today)
         }
 
         var updatedHabitLogs = data.habitLogs
@@ -321,7 +321,7 @@ struct CacheSyncLogicTests {
         // Act: Remove only today's log
         var habitLogs = data.habitLogs[habit.id] ?? []
         habitLogs.removeAll { log in
-            CalendarUtils.areSameDayUTC(log.date, TestDates.today)
+            CalendarUtils.areSameDayLocal(log.date, TestDates.today)
         }
 
         var updatedHabitLogs = data.habitLogs
@@ -355,7 +355,7 @@ struct CacheSyncLogicTests {
         var habitLogs = data.habitLogs[habit.id] ?? []
         let beforeCount = habitLogs.count
         habitLogs.removeAll { log in
-            CalendarUtils.areSameDayUTC(log.date, TestDates.today)
+            CalendarUtils.areSameDayLocal(log.date, TestDates.today)
         }
 
         // Assert
