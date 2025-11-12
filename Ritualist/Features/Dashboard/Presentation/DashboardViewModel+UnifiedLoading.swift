@@ -248,22 +248,29 @@ extension DashboardViewModel {
             let hasLogsForDate = dashboardData.habitLogs.values.flatMap { $0 }.contains { log in
                 CalendarUtils.areSameDayLocal(log.date, currentDate)
             }
-            
-            if !scheduledHabits.isEmpty && hasLogsForDate {
+
+            // Count any day with logs (user activity), regardless of whether all scheduled habits were completed
+            if hasLogsForDate {
                 daysWithData += 1
-                let actualCompletedCount = scheduledHabits.filter { completedHabits.contains($0.id) }.count
-                dayOfWeekStats[dayOfWeek]?.completed += actualCompletedCount
-                dayOfWeekStats[dayOfWeek]?.total += scheduledHabits.count
-                
-                print("🔍 [DEBUG] \(DateFormatter.debugDate.string(from: currentDate)) (\(dayName)): \(actualCompletedCount)/\(scheduledHabits.count) habits completed")
-                if actualCompletedCount != scheduledHabits.count {
-                    let completedNames = scheduledHabits.filter { completedHabits.contains($0.id) }.map { $0.name }
-                    let missedNames = scheduledHabits.filter { !completedHabits.contains($0.id) }.map { $0.name }
-                    print("🔍 [DEBUG]   ✅ Completed: \(completedNames)")
-                    print("🔍 [DEBUG]   ❌ Missed: \(missedNames)")
+
+                // Only update stats if there are scheduled habits for this day
+                if !scheduledHabits.isEmpty {
+                    let actualCompletedCount = scheduledHabits.filter { completedHabits.contains($0.id) }.count
+                    dayOfWeekStats[dayOfWeek]?.completed += actualCompletedCount
+                    dayOfWeekStats[dayOfWeek]?.total += scheduledHabits.count
+
+                    print("🔍 [DEBUG] \(DateFormatter.debugDate.string(from: currentDate)) (\(dayName)): \(actualCompletedCount)/\(scheduledHabits.count) habits completed")
+                    if actualCompletedCount != scheduledHabits.count {
+                        let completedNames = scheduledHabits.filter { completedHabits.contains($0.id) }.map { $0.name }
+                        let missedNames = scheduledHabits.filter { !completedHabits.contains($0.id) }.map { $0.name }
+                        print("🔍 [DEBUG]   ✅ Completed: \(completedNames)")
+                        print("🔍 [DEBUG]   ❌ Missed: \(missedNames)")
+                    }
+                } else {
+                    print("🔍 [DEBUG] \(DateFormatter.debugDate.string(from: currentDate)) (\(dayName)): Logs exist but no habits scheduled")
                 }
             } else {
-                print("🔍 [DEBUG] \(DateFormatter.debugDate.string(from: currentDate)) (\(dayName)): No habits scheduled")
+                print("🔍 [DEBUG] \(DateFormatter.debugDate.string(from: currentDate)) (\(dayName)): No logs for this date")
             }
             
             currentDate = CalendarUtils.addDays(1, to: currentDate)
