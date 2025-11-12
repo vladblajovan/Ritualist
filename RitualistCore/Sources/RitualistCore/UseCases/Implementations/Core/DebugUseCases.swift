@@ -102,8 +102,21 @@ public final class PopulateTestData: PopulateTestDataUseCase {
         // all persisted habits before generating logs.
         let persistedHabits = try await habitRepository.fetchAllHabits()
 
+        // STREAK FIX: Update habit startDate to match historical data range
+        // Without this, streak calculation only looks back to habit.startDate (TODAY)
+        // while logs go back config.historyDays, resulting in streak = 1
+        let historicalStartDate = CalendarUtils.addDays(-config.historyDays, to: CalendarUtils.startOfDayLocal(for: Date()))
+        for habit in persistedHabits {
+            var updatedHabit = habit
+            updatedHabit.startDate = historicalStartDate
+            try await habitRepository.update(updatedHabit)
+        }
+
+        // Re-fetch to get updated habits with correct startDate
+        let updatedPersistedHabits = try await habitRepository.fetchAllHabits()
+
         try await generateHistoricalData(
-            for: persistedHabits,
+            for: updatedPersistedHabits,
             days: config.historyDays,
             completionRange: config.completionRateRange
         )
@@ -237,9 +250,9 @@ public final class PopulateTestData: PopulateTestDataUseCase {
         days: Int,
         completionRange: ClosedRange<Double>
     ) async throws {
-        // CRITICAL: Use UTC to match PersonalityAnalysisRepositoryImpl's consecutive day calculation
-        // The validation logic uses CalendarUtils.startOfDayUTC, so test data must align
-        let today = CalendarUtils.startOfDayUTC(for: Date())
+        // Use LOCAL timezone to match production behavior and PersonalityAnalysisRepositoryImpl
+        // Test data should appear natural in the app UI, using the same LOCAL logic as real users
+        let today = CalendarUtils.startOfDayLocal(for: Date())
 
         let dateRange = Array((0..<days).compactMap { dayOffset in
             CalendarUtils.addDays(-dayOffset, to: today)
@@ -302,22 +315,22 @@ public final class PopulateTestData: PopulateTestDataUseCase {
                         logValue = Double.random(in: 1.0...10.0)
                     }
                 }
-                
-                // CRITICAL: Keep the log timestamp within the same UTC day
-                // Use UTC calendar to match PersonalityAnalysisRepositoryImpl's consecutive day calculation
-                // Adding random hours in local time could create logs on different UTC days
 
-                let baseHour = Int.random(in: 8...20) // Safer range: 8 AM to 8 PM UTC
+                // Keep the log timestamp within the same LOCAL day for realistic test data
+                // Use LOCAL timezone to match production behavior and PersonalityAnalysisRepositoryImpl
+                // This ensures test data appears correctly in the app UI
+
+                let baseHour = Int.random(in: 8...20) // Realistic logging hours: 8 AM to 8 PM local time
                 let randomMinutes = Int.random(in: 0...59)
 
-                // Extract UTC components from the UTC date
-                var components = CalendarUtils.utcCalendar.dateComponents([.year, .month, .day], from: date)
+                // Extract LOCAL components from the LOCAL date
+                var components = CalendarUtils.currentLocalCalendar.dateComponents([.year, .month, .day], from: date)
                 components.hour = baseHour
                 components.minute = randomMinutes
                 components.second = 0
-                components.timeZone = TimeZone(abbreviation: "UTC")
+                components.timeZone = TimeZone.current
 
-                let finalTimestamp = CalendarUtils.utcCalendar.date(from: components) ?? date
+                let finalTimestamp = CalendarUtils.currentLocalCalendar.date(from: components) ?? date
 
                 // CRITICAL FIX: Use direct initializer, NOT withCurrentTimezone
                 // withCurrentTimezone() ignores the date parameter and always uses Date.now
@@ -327,7 +340,7 @@ public final class PopulateTestData: PopulateTestDataUseCase {
                     habitID: habit.id,
                     date: finalTimestamp,
                     value: logValue,
-                    timezone: "UTC"  // Historical data uses UTC timezone
+                    timezone: TimeZone.current.identifier  // Use current timezone for realistic test data
                 )
                 
                 do {

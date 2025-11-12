@@ -36,9 +36,9 @@ public protocol HabitCompletionService {
 // MARK: - Implementation
 
 /// Default implementation of HabitCompletionService with proper semantic handling
-/// Uses CalendarUtils for all date operations to ensure UTC-based business logic
+/// Uses CalendarUtils for all date operations to ensure LOCAL timezone business logic
 public final class DefaultHabitCompletionService: HabitCompletionService {
-    
+
     public init() {
         // No longer need calendar parameter - using CalendarUtils for all operations
     }
@@ -103,20 +103,28 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     // MARK: - Private Helper Methods
     
     private func isCompletedOnSpecificDay(habit: Habit, date: Date, logs: [HabitLog]) -> Bool {
-        let dayStart = CalendarUtils.startOfDayUTC(for: date)
-        let dayEnd = CalendarUtils.endOfDayUTC(for: date)
-        
+        let dayStart = CalendarUtils.startOfDayLocal(for: date)
+        let dayEnd = CalendarUtils.endOfDayLocal(for: date)
+
         let dayLogs = logs.filter { log in
             log.habitID == habit.id && log.date >= dayStart && log.date < dayEnd
         }
-        
+
+        print("      📊 isCompleted check for \(date):")
+        print("         Day boundaries: \(dayStart) to \(dayEnd)")
+        print("         Found \(dayLogs.count) logs for this day")
+        for log in dayLogs {
+            let completed = isLogCompleted(log: log, habit: habit)
+            print("         Log: date=\(log.date), value=\(log.value ?? 0), completed=\(completed)")
+        }
+
         return dayLogs.contains { log in
             isLogCompleted(log: log, habit: habit)
         }
     }
     
     private func isWeeklyTargetMet(habit: Habit, weeklyTarget: Int, date: Date, logs: [HabitLog]) -> Bool {
-        guard let weekInterval = CalendarUtils.weekIntervalUTC(for: date) else { return false }
+        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: date) else { return false }
         
         let weekLogs = logs.filter { log in
             log.habitID == habit.id && 
@@ -129,7 +137,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     }
     
     private func calculateWeeklyProgressUpToDate(habit: Habit, weeklyTarget: Int, date: Date, logs: [HabitLog]) -> Double {
-        guard let weekInterval = CalendarUtils.weekIntervalUTC(for: date) else { return 0.0 }
+        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: date) else { return 0.0 }
         
         let weekLogs = logs.filter { log in
             log.habitID == habit.id && 
@@ -150,10 +158,10 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     private func calculateDailyScheduleProgress(habit: Habit, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double {
         let expectedDays = calculateDaysBetween(from: startDate, to: endDate)
         guard expectedDays > 0 else { return 0.0 }
-        
+
         var completedDays = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: startDate)
-        let endOfRange = CalendarUtils.startOfDayUTC(for: endDate)
+        var currentDate = CalendarUtils.startOfDayLocal(for: startDate)
+        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate)
         
         while currentDate <= endOfRange {
             if isCompletedOnSpecificDay(habit: habit, date: currentDate, logs: logs) {
@@ -168,10 +176,10 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     private func calculateDaysOfWeekProgress(habit: Habit, scheduledDays: Set<Int>, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double {
         let expectedDays = calculateScheduledDays(scheduledDays: scheduledDays, from: startDate, to: endDate)
         guard expectedDays > 0 else { return 0.0 }
-        
+
         var completedDays = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: startDate)
-        let endOfRange = CalendarUtils.startOfDayUTC(for: endDate)
+        var currentDate = CalendarUtils.startOfDayLocal(for: startDate)
+        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate)
         
         while currentDate <= endOfRange {
             let weekday = getHabitWeekday(from: currentDate)
@@ -186,7 +194,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     
     private func calculateTimesPerWeekProgress(habit: Habit, weeklyTarget: Int, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double {
         // Use duration-based week calculation for consistency with calculateWeeklyTargets
-        let totalDays = CalendarUtils.daysBetweenUTC(startDate, endDate) + 1 // +1 because range is inclusive
+        let totalDays = CalendarUtils.daysBetweenLocal(startDate, endDate) + 1 // +1 because range is inclusive
         let totalWeeks = max(1, Int(round(Double(totalDays) / 7.0))) // Use rounding to match user expectations
         
         // Filter for only completed logs within the date range
@@ -198,19 +206,19 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         
         // Group completed logs by week start date
         let completionsByWeek = Dictionary(grouping: completedLogs) { log in
-            CalendarUtils.startOfWeekUTC(for: log.date)
+            CalendarUtils.startOfWeekLocal(for: log.date)
         }
-        
+
         var totalActualCompletions = 0
-        
+
         // Calculate week by week using calendar week boundaries
-        var currentWeekStart = CalendarUtils.startOfWeekUTC(for: startDate)
-        let endWeekStart = CalendarUtils.startOfWeekUTC(for: endDate)
+        var currentWeekStart = CalendarUtils.startOfWeekLocal(for: startDate)
+        let endWeekStart = CalendarUtils.startOfWeekLocal(for: endDate)
         
         while currentWeekStart <= endWeekStart {
             // Count unique days (not total logs) - consistent with getWeeklyProgress
             let weekLogs = completionsByWeek[currentWeekStart] ?? []
-            let uniqueDaysInWeek = CalendarUtils.uniqueDaysUTC(from: weekLogs.map { $0.date }).count
+            let uniqueDaysInWeek = Set(weekLogs.map { CalendarUtils.startOfDayLocal(for: $0.date) }).count
             
             totalActualCompletions += min(uniqueDaysInWeek, weeklyTarget)
             
@@ -242,19 +250,19 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     }
     
     private func getHabitWeekday(from date: Date) -> Int {
-        let calendarWeekday = CalendarUtils.weekdayComponentUTC(from: date)
+        let calendarWeekday = CalendarUtils.weekdayComponentLocal(from: date)
         return CalendarUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
     }
     
     private func calculateDaysBetween(from startDate: Date, to endDate: Date) -> Int {
-        let daysDifference = CalendarUtils.daysBetweenUTC(startDate, endDate)
+        let daysDifference = CalendarUtils.daysBetweenLocal(startDate, endDate)
         return max(1, daysDifference + 1)
     }
     
     private func calculateScheduledDays(scheduledDays: Set<Int>, from startDate: Date, to endDate: Date) -> Int {
         var count = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: startDate)
-        let endOfRange = CalendarUtils.startOfDayUTC(for: endDate)
+        var currentDate = CalendarUtils.startOfDayLocal(for: startDate)
+        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate)
         
         while currentDate <= endOfRange {
             let weekday = getHabitWeekday(from: currentDate)
@@ -270,8 +278,8 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     private func calculateWeeklyTargets(weeklyTarget: Int, from startDate: Date, to endDate: Date) -> Int {
         // Count the number of calendar weeks that overlap with the date range
         var weekCount = 0
-        var currentWeekStart = CalendarUtils.startOfWeekUTC(for: startDate)
-        let endWeekStart = CalendarUtils.startOfWeekUTC(for: endDate)
+        var currentWeekStart = CalendarUtils.startOfWeekLocal(for: startDate)
+        let endWeekStart = CalendarUtils.startOfWeekLocal(for: endDate)
         
         while currentWeekStart <= endWeekStart {
             weekCount += 1

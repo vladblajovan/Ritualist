@@ -79,15 +79,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public var canGoToPreviousDay: Bool {
         let today = Date()
         let thirtyDaysAgo = CalendarUtils.addDays(-30, to: today)
-        let viewingDayStart = CalendarUtils.startOfDayUTC(for: viewingDate)
-        let boundaryStart = CalendarUtils.startOfDayUTC(for: thirtyDaysAgo)
+        let viewingDayStart = CalendarUtils.startOfDayLocal(for: viewingDate)
+        let boundaryStart = CalendarUtils.startOfDayLocal(for: thirtyDaysAgo)
         return viewingDayStart > boundaryStart
     }
 
     public var canGoToNextDay: Bool {
         let today = Date()
-        let viewingDayStart = CalendarUtils.startOfDayUTC(for: viewingDate)
-        let todayStart = CalendarUtils.startOfDayUTC(for: today)
+        let viewingDayStart = CalendarUtils.startOfDayLocal(for: viewingDate)
+        let todayStart = CalendarUtils.startOfDayLocal(for: today)
         return viewingDayStart < todayStart
     }
 
@@ -255,11 +255,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 // Most numeric habit interactions should go through updateNumericHabit instead
                 await updateNumericHabit(habit, value: habit.dailyTarget ?? 1.0)
             } else {
-                // Binary habit - just create a log with value 1.0 using UTC timestamp and timezone context
+                // Binary habit - just create a log with value 1.0 using LOCAL timestamp and timezone context
                 let log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
-                    date: CalendarUtils.startOfDayUTC(for: viewingDate),
+                    date: CalendarUtils.startOfDayLocal(for: viewingDate),
                     value: 1.0,
                     timezone: TimeZone.current.identifier
                 )
@@ -284,7 +284,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func getCurrentProgress(for habit: Habit) async -> Double {
         do {
             let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
-            let logsForDate = allLogs.filter { CalendarUtils.areSameDayUTC($0.date, viewingDate) }
+            let logsForDate = allLogs.filter { CalendarUtils.areSameDayLocal($0.date, viewingDate) }
             
             if habit.kind == .numeric {
                 return logsForDate.reduce(0.0) { $0 + ($1.value ?? 0.0) }
@@ -310,11 +310,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             let log: HabitLog
 
             if existingLogsForDate.isEmpty {
-                // No existing log for this date - create new one using UTC timestamp and timezone context
+                // No existing log for this date - create new one using LOCAL timestamp and timezone context
                 log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
-                    date: CalendarUtils.startOfDayUTC(for: viewingDate),
+                    date: CalendarUtils.startOfDayLocal(for: viewingDate),
                     value: value,
                     timezone: TimeZone.current.identifier
                 )
@@ -335,7 +335,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
-                    date: CalendarUtils.startOfDayUTC(for: viewingDate),
+                    date: CalendarUtils.startOfDayLocal(for: viewingDate),
                     value: value,
                     timezone: TimeZone.current.identifier
                 )
@@ -552,7 +552,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
 
     public func goToDate(_ date: Date) {
-        viewingDate = date
+        viewingDate = CalendarUtils.startOfDayLocal(for: date)
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -610,7 +610,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             
             for habit in yesterdayHabits {
                 let logs = try await getLogs.execute(for: habit.id, since: yesterday, until: yesterday)
-                if logs.contains(where: { CalendarUtils.areSameDayUTC($0.date, yesterday) }) {
+                if logs.contains(where: { CalendarUtils.areSameDayLocal($0.date, yesterday) }) {
                     yesterdayCompletedCount += 1
                 }
             }
@@ -660,12 +660,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         let timeOfDay = currentTimeOfDay
         let completionRate = summary.completionPercentage
         let now = Date()
-        let hour = CalendarUtils.hourComponentUTC(from: now)
-        let isWeekend = [1, 7].contains(CalendarUtils.weekdayComponentUTC(from: now))
-        
+        let hour = CalendarUtils.hourComponentLocal(from: now)
+        let isWeekend = [1, 7].contains(CalendarUtils.weekdayComponentLocal(from: now))
+
         // Session Start (first load of the day)
-        if CalendarUtils.areSameDayUTC(sessionStartTime, now) && 
-           CalendarUtils.daysBetweenUTC(sessionStartTime, now) == 0 {
+        if CalendarUtils.areSameDayLocal(sessionStartTime, now) &&
+           CalendarUtils.daysBetweenLocal(sessionStartTime, now) == 0 {
             triggers.append(.sessionStart)
         }
         
@@ -728,7 +728,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             // Check cooldown
             if let lastTrigger = lastShownInspirationTrigger,
                lastTrigger == trigger {
-                let lastShownTime = CalendarUtils.startOfDayUTC(for: now)
+                let lastShownTime = CalendarUtils.startOfDayLocal(for: now)
                 let cooldownEnd = CalendarUtils.addMinutes(trigger.cooldownMinutes, to: lastShownTime)
                 return now >= cooldownEnd
             }
@@ -879,7 +879,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         var habitLogs = data.habitLogs[habitId] ?? []
         let beforeCount = habitLogs.count
         habitLogs.removeAll { log in
-            CalendarUtils.areSameDayUTC(log.date, date)
+            CalendarUtils.areSameDayLocal(log.date, date)
         }
         let removedCount = beforeCount - habitLogs.count
         print("✅ CACHE SYNC: Removed \(removedCount) log(s) for habit \(habitId)")
@@ -913,7 +913,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             print("🔄 RELOAD NEEDED: No cache available")
             return true
         }
-        let dateStart = CalendarUtils.startOfDayUTC(for: date)
+        let dateStart = CalendarUtils.startOfDayLocal(for: date)
         let needsReload = !data.dateRange.contains(dateStart)
         if needsReload {
             print("🔄 RELOAD NEEDED: Date \(dateStart) outside cached range")
@@ -991,7 +991,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         // Get dates from range, ensuring we use startOfDay for consistency
         for dayOffset in 0...30 {
             let date = CalendarUtils.addDays(-dayOffset, to: Date())
-            let startOfDay = CalendarUtils.startOfDayUTC(for: date)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: date)
             // Use HabitCompletionService for single source of truth completion rate
             let scheduledHabits = data.scheduledHabits(for: startOfDay)
             if scheduledHabits.isEmpty {
@@ -1042,9 +1042,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     private func extractSmartInsights(from data: OverviewData) -> [SmartInsight] {
         var insights: [SmartInsight] = []
         let today = Date()
-        
+
         // Get the proper week interval that respects user's first day of week preference
-        let weekInterval = CalendarUtils.weekIntervalUTC(for: today) ?? DateInterval(start: today, duration: 0)
+        let weekInterval = CalendarUtils.weekIntervalLocal(for: today) ?? DateInterval(start: today, duration: 0)
         let startOfWeek = weekInterval.start
         
         // Use unified data instead of separate queries
@@ -1064,12 +1064,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             
             // Count actual completions using IsHabitCompletedUseCase for single source of truth
             for log in recentLogs {
-                let dayLogs = logs.filter { CalendarUtils.areSameDayUTC($0.date, log.date) }
+                let dayLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, log.date) }
                 if isHabitCompleted.execute(habit: habit, on: log.date, logs: dayLogs) {
                     totalCompletions += 1
-                    
+
                     // Count completions per day
-                    let daysSinceStart = CalendarUtils.daysBetweenUTC(startOfWeek, log.date)
+                    let daysSinceStart = CalendarUtils.daysBetweenLocal(startOfWeek, log.date)
                     if daysSinceStart >= 0 && daysSinceStart < 7 {
                         dailyCompletions[daysSinceStart] += 1
                     }
@@ -1218,9 +1218,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     private func generateBasicHabitInsights() async throws -> [SmartInsight] {
         var insights: [SmartInsight] = []
         let today = Date()
-        
+
         // Get the proper week interval that respects user's first day of week preference
-        let weekInterval = CalendarUtils.weekIntervalUTC(for: today) ?? DateInterval(start: today, duration: 0)
+        let weekInterval = CalendarUtils.weekIntervalLocal(for: today) ?? DateInterval(start: today, duration: 0)
         let startOfWeek = weekInterval.start
         
         // Get user's active habits and recent logs
@@ -1247,7 +1247,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             
             // Count completions per day
             for log in recentLogs {
-                let daysSinceStart = CalendarUtils.daysBetweenUTC(startOfWeek, log.date)
+                let daysSinceStart = CalendarUtils.daysBetweenLocal(startOfWeek, log.date)
                 if daysSinceStart >= 0 && daysSinceStart < 7 {
                     dailyCompletions[daysSinceStart] += 1
                 }
@@ -1320,7 +1320,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         
         // Check if we've moved to a new day since last session
         if let lastResetDate = UserDefaults.standard.object(forKey: "lastInspirationResetDate") as? Date {
-            if !CalendarUtils.areSameDayUTC(lastResetDate, today) {
+            if !CalendarUtils.areSameDayLocal(lastResetDate, today) {
                 dismissedTriggersToday.removeAll()
                 UserDefaults.standard.set(today, forKey: "lastInspirationResetDate")
             } else {

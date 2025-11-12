@@ -54,14 +54,14 @@ public struct DashboardData {
     /// Get completion rate for a specific date (0.0 to 1.0)
     /// O(1) lookup - no database queries
     public func completionRate(for date: Date) -> Double {
-        let startOfDay = CalendarUtils.startOfDayUTC(for: date)
+        let startOfDay = CalendarUtils.startOfDayLocal(for: date)
         return dailyCompletions[startOfDay]?.completionRate ?? 0.0
     }
     
     /// Get habits completed on a specific date
     /// O(1) lookup for habit IDs, then O(n) filtering where n is small
     public func habitsCompleted(on date: Date) -> [Habit] {
-        let startOfDay = CalendarUtils.startOfDayUTC(for: date)
+        let startOfDay = CalendarUtils.startOfDayLocal(for: date)
         
         guard let dayCompletion = dailyCompletions[startOfDay] else { return [] }
         
@@ -71,7 +71,7 @@ public struct DashboardData {
     /// Get completed habit IDs for a specific date
     /// O(1) lookup - no database queries
     public func completedHabits(for date: Date) -> Set<UUID> {
-        let startOfDay = CalendarUtils.startOfDayUTC(for: date)
+        let startOfDay = CalendarUtils.startOfDayLocal(for: date)
         return dailyCompletions[startOfDay]?.completedHabits ?? []
     }
     
@@ -102,10 +102,10 @@ public struct DashboardData {
     /// O(n) where n is number of days - no database queries
     public func chartDataPoints() -> [ProgressChartDataPoint] {
         var dataPoints: [ProgressChartDataPoint] = []
-        
+
         var currentDate = dateRange.lowerBound
         while currentDate <= dateRange.upperBound {
-            let startOfDay = CalendarUtils.startOfDayUTC(for: currentDate)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate)
             let completionRate = dailyCompletions[startOfDay]?.completionRate ?? 0.0
             
             dataPoints.append(ProgressChartDataPoint(
@@ -190,11 +190,12 @@ public struct DashboardData {
     /// This eliminates the need for per-day database queries and ensures single source of truth
     private static func calculateDailyCompletions(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, isHabitCompleted: IsHabitCompletedUseCase, calculateDailyProgress: CalculateDailyProgressUseCase, isScheduledDay: IsScheduledDayUseCase) -> [Date: DayCompletion] {
         var dailyCompletions: [Date: DayCompletion] = [:]
-        
+
+
         var currentDate = dateRange.lowerBound
         while currentDate <= dateRange.upperBound {
-            let startOfDay = CalendarUtils.startOfDayUTC(for: currentDate)
-            
+            let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate)
+
             // Get habits scheduled for this date
             let scheduledHabits = habits.filter { $0.schedule.isActiveOn(date: startOfDay) }
             let expectedHabits = Set(scheduledHabits.map(\.id))

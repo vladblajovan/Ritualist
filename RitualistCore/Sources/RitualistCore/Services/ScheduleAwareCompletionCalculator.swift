@@ -79,7 +79,7 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         
         switch habit.schedule {
         case .daily:
-            let daysDifference = CalendarUtils.daysBetweenUTC(
+            let daysDifference = CalendarUtils.daysBetweenLocal(
                 habitStartDate,
                 habitEndDate
             )
@@ -156,10 +156,10 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
     ) -> Double {
         let expectedDays = calculateExpectedDays(for: habit, startDate: startDate, endDate: endDate)
         guard expectedDays > 0 else { return 0.0 }
-        
+
         var completedDays = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: max(habit.startDate, startDate))
-        let endOfRange = CalendarUtils.startOfDayUTC(for: min(habit.endDate ?? endDate, endDate))
+        var currentDate = CalendarUtils.startOfDayLocal(for: max(habit.startDate, startDate))
+        let endOfRange = CalendarUtils.startOfDayLocal(for: min(habit.endDate ?? endDate, endDate))
         
         while currentDate <= endOfRange {
             if isHabitCompleted(habit: habit, logs: logs, date: currentDate) {
@@ -184,13 +184,13 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
             endDate: min(habit.endDate ?? endDate, endDate)
         )
         guard expectedDays > 0 else { return 0.0 }
-        
+
         var completedDays = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: max(habit.startDate, startDate))
-        let endOfRange = CalendarUtils.startOfDayUTC(for: min(habit.endDate ?? endDate, endDate))
-        
+        var currentDate = CalendarUtils.startOfDayLocal(for: max(habit.startDate, startDate))
+        let endOfRange = CalendarUtils.startOfDayLocal(for: min(habit.endDate ?? endDate, endDate))
+
         while currentDate <= endOfRange {
-            let weekday = CalendarUtils.weekdayComponentUTC(from: currentDate)
+            let weekday = CalendarUtils.weekdayComponentLocal(from: currentDate)
             let habitWeekday = CalendarUtils.calendarWeekdayToHabitWeekday(weekday)
             
             if scheduledDays.contains(habitWeekday) {
@@ -212,11 +212,11 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
         endDate: Date
     ) -> Int {
         var expectedDays = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: startDate)
-        let endOfRange = CalendarUtils.startOfDayUTC(for: endDate)
-        
+        var currentDate = CalendarUtils.startOfDayLocal(for: startDate)
+        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate)
+
         while currentDate <= endOfRange {
-            let weekday = CalendarUtils.weekdayComponentUTC(from: currentDate)
+            let weekday = CalendarUtils.weekdayComponentLocal(from: currentDate)
             let habitWeekday = CalendarUtils.calendarWeekdayToHabitWeekday(weekday)
             
             if scheduledDays.contains(habitWeekday) {

@@ -19,18 +19,13 @@ struct RemainingHabitsProvider: TimelineProvider {
     @Injected(\.widgetDateNavigationService) private var navigationService
     
     func placeholder(in context: Context) -> Entry {
-        print("[WIDGET-DEBUG] RemainingHabitsProvider.placeholder called")
-        
         let selectedDate = navigationService.currentDate
-        print("[WIDGET-DEBUG] Placeholder using selectedDate: \(selectedDate)")
-        
         let placeholderHabits = createPlaceholderHabits()
         let habitDisplayInfo = placeholderHabits.map { habit in
             HabitDisplayInfo(habit: habit, currentProgress: 0, isCompleted: false)
         }
         let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
-        print("[WIDGET-DEBUG] Placeholder created navigationInfo with date: \(navigationInfo.selectedDate), displayText: \(navigationInfo.dateDisplayText)")
-        
+
         return Entry(
             date: Date(),
             habitDisplayInfo: habitDisplayInfo,
@@ -40,29 +35,11 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
     
     func getSnapshot(in context: Context, completion: @escaping (Entry) -> Void) {
-        print("[WIDGET-DEBUG] RemainingHabitsProvider.getSnapshot called")
         Task {
-            print("[WIDGET-DEBUG] RemainingHabitsProvider.getSnapshot: Starting data fetch...")
-            
-            // Use selected date from navigation state
             let selectedDate = navigationService.currentDate
-            let actualToday = Date()
-            let isToday = CalendarUtils.areSameDayUTC(selectedDate, actualToday)
-            print("[WIDGET-DEBUG] GetSnapshot - selectedDate: \(selectedDate), actualToday: \(actualToday), isToday: \(isToday)")
-            
-            // Use ViewModel with main app's Use Cases
             let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate)
             let percentage = await viewModel.getCompletionPercentage(for: selectedDate)
-            
-            if isToday {
-                print("[WIDGET-DEBUG] Snapshot loaded today's data: \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
-            } else {
-                print("[WIDGET-DEBUG] Snapshot loaded historical data for \(selectedDate): \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
-            }
-            
-            print("[WIDGET-DEBUG] RemainingHabitsProvider.getSnapshot: Got \(habitsWithProgress.count) habits, \(percentage * 100)% completion for \(selectedDate)")
-            
-            // Create entry using optimized value objects
+
             let entry = Entry(
                 date: Date(),
                 habitsWithProgress: habitsWithProgress,
@@ -74,36 +51,21 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
     
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
-        print("[WIDGET-DEBUG] RemainingHabitsProvider.getTimeline called")
         Task {
-            print("[WIDGET-DEBUG] RemainingHabitsProvider.getTimeline: Starting data fetch...")
-            
-            // Use selected date from navigation state
             let selectedDate = navigationService.currentDate
             let actualToday = Date()
-            let isToday = CalendarUtils.areSameDayUTC(selectedDate, actualToday)
-            print("[WIDGET-DEBUG] GetTimeline - selectedDate: \(selectedDate), actualToday: \(actualToday), isToday: \(isToday)")
-            
-            // Use ViewModel with main app's Use Cases
+            let isToday = CalendarUtils.areSameDayLocal(selectedDate, actualToday)
+
             let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate)
             let percentage = await viewModel.getCompletionPercentage(for: selectedDate)
-            
-            if isToday {
-                print("[WIDGET-DEBUG] Loaded today's data: \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
-            } else {
-                print("[WIDGET-DEBUG] Loaded historical data for \(selectedDate): \(habitsWithProgress.count) habits, \(percentage * 100)% completion")
-            }
-            
-            print("[WIDGET-DEBUG] RemainingHabitsProvider.getTimeline: Got \(habitsWithProgress.count) habits, \(percentage * 100)% completion for \(selectedDate)")
-            
-            // Generate optimized timeline entries based on viewing context
+
             let timeline = generateOptimizedTimeline(
                 habitsWithProgress: habitsWithProgress,
                 percentage: percentage,
                 selectedDate: selectedDate,
                 isViewingToday: isToday
             )
-            
+
             completion(timeline)
         }
     }
@@ -133,8 +95,6 @@ struct RemainingHabitsProvider: TimelineProvider {
         // Different timeline strategies based on viewing context
         if isViewingToday {
             // Today: More frequent updates for real-time habit completion tracking
-            print("[WIDGET-DEBUG] Generating today timeline with frequent updates")
-            
             for hourOffset in 0..<WidgetConstants.timelineHours {
                 let entryDate = CalendarUtils.utcCalendar.date(byAdding: .hour, value: hourOffset, to: currentDate)!
                 entries.append(Entry(
@@ -151,8 +111,6 @@ struct RemainingHabitsProvider: TimelineProvider {
             
         } else {
             // Historical dates: Fewer updates since data is static (no new completions possible)
-            print("[WIDGET-DEBUG] Generating historical timeline with reduced update frequency")
-            
             // Create fewer entries for historical dates (every 2 hours instead of every hour)
             for hourOffset in stride(from: 0, to: WidgetConstants.timelineHours, by: 2) {
                 let entryDate = CalendarUtils.utcCalendar.date(byAdding: .hour, value: hourOffset, to: currentDate)!
@@ -241,89 +199,52 @@ public struct WidgetNavigationInfo {
         let normalizedDate = calendar.startOfDay(for: selectedDate)
         let maxHistoryDays = 30
         let earliestAllowed = CalendarUtils.addDays(-maxHistoryDays, to: today)
-        
-        print("[WIDGET-NAV-INFO] WidgetNavigationInfo.init - input selectedDate: \(selectedDate)")
-        print("[WIDGET-NAV-INFO] WidgetNavigationInfo.init - now: \(now), today: \(today), normalizedDate: \(normalizedDate)")
-        print("[WIDGET-NAV-INFO] WidgetNavigationInfo.init - calendar timezone: \(calendar.timeZone)")
-        
+
         self.selectedDate = normalizedDate
         self.canGoBack = normalizedDate > earliestAllowed
         self.canGoForward = normalizedDate < today
         self.isViewingToday = CalendarUtils.areSameDayLocal(normalizedDate, now)
         self.daysDifference = calendar.dateComponents([.day], from: today, to: normalizedDate).day ?? 0
         self.dateDisplayText = Self.formatDateForDisplay(normalizedDate, referenceToday: today, calendar: calendar)
-        
-        // DEBUG: Enhanced logging for isViewingToday calculation
-        print("[WIDGET-NAV-INFO-DEBUG] ====== ISVIEWINGTODAY CALCULATION ======")
-        print("[WIDGET-NAV-INFO-DEBUG] Input selectedDate: \(selectedDate)")
-        print("[WIDGET-NAV-INFO-DEBUG] Normalized selectedDate: \(normalizedDate)")
-        print("[WIDGET-NAV-INFO-DEBUG] Today reference: \(today)")
-        print("[WIDGET-NAV-INFO-DEBUG] Calendar timezone: \(calendar.timeZone)")
-        print("[WIDGET-NAV-INFO-DEBUG] Same day check result: \(self.isViewingToday)")
-        print("[WIDGET-NAV-INFO-DEBUG] Days difference: \(self.daysDifference)")
-        print("[WIDGET-NAV-INFO-DEBUG] Display text: \(self.dateDisplayText)")
-        if self.isViewingToday {
-            print("[WIDGET-NAV-INFO-DEBUG] ✅ User IS viewing today")
-        } else {
-            print("[WIDGET-NAV-INFO-DEBUG] ❌ User is NOT viewing today (viewing historical date)")
-        }
-        print("[WIDGET-NAV-INFO-DEBUG] ==========================================")
-        
-        print("[WIDGET-NAV-INFO] WidgetNavigationInfo.init - result: selectedDate=\(self.selectedDate), displayText=\(self.dateDisplayText), isViewingToday=\(self.isViewingToday)")
     }
     
     /// Formats date for user-friendly display following main app patterns
     /// Uses consistent calendar and reference today to avoid midnight/timezone edge cases
     private static func formatDateForDisplay(_ date: Date, referenceToday: Date, calendar: Calendar) -> String {
         let normalizedDate = calendar.startOfDay(for: date)
-        
-        print("[WIDGET-FORMAT-DATE] formatDateForDisplay called with: \(date)")
-        print("[WIDGET-FORMAT-DATE] referenceToday: \(referenceToday), normalizedDate: \(normalizedDate)")
-        print("[WIDGET-FORMAT-DATE] calendar timezone: \(calendar.timeZone)")
-        
+
         // Today
         let isToday = calendar.isDate(normalizedDate, inSameDayAs: referenceToday)
-        print("[WIDGET-FORMAT-DATE] isToday check: \(isToday)")
         if isToday {
-            print("[WIDGET-FORMAT-DATE] Returning 'Today'")
             return "Today"
         }
-        
+
         // Yesterday
         let yesterday = CalendarUtils.addDays(-1, to: referenceToday)
         let isYesterday = calendar.isDate(normalizedDate, inSameDayAs: yesterday)
-        print("[WIDGET-FORMAT-DATE] yesterday: \(yesterday), isYesterday: \(isYesterday)")
         if isYesterday {
-            print("[WIDGET-FORMAT-DATE] Returning 'Yesterday'")
             return "Yesterday"
         }
-        
+
         // This week (show weekday name)
         let daysFromToday = calendar.dateComponents([.day], from: normalizedDate, to: referenceToday).day ?? 0
-        print("[WIDGET-FORMAT-DATE] daysFromToday: \(daysFromToday)")
         if daysFromToday <= 7 && daysFromToday > 1 {
             let weekdayFormatter = DateFormatter()
-            weekdayFormatter.calendar = calendar // Use consistent calendar
-            weekdayFormatter.dateFormat = "EEEE" // Full weekday name
-            let result = weekdayFormatter.string(from: normalizedDate)
-            print("[WIDGET-FORMAT-DATE] Returning weekday: \(result)")
-            return result
+            weekdayFormatter.calendar = calendar
+            weekdayFormatter.dateFormat = "EEEE"
+            return weekdayFormatter.string(from: normalizedDate)
         }
-        
+
         // Older dates (show month and day)
         let dateFormatter = DateFormatter()
-        dateFormatter.calendar = calendar // Use consistent calendar
+        dateFormatter.calendar = calendar
         if calendar.component(.year, from: normalizedDate) == calendar.component(.year, from: referenceToday) {
-            // Same year: "Jan 15"
             dateFormatter.dateFormat = "MMM d"
         } else {
-            // Different year: "Jan 15, 2024"
             dateFormatter.dateFormat = "MMM d, yyyy"
         }
-        
-        let result = dateFormatter.string(from: normalizedDate)
-        print("[WIDGET-FORMAT-DATE] Returning formatted date: \(result)")
-        return result
+
+        return dateFormatter.string(from: normalizedDate)
     }
     
     /// Legacy formatDateForDisplay method for backward compatibility

@@ -7,12 +7,12 @@ public final class GenerateCalendarDays: GenerateCalendarDaysUseCase {
     
     public func execute(for month: Date, userProfile: UserProfile?) -> [Date] {
         // Ensure we start with a normalized date (start of day)
-        let normalizedCurrentMonth = CalendarUtils.startOfDayUTC(for: month)
+        let normalizedCurrentMonth = CalendarUtils.startOfDayLocal(for: month)
         guard let monthInterval = CalendarUtils.monthInterval(for: normalizedCurrentMonth) else { return [] }
-        
+
         // Generate current month days, ensuring we work with start of day
         var days: [Date] = []
-        var date = CalendarUtils.startOfDayUTC(for: monthInterval.start)
+        var date = CalendarUtils.startOfDayLocal(for: monthInterval.start)
         let endOfMonth = monthInterval.end
         
         while date < endOfMonth {
@@ -28,7 +28,7 @@ public final class GenerateCalendarGrid: GenerateCalendarGridUseCase {
     public init() {}
     
     public func execute(for month: Date, userProfile: UserProfile?) -> [CalendarDay] {
-        let normalizedCurrentMonth = CalendarUtils.startOfDayUTC(for: month)
+        let normalizedCurrentMonth = CalendarUtils.startOfDayLocal(for: month)
         guard let monthInterval = CalendarUtils.monthInterval(for: normalizedCurrentMonth) else { return [] }
         
         let startOfMonth = monthInterval.start

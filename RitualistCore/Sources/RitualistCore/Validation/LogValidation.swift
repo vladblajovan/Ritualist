@@ -53,9 +53,9 @@ public struct LogValidation {
         let now = Date()
         
         // Don't allow future dates beyond today
-        let todayUTC = CalendarUtils.startOfDayUTC(for: now)
-        let logDateUTC = CalendarUtils.startOfDayUTC(for: date)
-        if logDateUTC > todayUTC {
+        let todayLocal = CalendarUtils.startOfDayLocal(for: now)
+        let logDateLocal = CalendarUtils.startOfDayLocal(for: date)
+        if logDateLocal > todayLocal {
             return .invalid(reason: "Cannot log habits for future dates")
         }
         

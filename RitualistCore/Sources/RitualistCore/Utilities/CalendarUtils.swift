@@ -78,45 +78,50 @@ public struct CalendarUtils {
         }
     }
     
-    // MARK: - Business Logic (Always UTC)
-    
+    // MARK: - Business Logic (DEPRECATED: Use LOCAL methods)
+
     /// Checks if two dates are on the same day in UTC
-    /// Use this for business logic like "already logged today"
+    @available(*, deprecated, message: "Use areSameDayLocal() instead - habit tracking should use user's local timezone")
     public static func areSameDayUTC(_ date1: Date, _ date2: Date) -> Bool {
         utcCalendar.isDate(date1, inSameDayAs: date2)
     }
-    
+
     /// Gets the start of day in UTC
-    /// Use this for business logic date range calculations
+    @available(*, deprecated, message: "Use startOfDayLocal() instead - habit tracking should use user's local timezone")
     public static func startOfDayUTC(for date: Date) -> Date {
         utcCalendar.startOfDay(for: date)
     }
-    
+
     /// Gets the end of day in UTC (start of next day - 1 second)
+    @available(*, deprecated, message: "Use endOfDayLocal() instead - habit tracking should use user's local timezone")
     public static func endOfDayUTC(for date: Date) -> Date {
         let startOfNextDay = utcCalendar.date(byAdding: .day, value: 1, to: startOfDayUTC(for: date))!
         return utcCalendar.date(byAdding: .second, value: -1, to: startOfNextDay)!
     }
-    
+
     /// Calculate days between dates in UTC
+    @available(*, deprecated, message: "Use daysBetweenLocal() instead - habit tracking should use user's local timezone")
     public static func daysBetweenUTC(_ from: Date, _ to: Date) -> Int {
         let dateFrom = startOfDayUTC(for: from)
         let dateTo = startOfDayUTC(for: to)
         return utcCalendar.dateComponents([.day], from: dateFrom, to: dateTo).day ?? 0
     }
-    
+
     /// Check if date is today in UTC
+    @available(*, deprecated, message: "Use isTodayLocal() instead - habit tracking should use user's local timezone")
     public static func isTodayUTC(_ date: Date) -> Bool {
         return areSameDayUTC(date, Date())
     }
-    
+
     /// Check if date is yesterday in UTC
+    @available(*, deprecated, message: "Use isYesterdayLocal() instead (add this method if needed) - habit tracking should use user's local timezone")
     public static func isYesterdayUTC(_ date: Date) -> Bool {
         guard let yesterday = utcCalendar.date(byAdding: .day, value: -1, to: Date()) else { return false }
         return areSameDayUTC(date, yesterday)
     }
-    
+
     /// Check if date is tomorrow in UTC
+    @available(*, deprecated, message: "Use isTomorrowLocal() instead (add this method if needed) - habit tracking should use user's local timezone")
     public static func isTomorrowUTC(_ date: Date) -> Bool {
         guard let tomorrow = utcCalendar.date(byAdding: .day, value: 1, to: Date()) else { return false }
         return areSameDayUTC(date, tomorrow)
@@ -156,31 +161,36 @@ public struct CalendarUtils {
         return areSameDayLocal(date, Date(), timezone: timezone)
     }
     
-    // MARK: - Month Operations (UTC)
-    
+    // MARK: - Month Operations (DEPRECATED: Use LOCAL methods)
+
     /// Get month interval in UTC
+    @available(*, deprecated, message: "Use monthIntervalLocal() instead - habit tracking should use user's local timezone")
     public static func monthInterval(for date: Date) -> DateInterval? {
         return utcCalendar.dateInterval(of: .month, for: date)
     }
-    
+
     /// Get month interval in UTC (alternative name)
+    @available(*, deprecated, message: "Use monthIntervalLocal() instead - habit tracking should use user's local timezone")
     public static func monthIntervalUTC(for date: Date) -> DateInterval? {
         return monthInterval(for: date)
     }
-    
+
     /// Check if two dates are in the same month (UTC)
+    @available(*, deprecated, message: "Use isSameMonthLocal() (add this method if needed) - habit tracking should use user's local timezone")
     public static func isSameMonth(_ date1: Date, _ date2: Date) -> Bool {
         let components1 = utcCalendar.dateComponents([.year, .month], from: date1)
         let components2 = utcCalendar.dateComponents([.year, .month], from: date2)
         return components1.year == components2.year && components1.month == components2.month
     }
-    
+
     /// Check if two dates are the same day (UTC)
+    @available(*, deprecated, message: "Use areSameDayLocal() instead - habit tracking should use user's local timezone")
     public static func isSameDay(_ date1: Date, _ date2: Date) -> Bool {
         return areSameDayUTC(date1, date2)
     }
-    
+
     /// Get weekday component (UTC)
+    @available(*, deprecated, message: "Use weekdayComponentLocal() (add this method if needed) - habit tracking should use user's local timezone")
     public static func weekdayComponent(from date: Date) -> Int {
         return weekdayComponentUTC(from: date)
     }
@@ -190,40 +200,46 @@ public struct CalendarUtils {
         return utcCalendar.firstWeekday
     }
     
-    // MARK: - Week Operations (UTC)
-    
+    // MARK: - Week Operations (DEPRECATED: Use LOCAL methods)
+
     /// Get week interval in UTC
+    @available(*, deprecated, message: "Use weekIntervalLocal() instead - habit tracking should use user's local timezone")
     public static func weekIntervalUTC(for date: Date) -> DateInterval? {
         return utcCalendar.dateInterval(of: .weekOfYear, for: date)
     }
-    
+
     /// Get start of week in UTC
+    @available(*, deprecated, message: "Use startOfWeekLocal() instead - habit tracking should use user's local timezone")
     public static func startOfWeekUTC(for date: Date) -> Date {
         return weekIntervalUTC(for: date)?.start ?? startOfDayUTC(for: date)
     }
-    
+
     /// Get end of week in UTC
+    @available(*, deprecated, message: "Use endOfWeekLocal() instead - habit tracking should use user's local timezone")
     public static func endOfWeekUTC(for date: Date) -> Date {
         guard let weekInterval = weekIntervalUTC(for: date) else {
             return endOfDayUTC(for: date)
         }
         return utcCalendar.date(byAdding: .second, value: -1, to: weekInterval.end) ?? endOfDayUTC(for: date)
     }
-    
+
     /// Get ISO week number
+    @available(*, deprecated, message: "Use weekNumberLocal() (add this method if needed) - habit tracking should use user's local timezone")
     public static func weekNumberUTC(for date: Date) -> (year: Int, week: Int) {
         let components = utcCalendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
         return (components.yearForWeekOfYear ?? 0, components.weekOfYear ?? 0)
     }
-    
+
     /// Check if two dates are in the same week
+    @available(*, deprecated, message: "Use isInSameWeekLocal() (add this method if needed) - habit tracking should use user's local timezone")
     public static func isInSameWeekUTC(_ date1: Date, _ date2: Date) -> Bool {
         let week1 = weekNumberUTC(for: date1)
         let week2 = weekNumberUTC(for: date2)
         return week1.year == week2.year && week1.week == week2.week
     }
-    
+
     /// Calculate weeks between dates
+    @available(*, deprecated, message: "Use weeksBetweenLocal() (add this method if needed) - habit tracking should use user's local timezone")
     public static func weeksBetweenUTC(_ from: Date, _ to: Date) -> Int {
         return utcCalendar.dateComponents([.weekOfYear], from: startOfWeekUTC(for: from), to: startOfWeekUTC(for: to)).weekOfYear ?? 0
     }
@@ -249,15 +265,25 @@ public struct CalendarUtils {
         }
         return calendar.date(byAdding: .second, value: -1, to: weekInterval.end) ?? endOfDayLocal(for: date, timezone: timezone)
     }
-    
-    // MARK: - Component Extraction
-    
+
+    // MARK: - Month Operations (Local)
+
+    /// Get month interval in local timezone
+    public static func monthIntervalLocal(for date: Date, timezone: TimeZone = .current) -> DateInterval? {
+        let calendar = localCalendar(for: timezone)
+        return calendar.dateInterval(of: .month, for: date)
+    }
+
+    // MARK: - Component Extraction (DEPRECATED: Use LOCAL methods)
+
     /// Extract date components (year, month, day, hour, minute, second)
+    @available(*, deprecated, message: "Use componentsLocal() (add this method if needed) - habit tracking should use user's local timezone")
     public static func componentsUTC(from date: Date, components: Set<Calendar.Component>) -> DateComponents {
         return utcCalendar.dateComponents(components, from: date)
     }
-    
+
     /// Get weekday component in UTC (1=Sunday...7=Saturday)
+    @available(*, deprecated, message: "Use weekdayComponentLocal() (add this method if needed) - habit tracking should use user's local timezone")
     public static func weekdayComponentUTC(from date: Date) -> Int {
         return utcCalendar.component(.weekday, from: date)
     }
@@ -267,8 +293,22 @@ public struct CalendarUtils {
         let calendar = localCalendar(for: timezone)
         return calendar.component(.weekday, from: date)
     }
-    
+
+    /// Get ISO week number in local timezone
+    public static func weekNumberLocal(for date: Date, timezone: TimeZone = .current) -> (year: Int, week: Int) {
+        let calendar = localCalendar(for: timezone)
+        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+        return (components.yearForWeekOfYear ?? 0, components.weekOfYear ?? 0)
+    }
+
+    /// Get hour component in local timezone (0-23)
+    public static func hourComponentLocal(from date: Date, timezone: TimeZone = .current) -> Int {
+        let calendar = localCalendar(for: timezone)
+        return calendar.component(.hour, from: date)
+    }
+
     /// Get hour component (0-23)
+    @available(*, deprecated, message: "Use hourComponentLocal() instead - habit tracking should use user's local timezone")
     public static func hourComponentUTC(from date: Date) -> Int {
         return utcCalendar.component(.hour, from: date)
     }

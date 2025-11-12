@@ -20,7 +20,7 @@ public final class ToggleHabitLog: ToggleHabitLogUseCase {
         currentHabitLogValues: [Date: Double]
     ) async throws -> (loggedDates: Set<Date>, habitLogValues: [Date: Double]) {
         let existingLog = try await getLogForDate.execute(habitID: habit.id, date: date)
-        let normalizedDate = CalendarUtils.startOfDayUTC(for: date)
+        let normalizedDate = CalendarUtils.startOfDayLocal(for: date)
         
         var updatedLoggedDates = currentLoggedDates
         var updatedHabitLogValues = currentHabitLogValues

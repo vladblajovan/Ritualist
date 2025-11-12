@@ -150,24 +150,40 @@ public final class DashboardViewModel {
         // MARK: - Helper Methods
         
         /// Calculate minimum days required based on time period
+        /// For current periods (thisWeek/thisMonth), uses elapsed days to ensure achievable targets
+        /// For historical periods, uses fixed minimums since full period has passed
         private static func calculateMinDaysRequired(for timePeriod: TimePeriod) -> Int {
+            let dateRange = timePeriod.dateRange
+            let calendar = CalendarUtils.currentLocalCalendar
+
             switch timePeriod {
-            case .thisWeek:
-                return 5  // Need at least 5 days for weekly patterns
-            case .thisMonth:
-                return 14 // Need 2 weeks for reliable patterns
+            case .thisWeek, .thisMonth:
+                // Calculate days from start of period to now
+                let startOfDay = calendar.startOfDay(for: dateRange.start)
+                let endOfDay = calendar.startOfDay(for: dateRange.end)
+                let elapsedDays = calendar.dateComponents([.day], from: startOfDay, to: endOfDay).day ?? 0
+
+                // Use 70% of elapsed days as minimum requirement (allows for missed days)
+                // But at least 3 days for meaningful pattern detection
+                let minRequired = max(3, Int(Double(elapsedDays) * 0.7))
+
+                return minRequired
+
             case .last6Months, .lastYear, .allTime:
-                return 30 // Need more data for longer periods
+                // Historical periods use fixed minimums since full period has passed
+                return 30
             }
         }
         
         /// Get period-appropriate tracking title
+        /// Shows dynamic requirements based on elapsed days for current periods
         private static func getTrackingTitle(for timePeriod: TimePeriod) -> String {
+            let minDays = calculateMinDaysRequired(for: timePeriod)
+
             switch timePeriod {
-            case .thisWeek:
-                return "Track for 5 days"
-            case .thisMonth:
-                return "Track for 2 weeks"
+            case .thisWeek, .thisMonth:
+                // Dynamic title based on elapsed days
+                return "Track for \(minDays) days"
             case .last6Months, .lastYear, .allTime:
                 return "Track for 30 days"
             }

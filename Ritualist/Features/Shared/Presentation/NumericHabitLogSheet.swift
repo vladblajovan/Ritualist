@@ -359,7 +359,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         Task {
             do {
                 let logs = try await getLogs.execute(for: habit.id, since: nil, until: nil)
-                let targetDateLogs = logs.filter { CalendarUtils.areSameDayUTC($0.date, viewingDate) }
+                let targetDateLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, viewingDate) }
                 let totalValue = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
                 
                 await MainActor.run {

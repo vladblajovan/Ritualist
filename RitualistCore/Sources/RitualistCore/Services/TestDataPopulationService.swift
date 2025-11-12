@@ -147,7 +147,7 @@ public final class TestDataPopulationService: TestDataPopulationServiceProtocol 
     
     public func generateDailyCompletionRates(for dateRange: [Date]) -> [Date: Double] {
         var dailyCompletionRates: [Date: Double] = [:]
-        let today = CalendarUtils.startOfDayUTC(for: Date())
+        let today = CalendarUtils.startOfDayLocal(for: Date())
         
         let monthlyBaselines = generateMonthlyPerformanceBaselines()
         let weeklyVariations = generateWeeklyVariations(for: dateRange)
@@ -325,7 +325,7 @@ public final class TestDataPopulationService: TestDataPopulationServiceProtocol 
         
         // Apply weekly pattern variations
         if let weeklyPattern = weeklyVariations[date] {
-            let weekday = CalendarUtils.weekdayComponentUTC(from: date)
+            let weekday = CalendarUtils.weekdayComponentLocal(from: date)
             let weekdayMultiplier: Double
             
             switch weekday {
