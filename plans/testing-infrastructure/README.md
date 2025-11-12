@@ -13,7 +13,8 @@ testing-infrastructure/
     ├── service-layer-audit.md         # Phase 1.1: 41 services audited
     ├── usecase-layer-audit.md         # Phase 1.2: 108 UseCases audited
     ├── repository-layer-audit.md      # Phase 1.3: 7 repositories audited
-    └── data-layer-audit.md            # Phase 1.4: 8 DataSources audited
+    ├── data-layer-audit.md            # Phase 1.4: 8 DataSources audited
+    └── cross-layer-analysis.md        # Phase 1.5: 11 ViewModels + violations
 ```
 
 ## 📋 Phases Overview
@@ -52,6 +53,12 @@ All 4 layers of the codebase systematically audited for consolidation opportunit
 - **Audited**: 8 DataSources + 6 SwiftData Models
 - **Key Findings**: 124 lines business logic violations, excellent @ModelActor usage
 - **Quality**: 8.5/10 ⭐ **BEST LAYER**
+
+#### Phase 1.5: Cross-Layer Analysis
+**Document**: `phase-1-audits/cross-layer-analysis.md`
+- **Audited**: 11 ViewModels + architectural boundaries
+- **Key Findings**: 0 critical violations, perfect Clean Architecture compliance
+- **Quality**: 9.5/10 ⭐ **BEST LAYER**
 
 ### 📋 Phase 2: Code Consolidation (NEXT)
 **Status**: Planning → Execution
@@ -96,8 +103,9 @@ All 4 layers of the codebase systematically audited for consolidation opportunit
 - Phase 1.2: 5 thin wrapper UseCases
 - Phase 1.3: Repository with 80% business logic
 - Phase 1.4: DataSource with personality weights
+- Phase 1.5: ViewModel ✅ **CORRECT** (uses UseCases only, insulated from issues)
 
-**Conclusion**: Logic distributed incorrectly across ALL layers - requires coordinated refactoring.
+**Conclusion**: Logic distributed incorrectly across layers 1-4, but Presentation layer (ViewModels) is perfect and insulated from lower-layer issues.
 
 ## 📚 Related Documentation
 
