@@ -31,18 +31,18 @@ public struct OverviewData {
     // These methods contained duplicate completion logic that competed with HabitCompletionService
     // All completion calculations should now use HabitCompletionService for consistency
     
-    /// Get all logs for a specific date across all habits (UTC-based business logic)
+    /// Get all logs for a specific date across all habits (LOCAL timezone business logic)
     public func logs(for date: Date) -> [HabitLog] {
         return habitLogs.values.flatMap { logs in
-            logs.filter { CalendarUtils.areSameDayUTC($0.date, date) }
+            logs.filter { CalendarUtils.areSameDayLocal($0.date, date) }
         }
     }
     
     /// Get logs for a specific habit on a specific date
     public func logs(for habitId: UUID, on date: Date) -> [HabitLog] {
         guard let logs = habitLogs[habitId] else { return [] }
-        
-        return logs.filter { CalendarUtils.areSameDayUTC($0.date, date) }
+
+        return logs.filter { CalendarUtils.areSameDayLocal($0.date, date) }
     }
     
     // REMOVED: isHabitCompleted(_:on:) method
@@ -54,9 +54,9 @@ public struct OverviewData {
     public func generateSmartInsights(completionService: HabitCompletionService) -> [SmartInsight] {
         var insights: [SmartInsight] = []
         let today = Date()
-        
-        // Get the proper week interval using UTC-based business logic
-        guard let weekInterval = CalendarUtils.weekIntervalUTC(for: today) else {
+
+        // Get the proper week interval using LOCAL timezone business logic
+        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: today) else {
             return insights
         }
         let startOfWeek = weekInterval.start
@@ -78,12 +78,12 @@ public struct OverviewData {
             
             // Count actual completions using HabitCompletionService for single source of truth
             for log in recentLogs {
-                let dayLogs = logs.filter { CalendarUtils.areSameDayUTC($0.date, log.date) }
+                let dayLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, log.date) }
                 if completionService.isCompleted(habit: habit, on: log.date, logs: dayLogs) {
                     totalCompletions += 1
-                    
+
                     // Count completions per day
-                    let daysSinceStart = CalendarUtils.daysBetweenUTC(
+                    let daysSinceStart = CalendarUtils.daysBetweenLocal(
                         startOfWeek,
                         log.date
                     )

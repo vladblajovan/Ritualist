@@ -33,7 +33,7 @@ final class WidgetHabitsViewModel {
     /// Uses main app's business logic for consistent results
     func getHabitsWithProgress(for date: Date) async -> [(habit: Habit, currentProgress: Int, isCompleted: Bool)] {
         do {
-            let targetDate = CalendarUtils.startOfDayUTC(for: date)
+            let targetDate = CalendarUtils.startOfDayLocal(for: date)
             print("[WIDGET-VM] Getting habits with progress for: \(targetDate)")
             
             // 1. Get active habits using main app's Use Case
@@ -61,7 +61,7 @@ final class WidgetHabitsViewModel {
             for habit in scheduledHabits {
                 let habitLogs = logsByHabitId[habit.id] ?? []
                 let dateLogs = habitLogs.filter { log in
-                    CalendarUtils.areSameDayUTC(log.date, targetDate)
+                    CalendarUtils.areSameDayLocal(log.date, targetDate)
                 }
                 
                 // DEBUG: Detailed logging for binary habit status calculation

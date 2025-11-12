@@ -47,7 +47,7 @@ struct RemainingHabitsProvider: TimelineProvider {
             // Use selected date from navigation state
             let selectedDate = navigationService.currentDate
             let actualToday = Date()
-            let isToday = CalendarUtils.areSameDayUTC(selectedDate, actualToday)
+            let isToday = CalendarUtils.areSameDayLocal(selectedDate, actualToday)
             print("[WIDGET-DEBUG] GetSnapshot - selectedDate: \(selectedDate), actualToday: \(actualToday), isToday: \(isToday)")
             
             // Use ViewModel with main app's Use Cases
@@ -81,7 +81,7 @@ struct RemainingHabitsProvider: TimelineProvider {
             // Use selected date from navigation state
             let selectedDate = navigationService.currentDate
             let actualToday = Date()
-            let isToday = CalendarUtils.areSameDayUTC(selectedDate, actualToday)
+            let isToday = CalendarUtils.areSameDayLocal(selectedDate, actualToday)
             print("[WIDGET-DEBUG] GetTimeline - selectedDate: \(selectedDate), actualToday: \(actualToday), isToday: \(isToday)")
             
             // Use ViewModel with main app's Use Cases

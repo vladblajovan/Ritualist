@@ -360,11 +360,11 @@ struct QuickActionsCard: View {
                 case .daily:
                     return .alwaysScheduled
                 case .daysOfWeek:
-                    return CalendarUtils.weekdayComponentUTC(from: Date()) == 2 ? .scheduledToday : .notScheduledToday // Monday
+                    return CalendarUtils.weekdayComponentLocal(from: Date()) == 2 ? .scheduledToday : .notScheduledToday // Monday
                 }
             },
             getValidationMessage: { habit in
-                habit.schedule == .daysOfWeek([2, 4, 6]) && CalendarUtils.weekdayComponentUTC(from: Date()) != 2
+                habit.schedule == .daysOfWeek([2, 4, 6]) && CalendarUtils.weekdayComponentLocal(from: Date()) != 2
                     ? "This habit is only scheduled for Monday, Wednesday, and Friday"
                     : nil
             },

@@ -108,8 +108,8 @@ public final class DefaultHistoricalDateValidationService: HistoricalDateValidat
     /// - Throws: HistoricalDateValidationError if validation fails
     /// - Returns: Normalized date (start of day) if validation succeeds
     public func validateHistoricalDate(_ date: Date) throws -> Date {
-        let normalizedDate = CalendarUtils.startOfDayUTC(for: date)
-        let today = CalendarUtils.startOfDayUTC(for: Date())
+        let normalizedDate = CalendarUtils.startOfDayLocal(for: date)
+        let today = CalendarUtils.startOfDayLocal(for: Date())
         
         // Check if date is in future
         if normalizedDate > today {
@@ -152,7 +152,7 @@ public final class DefaultHistoricalDateValidationService: HistoricalDateValidat
     /// Get the earliest allowed historical date
     /// - Returns: Earliest date that can be used for historical logging
     public func getEarliestAllowedDate() -> Date {
-        let today = CalendarUtils.startOfDayUTC(for: Date())
+        let today = CalendarUtils.startOfDayLocal(for: Date())
         return CalendarUtils.addDays(-config.maxHistoryDays, to: today)
     }
     

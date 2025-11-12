@@ -71,9 +71,9 @@ extension DashboardViewModel {
         var habitsWithCompletions: Set<UUID> = []
         
         var currentDate = dateRange.lowerBound
-        
+
         while currentDate <= dateRange.upperBound {
-            let startOfDay = CalendarUtils.startOfDayUTC(for: currentDate)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate)
             let scheduledHabits = dashboardData.scheduledHabits(for: startOfDay)
             let completionRate = dashboardData.completionRate(for: startOfDay)
             
@@ -246,7 +246,7 @@ extension DashboardViewModel {
             
             // Only count as "data day" if there are logs for this date (actual user activity)
             let hasLogsForDate = dashboardData.habitLogs.values.flatMap { $0 }.contains { log in
-                CalendarUtils.areSameDayUTC(log.date, currentDate)
+                CalendarUtils.areSameDayLocal(log.date, currentDate)
             }
             
             if !scheduledHabits.isEmpty && hasLogsForDate {

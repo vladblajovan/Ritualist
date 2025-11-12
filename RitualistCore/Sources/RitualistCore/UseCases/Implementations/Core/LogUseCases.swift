@@ -9,16 +9,16 @@ public final class GetLogs: GetLogsUseCase {
         // Get all logs from repository (no filtering in repository layer)
         let allLogs = try await repo.logs(for: habitID)
 
-        // Business logic: Filter by date range using UTC day boundaries
+        // Business logic: Filter by date range using LOCAL day boundaries
         return allLogs.filter { log in
             if let since {
-                let sinceStart = CalendarUtils.startOfDayUTC(for: since)
-                let logStart = CalendarUtils.startOfDayUTC(for: log.date)
+                let sinceStart = CalendarUtils.startOfDayLocal(for: since)
+                let logStart = CalendarUtils.startOfDayLocal(for: log.date)
                 if logStart < sinceStart { return false }
             }
             if let until {
-                let untilStart = CalendarUtils.startOfDayUTC(for: until)
-                let logStart = CalendarUtils.startOfDayUTC(for: log.date)
+                let untilStart = CalendarUtils.startOfDayLocal(for: until)
+                let logStart = CalendarUtils.startOfDayLocal(for: log.date)
                 if logStart > untilStart { return false }
             }
             return true
@@ -43,17 +43,17 @@ public final class GetBatchLogs: GetBatchLogsUseCase {
         
         // Group and filter logs
         for log in allLogs {
-            // Apply same date filtering logic as single GetLogs UseCase using UTC day boundaries
+            // Apply same date filtering logic as single GetLogs UseCase using LOCAL day boundaries
             var includeLog = true
-            
+
             if let since {
-                let sinceStart = CalendarUtils.startOfDayUTC(for: since)
-                let logStart = CalendarUtils.startOfDayUTC(for: log.date)
+                let sinceStart = CalendarUtils.startOfDayLocal(for: since)
+                let logStart = CalendarUtils.startOfDayLocal(for: log.date)
                 if logStart < sinceStart { includeLog = false }
             }
             if let until {
-                let untilStart = CalendarUtils.startOfDayUTC(for: until)
-                let logStart = CalendarUtils.startOfDayUTC(for: log.date)
+                let untilStart = CalendarUtils.startOfDayLocal(for: until)
+                let logStart = CalendarUtils.startOfDayLocal(for: log.date)
                 if logStart > untilStart { includeLog = false }
             }
             
@@ -139,9 +139,9 @@ public final class GetLogForDate: GetLogForDateUseCase {
         // Get all logs for the habit
         let allLogs = try await repo.logs(for: habitID)
 
-        // Business logic: Find log for specific date using UTC day comparison
+        // Business logic: Find log for specific date using LOCAL day comparison
         return allLogs.first { log in
-            CalendarUtils.areSameDayUTC(log.date, date)
+            CalendarUtils.areSameDayLocal(log.date, date)
         }
     }
 }

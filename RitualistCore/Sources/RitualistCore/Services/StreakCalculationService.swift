@@ -50,7 +50,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         habitCompletionService: HabitCompletionService
     ) {
         self.habitCompletionService = habitCompletionService
-        // Using CalendarUtils for UTC-based business logic consistency
+        // Using CalendarUtils for LOCAL timezone business logic consistency
     }
     
     // MARK: - Public Methods
@@ -79,8 +79,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     
     private func getDailyBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date) -> [Date] {
         var breakDates: [Date] = []
-        var currentDate = CalendarUtils.startOfDayUTC(for: date)
-        let habitStartDate = CalendarUtils.startOfDayUTC(for: habit.startDate)
+        var currentDate = CalendarUtils.startOfDayLocal(for: date)
+        let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate)
         
         // Work backwards from the current date
         while currentDate >= habitStartDate {
@@ -105,7 +105,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
             return nil
         }
         
-        var searchDate = CalendarUtils.addDays(1, to: CalendarUtils.startOfDayUTC(for: date))
+        var searchDate = CalendarUtils.addDays(1, to: CalendarUtils.startOfDayLocal(for: date))
         let searchLimit = CalendarUtils.addYears(1, to: date) // Prevent infinite loops
         
         while searchDate <= searchLimit {
@@ -132,21 +132,30 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     
     private func calculateDailyCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int {
         var streak = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: date)
-        let habitStartDate = CalendarUtils.startOfDayUTC(for: habit.startDate)
-        
+        var currentDate = CalendarUtils.startOfDayLocal(for: date)
+        let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate)
+
+        print("🔥 STREAK CALC DEBUG for '\(habit.name)':")
+        print("   Start date: \(currentDate)")
+        print("   Total logs: \(logs.count)")
+
         // For daily habits, check every day backwards
         while currentDate >= habitStartDate {
-            if habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs) {
+            let isCompleted = habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs)
+            print("   Day \(currentDate): \(isCompleted ? "✅ COMPLETED" : "❌ NOT COMPLETED")")
+
+            if isCompleted {
                 streak += 1
             } else {
+                print("   ⛔ Streak broken at \(currentDate), final streak = \(streak)")
                 break
             }
-            
+
             currentDate = CalendarUtils.addDays(-1, to: currentDate)
             // currentDate already updated above
         }
-        
+
+        print("   🎯 Final streak: \(streak)")
         return streak
     }
     
@@ -160,8 +169,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     
     private func calculateDaysOfWeekCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int {
         var streak = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: date)
-        let habitStartDate = CalendarUtils.startOfDayUTC(for: habit.startDate)
+        var currentDate = CalendarUtils.startOfDayLocal(for: date)
+        let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate)
         
         // For daysOfWeek habits, only count scheduled days
         while currentDate >= habitStartDate {
@@ -205,7 +214,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     private func getCompliantDates(habit: Habit, logs: [HabitLog]) -> [Date] {
         return logs.compactMap { log in
             guard isLogCompleted(log: log, habit: habit) else { return nil }
-            return CalendarUtils.startOfDayUTC(for: log.date)
+            return CalendarUtils.startOfDayLocal(for: log.date)
         }
         .sorted()
     }
@@ -218,7 +227,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         var currentStreak = 1
         
         for i in 1..<uniqueDates.count {
-            let daysBetween = CalendarUtils.daysBetweenUTC(uniqueDates[i-1], uniqueDates[i])
+            let daysBetween = CalendarUtils.daysBetweenLocal(uniqueDates[i-1], uniqueDates[i])
             
             if daysBetween == 1 {
                 currentStreak += 1
@@ -243,7 +252,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         var currentStreak = 0
         
         // Start from habit start date and check each scheduled day
-        var checkDate = CalendarUtils.startOfDayUTC(for: startDate)
+        var checkDate = CalendarUtils.startOfDayLocal(for: startDate)
         let endDate = uniqueDates.last ?? startDate
         
         while checkDate <= endDate {
@@ -269,7 +278,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         
         for log in logs {
             guard isLogCompleted(log: log, habit: habit) else { continue }
-            guard let weekInterval = CalendarUtils.weekIntervalUTC(for: log.date) else { continue }
+            guard let weekInterval = CalendarUtils.weekIntervalLocal(for: log.date) else { continue }
             
             let weekStart = weekInterval.start
             weeklyCompletions[weekStart, default: 0] += 1
@@ -279,7 +288,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     }
     
     private func getHabitWeekday(from date: Date) -> Int {
-        let calendarWeekday = CalendarUtils.weekdayComponentUTC(from: date)
+        let calendarWeekday = CalendarUtils.weekdayComponentLocal(from: date)
         return CalendarUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
     }
     

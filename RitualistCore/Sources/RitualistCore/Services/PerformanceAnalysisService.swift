@@ -127,8 +127,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         from startDate: Date, 
         to endDate: Date
     ) -> WeeklyPatternsResult {
-        
-        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayUTC(for: $0.date) })
+
+        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayLocal(for: $0.date) })
         
         // Initialize day performance tracking
         var dayPerformance: [Int: (total: Int, completed: Int)] = [:]
@@ -139,8 +139,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         // Analyze each day in the range
         var currentDate = startDate
         while currentDate <= endDate {
-            let dayLogs = logsByDate[CalendarUtils.startOfDayUTC(for: currentDate)] ?? []
-            let weekday = CalendarUtils.weekdayComponentUTC(from: currentDate)
+            let dayLogs = logsByDate[CalendarUtils.startOfDayLocal(for: currentDate)] ?? []
+            let weekday = CalendarUtils.weekdayComponentLocal(from: currentDate)
             
             for habit in habits where habit.isActive {
                 if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
@@ -215,16 +215,16 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         from startDate: Date,
         to endDate: Date
     ) -> PerfectDayStreakResult {
-        
-        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayUTC(for: $0.date) })
-        
+
+        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayLocal(for: $0.date) })
+
         var currentStreak = 0
         var longestStreak = 0
         var daysWithFullCompletion = 0
-        
-        let today = CalendarUtils.startOfDayUTC(for: Date())
+
+        let today = CalendarUtils.startOfDayLocal(for: Date())
         var currentDate = today
-        let start = CalendarUtils.startOfDayUTC(for: startDate)
+        let start = CalendarUtils.startOfDayLocal(for: startDate)
         
         while currentDate >= start {
             let dayLogs = logsByDate[currentDate] ?? []
@@ -254,9 +254,9 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         }
         
         longestStreak = max(longestStreak, currentStreak)
-        
+
         // Calculate consistency based on analysis period
-        let totalDays = CalendarUtils.daysBetweenUTC(start, today)
+        let totalDays = CalendarUtils.daysBetweenLocal(start, today)
         let consistencyScore = totalDays > 0 ? Double(daysWithFullCompletion) / Double(totalDays) : 0.0
         
         let streakTrend: String
@@ -339,9 +339,9 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     private func getDayCount(weekday: Int, from startDate: Date, to endDate: Date) -> Int {
         var count = 0
         var currentDate = startDate
-        
+
         while currentDate <= endDate {
-            if CalendarUtils.weekdayComponentUTC(from: currentDate) == weekday {
+            if CalendarUtils.weekdayComponentLocal(from: currentDate) == weekday {
                 count += 1
             }
             currentDate = CalendarUtils.addDays(1, to: currentDate)

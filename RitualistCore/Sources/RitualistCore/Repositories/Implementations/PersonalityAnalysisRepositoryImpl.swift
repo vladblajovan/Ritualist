@@ -128,18 +128,18 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
     // MARK: - Private Helpers
     
     private func calculateConsecutiveTrackingDays(logs: [HabitLog]) -> Int {
-        // Group logs by date using UTC-based business logic
-        let logsByDate = Dictionary(grouping: logs, by: { 
-            CalendarUtils.startOfDayUTC(for: $0.date) 
+        // Group logs by date using LOCAL timezone business logic
+        let logsByDate = Dictionary(grouping: logs, by: {
+            CalendarUtils.startOfDayLocal(for: $0.date)
         })
-        
+
         let sortedDates = logsByDate.keys.sorted(by: >)
-        
+
         var consecutiveDays = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: Date())
-        
+        var currentDate = CalendarUtils.startOfDayLocal(for: Date())
+
         for date in sortedDates {
-            if CalendarUtils.areSameDayUTC(date, currentDate) {
+            if CalendarUtils.areSameDayLocal(date, currentDate) {
                 consecutiveDays += 1
                 currentDate = CalendarUtils.addDays(-1, to: currentDate)
             } else if date < currentDate {

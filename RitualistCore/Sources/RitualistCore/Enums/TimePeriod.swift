@@ -40,11 +40,11 @@ public enum TimePeriod: CaseIterable {
         
         switch self {
         case .thisWeek:
-            let startOfWeek = CalendarUtils.weekIntervalUTC(for: now)?.start ?? now
+            let startOfWeek = CalendarUtils.weekIntervalLocal(for: now)?.start ?? now
             return (start: startOfWeek, end: now)
             
         case .thisMonth:
-            let startOfMonth = CalendarUtils.monthIntervalUTC(for: now)?.start ?? now
+            let startOfMonth = CalendarUtils.monthIntervalLocal(for: now)?.start ?? now
             return (start: startOfMonth, end: now)
             
         case .last6Months:

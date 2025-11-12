@@ -83,9 +83,9 @@ public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
             until: endDate
         )
         let logs = logsByHabitId.values.flatMap { $0 }
-        
+
         let totalHabits = habits.count
-        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayUTC(for: $0.date) })
+        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayLocal(for: $0.date) })
         
         var totalExpectedDays = 0
         var totalCompletedDays = 0
@@ -94,7 +94,7 @@ public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
         // Calculate expected days based on each habit's schedule
         var currentDate = startDate
         while currentDate <= endDate {
-            let dayLogs = logsByDate[CalendarUtils.startOfDayUTC(for: currentDate)] ?? []
+            let dayLogs = logsByDate[CalendarUtils.startOfDayLocal(for: currentDate)] ?? []
             
             for habit in habits {
                 if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {

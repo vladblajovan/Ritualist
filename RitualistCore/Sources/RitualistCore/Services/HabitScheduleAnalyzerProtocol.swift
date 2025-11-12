@@ -19,13 +19,13 @@ public protocol HabitScheduleAnalyzerProtocol {
 public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
     
     public init() {
-        // Using CalendarUtils for UTC-based business logic consistency
+        // Using CalendarUtils for LOCAL timezone business logic consistency
     }
     
     public func calculateExpectedDays(for habit: Habit, from startDate: Date, to endDate: Date) -> Int {
         var expectedDays = 0
-        var currentDate = CalendarUtils.startOfDayUTC(for: startDate)
-        let end = CalendarUtils.startOfDayUTC(for: endDate)
+        var currentDate = CalendarUtils.startOfDayLocal(for: startDate)
+        let end = CalendarUtils.startOfDayLocal(for: endDate)
         
         while currentDate <= end {
             defer {
@@ -36,7 +36,7 @@ public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
             // The caller should handle the date range appropriately
             
             // Skip if habit ended before this date
-            if let habitEndDate = habit.endDate, currentDate > CalendarUtils.startOfDayUTC(for: habitEndDate) {
+            if let habitEndDate = habit.endDate, currentDate > CalendarUtils.startOfDayLocal(for: habitEndDate) {
                 continue
             }
             
@@ -50,7 +50,7 @@ public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
     }
     
     public func isHabitExpectedOnDate(habit: Habit, date: Date) -> Bool {
-        let weekday = CalendarUtils.weekdayComponentUTC(from: date)
+        let weekday = CalendarUtils.weekdayComponentLocal(from: date)
         
         switch habit.schedule {
         case .daily:

@@ -72,9 +72,9 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
                 return false
             }
             
-            // Use UTC-based date comparisons for consistent business logic across timezones
-            let startOfToday = CalendarUtils.startOfDayUTC(for: date)
-            let startOfHabitStart = CalendarUtils.startOfDayUTC(for: habit.startDate)
+            // Use LOCAL timezone date comparisons for consistent business logic
+            let startOfToday = CalendarUtils.startOfDayLocal(for: date)
+            let startOfHabitStart = CalendarUtils.startOfDayLocal(for: habit.startDate)
             
             guard startOfToday >= startOfHabitStart else {
                 // Don't notify before habit start date
@@ -82,7 +82,7 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
             }
             
             if let endDate = habit.endDate {
-                let startOfHabitEnd = CalendarUtils.startOfDayUTC(for: endDate)
+                let startOfHabitEnd = CalendarUtils.startOfDayLocal(for: endDate)
                 guard startOfToday < startOfHabitEnd else {
                     // Don't notify after habit end date
                     return false

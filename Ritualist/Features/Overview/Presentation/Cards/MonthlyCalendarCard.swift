@@ -192,7 +192,7 @@ struct MonthlyCalendarCard: View {
 
         displayDays = days.enumerated().map { index, date in
             let dayNumber = calendar.component(.day, from: date)
-            let normalizedDate = CalendarUtils.startOfDayUTC(for: date)
+            let normalizedDate = CalendarUtils.startOfDayLocal(for: date)
             let completion = monthlyData[normalizedDate] ?? 0.0
 
             // Use ViewLogic for all display calculations
@@ -241,7 +241,7 @@ struct MonthlyCalendarCard: View {
         var data: [Date: Double] = [:]
         for index in 1...30 {
             let date = CalendarUtils.addDays(-index, to: Date())
-            data[CalendarUtils.startOfDayUTC(for: date)] = Double.random(in: 0...1)
+            data[CalendarUtils.startOfDayLocal(for: date)] = Double.random(in: 0...1)
         }
         return data
     }()

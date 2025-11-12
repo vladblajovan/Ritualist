@@ -70,7 +70,7 @@ public final class CheckWeeklyTarget: CheckWeeklyTargetUseCase {
             }
             // Check if all required days for this week are logged
             let loggedDaysInWeek = Set(logsInWeek.keys.map { logDate in
-                let calendarWeekday = CalendarUtils.weekdayComponentUTC(from: logDate)
+                let calendarWeekday = CalendarUtils.weekdayComponentLocal(from: logDate)
                 return CalendarUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
             })
             return requiredDays.isSubset(of: loggedDaysInWeek)
