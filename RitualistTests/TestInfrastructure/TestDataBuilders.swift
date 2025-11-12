@@ -106,7 +106,7 @@ enum HabitLogBuilder {
         return HabitLog(
             id: id,
             habitID: habitId,
-            date: CalendarUtils.startOfDayUTC(for: date),
+            date: CalendarUtils.startOfDayLocal(for: date),
             value: 1.0,
             timezone: timezone
         )
@@ -123,7 +123,7 @@ enum HabitLogBuilder {
         return HabitLog(
             id: id,
             habitID: habitId,
-            date: CalendarUtils.startOfDayUTC(for: date),
+            date: CalendarUtils.startOfDayLocal(for: date),
             value: value,
             timezone: timezone
         )
@@ -139,7 +139,7 @@ enum HabitLogBuilder {
             HabitLog(
                 id: UUID(),
                 habitID: habitId,
-                date: CalendarUtils.startOfDayUTC(for: date),
+                date: CalendarUtils.startOfDayLocal(for: date),
                 value: value,
                 timezone: TimeZone.current.identifier
             )
@@ -159,7 +159,7 @@ enum OverviewDataBuilder {
         return OverviewData(
             habits: [],
             habitLogs: [:],
-            dateRange: CalendarUtils.startOfDayUTC(for: startDate)...CalendarUtils.startOfDayUTC(for: endDate)
+            dateRange: CalendarUtils.startOfDayLocal(for: startDate)...CalendarUtils.startOfDayLocal(for: endDate)
         )
     }
 
@@ -172,7 +172,7 @@ enum OverviewDataBuilder {
         return OverviewData(
             habits: habits,
             habitLogs: [:],
-            dateRange: CalendarUtils.startOfDayUTC(for: startDate)...CalendarUtils.startOfDayUTC(for: endDate)
+            dateRange: CalendarUtils.startOfDayLocal(for: startDate)...CalendarUtils.startOfDayLocal(for: endDate)
         )
     }
 
@@ -195,7 +195,7 @@ enum OverviewDataBuilder {
         return OverviewData(
             habits: habits,
             habitLogs: habitLogs,
-            dateRange: CalendarUtils.startOfDayUTC(for: startDate)...CalendarUtils.startOfDayUTC(for: endDate)
+            dateRange: CalendarUtils.startOfDayLocal(for: startDate)...CalendarUtils.startOfDayLocal(for: endDate)
         )
     }
 
