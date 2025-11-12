@@ -190,21 +190,85 @@ let tokyoLog = HabitLogBuilder.binary(
 
 ---
 
-## 📝 Summary
+## 📋 Phase 2: Test Assertions Migration (COMPLETED)
 
-**Total Changes**: 14 UTC → LOCAL conversions across 2 files
+### Files Modified
 
-**Before**: Test infrastructure systematically used UTC, contradicting production code
-**After**: Test infrastructure now uses LOCAL timezone, matching production behavior
+**3. CacheSyncLogicTests.swift**
 
-**Impact**: Tests can now properly validate the 78 timezone fixes from PR #34 and test edge cases like late-night logging, timezone travel, and DST transitions.
+**File**: `RitualistTests/Features/Overview/Presentation/CacheSyncLogicTests.swift`
 
-**Next Steps**:
-1. ✅ Verify all tests pass with LOCAL timezone
-2. ✅ Document findings in this audit file
-3. ✅ Commit changes and create PR
-4. After merge: Begin Phase 1 (Service/UseCase layer audit)
+**UTC Occurrences Fixed**: 9
+
+| Line | Method/Context | Before | After |
+|------|----------------|--------|-------|
+| 83 | Cache range containment check | `startOfDayUTC(for: date)` | `startOfDayLocal(for: date)` |
+| 96 | Date before range check | `startOfDayUTC(for: dateBeforeRange)` | `startOfDayLocal(for: dateBeforeRange)` |
+| 110 | Date after range check | `startOfDayUTC(for: dateAfterRange)` | `startOfDayLocal(for: dateAfterRange)` |
+| 124 | Cache boundary first day | `startOfDayUTC(for: startDate)` | `startOfDayLocal(for: startDate)` |
+| 139 | Cache boundary last day | `startOfDayUTC(for: lastDay)` | `startOfDayLocal(for: lastDay)` |
+| 154 | Cache boundary day 30 | `startOfDayUTC(for: day30)` | `startOfDayLocal(for: day30)` |
+| 295 | Remove logs for date filter | `areSameDayUTC(log.date, TestDates.today)` | `areSameDayLocal(log.date, TestDates.today)` |
+| 324 | Remove today's log filter | `areSameDayUTC(log.date, TestDates.today)` | `areSameDayLocal(log.date, TestDates.today)` |
+| 358 | Remove from empty cache | `areSameDayUTC(log.date, TestDates.today)` | `areSameDayLocal(log.date, TestDates.today)` |
+
+**Rationale**: Test assertions must use LOCAL timezone to match test infrastructure and validate production behavior.
 
 ---
 
-**Phase 0 Status**: BLOCKING work complete pending test validation ✅
+**4. NavigationCacheTests.swift**
+
+**File**: `RitualistTests/Features/Overview/Presentation/NavigationCacheTests.swift`
+
+**UTC Occurrences Fixed**: 18
+
+**startOfDayUTC → startOfDayLocal conversions**: 16 occurrences
+- Navigation cache logic tests (lines 20, 36, 49, 63, 82, 99, 113, 129)
+- Cache boundary tests (lines 156, 180, 181, 207, 222, 223)
+- Date normalization helpers (lines 304, 305, 306)
+
+**areSameDayUTC → areSameDayLocal conversions**: 2 occurrences
+- Same day identification tests (lines 322, 323)
+
+**Test name updates**:
+- Line 296: `"startOfDayUTC normalizes..."` → `"startOfDayLocal normalizes..."`
+- Line 314: `"areSameDayUTC correctly..."` → `"areSameDayLocal correctly..."`
+
+**Rationale**: Navigation cache tests must validate LOCAL day boundaries to match production navigation behavior.
+
+---
+
+## 📝 Summary
+
+### Complete Migration Overview
+
+**Total Changes**: 41 UTC → LOCAL conversions across 4 files
+
+### Phase 1: Test Infrastructure (14 conversions)
+- TestDataBuilders.swift: 6 conversions
+- TestHelpers.swift: 8 conversions
+
+### Phase 2: Test Assertions (27 conversions)
+- CacheSyncLogicTests.swift: 9 conversions
+- NavigationCacheTests.swift: 18 conversions
+
+---
+
+**Before**: Test infrastructure AND test assertions systematically used UTC, contradicting production code
+**After**: Complete alignment - test infrastructure AND test assertions now use LOCAL timezone, matching production behavior
+
+**Impact**:
+- Tests can now properly validate all 78 timezone fixes from PR #34
+- Test edge cases now testable: late-night logging, timezone travel, DST transitions
+- No more half-migrated state - complete consistency across test codebase
+
+**Completion Status**:
+1. ✅ Test infrastructure migrated (14 conversions)
+2. ✅ Test assertions migrated (27 conversions)
+3. ✅ Build succeeds (iPhone 17 Pro)
+4. ✅ Documentation complete
+5. ✅ PR #36 updated with complete migration
+
+---
+
+**Phase 0 Status**: COMPLETE ✅ - Ready for merge and Phase 1
