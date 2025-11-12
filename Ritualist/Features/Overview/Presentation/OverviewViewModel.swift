@@ -660,7 +660,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         let timeOfDay = currentTimeOfDay
         let completionRate = summary.completionPercentage
         let now = Date()
-        let hour = CalendarUtils.hourComponentUTC(from: now)
+        let hour = CalendarUtils.hourComponentLocal(from: now)
         let isWeekend = [1, 7].contains(CalendarUtils.weekdayComponentLocal(from: now))
 
         // Session Start (first load of the day)

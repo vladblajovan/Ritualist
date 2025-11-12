@@ -293,8 +293,22 @@ public struct CalendarUtils {
         let calendar = localCalendar(for: timezone)
         return calendar.component(.weekday, from: date)
     }
-    
+
+    /// Get ISO week number in local timezone
+    public static func weekNumberLocal(for date: Date, timezone: TimeZone = .current) -> (year: Int, week: Int) {
+        let calendar = localCalendar(for: timezone)
+        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+        return (components.yearForWeekOfYear ?? 0, components.weekOfYear ?? 0)
+    }
+
+    /// Get hour component in local timezone (0-23)
+    public static func hourComponentLocal(from date: Date, timezone: TimeZone = .current) -> Int {
+        let calendar = localCalendar(for: timezone)
+        return calendar.component(.hour, from: date)
+    }
+
     /// Get hour component (0-23)
+    @available(*, deprecated, message: "Use hourComponentLocal() instead - habit tracking should use user's local timezone")
     public static func hourComponentUTC(from date: Date) -> Int {
         return utcCalendar.component(.hour, from: date)
     }

@@ -63,9 +63,9 @@ public final class CheckWeeklyTarget: CheckWeeklyTargetUseCase {
     public func execute(date: Date, habit: Habit, habitLogValues: [Date: Double], userProfile: UserProfile?) -> Bool {
         switch habit.schedule {
         case .daysOfWeek(let requiredDays):
-            let weekKey = CalendarUtils.weekNumberUTC(for: date)
+            let weekKey = CalendarUtils.weekNumberLocal(for: date)
             let logsInWeek = habitLogValues.filter { (logDate, value) in
-                let logWeekKey = CalendarUtils.weekNumberUTC(for: logDate)
+                let logWeekKey = CalendarUtils.weekNumberLocal(for: logDate)
                 return logWeekKey.year == weekKey.year && logWeekKey.week == weekKey.week && value > 0
             }
             // Check if all required days for this week are logged
