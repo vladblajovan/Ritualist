@@ -929,6 +929,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     internal func extractTodaysSummary(from data: OverviewData) -> TodaysSummary {
         let targetDate = viewingDate
         let habits = data.scheduledHabits(for: targetDate)
+
+        print("📅 SCHEDULE DEBUG: Extracting summary for date: \(targetDate)")
+        print("📅 SCHEDULE DEBUG: Total habits in cache: \(data.habits.count)")
+        print("📅 SCHEDULE DEBUG: Scheduled habits for today: \(habits.count)")
+        for habit in data.habits {
+            let isScheduled = habit.schedule.isActiveOn(date: targetDate)
+            print("📅 SCHEDULE DEBUG: \(habit.name) - Schedule: \(habit.schedule) - Active today? \(isScheduled)")
+        }
         
         var allTargetDateLogs: [HabitLog] = []
         var incompleteHabits: [Habit] = []

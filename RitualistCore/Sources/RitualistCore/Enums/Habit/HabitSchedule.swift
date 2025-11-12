@@ -14,14 +14,20 @@ public enum HabitSchedule: Codable, Equatable, Hashable {
 
 public extension HabitSchedule {
     func isActiveOn(date: Date) -> Bool {
-        let calendarWeekday = CalendarUtils.weekdayComponentUTC(from: date)
+        // Use LOCAL timezone for schedule checking since users think of schedules in their local context
+        // When viewingDate is "Tuesday midnight local", we want to check if Tuesday is in the schedule
+        let calendarWeekday = CalendarUtils.weekdayComponentLocal(from: date)
         let habitWeekday = CalendarUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
-        
+
+        print("📅 isActiveOn DEBUG: date=\(date), calendarWeekday=\(calendarWeekday), habitWeekday=\(habitWeekday)")
+
         switch self {
         case .daily:
             return true
         case .daysOfWeek(let days):
-            return days.contains(habitWeekday)
+            let result = days.contains(habitWeekday)
+            print("📅 isActiveOn DEBUG: schedule=\(days), contains \(habitWeekday)? \(result)")
+            return result
         }
     }
 }

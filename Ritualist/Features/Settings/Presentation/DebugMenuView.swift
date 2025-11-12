@@ -243,6 +243,186 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 }
             }
 
+            Section("Timezone Diagnostics") {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Current Device Timezone
+                    HStack {
+                        Text("Device Timezone")
+                            .font(.headline)
+                        Spacer()
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Identifier:")
+                            Spacer()
+                            Text(TimeZone.current.identifier)
+                                .fontWeight(.medium)
+                                .foregroundColor(.blue)
+                        }
+
+                        HStack {
+                            Text("Abbreviation:")
+                            Spacer()
+                            Text(TimeZone.current.abbreviation() ?? "N/A")
+                                .fontWeight(.medium)
+                        }
+
+                        HStack {
+                            Text("UTC Offset:")
+                            Spacer()
+                            Text(formatUTCOffset(TimeZone.current.secondsFromGMT()))
+                                .fontWeight(.medium)
+                        }
+                    }
+                    .font(.subheadline)
+
+                    Divider()
+
+                    // Current Date/Time in Different Contexts
+                    HStack {
+                        Text("Current Date/Time")
+                            .font(.headline)
+                        Spacer()
+                    }
+
+                    let now = Date()
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Local Time:")
+                            Spacer()
+                            Text(formatDateTime(now, timezone: .current))
+                                .fontWeight(.medium)
+                                .foregroundColor(.green)
+                        }
+
+                        HStack {
+                            Text("UTC Time:")
+                            Spacer()
+                            Text(formatDateTime(now, timezone: TimeZone(abbreviation: "UTC")!))
+                                .fontWeight(.medium)
+                        }
+
+                        HStack {
+                            Text("UTC Timestamp:")
+                            Spacer()
+                            Text(String(format: "%.0f", now.timeIntervalSince1970))
+                                .fontWeight(.medium)
+                                .font(.caption)
+                        }
+                    }
+                    .font(.subheadline)
+
+                    Divider()
+
+                    // Day Boundaries
+                    HStack {
+                        Text("Day Boundaries")
+                            .font(.headline)
+                        Spacer()
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Today (Local):")
+                            Spacer()
+                            Text(formatDate(CalendarUtils.startOfDayLocal(for: now)))
+                                .fontWeight(.medium)
+                                .foregroundColor(.green)
+                        }
+
+                        HStack {
+                            Text("Today (UTC):")
+                            Spacer()
+                            Text(formatDate(CalendarUtils.startOfDayUTC(for: now)))
+                                .fontWeight(.medium)
+                        }
+
+                        // Show if different
+                        if !CalendarUtils.areSameDayUTC(now, CalendarUtils.startOfDayLocal(for: now)) {
+                            Text("⚠️ Local and UTC days are different!")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.top, 2)
+                        }
+                    }
+                    .font(.subheadline)
+
+                    Divider()
+
+                    // Weekday Information
+                    HStack {
+                        Text("Weekday")
+                            .font(.headline)
+                        Spacer()
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Calendar (Local):")
+                            Spacer()
+                            Text("\(CalendarUtils.weekdayComponentLocal(from: now)) (\(weekdayName(CalendarUtils.weekdayComponentLocal(from: now))))")
+                                .fontWeight(.medium)
+                                .foregroundColor(.green)
+                        }
+
+                        HStack {
+                            Text("Calendar (UTC):")
+                            Spacer()
+                            Text("\(CalendarUtils.weekdayComponentUTC(from: now)) (\(weekdayName(CalendarUtils.weekdayComponentUTC(from: now))))")
+                                .fontWeight(.medium)
+                        }
+
+                        HStack {
+                            Text("Habit (Local):")
+                            Spacer()
+                            let habitWeekday = CalendarUtils.calendarWeekdayToHabitWeekday(CalendarUtils.weekdayComponentLocal(from: now))
+                            Text("\(habitWeekday) (\(habitWeekdayName(habitWeekday)))")
+                                .fontWeight(.medium)
+                                .foregroundColor(.blue)
+                        }
+
+                        Text("Note: Calendar uses 1=Sunday, Habit uses 1=Monday")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 2)
+                    }
+                    .font(.subheadline)
+
+                    Divider()
+
+                    // User Profile Settings
+                    HStack {
+                        Text("Display Settings")
+                            .font(.headline)
+                        Spacer()
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Display Mode:")
+                            Spacer()
+                            Text(vm.profile.displayTimezoneMode)
+                                .fontWeight(.medium)
+                                .foregroundColor(.purple)
+                        }
+
+                        HStack {
+                            Text("Home Timezone:")
+                            Spacer()
+                            Text(vm.profile.homeTimezone ?? "Not Set")
+                                .fontWeight(.medium)
+                        }
+                    }
+                    .font(.subheadline)
+                }
+                .padding(.vertical, 4)
+
+                Text("Use this information to diagnose timezone-related issues with habit schedules and logging.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Performance Monitoring") {
                 // FPS Overlay Toggle
                 Toggle(isOn: $vm.showFPSOverlay) {
@@ -463,6 +643,44 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     }
 
     // MARK: - Helper Functions
+
+    /// Formats a UTC offset in seconds to a readable string (e.g., "+02:00")
+    private func formatUTCOffset(_ seconds: Int) -> String {
+        let hours = seconds / 3600
+        let minutes = abs(seconds % 3600) / 60
+        return String(format: "%+03d:%02d", hours, minutes)
+    }
+
+    /// Formats a date with both date and time
+    private func formatDateTime(_ date: Date, timezone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        formatter.timeZone = timezone
+        return formatter.string(from: date)
+    }
+
+    /// Formats a date (date only)
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    /// Returns the weekday name from Calendar weekday (1=Sunday...7=Saturday)
+    private func weekdayName(_ calendarWeekday: Int) -> String {
+        let names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        let index = (calendarWeekday - 1) % 7
+        return names[index]
+    }
+
+    /// Returns the weekday name from Habit weekday (1=Monday...7=Sunday)
+    private func habitWeekdayName(_ habitWeekday: Int) -> String {
+        let names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let index = (habitWeekday - 1) % 7
+        return names[index]
+    }
 
     /// Returns appropriate color for memory usage level
     /// Typical iOS app memory usage:

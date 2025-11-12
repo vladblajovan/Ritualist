@@ -190,14 +190,6 @@ public struct OverviewView: View {
                 // RACE CONDITION FIX: Set view as visible immediately
                 vm.setViewVisible(true)
 
-                // CACHE INVALIDATION: Reset flag to allow fresh data load on tab switch
-                // This restores pre-cache-sync behavior where tab switches reloaded data
-                vm.invalidateCacheForTabSwitch()
-
-                Task {
-                    await vm.refreshPersonalityInsights()
-                }
-
                 // Process pending numeric habit from notification with enhanced timing validation
                 // This now serves as a fallback since the observer pattern will catch most cases
                 processNumericHabitWithViewStateValidation()
@@ -205,6 +197,19 @@ public struct OverviewView: View {
             .onDisappear {
                 // RACE CONDITION FIX: Set view as not visible
                 vm.setViewVisible(false)
+            }
+            .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
+                // When view becomes visible (tab switch), reload to pick up changes from other tabs
+                // This ensures habit schedule changes from Habits screen are reflected in Overview
+                if !wasVisible && isVisible {
+                    Task {
+                        print("🔄 TAB SWITCH DETECTED: Reloading overview data")
+                        vm.invalidateCacheForTabSwitch()
+                        // Use refresh() to bypass the "already loaded" check
+                        await vm.refresh()
+                        await vm.refreshPersonalityInsights()
+                    }
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                 // Refresh data when app comes to foreground (after background notification actions)
