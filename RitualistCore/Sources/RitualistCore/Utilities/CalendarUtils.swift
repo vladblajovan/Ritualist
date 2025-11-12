@@ -249,7 +249,15 @@ public struct CalendarUtils {
         }
         return calendar.date(byAdding: .second, value: -1, to: weekInterval.end) ?? endOfDayLocal(for: date, timezone: timezone)
     }
-    
+
+    // MARK: - Month Operations (Local)
+
+    /// Get month interval in local timezone
+    public static func monthIntervalLocal(for date: Date, timezone: TimeZone = .current) -> DateInterval? {
+        let calendar = localCalendar(for: timezone)
+        return calendar.dateInterval(of: .month, for: date)
+    }
+
     // MARK: - Component Extraction
     
     /// Extract date components (year, month, day, hour, minute, second)
