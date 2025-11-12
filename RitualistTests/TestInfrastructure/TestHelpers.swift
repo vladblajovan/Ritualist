@@ -22,7 +22,7 @@ enum TestDates {
 
     /// Today (reference date)
     static var today: Date {
-        CalendarUtils.startOfDayUTC(for: referenceDate)
+        CalendarUtils.startOfDayLocal(for: referenceDate)
     }
 
     /// Yesterday (reference date - 1 day)
@@ -71,20 +71,20 @@ enum TestDates {
     /// Create a date range for the last N days (inclusive)
     static func dateRange(days: Int, endingAt endDate: Date = today) -> ClosedRange<Date> {
         let startDate = CalendarUtils.addDays(-(days - 1), to: endDate)
-        return CalendarUtils.startOfDayUTC(for: startDate)...CalendarUtils.startOfDayUTC(for: endDate)
+        return CalendarUtils.startOfDayLocal(for: startDate)...CalendarUtils.startOfDayLocal(for: endDate)
     }
 
     /// Create a standard 30-day cache range (today back to 29 days ago)
     static func standard30DayRange(from startDate: Date = today) -> ClosedRange<Date> {
         let endDate = CalendarUtils.addDays(29, to: startDate)
-        return CalendarUtils.startOfDayUTC(for: startDate)...CalendarUtils.startOfDayUTC(for: endDate)
+        return CalendarUtils.startOfDayLocal(for: startDate)...CalendarUtils.startOfDayLocal(for: endDate)
     }
 
     // MARK: - Week Helpers
 
     /// Get all dates for the current week (Monday to Sunday)
     static func currentWeek() -> [Date] {
-        guard let weekInterval = CalendarUtils.weekIntervalUTC(for: today) else {
+        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: today) else {
             return []
         }
 
@@ -103,7 +103,7 @@ enum TestDates {
 
     /// Get all dates for the current month
     static func currentMonth() -> [Date] {
-        guard let monthInterval = CalendarUtils.monthIntervalUTC(for: today) else {
+        guard let monthInterval = CalendarUtils.monthIntervalLocal(for: today) else {
             return []
         }
 
@@ -126,7 +126,7 @@ enum TestAssertions {
 
     /// Check if a date is within a cache range
     static func isInRange(_ date: Date, range: ClosedRange<Date>) -> Bool {
-        let dateStart = CalendarUtils.startOfDayUTC(for: date)
+        let dateStart = CalendarUtils.startOfDayLocal(for: date)
         return range.contains(dateStart)
     }
 
