@@ -118,12 +118,11 @@ extension DashboardViewModel {
         // Calculate weekly patterns from dashboard data
         let habits = dashboardData.habits
         let dateRange = dashboardData.dateRange
-        
+
         logPerfectDayPatternsStart(habits: habits, dateRange: dateRange)
-        
-        guard !habits.isEmpty else { 
-            print("🔍 [DEBUG] No habits found - returning nil")
-            return nil 
+
+        guard !habits.isEmpty else {
+            return nil
         }
         
         let calendar = CalendarUtils.currentLocalCalendar // Use system calendar with user's week start preference
@@ -199,15 +198,7 @@ extension DashboardViewModel {
             averageWeeklyCompletion: averageRate
         )
         
-        // Debug the performance spread calculation
         let performanceSpread = bestDayRate - worstDayRate
-        print("🔍 [DEBUG] Performance spread calculation:")
-        for performance in dayPerformances {
-            print("🔍 [DEBUG] - \(performance.dayName): \(Int(performance.completionRate * 100))% completion rate")
-        }
-        print("🔍 [DEBUG] Performance spread: \(Int(performanceSpread * 100))% (best: \(Int(bestDayRate * 100))%, worst: \(Int(worstDayRate * 100))%)")
-        
-        print("🔍 [DEBUG] Schedule Optimization Analysis Complete ✅")
         
         return WeeklyPatternsViewModel(from: weeklyPatternsResult, daysWithData: daysWithData, averageRate: averageRate, habitCount: habits.count, timePeriod: self.selectedTimePeriod)
     }
@@ -215,12 +206,7 @@ extension DashboardViewModel {
     // MARK: - Debug Logging Helpers
     
     private func logPerfectDayPatternsStart(habits: [Habit], dateRange: ClosedRange<Date>) {
-        print("🔍 [DEBUG] Perfect Day Patterns Analysis Starting...")
-        print("🔍 [DEBUG] Date Range: \(DateFormatter.debugDate.string(from: dateRange.lowerBound)) to \(DateFormatter.debugDate.string(from: dateRange.upperBound))")
-        print("🔍 [DEBUG] Total Habits: \(habits.count)")
-        for habit in habits {
-            print("🔍 [DEBUG] - \(habit.name) (Schedule: \(habit.schedule))")
-        }
+        // Intentionally empty - kept for potential future debugging
     }
     
     private func analyzeDayByDayData(
@@ -233,9 +219,7 @@ extension DashboardViewModel {
         var currentDate = dateRange.lowerBound
         var totalDaysAnalyzed = 0
         var daysWithData = 0
-        
-        print("🔍 [DEBUG] Starting day-by-day analysis...")
-        
+
         while currentDate <= dateRange.upperBound {
             let dayOfWeek = calendar.component(.weekday, from: currentDate)
             let dayName = DateFormatter.weekdayName.string(from: currentDate)
@@ -258,25 +242,12 @@ extension DashboardViewModel {
                     let actualCompletedCount = scheduledHabits.filter { completedHabits.contains($0.id) }.count
                     dayOfWeekStats[dayOfWeek]?.completed += actualCompletedCount
                     dayOfWeekStats[dayOfWeek]?.total += scheduledHabits.count
-
-                    print("🔍 [DEBUG] \(DateFormatter.debugDate.string(from: currentDate)) (\(dayName)): \(actualCompletedCount)/\(scheduledHabits.count) habits completed")
-                    if actualCompletedCount != scheduledHabits.count {
-                        let completedNames = scheduledHabits.filter { completedHabits.contains($0.id) }.map { $0.name }
-                        let missedNames = scheduledHabits.filter { !completedHabits.contains($0.id) }.map { $0.name }
-                        print("🔍 [DEBUG]   ✅ Completed: \(completedNames)")
-                        print("🔍 [DEBUG]   ❌ Missed: \(missedNames)")
-                    }
-                } else {
-                    print("🔍 [DEBUG] \(DateFormatter.debugDate.string(from: currentDate)) (\(dayName)): Logs exist but no habits scheduled")
                 }
-            } else {
-                print("🔍 [DEBUG] \(DateFormatter.debugDate.string(from: currentDate)) (\(dayName)): No logs for this date")
             }
             
             currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
-        
-        print("🔍 [DEBUG] Analysis complete: \(totalDaysAnalyzed) total days, \(daysWithData) days with scheduled habits")
+
         return (dayOfWeekStats, daysWithData)
     }
     
@@ -290,49 +261,7 @@ extension DashboardViewModel {
         daysWithData: Int,
         habitCount: Int
     ) {
-        print("🔍 [DEBUG] Day of Week Performance Summary:")
-        for performance in dayPerformances {
-            let percentage = Int(performance.completionRate * 100)
-            print("🔍 [DEBUG] - \(performance.dayName): \(percentage)% (\(performance.averageHabitsCompleted) completed habits)")
-        }
-        
-        print("🔍 [DEBUG] Results:")
-        print("🔍 [DEBUG] - Best Day: \(bestDay) (\(Int(bestDayRate * 100))%)")
-        print("🔍 [DEBUG] - Worst Day: \(worstDay) (\(Int(worstDayRate * 100))%)")
-        print("🔍 [DEBUG] - Average Weekly Completion: \(Int(averageRate * 100))%")
-        
-        // Analysis for Schedule Optimization insights
-        let performanceSpread = bestDayRate - worstDayRate
-        let minDaysRequired = 14 // 2 weeks of data
-        let minCompletionRate = 0.3 // At least 30% overall completion
-        let minHabitsRequired = 2 // At least 2 habits for scheduling conflicts
-        
-        let hasEnoughDays = daysWithData >= minDaysRequired
-        let hasEnoughCompletion = averageRate >= minCompletionRate
-        let hasEnoughHabits = habitCount >= minHabitsRequired
-        let hasVariation = performanceSpread > 0.1
-        
-        let isDataSufficientForScheduleOptimization = hasEnoughDays && hasEnoughCompletion && hasEnoughHabits && hasVariation
-        
-        print("🔍 [DEBUG] Schedule Optimization Data Quality Analysis:")
-        print("🔍 [DEBUG] - Days with data: \(daysWithData) (need \(minDaysRequired)): \(hasEnoughDays ? "✅" : "❌")")
-        print("🔍 [DEBUG] - Overall completion: \(Int(averageRate * 100))% (need \(Int(minCompletionRate * 100))%): \(hasEnoughCompletion ? "✅" : "❌")")
-        print("🔍 [DEBUG] - Active habits: \(habitCount) (need \(minHabitsRequired)): \(hasEnoughHabits ? "✅" : "❌")")
-        print("🔍 [DEBUG] - Performance variation: \(Int(performanceSpread * 100))% (need >10%): \(hasVariation ? "✅" : "❌")")
-        print("🔍 [DEBUG] - Ready for Schedule Optimization? \(isDataSufficientForScheduleOptimization ? "YES" : "NO")")
-        
-        if !isDataSufficientForScheduleOptimization {
-            var missingRequirements: [String] = []
-            if !hasEnoughDays { missingRequirements.append("Need \(minDaysRequired - daysWithData) more days of tracking") }
-            if !hasEnoughCompletion { missingRequirements.append("Need higher completion rate (\(Int(minCompletionRate * 100))%+ target)") }
-            if !hasEnoughHabits { missingRequirements.append("Need \(minHabitsRequired - habitCount) more active habits") }
-            if !hasVariation { missingRequirements.append("Need more variation in daily performance") }
-            
-            print("🔍 [DEBUG] ⚠️ Missing requirements:")
-            for requirement in missingRequirements {
-                print("🔍 [DEBUG]   - \(requirement)")
-            }
-        }
+        // Intentionally empty - kept for potential future debugging
     }
     
     /// Extract streak analysis from unified dashboard data

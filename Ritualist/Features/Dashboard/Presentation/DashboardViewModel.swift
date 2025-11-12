@@ -167,8 +167,6 @@ public final class DashboardViewModel {
                 // But at least 3 days for meaningful pattern detection
                 let minRequired = max(3, Int(Double(elapsedDays) * 0.7))
 
-                print("🔍 [THRESHOLD] Period: \(timePeriod.displayName), Elapsed: \(elapsedDays) days, Required: \(minRequired) days (70% of elapsed)")
-
                 return minRequired
 
             case .last6Months, .lastYear, .allTime:
