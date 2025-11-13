@@ -29,7 +29,7 @@ extension Container {
     // MARK: - Local Data Sources
     
     var habitDataSource: Factory<HabitLocalDataSourceProtocol> {
-        self { 
+        self {
             let container = self.persistenceContainer().container
             return RitualistCore.HabitLocalDataSource(modelContainer: container)
         }
@@ -66,7 +66,7 @@ extension Container {
     }
     
     var categoryDataSource: Factory<CategoryLocalDataSourceProtocol> {
-        self { 
+        self {
             let container = self.persistenceContainer().container
             return RitualistCore.CategoryLocalDataSource(modelContainer: container)
         }
