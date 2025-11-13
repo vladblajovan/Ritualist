@@ -277,22 +277,7 @@ public final class PersonalityAnalysisRepositoryImpl: PersonalityAnalysisReposit
         let allHabits = try await habitRepository.fetchAllHabits()
         return allHabits.filter { $0.isActive }
     }
-    
-    public func getUserHabitLogs(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
-        let activeHabits = try await getUserHabits(for: userId)
-        var allLogs: [HabitLog] = []
-        
-        for habit in activeHabits {
-            let habitLogs = try await logRepository.logs(for: habit.id)
-            let filteredLogs = habitLogs.filter { log in
-                log.date >= startDate && log.date <= endDate
-            }
-            allLogs.append(contentsOf: filteredLogs)
-        }
-        
-        return allLogs
-    }
-    
+
     public func getUserCustomCategories(for userId: UUID) async throws -> [HabitCategory] {
         try await categoryRepository.getCustomCategories()
     }
