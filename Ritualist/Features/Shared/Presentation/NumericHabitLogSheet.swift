@@ -170,101 +170,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                     
                     HStack(spacing: Spacing.medium) {
                         if !isCompleted && value < dailyTarget {
-                            #if compiler(>=6.2)
-                            if #available(iOS 26.0, *) {
-                                Button {
-                                    // Trigger glow effect
-                                    isGlowing = true
-
-                                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                        value = dailyTarget
-                                    }
-
-                                    Task {
-                                        // Small delay for glow effect
-                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                                        await onSave(dailyTarget)
-                                        await MainActor.run {
-                                            isGlowing = false
-                                            dismiss()
-                                        }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "checkmark.circle.fill")
-                                        Text("Complete All")
-                                    }
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, Spacing.medium)
-                                }
-                                .buttonStyle(.plain)
-                                .glassEffect(.regular.tint(AppColors.brand), in: RoundedRectangle(cornerRadius: 25))
-                            } else {
-                                Button {
-                                    // Trigger glow effect
-                                    isGlowing = true
-
-                                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                        value = dailyTarget
-                                    }
-
-                                    Task {
-                                        // Small delay for glow effect
-                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                                        await onSave(dailyTarget)
-                                        await MainActor.run {
-                                            isGlowing = false
-                                            dismiss()
-                                        }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "checkmark.circle.fill")
-                                        Text("Complete All")
-                                    }
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, Spacing.medium)
-                                    .background(AppColors.brand)
-                                    .cornerRadius(25)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            #else
-                            Button {
-                                // Trigger glow effect
-                                isGlowing = true
-
-                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                    value = dailyTarget
-                                }
-
-                                Task {
-                                    // Small delay for glow effect
-                                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                                    await onSave(dailyTarget)
-                                    await MainActor.run {
-                                        isGlowing = false
-                                        dismiss()
-                                    }
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                    Text("Complete All")
-                                }
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, Spacing.medium)
-                                .background(AppColors.brand)
-                                .cornerRadius(25)
-                            }
-                            .buttonStyle(.plain)
-                            #endif
+                            completeAllButton()
                         }
 
                         #if compiler(>=6.2)
@@ -399,7 +305,53 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         }
         .completionGlow(isGlowing: isGlowing)
     }
-    
+
+    @ViewBuilder
+    private func completeAllButton() -> some View {
+        let button = Button {
+            // Trigger glow effect
+            isGlowing = true
+
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                value = dailyTarget
+            }
+
+            Task {
+                // Small delay for glow effect
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                await onSave(dailyTarget)
+                await MainActor.run {
+                    isGlowing = false
+                    dismiss()
+                }
+            }
+        } label: {
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                Text("Complete All")
+            }
+            .font(.headline)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.medium)
+        }
+        .buttonStyle(.plain)
+
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            button.glassEffect(.regular.tint(AppColors.brand), in: RoundedRectangle(cornerRadius: 25))
+        } else {
+            button
+                .background(AppColors.brand)
+                .cornerRadius(25)
+        }
+        #else
+        button
+            .background(AppColors.brand)
+            .cornerRadius(25)
+        #endif
+    }
+
     @ViewBuilder
     private func quickIncrementButton(amount: Int) -> some View {
         Button {

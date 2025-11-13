@@ -402,20 +402,32 @@ extension SchemaV8.HabitModel {
         self.lastCompletedDate = habit.lastCompletedDate
         self.archivedDate = habit.archivedDate
 
-        // Update category relationship
+        // Update category relationship with proper error handling
         if let categoryId = habit.categoryId {
             let categoryDescriptor = FetchDescriptor<SchemaV8.HabitCategoryModel>(
                 predicate: #Predicate { $0.id == categoryId }
             )
-            self.category = try? context.fetch(categoryDescriptor).first
+            guard let fetchedCategory = try context.fetch(categoryDescriptor).first else {
+                // Log warning but don't fail - category might be deleted
+                print("⚠️ Warning: Category \(categoryId) not found for habit \(habit.id)")
+                self.category = nil
+                return
+            }
+            self.category = fetchedCategory
         } else {
             self.category = nil
         }
 
-        // Update location configuration
+        // Update location configuration with proper error handling
         if let locationConfig = habit.locationConfiguration {
-            self.locationConfigData = try? JSONEncoder().encode(locationConfig)
-            self.lastGeofenceTriggerDate = locationConfig.lastTriggerDate
+            do {
+                self.locationConfigData = try JSONEncoder().encode(locationConfig)
+                self.lastGeofenceTriggerDate = locationConfig.lastTriggerDate
+            } catch {
+                // Log error and rethrow - data integrity is critical
+                print("❌ Error encoding location configuration for habit \(habit.id): \(error)")
+                throw error
+            }
         } else {
             self.locationConfigData = nil
             self.lastGeofenceTriggerDate = nil

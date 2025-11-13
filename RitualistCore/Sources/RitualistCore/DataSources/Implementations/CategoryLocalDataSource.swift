@@ -120,10 +120,11 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
             return true
         }
 
-        // Then check database with targeted query
+        // Then check database with optimized query
         // Note: SwiftData doesn't support case-insensitive predicates directly,
-        // so we fetch and compare in memory (still better than fetching all categories)
-        let descriptor = FetchDescriptor<ActiveHabitCategoryModel>()
+        // so we fetch just the names and compare in memory
+        var descriptor = FetchDescriptor<ActiveHabitCategoryModel>()
+        descriptor.propertiesToFetch = [\.name] // Only fetch name field, not full models
         let storedCategories = try modelContext.fetch(descriptor)
         return storedCategories.contains { $0.name.lowercased() == lowercasedName }
     }
