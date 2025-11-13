@@ -164,7 +164,7 @@ public final class TestDataPopulationService: TestDataPopulationServiceProtocol 
                     dayIndex: dayIndex,
                     monthlyBaselines: monthlyBaselines,
                     weeklyVariations: weeklyVariations,
-                    specialEvents: specialEvents,
+                    specialEvents: specialEvents
                 )
                 dailyCompletionRates[date] = completionRate
             }
