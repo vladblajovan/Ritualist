@@ -190,6 +190,7 @@ extension View {
     /// ```
     ///
     /// - Returns: View with minimize behavior on iOS 26.0+, unmodified view otherwise
+    @ViewBuilder
     func tabBarMinimizeOnScroll() -> some View {
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {

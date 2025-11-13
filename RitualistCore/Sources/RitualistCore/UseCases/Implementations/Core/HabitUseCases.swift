@@ -28,7 +28,7 @@ public final class CreateHabit: CreateHabitUseCase {
             suggestionId: habit.suggestionId
         )
         
-        try await repo.create(habitWithOrder)
+        try await repo.update(habitWithOrder)
         return habitWithOrder
     }
 }

@@ -8,6 +8,6 @@
 import Foundation
 
 public protocol ProfileRepository {
-    func loadProfile() async throws -> UserProfile
+    func loadProfile() async throws -> UserProfile?
     func saveProfile(_ profile: UserProfile) async throws
 }

@@ -170,72 +170,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                     
                     HStack(spacing: Spacing.medium) {
                         if !isCompleted && value < dailyTarget {
-                            #if compiler(>=6.2)
-                            if #available(iOS 26.0, *) {
-                                Button {
-                                    // Trigger glow effect
-                                    isGlowing = true
-
-                                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                        value = dailyTarget
-                                    }
-
-                                    Task {
-                                        // Small delay for glow effect
-                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                                        await onSave(dailyTarget)
-                                        await MainActor.run {
-                                            isGlowing = false
-                                            dismiss()
-                                        }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "checkmark.circle.fill")
-                                        Text("Complete All")
-                                    }
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, Spacing.medium)
-                                }
-                                .buttonStyle(.plain)
-                                .glassEffect(.regular.tint(AppColors.brand), in: RoundedRectangle(cornerRadius: 25))
-                            } else {
-                            #endif
-                                Button {
-                                    // Trigger glow effect
-                                    isGlowing = true
-
-                                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                        value = dailyTarget
-                                    }
-
-                                    Task {
-                                        // Small delay for glow effect
-                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                                        await onSave(dailyTarget)
-                                        await MainActor.run {
-                                            isGlowing = false
-                                            dismiss()
-                                        }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "checkmark.circle.fill")
-                                        Text("Complete All")
-                                    }
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, Spacing.medium)
-                                    .background(AppColors.brand)
-                                    .cornerRadius(25)
-                                }
-                                .buttonStyle(.plain)
-                            #if compiler(>=6.2)
-                            }
-                            #endif
+                            completeAllButton()
                         }
 
                         #if compiler(>=6.2)
@@ -265,7 +200,6 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                             .glassEffect(.regular.tint(.green), in: RoundedRectangle(cornerRadius: 25))
                             .disabled(!isValidValue)
                         } else {
-                        #endif
                             Button {
                                 if isValidValue {
                                     // Trigger glow effect
@@ -291,8 +225,33 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     .cornerRadius(25)
                             }
                             .disabled(!isValidValue)
-                        #if compiler(>=6.2)
                         }
+                        #else
+                        Button {
+                            if isValidValue {
+                                // Trigger glow effect
+                                isGlowing = true
+
+                                Task {
+                                    // Small delay for glow effect
+                                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                                    await onSave(value)
+                                    await MainActor.run {
+                                        isGlowing = false
+                                        dismiss()
+                                    }
+                                }
+                            }
+                        } label: {
+                            Text("Save")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, Spacing.medium)
+                                .background(.green)
+                                .cornerRadius(25)
+                        }
+                        .disabled(!isValidValue)
                         #endif
                     }
                     .padding(.horizontal, Spacing.medium)
@@ -346,7 +305,53 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         }
         .completionGlow(isGlowing: isGlowing)
     }
-    
+
+    @ViewBuilder
+    private func completeAllButton() -> some View {
+        let button = Button {
+            // Trigger glow effect
+            isGlowing = true
+
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                value = dailyTarget
+            }
+
+            Task {
+                // Small delay for glow effect
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                await onSave(dailyTarget)
+                await MainActor.run {
+                    isGlowing = false
+                    dismiss()
+                }
+            }
+        } label: {
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                Text("Complete All")
+            }
+            .font(.headline)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.medium)
+        }
+        .buttonStyle(.plain)
+
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            button.glassEffect(.regular.tint(AppColors.brand), in: RoundedRectangle(cornerRadius: 25))
+        } else {
+            button
+                .background(AppColors.brand)
+                .cornerRadius(25)
+        }
+        #else
+        button
+            .background(AppColors.brand)
+            .cornerRadius(25)
+        #endif
+    }
+
     @ViewBuilder
     private func quickIncrementButton(amount: Int) -> some View {
         Button {

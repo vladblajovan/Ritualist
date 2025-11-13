@@ -45,35 +45,8 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
             )
 
             if let existing = try modelContext.fetch(descriptor).first {
-                // Update existing habit properties
-                existing.name = habit.name
-                existing.colorHex = habit.colorHex
-                existing.emoji = habit.emoji
-            existing.kindRaw = (habit.kind == .binary) ? 0 : 1
-            existing.unitLabel = habit.unitLabel
-            existing.dailyTarget = habit.dailyTarget
-            existing.scheduleData = try JSONEncoder().encode(habit.schedule)
-            existing.remindersData = try JSONEncoder().encode(habit.reminders)
-            existing.startDate = habit.startDate
-            existing.endDate = habit.endDate
-            existing.isActive = habit.isActive
-            existing.displayOrder = habit.displayOrder
-            // Update category relationship
-            if let categoryId = habit.categoryId {
-                let categoryDescriptor = FetchDescriptor<ActiveHabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
-                existing.category = try? modelContext.fetch(categoryDescriptor).first
-            } else {
-                existing.category = nil
-            }
-            existing.suggestionId = habit.suggestionId
-                // Update location configuration
-                if let locationConfig = habit.locationConfiguration {
-                    existing.locationConfigData = try? JSONEncoder().encode(locationConfig)
-                    existing.lastGeofenceTriggerDate = locationConfig.lastTriggerDate
-                } else {
-                    existing.locationConfigData = nil
-                    existing.lastGeofenceTriggerDate = nil
-                }
+                // Update existing habit using shared mapping logic
+                try existing.updateFromEntity(habit, context: modelContext)
         } else {
             // Create new habit in this ModelContext
             let habitModel = try ActiveHabitModel.fromEntity(habit, context: modelContext)

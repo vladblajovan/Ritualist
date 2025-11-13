@@ -10,7 +10,6 @@ import Foundation
 public protocol HabitRepository {
     func fetchAllHabits() async throws -> [Habit]
     func fetchHabit(by id: UUID) async throws -> Habit?
-    func create(_ habit: Habit) async throws
     func update(_ habit: Habit) async throws
     func delete(id: UUID) async throws
     func cleanupOrphanedHabits() async throws -> Int

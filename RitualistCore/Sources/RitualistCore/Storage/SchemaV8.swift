@@ -380,6 +380,59 @@ extension SchemaV8.HabitModel {
             lastGeofenceTriggerDate: lastTriggerDate
         )
     }
+
+    /// Update existing SwiftData model from domain entity
+    /// Eliminates duplicate mapping logic in HabitLocalDataSource.upsert()
+    public func updateFromEntity(_ habit: Habit, context: ModelContext) throws {
+        // Update basic properties
+        self.name = habit.name
+        self.colorHex = habit.colorHex
+        self.emoji = habit.emoji
+        self.kindRaw = (habit.kind == .binary) ? 0 : 1
+        self.unitLabel = habit.unitLabel
+        self.dailyTarget = habit.dailyTarget
+        self.scheduleData = try JSONEncoder().encode(habit.schedule)
+        self.remindersData = try JSONEncoder().encode(habit.reminders)
+        self.startDate = habit.startDate
+        self.endDate = habit.endDate
+        self.isActive = habit.isActive
+        self.displayOrder = habit.displayOrder
+        self.suggestionId = habit.suggestionId
+        self.notes = habit.notes
+        self.lastCompletedDate = habit.lastCompletedDate
+        self.archivedDate = habit.archivedDate
+
+        // Update category relationship with proper error handling
+        if let categoryId = habit.categoryId {
+            let categoryDescriptor = FetchDescriptor<SchemaV8.HabitCategoryModel>(
+                predicate: #Predicate { $0.id == categoryId }
+            )
+            guard let fetchedCategory = try context.fetch(categoryDescriptor).first else {
+                // Log warning but don't fail - category might be deleted
+                print("⚠️ Warning: Category \(categoryId) not found for habit \(habit.id)")
+                self.category = nil
+                return
+            }
+            self.category = fetchedCategory
+        } else {
+            self.category = nil
+        }
+
+        // Update location configuration with proper error handling
+        if let locationConfig = habit.locationConfiguration {
+            do {
+                self.locationConfigData = try JSONEncoder().encode(locationConfig)
+                self.lastGeofenceTriggerDate = locationConfig.lastTriggerDate
+            } catch {
+                // Log error and rethrow - data integrity is critical
+                print("❌ Error encoding location configuration for habit \(habit.id): \(error)")
+                throw error
+            }
+        } else {
+            self.locationConfigData = nil
+            self.lastGeofenceTriggerDate = nil
+        }
+    }
 }
 
 extension SchemaV8.HabitLogModel {

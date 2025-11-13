@@ -10,19 +10,8 @@ import Foundation
 public final class ProfileRepositoryImpl: ProfileRepository {
     private let local: ProfileLocalDataSourceProtocol
     public init(local: ProfileLocalDataSourceProtocol) { self.local = local }
-    public func loadProfile() async throws -> UserProfile {
-        if let profile = try await local.load() {
-            return profile
-        } else {
-            // Create profile with system defaults including timezone preferences
-            let defaultProfile = UserProfile(
-                appearance: AppearanceManager.getSystemAppearance(),
-                homeTimezone: nil, // No home timezone set initially
-                displayTimezoneMode: "original" // Default to showing logs as originally experienced
-            )
-            try await saveProfile(defaultProfile)
-            return defaultProfile
-        }
+    public func loadProfile() async throws -> UserProfile? {
+        return try await local.load()
     }
     public func saveProfile(_ profile: UserProfile) async throws {
         try await local.save(profile)
