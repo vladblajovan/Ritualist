@@ -380,6 +380,47 @@ extension SchemaV8.HabitModel {
             lastGeofenceTriggerDate: lastTriggerDate
         )
     }
+
+    /// Update existing SwiftData model from domain entity
+    /// Eliminates duplicate mapping logic in HabitLocalDataSource.upsert()
+    public func updateFromEntity(_ habit: Habit, context: ModelContext) throws {
+        // Update basic properties
+        self.name = habit.name
+        self.colorHex = habit.colorHex
+        self.emoji = habit.emoji
+        self.kindRaw = (habit.kind == .binary) ? 0 : 1
+        self.unitLabel = habit.unitLabel
+        self.dailyTarget = habit.dailyTarget
+        self.scheduleData = try JSONEncoder().encode(habit.schedule)
+        self.remindersData = try JSONEncoder().encode(habit.reminders)
+        self.startDate = habit.startDate
+        self.endDate = habit.endDate
+        self.isActive = habit.isActive
+        self.displayOrder = habit.displayOrder
+        self.suggestionId = habit.suggestionId
+        self.notes = habit.notes
+        self.lastCompletedDate = habit.lastCompletedDate
+        self.archivedDate = habit.archivedDate
+
+        // Update category relationship
+        if let categoryId = habit.categoryId {
+            let categoryDescriptor = FetchDescriptor<SchemaV8.HabitCategoryModel>(
+                predicate: #Predicate { $0.id == categoryId }
+            )
+            self.category = try? context.fetch(categoryDescriptor).first
+        } else {
+            self.category = nil
+        }
+
+        // Update location configuration
+        if let locationConfig = habit.locationConfiguration {
+            self.locationConfigData = try? JSONEncoder().encode(locationConfig)
+            self.lastGeofenceTriggerDate = locationConfig.lastTriggerDate
+        } else {
+            self.locationConfigData = nil
+            self.lastGeofenceTriggerDate = nil
+        }
+    }
 }
 
 extension SchemaV8.HabitLogModel {
