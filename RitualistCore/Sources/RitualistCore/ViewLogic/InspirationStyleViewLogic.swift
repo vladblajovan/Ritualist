@@ -59,7 +59,7 @@ public enum InspirationStyleViewLogic {
             return Style(
                 gradient: GradientTokens.inspirationPerfect,
                 gradientType: .perfect,
-                iconName: "checkmark.seal.fill",
+                iconName: "party.popper.fill",
                 accentColor: .green
             )
         } else if context.completionPercentage >= 0.75 {
@@ -95,7 +95,7 @@ public enum InspirationStyleViewLogic {
             return Style(
                 gradient: GradientTokens.inspirationMorning,
                 gradientType: .morning,
-                iconName: "sun.horizon.fill",
+                iconName: "sunrise.fill",
                 accentColor: .pink
             )
         case .noon:
@@ -109,7 +109,7 @@ public enum InspirationStyleViewLogic {
             return Style(
                 gradient: GradientTokens.inspirationEvening,
                 gradientType: .evening,
-                iconName: "moon.fill",
+                iconName: "moon.stars.fill",
                 accentColor: .purple
             )
         }
