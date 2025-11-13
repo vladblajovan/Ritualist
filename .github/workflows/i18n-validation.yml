@@ -37,7 +37,7 @@ jobs:
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: latest-stable
+        xcode-version: '16.4'
     
     - name: Validate String Lengths
       run: swift Scripts/validate_strings.swift
@@ -61,7 +61,7 @@ jobs:
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: latest-stable
+        xcode-version: '16.4'
     
     - name: Cache SwiftPM Dependencies
       uses: actions/cache@v4
@@ -78,9 +78,9 @@ jobs:
       with:
         path: |
           ~/Library/Developer/Xcode/DerivedData
-        key: ${{ runner.os }}-xcode-deriveddata-${{ hashFiles('Ritualist.xcodeproj/project.pbxproj') }}
+        key: ${{ runner.os }}-xcode-16.4-deriveddata-${{ hashFiles('Ritualist.xcodeproj/project.pbxproj') }}
         restore-keys: |
-          ${{ runner.os }}-xcode-deriveddata-
+          ${{ runner.os }}-xcode-16.4-deriveddata-
     
     - name: Build for Testing (with timing)
       run: |
@@ -91,7 +91,7 @@ jobs:
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
-          -configuration Debug \
+          -configuration Debug-AllFeatures \
           -derivedDataPath ~/Library/Developer/Xcode/DerivedData
 
         BUILD_END=$(date +%s)
