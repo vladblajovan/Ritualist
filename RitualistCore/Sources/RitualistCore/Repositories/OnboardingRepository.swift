@@ -8,7 +8,6 @@
 import Foundation
 
 public protocol OnboardingRepository {
-    func getOnboardingState() async throws -> OnboardingState
+    func getOnboardingState() async throws -> OnboardingState?
     func saveOnboardingState(_ state: OnboardingState) async throws
-    func markOnboardingCompleted(userName: String?, hasNotifications: Bool) async throws
 }
