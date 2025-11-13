@@ -91,7 +91,7 @@ jobs:
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
-          -configuration Debug \
+          -configuration Debug-AllFeatures \
           -derivedDataPath ~/Library/Developer/Xcode/DerivedData
 
         BUILD_END=$(date +%s)
