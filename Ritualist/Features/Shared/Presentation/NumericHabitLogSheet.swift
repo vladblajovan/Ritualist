@@ -170,15 +170,16 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                     
                     HStack(spacing: Spacing.medium) {
                         if !isCompleted && value < dailyTarget {
+                            #if compiler(>=6.2)
                             if #available(iOS 26.0, *) {
                                 Button {
                                     // Trigger glow effect
                                     isGlowing = true
-                                    
+
                                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                                         value = dailyTarget
                                     }
-                                    
+
                                     Task {
                                         // Small delay for glow effect
                                         try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
@@ -201,14 +202,15 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 .buttonStyle(.plain)
                                 .glassEffect(.regular.tint(AppColors.brand), in: RoundedRectangle(cornerRadius: 25))
                             } else {
+                            #endif
                                 Button {
                                     // Trigger glow effect
                                     isGlowing = true
-                                    
+
                                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                                         value = dailyTarget
                                     }
-                                    
+
                                     Task {
                                         // Small delay for glow effect
                                         try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
@@ -231,15 +233,18 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     .cornerRadius(25)
                                 }
                                 .buttonStyle(.plain)
+                            #if compiler(>=6.2)
                             }
+                            #endif
                         }
-                        
+
+                        #if compiler(>=6.2)
                         if #available(iOS 26.0, *) {
                             Button {
                                 if isValidValue {
                                     // Trigger glow effect
                                     isGlowing = true
-                                    
+
                                     Task {
                                         // Small delay for glow effect
                                         try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
@@ -260,11 +265,12 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                             .glassEffect(.regular.tint(.green), in: RoundedRectangle(cornerRadius: 25))
                             .disabled(!isValidValue)
                         } else {
+                        #endif
                             Button {
                                 if isValidValue {
                                     // Trigger glow effect
                                     isGlowing = true
-                                    
+
                                     Task {
                                         // Small delay for glow effect
                                         try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
@@ -285,7 +291,9 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     .cornerRadius(25)
                             }
                             .disabled(!isValidValue)
+                        #if compiler(>=6.2)
                         }
+                        #endif
                     }
                     .padding(.horizontal, Spacing.medium)
                 }
