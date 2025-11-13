@@ -19,9 +19,6 @@ public final class HabitRepositoryImpl: HabitRepository {
     public func fetchHabit(by id: UUID) async throws -> Habit? {
         try await local.fetch(by: id)
     }
-    public func create(_ habit: Habit) async throws {
-        try await update(habit)
-    }
     public func update(_ habit: Habit) async throws {
         try await local.upsert(habit)
     }

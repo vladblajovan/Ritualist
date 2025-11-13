@@ -238,7 +238,7 @@ public final class PopulateTestData: PopulateTestDataUseCase {
                 categoryId: category.id
             )
 
-            try await habitRepository.create(habit)
+            try await habitRepository.update(habit)
             createdHabits.append(habit)
         }
 
