@@ -16,20 +16,7 @@ extension Container {
     var habitScheduleAnalyzer: Factory<HabitScheduleAnalyzerProtocol> {
         self { HabitScheduleAnalyzer() }
     }
-    
-    var habitAnalyticsService: Factory<HabitAnalyticsService> {
-        self {
-            HabitAnalyticsServiceImpl(
-                habitRepository: self.habitRepository(),
-                logRepository: self.logRepository(),
-                scheduleAnalyzer: self.habitScheduleAnalyzer(),
-                getBatchLogs: self.getBatchLogs(),
-                getSingleHabitLogs: self.getSingleHabitLogs()
-            )
-        }
-        .singleton
-    }
-    
+
     var performanceAnalysisService: Factory<PerformanceAnalysisService> {
         self {
             PerformanceAnalysisServiceImpl(
