@@ -299,7 +299,6 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
         checkPremiumStatus: MockCheckPremiumStatus(isPremium: plan.isPremium),
         getCurrentSubscriptionPlan: MockGetCurrentSubscriptionPlan(plan: plan),
         getSubscriptionExpiryDate: MockGetSubscriptionExpiryDate(expiryDate: expiryDate),
-        updateUserSubscription: MockUpdateUserSubscription(),
         syncWithiCloud: MockSyncWithiCloud(),
         checkiCloudStatus: MockCheckiCloudStatus(),
         getLastSyncDate: MockGetLastSyncDate(),
@@ -351,10 +350,6 @@ private struct MockCheckPremiumStatus: CheckPremiumStatusUseCase {
     let isPremium: Bool
 
     func execute() async -> Bool { isPremium }
-}
-
-private struct MockUpdateUserSubscription: UpdateUserSubscriptionUseCase {
-    func execute(plan: SubscriptionPlan, expiryDate: Date?) async throws {}
 }
 
 private struct MockSyncWithiCloud: SyncWithiCloudUseCase {

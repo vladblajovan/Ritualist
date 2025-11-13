@@ -87,10 +87,8 @@ public typealias CreateHabitFromSuggestion = RitualistCore.CreateHabitFromSugges
 public typealias RemoveHabitFromSuggestion = RitualistCore.RemoveHabitFromSuggestion
 
 // Re-export User UseCases
-public typealias UpdateProfileSubscription = RitualistCore.UpdateProfileSubscription
 public typealias CheckPremiumStatus = RitualistCore.CheckPremiumStatus
 public typealias GetCurrentUserProfile = RitualistCore.GetCurrentUserProfile
-public typealias UpdateUserSubscription = RitualistCore.UpdateUserSubscription
 
 // Re-export Habit Schedule UseCases
 public typealias ValidateHabitSchedule = RitualistCore.ValidateHabitSchedule

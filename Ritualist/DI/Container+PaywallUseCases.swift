@@ -31,8 +31,4 @@ extension Container {
     var getPurchaseState: Factory<GetPurchaseStateUseCase> {
         self { GetPurchaseState(paywallService: self.paywallService()) }
     }
-    
-    var updateProfileSubscription: Factory<UpdateProfileSubscriptionUseCase> {
-        self { UpdateProfileSubscription() }
-    }
 }

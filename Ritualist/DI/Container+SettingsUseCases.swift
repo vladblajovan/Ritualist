@@ -42,10 +42,6 @@ extension Container {
         self { GetSubscriptionExpiryDate(subscriptionService: self.subscriptionService()) }
     }
 
-    var updateUserSubscription: Factory<UpdateUserSubscription> {
-        self { UpdateUserSubscription() }
-    }
-
     // MARK: - iCloud Sync Operations
 
     var syncWithiCloud: Factory<SyncWithiCloudUseCase> {

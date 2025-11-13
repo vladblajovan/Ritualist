@@ -15,7 +15,6 @@ public final class SettingsViewModel {
     private let checkPremiumStatus: CheckPremiumStatusUseCase
     private let getCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase
     private let getSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase
-    private let updateUserSubscription: UpdateUserSubscriptionUseCase
     private let syncWithiCloud: SyncWithiCloudUseCase
     private let checkiCloudStatus: CheckiCloudStatusUseCase
     private let getLastSyncDate: GetLastSyncDateUseCase
@@ -97,7 +96,6 @@ public final class SettingsViewModel {
                 checkPremiumStatus: CheckPremiumStatusUseCase,
                 getCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase,
                 getSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase,
-                updateUserSubscription: UpdateUserSubscriptionUseCase,
                 syncWithiCloud: SyncWithiCloudUseCase,
                 checkiCloudStatus: CheckiCloudStatusUseCase,
                 getLastSyncDate: GetLastSyncDateUseCase,
@@ -113,7 +111,6 @@ public final class SettingsViewModel {
         self.checkPremiumStatus = checkPremiumStatus
         self.getCurrentSubscriptionPlan = getCurrentSubscriptionPlan
         self.getSubscriptionExpiryDate = getSubscriptionExpiryDate
-        self.updateUserSubscription = updateUserSubscription
         self.syncWithiCloud = syncWithiCloud
         self.checkiCloudStatus = checkiCloudStatus
         self.getLastSyncDate = getLastSyncDate
@@ -261,18 +258,12 @@ public final class SettingsViewModel {
     public func cancelSubscription() async {
         isCancellingSubscription = true
         error = nil
-        
-        do {
-            // Cancel subscription through UseCase
-            try await updateUserSubscription.execute(plan: .free, expiryDate: nil)
-            
-            // Clear any stored purchases
-            clearPurchases.execute()
-        } catch {
-            self.error = error
-            userActionTracker.trackError(error, context: "subscription_cancellation")
-        }
-        
+
+        // Clear any stored purchases
+        // NOTE: Subscription cancellation now happens entirely through StoreKit/App Store
+        // The SecureSubscriptionService automatically reflects the cancellation status
+        clearPurchases.execute()
+
         isCancellingSubscription = false
     }
     
