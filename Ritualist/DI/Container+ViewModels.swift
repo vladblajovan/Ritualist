@@ -117,7 +117,7 @@ extension Container {
                 updateLastSyncDate: self.updateLastSyncDate(),
                 populateTestData: {
                     #if DEBUG
-                    return self.populateTestData()
+                    return self.populateTestData() as (any Any)?
                     #else
                     return nil
                     #endif

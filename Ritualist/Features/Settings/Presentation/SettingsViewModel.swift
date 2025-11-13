@@ -24,9 +24,8 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
     @ObservationIgnored @Injected(\.subscriptionService) var subscriptionService
 
-    private let populateTestData: PopulateTestDataUseCase?
-
     #if DEBUG
+    private let populateTestData: PopulateTestDataUseCase?
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
     @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase
     #endif
@@ -100,7 +99,7 @@ public final class SettingsViewModel {
                 checkiCloudStatus: CheckiCloudStatusUseCase,
                 getLastSyncDate: GetLastSyncDateUseCase,
                 updateLastSyncDate: UpdateLastSyncDateUseCase,
-                populateTestData: PopulateTestDataUseCase? = nil) {
+                populateTestData: (any Any)? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
         self.requestNotificationPermission = requestNotificationPermission
@@ -115,7 +114,9 @@ public final class SettingsViewModel {
         self.checkiCloudStatus = checkiCloudStatus
         self.getLastSyncDate = getLastSyncDate
         self.updateLastSyncDate = updateLastSyncDate
-        self.populateTestData = populateTestData
+        #if DEBUG
+        self.populateTestData = populateTestData as? PopulateTestDataUseCase
+        #endif
     }
     
     public func load() async {
