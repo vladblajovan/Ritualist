@@ -42,10 +42,7 @@ public protocol PersonalityAnalysisRepositoryProtocol {
     
     /// Get all habits for a user
     func getUserHabits(for userId: UUID) async throws -> [Habit]
-    
-    /// Get habit logs for a user within a date range
-    func getUserHabitLogs(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog]
-    
+
     /// Get custom categories created by a user
     func getUserCustomCategories(for userId: UUID) async throws -> [HabitCategory]
     

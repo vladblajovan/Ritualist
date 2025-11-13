@@ -109,40 +109,9 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
     }
     
     /// Cleanup orphaned habits that reference non-existent categories
+    /// Delegates to HabitMaintenanceService for proper layer separation
     public func cleanupOrphanedHabits() async throws -> Int {
-        do {
-            // Get all habits
-            let habitDescriptor = FetchDescriptor<ActiveHabitModel>()
-            let allHabits = try modelContext.fetch(habitDescriptor)
-
-            // Get all existing category IDs
-            let categoryDescriptor = FetchDescriptor<ActiveHabitCategoryModel>()
-            let allCategories = try modelContext.fetch(categoryDescriptor)
-            let existingCategoryIds = Set(allCategories.map { $0.id })
-
-
-            // Find habits with invalid category references through relationship
-            let orphanedHabits = allHabits.filter { habit in
-                // Check if habit has a category relationship that points to a deleted category
-                if let category = habit.category {
-                    let isOrphaned = !existingCategoryIds.contains(category.id)
-                    return isOrphaned
-                }
-                return false // Habits with nil category are fine
-            }
-
-            // Delete orphaned habits
-            for habit in orphanedHabits {
-                modelContext.delete(habit)
-            }
-
-            try modelContext.save()
-
-            return orphanedHabits.count
-
-        } catch {
-            print("🧹 [DEBUG] Error during orphaned habits cleanup: \(error)")
-            throw error
-        }
+        let maintenanceService = HabitMaintenanceService(modelContainer: modelContainer)
+        return try await maintenanceService.cleanupOrphanedHabits()
     }
 }

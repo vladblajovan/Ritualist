@@ -123,12 +123,8 @@ public protocol LoadProfileUseCase {
     func execute() async throws -> UserProfile 
 }
 
-public protocol SaveProfileUseCase { 
-    func execute(_ profile: UserProfile) async throws 
-}
-
-public protocol UpdateProfileSubscriptionUseCase {
-    func execute(product: Product) async throws
+public protocol SaveProfileUseCase {
+    func execute(_ profile: UserProfile) async throws
 }
 
 public protocol CheckPremiumStatusUseCase {
@@ -145,10 +141,6 @@ public protocol GetSubscriptionExpiryDateUseCase {
 
 public protocol GetCurrentUserProfileUseCase {
     func execute() async -> UserProfile
-}
-
-public protocol UpdateUserSubscriptionUseCase {
-    func execute(plan: SubscriptionPlan, expiryDate: Date?) async throws
 }
 
 // MARK: - Calendar Use Cases

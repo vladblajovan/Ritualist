@@ -418,8 +418,7 @@ private struct PricingCard: View {
         loadPaywallProducts: LoadPaywallProducts(paywallService: mockPaywallService),
         purchaseProduct: PurchaseProduct(paywallService: mockPaywallService),
         restorePurchases: RestorePurchases(paywallService: mockPaywallService),
-        checkProductPurchased: CheckProductPurchased(paywallService: mockPaywallService),
-        updateProfileSubscription: UpdateProfileSubscription()
+        checkProductPurchased: CheckProductPurchased(paywallService: mockPaywallService)
     )
 
     PaywallView(vm: vm)

@@ -5,10 +5,9 @@ import RitualistCore
 @MainActor @Observable
 public final class PaywallViewModel {
     private let loadPaywallProducts: LoadPaywallProductsUseCase
-    private let purchaseProduct: PurchaseProductUseCase  
+    private let purchaseProduct: PurchaseProductUseCase
     private let restorePurchases: RestorePurchasesUseCase
     private let checkProductPurchased: CheckProductPurchasedUseCase
-    private let updateProfileSubscription: UpdateProfileSubscriptionUseCase
     private let errorHandler: ErrorHandler?
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     
@@ -45,25 +44,18 @@ public final class PaywallViewModel {
         purchaseProduct: PurchaseProductUseCase,
         restorePurchases: RestorePurchasesUseCase,
         checkProductPurchased: CheckProductPurchasedUseCase,
-        updateProfileSubscription: UpdateProfileSubscriptionUseCase,
         errorHandler: ErrorHandler? = nil
     ) {
         self.loadPaywallProducts = loadPaywallProducts
         self.purchaseProduct = purchaseProduct
         self.restorePurchases = restorePurchases
         self.checkProductPurchased = checkProductPurchased
-        self.updateProfileSubscription = updateProfileSubscription
         self.errorHandler = errorHandler
         self.benefits = PaywallBenefit.defaultBenefits
     }
     
     // MARK: - Private Methods
-    
-    /// Update user subscription after successful purchase using UseCase
-    private func handleUserSubscriptionUpdate(_ product: Product) async throws {
-        try await updateProfileSubscription.execute(product: product)
-    }
-    
+
     public func load() async {
         let startTime = Date()
         
@@ -175,14 +167,6 @@ public final class PaywallViewModel {
                 price: purchasedProduct.localizedPrice,
                 duration: purchasedProduct.duration.rawValue
             ))
-            
-            // Update user subscription after successful purchase
-            do {
-                try await handleUserSubscriptionUpdate(purchasedProduct)
-            } catch {
-                // Log the error but don't change purchase state
-                userActionTracker.trackError(error, context: "subscription_update_after_purchase")
-            }
         } else if let error = error {
             // Track purchase failure
             userActionTracker.track(.purchaseFailed(
@@ -241,27 +225,17 @@ public final class PaywallViewModel {
     // MARK: - Private Methods
     
     private func handleRestoredPurchases() async {
-        // Check which products were restored and update user accordingly
+        // Check which products were restored
         for product in products {
             let isPurchased = await checkProductPurchased.execute(product.id)
             if isPurchased {
-                do {
-                    isUpdatingUser = true
-                    try await handleUserSubscriptionUpdate(product)
-                    isUpdatingUser = false
-                    
-                    // Track successful restore
-                    userActionTracker.track(.purchaseRestoreCompleted(
-                        productId: product.id,
-                        productName: product.name
-                    ))
-                    
-                    break // Only need to restore one subscription
-                } catch {
-                    isUpdatingUser = false
-                    userActionTracker.trackError(error, context: "subscription_update_after_restore", additionalProperties: ["product_id": product.id])
-                    print("Failed to restore subscription: \(error)")
-                }
+                // Track successful restore
+                userActionTracker.track(.purchaseRestoreCompleted(
+                    productId: product.id,
+                    productName: product.name
+                ))
+
+                break // Only need to track one restored subscription
             }
         }
     }

@@ -7,10 +7,22 @@ import RitualistCore
 extension Container {
     
     // MARK: - Core Services
-    
+
     var errorHandler: Factory<ErrorHandler> {
-        self { 
+        self {
             ErrorHandler(maxLogSize: 1000, analyticsEnabled: true)
+        }
+        .singleton
+    }
+
+    var categoryDefinitionsService: Factory<CategoryDefinitionsServiceProtocol> {
+        self { CategoryDefinitionsService() }
+            .singleton
+    }
+
+    var habitMaintenanceService: Factory<HabitMaintenanceServiceProtocol> {
+        self {
+            HabitMaintenanceService(modelContainer: self.persistenceContainer().container)
         }
         .singleton
     }
