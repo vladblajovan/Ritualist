@@ -78,9 +78,9 @@ jobs:
       with:
         path: |
           ~/Library/Developer/Xcode/DerivedData
-        key: ${{ runner.os }}-xcode-deriveddata-${{ hashFiles('Ritualist.xcodeproj/project.pbxproj') }}
+        key: ${{ runner.os }}-xcode-16.4-deriveddata-${{ hashFiles('Ritualist.xcodeproj/project.pbxproj') }}
         restore-keys: |
-          ${{ runner.os }}-xcode-deriveddata-
+          ${{ runner.os }}-xcode-16.4-deriveddata-
     
     - name: Build for Testing (with timing)
       run: |
