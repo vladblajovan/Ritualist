@@ -57,8 +57,8 @@ Ultra-focused context cards (20-50 tokens each) for common development scenarios
 - Learning about completed initiatives in detail
 
 **Comprehensive References:**
-- **CLAUDE.md** - Complete development guide with all learnings (MUST read micro-contexts first!)
-- **CLAUDE-COLLABORATION-GUIDE.md** - Interaction protocol with micro-context enforcement
+- **[docs/ai-collaboration/claude.md](../docs/ai-collaboration/claude.md)** - Complete development guide with all learnings (MUST read micro-contexts first!)
+- **[docs/ai-collaboration/collaboration-guide.md](../docs/ai-collaboration/collaboration-guide.md)** - Interaction protocol with micro-context enforcement
 - **task-router.md** - Task type to context mappings (START HERE for task routing)
 - **project-analysis.md** - Architecture issues that micro-contexts address
 

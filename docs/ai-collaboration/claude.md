@@ -23,10 +23,10 @@
 📖 **For comprehensive details**: Continue reading this full document (500+ lines)
 
 ## 📋 COLLABORATION GUIDE
-**CRITICAL**: Always reference `CLAUDE-COLLABORATION-GUIDE.md` before starting any work. This guide contains the interaction protocol, quality gates, and learning procedures that must be followed for effective collaboration.
+**CRITICAL**: Always reference [`collaboration-guide.md`](collaboration-guide.md) before starting any work. This guide contains the interaction protocol, quality gates, and learning procedures that must be followed for effective collaboration.
 
 ## 🧪 TESTING STRATEGY
-**CRITICAL**: All code changes must include proper unit tests using REAL implementations, NOT mocks. The project-analysis.md identifies over-reliance on mocks as a major testing issue. Never create standalone test files - always use the proper RitualistTests/ structure.
+**CRITICAL**: All code changes must include proper unit tests using REAL implementations, NOT mocks. The [../reference/project-analysis.md](../reference/project-analysis.md) identifies over-reliance on mocks as a major testing issue. Never create standalone test files - always use the proper RitualistTests/ structure.
 
 **✅ CORRECT TESTING APPROACH:**
 - Use real implementations with test data builders (TestBuilders.swift)
@@ -34,7 +34,7 @@
 - Use TestModelContainer for integration tests with in-memory SwiftData
 - Verify real calculations and data transformations
 
-**❌ TESTING ANTI-PATTERNS (project-analysis.md violations):**
+**❌ TESTING ANTI-PATTERNS ([../reference/project-analysis.md](../reference/project-analysis.md) violations):**
 - Mock-heavy test suites that test mock behavior instead of real implementations
 - Stub methods returning 0, nil, or empty values
 - Testing mocked return values instead of actual business logic
@@ -283,7 +283,7 @@ Ritualist/
 - `Application/RootTabView.swift`: Root navigation structure
 - `Domain/Entities/Entities.swift`: Core business models
 - `.swiftlint.yml`: SwiftLint configuration (in Ritualist/ subdirectory)
-- `CONTRIBUTING.md`: Full development workflow and PR checklist
+- `../../CONTRIBUTING.md`: Full development workflow and PR checklist
 
 ## Testing Strategy
 

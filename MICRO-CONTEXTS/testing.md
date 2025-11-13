@@ -4,7 +4,7 @@
 
 **Structure:** RitualistTests/ hierarchy (NEVER standalone files)
 
-**CRITICAL:** Use real implementations + test data builders, NOT mocks (project-analysis.md violation)
+**CRITICAL:** Use real implementations + test data builders, NOT mocks ([docs/reference/project-analysis.md](../docs/reference/project-analysis.md) violation)
 
 **Pattern:** AAA (Arrange, Act, Assert), test builders for consistent data
 

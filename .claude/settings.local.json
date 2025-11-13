@@ -36,7 +36,9 @@
       "Bash(RitualistCore/Sources/RitualistCore/Storage/SchemaV2.swift)",
       "Bash(RitualistCore/Sources/RitualistCore/Storage/SchemaV1.swift)",
       "Bash(git add:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(git mv:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
