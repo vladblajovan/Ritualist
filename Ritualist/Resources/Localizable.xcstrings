@@ -4102,6 +4102,16 @@
     "Restart Required" : {
 
     },
+    "Restart to test V%lld → V%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Restart to test V%1$lld → V%2$@"
+          }
+        }
+      }
+    },
     "Restore" : {
 
     },
