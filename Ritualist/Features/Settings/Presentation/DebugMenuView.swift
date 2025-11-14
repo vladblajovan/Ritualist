@@ -21,6 +21,9 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     @State private var showingBackupList = false
     @State private var showingMigrationSimulationAlert = false
     @State private var showingMotivationCardDemo = false
+    @State private var showingResetOnboardingConfirmation = false
+    @State private var showingRestartRequiredAlert = false
+    @State private var restartInstructionMessage = ""
     @State private var migrationLogger = MigrationLogger.shared
     @State private var backupManager = BackupManager()
     @State private var backupCount: Int = 0
@@ -154,23 +157,19 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
 
             Section("Onboarding Management") {
                 Button(role: .destructive) {
-                    Task {
-                        await vm.resetOnboarding()
-                        // Restart app to show onboarding again
-                        exit(0)
-                    }
+                    showingResetOnboardingConfirmation = true
                 } label: {
                     HStack {
                         Image(systemName: "arrow.counterclockwise")
                             .foregroundColor(.purple)
 
-                        Text("Reset Onboarding & Restart")
+                        Text("Reset Onboarding")
 
                         Spacer()
                     }
                 }
 
-                Text("Clears onboarding completion status and restarts the app to show onboarding flow again")
+                Text("Clears onboarding completion status. You'll need to manually restart the app to see the onboarding flow again.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -650,15 +649,28 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
             Text("This will permanently delete all habits, logs, categories, and user data from the local database. This action cannot be undone.\n\nThis is useful for testing with a clean slate.")
         }
         .alert("Migration Simulation Ready", isPresented: $showingMigrationSimulationAlert) {
-            Button("Restart App") {
-                // Restart the app to trigger migration detection
-                exit(0)
-            }
-            Button("Cancel", role: .cancel) { }
+            Button("OK") { }
         } message: {
             let previousVersion = getPreviousVersionNumber()
             let currentVersionString = RitualistMigrationPlan.currentSchemaVersion.description
-            Text("Set to V\(previousVersion).0.0. Restart to see V\(previousVersion) → V\(currentVersionString) migration.")
+            Text("Set to V\(previousVersion).0.0. Please close and reopen the app to see V\(previousVersion) → V\(currentVersionString) migration.")
+        }
+        .alert("Reset Onboarding?", isPresented: $showingResetOnboardingConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset", role: .destructive) {
+                Task {
+                    await vm.resetOnboarding()
+                    restartInstructionMessage = "Onboarding has been reset. Please close and reopen the app to see the onboarding flow."
+                    showingRestartRequiredAlert = true
+                }
+            }
+        } message: {
+            Text("This will clear the onboarding completion status. You'll need to manually restart the app to see the onboarding flow again.")
+        }
+        .alert("Restart Required", isPresented: $showingRestartRequiredAlert) {
+            Button("OK") { }
+        } message: {
+            Text(restartInstructionMessage)
         }
         .refreshable {
             await vm.loadDatabaseStats()
@@ -919,12 +931,9 @@ struct BackupListView: View {
             Text("This will replace the current database with the selected backup. The current database will be backed up first.\n\nThe app will need to restart after restoration.")
         }
         .alert("Database Restored", isPresented: $showingRestoreSuccessAlert) {
-            Button("Restart App") {
-                // Restart the app to load the restored database
-                exit(0)
-            }
+            Button("OK") { }
         } message: {
-            Text("The database has been successfully restored. Tap 'Restart App' to reload the app with the restored data.")
+            Text("The database has been successfully restored. Please close and reopen the app to load the restored data.")
         }
     }
 
