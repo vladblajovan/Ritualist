@@ -483,12 +483,146 @@ public final class DefaultTriggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCa
 
 public final class DefaultForceManualAnalysisUseCase: ForceManualAnalysisUseCase {
     private let scheduler: PersonalityAnalysisSchedulerProtocol
-    
+
     public init(scheduler: PersonalityAnalysisSchedulerProtocol) {
         self.scheduler = scheduler
     }
-    
+
     public func execute(for userId: UUID) async {
         await scheduler.forceManualAnalysis(for: userId)
+    }
+}
+
+// MARK: - Personality Analysis Data Use Cases
+
+public final class DefaultGetHabitAnalysisInputUseCase: GetHabitAnalysisInputUseCase {
+
+    private let habitRepository: HabitRepository
+    private let categoryRepository: CategoryRepository
+    private let getBatchLogs: GetBatchLogsUseCase
+    private let completionCalculator: ScheduleAwareCompletionCalculator
+    private let getSelectedSuggestions: GetSelectedHabitSuggestionsUseCase
+    private let calculateTrackingDays: CalculateConsecutiveTrackingDaysService
+
+    public init(
+        habitRepository: HabitRepository,
+        categoryRepository: CategoryRepository,
+        getBatchLogs: GetBatchLogsUseCase,
+        completionCalculator: ScheduleAwareCompletionCalculator,
+        getSelectedSuggestions: GetSelectedHabitSuggestionsUseCase,
+        calculateTrackingDays: CalculateConsecutiveTrackingDaysService
+    ) {
+        self.habitRepository = habitRepository
+        self.categoryRepository = categoryRepository
+        self.getBatchLogs = getBatchLogs
+        self.completionCalculator = completionCalculator
+        self.getSelectedSuggestions = getSelectedSuggestions
+        self.calculateTrackingDays = calculateTrackingDays
+    }
+
+    public func execute(for userId: UUID) async throws -> HabitAnalysisInput {
+        // Get all active habits
+        let allHabits = try await habitRepository.fetchAllHabits()
+        let activeHabits = allHabits.filter { $0.isActive }
+
+        // Get all habit logs for the last 30 days using batch optimization
+        let endDate = Date()
+        let startDate = CalendarUtils.addDays(-30, to: endDate)
+
+        // OPTIMIZATION: Use batch loading to avoid N+1 queries
+        let habitIds = activeHabits.map(\.id)
+        let logsByHabitId = try await getBatchLogs.execute(for: habitIds, since: startDate, until: endDate)
+        let allLogs = logsByHabitId.values.flatMap { $0 }
+
+        // Calculate completion rates per habit using schedule-aware logic
+        let completionRates = activeHabits.map { habit in
+            completionCalculator.calculateCompletionRate(
+                for: habit,
+                logs: allLogs,
+                startDate: startDate,
+                endDate: endDate
+            )
+        }
+
+        // Get custom habits (non-suggested habits)
+        let customHabits = activeHabits.filter { $0.suggestionId == nil }
+
+        // Get all categories
+        let allCategories = try await categoryRepository.getAllCategories()
+        let customCategories = try await categoryRepository.getCustomCategories()
+
+        // Get habit categories (categories that have active habits)
+        let habitCategoryIds = Set(activeHabits.map { $0.categoryId })
+        let habitCategories = allCategories.filter { habitCategoryIds.contains($0.id) }
+
+        // Get selected suggestions (habits that came from suggestions)
+        let selectedSuggestions = try await getSelectedSuggestions.execute(from: activeHabits)
+
+        // Calculate tracking consistency
+        let trackingDays = calculateTrackingDays.execute(logs: allLogs)
+
+        // Calculate total data points for analysis confidence
+        let individualHabitAnalysis = activeHabits.count
+        let totalDataPoints = allLogs.count + customHabits.count + customCategories.count + individualHabitAnalysis
+
+        return HabitAnalysisInput(
+            activeHabits: activeHabits,
+            completionRates: completionRates,
+            customHabits: customHabits,
+            customCategories: customCategories,
+            habitCategories: habitCategories,
+            selectedSuggestions: selectedSuggestions,
+            trackingDays: trackingDays,
+            analysisTimeRange: 30,
+            totalDataPoints: totalDataPoints
+        )
+    }
+}
+
+public final class DefaultGetSelectedHabitSuggestionsUseCase: GetSelectedHabitSuggestionsUseCase {
+
+    private let suggestionsService: HabitSuggestionsService
+
+    public init(suggestionsService: HabitSuggestionsService) {
+        self.suggestionsService = suggestionsService
+    }
+
+    public func execute(from habits: [Habit]) async throws -> [HabitSuggestion] {
+        var selectedSuggestions: [HabitSuggestion] = []
+
+        // Find habits that were created from suggestions (have a suggestionId)
+        let habitsSuggestionsIds = habits.compactMap { $0.suggestionId }
+
+        // Look up the original suggestions by ID
+        for suggestionId in habitsSuggestionsIds {
+            if let suggestion = suggestionsService.getSuggestion(by: suggestionId) {
+                selectedSuggestions.append(suggestion)
+            }
+        }
+
+        return selectedSuggestions
+    }
+}
+
+public final class DefaultEstimateDaysToEligibilityUseCase: EstimateDaysToEligibilityUseCase {
+
+    public init() {}
+
+    public func execute(from unmetRequirements: [ThresholdRequirement]) -> Int? {
+        var maxDaysNeeded = 0
+
+        for requirement in unmetRequirements {
+            switch requirement.category {
+            case .tracking:
+                let daysNeeded = requirement.requiredValue - requirement.currentValue
+                maxDaysNeeded = max(maxDaysNeeded, max(0, daysNeeded))
+            case .habits, .customization:
+                maxDaysNeeded = max(maxDaysNeeded, 1)
+            case .diversity:
+                maxDaysNeeded = max(maxDaysNeeded, 3)
+            }
+        }
+
+        return maxDaysNeeded > 0 ? maxDaysNeeded : nil
     }
 }

@@ -24,7 +24,7 @@ extension Container {
     }
     
     var personalityAnalysisScheduler: Factory<PersonalityAnalysisSchedulerProtocol> {
-        self { 
+        self {
             PersonalityAnalysisScheduler(
                 personalityRepository: self.personalityAnalysisRepository(),
                 analyzePersonalityUseCase: self.analyzePersonalityUseCase(),
@@ -34,5 +34,10 @@ extension Container {
             )
         }
         .singleton
+    }
+
+    var calculateConsecutiveTrackingDaysService: Factory<CalculateConsecutiveTrackingDaysService> {
+        self { DefaultCalculateConsecutiveTrackingDaysService() }
+            .singleton
     }
 }

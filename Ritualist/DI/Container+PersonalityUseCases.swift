@@ -83,4 +83,29 @@ extension Container {
     var forceManualAnalysisUseCase: Factory<ForceManualAnalysisUseCase> {
         self { DefaultForceManualAnalysisUseCase(scheduler: self.personalityAnalysisScheduler()) }
     }
+
+    // MARK: - Personality Analysis Data Use Cases
+
+    var getHabitAnalysisInputUseCase: Factory<GetHabitAnalysisInputUseCase> {
+        self {
+            DefaultGetHabitAnalysisInputUseCase(
+                habitRepository: self.habitRepository(),
+                categoryRepository: self.categoryRepository(),
+                getBatchLogs: self.getBatchLogs(),
+                completionCalculator: self.scheduleAwareCompletionCalculator(),
+                getSelectedSuggestions: self.getSelectedHabitSuggestionsUseCase(),
+                calculateTrackingDays: self.calculateConsecutiveTrackingDaysService()
+            )
+        }
+    }
+
+    var getSelectedHabitSuggestionsUseCase: Factory<GetSelectedHabitSuggestionsUseCase> {
+        self {
+            DefaultGetSelectedHabitSuggestionsUseCase(suggestionsService: self.habitSuggestionsService())
+        }
+    }
+
+    var estimateDaysToEligibilityUseCase: Factory<EstimateDaysToEligibilityUseCase> {
+        self { DefaultEstimateDaysToEligibilityUseCase() }
+    }
 }

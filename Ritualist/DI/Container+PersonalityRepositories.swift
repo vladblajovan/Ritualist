@@ -9,16 +9,17 @@ extension Container {
     // MARK: - Personality Repositories
     
     var personalityAnalysisRepository: Factory<PersonalityAnalysisRepositoryProtocol> {
-        self { 
+        self {
             PersonalityAnalysisRepositoryImpl(
                 dataSource: self.personalityAnalysisDataSource(),
                 habitRepository: self.habitRepository(),
                 categoryRepository: self.categoryRepository(),
-                logRepository: self.logRepository(),
-                suggestionsService: self.habitSuggestionsService(),
                 completionCalculator: self.scheduleAwareCompletionCalculator(),
-                getBatchLogs: self.getBatchLogs()
-            ) 
+                getBatchLogs: self.getBatchLogs(),
+                getHabitAnalysisInput: self.getHabitAnalysisInputUseCase(),
+                thresholdValidator: self.dataThresholdValidator(),
+                preferencesDataSource: self.personalityPreferencesDataSource()
+            )
         }
         .singleton
     }

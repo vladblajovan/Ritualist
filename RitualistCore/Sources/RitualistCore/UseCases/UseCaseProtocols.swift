@@ -437,6 +437,20 @@ public protocol ForceManualAnalysisUseCase {
     func execute(for userId: UUID) async
 }
 
+// MARK: - Personality Analysis Data Use Cases
+
+public protocol GetHabitAnalysisInputUseCase {
+    func execute(for userId: UUID) async throws -> HabitAnalysisInput
+}
+
+public protocol GetSelectedHabitSuggestionsUseCase {
+    func execute(from habits: [Habit]) async throws -> [HabitSuggestion]
+}
+
+public protocol EstimateDaysToEligibilityUseCase {
+    func execute(from unmetRequirements: [ThresholdRequirement]) -> Int?
+}
+
 // MARK: - Debug Use Cases
 
 #if DEBUG
