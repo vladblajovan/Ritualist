@@ -12,9 +12,13 @@ import UserNotifications
 /// Coordinates deep linking for personality analysis notifications
 @Observable
 public final class PersonalityDeepLinkCoordinator {
-    
+
+    // MARK: - Dependencies
+
+    private let logger: DebugLogger
+
     // MARK: - Observable Properties
-    
+
     public var shouldShowPersonalityAnalysis = false
     public var pendingNotificationAction: PersonalityNotificationAction?
     public var shouldSwitchTab = true // Controls whether to switch to a specific tab before showing sheet
@@ -29,39 +33,33 @@ public final class PersonalityDeepLinkCoordinator {
     }
     
     // MARK: - Singleton
-    
+
     public static let shared = PersonalityDeepLinkCoordinator()
-    
-    private init() {}
+
+    private init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "personality")) {
+        self.logger = logger
+    }
     
     // MARK: - Public Methods
     
     /// Handles notification response when user taps personality notification
     @MainActor
     public func handleNotificationResponse(_ response: UNNotificationResponse) {
-        #if DEBUG
-        print("🔔 PersonalityDeepLink: Received notification response")
-        #endif
+        logger.logNotification(event: "Received personality notification response", type: "personality_analysis")
 
         guard let userInfo = response.notification.request.content.userInfo as? [String: Any],
               let type = userInfo["type"] as? String,
               type == "personality_analysis" else {
-            #if DEBUG
-            print("🔔 PersonalityDeepLink: Not a personality_analysis notification")
-            #endif
+            logger.logNotification(event: "Not a personality_analysis notification", type: "unknown")
             return
         }
 
         guard let action = userInfo["action"] as? String else {
-            #if DEBUG
-            print("🔔 PersonalityDeepLink: No action in userInfo")
-            #endif
+            logger.logNotification(event: "No action in userInfo", type: "personality_analysis")
             return
         }
 
-        #if DEBUG
-        print("🔔 PersonalityDeepLink: Action = \(action)")
-        #endif
+        logger.logNotification(event: "Processing action", type: "personality_analysis", metadata: ["action": action])
 
         // Clear the tapped notification from notification center to prevent badge buildup
         let notificationId = response.notification.request.identifier
@@ -81,33 +79,25 @@ public final class PersonalityDeepLinkCoordinator {
                 let dominantTrait = (userInfo["dominant_trait"] as? String).flatMap(PersonalityTrait.init(fromString:))
                 let confidence = (userInfo["confidence"] as? String).flatMap(ConfidenceLevel.init(fromString:))
 
-                #if DEBUG
-                print("🔔 PersonalityDeepLink: Setting pendingNotificationAction to openAnalysis")
-                #endif
+                logger.logDeepLink(event: "Setting pendingNotificationAction", action: "openAnalysis")
 
                 pendingNotificationAction = .openAnalysis(
                     dominantTrait: dominantTrait,
                     confidence: confidence
                 )
 
-                #if DEBUG
-                print("🔔 PersonalityDeepLink: Setting shouldShowPersonalityAnalysis = true")
-                #endif
+                logger.logPersonality(event: "Triggering personality analysis sheet")
 
                 shouldShowPersonalityAnalysis = true
 
             case "open_requirements":
-                #if DEBUG
-                print("🔔 PersonalityDeepLink: Setting pendingNotificationAction to openRequirements")
-                #endif
+                logger.logDeepLink(event: "Setting pendingNotificationAction", action: "openRequirements")
 
                 pendingNotificationAction = .openRequirements
                 shouldShowPersonalityAnalysis = true
 
             case "check_analysis":
-                #if DEBUG
-                print("🔔 PersonalityDeepLink: Setting pendingNotificationAction to checkAnalysis")
-                #endif
+                logger.logDeepLink(event: "Setting pendingNotificationAction", action: "checkAnalysis")
 
                 pendingNotificationAction = .checkAnalysis
                 shouldShowPersonalityAnalysis = true

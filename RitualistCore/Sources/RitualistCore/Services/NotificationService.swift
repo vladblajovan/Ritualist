@@ -63,14 +63,20 @@ public final class LocalNotificationService: NSObject, NotificationService {
     public var personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator?
     private let errorHandler: ErrorHandler?
     private let habitCompletionCheckService: HabitCompletionCheckService
+    private let logger: DebugLogger
 
-    public init(habitCompletionCheckService: HabitCompletionCheckService, errorHandler: ErrorHandler? = nil) {
+    public init(
+        habitCompletionCheckService: HabitCompletionCheckService,
+        errorHandler: ErrorHandler? = nil,
+        logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "notifications")
+    ) {
         self.habitCompletionCheckService = habitCompletionCheckService
         self.errorHandler = errorHandler
+        self.logger = logger
         super.init()
-        
+
         // Set up the notification center delegate to handle foreground notifications
-        print("🔧 [NotificationService] Setting up notification delegate")
+        logger.logNotification(event: "Setting up notification delegate")
         UNUserNotificationCenter.current().delegate = self
         print("🔧 [NotificationService] Delegate set to: \(String(describing: UNUserNotificationCenter.current().delegate))")
         
@@ -298,9 +304,12 @@ public final class LocalNotificationService: NSObject, NotificationService {
         let center = UNUserNotificationCenter.current()
         let prefix = habitID.uuidString
         let pending = await center.pendingNotificationRequests()
-        
-        print("🔍 [NotificationService] Starting cancellation for habit: \(habitID)")
-        print("📊 [NotificationService] Total pending notifications before cancellation: \(pending.count)")
+
+        logger.logNotification(
+            event: "Starting cancellation",
+            habitId: habitID.uuidString,
+            metadata: ["pending_count": pending.count]
+        )
         
         // Log all pending notifications for this habit to debug
         let habitNotifications = pending.filter { notification in
@@ -516,8 +525,8 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         
         // Extract habitId from notification userInfo for completion checking
         let userInfo = notification.request.content.userInfo
-        print("🔍 [NotificationService] UserInfo: \(userInfo)")
-        
+        logger.logNotification(event: "Checking notification userInfo", metadata: ["userInfo": userInfo])
+
         guard let habitIdString = userInfo["habitId"] as? String,
               let habitId = UUID(uuidString: habitIdString) else {
             print("⚠️ [NotificationService] No valid habitId found in notification, showing notification by default")
@@ -525,10 +534,13 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
             completionHandler([.banner, .sound, .badge])
             return
         }
-        
-        print("🔔 [NotificationService] Notification for habit: \(habitId)")
-        print("🔍 [NotificationService] Checking completion status for habit: \(habitId)")
-        
+
+        logger.logNotification(
+            event: "Checking completion status",
+            type: "habit_reminder",
+            habitId: habitId.uuidString
+        )
+
         // Use async completion checking with timeout to avoid blocking the delegate
         Task {
             do {
@@ -689,9 +701,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
 
         // Check if this is a personality analysis notification
         if let type = userInfo["type"] as? String, type == "personality_analysis" {
-            #if DEBUG
-            print("🔍 [NotificationService] Detected personality analysis notification")
-            #endif
+            logger.logNotification(event: "Detected personality analysis notification", type: "personality_analysis")
 
             await handlePersonalityNotificationResponse(response)
             return

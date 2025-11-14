@@ -33,6 +33,10 @@ public enum LogCategory: String, CaseIterable {
     case network = "Network"
     case ui = "UI"
     case system = "System"
+    case personality = "Personality"
+    case notifications = "Notifications"
+    case deepLinking = "DeepLinking"
+    case navigation = "Navigation"
 }
 
 // MARK: - Enhanced Debug Logger
@@ -297,7 +301,93 @@ public final class DebugLogger {
     public func logFlushRequested() {
         log("Flush requested", level: .info, category: .userAction)
     }
-    
+
+    // MARK: - Personality Analysis Logging
+
+    /// Log personality analysis events
+    public func logPersonality(
+        event: String,
+        context: [String: Any]? = nil
+    ) {
+        log("PersonalityAnalysis: \(event)", level: .debug, category: .personality, metadata: context)
+    }
+
+    /// Log personality analysis sheet state changes
+    public func logPersonalitySheet(
+        state: String,
+        shouldSwitchTab: Bool? = nil,
+        currentTab: String? = nil,
+        metadata: [String: Any]? = nil
+    ) {
+        var context = metadata ?? [:]
+        if let shouldSwitchTab = shouldSwitchTab {
+            context["should_switch_tab"] = shouldSwitchTab
+        }
+        if let currentTab = currentTab {
+            context["current_tab"] = currentTab
+        }
+
+        log("PersonalityAnalysis: \(state)", level: .debug, category: .personality, metadata: context)
+    }
+
+    // MARK: - Notification Logging
+
+    /// Log notification events
+    public func logNotification(
+        event: String,
+        type: String? = nil,
+        habitId: String? = nil,
+        metadata: [String: Any]? = nil
+    ) {
+        var notifMetadata = metadata ?? [:]
+        if let type = type {
+            notifMetadata["notification_type"] = type
+        }
+        if let habitId = habitId {
+            notifMetadata["habit_id"] = habitId
+        }
+
+        log("Notification: \(event)", level: .debug, category: .notifications, metadata: notifMetadata)
+    }
+
+    // MARK: - Navigation \u0026 Deep Linking
+
+    /// Log navigation events
+    public func logNavigation(
+        event: String,
+        from: String? = nil,
+        to: String? = nil,
+        metadata: [String: Any]? = nil
+    ) {
+        var navMetadata = metadata ?? [:]
+        if let from = from {
+            navMetadata["from"] = from
+        }
+        if let to = to {
+            navMetadata["to"] = to
+        }
+
+        log("Navigation: \(event)", level: .debug, category: .navigation, metadata: navMetadata)
+    }
+
+    /// Log deep link handling
+    public func logDeepLink(
+        event: String,
+        url: String? = nil,
+        action: String? = nil,
+        metadata: [String: Any]? = nil
+    ) {
+        var linkMetadata = metadata ?? [:]
+        if let url = url {
+            linkMetadata["url"] = url
+        }
+        if let action = action {
+            linkMetadata["action"] = action
+        }
+
+        log("DeepLink: \(event)", level: .debug, category: .deepLinking, metadata: linkMetadata)
+    }
+
     // MARK: - Diagnostics and Export
     
     /// Get recent logs for diagnostics

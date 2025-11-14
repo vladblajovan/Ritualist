@@ -7,6 +7,7 @@ public struct RootTabView: View {
     @Injected(\.settingsViewModel) var settingsViewModel
     @Injected(\.loadHabitsData) var loadHabitsData
     @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
+    @Injected(\.debugLogger) var logger
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var showingPersonalityAnalysis = false
@@ -95,30 +96,35 @@ public struct RootTabView: View {
         }
         .onChange(of: vm.personalityDeepLinkCoordinator.shouldShowPersonalityAnalysis) { oldValue, shouldShow in
             if shouldShow {
-                #if DEBUG
-                print("🔍 PersonalityAnalysis: shouldShow triggered (oldValue: \(oldValue), shouldShow: \(shouldShow))")
-                print("🔍 PersonalityAnalysis: Current tab BEFORE any changes: \(vm.navigationService.selectedTab)")
-                print("🔍 PersonalityAnalysis: shouldSwitchTab = \(vm.personalityDeepLinkCoordinator.shouldSwitchTab)")
-                #endif
+                logger.logPersonalitySheet(
+                    state: "shouldShow triggered",
+                    shouldSwitchTab: vm.personalityDeepLinkCoordinator.shouldSwitchTab,
+                    currentTab: "\(vm.navigationService.selectedTab)",
+                    metadata: ["oldValue": oldValue, "shouldShow": shouldShow]
+                )
 
                 if vm.personalityDeepLinkCoordinator.shouldSwitchTab {
                     // Navigate to overview tab first (for notifications)
-                    #if DEBUG
-                    print("🔍 PersonalityAnalysis: Navigating to overview tab (setting selectedTab = .overview)")
-                    #endif
+                    logger.logPersonalitySheet(
+                        state: "Navigating to overview tab",
+                        shouldSwitchTab: true,
+                        currentTab: "\(vm.navigationService.selectedTab)"
+                    )
 
                     pendingPersonalitySheetAfterTabSwitch = true
                     vm.navigationService.selectedTab = .overview
 
-                    #if DEBUG
-                    print("🔍 PersonalityAnalysis: selectedTab AFTER assignment: \(vm.navigationService.selectedTab)")
-                    #endif
+                    logger.logPersonalitySheet(
+                        state: "selectedTab assigned",
+                        currentTab: "\(vm.navigationService.selectedTab)"
+                    )
                     // Sheet will show via onChange(of: selectedTab) below
                 } else {
                     // Show directly without tab navigation (for direct calls)
-                    #if DEBUG
-                    print("🔍 PersonalityAnalysis: Showing sheet directly (no tab navigation)")
-                    #endif
+                    logger.logPersonalitySheet(
+                        state: "Showing sheet directly (no tab navigation)",
+                        shouldSwitchTab: false
+                    )
 
                     showingPersonalityAnalysis = true
                     // Reset coordinator state immediately after triggering
@@ -127,16 +133,19 @@ public struct RootTabView: View {
             }
         }
         .onChange(of: vm.navigationService.selectedTab) { oldTab, newTab in
-            #if DEBUG
-            print("🔍 PersonalityAnalysis: Tab changed from \(oldTab) to \(newTab)")
-            print("🔍 PersonalityAnalysis: pendingPersonalitySheetAfterTabSwitch = \(pendingPersonalitySheetAfterTabSwitch)")
-            #endif
+            logger.logNavigation(
+                event: "Tab changed",
+                from: "\(oldTab)",
+                to: "\(newTab)",
+                metadata: ["pendingPersonalitySheet": pendingPersonalitySheetAfterTabSwitch]
+            )
 
             // When tab switches and we have a pending personality sheet, show it
             if pendingPersonalitySheetAfterTabSwitch && newTab == .overview {
-                #if DEBUG
-                print("🔍 PersonalityAnalysis: Tab switched to overview, showing sheet")
-                #endif
+                logger.logPersonalitySheet(
+                    state: "Tab switched to overview, showing sheet",
+                    currentTab: "\(newTab)"
+                )
 
                 pendingPersonalitySheetAfterTabSwitch = false
                 showingPersonalityAnalysis = true
@@ -144,16 +153,12 @@ public struct RootTabView: View {
             }
         }
         .sheet(isPresented: $showingPersonalityAnalysis) {
-            #if DEBUG
-            print("✅ PersonalityAnalysis: Sheet is being presented!")
-            #endif
+            logger.logPersonalitySheet(state: "Sheet is being presented")
 
             return PersonalityAnalysisDeepLinkSheet(
                 action: vm.personalityDeepLinkCoordinator.pendingNotificationAction
             ) {
-                #if DEBUG
-                print("👋 PersonalityAnalysis: Sheet dismissed by user")
-                #endif
+                logger.logPersonalitySheet(state: "Sheet dismissed by user")
 
                 // Only clear the notification action on dismissal
                 vm.personalityDeepLinkCoordinator.pendingNotificationAction = nil

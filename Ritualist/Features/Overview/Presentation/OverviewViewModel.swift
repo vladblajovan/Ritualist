@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftUI
 import Foundation
 import FactoryKit
@@ -147,7 +148,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     @ObservationIgnored @Injected(\.refreshWidget) private var refreshWidget
     @ObservationIgnored @Injected(\.personalizedMessageGenerator) private var personalizedMessageGenerator
     @ObservationIgnored @Injected(\.getMigrationStatus) private var getMigrationStatus
-    
+    @ObservationIgnored @Injected(\.debugLogger) private var logger
+
     private func getUserId() async -> UUID {
         await getCurrentUserProfile.execute().id
     }
@@ -162,31 +164,52 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func loadData() async {
         // Prevent duplicate loads while one is already in progress
         guard !isLoading else {
-            print("⚠️ LOAD BLOCKED: Already loading (preventing duplicate)")
+            logger.logStateTransition(
+                from: "loading_blocked",
+                to: "already_loading",
+                context: ["reason": "Preventing duplicate load"]
+            )
             return
         }
 
         // MIGRATION GUARD: Check migration state on first load
         // Handles: (1) App restart during migration, (2) ViewModel created after migration
         if !hasLoadedInitialData && getMigrationStatus.isMigrating {
-            print("⏳ MIGRATION IN PROGRESS: Deferring data load until migration completes")
+            logger.logStateTransition(
+                from: "initial_load_deferred",
+                to: "migration_in_progress",
+                context: ["reason": "Waiting for migration completion"]
+            )
             wasMigrating = true
             return  // Don't load during migration - wait for completion
         }
 
         // MIGRATION CHECK: Detect completion and invalidate cache if needed
         if checkMigrationAndInvalidateCache() {
-            print("🔄 MIGRATION COMPLETED: Cache invalidated, proceeding with fresh load")
+            logger.logStateTransition(
+                from: "migration_completed",
+                to: "cache_invalidated",
+                context: ["action": "Proceeding with fresh load"]
+            )
         }
 
         // Skip redundant loads after initial data is loaded
         // Allow loads if: cache is nil OR migration just completed
         if hasLoadedInitialData && overviewData != nil {
-            print("⚠️ LOAD SKIPPED: Data already loaded (use refresh() to force reload)")
+            logger.log(
+                "Load skipped - data already loaded",
+                level: .debug,
+                category: .stateManagement,
+                metadata: ["hint": "Use refresh() to force reload"]
+            )
             return
         }
 
-        print("🔄 FULL RELOAD: Loading data from database")
+        logger.logStateTransition(
+            from: "idle",
+            to: "loading",
+            context: ["operation": "Full database reload"]
+        )
         isLoading = true
         error = nil
 
@@ -196,7 +219,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
             // Load unified data once instead of multiple parallel operations
             let overviewData = try await loadOverviewData()
-            print("✅ FULL RELOAD: Loaded \(overviewData.habits.count) habits, \(overviewData.habitLogs.values.flatMap { $0 }.count) logs")
+            logger.log(
+                "Data loaded successfully",
+                level: .info,
+                category: .stateManagement,
+                metadata: [
+                    "habits_count": overviewData.habits.count,
+                    "logs_count": overviewData.habitLogs.values.flatMap { $0 }.count
+                ]
+            )
 
             // Store the overview data and extract all card data from it using unified approach
             self.overviewData = overviewData
@@ -221,7 +252,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     public func refresh() async {
-        print("🔄 MANUAL REFRESH: User requested refresh")
+        logger.log(
+            "Manual refresh requested",
+            level: .info,
+            category: .userAction,
+            metadata: ["action": "User initiated data reload"]
+        )
         hasLoadedInitialData = false  // Allow reload
         await loadData()
     }
@@ -230,7 +266,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         // Restore pre-cache-sync behavior: reload on tab switch
         // This ensures users see new habits/categories created in other tabs
         if hasLoadedInitialData {
-            print("🔄 TAB SWITCH: Invalidating cache for fresh data")
+            logger.logStateTransition(
+                from: "cached",
+                to: "invalidated",
+                context: ["reason": "Tab switch detected"]
+            )
             hasLoadedInitialData = false
         }
     }
@@ -277,7 +317,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             }
         } catch {
             self.error = error
-            print("Failed to complete habit: \(error)")
+            logger.logError(
+                error,
+                context: "Failed to complete habit",
+                metadata: ["habit_id": habit.id.uuidString]
+            )
         }
     }
     
@@ -292,7 +336,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 return logsForDate.isEmpty ? 0.0 : 1.0
             }
         } catch {
-            print("Failed to get current progress for habit \(habit.name): \(error)")
+            logger.logError(
+                error,
+                context: "Failed to get current progress",
+                metadata: ["habit_name": habit.name, "habit_id": habit.id.uuidString]
+            )
             return 0.0
         }
     }
@@ -352,7 +400,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             refreshWidget.execute(habitId: habit.id)
         } catch {
             self.error = error
-            print("Failed to update numeric habit: \(error)")
+            logger.logError(
+                error,
+                context: "Failed to update numeric habit",
+                metadata: ["habit_id": habit.id.uuidString]
+            )
         }
     }
     
@@ -486,7 +538,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             refreshWidget.execute(habitId: habit.id)
         } catch {
             self.error = error
-            print("Failed to delete habit log: \(error)")
+            logger.logError(
+                error,
+                context: "Failed to delete habit log",
+                metadata: ["habit_id": habit.id.uuidString]
+            )
         }
     }
     
@@ -636,21 +692,52 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     private func checkAndShowInspirationCard() {
         guard isViewingToday, let summary = todaysSummary else {
-            print("🎯 INSPIRATION: Not checking - isViewingToday=\(isViewingToday), hasSummary=\(todaysSummary != nil)")
+            logger.log(
+                "Skipping inspiration check",
+                level: .debug,
+                category: .ui,
+                metadata: [
+                    "is_viewing_today": isViewingToday,
+                    "has_summary": todaysSummary != nil
+                ]
+            )
             return
         }
 
-        print("🎯 INSPIRATION: Checking triggers for completion=\(summary.completionPercentage)")
+        logger.log(
+            "Evaluating inspiration triggers",
+            level: .debug,
+            category: .ui,
+            metadata: ["completion": summary.completionPercentage]
+        )
 
         Task {
             let triggers = await evaluateInspirationTriggers(summary: summary)
-            print("🎯 INSPIRATION: Evaluated triggers: \(triggers.map { $0.displayName })")
+            logger.log(
+                "Evaluated inspiration triggers",
+                level: .debug,
+                category: .ui,
+                metadata: [
+                    "trigger_count": triggers.count,
+                    "triggers": triggers.map { $0.displayName }.joined(separator: ", ")
+                ]
+            )
 
             if let bestTrigger = selectBestTrigger(from: triggers) {
-                print("🎯 INSPIRATION: Selected trigger: \(bestTrigger.displayName)")
+                logger.log(
+                    "Selected inspiration trigger",
+                    level: .debug,
+                    category: .ui,
+                    metadata: ["trigger": bestTrigger.displayName]
+                )
                 showInspirationWithTrigger(bestTrigger)
             } else {
-                print("🎯 INSPIRATION: No trigger selected (all filtered or empty)")
+                logger.log(
+                    "No inspiration trigger selected",
+                    level: .debug,
+                    category: .ui,
+                    metadata: ["reason": "All triggers filtered or empty"]
+                )
             }
         }
     }
@@ -715,13 +802,28 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     private func selectBestTrigger(from triggers: [InspirationTrigger]) -> InspirationTrigger? {
         let now = Date()
 
-        print("🎯 INSPIRATION: Dismissed triggers today: \(dismissedTriggersToday.map { $0.displayName })")
+        logger.log(
+            "Filtering dismissed triggers",
+            level: .debug,
+            category: .ui,
+            metadata: [
+                "dismissed_today": dismissedTriggersToday.map { $0.displayName }.joined(separator: ", ")
+            ]
+        )
 
         // Filter out triggers that are on cooldown or dismissed today
         let availableTriggers = triggers.filter { trigger in
             // Skip if already dismissed today
             if dismissedTriggersToday.contains(trigger) {
-                print("🎯 INSPIRATION: Skipping \(trigger.displayName) - already dismissed")
+                logger.log(
+                    "Skipping trigger",
+                    level: .debug,
+                    category: .ui,
+                    metadata: [
+                        "trigger": trigger.displayName,
+                        "reason": "Already dismissed today"
+                    ]
+                )
                 return false
             }
 
@@ -768,7 +870,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             }
         }()
 
-        print("🎯 INSPIRATION: Showing trigger '\(trigger.displayName)' after \(delay)ms delay")
+        logger.log(
+            "Showing inspiration trigger",
+            level: .debug,
+            category: .ui,
+            metadata: [
+                "trigger": trigger.displayName,
+                "delay_ms": delay
+            ]
+        )
 
         Task {
             try? await Task.sleep(for: .milliseconds(delay))
@@ -777,7 +887,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             let message = await getPersonalizedMessage(for: trigger)
             self.cachedInspirationMessage = message
 
-            print("🎯 INSPIRATION: Setting showInspirationCard=true for '\(trigger.displayName)'")
+            logger.log(
+                "Activating inspiration card",
+                level: .debug,
+                category: .ui,
+                metadata: ["trigger": trigger.displayName]
+            )
             self.lastShownInspirationTrigger = trigger
             self.showInspirationCard = true
         }
@@ -827,7 +942,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         if justCompletedMigration {
             // Migration just completed - cache is STALE
-            print("🔄 Migration completed - invalidating cache")
+            logger.logStateTransition(
+                from: "migration_completed",
+                to: "cache_invalidated",
+                context: ["action": "Force reload required"]
+            )
             overviewData = nil  // Force reload
             hasLoadedInitialData = false  // Allow reload
             return true
@@ -842,7 +961,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// This eliminates the need for full database reload
     private func updateCachedLog(_ log: HabitLog) {
         guard var data = overviewData else {
-            print("⚠️ CACHE MISS: No cache available, skipping update")
+            logger.log(
+                "Cache miss - no cache available",
+                level: .debug,
+                category: .stateManagement,
+                metadata: ["operation": "updateCachedLog"]
+            )
             return
         }
 
@@ -851,10 +975,20 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         // Check if log already exists (update scenario)
         if let existingIndex = habitLogs.firstIndex(where: { $0.id == log.id }) {
             habitLogs[existingIndex] = log
-            print("✅ CACHE SYNC: Updated existing log for habit \(log.habitID)")
+            logger.log(
+                "Cache updated - existing log modified",
+                level: .debug,
+                category: .stateManagement,
+                metadata: ["habit_id": log.habitID.uuidString]
+            )
         } else {
             habitLogs.append(log)
-            print("✅ CACHE SYNC: Added new log for habit \(log.habitID)")
+            logger.log(
+                "Cache updated - new log added",
+                level: .debug,
+                category: .stateManagement,
+                metadata: ["habit_id": log.habitID.uuidString]
+            )
         }
 
         var updatedHabitLogs = data.habitLogs
@@ -872,7 +1006,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// Remove logs from cache after successful database delete
     private func removeCachedLogs(habitId: UUID, on date: Date) {
         guard var data = overviewData else {
-            print("⚠️ CACHE MISS: No cache available for delete")
+            logger.log(
+                "Cache miss - no cache available for delete",
+                level: .debug,
+                category: .stateManagement,
+                metadata: ["habit_id": habitId.uuidString]
+            )
             return
         }
 
@@ -882,7 +1021,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             CalendarUtils.areSameDayLocal(log.date, date)
         }
         let removedCount = beforeCount - habitLogs.count
-        print("✅ CACHE SYNC: Removed \(removedCount) log(s) for habit \(habitId)")
+        logger.log(
+            "Cache updated - logs removed",
+            level: .debug,
+            category: .stateManagement,
+            metadata: [
+                "habit_id": habitId.uuidString,
+                "removed_count": removedCount
+            ]
+        )
 
         var updatedHabitLogs = data.habitLogs
         updatedHabitLogs[habitId] = habitLogs
@@ -910,15 +1057,29 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// Check if date requires database reload (outside cached range)
     private func needsReload(for date: Date) -> Bool {
         guard let data = overviewData else {
-            print("🔄 RELOAD NEEDED: No cache available")
+            logger.log(
+                "Reload needed - no cache available",
+                level: .debug,
+                category: .stateManagement
+            )
             return true
         }
         let dateStart = CalendarUtils.startOfDayLocal(for: date)
         let needsReload = !data.dateRange.contains(dateStart)
         if needsReload {
-            print("🔄 RELOAD NEEDED: Date \(dateStart) outside cached range")
+            logger.log(
+                "Reload needed - date outside cached range",
+                level: .debug,
+                category: .stateManagement,
+                metadata: ["date": dateStart.description]
+            )
         } else {
-            print("⚡ CACHE HIT: Date \(dateStart) within cached range")
+            logger.log(
+                "Cache hit - date within range",
+                level: .debug,
+                category: .stateManagement,
+                metadata: ["date": dateStart.description]
+            )
         }
         return needsReload
     }
@@ -930,13 +1091,19 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         let targetDate = viewingDate
         let habits = data.scheduledHabits(for: targetDate)
 
-        print("📅 SCHEDULE DEBUG: Extracting summary for date: \(targetDate)")
-        print("📅 SCHEDULE DEBUG: Total habits in cache: \(data.habits.count)")
-        print("📅 SCHEDULE DEBUG: Scheduled habits for today: \(habits.count)")
-        for habit in data.habits {
-            let isScheduled = habit.schedule.isActiveOn(date: targetDate)
-            print("📅 SCHEDULE DEBUG: \(habit.name) - Schedule: \(habit.schedule) - Active today? \(isScheduled)")
-        }
+        logger.logDataIntegrity(
+            check: "extractTodaysSummary",
+            passed: true,
+            metadata: [
+                "target_date": targetDate.description,
+                "total_habits": data.habits.count,
+                "scheduled_habits": habits.count,
+                "habits_detail": data.habits.map { habit in
+                    let isScheduled = habit.schedule.isActiveOn(date: targetDate)
+                    return "\(habit.name): \(isScheduled ? "scheduled" : "not scheduled")"
+                }.joined(separator: "; ")
+            ]
+        )
         
         var allTargetDateLogs: [HabitLog] = []
         var incompleteHabits: [Habit] = []

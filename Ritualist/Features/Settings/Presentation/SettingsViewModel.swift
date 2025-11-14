@@ -23,6 +23,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
     @ObservationIgnored @Injected(\.subscriptionService) var subscriptionService
+    @ObservationIgnored @Injected(\.debugLogger) var logger
 
     #if DEBUG
     private let populateTestData: PopulateTestDataUseCase?
@@ -134,9 +135,13 @@ public final class SettingsViewModel {
             // Cache subscription data from service (not database)
             cachedSubscriptionPlan = await getCurrentSubscriptionPlan.execute()
             cachedSubscriptionExpiryDate = await getSubscriptionExpiryDate.execute()
-            print("🔍 [SettingsViewModel.load()] Cached subscription from service:")
-            print("   Plan: \(cachedSubscriptionPlan)")
-            print("   Expiry: \(cachedSubscriptionExpiryDate?.description ?? "nil")")
+            logger.logSubscription(
+                event: "Cached subscription from service",
+                plan: cachedSubscriptionPlan.rawValue,
+                metadata: [
+                    "expiry": cachedSubscriptionExpiryDate?.description ?? "nil"
+                ]
+            )
         } catch {
             self.error = error
             profile = UserProfile()
@@ -461,12 +466,17 @@ extension SettingsViewModel {
     /// Refresh subscription status from service after purchase
     /// Call this after paywall dismissal to update Settings UI
     public func refreshSubscriptionStatus() async {
-        print("🔄 [SettingsViewModel] Refreshing subscription status from service")
+        logger.logSubscription(event: "Refreshing subscription status from service")
         cachedSubscriptionPlan = await subscriptionService.getCurrentSubscriptionPlan()
         cachedSubscriptionExpiryDate = await subscriptionService.getSubscriptionExpiryDate()
         cachedPremiumStatus = await checkPremiumStatus.execute()
-        print("   ✅ Updated subscription plan: \(cachedSubscriptionPlan)")
-        print("   ✅ Updated expiry date: \(cachedSubscriptionExpiryDate?.description ?? "nil")")
-        print("   ✅ Updated premium status: \(cachedPremiumStatus)")
+        logger.logSubscription(
+            event: "Updated subscription status",
+            plan: cachedSubscriptionPlan.rawValue,
+            metadata: [
+                "expiry": cachedSubscriptionExpiryDate?.description ?? "nil",
+                "is_premium": cachedPremiumStatus
+            ]
+        )
     }
 }

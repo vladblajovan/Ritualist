@@ -8,6 +8,13 @@ extension Container {
     
     // MARK: - Core Services
 
+    var debugLogger: Factory<DebugLogger> {
+        self {
+            DebugLogger(subsystem: "com.ritualist.app", category: "general")
+        }
+        .singleton
+    }
+
     var errorHandler: Factory<ErrorHandler> {
         self {
             ErrorHandler(maxLogSize: 1000, analyticsEnabled: true)

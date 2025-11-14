@@ -110,14 +110,6 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
             log.habitID == habit.id && log.date >= dayStart && log.date < dayEnd
         }
 
-        print("      📊 isCompleted check for \(date):")
-        print("         Day boundaries: \(dayStart) to \(dayEnd)")
-        print("         Found \(dayLogs.count) logs for this day")
-        for log in dayLogs {
-            let completed = isLogCompleted(log: log, habit: habit)
-            print("         Log: date=\(log.date), value=\(log.value ?? 0), completed=\(completed)")
-        }
-
         return dayLogs.contains { log in
             isLogCompleted(log: log, habit: habit)
         }
