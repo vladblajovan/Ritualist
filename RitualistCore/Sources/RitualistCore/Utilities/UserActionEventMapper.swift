@@ -8,10 +8,11 @@ public final class UserActionEventMapper {
     /// Get event name for tracking
     public func eventName(for event: UserActionEvent) -> String {
         switch event {
-        case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed, 
+        case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed,
              .onboardingPageNext, .onboardingPageBack, .onboardingUserNameEntered,
              .onboardingNotificationPermissionRequested, .onboardingNotificationPermissionGranted,
-             .onboardingNotificationPermissionDenied:
+             .onboardingNotificationPermissionDenied, .onboardingLocationPermissionRequested,
+             .onboardingLocationPermissionGranted, .onboardingLocationPermissionDenied:
             return onboardingEventName(for: event)
         case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected, .habitsAssistantCategoryCleared,
              .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
@@ -26,6 +27,8 @@ public final class UserActionEventMapper {
              .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled,
              .notificationSuppressed:
             return notificationEventName(for: event)
+        case .locationPermissionRequested, .locationPermissionGranted, .locationPermissionDenied:
+            return locationEventName(for: event)
         case .categoryCreated, .categoryUpdated, .categoryDeleted, .categoryReordered, .categoryManagementOpened:
             return categoryEventName(for: event)
         case .paywallShown, .paywallDismissed, .productSelected, .purchaseAttempted, .purchaseCompleted,
@@ -46,10 +49,11 @@ public final class UserActionEventMapper {
     /// Get event properties for tracking
     public func eventProperties(for event: UserActionEvent) -> [String: Any] {
         switch event {
-        case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed, 
+        case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed,
              .onboardingPageNext, .onboardingPageBack, .onboardingUserNameEntered,
              .onboardingNotificationPermissionRequested, .onboardingNotificationPermissionGranted,
-             .onboardingNotificationPermissionDenied:
+             .onboardingNotificationPermissionDenied, .onboardingLocationPermissionRequested,
+             .onboardingLocationPermissionGranted, .onboardingLocationPermissionDenied:
             return onboardingEventProperties(for: event)
         case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected, .habitsAssistantCategoryCleared,
              .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
@@ -64,6 +68,8 @@ public final class UserActionEventMapper {
              .notificationReceived, .notificationActionTapped, .notificationScheduled, .notificationCancelled,
              .notificationSuppressed:
             return notificationEventProperties(for: event)
+        case .locationPermissionRequested, .locationPermissionGranted, .locationPermissionDenied:
+            return locationEventProperties(for: event)
         case .categoryCreated, .categoryUpdated, .categoryDeleted, .categoryReordered, .categoryManagementOpened:
             return categoryEventProperties(for: event)
         case .paywallShown, .paywallDismissed, .productSelected, .purchaseAttempted, .purchaseCompleted,
@@ -97,6 +103,9 @@ private extension UserActionEventMapper {
         case .onboardingNotificationPermissionRequested: return "onboarding_notification_permission_requested"
         case .onboardingNotificationPermissionGranted: return "onboarding_notification_permission_granted"
         case .onboardingNotificationPermissionDenied: return "onboarding_notification_permission_denied"
+        case .onboardingLocationPermissionRequested: return "onboarding_location_permission_requested"
+        case .onboardingLocationPermissionGranted: return "onboarding_location_permission_granted"
+        case .onboardingLocationPermissionDenied: return "onboarding_location_permission_denied"
         default: return "unknown_onboarding_event"
         }
     }
@@ -153,7 +162,16 @@ private extension UserActionEventMapper {
         default: return "notification_event"
         }
     }
-    
+
+    func locationEventName(for event: UserActionEvent) -> String {
+        switch event {
+        case .locationPermissionRequested: return "location_permission_requested"
+        case .locationPermissionGranted: return "location_permission_granted"
+        case .locationPermissionDenied: return "location_permission_denied"
+        default: return "location_event"
+        }
+    }
+
     func categoryEventName(for event: UserActionEvent) -> String {
         switch event {
         case .categoryCreated: return "category_created"
@@ -231,6 +249,8 @@ private extension UserActionEventMapper {
             return ["from_page": fromPage, "to_page": toPage]
         case .onboardingUserNameEntered(let hasName):
             return ["has_name": hasName]
+        case .onboardingLocationPermissionGranted(let status):
+            return ["status": status]
         default: return [:]
         }
     }
@@ -332,7 +352,20 @@ private extension UserActionEventMapper {
             return [:]
         }
     }
-    
+
+    func locationEventProperties(for event: UserActionEvent) -> [String: Any] {
+        switch event {
+        case .locationPermissionRequested(let context):
+            return ["context": context]
+        case .locationPermissionGranted(let status, let context):
+            return ["status": status, "context": context]
+        case .locationPermissionDenied(let context):
+            return ["context": context]
+        default:
+            return [:]
+        }
+    }
+
     func categoryEventProperties(for event: UserActionEvent) -> [String: Any] {
         switch event {
         case .categoryCreated(let categoryId, let categoryName, let emoji):

@@ -210,18 +210,21 @@ public final class SettingsViewModel {
         isRequestingLocationPermission = true
         error = nil
 
+        // Track permission request
+        userActionTracker.track(.locationPermissionRequested(context: "settings"))
+
         let result = await requestLocationPermissions.execute(requestAlways: true)
 
         switch result {
         case .granted(let status):
             locationAuthStatus = status
             // Track location permission granted
-            userActionTracker.track(.custom(event: "location_permission_granted", parameters: ["status": String(describing: status), "context": "settings"]))
+            userActionTracker.track(.locationPermissionGranted(status: String(describing: status), context: "settings"))
             userActionTracker.track(.profileUpdated(field: "location_permission"))
         case .denied:
             locationAuthStatus = .denied
             // Track location permission denied
-            userActionTracker.track(.custom(event: "location_permission_denied", parameters: ["context": "settings"]))
+            userActionTracker.track(.locationPermissionDenied(context: "settings"))
         case .failed(let locationError):
             self.error = locationError
             userActionTracker.trackError(locationError, context: "location_permission_request")

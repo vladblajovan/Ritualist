@@ -289,6 +289,42 @@ public enum Strings {
         public static let proLabel = String(localized: "paywall.pro_label")
         public static let upgrade = String(localized: "paywall.upgrade")
     }
+
+    // MARK: - Onboarding Premium Comparison
+    public enum OnboardingPremium {
+        public static let title = String(localized: "onboarding.premium.title")
+        public static let subtitle = String(localized: "onboarding.premium.subtitle")
+        public static let freeTier = String(localized: "onboarding.premium.free_tier")
+        public static let proTier = String(localized: "onboarding.premium.pro_tier")
+        public static let fiveHabits = String(localized: "onboarding.premium.five_habits")
+        public static let dailyTracking = String(localized: "onboarding.premium.daily_tracking")
+        public static let basicNotifications = String(localized: "onboarding.premium.basic_notifications")
+        public static let tipsInsights = String(localized: "onboarding.premium.tips_insights")
+        public static let unlimitedHabits = String(localized: "onboarding.premium.unlimited_habits")
+        public static let advancedAnalytics = String(localized: "onboarding.premium.advanced_analytics")
+        public static let customReminders = String(localized: "onboarding.premium.custom_reminders")
+        public static let dataExport = String(localized: "onboarding.premium.data_export")
+        public static let footer = String(localized: "onboarding.premium.footer")
+    }
+
+    // MARK: - Onboarding Permissions
+    public enum OnboardingPermissions {
+        public static let title = String(localized: "onboarding.permissions.title")
+        public static let subtitle = String(localized: "onboarding.permissions.subtitle")
+        public static let enableNotifications = String(localized: "onboarding.permissions.enable_notifications")
+        public static let enableLocation = String(localized: "onboarding.permissions.enable_location")
+        public static let notificationsGranted = String(localized: "onboarding.permissions.notifications_granted")
+        public static let locationGranted = String(localized: "onboarding.permissions.location_granted")
+        public static let notificationsDescription = String(localized: "onboarding.permissions.notifications_description")
+        public static let locationDescription = String(localized: "onboarding.permissions.location_description")
+        public static let skipForNow = String(localized: "onboarding.permissions.skip_for_now")
+    }
+
+    // MARK: - Habits Assistant
+    public enum HabitsAssistant {
+        public static let firstVisitTitle = String(localized: "habits_assistant.first_visit.title")
+        public static let firstVisitDescription = String(localized: "habits_assistant.first_visit.description")
+    }
 }
 
 // MARK: - SwiftUI Extensions

@@ -125,10 +125,10 @@ public final class OnboardingViewModel {
 
     public func requestLocationPermission() async {
         // Track permission request
-        userActionTracker.track(.custom(event: "onboarding_location_permission_requested", parameters: [:]))
+        userActionTracker.track(.onboardingLocationPermissionRequested)
 
         // Request "When In Use" permission (requestAlways: false) for location-aware habits
-        let result = await requestLocationPermissions.execute(requestAlways: false)
+        _ = await requestLocationPermissions.execute(requestAlways: false)
 
         // Check status after request
         let locationStatus = await getLocationAuthStatus.execute()
@@ -136,9 +136,9 @@ public final class OnboardingViewModel {
 
         // Track permission result
         if hasGrantedLocation {
-            userActionTracker.track(.custom(event: "onboarding_location_permission_granted", parameters: ["status": String(describing: locationStatus)]))
+            userActionTracker.track(.onboardingLocationPermissionGranted(status: String(describing: locationStatus)))
         } else {
-            userActionTracker.track(.custom(event: "onboarding_location_permission_denied", parameters: [:]))
+            userActionTracker.track(.onboardingLocationPermissionDenied)
         }
     }
     

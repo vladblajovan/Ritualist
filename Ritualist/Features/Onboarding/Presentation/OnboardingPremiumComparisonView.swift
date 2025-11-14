@@ -1,6 +1,25 @@
 import SwiftUI
 
 struct OnboardingPremiumComparisonView: View {
+    // MARK: - Constants
+    private enum LayoutConstants {
+        // Spacing constants
+        static let smallSpacing: CGFloat = 16
+        static let mediumSpacing: CGFloat = 24
+        static let largeSpacing: CGFloat = 32
+
+        // Padding constants
+        static let smallPadding: CGFloat = 16
+        static let mediumPadding: CGFloat = 20
+        static let largePadding: CGFloat = 24
+
+        // Breakpoints
+        static let smallHeightBreakpoint: CGFloat = 600
+        static let mediumHeightBreakpoint: CGFloat = 750
+        static let smallWidthBreakpoint: CGFloat = 350
+        static let mediumWidthBreakpoint: CGFloat = 400
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
@@ -13,13 +32,13 @@ struct OnboardingPremiumComparisonView: View {
                         .foregroundColor(.orange)
 
                     VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
-                        Text("Power Up Your Journey")
+                        Text(Strings.OnboardingPremium.title)
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text("Start free with everything you need. Upgrade anytime for unlimited habits and advanced features.")
+                        Text(Strings.OnboardingPremium.subtitle)
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -31,12 +50,12 @@ struct OnboardingPremiumComparisonView: View {
                     HStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
                         // Free tier
                         TierCard(
-                            title: "Start Free",
+                            title: Strings.OnboardingPremium.freeTier,
                             features: [
-                                TierFeature(icon: "checkmark.circle.fill", text: "5 Habits", color: .green),
-                                TierFeature(icon: "checkmark.circle.fill", text: "Daily Tracking", color: .green),
-                                TierFeature(icon: "checkmark.circle.fill", text: "Basic Notifications", color: .green),
-                                TierFeature(icon: "checkmark.circle.fill", text: "Tips & Insights", color: .green)
+                                TierFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.fiveHabits, color: .green),
+                                TierFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.dailyTracking, color: .green),
+                                TierFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.basicNotifications, color: .green),
+                                TierFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.tipsInsights, color: .green)
                             ],
                             isPro: false,
                             geometry: geometry
@@ -44,12 +63,12 @@ struct OnboardingPremiumComparisonView: View {
 
                         // Pro tier
                         TierCard(
-                            title: "Go Pro",
+                            title: Strings.OnboardingPremium.proTier,
                             features: [
-                                TierFeature(icon: "infinity.circle.fill", text: "Unlimited Habits", color: .orange),
-                                TierFeature(icon: "chart.line.uptrend.xyaxis.circle.fill", text: "Advanced Analytics", color: .orange),
-                                TierFeature(icon: "bell.badge.circle.fill", text: "Custom Reminders", color: .orange),
-                                TierFeature(icon: "square.and.arrow.up.circle.fill", text: "Data Export", color: .orange)
+                                TierFeature(icon: "infinity.circle.fill", text: Strings.OnboardingPremium.unlimitedHabits, color: .orange),
+                                TierFeature(icon: "chart.line.uptrend.xyaxis.circle.fill", text: Strings.OnboardingPremium.advancedAnalytics, color: .orange),
+                                TierFeature(icon: "bell.badge.circle.fill", text: Strings.OnboardingPremium.customReminders, color: .orange),
+                                TierFeature(icon: "square.and.arrow.up.circle.fill", text: Strings.OnboardingPremium.dataExport, color: .orange)
                             ],
                             isPro: true,
                             geometry: geometry
@@ -58,7 +77,7 @@ struct OnboardingPremiumComparisonView: View {
                     .padding(.horizontal, adaptivePadding(for: geometry.size.width))
 
                     // Footer text
-                    Text("Start free. Upgrade when you're ready.")
+                    Text(Strings.OnboardingPremium.footer)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -74,22 +93,28 @@ struct OnboardingPremiumComparisonView: View {
 
     private func adaptiveSpacing(for height: CGFloat) -> CGFloat {
         switch height {
-        case 0..<600: return 16  // Small screens - compact spacing
-        case 600..<750: return 24  // Medium screens
-        default: return 32  // Large screens - original spacing
+        case 0..<LayoutConstants.smallHeightBreakpoint:
+            return LayoutConstants.smallSpacing  // Small screens - compact spacing
+        case LayoutConstants.smallHeightBreakpoint..<LayoutConstants.mediumHeightBreakpoint:
+            return LayoutConstants.mediumSpacing  // Medium screens
+        default:
+            return LayoutConstants.largeSpacing  // Large screens - original spacing
         }
     }
 
     private func adaptivePadding(for width: CGFloat) -> CGFloat {
         switch width {
-        case 0..<350: return 16  // Small screens
-        case 350..<400: return 20  // Medium screens
-        default: return 24  // Large screens - original padding
+        case 0..<LayoutConstants.smallWidthBreakpoint:
+            return LayoutConstants.smallPadding  // Small screens
+        case LayoutConstants.smallWidthBreakpoint..<LayoutConstants.mediumWidthBreakpoint:
+            return LayoutConstants.mediumPadding  // Medium screens
+        default:
+            return LayoutConstants.largePadding  // Large screens - original padding
         }
     }
 }
 
-struct TierFeature: Identifiable {
+private struct TierFeature: Identifiable {
     let id = UUID()
     let icon: String
     let text: String

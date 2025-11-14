@@ -60,11 +60,11 @@ public struct HabitsAssistantView: View {
                 VStack(alignment: .leading, spacing: Spacing.medium) {
                     // Descriptive text
                     VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                        Text("Build Your Habit Stack")
+                        Text(Strings.HabitsAssistant.firstVisitTitle)
                             .font(.title3)
                             .fontWeight(.bold)
 
-                        Text("Browse categories below, pick habits you'd like to track, and start building your routine. Free plan includes up to 5 habits.")
+                        Text(Strings.HabitsAssistant.firstVisitDescription)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
