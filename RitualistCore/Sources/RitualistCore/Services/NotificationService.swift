@@ -689,7 +689,10 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
 
         // Check if this is a personality analysis notification
         if let type = userInfo["type"] as? String, type == "personality_analysis" {
+            #if DEBUG
             print("🔍 [NotificationService] Detected personality analysis notification")
+            #endif
+
             await handlePersonalityNotificationResponse(response)
             return
         }
@@ -700,7 +703,9 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
               let habitName = userInfo["habitName"] as? String,
               let reminderHour = userInfo["reminderHour"] as? Int,
               let reminderMinute = userInfo["reminderMinute"] as? Int else {
+            #if DEBUG
             print("⚠️ [NotificationService] Invalid notification userInfo (not habit or personality): \(userInfo)")
+            #endif
             return
         }
         
@@ -808,14 +813,21 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
     /// Handle personality analysis notification responses
     @MainActor
     private func handlePersonalityNotificationResponse(_ response: UNNotificationResponse) async {
+        #if DEBUG
         print("🧠 [NotificationService] Handling personality notification response")
+        #endif
 
         guard let coordinator = personalityDeepLinkCoordinator else {
+            #if DEBUG
             print("⚠️ [NotificationService] PersonalityDeepLinkCoordinator not set - cannot handle personality notification")
+            #endif
             return
         }
 
+        #if DEBUG
         print("🧠 [NotificationService] Forwarding to PersonalityDeepLinkCoordinator")
+        #endif
+
         coordinator.handleNotificationResponse(response)
     }
 }

@@ -10,6 +10,10 @@ import FactoryKit
 import UserNotifications
 import RitualistCore
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 /// Sheet that handles deep linking to personality analysis from notifications
 public struct PersonalityAnalysisDeepLinkSheet: View {
     
@@ -53,10 +57,16 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
             handleNotificationAction()
             clearNotificationBadge()
 
-            // Show welcome message (user dismisses manually)
+            // Show welcome message (user dismisses manually) with haptic feedback
             withAnimation(.easeInOut(duration: 0.5)) {
                 showWelcomeMessage = true
             }
+
+            // Haptic feedback when banner appears
+            #if canImport(UIKit)
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            #endif
         }
     }
     
@@ -113,6 +123,7 @@ private struct WelcomeMessageView: View {
             Image(systemName: iconName)
                 .font(.title2)
                 .foregroundColor(iconColor)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -133,6 +144,8 @@ private struct WelcomeMessageView: View {
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss welcome message")
+            .accessibilityHint("Double tap to close this notification banner")
         }
         .padding()
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -140,6 +153,8 @@ private struct WelcomeMessageView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(iconColor.opacity(0.3), lineWidth: 1)
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(title). \(subtitle)")
     }
     
     private var iconName: String {
