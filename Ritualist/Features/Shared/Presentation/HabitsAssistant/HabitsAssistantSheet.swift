@@ -17,6 +17,7 @@ public struct HabitsAssistantSheet: View {
 
     private let existingHabits: [Habit]
     private let onShowPaywall: (() -> Void)?
+    private let isFirstVisit: Bool
 
     /// Calculate projected habit count based on user intentions
     private var projectedHabitCount: Int {
@@ -59,12 +60,15 @@ public struct HabitsAssistantSheet: View {
     /// Initialize the reusable Habits Assistant sheet
     /// - Parameters:
     ///   - existingHabits: Current habits to show context in assistant
+    ///   - isFirstVisit: Whether this is first time opening assistant (e.g., post-onboarding)
     ///   - onShowPaywall: Callback to show paywall when needed
     public init(
         existingHabits: [Habit] = [],
+        isFirstVisit: Bool = false,
         onShowPaywall: (() -> Void)? = nil
     ) {
         self.existingHabits = existingHabits
+        self.isFirstVisit = isFirstVisit
         self.onShowPaywall = onShowPaywall
     }
     
@@ -79,6 +83,7 @@ public struct HabitsAssistantSheet: View {
                     // Return the projected count based on user intentions
                     projectedHabitCount
                 },
+                isFirstVisit: isFirstVisit,
                 onHabitCreate: { suggestion in
                     // Track user's intention to have this habit
                     toggleHabitIntention(suggestion.id, intended: true)

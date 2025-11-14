@@ -35,13 +35,13 @@ struct OnboardingPage2View: View {
                             title: "Daily Tracking",
                             description: "Mark habits as complete each day"
                         )
-                        
+
                         FeatureHighlight(
                             icon: "chart.bar.fill",
-                            title: "Progress Visualization",  
+                            title: "Progress Visualization",
                             description: "See your streaks and patterns over time"
                         )
-                        
+
                         FeatureHighlight(
                             icon: "bell",
                             title: "Smart Reminders",
@@ -49,7 +49,31 @@ struct OnboardingPage2View: View {
                         )
                     }
                     .padding(.horizontal, adaptivePadding(for: geometry.size.width))
-                    
+
+                    // Subtle info badge
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("Free plan: 5 habits")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("•")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("Pro: unlimited")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    .padding(.top, adaptiveSpacing(for: geometry.size.height) / 4)
+
                     Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
                 }
                 .frame(minHeight: geometry.size.height)

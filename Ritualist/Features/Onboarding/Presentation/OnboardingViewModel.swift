@@ -12,29 +12,36 @@ public final class OnboardingViewModel {
     private let completeOnboarding: CompleteOnboarding
     private let requestNotificationPermission: RequestNotificationPermissionUseCase
     private let checkNotificationStatus: CheckNotificationStatusUseCase
+    private let requestLocationPermissions: RequestLocationPermissionsUseCase
+    private let getLocationAuthStatus: GetLocationAuthStatusUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
-    
+
     // Current state
     public var currentPage: Int = 0
     public var userName: String = ""
     public var hasGrantedNotifications: Bool = false
+    public var hasGrantedLocation: Bool = false
     public var isCompleted: Bool = false
     public var isLoading: Bool = false
     public var errorMessage: String?
     
     // Constants
-    public let totalPages = 5
+    public let totalPages = 6
     
     public init(getOnboardingState: GetOnboardingState,
                 saveOnboardingState: SaveOnboardingState,
                 completeOnboarding: CompleteOnboarding,
                 requestNotificationPermission: RequestNotificationPermissionUseCase,
-                checkNotificationStatus: CheckNotificationStatusUseCase) {
+                checkNotificationStatus: CheckNotificationStatusUseCase,
+                requestLocationPermissions: RequestLocationPermissionsUseCase,
+                getLocationAuthStatus: GetLocationAuthStatusUseCase) {
         self.getOnboardingState = getOnboardingState
         self.saveOnboardingState = saveOnboardingState
         self.completeOnboarding = completeOnboarding
         self.requestNotificationPermission = requestNotificationPermission
         self.checkNotificationStatus = checkNotificationStatus
+        self.requestLocationPermissions = requestLocationPermissions
+        self.getLocationAuthStatus = getLocationAuthStatus
     }
     
     public func loadOnboardingState() async {
@@ -88,14 +95,25 @@ public final class OnboardingViewModel {
         userActionTracker.track(.onboardingUserNameEntered(hasName: !userName.isEmpty))
     }
     
+    public func checkPermissions() async {
+        // Check current permission status (for when page loads with existing permissions)
+        // Use async let for parallel execution to improve performance
+        async let notificationStatus = checkNotificationStatus.execute()
+        async let locationStatus = getLocationAuthStatus.execute()
+
+        hasGrantedNotifications = await notificationStatus
+        let location = await locationStatus
+        hasGrantedLocation = (location == .authorizedAlways || location == .authorizedWhenInUse)
+    }
+
     public func requestNotificationPermission() async {
         // Track permission request
         userActionTracker.track(.onboardingNotificationPermissionRequested)
-        
+
         do {
             let granted = try await requestNotificationPermission.execute()
             hasGrantedNotifications = granted
-            
+
             // Track permission result
             if granted {
                 userActionTracker.track(.onboardingNotificationPermissionGranted)
@@ -106,6 +124,25 @@ public final class OnboardingViewModel {
             errorMessage = "Failed to request notification permission"
             hasGrantedNotifications = false
             userActionTracker.track(.onboardingNotificationPermissionDenied)
+        }
+    }
+
+    public func requestLocationPermission() async {
+        // Track permission request
+        userActionTracker.track(.onboardingLocationPermissionRequested)
+
+        // Request "When In Use" permission (requestAlways: false) for location-aware habits
+        _ = await requestLocationPermissions.execute(requestAlways: false)
+
+        // Check status after request
+        let locationStatus = await getLocationAuthStatus.execute()
+        hasGrantedLocation = (locationStatus == .authorizedAlways || locationStatus == .authorizedWhenInUse)
+
+        // Track permission result
+        if hasGrantedLocation {
+            userActionTracker.track(.onboardingLocationPermissionGranted(status: String(describing: locationStatus)))
+        } else {
+            userActionTracker.track(.onboardingLocationPermissionDenied)
         }
     }
     
@@ -161,7 +198,7 @@ public final class OnboardingViewModel {
         switch currentPage {
         case 0: // Name input page
             return !userName.isEmpty
-        case 4: // Final page - can always proceed to complete
+        case 5: // Final page - can always proceed to complete
             return true
         default: // Information pages
             return true
@@ -185,10 +222,11 @@ public final class OnboardingViewModel {
     private func pageNameFor(_ page: Int) -> String {
         switch page {
         case 0: return "welcome_name"
-        case 1: return "welcome_habits"
-        case 2: return "notifications"
-        case 3: return "daily_routine"
-        case 4: return "get_started"
+        case 1: return "track_habits"
+        case 2: return "customization"
+        case 3: return "tips"
+        case 4: return "premium_comparison"
+        case 5: return "notifications"
         default: return "unknown"
         }
     }

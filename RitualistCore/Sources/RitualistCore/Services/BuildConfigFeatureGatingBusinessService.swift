@@ -67,25 +67,7 @@ public final class BuildConfigFeatureGatingBusinessService: FeatureGatingBusines
             return await standardFeatureGating.hasDataExport
         }
     }
-    
-    public var hasPremiumThemes: Bool {
-        get async {
-            if buildConfigService.allFeaturesEnabled {
-                return true
-            }
-            return await standardFeatureGating.hasPremiumThemes
-        }
-    }
-    
-    public var hasPrioritySupport: Bool {
-        get async {
-            if buildConfigService.allFeaturesEnabled {
-                return true
-            }
-            return await standardFeatureGating.hasPrioritySupport
-        }
-    }
-    
+
     nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
         if buildConfigService.allFeaturesEnabled {
             return "All features are enabled in this build configuration."

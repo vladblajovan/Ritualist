@@ -63,21 +63,7 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         }
         return standardFeatureGating.hasDataExport
     }
-    
-    public var hasPremiumThemes: Bool {
-        if buildConfigService.allFeaturesEnabled {
-            return true
-        }
-        return standardFeatureGating.hasPremiumThemes
-    }
-    
-    public var hasPrioritySupport: Bool {
-        if buildConfigService.allFeaturesEnabled {
-            return true
-        }
-        return standardFeatureGating.hasPrioritySupport
-    }
-    
+
     nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
         if buildConfigService.allFeaturesEnabled {
             return "All features are enabled in this build configuration."

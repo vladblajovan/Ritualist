@@ -22,13 +22,7 @@ public protocol FeatureGatingService {
     
     /// Whether data export is available
     var hasDataExport: Bool { get }
-    
-    /// Whether premium themes are available
-    var hasPremiumThemes: Bool { get }
-    
-    /// Whether priority support is available
-    var hasPrioritySupport: Bool { get }
-    
+
     /// Get a user-friendly message when a feature is blocked
     func getFeatureBlockedMessage(for feature: FeatureType) -> String
     

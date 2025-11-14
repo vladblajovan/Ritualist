@@ -20,7 +20,10 @@ public enum UserActionEvent {
     case onboardingNotificationPermissionRequested
     case onboardingNotificationPermissionGranted
     case onboardingNotificationPermissionDenied
-    
+    case onboardingLocationPermissionRequested
+    case onboardingLocationPermissionGranted(status: String)
+    case onboardingLocationPermissionDenied
+
     // Habits Assistant
     case habitsAssistantOpened(source: HabitsAssistantSource)
     case habitsAssistantClosed
@@ -58,6 +61,11 @@ public enum UserActionEvent {
     case notificationScheduled(habitId: String, habitName: String, reminderCount: Int)
     case notificationCancelled(habitId: String, habitName: String, reason: String)
     case notificationSuppressed(habitId: String, habitName: String, reason: String)
+
+    // Location
+    case locationPermissionRequested(context: String)
+    case locationPermissionGranted(status: String, context: String)
+    case locationPermissionDenied(context: String)
     
     // Category Management
     case categoryCreated(categoryId: String, categoryName: String, emoji: String)

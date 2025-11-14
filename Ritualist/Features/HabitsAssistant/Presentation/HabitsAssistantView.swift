@@ -21,12 +21,14 @@ public struct HabitsAssistantView: View {
     private let shouldShowLimitBanner: Bool
     private let maxHabitsAllowed: Int
     private let getCurrentHabitCount: () -> Int
+    private let isFirstVisit: Bool
 
     public init(vm: HabitsAssistantViewModel,
                 existingHabits: [Habit] = [],
                 shouldShowLimitBanner: Bool = false,
                 maxHabitsAllowed: Int = BusinessConstants.freeMaxHabits,
                 getCurrentHabitCount: @escaping () -> Int = { 0 },
+                isFirstVisit: Bool = false,
                 onHabitCreate: @escaping (HabitSuggestion) async -> CreateHabitFromSuggestionResult,
                 onHabitRemove: @escaping (UUID) async -> Bool,
                 onShowPaywall: @escaping () -> Void) {
@@ -35,6 +37,7 @@ public struct HabitsAssistantView: View {
         self.shouldShowLimitBanner = shouldShowLimitBanner
         self.maxHabitsAllowed = maxHabitsAllowed
         self.getCurrentHabitCount = getCurrentHabitCount
+        self.isFirstVisit = isFirstVisit
         self.onHabitCreate = onHabitCreate
         self.onHabitRemove = onHabitRemove
         self.onShowPaywall = onShowPaywall
@@ -52,8 +55,37 @@ public struct HabitsAssistantView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Habit limit banner for free users
-            if shouldShowLimitBanner {
+            // Show enhanced intro section only on first visit (post-onboarding)
+            if isFirstVisit {
+                VStack(alignment: .leading, spacing: Spacing.medium) {
+                    // Descriptive text
+                    VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                        Text(Strings.HabitsAssistant.firstVisitTitle)
+                            .font(.title3)
+                            .fontWeight(.bold)
+
+                        Text(Strings.HabitsAssistant.firstVisitDescription)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    // Habit limit banner - show on first visit to set expectations
+                    #if !ALL_FEATURES_ENABLED
+                    HabitLimitBannerView(
+                        currentCount: totalHabitCount,
+                        maxCount: maxHabitsAllowed,
+                        onUpgradeTap: onShowPaywall
+                    )
+                    #endif
+                }
+                .padding(.horizontal, Spacing.medium)
+                .padding(.top, Spacing.medium)
+                .padding(.bottom, Spacing.small)
+            }
+
+            // Regular limit banner (shown when at/over limit on subsequent visits)
+            if !isFirstVisit && shouldShowLimitBanner {
                 HabitLimitBannerView(
                     currentCount: totalHabitCount,
                     maxCount: maxHabitsAllowed,
@@ -64,7 +96,7 @@ public struct HabitsAssistantView: View {
                 .padding(.bottom, Spacing.small)
             }
 
-            // Sticky category selector at top
+            // Sticky category selector
             if vm.isLoadingCategories {
                 ProgressView("Loading categories...")
                     .padding(.vertical, Spacing.medium)

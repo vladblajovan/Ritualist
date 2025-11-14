@@ -24,13 +24,7 @@ public protocol FeatureGatingBusinessService {
     
     /// Whether data export is available
     var hasDataExport: Bool { get async }
-    
-    /// Whether premium themes are available
-    var hasPremiumThemes: Bool { get async }
-    
-    /// Whether priority support is available
-    var hasPrioritySupport: Bool { get async }
-    
+
     /// Get a user-friendly message when a feature is blocked
     func getFeatureBlockedMessage(for feature: FeatureType) -> String
     

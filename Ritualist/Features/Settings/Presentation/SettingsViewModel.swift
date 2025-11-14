@@ -28,6 +28,7 @@ public final class SettingsViewModel {
     private let populateTestData: PopulateTestDataUseCase?
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
     @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase
+    @ObservationIgnored @Injected(\.saveOnboardingState) var saveOnboardingState
     #endif
 
     public var profile = UserProfile()
@@ -209,15 +210,21 @@ public final class SettingsViewModel {
         isRequestingLocationPermission = true
         error = nil
 
+        // Track permission request
+        userActionTracker.track(.locationPermissionRequested(context: "settings"))
+
         let result = await requestLocationPermissions.execute(requestAlways: true)
 
         switch result {
         case .granted(let status):
             locationAuthStatus = status
-            // Track location settings change
+            // Track location permission granted
+            userActionTracker.track(.locationPermissionGranted(status: String(describing: status), context: "settings"))
             userActionTracker.track(.profileUpdated(field: "location_permission"))
         case .denied:
             locationAuthStatus = .denied
+            // Track location permission denied
+            userActionTracker.track(.locationPermissionDenied(context: "settings"))
         case .failed(let locationError):
             self.error = locationError
             userActionTracker.trackError(locationError, context: "location_permission_request")
@@ -348,7 +355,27 @@ public final class SettingsViewModel {
         
         isClearingDatabase = false
     }
-    
+
+    public func resetOnboarding() async {
+        do {
+            // Reset onboarding state to default (not completed)
+            let resetState = OnboardingState(
+                isCompleted: false,
+                completedDate: nil,
+                userName: nil,
+                hasGrantedNotifications: false
+            )
+
+            try await saveOnboardingState.execute(resetState)
+
+            // Track the debug action
+            userActionTracker.track(.custom(event: "debug_onboarding_reset", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "debug_onboarding_reset")
+        }
+    }
+
     public func populateTestData(scenario: TestDataScenario = .full) async {
         guard var populateTestData = populateTestData else { return }
 

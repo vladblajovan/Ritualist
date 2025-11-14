@@ -82,6 +82,7 @@ public struct RootTabView: View {
         .sheet(isPresented: $showingPostOnboardingAssistant) {
             HabitsAssistantSheet(
                 existingHabits: existingHabits,
+                isFirstVisit: true, // Show enhanced intro on first visit post-onboarding
                 onShowPaywall: nil
             )
             .onDisappear {
