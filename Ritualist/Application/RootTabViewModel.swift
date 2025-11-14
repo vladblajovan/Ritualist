@@ -54,7 +54,6 @@ public final class RootTabViewModel {
             appearanceManager.updateFromProfile(profile)
         } catch {
             print("Failed to load user appearance preference: \(error)")
-            // Continue with default appearance (follow system)
         }
     }
 }
