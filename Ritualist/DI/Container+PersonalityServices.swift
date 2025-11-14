@@ -19,7 +19,7 @@ extension Container {
     }
     
     var dataThresholdValidator: Factory<DataThresholdValidator> {
-        self { DefaultDataThresholdValidator(repository: self.personalityAnalysisRepository()) }
+        self { DefaultDataThresholdValidator(getHabitAnalysisInput: self.getHabitAnalysisInputUseCase()) }
             .singleton
     }
     
