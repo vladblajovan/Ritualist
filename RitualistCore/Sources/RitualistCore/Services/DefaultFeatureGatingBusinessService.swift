@@ -48,19 +48,7 @@ public final class DefaultFeatureGatingBusinessService: FeatureGatingBusinessSer
             return await isPremiumUser
         }
     }
-    
-    public var hasPremiumThemes: Bool {
-        get async {
-            return await isPremiumUser
-        }
-    }
-    
-    public var hasPrioritySupport: Bool {
-        get async {
-            return await isPremiumUser
-        }
-    }
-    
+
     nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
         switch feature {
         case .unlimitedHabits:
@@ -71,13 +59,9 @@ public final class DefaultFeatureGatingBusinessService: FeatureGatingBusinessSer
             return "Custom reminder times are a Pro feature. Upgrade to set personalized notification schedules."
         case .dataExport:
             return "Export your habit data with Ritualist Pro. Download your progress as CSV files."
-        case .premiumThemes:
-            return "Premium themes and customization options are available with Pro."
-        case .prioritySupport:
-            return "Get faster support response times with Ritualist Pro."
         }
     }
-    
+
     public func isFeatureAvailable(_ feature: FeatureType) async -> Bool {
         switch feature {
         case .unlimitedHabits:
@@ -88,10 +72,6 @@ public final class DefaultFeatureGatingBusinessService: FeatureGatingBusinessSer
             return await hasCustomReminders
         case .dataExport:
             return await hasDataExport
-        case .premiumThemes:
-            return await hasPremiumThemes
-        case .prioritySupport:
-            return await hasPrioritySupport
         }
     }
     

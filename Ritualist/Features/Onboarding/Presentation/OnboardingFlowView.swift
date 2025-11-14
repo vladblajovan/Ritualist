@@ -34,18 +34,21 @@ private struct OnboardingContentView: View {
             TabView(selection: $viewModel.currentPage) {
                 OnboardingPage1View(viewModel: viewModel, onComplete: onComplete)
                     .tag(0)
-                
+
                 OnboardingPage2View(viewModel: viewModel)
                     .tag(1)
-                
+
                 OnboardingPage3View()
                     .tag(2)
-                
+
                 OnboardingPage4View()
                     .tag(3)
-                
-                OnboardingPage5View(viewModel: viewModel)
+
+                OnboardingPremiumComparisonView()
                     .tag(4)
+
+                OnboardingPage6View(viewModel: viewModel)
+                    .tag(5)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut, value: viewModel.currentPage)

@@ -28,6 +28,7 @@ public final class SettingsViewModel {
     private let populateTestData: PopulateTestDataUseCase?
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
     @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase
+    @ObservationIgnored @Injected(\.saveOnboardingState) var saveOnboardingState
     #endif
 
     public var profile = UserProfile()
@@ -348,7 +349,27 @@ public final class SettingsViewModel {
         
         isClearingDatabase = false
     }
-    
+
+    public func resetOnboarding() async {
+        do {
+            // Reset onboarding state to default (not completed)
+            let resetState = OnboardingState(
+                isCompleted: false,
+                completedDate: nil,
+                userName: nil,
+                hasGrantedNotifications: false
+            )
+
+            try await saveOnboardingState.execute(resetState)
+
+            // Track the debug action
+            userActionTracker.track(.custom(event: "debug_onboarding_reset", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "debug_onboarding_reset")
+        }
+    }
+
     public func populateTestData(scenario: TestDataScenario = .full) async {
         guard var populateTestData = populateTestData else { return }
 

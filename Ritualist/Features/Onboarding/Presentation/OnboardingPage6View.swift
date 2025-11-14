@@ -1,29 +1,36 @@
 import SwiftUI
 
-struct OnboardingPage5View: View {
+struct OnboardingPage6View: View {
     @Bindable var viewModel: OnboardingViewModel
-    
+
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: adaptiveSpacing(for: geometry.size.height)) {
                     Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
-                    
-                    // Notification icon
-                    Image(systemName: viewModel.hasGrantedNotifications ? "bell.fill" : "bell.slash.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(viewModel.hasGrantedNotifications ? .blue : .red)
-                        .animation(.easeInOut, value: viewModel.hasGrantedNotifications)
-                    
+
+                    // Permission icons
+                    HStack(spacing: 20) {
+                        Image(systemName: viewModel.hasGrantedNotifications ? "bell.fill" : "bell.slash.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(viewModel.hasGrantedNotifications ? .blue : .secondary)
+                            .animation(.easeInOut, value: viewModel.hasGrantedNotifications)
+
+                        Image(systemName: viewModel.hasGrantedLocation ? "location.fill" : "location.slash.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(viewModel.hasGrantedLocation ? .green : .secondary)
+                            .animation(.easeInOut, value: viewModel.hasGrantedLocation)
+                    }
+
                     VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
                         Text("Stay on Track")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
-                        
-                        Text("Enable notifications to get gentle reminders for your habits. You can customize " +
-                             "or disable them anytime in settings.")
+
+                        Text("Enable notifications and location-aware habits to get reminders at the right time and place. " +
+                             "You can customize or disable them anytime in settings.")
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -37,44 +44,83 @@ struct OnboardingPage5View: View {
                             title: "Timely Reminders",
                             description: "Get notified at the perfect time for each habit"
                         )
-                        
+
+                        NotificationBenefit(
+                            icon: "location.circle.fill",
+                            title: "Location-Aware Habits",
+                            description: "Get reminders when you arrive at specific places"
+                        )
+
                         NotificationBenefit(
                             icon: "checkmark.circle",
                             title: "Stay Consistent",
                             description: "Never forget to complete your daily routines"
                         )
-                        
+
                         NotificationBenefit(
                             icon: "gear",
                             title: "Fully Customizable",
-                            description: "Turn off or adjust notifications anytime"
+                            description: "Turn off or adjust permissions anytime"
                         )
-                        
-                        // Notification permission button
-                        if !viewModel.hasGrantedNotifications {
-                            Button("Enable Notifications") {
-                                Task {
-                                    await viewModel.requestNotificationPermission()
+
+                        // Permission buttons
+                        VStack(spacing: 12) {
+                            // Notification permission button
+                            if !viewModel.hasGrantedNotifications {
+                                Button {
+                                    Task {
+                                        await viewModel.requestNotificationPermission()
+                                    }
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "bell.fill")
+                                        Text("Enable Notifications")
+                                    }
+                                    .frame(maxWidth: .infinity)
                                 }
+                                .buttonStyle(.bordered)
+                                .controlSize(.large)
+                            } else {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                    Text("Notifications Enabled")
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.green)
                             }
-                            .buttonStyle(.bordered)
-                            .controlSize(.large)
-                            .padding(.top, 8)
-                        } else {
-                            HStack(spacing: 8) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                Text("Notifications Enabled")
-                                    .fontWeight(.medium)
+
+                            // Location permission button
+                            if !viewModel.hasGrantedLocation {
+                                Button {
+                                    Task {
+                                        await viewModel.requestLocationPermission()
+                                    }
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "location.fill")
+                                        Text("Enable Location-Aware Habits")
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.large)
+                            } else {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                    Text("Location-Aware Habits Enabled")
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.green)
                             }
-                            .foregroundColor(.green)
-                            .padding(.top, 8)
                         }
+                        .padding(.top, 8)
                     }
                     .padding(.horizontal, adaptivePadding(for: geometry.size.width))
-                    
-                    if !viewModel.hasGrantedNotifications {
-                        Text("You can skip this step and enable notifications later in settings.")
+
+                    if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
+                        Text("You can skip and enable permissions later in settings.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -87,6 +133,10 @@ struct OnboardingPage5View: View {
                 .frame(minHeight: geometry.size.height)
                 .padding(.horizontal, adaptivePadding(for: geometry.size.width))
             }
+        }
+        .task {
+            // Check permissions when page loads (handles pre-granted permissions)
+            await viewModel.checkPermissions()
         }
     }
     

@@ -135,7 +135,9 @@ extension Container {
                 saveOnboardingState: self.saveOnboardingState(),
                 completeOnboarding: self.completeOnboarding(),
                 requestNotificationPermission: self.requestNotificationPermission(),
-                checkNotificationStatus: self.checkNotificationStatus()
+                checkNotificationStatus: self.checkNotificationStatus(),
+                requestLocationPermissions: self.requestLocationPermissions(),
+                getLocationAuthStatus: self.getLocationAuthStatus()
             )
         }
     }

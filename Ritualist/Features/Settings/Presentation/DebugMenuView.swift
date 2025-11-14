@@ -152,6 +152,29 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 .disabled(vm.isClearingDatabase)
             }
 
+            Section("Onboarding Management") {
+                Button(role: .destructive) {
+                    Task {
+                        await vm.resetOnboarding()
+                        // Restart app to show onboarding again
+                        exit(0)
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.counterclockwise")
+                            .foregroundColor(.purple)
+
+                        Text("Reset Onboarding & Restart")
+
+                        Spacer()
+                    }
+                }
+
+                Text("Clears onboarding completion status and restarts the app to show onboarding flow again")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Migration Management") {
                 // Current Schema Version
                 VStack(alignment: .leading, spacing: 8) {
