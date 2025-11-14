@@ -20,9 +20,9 @@ public protocol DataThresholdValidator {
 }
 
 public final class DefaultDataThresholdValidator: DataThresholdValidator {
-    
-    private let repository: PersonalityAnalysisRepositoryProtocol
-    
+
+    private let getHabitAnalysisInput: GetHabitAnalysisInputUseCase
+
     // Minimum data thresholds
     private struct Thresholds {
         static let minActiveHabits = 5
@@ -31,9 +31,9 @@ public final class DefaultDataThresholdValidator: DataThresholdValidator {
         static let minCustomHabits = 3
         static let minCompletionRate = 0.3 // 30%
     }
-    
-    public init(repository: PersonalityAnalysisRepositoryProtocol) {
-        self.repository = repository
+
+    public init(getHabitAnalysisInput: GetHabitAnalysisInputUseCase) {
+        self.getHabitAnalysisInput = getHabitAnalysisInput
     }
     
     public func validateEligibility(for userId: UUID) async throws -> AnalysisEligibility {
@@ -58,7 +58,7 @@ public final class DefaultDataThresholdValidator: DataThresholdValidator {
     }
     
     public func getThresholdProgress(for userId: UUID) async throws -> [ThresholdRequirement] {
-        let input = try await repository.getHabitAnalysisInput(for: userId)
+        let input = try await getHabitAnalysisInput.execute(for: userId)
         
         var requirements: [ThresholdRequirement] = []
         

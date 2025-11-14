@@ -17,7 +17,7 @@ public final class PersonalityDeepLinkCoordinator {
     
     public var shouldShowPersonalityAnalysis = false
     public var pendingNotificationAction: PersonalityNotificationAction?
-    public var shouldNavigateToSettings = true // Controls whether to switch to Settings tab
+    public var shouldSwitchTab = true // Controls whether to switch to a specific tab before showing sheet
     
     // MARK: - Types
     
@@ -39,25 +39,39 @@ public final class PersonalityDeepLinkCoordinator {
     /// Handles notification response when user taps personality notification
     @MainActor
     public func handleNotificationResponse(_ response: UNNotificationResponse) {
+        #if DEBUG
+        print("🔔 PersonalityDeepLink: Received notification response")
+        #endif
+
         guard let userInfo = response.notification.request.content.userInfo as? [String: Any],
               let type = userInfo["type"] as? String,
               type == "personality_analysis" else {
+            #if DEBUG
+            print("🔔 PersonalityDeepLink: Not a personality_analysis notification")
+            #endif
             return
         }
-        
+
         guard let action = userInfo["action"] as? String else {
+            #if DEBUG
+            print("🔔 PersonalityDeepLink: No action in userInfo")
+            #endif
             return
         }
-        
+
+        #if DEBUG
+        print("🔔 PersonalityDeepLink: Action = \(action)")
+        #endif
+
         // Clear the tapped notification from notification center to prevent badge buildup
         let notificationId = response.notification.request.identifier
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [notificationId])
-        
+
         // Force reset state to ensure SwiftUI detects changes
         shouldShowPersonalityAnalysis = false
         pendingNotificationAction = nil
-        shouldNavigateToSettings = true // Notifications should navigate to Settings
-        
+        shouldSwitchTab = true // Notifications should switch to Overview tab
+
         // Use async dispatch with small delay to make the dismiss/reopen visually apparent
         Task { @MainActor in
             // Small delay to make the sheet dismiss visible
@@ -66,23 +80,42 @@ public final class PersonalityDeepLinkCoordinator {
             case "open_analysis":
                 let dominantTrait = (userInfo["dominant_trait"] as? String).flatMap(PersonalityTrait.init(fromString:))
                 let confidence = (userInfo["confidence"] as? String).flatMap(ConfidenceLevel.init(fromString:))
-                
+
+                #if DEBUG
+                print("🔔 PersonalityDeepLink: Setting pendingNotificationAction to openAnalysis")
+                #endif
+
                 pendingNotificationAction = .openAnalysis(
-                    dominantTrait: dominantTrait, 
+                    dominantTrait: dominantTrait,
                     confidence: confidence
                 )
+
+                #if DEBUG
+                print("🔔 PersonalityDeepLink: Setting shouldShowPersonalityAnalysis = true")
+                #endif
+
                 shouldShowPersonalityAnalysis = true
-                
+
             case "open_requirements":
+                #if DEBUG
+                print("🔔 PersonalityDeepLink: Setting pendingNotificationAction to openRequirements")
+                #endif
+
                 pendingNotificationAction = .openRequirements
                 shouldShowPersonalityAnalysis = true
-                
+
             case "check_analysis":
+                #if DEBUG
+                print("🔔 PersonalityDeepLink: Setting pendingNotificationAction to checkAnalysis")
+                #endif
+
                 pendingNotificationAction = .checkAnalysis
                 shouldShowPersonalityAnalysis = true
-                
+
             default:
+                #if DEBUG
                 print("⚠️ Unknown personality notification action: \(action)")
+                #endif
             }
         }
     }
@@ -91,15 +124,15 @@ public final class PersonalityDeepLinkCoordinator {
     @MainActor
     public func navigateToPersonalityAnalysis() {
         pendingNotificationAction = .openAnalysis(dominantTrait: nil, confidence: nil)
-        shouldNavigateToSettings = true
+        shouldSwitchTab = true
         shouldShowPersonalityAnalysis = true
     }
-    
-    /// Directly shows personality analysis sheet without navigating to Settings
+
+    /// Directly shows personality analysis sheet without switching tabs
     @MainActor
     public func showPersonalityAnalysisDirectly() {
         pendingNotificationAction = .directNavigation
-        shouldNavigateToSettings = false
+        shouldSwitchTab = false
         shouldShowPersonalityAnalysis = true
     }
     
@@ -108,7 +141,7 @@ public final class PersonalityDeepLinkCoordinator {
     public func clearPendingNavigation() {
         pendingNotificationAction = nil
         shouldShowPersonalityAnalysis = false
-        shouldNavigateToSettings = true // Reset to default
+        shouldSwitchTab = true // Reset to default
     }
     
     /// Resets only the analysis trigger state, keeping other properties intact

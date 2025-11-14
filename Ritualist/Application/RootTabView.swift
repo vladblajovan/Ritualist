@@ -13,6 +13,7 @@ public struct RootTabView: View {
     @State private var showingPostOnboardingAssistant = false
     @State private var existingHabits: [Habit] = []
     @State private var migrationService = MigrationStatusService.shared
+    @State private var pendingPersonalitySheetAfterTabSwitch = false
 
     public init() {}
 
@@ -94,27 +95,66 @@ public struct RootTabView: View {
         }
         .onChange(of: vm.personalityDeepLinkCoordinator.shouldShowPersonalityAnalysis) { oldValue, shouldShow in
             if shouldShow {
-                if vm.personalityDeepLinkCoordinator.shouldNavigateToSettings {
-                    // Navigate to settings tab first (for notifications)
-                    vm.navigationService.selectedTab = .settings
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(100))
-                        showingPersonalityAnalysis = true
-                        // Reset coordinator state immediately after triggering
-                        vm.personalityDeepLinkCoordinator.resetAnalysisState()
-                    }
+                #if DEBUG
+                print("🔍 PersonalityAnalysis: shouldShow triggered (oldValue: \(oldValue), shouldShow: \(shouldShow))")
+                print("🔍 PersonalityAnalysis: Current tab BEFORE any changes: \(vm.navigationService.selectedTab)")
+                print("🔍 PersonalityAnalysis: shouldSwitchTab = \(vm.personalityDeepLinkCoordinator.shouldSwitchTab)")
+                #endif
+
+                if vm.personalityDeepLinkCoordinator.shouldSwitchTab {
+                    // Navigate to overview tab first (for notifications)
+                    #if DEBUG
+                    print("🔍 PersonalityAnalysis: Navigating to overview tab (setting selectedTab = .overview)")
+                    #endif
+
+                    pendingPersonalitySheetAfterTabSwitch = true
+                    vm.navigationService.selectedTab = .overview
+
+                    #if DEBUG
+                    print("🔍 PersonalityAnalysis: selectedTab AFTER assignment: \(vm.navigationService.selectedTab)")
+                    #endif
+                    // Sheet will show via onChange(of: selectedTab) below
                 } else {
                     // Show directly without tab navigation (for direct calls)
+                    #if DEBUG
+                    print("🔍 PersonalityAnalysis: Showing sheet directly (no tab navigation)")
+                    #endif
+
                     showingPersonalityAnalysis = true
                     // Reset coordinator state immediately after triggering
                     vm.personalityDeepLinkCoordinator.resetAnalysisState()
                 }
             }
         }
+        .onChange(of: vm.navigationService.selectedTab) { oldTab, newTab in
+            #if DEBUG
+            print("🔍 PersonalityAnalysis: Tab changed from \(oldTab) to \(newTab)")
+            print("🔍 PersonalityAnalysis: pendingPersonalitySheetAfterTabSwitch = \(pendingPersonalitySheetAfterTabSwitch)")
+            #endif
+
+            // When tab switches and we have a pending personality sheet, show it
+            if pendingPersonalitySheetAfterTabSwitch && newTab == .overview {
+                #if DEBUG
+                print("🔍 PersonalityAnalysis: Tab switched to overview, showing sheet")
+                #endif
+
+                pendingPersonalitySheetAfterTabSwitch = false
+                showingPersonalityAnalysis = true
+                vm.personalityDeepLinkCoordinator.resetAnalysisState()
+            }
+        }
         .sheet(isPresented: $showingPersonalityAnalysis) {
-            PersonalityAnalysisDeepLinkSheet(
+            #if DEBUG
+            print("✅ PersonalityAnalysis: Sheet is being presented!")
+            #endif
+
+            return PersonalityAnalysisDeepLinkSheet(
                 action: vm.personalityDeepLinkCoordinator.pendingNotificationAction
             ) {
+                #if DEBUG
+                print("👋 PersonalityAnalysis: Sheet dismissed by user")
+                #endif
+
                 // Only clear the notification action on dismissal
                 vm.personalityDeepLinkCoordinator.pendingNotificationAction = nil
                 showingPersonalityAnalysis = false

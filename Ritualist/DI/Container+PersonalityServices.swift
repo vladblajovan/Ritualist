@@ -19,12 +19,12 @@ extension Container {
     }
     
     var dataThresholdValidator: Factory<DataThresholdValidator> {
-        self { DefaultDataThresholdValidator(repository: self.personalityAnalysisRepository()) }
+        self { DefaultDataThresholdValidator(getHabitAnalysisInput: self.getHabitAnalysisInputUseCase()) }
             .singleton
     }
     
     var personalityAnalysisScheduler: Factory<PersonalityAnalysisSchedulerProtocol> {
-        self { 
+        self {
             PersonalityAnalysisScheduler(
                 personalityRepository: self.personalityAnalysisRepository(),
                 analyzePersonalityUseCase: self.analyzePersonalityUseCase(),
@@ -34,5 +34,10 @@ extension Container {
             )
         }
         .singleton
+    }
+
+    var calculateConsecutiveTrackingDaysService: Factory<CalculateConsecutiveTrackingDaysService> {
+        self { DefaultCalculateConsecutiveTrackingDaysService() }
+            .singleton
     }
 }

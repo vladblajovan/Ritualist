@@ -38,13 +38,18 @@ extension Container {
     }
     
     var notificationService: Factory<NotificationService> {
-        self { 
+        self {
             let service = LocalNotificationService(
                 habitCompletionCheckService: self.habitCompletionCheckService(),
                 errorHandler: self.errorHandler()
             )
             service.trackingService = self.userActionTracker()
-            
+
+            // Set personality deep link coordinator for handling personality notifications
+            Task { @MainActor in
+                service.personalityDeepLinkCoordinator = self.personalityDeepLinkCoordinator()
+            }
+
             // Configure the action handler to use dependency injection
             service.actionHandler = { [weak self] action, habitId, habitName, habitKind, reminderTime in
                 guard let self = self else { return }

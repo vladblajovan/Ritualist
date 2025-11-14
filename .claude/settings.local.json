@@ -39,7 +39,8 @@
       "WebFetch(domain:github.com)",
       "Bash(git mv:*)",
       "Bash(gh pr create:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(gh pr view:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

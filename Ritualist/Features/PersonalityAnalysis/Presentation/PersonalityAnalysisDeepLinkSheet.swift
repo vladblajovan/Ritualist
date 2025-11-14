@@ -10,6 +10,10 @@ import FactoryKit
 import UserNotifications
 import RitualistCore
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 /// Sheet that handles deep linking to personality analysis from notifications
 public struct PersonalityAnalysisDeepLinkSheet: View {
     
@@ -31,7 +35,11 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
     public var body: some View {
         VStack(spacing: 0) {
             if showWelcomeMessage, let action = action, !isDirectNavigation(action) {
-                WelcomeMessageView(action: action)
+                WelcomeMessageView(action: action, onDismiss: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showWelcomeMessage = false
+                    }
+                })
                     .padding()
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -48,21 +56,17 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
         .onAppear {
             handleNotificationAction()
             clearNotificationBadge()
-            
-            // Show welcome message briefly
+
+            // Show welcome message (user dismisses manually) with haptic feedback
             withAnimation(.easeInOut(duration: 0.5)) {
                 showWelcomeMessage = true
             }
-            
-            // Hide welcome message after 3 seconds
-            Task {
-                try? await Task.sleep(for: .seconds(3))
-                await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.5)) {
-                        showWelcomeMessage = false
-                    }
-                }
-            }
+
+            // Haptic feedback when banner appears
+            #if canImport(UIKit)
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            #endif
         }
     }
     
@@ -112,24 +116,36 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
 
 private struct WelcomeMessageView: View {
     let action: PersonalityDeepLinkCoordinator.PersonalityNotificationAction
-    
+    let onDismiss: () -> Void
+
     var body: some View {
-        HStack {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: iconName)
                 .font(.title2)
                 .foregroundColor(iconColor)
-            
+                .accessibilityHidden(true)
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
                     .fontWeight(.medium)
-                
+
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
+
+            // Close button
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss welcome message")
+            .accessibilityHint("Double tap to close this notification banner")
         }
         .padding()
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -137,6 +153,8 @@ private struct WelcomeMessageView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(iconColor.opacity(0.3), lineWidth: 1)
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(title). \(subtitle)")
     }
     
     private var iconName: String {

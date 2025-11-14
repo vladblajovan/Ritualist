@@ -8,14 +8,14 @@
 import Foundation
 
 /// Errors that can occur during personality analysis
-public enum PersonalityAnalysisError: Error, LocalizedError, Equatable {
+public enum PersonalityAnalysisError: Error, LocalizedError {
     case insufficientData
     case invalidUserId
     case noHabitsFound
     case noLogsFound
     case analysisDisabled
     case dataCorrupted
-    case dataEncodingFailed
+    case dataEncodingFailed(underlying: Error)
     case networkError
     case unknownError(String)
     
@@ -33,8 +33,8 @@ public enum PersonalityAnalysisError: Error, LocalizedError, Equatable {
             return "Personality analysis has been disabled. You can enable it in Settings."
         case .dataCorrupted:
             return "The analysis data appears to be corrupted. Please try refreshing the analysis."
-        case .dataEncodingFailed:
-            return "Failed to save personality analysis preferences. Please try again."
+        case .dataEncodingFailed(let underlying):
+            return "Failed to save personality analysis preferences: \(underlying.localizedDescription)"
         case .networkError:
             return "Network error occurred during analysis. Please check your connection and try again."
         case .unknownError(let message):
