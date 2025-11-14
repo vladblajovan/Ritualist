@@ -32,25 +32,17 @@ public final class DefaultPersonalityPreferencesDataSource: PersonalityPreferenc
             return preferences
         }
 
-        // Migration logic for old userId-based keys
-        let oldKey = "personality_preferences_\(userId.uuidString)"
-        if let oldData = userDefaults.data(forKey: oldKey),
-           let oldPreferences = try? JSONDecoder().decode(PersonalityAnalysisPreferences.self, from: oldData) {
-            userDefaults.set(oldData, forKey: key)
-            userDefaults.removeObject(forKey: oldKey)
-            return oldPreferences
-        }
-
         return nil
     }
 
     public func savePreferences(_ preferences: PersonalityAnalysisPreferences) async throws {
         let key = "personality_preferences_main_user"
 
-        if let data = try? JSONEncoder().encode(preferences) {
+        do {
+            let data = try JSONEncoder().encode(preferences)
             userDefaults.set(data, forKey: key)
-        } else {
-            throw PersonalityAnalysisError.dataEncodingFailed
+        } catch {
+            throw PersonalityAnalysisError.dataEncodingFailed(underlying: error)
         }
     }
 }
