@@ -97,9 +97,13 @@ public final class OnboardingViewModel {
     
     public func checkPermissions() async {
         // Check current permission status (for when page loads with existing permissions)
-        hasGrantedNotifications = await checkNotificationStatus.execute()
-        let locationStatus = await getLocationAuthStatus.execute()
-        hasGrantedLocation = (locationStatus == .authorizedAlways || locationStatus == .authorizedWhenInUse)
+        // Use async let for parallel execution to improve performance
+        async let notificationStatus = checkNotificationStatus.execute()
+        async let locationStatus = getLocationAuthStatus.execute()
+
+        hasGrantedNotifications = await notificationStatus
+        let location = await locationStatus
+        hasGrantedLocation = (location == .authorizedAlways || location == .authorizedWhenInUse)
     }
 
     public func requestNotificationPermission() async {

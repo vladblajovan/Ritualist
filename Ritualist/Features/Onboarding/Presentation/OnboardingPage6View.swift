@@ -23,14 +23,13 @@ struct OnboardingPage6View: View {
                     }
 
                     VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
-                        Text("Stay on Track")
+                        Text(Strings.OnboardingPermissions.title)
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text("Enable notifications and location-aware habits to get reminders at the right time and place. " +
-                             "You can customize or disable them anytime in settings.")
+                        Text(Strings.OnboardingPermissions.subtitle)
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -74,7 +73,7 @@ struct OnboardingPage6View: View {
                                 } label: {
                                     HStack {
                                         Image(systemName: "bell.fill")
-                                        Text("Enable Notifications")
+                                        Text(Strings.OnboardingPermissions.enableNotifications)
                                     }
                                     .frame(maxWidth: .infinity)
                                 }
@@ -84,7 +83,7 @@ struct OnboardingPage6View: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(.green)
-                                    Text("Notifications Enabled")
+                                    Text(Strings.OnboardingPermissions.notificationsGranted)
                                         .fontWeight(.medium)
                                 }
                                 .foregroundColor(.green)
@@ -99,7 +98,7 @@ struct OnboardingPage6View: View {
                                 } label: {
                                     HStack {
                                         Image(systemName: "location.fill")
-                                        Text("Enable Location-Aware Habits")
+                                        Text(Strings.OnboardingPermissions.enableLocation)
                                     }
                                     .frame(maxWidth: .infinity)
                                 }
@@ -109,7 +108,7 @@ struct OnboardingPage6View: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(.green)
-                                    Text("Location-Aware Habits Enabled")
+                                    Text(Strings.OnboardingPermissions.locationGranted)
                                         .fontWeight(.medium)
                                 }
                                 .foregroundColor(.green)
@@ -120,7 +119,7 @@ struct OnboardingPage6View: View {
                     .padding(.horizontal, adaptivePadding(for: geometry.size.width))
 
                     if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
-                        Text("You can skip and enable permissions later in settings.")
+                        Text(Strings.OnboardingPermissions.skipForNow)
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
