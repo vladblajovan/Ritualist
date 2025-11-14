@@ -39,25 +39,31 @@ public final class PersonalityDeepLinkCoordinator {
     /// Handles notification response when user taps personality notification
     @MainActor
     public func handleNotificationResponse(_ response: UNNotificationResponse) {
+        print("🔔 PersonalityDeepLink: Received notification response")
+
         guard let userInfo = response.notification.request.content.userInfo as? [String: Any],
               let type = userInfo["type"] as? String,
               type == "personality_analysis" else {
+            print("🔔 PersonalityDeepLink: Not a personality_analysis notification")
             return
         }
-        
+
         guard let action = userInfo["action"] as? String else {
+            print("🔔 PersonalityDeepLink: No action in userInfo")
             return
         }
-        
+
+        print("🔔 PersonalityDeepLink: Action = \(action)")
+
         // Clear the tapped notification from notification center to prevent badge buildup
         let notificationId = response.notification.request.identifier
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [notificationId])
-        
+
         // Force reset state to ensure SwiftUI detects changes
         shouldShowPersonalityAnalysis = false
         pendingNotificationAction = nil
         shouldNavigateToSettings = true // Notifications should navigate to Settings
-        
+
         // Use async dispatch with small delay to make the dismiss/reopen visually apparent
         Task { @MainActor in
             // Small delay to make the sheet dismiss visible
@@ -66,21 +72,25 @@ public final class PersonalityDeepLinkCoordinator {
             case "open_analysis":
                 let dominantTrait = (userInfo["dominant_trait"] as? String).flatMap(PersonalityTrait.init(fromString:))
                 let confidence = (userInfo["confidence"] as? String).flatMap(ConfidenceLevel.init(fromString:))
-                
+
+                print("🔔 PersonalityDeepLink: Setting pendingNotificationAction to openAnalysis")
                 pendingNotificationAction = .openAnalysis(
-                    dominantTrait: dominantTrait, 
+                    dominantTrait: dominantTrait,
                     confidence: confidence
                 )
+                print("🔔 PersonalityDeepLink: Setting shouldShowPersonalityAnalysis = true")
                 shouldShowPersonalityAnalysis = true
-                
+
             case "open_requirements":
+                print("🔔 PersonalityDeepLink: Setting pendingNotificationAction to openRequirements")
                 pendingNotificationAction = .openRequirements
                 shouldShowPersonalityAnalysis = true
-                
+
             case "check_analysis":
+                print("🔔 PersonalityDeepLink: Setting pendingNotificationAction to checkAnalysis")
                 pendingNotificationAction = .checkAnalysis
                 shouldShowPersonalityAnalysis = true
-                
+
             default:
                 print("⚠️ Unknown personality notification action: \(action)")
             }

@@ -231,19 +231,25 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     // Handle notification tap when app is in background/closed
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        
+        print("📱 AppDelegate: userNotificationCenter didReceive notification response")
+
         // Check if this is a habit notification
         let userInfo = response.notification.request.content.userInfo
+        print("📱 AppDelegate: userInfo = \(userInfo)")
+
         if userInfo["habitId"] is String {
             // This is a habit notification - handle it like a log action
+            print("📱 AppDelegate: Routing to habit notification handler")
             self.handleHabitNotification(response)
         } else {
             // Handle personality analysis notifications on main actor
+            print("📱 AppDelegate: Routing to personality deep link coordinator")
             Task { @MainActor in
                 personalityDeepLinkCoordinator.handleNotificationResponse(response)
+                print("📱 AppDelegate: Personality coordinator handleNotificationResponse completed")
             }
         }
-        
+
         completionHandler()
     }
     

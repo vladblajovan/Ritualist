@@ -60,9 +60,10 @@ public final class LocalNotificationService: NSObject, NotificationService {
     // Delegate handler for notification actions
     public var actionHandler: ((NotificationAction, UUID, String?, HabitKind, ReminderTime?) async throws -> Void)?
     public var trackingService: UserActionTrackerService?
+    public var personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator?
     private let errorHandler: ErrorHandler?
     private let habitCompletionCheckService: HabitCompletionCheckService
-    
+
     public init(habitCompletionCheckService: HabitCompletionCheckService, errorHandler: ErrorHandler? = nil) {
         self.habitCompletionCheckService = habitCompletionCheckService
         self.errorHandler = errorHandler
@@ -682,16 +683,24 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
     }
     
     // MARK: - Notification Response Handling
-    
+
     private func handleNotificationResponse(_ response: UNNotificationResponse) async {
         let userInfo = response.notification.request.content.userInfo
-        
+
+        // Check if this is a personality analysis notification
+        if let type = userInfo["type"] as? String, type == "personality_analysis" {
+            print("🔍 [NotificationService] Detected personality analysis notification")
+            await handlePersonalityNotificationResponse(response)
+            return
+        }
+
+        // Otherwise, handle as habit notification
         guard let habitIdString = userInfo["habitId"] as? String,
               let habitId = UUID(uuidString: habitIdString),
               let habitName = userInfo["habitName"] as? String,
               let reminderHour = userInfo["reminderHour"] as? Int,
               let reminderMinute = userInfo["reminderMinute"] as? Int else {
-            print("Invalid notification userInfo: \(userInfo)")
+            print("⚠️ [NotificationService] Invalid notification userInfo (not habit or personality): \(userInfo)")
             return
         }
         
@@ -792,5 +801,21 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
 
         try await center.add(request)
         print("✅ [NotificationService] Sent location-triggered notification for habit: \(habitName)")
+    }
+
+    // MARK: - Personality Notification Handling
+
+    /// Handle personality analysis notification responses
+    @MainActor
+    private func handlePersonalityNotificationResponse(_ response: UNNotificationResponse) async {
+        print("🧠 [NotificationService] Handling personality notification response")
+
+        guard let coordinator = personalityDeepLinkCoordinator else {
+            print("⚠️ [NotificationService] PersonalityDeepLinkCoordinator not set - cannot handle personality notification")
+            return
+        }
+
+        print("🧠 [NotificationService] Forwarding to PersonalityDeepLinkCoordinator")
+        coordinator.handleNotificationResponse(response)
     }
 }

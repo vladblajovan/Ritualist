@@ -94,17 +94,22 @@ public struct RootTabView: View {
         }
         .onChange(of: vm.personalityDeepLinkCoordinator.shouldShowPersonalityAnalysis) { oldValue, shouldShow in
             if shouldShow {
+                print("🔍 PersonalityAnalysis: shouldShow triggered (oldValue: \(oldValue), shouldShow: \(shouldShow))")
                 if vm.personalityDeepLinkCoordinator.shouldNavigateToSettings {
                     // Navigate to settings tab first (for notifications)
+                    print("🔍 PersonalityAnalysis: Navigating to settings tab")
                     vm.navigationService.selectedTab = .settings
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(100))
+                    Task { @MainActor in
+                        // Increased delay to ensure tab switching completes
+                        try? await Task.sleep(for: .milliseconds(300))
+                        print("🔍 PersonalityAnalysis: Showing sheet after tab switch")
                         showingPersonalityAnalysis = true
                         // Reset coordinator state immediately after triggering
                         vm.personalityDeepLinkCoordinator.resetAnalysisState()
                     }
                 } else {
                     // Show directly without tab navigation (for direct calls)
+                    print("🔍 PersonalityAnalysis: Showing sheet directly (no tab navigation)")
                     showingPersonalityAnalysis = true
                     // Reset coordinator state immediately after triggering
                     vm.personalityDeepLinkCoordinator.resetAnalysisState()
@@ -112,9 +117,11 @@ public struct RootTabView: View {
             }
         }
         .sheet(isPresented: $showingPersonalityAnalysis) {
-            PersonalityAnalysisDeepLinkSheet(
+            print("✅ PersonalityAnalysis: Sheet is being presented!")
+            return PersonalityAnalysisDeepLinkSheet(
                 action: vm.personalityDeepLinkCoordinator.pendingNotificationAction
             ) {
+                print("👋 PersonalityAnalysis: Sheet dismissed by user")
                 // Only clear the notification action on dismissal
                 vm.personalityDeepLinkCoordinator.pendingNotificationAction = nil
                 showingPersonalityAnalysis = false
