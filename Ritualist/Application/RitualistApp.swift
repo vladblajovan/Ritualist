@@ -9,7 +9,6 @@ import SwiftUI
 import SwiftData
 import FactoryKit
 import RitualistCore
-import UserNotifications
 
 @main struct RitualistApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -214,77 +213,16 @@ import UserNotifications
     }
 }
 
-// MARK: - App Delegate for Notification Handling
+// MARK: - App Delegate
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-    @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
-    @Injected(\.notificationService) private var notificationService
-    
+/// Minimal AppDelegate - all notification handling is done by LocalNotificationService
+class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        // Notification delegate is now handled by LocalNotificationService
-        // Removed: UNUserNotificationCenter.current().delegate = self
-        
+        // LocalNotificationService sets itself as the UNUserNotificationCenter delegate
+        // All notification handling (habit + personality) is done there
         true
     }
-    
-    // Notification presentation handling removed - LocalNotificationService is now the sole delegate
-    
-    // Handle notification tap when app is in background/closed
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        print("📱 AppDelegate: userNotificationCenter didReceive notification response")
-
-        // Check if this is a habit notification
-        let userInfo = response.notification.request.content.userInfo
-        print("📱 AppDelegate: userInfo = \(userInfo)")
-
-        if userInfo["habitId"] is String {
-            // This is a habit notification - handle it like a log action
-            print("📱 AppDelegate: Routing to habit notification handler")
-            self.handleHabitNotification(response)
-        } else {
-            // Handle personality analysis notifications on main actor
-            print("📱 AppDelegate: Routing to personality deep link coordinator")
-            Task { @MainActor in
-                personalityDeepLinkCoordinator.handleNotificationResponse(response)
-                print("📱 AppDelegate: Personality coordinator handleNotificationResponse completed")
-            }
-        }
-
-        completionHandler()
-    }
-    
-    private func handleHabitNotification(_ response: UNNotificationResponse) {
-        let userInfo = response.notification.request.content.userInfo
-        
-        guard let habitIdString = userInfo["habitId"] as? String,
-              let habitId = UUID(uuidString: habitIdString),
-              let habitName = userInfo["habitName"] as? String,
-              let reminderHour = userInfo["reminderHour"] as? Int,
-              let reminderMinute = userInfo["reminderMinute"] as? Int else {
-            print("Invalid habit notification userInfo: \(userInfo)")
-            return
-        }
-        
-        let habitKindString = userInfo["habitKind"] as? String ?? "binary"
-        let habitKind: HabitKind = habitKindString == "numeric" ? .numeric : .binary
-        let reminderTime = ReminderTime(hour: reminderHour, minute: reminderMinute)
-        
-        // Simulate the "Log" action by calling the notification service's action handler
-        Task { @MainActor in
-            do {
-                // Access the notification service and trigger the action handler
-                let notificationService = Container.shared.notificationService()
-                if let actionHandler = (notificationService as? LocalNotificationService)?.actionHandler {
-                    try await actionHandler(.log, habitId, habitName, habitKind, reminderTime)
-                }
-            } catch {
-                print("Error handling habit notification: \(error)")
-            }
-        }
-    }
 }
-
-// MARK: - App Delegate cleanup completed - notification handling moved to LocalNotificationService
 
 // Separate view to properly observe AppearanceManager changes
 struct RootAppView: View {
