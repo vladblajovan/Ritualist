@@ -96,9 +96,9 @@ public struct RootTabView: View {
             if shouldShow {
                 print("🔍 PersonalityAnalysis: shouldShow triggered (oldValue: \(oldValue), shouldShow: \(shouldShow))")
                 if vm.personalityDeepLinkCoordinator.shouldNavigateToSettings {
-                    // Navigate to settings tab first (for notifications)
-                    print("🔍 PersonalityAnalysis: Navigating to settings tab")
-                    vm.navigationService.selectedTab = .settings
+                    // Navigate to overview tab first (for notifications)
+                    print("🔍 PersonalityAnalysis: Navigating to overview tab")
+                    vm.navigationService.selectedTab = .overview
                     Task { @MainActor in
                         // Increased delay to ensure tab switching completes
                         try? await Task.sleep(for: .milliseconds(300))

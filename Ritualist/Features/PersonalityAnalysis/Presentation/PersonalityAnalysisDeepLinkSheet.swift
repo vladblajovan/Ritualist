@@ -31,7 +31,11 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
     public var body: some View {
         VStack(spacing: 0) {
             if showWelcomeMessage, let action = action, !isDirectNavigation(action) {
-                WelcomeMessageView(action: action)
+                WelcomeMessageView(action: action, onDismiss: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showWelcomeMessage = false
+                    }
+                })
                     .padding()
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -48,20 +52,10 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
         .onAppear {
             handleNotificationAction()
             clearNotificationBadge()
-            
-            // Show welcome message briefly
+
+            // Show welcome message (user dismisses manually)
             withAnimation(.easeInOut(duration: 0.5)) {
                 showWelcomeMessage = true
-            }
-            
-            // Hide welcome message after 3 seconds
-            Task {
-                try? await Task.sleep(for: .seconds(3))
-                await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.5)) {
-                        showWelcomeMessage = false
-                    }
-                }
             }
         }
     }
@@ -112,24 +106,33 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
 
 private struct WelcomeMessageView: View {
     let action: PersonalityDeepLinkCoordinator.PersonalityNotificationAction
-    
+    let onDismiss: () -> Void
+
     var body: some View {
-        HStack {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: iconName)
                 .font(.title2)
                 .foregroundColor(iconColor)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
                     .fontWeight(.medium)
-                
+
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
+
+            // Close button
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
         }
         .padding()
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))

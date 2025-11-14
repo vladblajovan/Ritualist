@@ -17,7 +17,7 @@ public final class PersonalityDeepLinkCoordinator {
     
     public var shouldShowPersonalityAnalysis = false
     public var pendingNotificationAction: PersonalityNotificationAction?
-    public var shouldNavigateToSettings = true // Controls whether to switch to Settings tab
+    public var shouldNavigateToSettings = true // Controls whether to switch tabs (Overview for notifications)
     
     // MARK: - Types
     
@@ -62,7 +62,7 @@ public final class PersonalityDeepLinkCoordinator {
         // Force reset state to ensure SwiftUI detects changes
         shouldShowPersonalityAnalysis = false
         pendingNotificationAction = nil
-        shouldNavigateToSettings = true // Notifications should navigate to Settings
+        shouldNavigateToSettings = true // Notifications should navigate to Overview
 
         // Use async dispatch with small delay to make the dismiss/reopen visually apparent
         Task { @MainActor in
