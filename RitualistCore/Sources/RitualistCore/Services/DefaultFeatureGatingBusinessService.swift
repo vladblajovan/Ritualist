@@ -50,16 +50,7 @@ public final class DefaultFeatureGatingBusinessService: FeatureGatingBusinessSer
     }
 
     nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
-        switch feature {
-        case .unlimitedHabits:
-            return "You've reached the limit of \(Self.freeMaxHabits) habits on the free plan. Upgrade to Pro to track unlimited habits."
-        case .advancedAnalytics:
-            return "Advanced analytics are available with Ritualist Pro. Get detailed insights into your habit patterns."
-        case .customReminders:
-            return "Custom reminder times are a Pro feature. Upgrade to set personalized notification schedules."
-        case .dataExport:
-            return "Export your habit data with Ritualist Pro. Download your progress as CSV files."
-        }
+        return FeatureGatingConstants.getFeatureBlockedMessage(for: feature)
     }
 
     public func isFeatureAvailable(_ feature: FeatureType) async -> Bool {
