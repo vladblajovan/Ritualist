@@ -280,6 +280,15 @@ public enum Strings {
         public static let last6Months = String(localized: "dashboardLast6Months")
         public static let lastYear = String(localized: "dashboardLastYear")
         public static let allTime = String(localized: "dashboardAllTime")
+
+        // Schedule optimization messages
+        public static let optimizationConsistentPerformance = String(localized: "dashboardOptimizationConsistentPerformance")
+        public static let optimizationNearPerfect = String(localized: "dashboardOptimizationNearPerfect")
+        public static let optimizationKeepBuilding = String(localized: "dashboardOptimizationKeepBuilding")
+
+        /// Optimization suggestion with day and percentage parameters
+        /// Usage: String(format: Strings.Dashboard.optimizationSuggestion, bestDay, gapPercentage, worstDay)
+        public static let optimizationSuggestion = String(localized: "dashboardOptimizationSuggestion")
     }
     
     // MARK: - Paywall

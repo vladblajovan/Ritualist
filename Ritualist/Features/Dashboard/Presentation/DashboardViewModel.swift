@@ -128,6 +128,15 @@ public final class DashboardViewModel {
         /// Minimum number of habits required for meaningful schedule optimization analysis.
         private static let minimumHabitsRequired: Int = 2
 
+        /// Minimum performance spread (10%) required to show optimization insights.
+        ///
+        /// **Data Quality Reasoning:**
+        /// Below 10%, the difference between best and worst performing days is too small to
+        /// provide meaningful optimization insights. This threshold ensures we have sufficient
+        /// variation in the data to make useful recommendations. A 10% spread indicates that
+        /// some days are clearly more successful than others, making schedule optimization valuable.
+        private static let minimumPerformanceSpread: Double = 0.1
+
         init(from domain: WeeklyPatternsResult, daysWithData: Int, averageRate: Double, habitCount: Int, timePeriod: TimePeriod, logger: DebugLogger? = nil) {
             self.dayOfWeekPerformance = domain.dayOfWeekPerformance.map(DayOfWeekPerformanceViewModel.init)
             self.bestDay = domain.bestDay
@@ -174,7 +183,7 @@ public final class DashboardViewModel {
             let hasEnoughDays = daysWithData >= minDaysRequired
             let hasEnoughCompletion = averageRate >= minCompletionRate
             let hasEnoughHabits = habitCount >= minHabitsRequired
-            let hasVariation = performanceSpread > 0.1
+            let hasVariation = performanceSpread > Self.minimumPerformanceSpread
 
             self.isDataSufficient = hasEnoughDays && hasEnoughCompletion && hasEnoughHabits && hasVariation
 
@@ -184,18 +193,18 @@ public final class DashboardViewModel {
             let bestDayNotPerfect = self.bestDayCompletionRate < Self.nearPerfectCompletionThreshold
             self.isOptimizationMeaningful = self.isDataSufficient && hasMeaningfulGap && bestDayNotPerfect
 
-            // Fix #4: Smart messaging based on actual performance
+            // Fix #4: Smart messaging based on actual performance (localized)
             if !self.isOptimizationMeaningful {
                 if !hasMeaningfulGap {
-                    self.optimizationMessage = "Great! Your performance is consistent across all days"
+                    self.optimizationMessage = Strings.Dashboard.optimizationConsistentPerformance
                 } else if !bestDayNotPerfect {
-                    self.optimizationMessage = "Excellent! You're completing nearly all habits every day"
+                    self.optimizationMessage = Strings.Dashboard.optimizationNearPerfect
                 } else {
-                    self.optimizationMessage = "Keep building your tracking habit"
+                    self.optimizationMessage = Strings.Dashboard.optimizationKeepBuilding
                 }
             } else {
                 let gapPercentage = Int(performanceGap * 100)
-                self.optimizationMessage = "Try scheduling more habits on \(domain.bestDay) (performs \(gapPercentage)% better than \(domain.worstDay))"
+                self.optimizationMessage = String(format: Strings.Dashboard.optimizationSuggestion, domain.bestDay, gapPercentage, domain.worstDay)
             }
             
             // Build requirements list
