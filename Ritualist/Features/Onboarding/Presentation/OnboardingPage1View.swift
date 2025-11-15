@@ -1,11 +1,12 @@
 import SwiftUI
+import FactoryKit
 import RitualistCore
 
 struct OnboardingPage1View: View {
     @Bindable var viewModel: OnboardingViewModel
     @FocusState private var isTextFieldFocused: Bool
     let onComplete: (() -> Void)?
-    
+
     init(viewModel: OnboardingViewModel, onComplete: (() -> Void)? = nil) {
         self.viewModel = viewModel
         self.onComplete = onComplete
@@ -74,13 +75,12 @@ struct OnboardingPage1View: View {
             #if DEBUG
             // Debug-only Skip button in top right corner
             Button(action: {
-                print("[DEBUG] Skip button tapped!")
+                let logger = Container.shared.debugLogger()
+                logger.log("Skip onboarding initiated from debug button", level: .debug, category: .debug)
                 Task {
-                    print("[DEBUG] Calling skipOnboarding...")
                     let success = await viewModel.skipOnboarding()
-                    print("[DEBUG] Skip onboarding result: \(success)")
+                    logger.log("Skip onboarding completed: \(success ? "success" : "failed")", level: success ? .info : .warning, category: .debug)
                     if success {
-                        print("[DEBUG] Skip successful, calling onComplete callback")
                         onComplete?()
                     }
                 }

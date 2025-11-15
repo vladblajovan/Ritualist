@@ -91,7 +91,8 @@ extension Container {
                 categoryRepository: self.categoryRepository(),
                 habitCompletionService: self.habitCompletionService(),
                 testDataUtilities: self.testDataPopulationService(),
-                completeOnboardingUseCase: self.completeOnboarding()
+                completeOnboardingUseCase: self.completeOnboarding(),
+                logger: self.debugLogger()
             )
         }
     }

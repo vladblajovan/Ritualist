@@ -292,7 +292,6 @@ public struct CategoryManagementView: View {
     private func deactivateSelectedCategories() async {
         for categoryId in categoriesToDeactivate {
             if let category = vm.categories.first(where: { $0.id == categoryId }) {
-                print("DEBUG: Deactivating category: \(category.displayName)")
                 let updatedCategory = HabitCategory(
                     id: category.id,
                     name: category.name,
@@ -312,9 +311,8 @@ public struct CategoryManagementView: View {
     private func deleteSelectedCategories() async {
         let selectedCategories = vm.categories.filter { categoriesToDelete.contains($0.id) }
         let customCategories = selectedCategories.filter { !$0.isPredefined }
-        
+
         for category in customCategories {
-            print("DEBUG: Deleting category: \(category.displayName)")
             await vm.deleteCategory(category.id)
         }
         selectedCategoryIds.removeAll()

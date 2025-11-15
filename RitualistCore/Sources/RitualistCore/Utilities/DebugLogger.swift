@@ -37,6 +37,8 @@ public enum LogCategory: String, CaseIterable {
     case notifications = "Notifications"
     case deepLinking = "DeepLinking"
     case navigation = "Navigation"
+    case location = "Location"
+    case debug = "Debug"
 }
 
 // MARK: - Enhanced Debug Logger

@@ -123,11 +123,9 @@ public extension View {
                 cancelTitle: "Cancel",
                 isDestructive: true,
                 onConfirm: {
-                    print("Confirmed")
                     isPresented = false
                 },
                 onCancel: {
-                    print("Cancelled")
                     isPresented = false
                 }
             )

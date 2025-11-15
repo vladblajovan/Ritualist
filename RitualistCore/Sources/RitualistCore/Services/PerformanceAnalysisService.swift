@@ -51,15 +51,19 @@ private struct PerfectDayStreakResult {
 }
 
 public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
-    
+
     private let scheduleAnalyzer: HabitScheduleAnalyzerProtocol
     private let streakCalculationService: StreakCalculationService
+    private let logger: DebugLogger
+
     public init(
         scheduleAnalyzer: HabitScheduleAnalyzerProtocol,
-        streakCalculationService: StreakCalculationService
+        streakCalculationService: StreakCalculationService,
+        logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "performance")
     ) {
         self.scheduleAnalyzer = scheduleAnalyzer
         self.streakCalculationService = streakCalculationService
+        self.logger = logger
     }
     
     public func calculateHabitPerformance(
@@ -301,7 +305,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         for (categoryId, categoryHabits) in habitsByCategory {
             // Skip the suggestion-unknown group as it indicates a data issue
             if categoryId == "suggestion-unknown" {
-                print("WARNING: Found habits from suggestions with invalid categoryId")
+                logger.log("Found habits from suggestions with invalid categoryId", level: .warning, category: .dataIntegrity)
                 continue
             }
             

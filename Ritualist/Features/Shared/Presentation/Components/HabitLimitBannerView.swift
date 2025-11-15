@@ -77,7 +77,7 @@ struct HabitLimitBannerView: View {
         HabitLimitBannerView(
             currentCount: 3,
             maxCount: 5,
-            onUpgradeTap: { print("Upgrade tapped") }
+            onUpgradeTap: { }
         )
         .padding()
 
@@ -90,7 +90,7 @@ struct HabitLimitBannerView: View {
         HabitLimitBannerView(
             currentCount: 5,
             maxCount: 5,
-            onUpgradeTap: { print("Upgrade tapped") }
+            onUpgradeTap: { }
         )
         .padding()
 

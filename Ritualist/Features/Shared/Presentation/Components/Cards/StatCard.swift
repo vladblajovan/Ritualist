@@ -488,9 +488,7 @@ public extension StatCard {
                 icon: "flame.fill",
                 color: .orange,
                 trend: .up(nil)
-            ) {
-                print("Featured card tapped")
-            }
+            ) { }
             
             // Compact cards
             VStack(spacing: Spacing.small) {
@@ -533,9 +531,7 @@ public extension StatCard {
                     value: "92%",
                     icon: "calendar.badge.checkmark",
                     color: .green
-                ) {
-                    print("Weekly consistency tapped")
-                }
+                ) { }
             }
         }
         .padding()

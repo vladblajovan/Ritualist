@@ -203,7 +203,7 @@ public struct RootTabView: View {
             let habitsData = try await loadHabitsData.execute()
             existingHabits = habitsData.habits
         } catch {
-            print("Failed to load habits for post-onboarding check: \(error)")
+            Container.shared.debugLogger().log("Failed to load habits for post-onboarding check: \(error)", level: .error, category: .ui)
             existingHabits = []
         }
     }

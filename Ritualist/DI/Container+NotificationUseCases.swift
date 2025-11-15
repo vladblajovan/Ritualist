@@ -12,7 +12,8 @@ extension Container {
         self { ScheduleHabitReminders(
             habitRepository: self.habitRepository(),
             notificationService: self.notificationService(),
-            habitCompletionCheckService: self.habitCompletionCheckService()
+            habitCompletionCheckService: self.habitCompletionCheckService(),
+            logger: self.debugLogger()
         )}
     }
     
@@ -37,7 +38,8 @@ extension Container {
             snoozeHabitReminder: self.snoozeHabitReminder(),
             notificationService: self.notificationService(),
             habitCompletionCheckService: self.habitCompletionCheckService(),
-            cancelHabitReminders: self.cancelHabitReminders()
+            cancelHabitReminders: self.cancelHabitReminders(),
+            logger: self.debugLogger()
         )}
     }
     

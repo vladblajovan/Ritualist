@@ -16,7 +16,8 @@ extension Container {
                 loadProfile: self.loadProfile(),
                 appearanceManager: self.appearanceManager(),
                 navigationService: self.navigationService(),
-                personalityDeepLinkCoordinator: self.personalityDeepLinkCoordinator()
+                personalityDeepLinkCoordinator: self.personalityDeepLinkCoordinator(),
+                logger: self.debugLogger()
             )
         }
         .singleton
@@ -147,7 +148,7 @@ extension Container {
     @MainActor
     var dashboardViewModel: Factory<DashboardViewModel> {
         self { @MainActor in
-            DashboardViewModel()
+            DashboardViewModel(logger: self.debugLogger())
         }
         .singleton
     }
@@ -169,7 +170,8 @@ extension Container {
                 getNextScheduledAnalysisUseCase: self.getNextScheduledAnalysisUseCase(),
                 triggerAnalysisCheckUseCase: self.triggerAnalysisCheckUseCase(),
                 forceManualAnalysisUseCase: self.forceManualAnalysisUseCase(),
-                loadProfile: self.loadProfile()
+                loadProfile: self.loadProfile(),
+                logger: self.debugLogger()
             )
         }
         .singleton

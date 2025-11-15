@@ -11,7 +11,8 @@ extension Container {
     @MainActor
     var locationMonitoringService: Factory<LocationMonitoringService> {
         self { @MainActor in
-            let service = DefaultLocationMonitoringService()
+            let logger = self.debugLogger()
+            let service = DefaultLocationMonitoringService(logger: logger)
 
             // IMPORTANT: Set event handler synchronously to avoid race condition
             // The setEventHandler method is async but just sets a property,
@@ -20,17 +21,17 @@ extension Container {
                 // Set event handler immediately to process geofence events
                 await service.setEventHandler { [weak self] event in
                     guard let self = self else {
-                        print("⚠️  [LocationMonitoring] Container deallocated, cannot handle event")
+                        logger.log("Container deallocated, cannot handle geofence event", level: .warning, category: .location)
                         return
                     }
                     do {
-                        print("🎯 [LocationMonitoring] Event handler called for habit \(event.habitId)")
+                        logger.log("Processing geofence event for habit: \(event.habitId)", level: .debug, category: .location)
                         try await self.handleGeofenceEvent().execute(event: event)
                     } catch {
-                        print("❌ [LocationMonitoring] Failed to handle geofence event: \(error)")
+                        logger.log("Failed to handle geofence event: \(error)", level: .error, category: .location)
                     }
                 }
-                print("✅ [LocationMonitoring] Event handler registered successfully")
+                logger.log("Geofence event handler registered successfully", level: .info, category: .location)
             }
 
             return service

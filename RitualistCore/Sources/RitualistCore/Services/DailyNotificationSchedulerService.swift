@@ -30,7 +30,7 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
         habitRepository: HabitRepository,
         scheduleHabitReminders: ScheduleHabitRemindersUseCase,
         notificationService: NotificationService,
-        logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "notifications")
+        logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.scheduleHabitReminders = scheduleHabitReminders

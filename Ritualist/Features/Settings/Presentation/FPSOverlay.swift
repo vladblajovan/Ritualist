@@ -7,6 +7,8 @@
 
 import SwiftUI
 import QuartzCore
+import FactoryKit
+import RitualistCore
 
 #if DEBUG
 /// Lightweight FPS (frames per second) monitoring overlay
@@ -74,11 +76,11 @@ final class FPSCounter: ObservableObject {
     private var frameDropCount: Int = 0
     private var measurementCount: Int = 0
     private var lastFrameTimestamp: CFTimeInterval = 0
+    private let logger = Container.shared.debugLogger()
 
     init() {
         startDisplayLink()
-        print("🎯 [FPS MONITOR] Started - Logging enabled")
-        print("🎯 [FPS MONITOR] Target: 60 FPS | Acceptable: 30+ FPS | Poor: <30 FPS")
+        logger.log("FPS MONITOR: Started - Target: 60 FPS | Acceptable: 30+ FPS | Poor: <30 FPS", level: .debug, category: .debug)
     }
 
     deinit {
@@ -109,7 +111,7 @@ final class FPSCounter: ObservableObject {
             // Log significant frame drops (>50ms = multiple frames dropped)
             if frameDuration > 0.050 {
                 let missedFrames = Int(frameDuration * 60)
-                print("⚠️ [FPS MONITOR] Frame drop detected: \(Int(frameDuration * 1000))ms (\(missedFrames) frames)")
+                logger.log("FPS MONITOR: Frame drop detected: \(Int(frameDuration * 1000))ms (\(missedFrames) frames)", level: .warning, category: .debug)
             }
         }
         lastFrameTimestamp = displayLink.timestamp
@@ -137,9 +139,9 @@ final class FPSCounter: ObservableObject {
 
             // PERFORMANCE LOGGING: Log current FPS with context
             let avgFPS = fpsHistory.reduce(0.0, +) / Double(fpsHistory.count)
-            let perfEmoji = fps >= 55 ? "✅" : (fps >= 30 ? "⚠️" : "🔴")
+            let level: LogLevel = fps >= 55 ? .debug : (fps >= 30 ? .info : .warning)
 
-            print("\(perfEmoji) [FPS MONITOR] Current: \(Int(fps)) | Avg: \(Int(avgFPS)) | Min: \(Int(minFPS)) | Max: \(Int(maxFPS)) | Drops: \(frameDropCount)")
+            logger.log("FPS MONITOR: Current: \(Int(fps)) | Avg: \(Int(avgFPS)) | Min: \(Int(minFPS)) | Max: \(Int(maxFPS)) | Drops: \(frameDropCount)", level: level, category: .debug)
 
             // Log summary every 10 seconds
             if measurementCount % 10 == 0 {
@@ -155,11 +157,7 @@ final class FPSCounter: ObservableObject {
     // PERFORMANCE LOGGING: Summary report
     private func logPerformanceSummary() {
         let avgFPS = fpsHistory.reduce(0.0, +) / Double(max(fpsHistory.count, 1))
-        print("📊 [FPS SUMMARY - \(measurementCount)s]")
-        print("   Average: \(String(format: "%.1f", avgFPS)) FPS")
-        print("   Min: \(Int(minFPS)) FPS | Max: \(Int(maxFPS)) FPS")
-        print("   Frame Drops: \(frameDropCount)")
-        print("   Performance: \(performanceRating(avgFPS))")
+        logger.log("FPS SUMMARY (\(measurementCount)s): Avg: \(String(format: "%.1f", avgFPS)) FPS | Min: \(Int(minFPS)) | Max: \(Int(maxFPS)) | Drops: \(frameDropCount) | Rating: \(performanceRating(avgFPS))", level: .info, category: .debug)
     }
 
     private func performanceRating(_ fps: Double) -> String {

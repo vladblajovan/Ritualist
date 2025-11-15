@@ -29,7 +29,7 @@ public final class PersonalityInsightsViewModel {
     }
     
     // MARK: - Dependencies
-    
+
     private let analyzePersonalityUseCase: AnalyzePersonalityUseCase
     private let getPersonalityProfileUseCase: GetPersonalityProfileUseCase
     private let validateAnalysisDataUseCase: ValidateAnalysisDataUseCase
@@ -42,10 +42,11 @@ public final class PersonalityInsightsViewModel {
     private let triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase
     private let forceManualAnalysisUseCase: ForceManualAnalysisUseCase
     private let loadProfile: LoadProfileUseCase
+    private let logger: DebugLogger
     private var currentUserId: UUID?
-    
+
     // MARK: - Initialization
-    
+
     public init(
         analyzePersonalityUseCase: AnalyzePersonalityUseCase,
         getPersonalityProfileUseCase: GetPersonalityProfileUseCase,
@@ -58,7 +59,8 @@ public final class PersonalityInsightsViewModel {
         getNextScheduledAnalysisUseCase: GetNextScheduledAnalysisUseCase,
         triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase,
         forceManualAnalysisUseCase: ForceManualAnalysisUseCase,
-        loadProfile: LoadProfileUseCase
+        loadProfile: LoadProfileUseCase,
+        logger: DebugLogger
     ) {
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
         self.getPersonalityProfileUseCase = getPersonalityProfileUseCase
@@ -72,6 +74,7 @@ public final class PersonalityInsightsViewModel {
         self.triggerAnalysisCheckUseCase = triggerAnalysisCheckUseCase
         self.forceManualAnalysisUseCase = forceManualAnalysisUseCase
         self.loadProfile = loadProfile
+        self.logger = logger
         self.currentUserId = nil
     }
     
@@ -251,7 +254,7 @@ public final class PersonalityInsightsViewModel {
                 await startAnalysisSchedulingUseCase.execute(for: userId)
             }
         } catch {
-            print("Error loading preferences: \(error)")
+            logger.log("Error loading personality analysis preferences: \(error)", level: .error, category: .personality)
             // Create default preferences on error
             if let userId = await getCurrentUserId() {
                 preferences = PersonalityAnalysisPreferences(userId: userId)
@@ -281,7 +284,7 @@ public final class PersonalityInsightsViewModel {
                 await loadPersonalityInsights()
             }
         } catch {
-            print("Error saving preferences: \(error)")
+            logger.log("Error saving personality analysis preferences: \(error)", level: .error, category: .personality)
             isSavingPreferences = false
         }
     }
@@ -296,7 +299,7 @@ public final class PersonalityInsightsViewModel {
             // Reset view state to trigger fresh analysis
             await loadPersonalityInsights()
         } catch {
-            print("Error deleting personality data: \(error)")
+            logger.log("Error deleting personality data: \(error)", level: .error, category: .personality)
         }
     }
     

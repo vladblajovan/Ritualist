@@ -12,7 +12,7 @@ public final class ScheduleHabitReminders: ScheduleHabitRemindersUseCase {
         habitRepository: HabitRepository,
         notificationService: NotificationService,
         habitCompletionCheckService: HabitCompletionCheckService,
-        logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "notifications")
+        logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.notificationService = notificationService
@@ -132,7 +132,7 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
         notificationService: NotificationService,
         habitCompletionCheckService: HabitCompletionCheckService,
         cancelHabitReminders: CancelHabitRemindersUseCase,
-        logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "notifications")
+        logger: DebugLogger
     ) {
         self.logHabitFromNotification = logHabitFromNotification
         self.snoozeHabitReminder = snoozeHabitReminder

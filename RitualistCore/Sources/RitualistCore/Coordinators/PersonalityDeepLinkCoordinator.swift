@@ -36,7 +36,7 @@ public final class PersonalityDeepLinkCoordinator {
 
     public static let shared = PersonalityDeepLinkCoordinator()
 
-    private init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "personality")) {
+    private init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "general")) {
         self.logger = logger
     }
     
@@ -104,7 +104,7 @@ public final class PersonalityDeepLinkCoordinator {
 
             default:
                 #if DEBUG
-                print("⚠️ Unknown personality notification action: \(action)")
+                logger.log("Unknown personality notification action: \(action)", level: .warning, category: .personality)
                 #endif
             }
         }

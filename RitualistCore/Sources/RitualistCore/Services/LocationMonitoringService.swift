@@ -43,11 +43,13 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
     private let locationManager: CLLocationManager
     private var monitoredHabits: [UUID: LocationConfiguration] = [:]
     private var eventHandler: ((GeofenceEvent) async -> Void)?
+    private let logger: DebugLogger
 
     // MARK: - Initialization
 
-    public override init() {
+    public init(logger: DebugLogger) {
         self.locationManager = CLLocationManager()
+        self.logger = logger
         super.init()
         self.locationManager.delegate = self
 
@@ -68,24 +70,44 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
     // MARK: - LocationMonitoringService Implementation
 
     public func startMonitoring(habitId: UUID, configuration: LocationConfiguration) async throws {
-        print("📍 [LocationMonitoring] Starting monitoring for habit \(habitId)")
+        logger.log(
+            "📍 Starting geofence monitoring",
+            level: .info,
+            category: .location,
+            metadata: ["habitId": habitId.uuidString]
+        )
 
         // Validate configuration
         guard configuration.isValid else {
-            print("❌ [LocationMonitoring] Invalid configuration for habit \(habitId)")
+            logger.log(
+                "❌ Invalid configuration",
+                level: .error,
+                category: .location,
+                metadata: ["habitId": habitId.uuidString]
+            )
             throw LocationError.invalidConfiguration("Invalid coordinates or radius")
         }
 
         // Check authorization status (includes location services enabled check)
         let authStatus = await getAuthorizationStatus()
         guard authStatus.canMonitorGeofences else {
-            print("❌ [LocationMonitoring] Permission denied for habit \(habitId)")
+            logger.log(
+                "❌ Permission denied for geofence monitoring",
+                level: .error,
+                category: .location,
+                metadata: ["habitId": habitId.uuidString, "status": String(describing: authStatus)]
+            )
             throw LocationError.permissionDenied
         }
 
         // Check if we've reached iOS geofence limit (20)
         if monitoredHabits.count >= 20 && monitoredHabits[habitId] == nil {
-            print("❌ [LocationMonitoring] Geofence limit reached (20), cannot add habit \(habitId)")
+            logger.log(
+                "❌ Geofence limit reached",
+                level: .error,
+                category: .location,
+                metadata: ["habitId": habitId.uuidString, "limit": 20, "current": monitoredHabits.count]
+            )
             throw LocationError.geofenceLimitReached
         }
 
@@ -111,7 +133,12 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
 
         // Stop existing monitoring if already monitoring this habit
         if monitoredHabits[habitId] != nil {
-            print("🔄 [LocationMonitoring] Updating existing monitoring for habit \(habitId)")
+            logger.log(
+                "🔄 Updating existing geofence monitoring",
+                level: .info,
+                category: .location,
+                metadata: ["habitId": habitId.uuidString]
+            )
             locationManager.stopMonitoring(for: region)
         }
 
@@ -121,7 +148,12 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
         // Store configuration in memory
         monitoredHabits[habitId] = configuration
 
-        print("✅ [LocationMonitoring] Now monitoring \(monitoredHabits.count) habit(s)")
+        logger.log(
+            "✅ Geofence monitoring active",
+            level: .info,
+            category: .location,
+            metadata: ["habitCount": monitoredHabits.count]
+        )
 
         // Request initial state for logging/debugging purposes
         // Note: This does NOT trigger notifications - only actual boundary crossings do
@@ -129,17 +161,32 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
         Task {
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
             locationManager.requestState(for: region)
-            print("🔍 [LocationMonitoring] Requested state check for region: \(habitId)")
+            logger.log(
+                "🔍 Requested initial state check",
+                level: .debug,
+                category: .location,
+                metadata: ["habitId": habitId.uuidString]
+            )
         }
     }
 
     public func stopMonitoring(habitId: UUID) async {
         guard monitoredHabits[habitId] != nil else {
-            print("⚠️  [LocationMonitoring] Habit \(habitId) not currently monitored")
+            logger.log(
+                "⚠️ Habit not currently monitored",
+                level: .warning,
+                category: .location,
+                metadata: ["habitId": habitId.uuidString]
+            )
             return
         }
 
-        print("🛑 [LocationMonitoring] Stopping monitoring for habit \(habitId)")
+        logger.log(
+            "🛑 Stopping geofence monitoring",
+            level: .info,
+            category: .location,
+            metadata: ["habitId": habitId.uuidString]
+        )
 
         let region = CLCircularRegion(
             center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
@@ -150,18 +197,32 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
         locationManager.stopMonitoring(for: region)
         monitoredHabits.removeValue(forKey: habitId)
 
-        print("✅ [LocationMonitoring] Now monitoring \(monitoredHabits.count) habit(s)")
+        logger.log(
+            "✅ Geofence monitoring stopped",
+            level: .info,
+            category: .location,
+            metadata: ["habitCount": monitoredHabits.count]
+        )
     }
 
     public func stopAllMonitoring() async {
-        print("🛑 [LocationMonitoring] Stopping all monitoring (\(locationManager.monitoredRegions.count) regions)")
+        logger.log(
+            "🛑 Stopping all geofence monitoring",
+            level: .info,
+            category: .location,
+            metadata: ["regionCount": locationManager.monitoredRegions.count]
+        )
 
         for monitoredRegion in locationManager.monitoredRegions {
             locationManager.stopMonitoring(for: monitoredRegion)
         }
         monitoredHabits.removeAll()
 
-        print("✅ [LocationMonitoring] All monitoring stopped")
+        logger.log(
+            "✅ All geofence monitoring stopped",
+            level: .info,
+            category: .location
+        )
     }
 
     public func getMonitoredHabitIds() async -> [UUID] {
@@ -177,7 +238,12 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
             return UUID(uuidString: region.identifier)
         }
 
-        print("📋 [LocationMonitoring] iOS is monitoring \(habitIds.count) geofence regions")
+        logger.log(
+            "📋 System monitoring status",
+            level: .debug,
+            category: .location,
+            metadata: ["regionCount": habitIds.count]
+        )
         return habitIds
     }
 
@@ -215,16 +281,32 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
     ) {
         guard let circularRegion = region as? CLCircularRegion,
               let habitId = UUID(uuidString: region.identifier) else {
-            print("⚠️  [LocationMonitoring] Invalid region or habit ID in geofence event")
+            Task { @MainActor in
+                logger.log(
+                    "⚠️ Invalid region or habit ID in geofence event",
+                    level: .warning,
+                    category: .location
+                )
+            }
             return
         }
 
-        Task {
-            print("📍 [LocationMonitoring] Geofence event: \(eventType) for habit \(habitId)")
+        Task { @MainActor in
+            logger.log(
+                "📍 Geofence event detected",
+                level: .info,
+                category: .location,
+                metadata: ["habitId": habitId.uuidString, "eventType": String(describing: eventType)]
+            )
 
             // Get configuration for this habit
             guard let configuration = await monitoredHabits[habitId] else {
-                print("⚠️  [LocationMonitoring] No configuration found for habit \(habitId)")
+                logger.log(
+                    "⚠️ No configuration found for habit",
+                    level: .warning,
+                    category: .location,
+                    metadata: ["habitId": habitId.uuidString]
+                )
                 return
             }
 
@@ -239,11 +321,21 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
 
             // Check if event should trigger notification
             guard event.shouldTriggerNotification() else {
-                print("⏭️  [LocationMonitoring] Skipping notification due to frequency rules")
+                logger.log(
+                    "⏭️ Skipping notification - frequency rules",
+                    level: .debug,
+                    category: .location,
+                    metadata: ["habitId": habitId.uuidString]
+                )
                 return
             }
 
-            print("🔔 [LocationMonitoring] Triggering notification for habit \(habitId)")
+            logger.log(
+                "🔔 Triggering geofence notification",
+                level: .info,
+                category: .location,
+                metadata: ["habitId": habitId.uuidString, "eventType": String(describing: eventType)]
+            )
 
             // Call event handler (which will update the database with new trigger dates)
             // The event handler (HandleGeofenceEventUseCase) will update the database
@@ -261,13 +353,23 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
             }
             await updateConfiguration(habitId: habitId, configuration: updatedConfig)
 
-            print("✅ [LocationMonitoring] Event handled and configuration updated")
+            logger.log(
+                "✅ Geofence event handled",
+                level: .info,
+                category: .location,
+                metadata: ["habitId": habitId.uuidString]
+            )
         }
     }
 
     private func updateConfiguration(habitId: UUID, configuration: LocationConfiguration) {
         monitoredHabits[habitId] = configuration
-        print("🔄 [LocationMonitoring] Updated in-memory configuration for habit \(habitId)")
+        logger.log(
+            "🔄 Configuration updated",
+            level: .debug,
+            category: .location,
+            metadata: ["habitId": habitId.uuidString]
+        )
     }
 }
 
@@ -293,7 +395,17 @@ extension DefaultLocationMonitoringService: CLLocationManagerDelegate {
         monitoringDidFailFor region: CLRegion?,
         withError error: Error
     ) {
-        print("❌ [LocationMonitoring] Failed to monitor region \(region?.identifier ?? "unknown"): \(error)")
+        Task { @MainActor in
+            logger.log(
+                "❌ Geofence monitoring failed",
+                level: .error,
+                category: .location,
+                metadata: [
+                    "region": region?.identifier ?? "unknown",
+                    "error": error.localizedDescription
+                ]
+            )
+        }
 
         // Optionally notify about monitoring failure
         if let region = region,
@@ -309,12 +421,26 @@ extension DefaultLocationMonitoringService: CLLocationManagerDelegate {
         _ manager: CLLocationManager,
         didStartMonitoringFor region: CLRegion
     ) {
-        print("✅ [LocationMonitoring] Started monitoring region: \(region.identifier)")
+        Task { @MainActor in
+            logger.log(
+                "✅ Geofence monitoring started",
+                level: .info,
+                category: .location,
+                metadata: ["region": region.identifier]
+            )
+        }
     }
 
     nonisolated public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = convertAuthorizationStatus(manager.authorizationStatus)
-        print("🔐 [LocationMonitoring] Authorization changed to: \(status)")
+        Task { @MainActor in
+            logger.log(
+                "🔐 Location authorization changed",
+                level: .info,
+                category: .location,
+                metadata: ["status": String(describing: status)]
+            )
+        }
 
         // If permission was revoked, stop all monitoring
         if !status.canMonitorGeofences {
@@ -332,17 +458,31 @@ extension DefaultLocationMonitoringService: CLLocationManagerDelegate {
         // State determination is ONLY for informational purposes
         // Do NOT trigger notifications - only actual boundary crossings (didEnter/didExit) should notify
         // This prevents false positives when app restarts while user is already inside a region
-        print("📍 [LocationMonitoring] Determined initial state for region \(region.identifier): \(state.rawValue == 1 ? "inside" : state.rawValue == 2 ? "outside" : "unknown")")
+        let stateDescription: String
+        let stateLevel: LogLevel
 
         switch state {
         case .inside:
-            print("🏠 [LocationMonitoring] Device is currently inside region (no notification - waiting for actual boundary crossing)")
+            stateDescription = "🏠 Device inside region - waiting for boundary crossing"
+            stateLevel = .debug
         case .outside:
-            print("🌍 [LocationMonitoring] Device is currently outside region (ready for entry event)")
+            stateDescription = "🌍 Device outside region - ready for entry event"
+            stateLevel = .debug
         case .unknown:
-            print("❓ [LocationMonitoring] Region state unknown - waiting for location update")
+            stateDescription = "❓ Region state unknown - waiting for location update"
+            stateLevel = .debug
         @unknown default:
-            print("⚠️  [LocationMonitoring] Unknown region state: \(state.rawValue)")
+            stateDescription = "⚠️ Unknown region state"
+            stateLevel = .warning
+        }
+
+        Task { @MainActor in
+            logger.log(
+                stateDescription,
+                level: stateLevel,
+                category: .location,
+                metadata: ["region": region.identifier, "state": state.rawValue]
+            )
         }
     }
 }

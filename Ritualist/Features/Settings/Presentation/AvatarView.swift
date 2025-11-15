@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import FactoryKit
 import RitualistCore
 
 public struct AvatarView: View {
@@ -137,12 +138,12 @@ public struct AvatarImagePicker: View {
     @Binding public var selectedImageData: Data?
     @State private var selectedItem: PhotosPickerItem?
     @State private var isLoading = false
-    
+
     public let name: String
     public let currentImageData: Data?
     public let onImageSelected: (Data?) -> Void
     public let onDismiss: () -> Void
-    
+
     public init(
         name: String,
         currentImageData: Data?,
@@ -262,7 +263,7 @@ public struct AvatarImagePicker: View {
                 }
             }
         } catch {
-            print("Failed to load image: \(error)")
+            Container.shared.debugLogger().log("Failed to load avatar image: \(error)", level: .error, category: .ui)
         }
         
         isLoading = false
@@ -293,21 +294,15 @@ public struct AvatarImagePicker: View {
 }
 
 #Preview("Empty Avatar") {
-    AvatarView(name: "", imageData: nil, size: 80) {
-        print("Edit tapped")
-    }
+    AvatarView(name: "", imageData: nil, size: 80) {}
 }
 
 #Preview("Initials Avatar - Single Name") {
-    AvatarView(name: "John", imageData: nil, size: 80) {
-        print("Edit tapped")
-    }
+    AvatarView(name: "John", imageData: nil, size: 80) {}
 }
 
 #Preview("Initials Avatar - Full Name") {
-    AvatarView(name: "John Doe", imageData: nil, size: 80) {
-        print("Edit tapped")
-    }
+    AvatarView(name: "John Doe", imageData: nil, size: 80) {}
 }
 
 #Preview("Avatar Sizes") {

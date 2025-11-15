@@ -137,19 +137,22 @@ public protocol HandleGeofenceEventUseCase {
 public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
     private let habitRepository: HabitRepository
     private let notificationService: NotificationService
+    private let logger: DebugLogger
 
     public init(
         habitRepository: HabitRepository,
-        notificationService: NotificationService
+        notificationService: NotificationService,
+        logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.notificationService = notificationService
+        self.logger = logger
     }
 
     public func execute(event: GeofenceEvent) async throws {
         // Get habit
         guard var habit = try await habitRepository.fetchHabit(by: event.habitId) else {
-            print("⚠️  [HandleGeofenceEvent] Habit not found: \(event.habitId)")
+            logger.log("Geofence event for missing habit: \(event.habitId)", level: .warning, category: .location)
             return
         }
 
@@ -157,13 +160,13 @@ public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
         guard habit.isActive,
               var locationConfig = habit.locationConfiguration,
               locationConfig.isEnabled else {
-            print("⚠️  [HandleGeofenceEvent] Habit not active or location disabled: \(habit.name)")
+            logger.log("Geofence event for inactive/disabled habit: \(habit.name)", level: .warning, category: .location)
             return
         }
 
         // Check if notification should be sent based on frequency
         guard event.shouldTriggerNotification() else {
-            print("⏭️  [HandleGeofenceEvent] Skipping notification due to frequency rules: \(habit.name)")
+            logger.log("Skipping geofence notification due to frequency rules: \(habit.name)", level: .debug, category: .location)
             return
         }
 
@@ -181,7 +184,7 @@ public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
         // Save updated habit
         try await habitRepository.update(habit)
 
-        print("✅ [HandleGeofenceEvent] Notification sent for habit: \(habit.name)")
+        logger.log("Geofence notification sent for habit: \(habit.name)", level: .info, category: .location)
     }
 }
 
@@ -257,22 +260,25 @@ public protocol RestoreGeofenceMonitoringUseCase {
 public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUseCase {
     private let habitRepository: HabitRepository
     private let locationMonitoringService: LocationMonitoringService
+    private let logger: DebugLogger
 
     public init(
         habitRepository: HabitRepository,
-        locationMonitoringService: LocationMonitoringService
+        locationMonitoringService: LocationMonitoringService,
+        logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.locationMonitoringService = locationMonitoringService
+        self.logger = logger
     }
 
     public func execute() async throws {
-        print("🔄 [RestoreGeofences] Starting geofence restoration on app launch")
+        logger.log("Starting geofence restoration on app launch", level: .info, category: .location)
 
         // Check if location services are available
         let authStatus = await locationMonitoringService.getAuthorizationStatus()
         guard authStatus.canMonitorGeofences else {
-            print("⚠️  [RestoreGeofences] Location permission not granted - skipping restoration")
+            logger.log("Location permission not granted - skipping geofence restoration", level: .warning, category: .location)
             return
         }
 
@@ -285,7 +291,7 @@ public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUse
             return config.isEnabled && habit.isActive
         }
 
-        print("📍 [RestoreGeofences] Found \(habitsWithLocation.count) habits with enabled location monitoring")
+        logger.log("Found \(habitsWithLocation.count) habits with enabled location monitoring", level: .info, category: .location)
 
         // Restore monitoring for each habit
         var restoredCount = 0
@@ -300,10 +306,10 @@ public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUse
                     configuration: configuration
                 )
                 restoredCount += 1
-                print("✅ [RestoreGeofences] Restored monitoring for habit: \(habit.name)")
+                logger.log("Restored geofence monitoring for habit: \(habit.name)", level: .debug, category: .location)
             } catch {
                 failedCount += 1
-                print("❌ [RestoreGeofences] Failed to restore monitoring for habit '\(habit.name)': \(error)")
+                logger.log("Failed to restore monitoring for habit '\(habit.name)': \(error)", level: .error, category: .location)
             }
         }
 
@@ -313,13 +319,13 @@ public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUse
         let orphanedHabitIds = systemMonitoredHabitIds.filter { !validHabitIds.contains($0) }
 
         if !orphanedHabitIds.isEmpty {
-            print("🧹 [RestoreGeofences] Cleaning up \(orphanedHabitIds.count) orphaned geofences")
+            logger.log("Cleaning up \(orphanedHabitIds.count) orphaned geofences", level: .info, category: .location)
             for orphanedId in orphanedHabitIds {
                 await locationMonitoringService.stopMonitoring(habitId: orphanedId)
-                print("🗑️ [RestoreGeofences] Removed orphaned geofence: \(orphanedId)")
+                logger.log("Removed orphaned geofence: \(orphanedId)", level: .debug, category: .location)
             }
         }
 
-        print("🎯 [RestoreGeofences] Restoration complete - Success: \(restoredCount), Failed: \(failedCount), Cleaned: \(orphanedHabitIds.count)")
+        logger.log("Geofence restoration complete - Restored: \(restoredCount), Failed: \(failedCount), Cleaned: \(orphanedHabitIds.count)", level: .info, category: .location)
     }
 }

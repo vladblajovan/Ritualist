@@ -43,13 +43,16 @@ public protocol StreakCalculationService {
 
 /// Default implementation of StreakCalculationService with schedule-aware algorithms
 public final class DefaultStreakCalculationService: StreakCalculationService {
-    
+
     private let habitCompletionService: HabitCompletionService
-    
+    private let logger: DebugLogger
+
     public init(
-        habitCompletionService: HabitCompletionService
+        habitCompletionService: HabitCompletionService,
+        logger: DebugLogger
     ) {
         self.habitCompletionService = habitCompletionService
+        self.logger = logger
         // Using CalendarUtils for LOCAL timezone business logic consistency
     }
     
@@ -135,19 +138,34 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         var currentDate = CalendarUtils.startOfDayLocal(for: date)
         let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate)
 
-        print("🔥 STREAK CALC DEBUG for '\(habit.name)':")
-        print("   Start date: \(currentDate)")
-        print("   Total logs: \(logs.count)")
+        logger.log(
+            "🔥 Calculating daily streak",
+            level: .debug,
+            category: .dataIntegrity,
+            metadata: [
+                "habit": habit.name,
+                "startDate": currentDate.ISO8601Format(),
+                "logsCount": logs.count
+            ]
+        )
 
         // For daily habits, check every day backwards
         while currentDate >= habitStartDate {
             let isCompleted = habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs)
-            print("   Day \(currentDate): \(isCompleted ? "✅ COMPLETED" : "❌ NOT COMPLETED")")
 
             if isCompleted {
                 streak += 1
             } else {
-                print("   ⛔ Streak broken at \(currentDate), final streak = \(streak)")
+                logger.log(
+                    "⛔ Streak broken",
+                    level: .debug,
+                    category: .dataIntegrity,
+                    metadata: [
+                        "habit": habit.name,
+                        "brokenAt": currentDate.ISO8601Format(),
+                        "streak": streak
+                    ]
+                )
                 break
             }
 
@@ -155,7 +173,12 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
             // currentDate already updated above
         }
 
-        print("   🎯 Final streak: \(streak)")
+        logger.log(
+            "🎯 Streak calculation complete",
+            level: .debug,
+            category: .dataIntegrity,
+            metadata: ["habit": habit.name, "finalStreak": streak]
+        )
         return streak
     }
     

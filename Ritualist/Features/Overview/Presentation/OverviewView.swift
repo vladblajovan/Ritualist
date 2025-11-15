@@ -203,7 +203,7 @@ public struct OverviewView: View {
                 // This ensures habit schedule changes from Habits screen are reflected in Overview
                 if !wasVisible && isVisible {
                     Task {
-                        print("🔄 TAB SWITCH DETECTED: Reloading overview data")
+                        Container.shared.debugLogger().log("Tab switch detected: Reloading overview data", level: .debug, category: .ui)
                         vm.invalidateCacheForTabSwitch()
                         // Use refresh() to bypass the "already loaded" check
                         await vm.refresh()

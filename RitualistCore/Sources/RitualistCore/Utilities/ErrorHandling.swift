@@ -32,10 +32,12 @@ public actor ErrorHandler {
     private var errorLog: [ErrorEvent] = []
     private let maxLogSize: Int
     private let analyticsEnabled: Bool
-    
-    public init(maxLogSize: Int = 1000, analyticsEnabled: Bool = true) {
+    private let logger: DebugLogger
+
+    public init(maxLogSize: Int = 1000, analyticsEnabled: Bool = true, logger: DebugLogger) {
         self.maxLogSize = maxLogSize
         self.analyticsEnabled = analyticsEnabled
+        self.logger = logger
     }
     
     // MARK: - Public Interface
@@ -127,27 +129,27 @@ public actor ErrorHandler {
     private func sendToAnalytics(_ event: ErrorEvent) async {
         // TODO: Integrate with actual analytics service
         // For now, we'll simulate analytics sending
-        
+
         #if DEBUG
         // In debug, just log that we would send analytics
-        print("📊 [Analytics] Would send error event: \(event.context) - \(event.error.localizedDescription)")
+        logger.log("Would send error event to analytics: \(event.context) - \(event.error.localizedDescription)", level: .debug, category: .debug)
         #else
         // In production, integrate with real analytics
         // Example: await analyticsService.trackError(event)
         #endif
     }
-    
+
     private func logToConsole(_ event: ErrorEvent) async {
         let timestamp = DateFormatter.errorLogFormatter.string(from: event.timestamp)
         let userInfo = event.userId != nil ? " [User: \(event.userId!)]" : ""
         let properties = event.additionalProperties.isEmpty ? "" : " \(event.additionalProperties)"
-        
-        print("🚨 [Error] \(timestamp) [\(event.context)]\(userInfo) \(event.error.localizedDescription)\(properties)")
-        
-        // Also print stack trace in debug mode
+
+        logger.log("[\(event.context)]\(userInfo) \(event.error.localizedDescription)\(properties)", level: .error, category: .system)
+
+        // Also log stack trace in debug mode
         #if DEBUG
         if let nsError = event.error as NSError? {
-            print("   Stack: \(nsError.userInfo)")
+            logger.log("Error stack: \(nsError.userInfo)", level: .debug, category: .system)
         }
         #endif
     }

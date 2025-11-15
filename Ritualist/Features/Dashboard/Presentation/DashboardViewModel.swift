@@ -35,8 +35,12 @@ public final class DashboardViewModel {
     @ObservationIgnored @Injected(\.calculateDailyProgress) internal var calculateDailyProgress
     @ObservationIgnored @Injected(\.isScheduledDay) internal var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
-    
-    public init() {}
+
+    private let logger: DebugLogger
+
+    public init(logger: DebugLogger) {
+        self.logger = logger
+    }
     
     // MARK: - Data Models
     
@@ -286,7 +290,7 @@ public final class DashboardViewModel {
             }
         } catch {
             self.error = error
-            print("Failed to load dashboard data: \(error)")
+            logger.log("Failed to load dashboard data: \(error)", level: .error, category: .ui)
         }
         
         self.isLoading = false
