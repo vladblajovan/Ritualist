@@ -79,7 +79,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
             return true
             
         case .daysOfWeek(let scheduledDays):
-            let weekday = getHabitWeekday(from: date)
+            let weekday = CalendarUtils.habitWeekday(from: date)
             return scheduledDays.contains(weekday)
         }
     }
@@ -111,7 +111,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         }
 
         return dayLogs.contains { log in
-            isLogCompleted(log: log, habit: habit)
+            HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
         }
     }
     
@@ -122,7 +122,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
             log.habitID == habit.id && 
             log.date >= weekInterval.start && 
             log.date < weekInterval.end &&
-            isLogCompleted(log: log, habit: habit)
+            HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
         }
         
         return weekLogs.count >= weeklyTarget
@@ -135,7 +135,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
             log.habitID == habit.id && 
             log.date >= weekInterval.start && 
             log.date <= date &&
-            isLogCompleted(log: log, habit: habit)
+            HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
         }
         
         return min(Double(weekLogs.count) / Double(weeklyTarget), 1.0)
@@ -174,7 +174,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         let endOfRange = CalendarUtils.startOfDayLocal(for: endDate)
         
         while currentDate <= endOfRange {
-            let weekday = getHabitWeekday(from: currentDate)
+            let weekday = CalendarUtils.habitWeekday(from: currentDate)
             if scheduledDays.contains(weekday) && isCompletedOnSpecificDay(habit: habit, date: currentDate, logs: logs) {
                 completedDays += 1
             }
@@ -191,7 +191,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         
         // Filter for only completed logs within the date range
         let completedLogs = logs.filter { log in
-            log.date >= startDate && log.date <= endDate && isLogCompleted(log: log, habit: habit)
+            log.date >= startDate && log.date <= endDate && HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
         }
         
         // Filter for only completed logs within the date range
@@ -222,30 +222,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         
         return Double(totalActualCompletions) / Double(totalExpected)
     }
-    
-    private func isLogCompleted(log: HabitLog, habit: Habit) -> Bool {
-        switch habit.kind {
-        case .binary:
-            // For binary habits: log exists AND value > 0
-            return log.value != nil && log.value! > 0
-            
-        case .numeric:
-            guard let logValue = log.value else { return false }
-            
-            // For numeric habits: must meet daily target if set, otherwise any positive value
-            if let target = habit.dailyTarget {
-                return logValue >= target
-            } else {
-                return logValue > 0
-            }
-        }
-    }
-    
-    private func getHabitWeekday(from date: Date) -> Int {
-        let calendarWeekday = CalendarUtils.weekdayComponentLocal(from: date)
-        return CalendarUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
-    }
-    
+
     private func calculateDaysBetween(from startDate: Date, to endDate: Date) -> Int {
         let daysDifference = CalendarUtils.daysBetweenLocal(startDate, endDate)
         return max(1, daysDifference + 1)
@@ -257,7 +234,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         let endOfRange = CalendarUtils.startOfDayLocal(for: endDate)
         
         while currentDate <= endOfRange {
-            let weekday = getHabitWeekday(from: currentDate)
+            let weekday = CalendarUtils.habitWeekday(from: currentDate)
             if scheduledDays.contains(weekday) {
                 count += 1
             }

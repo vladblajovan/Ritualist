@@ -380,7 +380,14 @@ public struct CalendarUtils {
     public static func habitWeekdayToCalendarWeekday(_ habitWeekday: Int) -> Int {
         return habitWeekday == 7 ? 1 : habitWeekday + 1
     }
-    
+
+    /// Get habit weekday (1=Monday...7=Sunday) from date in local timezone
+    /// Convenience method combining weekdayComponentLocal() and calendarWeekdayToHabitWeekday()
+    public static func habitWeekday(from date: Date, timezone: TimeZone = .current) -> Int {
+        let calendarWeekday = weekdayComponentLocal(from: date, timezone: timezone)
+        return calendarWeekdayToHabitWeekday(calendarWeekday)
+    }
+
     /// Check if date falls on scheduled weekday(s)
     public static func isScheduledWeekday(_ date: Date, scheduledDays: Set<Int>) -> Bool {
         let calendarWeekday = weekdayComponentUTC(from: date)

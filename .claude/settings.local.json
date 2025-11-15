@@ -41,7 +41,8 @@
       "Bash(gh pr create:*)",
       "Bash(gh run view:*)",
       "Bash(gh pr view:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(gh pr list:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
