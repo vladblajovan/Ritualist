@@ -331,7 +331,7 @@ public struct DashboardView: View {
                                 .frame(width: 60 * category.completionRate, height: 8)
                         }
                         
-                        Text("\(Int(category.completionRate * 100))%")
+                        Text("\(Int((category.completionRate * 100).rounded()))%")
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
                             .foregroundColor(.primary)
                             .frame(width: 35, alignment: .trailing)
@@ -422,7 +422,7 @@ public struct DashboardView: View {
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.primary)
 
-                        Text("\(Int(patterns.bestDayCompletionRate * 100))% completion rate")
+                        Text("\(Int((patterns.bestDayCompletionRate * 100).rounded()))% completion rate")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

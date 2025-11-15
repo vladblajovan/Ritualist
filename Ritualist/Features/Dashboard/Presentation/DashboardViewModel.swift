@@ -36,7 +36,7 @@ public final class DashboardViewModel {
     @ObservationIgnored @Injected(\.isScheduledDay) internal var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
 
-    private let logger: DebugLogger
+    internal let logger: DebugLogger
 
     public init(logger: DebugLogger) {
         self.logger = logger
@@ -128,7 +128,7 @@ public final class DashboardViewModel {
         /// Minimum number of habits required for meaningful schedule optimization analysis.
         private static let minimumHabitsRequired: Int = 2
 
-        init(from domain: WeeklyPatternsResult, daysWithData: Int, averageRate: Double, habitCount: Int, timePeriod: TimePeriod) {
+        init(from domain: WeeklyPatternsResult, daysWithData: Int, averageRate: Double, habitCount: Int, timePeriod: TimePeriod, logger: DebugLogger? = nil) {
             self.dayOfWeekPerformance = domain.dayOfWeekPerformance.map(DayOfWeekPerformanceViewModel.init)
             self.bestDay = domain.bestDay
             self.worstDay = domain.worstDay
@@ -144,8 +144,22 @@ public final class DashboardViewModel {
             // (e.g., WeeklyPatternsResult.bestDay doesn't match any dayName in dayOfWeekPerformance).
             // The ?? 0 fallback ensures the app doesn't crash, and isDataSufficient validation will catch
             // this scenario (0% completion won't meet minimum thresholds).
-            self.bestDayCompletionRate = performanceByDay[domain.bestDay] ?? 0
-            self.worstDayCompletionRate = performanceByDay[domain.worstDay] ?? 0
+            self.bestDayCompletionRate = performanceByDay[domain.bestDay] ?? {
+                logger?.log(
+                    "Edge case triggered: bestDay '\(domain.bestDay)' not found in performance data. Available days: \(performanceByDay.keys.joined(separator: ", ")). Defaulting to 0.",
+                    level: .warning,
+                    category: .dataIntegrity
+                )
+                return 0.0
+            }()
+            self.worstDayCompletionRate = performanceByDay[domain.worstDay] ?? {
+                logger?.log(
+                    "Edge case triggered: worstDay '\(domain.worstDay)' not found in performance data. Available days: \(performanceByDay.keys.joined(separator: ", ")). Defaulting to 0.",
+                    level: .warning,
+                    category: .dataIntegrity
+                )
+                return 0.0
+            }()
 
             // Calculate period-aware data quality requirements
             let minDaysRequired = Self.calculateMinDaysRequired(for: timePeriod)
