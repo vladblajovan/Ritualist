@@ -144,11 +144,12 @@ extension Container {
     }
     
     var habitCompletionCheckService: Factory<HabitCompletionCheckService> {
-        self { 
+        self {
             DefaultHabitCompletionCheckService(
                 habitRepository: self.habitRepository(),
                 logRepository: self.logRepository(),
                 habitCompletionService: self.habitCompletionService(),
+                timezoneService: self.timezoneService(),
                 calendar: CalendarUtils.currentLocalCalendar,
                 errorHandler: self.errorHandler()
             )

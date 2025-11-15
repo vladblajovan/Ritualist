@@ -9,36 +9,68 @@ import Foundation
 
 /// Service responsible for calculating habit streaks with proper schedule awareness.
 /// Each schedule type has its own semantic meaning for what constitutes a streak.
+///
+/// ## Timezone Support
+/// All methods accept a `timezone` parameter for timezone-aware streak calculations.
+/// For timezone-aware calculations, use the display timezone from `TimezoneService`.
 public protocol StreakCalculationService {
     /// Calculate the current active streak for a habit as of a specific date
     /// - Parameters:
     ///   - habit: The habit to calculate streak for
     ///   - logs: All logs for the habit (should be pre-filtered by habitID)
     ///   - date: The date to calculate streak as of (typically today)
+    ///   - timezone: Timezone for date calculations
     /// - Returns: Current streak count respecting schedule semantics
-    func calculateCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int
-    
+    func calculateCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> Int
+
     /// Calculate the longest streak ever achieved for a habit
     /// - Parameters:
     ///   - habit: The habit to calculate streak for
     ///   - logs: All logs for the habit (should be pre-filtered by habitID)
+    ///   - timezone: Timezone for date calculations
     /// - Returns: Longest streak count respecting schedule semantics
-    func calculateLongestStreak(habit: Habit, logs: [HabitLog]) -> Int
-    
+    func calculateLongestStreak(habit: Habit, logs: [HabitLog], timezone: TimeZone) -> Int
+
     /// Get dates where the streak was broken (missed scheduled days)
     /// - Parameters:
     ///   - habit: The habit to analyze
     ///   - logs: All logs for the habit
     ///   - date: The end date to analyze up to
+    ///   - timezone: Timezone for date calculations
     /// - Returns: Array of dates where streaks were broken
-    func getStreakBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date) -> [Date]
-    
+    func getStreakBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> [Date]
+
     /// Get the next scheduled date for a habit after a given date
     /// - Parameters:
     ///   - habit: The habit to check schedule for
     ///   - date: The date to find next scheduled date after
+    ///   - timezone: Timezone for date calculations
     /// - Returns: Next scheduled date, or nil if habit has no future schedule
-    func getNextScheduledDate(habit: Habit, after date: Date) -> Date?
+    func getNextScheduledDate(habit: Habit, after date: Date, timezone: TimeZone) -> Date?
+}
+
+// MARK: - Backward Compatibility Extensions
+
+extension StreakCalculationService {
+    /// Backward compatible version using current timezone
+    public func calculateCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int {
+        return calculateCurrentStreak(habit: habit, logs: logs, asOf: date, timezone: .current)
+    }
+
+    /// Backward compatible version using current timezone
+    public func calculateLongestStreak(habit: Habit, logs: [HabitLog]) -> Int {
+        return calculateLongestStreak(habit: habit, logs: logs, timezone: .current)
+    }
+
+    /// Backward compatible version using current timezone
+    public func getStreakBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date) -> [Date] {
+        return getStreakBreakDates(habit: habit, logs: logs, asOf: date, timezone: .current)
+    }
+
+    /// Backward compatible version using current timezone
+    public func getNextScheduledDate(habit: Habit, after date: Date) -> Date? {
+        return getNextScheduledDate(habit: habit, after: date, timezone: .current)
+    }
 }
 
 /// Default implementation of StreakCalculationService with schedule-aware algorithms
@@ -57,62 +89,62 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     }
     
     // MARK: - Public Methods
-    
-    public func calculateCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int {
+
+    public func calculateCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> Int {
         switch habit.schedule {
         case .daily:
-            return calculateDailyCurrentStreak(habit: habit, logs: logs, asOf: date)
+            return calculateDailyCurrentStreak(habit: habit, logs: logs, asOf: date, timezone: timezone)
         case .daysOfWeek:
-            return calculateDaysOfWeekCurrentStreak(habit: habit, logs: logs, asOf: date)
+            return calculateDaysOfWeekCurrentStreak(habit: habit, logs: logs, asOf: date, timezone: timezone)
         }
     }
-    
-    public func calculateLongestStreak(habit: Habit, logs: [HabitLog]) -> Int {
+
+    public func calculateLongestStreak(habit: Habit, logs: [HabitLog], timezone: TimeZone) -> Int {
         switch habit.schedule {
         case .daily:
-            return calculateDailyLongestStreak(habit: habit, logs: logs)
+            return calculateDailyLongestStreak(habit: habit, logs: logs, timezone: timezone)
         case .daysOfWeek:
-            return calculateDaysOfWeekLongestStreak(habit: habit, logs: logs)
+            return calculateDaysOfWeekLongestStreak(habit: habit, logs: logs, timezone: timezone)
         }
     }
-    
-    public func getStreakBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date) -> [Date] {
-        return getDailyBreakDates(habit: habit, logs: logs, asOf: date)
+
+    public func getStreakBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> [Date] {
+        return getDailyBreakDates(habit: habit, logs: logs, asOf: date, timezone: timezone)
     }
     
-    private func getDailyBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date) -> [Date] {
+    private func getDailyBreakDates(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> [Date] {
         var breakDates: [Date] = []
-        var currentDate = CalendarUtils.startOfDayLocal(for: date)
-        let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate)
-        
+        var currentDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
+        let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
+
         // Work backwards from the current date
         while currentDate >= habitStartDate {
-            if habitCompletionService.isScheduledDay(habit: habit, date: currentDate) {
-                let isCompleted = habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs)
+            if habitCompletionService.isScheduledDay(habit: habit, date: currentDate, timezone: timezone) {
+                let isCompleted = habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs, timezone: timezone)
                 if !isCompleted {
                     breakDates.append(currentDate)
                 }
             }
-            
+
             currentDate = CalendarUtils.addDays(-1, to: currentDate)
             // currentDate already updated above
         }
-        
+
         return breakDates.reversed() // Return in chronological order
     }
     
     
-    public func getNextScheduledDate(habit: Habit, after date: Date) -> Date? {
+    public func getNextScheduledDate(habit: Habit, after date: Date, timezone: TimeZone) -> Date? {
         // If habit has an end date and we're past it, no future schedule
         if let endDate = habit.endDate, date >= endDate {
             return nil
         }
-        
-        var searchDate = CalendarUtils.addDays(1, to: CalendarUtils.startOfDayLocal(for: date))
+
+        var searchDate = CalendarUtils.addDays(1, to: CalendarUtils.startOfDayLocal(for: date, timezone: timezone))
         let searchLimit = CalendarUtils.addYears(1, to: date) // Prevent infinite loops
-        
+
         while searchDate <= searchLimit {
-            if habitCompletionService.isScheduledDay(habit: habit, date: searchDate) {
+            if habitCompletionService.isScheduledDay(habit: habit, date: searchDate, timezone: timezone) {
                 // Check if this date is within habit's active period
                 if searchDate >= habit.startDate {
                     if let endDate = habit.endDate {
@@ -124,19 +156,19 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                     }
                 }
             }
-            
+
             searchDate = CalendarUtils.addDays(1, to: searchDate)
         }
-        
+
         return nil
     }
     
     // MARK: - Daily Schedule Algorithms
-    
-    private func calculateDailyCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int {
+
+    private func calculateDailyCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> Int {
         var streak = 0
-        var currentDate = CalendarUtils.startOfDayLocal(for: date)
-        let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate)
+        var currentDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
+        let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
 
         logger.log(
             "🔥 Calculating daily streak",
@@ -151,7 +183,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
 
         // For daily habits, check every day backwards
         while currentDate >= habitStartDate {
-            let isCompleted = habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs)
+            let isCompleted = habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs, timezone: timezone)
 
             if isCompleted {
                 streak += 1
@@ -182,76 +214,77 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         return streak
     }
     
-    private func calculateDailyLongestStreak(habit: Habit, logs: [HabitLog]) -> Int {
+    private func calculateDailyLongestStreak(habit: Habit, logs: [HabitLog], timezone: TimeZone) -> Int {
         // Get all compliant dates and find longest consecutive sequence
-        let compliantDates = getCompliantDates(habit: habit, logs: logs)
-        return findLongestConsecutiveSequence(in: compliantDates)
+        let compliantDates = getCompliantDates(habit: habit, logs: logs, timezone: timezone)
+        return findLongestConsecutiveSequence(in: compliantDates, timezone: timezone)
     }
     
     // MARK: - DaysOfWeek Schedule Algorithms
-    
-    private func calculateDaysOfWeekCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date) -> Int {
+
+    private func calculateDaysOfWeekCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> Int {
         var streak = 0
-        var currentDate = CalendarUtils.startOfDayLocal(for: date)
-        let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate)
-        
+        var currentDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
+        let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
+
         // For daysOfWeek habits, only count scheduled days
         while currentDate >= habitStartDate {
-            if habitCompletionService.isScheduledDay(habit: habit, date: currentDate) {
-                if habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs) {
+            if habitCompletionService.isScheduledDay(habit: habit, date: currentDate, timezone: timezone) {
+                if habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs, timezone: timezone) {
                     streak += 1
                 } else {
                     break // Missed a scheduled day, streak broken
                 }
             }
             // Skip non-scheduled days - they don't affect the streak
-            
+
             currentDate = CalendarUtils.addDays(-1, to: currentDate)
             // currentDate already updated above
         }
-        
+
         return streak
     }
-    
-    private func calculateDaysOfWeekLongestStreak(habit: Habit, logs: [HabitLog]) -> Int {
+
+    private func calculateDaysOfWeekLongestStreak(habit: Habit, logs: [HabitLog], timezone: TimeZone) -> Int {
         guard case .daysOfWeek(let scheduledDays) = habit.schedule else { return 0 }
-        
+
         // Get all compliant dates that fall on scheduled days
-        let compliantDates = getCompliantDates(habit: habit, logs: logs)
+        let compliantDates = getCompliantDates(habit: habit, logs: logs, timezone: timezone)
         let scheduledCompliantDates = compliantDates.filter { date in
-            let weekday = CalendarUtils.habitWeekday(from: date)
+            let weekday = CalendarUtils.habitWeekday(from: date, timezone: timezone)
             return scheduledDays.contains(weekday)
         }
-        
+
         // Find longest sequence considering only scheduled days
         return findLongestScheduledSequence(
             in: scheduledCompliantDates,
             scheduledDays: scheduledDays,
-            startDate: habit.startDate
+            startDate: habit.startDate,
+            timezone: timezone
         )
     }
     
     
     // MARK: - Helper Methods
-    
-    private func getCompliantDates(habit: Habit, logs: [HabitLog]) -> [Date] {
+
+    private func getCompliantDates(habit: Habit, logs: [HabitLog], timezone: TimeZone) -> [Date] {
         return logs.compactMap { log in
             guard HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit) else { return nil }
-            return CalendarUtils.startOfDayLocal(for: log.date)
+            return CalendarUtils.startOfDayLocal(for: log.date, timezone: timezone)
         }
         .sorted()
     }
     
-    private func findLongestConsecutiveSequence(in dates: [Date]) -> Int {
+    private func findLongestConsecutiveSequence(in dates: [Date], timezone: TimeZone) -> Int {
         guard !dates.isEmpty else { return 0 }
-        
+
         let uniqueDates = Array(Set(dates)).sorted()
         var maxStreak = 1
         var currentStreak = 1
-        
+
         for i in 1..<uniqueDates.count {
-            let daysBetween = CalendarUtils.daysBetweenLocal(uniqueDates[i-1], uniqueDates[i])
-            
+            let daysBetween = CalendarUtils.daysBetweenLocal(uniqueDates[i-1], uniqueDates[i], timezone: timezone)
+
             if daysBetween == 1 {
                 currentStreak += 1
                 maxStreak = max(maxStreak, currentStreak)
@@ -259,28 +292,29 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 currentStreak = 1
             }
         }
-        
+
         return maxStreak
     }
     
     private func findLongestScheduledSequence(
         in compliantDates: [Date],
         scheduledDays: Set<Int>,
-        startDate: Date
+        startDate: Date,
+        timezone: TimeZone
     ) -> Int {
         guard !compliantDates.isEmpty else { return 0 }
-        
+
         let uniqueDates = Array(Set(compliantDates)).sorted()
         var maxStreak = 0
         var currentStreak = 0
-        
+
         // Start from habit start date and check each scheduled day
-        var checkDate = CalendarUtils.startOfDayLocal(for: startDate)
+        var checkDate = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
         let endDate = uniqueDates.last ?? startDate
-        
+
         while checkDate <= endDate {
-            let weekday = CalendarUtils.habitWeekday(from: checkDate)
-            
+            let weekday = CalendarUtils.habitWeekday(from: checkDate, timezone: timezone)
+
             if scheduledDays.contains(weekday) {
                 if uniqueDates.contains(checkDate) {
                     currentStreak += 1
@@ -289,24 +323,24 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                     currentStreak = 0
                 }
             }
-            
+
             checkDate = CalendarUtils.addDays(1, to: checkDate)
         }
-        
+
         return maxStreak
     }
     
-    private func groupLogsByWeek(logs: [HabitLog], habit: Habit) -> [Date: Int] {
+    private func groupLogsByWeek(logs: [HabitLog], habit: Habit, timezone: TimeZone) -> [Date: Int] {
         var weeklyCompletions: [Date: Int] = [:]
-        
+
         for log in logs {
             guard HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit) else { continue }
-            guard let weekInterval = CalendarUtils.weekIntervalLocal(for: log.date) else { continue }
-            
+            guard let weekInterval = CalendarUtils.weekIntervalLocal(for: log.date, timezone: timezone) else { continue }
+
             let weekStart = weekInterval.start
             weeklyCompletions[weekStart, default: 0] += 1
         }
-        
+
         return weeklyCompletions
     }
 }
