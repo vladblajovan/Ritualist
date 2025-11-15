@@ -411,41 +411,46 @@ public struct DashboardView: View {
                 Text("Schedule Insights")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.primary)
-                
-                // Best performing day
+
+                // Best performing day (Fix #2: Use pre-calculated rate)
                 HStack {
                     Text("🌟")
                         .font(.title3)
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(patterns.bestDay) works best")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.primary)
-                        
-                        let bestPerformance = patterns.dayOfWeekPerformance.first { $0.dayName == patterns.bestDay }
-                        Text("\(Int((bestPerformance?.completionRate ?? 0) * 100))% completion rate")
+
+                        Text("\(Int(patterns.bestDayCompletionRate * 100))% completion rate")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
                 }
-                
-                // Optimization suggestion
+
+                // Smart optimization suggestion (Fix #3 & #4: Validation + Smart messaging)
                 HStack {
-                    Text("⚡")
+                    Text(patterns.isOptimizationMeaningful ? "⚡" : "✅")
                         .font(.title3)
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Try moving habits to \(patterns.bestDay)")
+                        Text(patterns.optimizationMessage)
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.primary)
-                        
-                        Text("Your highest success day")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+
+                        if patterns.isOptimizationMeaningful {
+                            Text("Consider rescheduling some habits")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("No changes needed")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
-                    
+
                     Spacer()
                 }
             }

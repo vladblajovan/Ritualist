@@ -93,15 +93,20 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                 from: calculationStartDate,
                 to: endDate
             )
-            
-            let completionRate = expectedDays > 0 ? Double(logsInRange.count) / Double(expectedDays) : 0.0
-            
+
+            // Count only logs that meet completion criteria
+            let completedDays = logsInRange.filter { log in
+                HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
+            }.count
+
+            let completionRate = expectedDays > 0 ? Double(completedDays) / Double(expectedDays) : 0.0
+
             let result = HabitPerformanceResult(
                 habitId: habit.id,
                 habitName: habit.name,
                 emoji: habit.emoji ?? "📊",
                 completionRate: min(completionRate, 1.0),
-                completedDays: logsInRange.count,
+                completedDays: completedDays,
                 expectedDays: expectedDays
             )
             
@@ -149,8 +154,10 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             for habit in habits where habit.isActive {
                 if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
                     dayPerformance[weekday]?.total += 1
-                    
-                    if dayLogs.contains(where: { $0.habitID == habit.id }) {
+
+                    // Check if log exists AND meets completion criteria
+                    if let habitLog = dayLogs.first(where: { $0.habitID == habit.id }),
+                       HabitLogCompletionValidator.isLogCompleted(log: habitLog, habit: habit) {
                         dayPerformance[weekday]?.completed += 1
                     }
                 }
@@ -238,7 +245,15 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             for habit in habits {
                 if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
                     expectedHabitsCount += 1
-                    if !dayLogs.contains(where: { $0.habitID == habit.id }) {
+
+                    // Check if log exists AND meets completion criteria
+                    if let habitLog = dayLogs.first(where: { $0.habitID == habit.id }) {
+                        if !HabitLogCompletionValidator.isLogCompleted(log: habitLog, habit: habit) {
+                            dayCompleted = false
+                            break
+                        }
+                    } else {
+                        // No log found for this expected habit
                         dayCompleted = false
                         break
                     }
@@ -371,15 +386,20 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         
         for habit in habits {
             let habitLogs = categoryLogs.filter { $0.habitID == habit.id }
-            
+
             let expectedDays = scheduleAnalyzer.calculateExpectedDays(
                 for: habit,
                 from: startDate,
                 to: endDate
             )
-            
+
+            // Count only logs that meet completion criteria
+            let completedDays = habitLogs.filter { log in
+                HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
+            }.count
+
             totalExpectedDays += expectedDays
-            totalCompletedDays += habitLogs.count
+            totalCompletedDays += completedDays
         }
         
         return totalExpectedDays > 0 ? min(Double(totalCompletedDays) / Double(totalExpectedDays), 1.0) : 0.0
