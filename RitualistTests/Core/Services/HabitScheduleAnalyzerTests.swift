@@ -191,12 +191,7 @@ struct HabitScheduleAnalyzerTests {
     @Test("Weekend habit expected days calculated correctly for month")
     func weekendHabitExpectedDaysCalculatedCorrectlyForMonth() async throws {
         // Arrange
-        let habit = HabitBuilder.binary(
-            schedule: .daysOfWeek([6, 7])  // Sat, Sun
-        )
-
-        // November 2025: 30 days, starts on Saturday
-        // Should have 8 Saturdays + 8 Sundays = 16 weekend days
+        // Define the date range for testing
         let startDate = TimezoneTestHelpers.createDate(
             year: 2025, month: 11, day: 1,  // Saturday, Nov 1
             hour: 12, minute: 0,
@@ -206,6 +201,13 @@ struct HabitScheduleAnalyzerTests {
             year: 2025, month: 11, day: 30,  // Sunday, Nov 30
             hour: 12, minute: 0,
             timezone: .current
+        )
+
+        // November 2025: 30 days, starts on Saturday
+        // Should have 8 Saturdays + 8 Sundays = 16 weekend days
+        let habit = HabitBuilder.binary(
+            schedule: .daysOfWeek([6, 7]),  // Sat, Sun
+            startDate: startDate  // Align with query range
         )
 
         // Act

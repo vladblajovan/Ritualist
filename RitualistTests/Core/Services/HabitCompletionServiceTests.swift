@@ -222,21 +222,22 @@ struct HabitCompletionServiceTests {
 
     @Test("Expected completions calculated correctly for daysOfWeek habit")
     func expectedCompletionsCalculatedForDaysOfWeekHabit() async throws {
-        // Arrange: Create Mon/Wed/Fri habit
-        let habit = HabitBuilder.binary(
-            schedule: .daysOfWeek([1, 3, 5])
-        )
-
-        // Use a full week: Monday Nov 3 to Sunday Nov 9, 2025
+        // Arrange: Define the date range for testing
         let startDate = TimezoneTestHelpers.createDate(
-            year: 2025, month: 11, day: 3,
+            year: 2025, month: 11, day: 3,  // Monday
             hour: 12, minute: 0,
             timezone: .current
         )
         let endDate = TimezoneTestHelpers.createDate(
-            year: 2025, month: 11, day: 9,
+            year: 2025, month: 11, day: 9,  // Sunday
             hour: 12, minute: 0,
             timezone: .current
+        )
+
+        // Create Mon/Wed/Fri habit starting at the beginning of our date range
+        let habit = HabitBuilder.binary(
+            schedule: .daysOfWeek([1, 3, 5]),
+            startDate: startDate
         )
 
         // Act

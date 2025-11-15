@@ -16,7 +16,8 @@ enum HabitBuilder {
         categoryId: String? = nil,
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
-        displayOrder: Int = 0
+        displayOrder: Int = 0,
+        startDate: Date = TestDates.today  // Use TestDates.today for predictable testing
     ) -> Habit {
         return Habit(
             id: id,
@@ -28,7 +29,7 @@ enum HabitBuilder {
             dailyTarget: nil,
             schedule: schedule,
             reminders: [],
-            startDate: Date(),
+            startDate: startDate,
             endDate: nil,
             isActive: isActive,
             displayOrder: displayOrder,
@@ -53,7 +54,8 @@ enum HabitBuilder {
         categoryId: String? = nil,
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
-        displayOrder: Int = 0
+        displayOrder: Int = 0,
+        startDate: Date = TestDates.today  // Use TestDates.today for predictable testing
     ) -> Habit {
         return Habit(
             id: id,
@@ -65,7 +67,7 @@ enum HabitBuilder {
             dailyTarget: target,
             schedule: schedule,
             reminders: [],
-            startDate: Date(),
+            startDate: startDate,
             endDate: nil,
             isActive: isActive,
             displayOrder: displayOrder,
