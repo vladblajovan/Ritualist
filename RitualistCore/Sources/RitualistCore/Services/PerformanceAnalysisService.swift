@@ -50,6 +50,29 @@ private struct PerfectDayStreakResult {
     let consistencyScore: Double
 }
 
+/// Implementation of performance analysis service for dashboard metrics.
+///
+/// **CRITICAL BUG FIX (Commit: edceada):**
+/// This service previously counted log existence instead of validating completion criteria.
+/// For numeric habits with targets (e.g., "drink 8 glasses of water"), partial progress
+/// (e.g., 3/8 glasses) was incorrectly counted as complete, causing dashboard to show zeros
+/// despite having data.
+///
+/// **Fixed Methods:**
+/// - `calculateHabitPerformance`: Now validates log completion before counting
+/// - `analyzeWeeklyPatterns`: Now validates log completion for day-of-week analysis
+/// - `calculatePerfectDayStreak`: Now validates log completion for streak calculation
+/// - `calculateCategoryCompletionRate`: Now validates log completion for category performance
+///
+/// All methods now use `HabitLogCompletionValidator.isLogCompleted()` to ensure logs meet
+/// completion criteria before counting them as completed.
+///
+/// **Regression Test Recommendation:**
+/// Add tests verifying that partial progress (logValue < target) is NOT counted as complete:
+/// - Test habit with target=8, log with value=3 → should NOT count as complete
+/// - Test habit with target=5, log with value=5 → should count as complete
+/// - Test binary habit with value=1.0 → should count as complete
+/// - Test binary habit with value=0.0 → should NOT count as complete
 public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
 
     private let scheduleAnalyzer: HabitScheduleAnalyzerProtocol

@@ -39,8 +39,8 @@ public enum HabitLogCompletionValidator {
         switch habit.kind {
         case .binary:
             // Binary habits: value is typically 1.0 when complete, nil or 0.0 when incomplete
-            guard let value = log.value else { return false }
-            return value > 0
+            guard let logValue = log.value else { return false }
+            return logValue > 0
 
         case .numeric:
             // Numeric habits: value represents progress (e.g., 3/8 glasses of water)

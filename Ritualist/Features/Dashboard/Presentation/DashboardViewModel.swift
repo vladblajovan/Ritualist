@@ -117,6 +117,17 @@ public final class DashboardViewModel {
         /// At this level, we celebrate success rather than push for marginal gains.
         private static let nearPerfectCompletionThreshold: Double = 0.95
 
+        /// Minimum completion rate (30%) required for schedule optimization insights.
+        ///
+        /// **Data Quality Reasoning:**
+        /// Below 30%, users are struggling with basic habit consistency. Optimization suggestions
+        /// would be premature - they need to focus on building the habit tracking practice first.
+        /// This threshold ensures we only suggest optimizations when there's meaningful data.
+        private static let minimumCompletionRateForOptimization: Double = 0.3
+
+        /// Minimum number of habits required for meaningful schedule optimization analysis.
+        private static let minimumHabitsRequired: Int = 2
+
         init(from domain: WeeklyPatternsResult, daysWithData: Int, averageRate: Double, habitCount: Int, timePeriod: TimePeriod) {
             self.dayOfWeekPerformance = domain.dayOfWeekPerformance.map(DayOfWeekPerformanceViewModel.init)
             self.bestDay = domain.bestDay
@@ -127,13 +138,19 @@ public final class DashboardViewModel {
             let performanceByDay = Dictionary(
                 uniqueKeysWithValues: domain.dayOfWeekPerformance.map { ($0.dayName, $0.completionRate) }
             )
+
+            // Edge case: bestDay/worstDay should always exist in performance data since they come from the same source.
+            // Defaulting to 0 is safe - if this occurs, it indicates a data integrity issue upstream
+            // (e.g., WeeklyPatternsResult.bestDay doesn't match any dayName in dayOfWeekPerformance).
+            // The ?? 0 fallback ensures the app doesn't crash, and isDataSufficient validation will catch
+            // this scenario (0% completion won't meet minimum thresholds).
             self.bestDayCompletionRate = performanceByDay[domain.bestDay] ?? 0
             self.worstDayCompletionRate = performanceByDay[domain.worstDay] ?? 0
 
             // Calculate period-aware data quality requirements
             let minDaysRequired = Self.calculateMinDaysRequired(for: timePeriod)
-            let minCompletionRate = 0.3
-            let minHabitsRequired = 2
+            let minCompletionRate = Self.minimumCompletionRateForOptimization
+            let minHabitsRequired = Self.minimumHabitsRequired
             // Only calculate spread from days with actual data (not 0%)
             let daysWithPerformanceData = domain.dayOfWeekPerformance.filter { $0.completionRate > 0 }
             let performanceSpread = daysWithPerformanceData.isEmpty ? 0.0 :
