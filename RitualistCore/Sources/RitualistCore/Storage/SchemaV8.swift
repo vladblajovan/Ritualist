@@ -383,7 +383,7 @@ extension SchemaV8.HabitModel {
 
     /// Update existing SwiftData model from domain entity
     /// Eliminates duplicate mapping logic in HabitLocalDataSource.upsert()
-    public func updateFromEntity(_ habit: Habit, context: ModelContext) throws {
+    public func updateFromEntity(_ habit: Habit, context: ModelContext, logger: DebugLogger) throws {
         // Update basic properties
         self.name = habit.name
         self.colorHex = habit.colorHex
@@ -409,7 +409,7 @@ extension SchemaV8.HabitModel {
             )
             guard let fetchedCategory = try context.fetch(categoryDescriptor).first else {
                 // Log warning but don't fail - category might be deleted
-                print("⚠️ Warning: Category \(categoryId) not found for habit \(habit.id)")
+                logger.log("Category \(categoryId) not found for habit \(habit.id)", level: .warning, category: .dataIntegrity)
                 self.category = nil
                 return
             }
@@ -425,7 +425,7 @@ extension SchemaV8.HabitModel {
                 self.lastGeofenceTriggerDate = locationConfig.lastTriggerDate
             } catch {
                 // Log error and rethrow - data integrity is critical
-                print("❌ Error encoding location configuration for habit \(habit.id): \(error)")
+                logger.log("Error encoding location configuration for habit \(habit.id): \(error)", level: .error, category: .dataIntegrity)
                 throw error
             }
         } else {

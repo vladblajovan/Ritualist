@@ -39,6 +39,7 @@ public final class PopulateTestData: PopulateTestDataUseCase {
     private let habitCompletionService: HabitCompletionService
     private let testDataUtilities: TestDataPopulationServiceProtocol
     private let completeOnboardingUseCase: CompleteOnboardingUseCase
+    private let logger: DebugLogger
 
     // MARK: - Progress Tracking
     public var progressUpdate: ((String, Double) -> Void)?
@@ -53,7 +54,8 @@ public final class PopulateTestData: PopulateTestDataUseCase {
         categoryRepository: CategoryRepository,
         habitCompletionService: HabitCompletionService,
         testDataUtilities: TestDataPopulationServiceProtocol,
-        completeOnboardingUseCase: CompleteOnboardingUseCase
+        completeOnboardingUseCase: CompleteOnboardingUseCase,
+        logger: DebugLogger
     ) {
         self.debugService = debugService
         self.habitSuggestionsService = habitSuggestionsService
@@ -65,6 +67,7 @@ public final class PopulateTestData: PopulateTestDataUseCase {
         self.habitCompletionService = habitCompletionService
         self.testDataUtilities = testDataUtilities
         self.completeOnboardingUseCase = completeOnboardingUseCase
+        self.logger = logger
     }
     
     public func execute(scenario: TestDataScenario = .full) async throws {
@@ -192,7 +195,7 @@ public final class PopulateTestData: PopulateTestDataUseCase {
                     createdHabits.append(habit)
                 }
             case .error(let error):
-                print("Failed to create habit from suggestion '\(suggestion.name)': \(error)")
+                logger.log("Failed to create habit from suggestion '\(suggestion.name)': \(error)", level: .error, category: .debug)
             case .limitReached:
                 throw TestDataPopulationError("Habit creation limit reached while creating suggested habits")
             }
@@ -347,18 +350,12 @@ public final class PopulateTestData: PopulateTestDataUseCase {
                     try await logHabitUseCase.execute(log)
                 } catch let error as HabitScheduleValidationError {
                     // Log detailed error information for debugging
-                    print("❌ Schedule validation failed for '\(habit.name)'")
-                    print("   Original date: \(date)")
-                    print("   Final timestamp: \(finalTimestamp)")
-                    print("   Schedule: \(habit.schedule)")
-                    print("   Error: \(error.localizedDescription)")
-                    print("   isScheduledDay(habit, originalDate): \(habitCompletionService.isScheduledDay(habit: habit, date: date))")
-                    print("   isScheduledDay(habit, finalTimestamp): \(habitCompletionService.isScheduledDay(habit: habit, date: finalTimestamp))")
-                    
+                    logger.log("Schedule validation failed for '\(habit.name)' - Original: \(date), Final: \(finalTimestamp), Schedule: \(habit.schedule), isScheduledDay(original): \(habitCompletionService.isScheduledDay(habit: habit, date: date)), isScheduledDay(final): \(habitCompletionService.isScheduledDay(habit: habit, date: finalTimestamp)), Error: \(error.localizedDescription)", level: .warning, category: .debug)
+
                     // Don't re-throw - just skip this log and continue with next habit
                     continue
                 } catch {
-                    print("❌ Unexpected error logging '\(habit.name)': \(error)")
+                    logger.log("Unexpected error logging '\(habit.name)': \(error)", level: .error, category: .debug)
                     continue
                 }
             }

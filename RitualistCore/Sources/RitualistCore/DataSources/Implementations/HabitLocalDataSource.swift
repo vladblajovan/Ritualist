@@ -46,7 +46,9 @@ public actor HabitLocalDataSource: HabitLocalDataSourceProtocol {
 
             if let existing = try modelContext.fetch(descriptor).first {
                 // Update existing habit using shared mapping logic
-                try existing.updateFromEntity(habit, context: modelContext)
+                // Note: Creates inline logger since @ModelActor can't inject dependencies
+                let logger = DebugLogger(subsystem: "com.ritualist.app", category: "data")
+                try existing.updateFromEntity(habit, context: modelContext, logger: logger)
         } else {
             // Create new habit in this ModelContext
             let habitModel = try ActiveHabitModel.fromEntity(habit, context: modelContext)

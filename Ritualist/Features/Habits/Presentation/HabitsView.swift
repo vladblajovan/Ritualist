@@ -139,6 +139,7 @@ private struct HabitsListView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
     @Binding var showingCategoryManagement: Bool
+    @Injected(\.debugLogger) private var logger
     @State private var showingDeleteConfirmation = false
     @State private var showingBatchDeleteConfirmation = false
     @State private var showingDeactivateConfirmation = false
@@ -347,7 +348,12 @@ private struct HabitsListView: View {
         ) {
             Button("Delete", role: .destructive) {
                 Task {
-                    print("DEBUG: Habits batch delete dialog confirmed")
+                    logger.log(
+                        "🗑️ Batch delete confirmed",
+                        level: .info,
+                        category: .ui,
+                        metadata: ["count": habitsToDelete.count]
+                    )
                     await deleteSelectedHabits()
                 }
             }
@@ -362,7 +368,12 @@ private struct HabitsListView: View {
         ) {
             Button("Deactivate", role: .destructive) {
                 Task {
-                    print("DEBUG: Habits deactivate dialog confirmed")
+                    logger.log(
+                        "🔕 Batch deactivate confirmed",
+                        level: .info,
+                        category: .ui,
+                        metadata: ["count": habitsToDeactivate.count]
+                    )
                     await deactivateSelectedHabits()
                 }
             }
@@ -473,18 +484,32 @@ private struct HabitsListView: View {
     }
     
     private func deactivateSelectedHabits() async {
-        print("DEBUG: deactivateSelectedHabits called with \(habitsToDeactivate.count) habits")
+        logger.log(
+            "🔕 Deactivating habits",
+            level: .info,
+            category: .ui,
+            metadata: [
+                "count": habitsToDeactivate.count,
+                "habitIds": habitsToDeactivate.map { $0.uuidString }.joined(separator: ", ")
+            ]
+        )
         for habitId in habitsToDeactivate {
-            print("DEBUG: Toggling active status for habit: \(habitId)")
             await vm.toggleActiveStatus(id: habitId)
         }
         selection.removeAll()
     }
     
     private func deleteSelectedHabits() async {
-        print("DEBUG: deleteSelectedHabits called with \(habitsToDelete.count) habits")
+        logger.log(
+            "🗑️ Deleting habits",
+            level: .info,
+            category: .ui,
+            metadata: [
+                "count": habitsToDelete.count,
+                "habitIds": habitsToDelete.map { $0.uuidString }.joined(separator: ", ")
+            ]
+        )
         for habitId in habitsToDelete {
-            print("DEBUG: Deleting habit: \(habitId)")
             await vm.delete(id: habitId)
         }
         selection.removeAll()

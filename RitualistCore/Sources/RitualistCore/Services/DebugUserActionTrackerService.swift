@@ -13,11 +13,13 @@ public final class DebugUserActionTrackerService: UserActionTrackerService {
     private var isTrackingEnabled = true
     private var userProperties: [String: Any] = [:]
     private var currentUserId: String?
-    
+
     private let eventMapper = UserActionEventMapper()
-    private let logger = DebugLogger()
-    
-    public init() {}
+    private let logger: DebugLogger
+
+    public init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "general")) {
+        self.logger = logger
+    }
     
     public func track(_ event: UserActionEvent) {
         track(event, context: [:])

@@ -15,6 +15,7 @@ public final class OnboardingViewModel {
     private let requestLocationPermissions: RequestLocationPermissionsUseCase
     private let getLocationAuthStatus: GetLocationAuthStatusUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
+    @ObservationIgnored @Injected(\.debugLogger) var logger
 
     // Current state
     public var currentPage: Int = 0
@@ -168,25 +169,39 @@ public final class OnboardingViewModel {
     #if DEBUG
     /// Skip onboarding entirely - debug builds only
     public func skipOnboarding() async -> Bool {
-        print("[DEBUG] skipOnboarding() called")
+        logger.log(
+            "🔧 Skip onboarding initiated",
+            level: .debug,
+            category: .debug
+        )
         isLoading = true
         do {
-            print("[DEBUG] About to call completeOnboarding.execute")
+            logger.log(
+                "🔧 Completing onboarding with debug user",
+                level: .debug,
+                category: .debug
+            )
             // Complete onboarding with debug user name and no notifications
             try await completeOnboarding.execute(userName: "Debug User", hasNotifications: false)
-            print("[DEBUG] completeOnboarding.execute succeeded")
             isCompleted = true
-            print("[DEBUG] Set isCompleted = true")
-            
+
             // Track as skipped for debug metrics
             userActionTracker.track(.onboardingCompleted)
-            print("[DEBUG] Tracked onboarding completion")
-            
+
             isLoading = false
-            print("[DEBUG] Skip onboarding completed successfully")
+            logger.log(
+                "✅ Skip onboarding completed successfully",
+                level: .info,
+                category: .debug
+            )
             return true
         } catch {
-            print("[DEBUG] Skip onboarding failed with error: \(error)")
+            logger.log(
+                "❌ Skip onboarding failed",
+                level: .error,
+                category: .debug,
+                metadata: ["error": error.localizedDescription]
+            )
             errorMessage = "Failed to skip onboarding"
             isLoading = false
             return false

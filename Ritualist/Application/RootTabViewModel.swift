@@ -10,6 +10,7 @@ public final class RootTabViewModel {
     // MARK: - Dependencies
     private let getOnboardingState: GetOnboardingState
     private let loadProfile: LoadProfile
+    private let logger: DebugLogger
     
     // MARK: - Services (exposed for view binding)
     public let appearanceManager: AppearanceManager
@@ -25,13 +26,15 @@ public final class RootTabViewModel {
         loadProfile: LoadProfile,
         appearanceManager: AppearanceManager,
         navigationService: NavigationService,
-        personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator
+        personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator,
+        logger: DebugLogger
     ) {
         self.getOnboardingState = getOnboardingState
         self.loadProfile = loadProfile
         self.appearanceManager = appearanceManager
         self.navigationService = navigationService
         self.personalityDeepLinkCoordinator = personalityDeepLinkCoordinator
+        self.logger = logger
     }
     
     // MARK: - Public Methods
@@ -42,7 +45,7 @@ public final class RootTabViewModel {
             showOnboarding = !state.isCompleted
             isCheckingOnboarding = false
         } catch {
-            print("Failed to check onboarding status: \(error)")
+            logger.log("Failed to check onboarding status: \(error)", level: .error, category: .ui)
             showOnboarding = true
             isCheckingOnboarding = false
         }
@@ -53,8 +56,7 @@ public final class RootTabViewModel {
             let profile = try await loadProfile.execute()
             appearanceManager.updateFromProfile(profile)
         } catch {
-            print("Failed to load user appearance preference: \(error)")
-            // Continue with default appearance (follow system)
+            logger.log("Failed to load user appearance preference: \(error)", level: .error, category: .ui)
         }
     }
 }

@@ -19,15 +19,11 @@ public extension HabitSchedule {
         let calendarWeekday = CalendarUtils.weekdayComponentLocal(from: date)
         let habitWeekday = CalendarUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
 
-        print("📅 isActiveOn DEBUG: date=\(date), calendarWeekday=\(calendarWeekday), habitWeekday=\(habitWeekday)")
-
         switch self {
         case .daily:
             return true
         case .daysOfWeek(let days):
-            let result = days.contains(habitWeekday)
-            print("📅 isActiveOn DEBUG: schedule=\(days), contains \(habitWeekday)? \(result)")
-            return result
+            return days.contains(habitWeekday)
         }
     }
 }

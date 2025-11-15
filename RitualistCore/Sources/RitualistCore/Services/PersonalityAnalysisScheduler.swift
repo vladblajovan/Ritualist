@@ -11,12 +11,13 @@ import Foundation
 public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol {
     
     // MARK: - Dependencies
-    
+
     private let personalityRepository: PersonalityAnalysisRepositoryProtocol
     private let analyzePersonalityUseCase: AnalyzePersonalityUseCase
     private let validateAnalysisDataUseCase: ValidateAnalysisDataUseCase
     private let notificationService: NotificationService
     private let errorHandler: ErrorHandler?
+    private let logger: DebugLogger
     
     // MARK: - State
     
@@ -36,14 +37,16 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
         analyzePersonalityUseCase: AnalyzePersonalityUseCase,
         validateAnalysisDataUseCase: ValidateAnalysisDataUseCase,
         notificationService: NotificationService,
-        errorHandler: ErrorHandler? = nil
+        errorHandler: ErrorHandler? = nil,
+        logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "personality")
     ) {
         self.personalityRepository = personalityRepository
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
         self.validateAnalysisDataUseCase = validateAnalysisDataUseCase
         self.notificationService = notificationService
         self.errorHandler = errorHandler
-        
+        self.logger = logger
+
         loadSchedulerState()
     }
     
@@ -113,7 +116,7 @@ public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerPro
             let endTimestamp = Date().timeIntervalSince1970
             
         } catch {
-            print("🧠 [DEBUG] Error during forced manual analysis: \(error)")
+            logger.log("Error during forced manual analysis: \(error)", level: .error, category: .personality)
         }
     }
     

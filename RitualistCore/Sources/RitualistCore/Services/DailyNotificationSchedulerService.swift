@@ -16,37 +16,43 @@ public protocol DailyNotificationSchedulerService {
 }
 
 public final class DefaultDailyNotificationScheduler: DailyNotificationSchedulerService {
-    
+
     // MARK: - Dependencies
-    
+
     private let habitRepository: HabitRepository
     private let scheduleHabitReminders: ScheduleHabitRemindersUseCase
     private let notificationService: NotificationService
-    
+    private let logger: DebugLogger
+
     // MARK: - Initialization
-    
+
     public init(
         habitRepository: HabitRepository,
         scheduleHabitReminders: ScheduleHabitRemindersUseCase,
-        notificationService: NotificationService
+        notificationService: NotificationService,
+        logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.scheduleHabitReminders = scheduleHabitReminders
         self.notificationService = notificationService
+        self.logger = logger
     }
     
     // MARK: - Public Methods
     
     public func rescheduleAllHabitNotifications() async throws {
-        print("🔄 [DailyNotificationScheduler] Starting daily notification rescheduling")
-        
+        logger.logNotification(event: "Starting daily notification rescheduling")
+
         // Fetch all active habits
         let allHabits = try await habitRepository.fetchAllHabits()
         let activeHabitsWithReminders = allHabits.filter { habit in
             habit.isActive && !habit.reminders.isEmpty
         }
-        
-        print("📊 [DailyNotificationScheduler] Found \(activeHabitsWithReminders.count) active habits with reminders")
+
+        logger.logNotification(
+            event: "Found active habits with reminders",
+            metadata: ["count": activeHabitsWithReminders.count]
+        )
         
         // Clear all existing pending notifications first
         let center = UNUserNotificationCenter.current()
@@ -67,7 +73,10 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
         
         if !habitNotificationIds.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: habitNotificationIds)
-            print("🗑️ [DailyNotificationScheduler] Cleared \(habitNotificationIds.count) existing habit notifications")
+            logger.logNotification(
+                event: "Cleared existing habit notifications",
+                metadata: ["count": habitNotificationIds.count]
+            )
         }
         
         // Re-schedule notifications for each active habit (completion check happens in ScheduleHabitReminders)
@@ -80,19 +89,32 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
                 try await scheduleHabitReminders.execute(habit: habit)
                 scheduledCount += 1
             } catch {
-                print("⚠️ [DailyNotificationScheduler] Failed to schedule notifications for habit \(habit.name): \(error)")
+                logger.logNotification(
+                    event: "Failed to schedule notifications",
+                    habitId: habit.id.uuidString,
+                    metadata: ["habit_name": habit.name, "error": error.localizedDescription]
+                )
                 skippedCount += 1
             }
         }
-        
-        print("✅ [DailyNotificationScheduler] Rescheduling complete - scheduled: \(scheduledCount), skipped: \(skippedCount)")
-        
+
+        logger.logNotification(
+            event: "Rescheduling complete",
+            metadata: [
+                "scheduled": scheduledCount,
+                "skipped": skippedCount
+            ]
+        )
+
         // Log final state for debugging
         let finalPendingRequests = await center.pendingNotificationRequests()
         let habitNotifications = finalPendingRequests.filter { request in
             let id = request.identifier
             return id.hasPrefix("today_") || id.hasPrefix("rich_") || id.hasPrefix("tailored_")
         }
-        print("📱 [DailyNotificationScheduler] Final notification count: \(habitNotifications.count) habit notifications pending")
+        logger.logNotification(
+            event: "Final notification state",
+            metadata: ["pending_count": habitNotifications.count]
+        )
     }
 }

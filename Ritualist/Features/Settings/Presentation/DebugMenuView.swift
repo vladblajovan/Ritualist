@@ -653,7 +653,8 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         } message: {
             let previousVersion = getPreviousVersionNumber()
             let currentVersionString = RitualistMigrationPlan.currentSchemaVersion.description
-            Text("Restart to test V\(previousVersion) → V\(currentVersionString)")
+            let localizedText = String(localized: "alert.message.migration_restart_test", defaultValue: "Restart to test V%1$lld → V%2$@", comment: "Alert message for migration simulation")
+            Text(String(format: localizedText, previousVersion, currentVersionString))
         }
         .alert("Reset Onboarding?", isPresented: $showingResetOnboardingConfirmation) {
             Button("Cancel", role: .cancel) { }

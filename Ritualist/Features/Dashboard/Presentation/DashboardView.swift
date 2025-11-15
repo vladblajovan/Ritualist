@@ -486,6 +486,6 @@ public struct DashboardView: View {
 
 #Preview {
     NavigationStack {
-        DashboardView(vm: DashboardViewModel())
+        DashboardView(vm: DashboardViewModel(logger: DebugLogger(subsystem: "com.ritualist.app", category: "ui")))
     }
 }

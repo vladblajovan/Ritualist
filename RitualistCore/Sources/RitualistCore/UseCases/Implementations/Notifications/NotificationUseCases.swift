@@ -6,15 +6,18 @@ public final class ScheduleHabitReminders: ScheduleHabitRemindersUseCase {
     private let habitRepository: HabitRepository
     private let notificationService: NotificationService
     private let habitCompletionCheckService: HabitCompletionCheckService
-    
+    private let logger: DebugLogger
+
     public init(
-        habitRepository: HabitRepository, 
+        habitRepository: HabitRepository,
         notificationService: NotificationService,
-        habitCompletionCheckService: HabitCompletionCheckService
+        habitCompletionCheckService: HabitCompletionCheckService,
+        logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.notificationService = notificationService
         self.habitCompletionCheckService = habitCompletionCheckService
+        self.logger = logger
     }
     
     public func execute(habit: Habit) async throws {
@@ -29,12 +32,23 @@ public final class ScheduleHabitReminders: ScheduleHabitRemindersUseCase {
         let shouldShow = await habitCompletionCheckService.shouldShowNotification(habitId: habit.id, date: today)
         
         // Only schedule notifications if the habit is not completed today
-        guard shouldShow else { 
-            print("🚫 [ScheduleHabitReminders] Habit \(habit.name) is already completed today, not scheduling notifications")
-            return 
+        guard shouldShow else {
+            logger.logNotification(
+                event: "Habit already completed, skipping notification scheduling",
+                habitId: habit.id.uuidString,
+                metadata: ["habit_name": habit.name]
+            )
+            return
         }
-        
-        print("✅ [ScheduleHabitReminders] Habit \(habit.name) not completed today, scheduling notifications")
+
+        logger.logNotification(
+            event: "Scheduling habit notifications",
+            habitId: habit.id.uuidString,
+            metadata: [
+                "habit_name": habit.name,
+                "reminder_count": habit.reminders.count
+            ]
+        )
         try await notificationService.scheduleWithActions(for: habit.id, habitName: habit.name, habitKind: habit.kind, times: habit.reminders)
     }
 }
@@ -110,19 +124,22 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
     private let notificationService: NotificationService
     private let habitCompletionCheckService: HabitCompletionCheckService
     private let cancelHabitReminders: CancelHabitRemindersUseCase
-    
+    private let logger: DebugLogger
+
     public init(
         logHabitFromNotification: LogHabitFromNotificationUseCase,
         snoozeHabitReminder: SnoozeHabitReminderUseCase,
         notificationService: NotificationService,
         habitCompletionCheckService: HabitCompletionCheckService,
-        cancelHabitReminders: CancelHabitRemindersUseCase
+        cancelHabitReminders: CancelHabitRemindersUseCase,
+        logger: DebugLogger
     ) {
         self.logHabitFromNotification = logHabitFromNotification
         self.snoozeHabitReminder = snoozeHabitReminder
         self.notificationService = notificationService
         self.habitCompletionCheckService = habitCompletionCheckService
         self.cancelHabitReminders = cancelHabitReminders
+        self.logger = logger
     }
     
     public func execute(
@@ -141,16 +158,23 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
             
             if !shouldShow {
                 // Habit is already completed today, skip action
-                print("Habit \(habitName ?? "Unknown") is already completed today, skipping action")
+                logger.logNotification(
+                    event: "Skipping action - habit already completed",
+                    habitId: habitId.uuidString,
+                    metadata: ["habit_name": habitName ?? "Unknown"]
+                )
                 return
             }
-            
+
             // Proceed with logging since habit is not completed
             try await logHabitFromNotification.execute(habitId: habitId, date: currentDate, value: nil)
-            
+
             // CRITICAL: Cancel all remaining notifications for this habit today
             // This prevents duplicate notifications from firing after completion
-            print("🚫 [HandleNotificationAction] Habit completed - cancelling remaining notifications for habit: \(habitId)")
+            logger.logNotification(
+                event: "Habit completed - cancelling remaining notifications",
+                habitId: habitId.uuidString
+            )
             await cancelHabitReminders.execute(habitId: habitId)
             
             // Send confirmation notification for binary habits (background completion)

@@ -9,6 +9,7 @@ public struct HabitsAssistantSheet: View {
     @Injected(\.createHabitFromSuggestionUseCase) private var createHabitFromSuggestionUseCase
     @Injected(\.removeHabitFromSuggestionUseCase) private var removeHabitFromSuggestionUseCase
     @Injected(\.checkHabitCreationLimit) private var checkHabitCreationLimit
+    @Injected(\.debugLogger) private var logger
     @Environment(\.dismiss) private var dismiss
 
     @State private var originalState: [String: Bool] = [:]
@@ -39,7 +40,7 @@ public struct HabitsAssistantSheet: View {
 
     /// Check if user can create more habits (for feature gating)
     private var canCreateMoreHabits: Bool {
-        return checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
+        checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
     }
 
     /// Should show limit banner for free users
@@ -120,7 +121,12 @@ public struct HabitsAssistantSheet: View {
         )
         .onAppear {
             // Initialize the ViewModel with existing habits to populate mappings
-            print("DEBUG: Existing habits: \(existingHabits.map { "\($0.name) (suggestionId: \($0.suggestionId ?? "nil"))" })")
+            logger.log(
+                "🔍 Initializing Habits Assistant",
+                level: .debug,
+                category: .ui,
+                metadata: ["existingHabits": existingHabits.map { "\($0.name) (suggestionId: \($0.suggestionId ?? "nil"))" }.joined(separator: ", ")]
+            )
             habitsAssistantViewModel.initializeWithExistingHabits(existingHabits)
             initializeIntentionState()
         }
@@ -143,23 +149,36 @@ public struct HabitsAssistantSheet: View {
     
     private func processIntentionChanges() async {
         let operations = calculateRequiredOperations()
-        
-        print("DEBUG: Original state: \(originalState)")
-        print("DEBUG: User intentions: \(userIntentions)")
-        print("DEBUG: Suggestion to habit mappings: \(habitsAssistantViewModel.suggestionToHabitMappings)")
-        print("DEBUG: Calculated \(operations.count) operations:")
-        for operation in operations {
+
+        let operationsDescription = operations.map { operation -> String in
             switch operation {
             case .add(let suggestion):
-                print("  - ADD: \(suggestion.name)")
+                return "ADD: \(suggestion.name)"
             case .remove(let suggestionId, let habitId):
-                print("  - REMOVE: \(suggestionId) (habitId: \(habitId))")
+                return "REMOVE: \(suggestionId) (habitId: \(habitId))"
             }
-        }
-        
-        guard !operations.isEmpty else { 
-            print("DEBUG: No operations to process")
-            return 
+        }.joined(separator: ", ")
+
+        logger.log(
+            "🔍 Processing habit intentions",
+            level: .debug,
+            category: .ui,
+            metadata: [
+                "originalState": String(describing: originalState),
+                "userIntentions": String(describing: userIntentions),
+                "mappings": String(describing: habitsAssistantViewModel.suggestionToHabitMappings),
+                "operationCount": operations.count,
+                "operations": operationsDescription
+            ]
+        )
+
+        guard !operations.isEmpty else {
+            logger.log(
+                "🔍 No operations to process",
+                level: .debug,
+                category: .ui
+            )
+            return
         }
         
         isProcessingActions = true
@@ -220,10 +239,20 @@ public struct HabitsAssistantSheet: View {
                         // Fallback: find habit by matching suggestion properties
                         if let suggestion = getAllSuggestions().first(where: { $0.id == suggestionId }),
                            let habit = findHabitMatchingSuggestion(suggestion) {
-                            print("DEBUG: Found habit via fallback matching: \(habit.name)")
+                            logger.log(
+                                "🔍 Found habit via fallback matching",
+                                level: .debug,
+                                category: .ui,
+                                metadata: ["habitName": habit.name, "suggestionId": suggestionId]
+                            )
                             operations.append(.remove(suggestionId, habit.id))
                         } else {
-                            print("DEBUG: Could not find habit to remove for suggestion: \(suggestionId)")
+                            logger.log(
+                                "⚠️ Could not find habit to remove",
+                                level: .warning,
+                                category: .ui,
+                                metadata: ["suggestionId": suggestionId]
+                            )
                         }
                     }
                 }

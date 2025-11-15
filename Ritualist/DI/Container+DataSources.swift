@@ -17,9 +17,10 @@ extension Container {
 
                 return try RitualistCore.PersistenceContainer()
             } catch {
-                print("[PERSISTENCE-ERROR] Failed to initialize persistence container: \(error)")
-                print("[PERSISTENCE-ERROR] App group: group.com.vladblajovan.Ritualist")
-                print("[PERSISTENCE-ERROR] This will cause onboarding to show every time and data to not persist")
+                let logger = Container.shared.debugLogger()
+                logger.log("Failed to initialize persistence container: \(error)", level: .critical, category: .dataIntegrity)
+                logger.log("App group: group.com.vladblajovan.Ritualist", level: .critical, category: .dataIntegrity)
+                logger.log("Persistence failure will cause onboarding loop and data loss", level: .critical, category: .dataIntegrity)
                 fatalError("Persistence container is required for app functionality: \(error)")
             }
         }

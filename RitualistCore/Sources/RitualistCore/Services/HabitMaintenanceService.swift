@@ -22,6 +22,9 @@ public protocol HabitMaintenanceServiceProtocol {
 @ModelActor
 public actor HabitMaintenanceService: HabitMaintenanceServiceProtocol {
 
+    // Inline logger (cannot inject into @ModelActor - Swift Data limitation)
+    private let logger = DebugLogger(subsystem: "com.ritualist.app", category: "data")
+
     /// Cleanup orphaned habits that reference non-existent categories
     /// This maintains data integrity by removing habits that point to deleted categories
     /// Returns the count of habits that were deleted
@@ -56,7 +59,7 @@ public actor HabitMaintenanceService: HabitMaintenanceServiceProtocol {
             return orphanedHabits.count
 
         } catch {
-            print("🧹 [DEBUG] Error during orphaned habits cleanup: \(error)")
+            logger.log("Error during orphaned habits cleanup: \(error)", level: .error, category: .dataIntegrity)
             throw error
         }
     }

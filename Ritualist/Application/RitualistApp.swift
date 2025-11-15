@@ -18,6 +18,7 @@ import RitualistCore
     @Injected(\.navigationService) private var navigationService
     @Injected(\.dailyNotificationScheduler) private var dailyNotificationScheduler
     @Injected(\.restoreGeofenceMonitoring) private var restoreGeofenceMonitoring
+    @Injected(\.debugLogger) private var logger
     
     var body: some Scene {
         WindowGroup {
@@ -58,21 +59,39 @@ import RitualistCore
     /// Schedule initial notifications on app launch
     private func scheduleInitialNotifications() async {
         do {
-            print("🚀 [App] Scheduling initial notifications on app launch")
+            logger.log(
+                "🚀 Scheduling initial notifications on app launch",
+                level: .info,
+                category: .system
+            )
             try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
         } catch {
-            print("⚠️ [App] Failed to schedule initial notifications: \(error)")
+            logger.log(
+                "⚠️ Failed to schedule initial notifications",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
         }
     }
-    
+
     /// Re-schedule notifications if needed (e.g., when app becomes active)
     /// This handles day changes and completion status updates while the app was backgrounded
     private func rescheduleNotificationsIfNeeded() async {
         do {
-            print("🔄 [App] Re-scheduling notifications on app active")
+            logger.log(
+                "🔄 Re-scheduling notifications on app active",
+                level: .info,
+                category: .system
+            )
             try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
         } catch {
-            print("⚠️ [App] Failed to re-schedule notifications: \(error)")
+            logger.log(
+                "⚠️ Failed to re-schedule notifications",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
         }
     }
 
@@ -80,10 +99,19 @@ import RitualistCore
     /// This is called on app launch to restore geofences after app restart/kill
     private func restoreGeofences() async {
         do {
-            print("🌍 [App] Restoring geofence monitoring on app launch")
+            logger.log(
+                "🌍 Restoring geofence monitoring on app launch",
+                level: .info,
+                category: .system
+            )
             try await restoreGeofenceMonitoring.execute()
         } catch {
-            print("⚠️ [App] Failed to restore geofence monitoring: \(error)")
+            logger.log(
+                "⚠️ Failed to restore geofence monitoring",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
         }
     }
     
@@ -92,9 +120,14 @@ import RitualistCore
     private func handleDeepLink(_ url: URL) {
         // Validate the URL first using centralized service
         let validationResult = urlValidationService.validateDeepLinkURL(url)
-        
+
         guard validationResult.isValid else {
-            print("[DEEP-LINK] URL validation failed: \(validationResult.description)")
+            logger.log(
+                "🔗 Deep link validation failed",
+                level: .warning,
+                category: .system,
+                metadata: ["url": url.absoluteString, "reason": validationResult.description]
+            )
             // Fallback to overview for invalid URLs
             handleOverviewDeepLink()
             return
@@ -112,14 +145,19 @@ import RitualistCore
     }
     
     /// Handle habit-specific deep links from widget
-    /// Formats: 
+    /// Formats:
     /// - Legacy: ritualist://habit/{habitId}
     /// - Enhanced: ritualist://habit/{habitId}?date={ISO8601}&action={action}
     private func handleHabitDeepLink(_ url: URL) {
         // Use centralized validation service to extract habit ID
         guard let habitId = urlValidationService.extractHabitId(from: url) else {
             // Invalid habit ID - fallback to overview
-            print("[DEEP-LINK] Failed to extract valid habit ID from URL: \(url)")
+            logger.log(
+                "🔗 Failed to extract valid habit ID",
+                level: .warning,
+                category: .system,
+                metadata: ["url": url.absoluteString]
+            )
             handleOverviewDeepLink()
             return
         }
@@ -143,8 +181,13 @@ import RitualistCore
                     
                 case .view:
                     // For completed binary habits: Just navigate to view the date
-                    print("[DEEP-LINK] View action requested for habit \(habitId) on date \(targetDate)")
-                    
+                    logger.log(
+                        "🔗 View action requested",
+                        level: .info,
+                        category: .system,
+                        metadata: ["habitId": habitId.uuidString, "date": targetDate.ISO8601Format()]
+                    )
+
                     // Navigate to the specific date in overview
                     // The overview will show the habit status for that date
                     await navigateToDateInOverview(targetDate)
@@ -152,7 +195,12 @@ import RitualistCore
             } else {
                 // Legacy deep link: Navigate to Overview tab and trigger habit completion flow
                 navigationService.navigateToOverview(shouldRefresh: true)
-                print("[DEEP-LINK] Legacy deep link for habit \(habitId) - navigated to overview")
+                logger.log(
+                    "🔗 Legacy deep link - navigated to overview",
+                    level: .info,
+                    category: .system,
+                    metadata: ["habitId": habitId.uuidString]
+                )
             }
         }
     }
@@ -161,33 +209,48 @@ import RitualistCore
     /// Opens the progress sheet for the specified habit and date
     @MainActor
     private func handleProgressDeepLinkAction(habitId: UUID, targetDate: Date) async {
-        print("[DEEP-LINK] Progress action requested for habit \(habitId) on date \(targetDate)")
-        
+        logger.log(
+            "🔗 Progress action requested",
+            level: .info,
+            category: .system,
+            metadata: ["habitId": habitId.uuidString, "date": targetDate.ISO8601Format()]
+        )
+
         do {
             // Fetch the habit to verify it exists and is numeric
             let habitRepository = Container.shared.habitRepository()
             let habits = try await habitRepository.fetchAllHabits()
-            
+
             guard let habit = habits.first(where: { $0.id == habitId }),
                   habit.kind == .numeric else {
-                print("[DEEP-LINK] Error: Habit \(habitId) not found or not numeric")
+                logger.log(
+                    "🔗 Habit not found or not numeric",
+                    level: .warning,
+                    category: .system,
+                    metadata: ["habitId": habitId.uuidString]
+                )
                 return
             }
-            
+
             // Navigate to Overview tab first - regardless of current tab
             let navigationService = Container.shared.navigationService()
             navigationService.navigateToOverview(shouldRefresh: true)
-            
+
             let overviewViewModel = Container.shared.overviewViewModel()
-            
+
             // Navigate to the specific date first and wait for completion
             await navigateToDateInOverview(targetDate)
-            
+
             // Set the habit as pending for progress sheet auto-opening
             // The sheet will open when OverviewView appears and calls processPendingNumericHabit()
             overviewViewModel.setPendingNumericHabit(habit)
         } catch {
-            print("[DEEP-LINK] Error fetching habit for progress action: \(error)")
+            logger.log(
+                "🔗 Error fetching habit for progress action",
+                level: .warning,
+                category: .system,
+                metadata: ["habitId": habitId.uuidString, "error": error.localizedDescription]
+            )
         }
     }
     

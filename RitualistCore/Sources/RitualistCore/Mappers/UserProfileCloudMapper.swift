@@ -168,8 +168,7 @@ public enum UserProfileCloudMapper {
                 avatarImageData = try extractData(from: avatarAsset)
             } catch {
                 // Log warning but don't fail - avatar is optional
-                // In production, this would go through ErrorHandler
-                print("⚠️ Failed to extract avatar asset: \(error.localizedDescription)")
+                DebugLogger(subsystem: "com.ritualist.app", category: "data").log("Failed to extract avatar asset: \(error.localizedDescription)", level: .warning, category: .dataIntegrity)
             }
         }
 

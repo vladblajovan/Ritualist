@@ -8,9 +8,16 @@ extension Container {
     
     // MARK: - Core Services
 
+    var debugLogger: Factory<DebugLogger> {
+        self {
+            DebugLogger(subsystem: "com.ritualist.app", category: "general")
+        }
+        .singleton
+    }
+
     var errorHandler: Factory<ErrorHandler> {
         self {
-            ErrorHandler(maxLogSize: 1000, analyticsEnabled: true)
+            ErrorHandler(maxLogSize: 1000, analyticsEnabled: true, logger: self.debugLogger())
         }
         .singleton
     }
@@ -41,7 +48,8 @@ extension Container {
         self {
             let service = LocalNotificationService(
                 habitCompletionCheckService: self.habitCompletionCheckService(),
-                errorHandler: self.errorHandler()
+                errorHandler: self.errorHandler(),
+                logger: self.debugLogger()
             )
             service.trackingService = self.userActionTracker()
 
@@ -121,7 +129,7 @@ extension Container {
     }
     
     var widgetRefreshService: Factory<WidgetRefreshServiceProtocol> {
-        self { WidgetRefreshService() }
+        self { WidgetRefreshService(logger: self.debugLogger()) }
             .singleton
     }
     
@@ -153,16 +161,18 @@ extension Container {
             RitualistCore.DefaultDailyNotificationScheduler(
                 habitRepository: self.habitRepository(),
                 scheduleHabitReminders: self.scheduleHabitReminders(),
-                notificationService: self.notificationService()
+                notificationService: self.notificationService(),
+                logger: self.debugLogger()
             )
         }
         .singleton
     }
     
     var streakCalculationService: Factory<RitualistCore.StreakCalculationService> {
-        self { 
+        self {
             RitualistCore.DefaultStreakCalculationService(
-                habitCompletionService: self.habitCompletionService()
+                habitCompletionService: self.habitCompletionService(),
+                logger: self.debugLogger()
             )
         }
         .singleton
@@ -178,7 +188,7 @@ extension Container {
     var userActionTracker: Factory<UserActionTrackerService> {
         self {
             #if DEBUG
-            return RitualistCore.DebugUserActionTrackerService()
+            return RitualistCore.DebugUserActionTrackerService(logger: self.debugLogger())
             #else
             return RitualistCore.NoOpUserActionTrackerService()
             #endif
@@ -311,7 +321,10 @@ extension Container {
             // #else
             // // Production StoreKit implementation (ready to enable)
             // return MainActor.assumeIsolated {
-            //     StoreKitPaywallService(subscriptionService: self.secureSubscriptionService())
+            //     StoreKitPaywallService(
+            //         subscriptionService: self.secureSubscriptionService(),
+            //         logger: self.debugLogger()
+            //     )
             // }
             // #endif
         }

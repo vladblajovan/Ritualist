@@ -9,7 +9,6 @@
 //
 
 import Foundation
-import os.log
 
 /// Logs and tracks database migration events
 ///
@@ -29,8 +28,8 @@ public final class MigrationLogger {
 
     // MARK: - Properties
 
-    /// System logger for migration events
-    private let logger = Logger(subsystem: "com.vladblajovan.Ritualist", category: "Migration")
+    /// Debug logger for migration events
+    private let logger = DebugLogger(subsystem: "com.ritualist.app", category: "migration")
 
     /// UserDefaults key for migration history
     private let migrationHistoryKey = "com.ritualist.migration.history"
@@ -55,7 +54,7 @@ public final class MigrationLogger {
         to toVersion: String,
         changeDescription: String? = nil
     ) {
-        logger.info("🔄 Migration started: \(fromVersion) → \(toVersion)")
+        logger.log("Migration started: \(fromVersion) → \(toVersion)", level: .info, category: .dataIntegrity)
 
         let event = MigrationEvent(
             fromVersion: fromVersion,
@@ -84,7 +83,7 @@ public final class MigrationLogger {
         duration: TimeInterval,
         changeDescription: String? = nil
     ) {
-        logger.info("✅ Migration succeeded: \(fromVersion) → \(toVersion) (took \(String(format: "%.2f", duration))s)")
+        logger.log("Migration succeeded: \(fromVersion) → \(toVersion) (took \(String(format: "%.2f", duration))s)", level: .info, category: .dataIntegrity)
 
         let event = MigrationEvent(
             fromVersion: fromVersion,
@@ -113,7 +112,7 @@ public final class MigrationLogger {
         error: Error,
         duration: TimeInterval
     ) {
-        logger.error("❌ Migration failed: \(fromVersion) → \(toVersion) - \(error.localizedDescription)")
+        logger.log("Migration failed: \(fromVersion) → \(toVersion) - \(error.localizedDescription)", level: .error, category: .dataIntegrity)
 
         let event = MigrationEvent(
             fromVersion: fromVersion,
@@ -133,9 +132,9 @@ public final class MigrationLogger {
     /// - Parameter success: Whether backup was successful
     public func logBackupCreation(success: Bool) {
         if success {
-            logger.info("💾 Database backup created successfully")
+            logger.log("Database backup created successfully", level: .info, category: .dataIntegrity)
         } else {
-            logger.error("⚠️  Database backup failed")
+            logger.log("Database backup failed", level: .error, category: .dataIntegrity)
         }
     }
 
@@ -144,9 +143,9 @@ public final class MigrationLogger {
     /// - Parameter success: Whether restore was successful
     public func logBackupRestore(success: Bool) {
         if success {
-            logger.info("♻️  Database restored from backup successfully")
+            logger.log("Database restored from backup successfully", level: .info, category: .dataIntegrity)
         } else {
-            logger.error("⚠️  Database restore from backup failed")
+            logger.log("Database restore from backup failed", level: .error, category: .dataIntegrity)
         }
     }
 
@@ -154,7 +153,7 @@ public final class MigrationLogger {
     ///
     /// - Parameter version: Current schema version
     public func logCurrentSchemaVersion(_ version: String) {
-        logger.info("📊 Current schema version: \(version)")
+        logger.log("Current schema version: \(version)", level: .info, category: .dataIntegrity)
     }
 
     /// Gets the migration history
@@ -171,7 +170,7 @@ public final class MigrationLogger {
     /// Clears all migration history
     public func clearHistory() {
         userDefaults.removeObject(forKey: migrationHistoryKey)
-        logger.debug("Migration history cleared")
+        logger.log("Migration history cleared", level: .debug, category: .dataIntegrity)
     }
 
     /// Backfills change descriptions for existing migration events
@@ -202,13 +201,13 @@ public final class MigrationLogger {
 
             history[index] = updatedEvent
             updated = true
-            logger.info("Backfilled description for migration: \(migration)")
+            logger.log("Backfilled description for migration: \(migration)", level: .info, category: .dataIntegrity)
         }
 
         // Save updated history if changes were made
         if updated, let data = try? JSONEncoder().encode(history) {
             userDefaults.set(data, forKey: migrationHistoryKey)
-            logger.info("Successfully backfilled \(history.count) migration descriptions")
+            logger.log("Successfully backfilled \(history.count) migration descriptions", level: .info, category: .dataIntegrity)
         }
     }
 
@@ -381,7 +380,7 @@ extension MigrationLogger {
     /// Prints migration history to console (debug builds only)
     public func printHistory() {
         #if DEBUG
-        print(getHistorySummary())
+        logger.log(getHistorySummary(), level: .debug, category: .dataIntegrity)
         #endif
     }
 

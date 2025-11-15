@@ -49,10 +49,17 @@ public final class StoreKitPaywallService: PaywallService {
     /// Subscription service for purchase validation
     private let subscriptionService: SecureSubscriptionService
 
+    /// Debug logger for diagnostics
+    private let logger: DebugLogger
+
     // MARK: - Initialization
 
-    public init(subscriptionService: SecureSubscriptionService) {
+    public init(
+        subscriptionService: SecureSubscriptionService,
+        logger: DebugLogger
+    ) {
         self.subscriptionService = subscriptionService
+        self.logger = logger
 
         // Start listening for transaction updates immediately
         // This ensures we catch any pending transactions from app restart
@@ -311,7 +318,7 @@ public final class StoreKitPaywallService: PaywallService {
 
                 } catch {
                     // Log verification failure (in production, send to analytics)
-                    print("❌ Transaction verification failed: \(error)")
+                    logger.log("Transaction verification failed: \(error)", level: .error, category: .subscription)
                 }
             }
         }
