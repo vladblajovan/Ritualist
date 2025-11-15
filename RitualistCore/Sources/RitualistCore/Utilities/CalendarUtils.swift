@@ -10,13 +10,6 @@
 
 import Foundation
 
-/// Display mode for showing timestamps with timezone context
-public enum DisplayTimezoneMode: String, CaseIterable {
-    case original      // Show times as they were originally experienced
-    case current      // Show times in user's current timezone
-    case home         // Show times in user's designated home timezone
-}
-
 /// Centralized calendar utilities that handle timezone-aware date operations consistently
 /// Uses UTC for all business logic to ensure consistent behavior across timezones
 public struct CalendarUtils {
@@ -419,20 +412,35 @@ public struct CalendarUtils {
     }
     
     /// Format log entry based on user's display preference
+    /// - Parameters:
+    ///   - utcTimestamp: The UTC timestamp to format
+    ///   - originalTimezone: The timezone where the log was originally recorded (preserved for context)
+    ///   - displayMode: How to display the timestamp (current/home/custom timezone)
+    ///   - userTimezone: The device's current timezone
+    ///   - homeTimezone: The user's designated home timezone
+    /// - Returns: Formatted string representation of the timestamp
     public static func formatLogEntry(_ utcTimestamp: Date, _ originalTimezone: String,
-                                    displayMode: DisplayTimezoneMode, 
+                                    displayMode: DisplayTimezoneMode,
                                     userTimezone: TimeZone = .current,
                                     homeTimezone: TimeZone? = nil) -> String {
         switch displayMode {
-        case .original:
-            return formatInOriginalTimezone(utcTimestamp, originalTimezone)
         case .current:
+            // Display in user's current device timezone
             return formatWithTimezoneContext(utcTimestamp, originalTimezone, currentTimezone: userTimezone)
         case .home:
+            // Display in user's home timezone
             guard let homeTimezone = homeTimezone else {
-                return formatInOriginalTimezone(utcTimestamp, originalTimezone)
+                // Fallback to current timezone if home timezone not set
+                return formatWithTimezoneContext(utcTimestamp, originalTimezone, currentTimezone: userTimezone)
             }
             return formatInTimezone(utcTimestamp, homeTimezone)
+        case .custom(let timezoneIdentifier):
+            // Display in specific custom timezone
+            guard let customTimezone = TimeZone(identifier: timezoneIdentifier) else {
+                // Fallback to current timezone if custom timezone is invalid
+                return formatWithTimezoneContext(utcTimestamp, originalTimezone, currentTimezone: userTimezone)
+            }
+            return formatInTimezone(utcTimestamp, customTimezone)
         }
     }
     

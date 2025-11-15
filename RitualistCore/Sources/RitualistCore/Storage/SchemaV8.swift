@@ -486,13 +486,20 @@ extension SchemaV8.UserProfileModel {
         let id = UUID(uuidString: self.id) ?? UUID()
         let appearance = Int(self.appearance) ?? 0
 
+        // Convert V8 timezone fields to V9 UserProfile three-timezone model
+        let currentTz = TimeZone.current.identifier
+        let homeTz = homeTimezone ?? TimeZone.current.identifier
+        let displayMode = DisplayTimezoneMode.fromLegacyString(displayTimezoneMode ?? "current")
+
         return UserProfile(
             id: id,
             name: name,
             avatarImageData: avatarImageData,
             appearance: appearance,
-            homeTimezone: homeTimezone,
-            displayTimezoneMode: displayTimezoneMode,
+            currentTimezoneIdentifier: currentTz,
+            homeTimezoneIdentifier: homeTz,
+            displayTimezoneMode: displayMode,
+            timezoneChangeHistory: [],  // No history in V8
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -501,13 +508,17 @@ extension SchemaV8.UserProfileModel {
     /// Create SwiftData model from domain entity
     /// Note: Subscription fields NOT saved to database - managed by SubscriptionService
     public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV8 {
+        // Convert V9 three-timezone model back to V8 format
+        let homeTimezoneV8 = profile.homeTimezoneIdentifier
+        let displayModeV8 = profile.displayTimezoneMode.toLegacyString()
+
         return SchemaV8.UserProfileModel(
             id: profile.id.uuidString,
             name: profile.name,
             avatarImageData: profile.avatarImageData,
             appearance: String(profile.appearance),
-            homeTimezone: profile.homeTimezone,
-            displayTimezoneMode: profile.displayTimezoneMode,
+            homeTimezone: homeTimezoneV8,
+            displayTimezoneMode: displayModeV8,
             createdAt: profile.createdAt,
             updatedAt: profile.updatedAt
         )

@@ -17,7 +17,7 @@ struct AdvancedSettingsView: View {
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: displayTimezoneMode) { _, newValue in
                         Task {
-                            vm.profile.displayTimezoneMode = newValue
+                            vm.profile.displayTimezoneMode = DisplayTimezoneMode.fromLegacyString(newValue)
                             _ = await vm.save()
                         }
                     }

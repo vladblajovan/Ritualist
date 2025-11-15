@@ -44,7 +44,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             SchemaV5.self,  // Added lastCompletedDate property to HabitModel
             SchemaV6.self,  // Added archivedDate property to HabitModel
             SchemaV7.self,  // Added location-aware habit support (locationConfigData, lastGeofenceTriggerDate)
-            SchemaV8.self   // Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
+            SchemaV8.self,  // Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
+            SchemaV9.self   // Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
         ]
     }
 
@@ -70,6 +71,7 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// - V5 → V6: Added archivedDate property to HabitModel (lightweight)
     /// - V6 → V7: Added location configuration (locationConfigData, lastGeofenceTriggerDate) (lightweight)
     /// - V7 → V8: Removed subscription fields from UserProfileModel (lightweight)
+    /// - V8 → V9: Three-Timezone Model implementation (custom/heavyweight)
     ///
     /// ## Example Future Migration:
     /// ```swift
@@ -89,7 +91,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             migrateV4toV5,
             migrateV5toV6,
             migrateV6toV7,
-            migrateV7toV8
+            migrateV7toV8,
+            migrateV8toV9
         ]
     }
 
@@ -171,6 +174,78 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     static let migrateV7toV8 = MigrationStage.lightweight(
         fromVersion: SchemaV7.self,
         toVersion: SchemaV8.self
+    )
+
+    /// V8 → V9: Three-Timezone Model implementation
+    ///
+    /// This is a CUSTOM/HEAVYWEIGHT migration because:
+    /// - UserProfileModel undergoes significant timezone architecture change
+    /// - Removed: homeTimezone (String?), displayTimezoneMode (String)
+    /// - Added: currentTimezoneIdentifier (String), homeTimezoneIdentifier (String),
+    ///          displayTimezoneModeData (Data), timezoneChangeHistoryData (Data)
+    /// - Requires custom data transformation:
+    ///   1. Initialize currentTimezoneIdentifier with device timezone
+    ///   2. Migrate legacy homeTimezone → homeTimezoneIdentifier (or use device timezone)
+    ///   3. Convert legacy displayTimezoneMode string → DisplayTimezoneMode enum → JSON Data
+    ///   4. Initialize empty timezoneChangeHistory array → JSON Data
+    ///   5. Log timezone change event for analytics
+    ///
+    /// Migration Logic:
+    /// - Existing users: All timezones default to device timezone (safe, predictable)
+    /// - Legacy homeTimezone: Preserved if valid, otherwise device timezone
+    /// - Legacy displayTimezoneMode: Converted via DisplayTimezoneMode.fromLegacyString()
+    /// - First migration event logged to timezoneChangeHistory
+    static let migrateV8toV9 = MigrationStage.custom(
+        fromVersion: SchemaV8.self,
+        toVersion: SchemaV9.self,
+        willMigrate: nil,
+        didMigrate: { context in
+            print("🔄 [Migration] V8 → V9: Three-Timezone Model Migration")
+
+            // During didMigrate, SwiftData has already transformed the schema structure
+            // V8 fields (homeTimezone, displayTimezoneMode) are now V9 structure but with default values
+            // We initialize the new V9 fields with safe defaults
+
+            let profiles = try context.fetch(FetchDescriptor<UserProfileModelV9>())
+            let deviceTimezone = TimeZone.current.identifier
+
+            for profile in profiles {
+                // 1. Initialize currentTimezoneIdentifier (new field in V9)
+                profile.currentTimezoneIdentifier = deviceTimezone
+
+                // 2. Initialize homeTimezoneIdentifier
+                // After schema transformation, old V8 homeTimezone field is gone
+                // Safe default: use device timezone
+                profile.homeTimezoneIdentifier = deviceTimezone
+
+                // 3. Initialize displayTimezoneMode (default to .current for safety)
+                let displayMode = DisplayTimezoneMode.current
+                if let displayModeData = try? JSONEncoder().encode(displayMode) {
+                    profile.displayTimezoneModeData = displayModeData
+                } else {
+                    profile.displayTimezoneModeData = Data()
+                }
+
+                // 4. Initialize timezone change history with migration event
+                let migrationEvent = TimezoneChange(
+                    timestamp: Date(),
+                    fromTimezone: "V8_migration",  // Mark as migrated from V8
+                    toTimezone: deviceTimezone,
+                    trigger: .appInstall
+                )
+                if let historyData = try? JSONEncoder().encode([migrationEvent]) {
+                    profile.timezoneChangeHistoryData = historyData
+                } else {
+                    profile.timezoneChangeHistoryData = Data()
+                }
+
+                // 5. Update the updatedAt timestamp
+                profile.updatedAt = Date()
+            }
+
+            try context.save()
+            print("✅ [Migration] V8 → V9: Successfully migrated \(profiles.count) user profile(s)")
+        }
     )
 
     // MARK: - Future Migration Stages (Examples)

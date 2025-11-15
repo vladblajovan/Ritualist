@@ -47,10 +47,12 @@ public final class CompleteOnboarding: CompleteOnboardingUseCase {
             if let existingProfile = try await profileRepo.loadProfile() {
                 profile = existingProfile
             } else {
+                // Create new profile with three-timezone model defaults
+                // All timezones initialize to device timezone (safe default)
                 profile = UserProfile(
-                    appearance: AppearanceManager.getSystemAppearance(),
-                    homeTimezone: nil,
-                    displayTimezoneMode: "original"
+                    appearance: AppearanceManager.getSystemAppearance()
+                    // currentTimezoneIdentifier, homeTimezoneIdentifier, and displayTimezoneMode
+                    // use default values (device timezone and .current mode)
                 )
             }
 

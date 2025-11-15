@@ -22,13 +22,13 @@ import SwiftData
 /// 4. Update these type aliases below to point to V7 types
 /// 5. All data sources will automatically use the new schema!
 
-// Current active schema: V8
-public typealias ActiveHabitModel = HabitModelV8
-public typealias ActiveHabitLogModel = HabitLogModelV8
-public typealias ActiveHabitCategoryModel = HabitCategoryModelV8
-public typealias ActiveUserProfileModel = UserProfileModelV8
-public typealias ActiveOnboardingStateModel = OnboardingStateModelV8
-public typealias ActivePersonalityAnalysisModel = PersonalityAnalysisModelV8
+// Current active schema: V9
+public typealias ActiveHabitModel = HabitModelV9
+public typealias ActiveHabitLogModel = HabitLogModelV9
+public typealias ActiveHabitCategoryModel = HabitCategoryModelV9
+public typealias ActiveUserProfileModel = UserProfileModelV9
+public typealias ActiveOnboardingStateModel = OnboardingStateModelV9
+public typealias ActivePersonalityAnalysisModel = PersonalityAnalysisModelV9
 
 // MARK: - Migration History
 //
@@ -39,4 +39,5 @@ public typealias ActivePersonalityAnalysisModel = PersonalityAnalysisModelV8
 // - V5: Added lastCompletedDate property to HabitModel
 // - V6: Added archivedDate property to HabitModel
 // - V7: Added location-aware habit support (locationConfigData, lastGeofenceTriggerDate)
-// - V8: Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate) (current)
+// - V8: Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
+// - V9: Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData) (current)

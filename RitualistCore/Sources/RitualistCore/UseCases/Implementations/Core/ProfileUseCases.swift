@@ -10,11 +10,12 @@ public final class LoadProfile: LoadProfileUseCase {
         if let profile = try await repo.loadProfile() {
             return profile
         } else {
-            // Create profile with system defaults including timezone preferences
+            // Create profile with system defaults using three-timezone model
+            // All timezones initialize to device timezone, display mode defaults to .current
             let defaultProfile = UserProfile(
-                appearance: AppearanceManager.getSystemAppearance(),
-                homeTimezone: nil, // No home timezone set initially
-                displayTimezoneMode: "original" // Default to showing logs as originally experienced
+                appearance: AppearanceManager.getSystemAppearance()
+                // currentTimezoneIdentifier, homeTimezoneIdentifier, and displayTimezoneMode
+                // use default values from UserProfile init
             )
             try await repo.saveProfile(defaultProfile)
             return defaultProfile

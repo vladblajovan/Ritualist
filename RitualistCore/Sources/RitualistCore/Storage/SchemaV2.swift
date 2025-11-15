@@ -394,13 +394,22 @@ extension SchemaV2.UserProfileModel {
         let id = UUID(uuidString: self.id) ?? UUID()
         let appearance = Int(self.appearance) ?? 0
 
+        // Convert V2 timezone fields to V9 UserProfile three-timezone model
+        // V2 had: homeTimezone (String?), displayTimezoneMode (String)
+        // V9 has: currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneMode (enum)
+        let currentTz = TimeZone.current.identifier
+        let homeTz = homeTimezone ?? TimeZone.current.identifier
+        let displayMode = DisplayTimezoneMode.fromLegacyString(displayTimezoneMode ?? "current")
+
         return UserProfile(
             id: id,
             name: name,
             avatarImageData: avatarImageData,
             appearance: appearance,
-            homeTimezone: homeTimezone,
-            displayTimezoneMode: displayTimezoneMode,
+            currentTimezoneIdentifier: currentTz,
+            homeTimezoneIdentifier: homeTz,
+            displayTimezoneMode: displayMode,
+            timezoneChangeHistory: [],  // No history in V2
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -408,14 +417,22 @@ extension SchemaV2.UserProfileModel {
 
     /// Create SwiftData model from domain entity
     /// NOTE: Subscription fields use defaults - actual data comes from migration, not domain entity
+    /// Converts V9 UserProfile back to V2 format (for backward compatibility)
     public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV2 {
+        // Convert V9 three-timezone model back to V2 simple timezone fields
+        // Use homeTimezoneIdentifier for V2's homeTimezone field
+        let homeTimezoneV2 = profile.homeTimezoneIdentifier
+
+        // Convert DisplayTimezoneMode enum to string for V2
+        let displayModeV2 = profile.displayTimezoneMode.toLegacyString()
+
         return SchemaV2.UserProfileModel(
             id: profile.id.uuidString,
             name: profile.name,
             avatarImageData: profile.avatarImageData,
             appearance: String(profile.appearance),
-            homeTimezone: profile.homeTimezone,
-            displayTimezoneMode: profile.displayTimezoneMode,
+            homeTimezone: homeTimezoneV2,
+            displayTimezoneMode: displayModeV2,
             subscriptionPlan: "free",  // Default - removed from UserProfile in V8
             subscriptionExpiryDate: nil,  // Default - removed from UserProfile in V8
             createdAt: profile.createdAt,

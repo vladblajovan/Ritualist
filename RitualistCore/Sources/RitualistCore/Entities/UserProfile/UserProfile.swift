@@ -12,30 +12,63 @@ public struct UserProfile: Identifiable, Codable, Hashable {
     public var name: String
     public var avatarImageData: Data?
     public var appearance: Int // 0 followSystem, 1 light, 2 dark
-    
-    // Timezone preferences
-    public var homeTimezone: String?  // Optional designated home timezone (e.g., "America/New_York")
-    public var displayTimezoneMode: String  // DisplayTimezoneMode as string ("original", "current", "home")
 
-    // Metadata
+    // MARK: - Three-Timezone Model
+
+    /// The device's current timezone (auto-detected, read-only)
+    /// Updated automatically when device timezone changes (travel, system settings)
+    /// Role: Informational - "Where am I right now?"
+    public var currentTimezoneIdentifier: String
+
+    /// User's designated home timezone (user-defined, stable)
+    /// User sets this to their primary/home location
+    /// Role: Semantic - "Where do I live?"
+    public var homeTimezoneIdentifier: String
+
+    /// How to display habit data (user chooses: current, home, or custom)
+    /// This timezone controls ALL calculations: "Today", streaks, statistics
+    /// Role: Functional - "How do I want to view my data?"
+    public var displayTimezoneMode: DisplayTimezoneMode
+
+    /// Historical record of timezone changes for debugging and analytics
+    public var timezoneChangeHistory: [TimezoneChange]
+
+    // MARK: - Metadata
+
     public var createdAt: Date
     public var updatedAt: Date
-    
-    public init(id: UUID = UUID(),
-                name: String = "",
-                avatarImageData: Data? = nil,
-                appearance: Int = 0,
-                homeTimezone: String? = nil,
-                displayTimezoneMode: String = "original",
-                createdAt: Date = Date(),
-                updatedAt: Date = Date()) {
+
+    public init(
+        id: UUID = UUID(),
+        name: String = "",
+        avatarImageData: Data? = nil,
+        appearance: Int = 0,
+        currentTimezoneIdentifier: String = TimeZone.current.identifier,
+        homeTimezoneIdentifier: String = TimeZone.current.identifier,
+        displayTimezoneMode: DisplayTimezoneMode = .current,
+        timezoneChangeHistory: [TimezoneChange] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
         self.id = id
         self.name = name
         self.avatarImageData = avatarImageData
         self.appearance = appearance
-        self.homeTimezone = homeTimezone
+        self.currentTimezoneIdentifier = currentTimezoneIdentifier
+        self.homeTimezoneIdentifier = homeTimezoneIdentifier
         self.displayTimezoneMode = displayTimezoneMode
+        self.timezoneChangeHistory = timezoneChangeHistory
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    // MARK: - Computed Properties
+
+    /// Resolves the actual TimeZone to use for all habit calculations based on display mode
+    public var displayTimezone: TimeZone {
+        displayTimezoneMode.resolveTimezone(
+            currentTimezoneIdentifier: currentTimezoneIdentifier,
+            homeTimezoneIdentifier: homeTimezoneIdentifier
+        ) ?? .current
     }
 }

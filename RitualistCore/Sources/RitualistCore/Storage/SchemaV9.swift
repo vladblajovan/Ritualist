@@ -1,23 +1,38 @@
 //
-//  SchemaV1.swift
+//  SchemaV9.swift
 //  RitualistCore
 //
-//  Created by Claude on 11.02.2025.
+//  Created by Claude on 15.11.2025.
 //
-//  Schema Version 1: Initial versioned schema snapshot
-//  This captures the current state of all SwiftData models as V1,
-//  enabling safe migrations for future schema changes.
+//  Schema Version 9: Three-Timezone Model for comprehensive timezone handling
+//
+//  Changes from V8:
+//  - UserProfileModel: Removed `homeTimezone: String?` and `displayTimezoneMode: String`
+//  - UserProfileModel: Added `currentTimezoneIdentifier: String` (auto-detected device timezone)
+//  - UserProfileModel: Added `homeTimezoneIdentifier: String` (user's home timezone)
+//  - UserProfileModel: Added `displayTimezoneMode: String` (encoded DisplayTimezoneMode enum)
+//  - UserProfileModel: Added `timezoneChangeHistoryData: Data` (encoded [TimezoneChange])
+//  - Migration: Lightweight migration with custom didMigrate for timezone initialization
+//  - Rationale: Implement comprehensive timezone handling with Current/Home/Display trinity
 //
 
 import Foundation
 import SwiftData
 
-/// Schema V1: Initial baseline schema for all Ritualist data models
+/// Schema V9: Three-Timezone Model
 ///
-/// This schema represents the first versioned snapshot of the database.
-/// Any future schema changes must create V2, V3, etc. with migration plans.
-public enum SchemaV1: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(1, 0, 0)
+/// This schema implements the comprehensive "Three-Timezone Model" for habit tracking:
+/// - **Current Timezone**: Auto-detected from device (informational)
+/// - **Home Timezone**: User-defined semantic location (stable)
+/// - **Display Mode**: How to view data (current/home/custom)
+///
+/// Migration Strategy:
+/// - Existing users: Initialize all three timezones to device timezone (safe default)
+/// - timezoneChangeHistory: Empty array for all users
+/// - Legacy homeTimezone: Migrated to homeTimezoneIdentifier if present
+/// - Legacy displayTimezoneMode: Migrated with enum conversion
+public enum SchemaV9: VersionedSchema {
+    public static var versionIdentifier: Schema.Version = Schema.Version(9, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [
@@ -30,7 +45,7 @@ public enum SchemaV1: VersionedSchema {
         ]
     }
 
-    // MARK: - HabitModel V1
+    // MARK: - HabitModel V9 (unchanged from V8)
 
     @Model
     public final class HabitModel {
@@ -48,12 +63,17 @@ public enum SchemaV1: VersionedSchema {
         public var isActive: Bool = true
         public var displayOrder: Int = 0
         public var suggestionId: String?
+        public var notes: String?
+        public var lastCompletedDate: Date?
+        public var archivedDate: Date?
+        public var locationConfigData: Data?
+        public var lastGeofenceTriggerDate: Date?
 
         // MARK: - Relationships
         @Relationship(deleteRule: .cascade, inverse: \HabitLogModel.habit)
         public var logs: [HabitLogModel] = []
 
-        public var category: SchemaV1.HabitCategoryModel?
+        public var category: SchemaV9.HabitCategoryModel?
 
         public init(
             id: UUID,
@@ -70,7 +90,12 @@ public enum SchemaV1: VersionedSchema {
             isActive: Bool,
             displayOrder: Int,
             category: HabitCategoryModel? = nil,
-            suggestionId: String?
+            suggestionId: String?,
+            notes: String? = nil,
+            lastCompletedDate: Date? = nil,
+            archivedDate: Date? = nil,
+            locationConfigData: Data? = nil,
+            lastGeofenceTriggerDate: Date? = nil
         ) {
             self.id = id
             self.name = name
@@ -86,11 +111,16 @@ public enum SchemaV1: VersionedSchema {
             self.isActive = isActive
             self.displayOrder = displayOrder
             self.suggestionId = suggestionId
+            self.notes = notes
+            self.lastCompletedDate = lastCompletedDate
+            self.archivedDate = archivedDate
+            self.locationConfigData = locationConfigData
+            self.lastGeofenceTriggerDate = lastGeofenceTriggerDate
             self.category = category
         }
     }
 
-    // MARK: - HabitLogModel V1
+    // MARK: - HabitLogModel V9 (unchanged from V8)
 
     @Model
     public final class HabitLogModel {
@@ -104,7 +134,7 @@ public enum SchemaV1: VersionedSchema {
         public init(
             id: UUID,
             habitID: UUID,
-            habit: HabitModelV1?,
+            habit: HabitModelV9?,
             date: Date,
             value: Double?,
             timezone: String = "UTC"
@@ -118,7 +148,7 @@ public enum SchemaV1: VersionedSchema {
         }
     }
 
-    // MARK: - HabitCategoryModel V1
+    // MARK: - HabitCategoryModel V9 (unchanged from V8)
 
     @Model
     public final class HabitCategoryModel {
@@ -153,7 +183,12 @@ public enum SchemaV1: VersionedSchema {
         }
     }
 
-    // MARK: - UserProfileModel V1
+    // MARK: - UserProfileModel V9
+    // UPDATED in V9: Three-Timezone Model implementation
+    // - currentTimezoneIdentifier: Auto-detected device timezone
+    // - homeTimezoneIdentifier: User's designated home timezone
+    // - displayTimezoneMode: Encoded DisplayTimezoneMode enum (current/home/custom)
+    // - timezoneChangeHistoryData: Encoded array of timezone change events
 
     @Model
     public final class UserProfileModel {
@@ -161,10 +196,22 @@ public enum SchemaV1: VersionedSchema {
         public var name: String = ""
         public var avatarImageData: Data?
         public var appearance: String = "followSystem"
-        public var homeTimezone: String?
-        public var displayTimezoneMode: String = "original"
-        public var subscriptionPlan: String = "free"
-        public var subscriptionExpiryDate: Date?
+
+        // TIMEZONE TRINITY (NEW in V9)
+        /// Device's current timezone identifier (auto-detected, informational)
+        public var currentTimezoneIdentifier: String = TimeZone.current.identifier
+
+        /// User's designated home timezone identifier (user-defined, stable)
+        public var homeTimezoneIdentifier: String = TimeZone.current.identifier
+
+        /// Display timezone mode encoded as JSON (current/home/custom)
+        /// Stores DisplayTimezoneMode enum in JSON format for SwiftData compatibility
+        public var displayTimezoneModeData: Data = Data()
+
+        /// Historical timezone change events encoded as JSON
+        /// Stores [TimezoneChange] array for analytics and debugging
+        public var timezoneChangeHistoryData: Data = Data()
+
         public var createdAt: Date = Date()
         public var updatedAt: Date = Date()
 
@@ -173,10 +220,10 @@ public enum SchemaV1: VersionedSchema {
             name: String,
             avatarImageData: Data?,
             appearance: String,
-            homeTimezone: String? = nil,
-            displayTimezoneMode: String = "original",
-            subscriptionPlan: String = "free",
-            subscriptionExpiryDate: Date? = nil,
+            currentTimezoneIdentifier: String = TimeZone.current.identifier,
+            homeTimezoneIdentifier: String = TimeZone.current.identifier,
+            displayTimezoneModeData: Data = Data(),
+            timezoneChangeHistoryData: Data = Data(),
             createdAt: Date = Date(),
             updatedAt: Date = Date()
         ) {
@@ -184,16 +231,16 @@ public enum SchemaV1: VersionedSchema {
             self.name = name
             self.avatarImageData = avatarImageData
             self.appearance = appearance
-            self.homeTimezone = homeTimezone
-            self.displayTimezoneMode = displayTimezoneMode
-            self.subscriptionPlan = subscriptionPlan
-            self.subscriptionExpiryDate = subscriptionExpiryDate
+            self.currentTimezoneIdentifier = currentTimezoneIdentifier
+            self.homeTimezoneIdentifier = homeTimezoneIdentifier
+            self.displayTimezoneModeData = displayTimezoneModeData
+            self.timezoneChangeHistoryData = timezoneChangeHistoryData
             self.createdAt = createdAt
             self.updatedAt = updatedAt
         }
     }
 
-    // MARK: - OnboardingStateModel V1
+    // MARK: - OnboardingStateModel V9 (unchanged from V8)
 
     @Model
     public final class OnboardingStateModel {
@@ -218,7 +265,7 @@ public enum SchemaV1: VersionedSchema {
         }
     }
 
-    // MARK: - PersonalityAnalysisModel V1
+    // MARK: - PersonalityAnalysisModel V9 (unchanged from V8)
 
     @Model
     public final class PersonalityAnalysisModel {
@@ -271,26 +318,33 @@ public enum SchemaV1: VersionedSchema {
 // MARK: - Migration Type Aliases
 
 /// Type aliases for easier migration mapping between schema versions
-/// These help identify which V1 models correspond to current models
-public typealias HabitModelV1 = SchemaV1.HabitModel
-public typealias HabitLogModelV1 = SchemaV1.HabitLogModel
-public typealias HabitCategoryModelV1 = SchemaV1.HabitCategoryModel
-public typealias UserProfileModelV1 = SchemaV1.UserProfileModel
-public typealias OnboardingStateModelV1 = SchemaV1.OnboardingStateModel
-public typealias PersonalityAnalysisModelV1 = SchemaV1.PersonalityAnalysisModel
+public typealias HabitModelV9 = SchemaV9.HabitModel
+public typealias HabitLogModelV9 = SchemaV9.HabitLogModel
+public typealias HabitCategoryModelV9 = SchemaV9.HabitCategoryModel
+public typealias UserProfileModelV9 = SchemaV9.UserProfileModel
+public typealias OnboardingStateModelV9 = SchemaV9.OnboardingStateModel
+public typealias PersonalityAnalysisModelV9 = SchemaV9.PersonalityAnalysisModel
 
 // MARK: - Domain Entity Conversions
 
-/// Extensions to convert between SchemaV1 models and domain entities
-/// These methods enable the data layer to work with domain models while
-/// SwiftData uses versioned schema types
+/// Extensions to convert between SchemaV9 models and domain entities
 
-extension SchemaV1.HabitModel {
+extension SchemaV9.HabitModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() throws -> Habit {
         let schedule = try JSONDecoder().decode(HabitSchedule.self, from: scheduleData)
         let reminders = try JSONDecoder().decode([ReminderTime].self, from: remindersData)
         let kind: HabitKind = (kindRaw == 0) ? .binary : .numeric
+
+        // Decode location configuration if present
+        var locationConfig: LocationConfiguration?
+        if let locationData = locationConfigData {
+            locationConfig = try? JSONDecoder().decode(LocationConfiguration.self, from: locationData)
+            // Update lastTriggerDate from persistent storage
+            if locationConfig != nil {
+                locationConfig?.lastTriggerDate = lastGeofenceTriggerDate
+            }
+        }
 
         return Habit(
             id: id,
@@ -308,24 +362,36 @@ extension SchemaV1.HabitModel {
             displayOrder: displayOrder,
             categoryId: category?.id,
             suggestionId: suggestionId,
-            isPinned: false  // V1 doesn't have isPinned, default to false
+            isPinned: false,  // Default to false since property removed in V4
+            notes: notes,
+            lastCompletedDate: lastCompletedDate,
+            archivedDate: archivedDate,
+            locationConfiguration: locationConfig
         )
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ habit: Habit, context: ModelContext? = nil) throws -> HabitModelV1 {
+    public static func fromEntity(_ habit: Habit, context: ModelContext? = nil) throws -> HabitModelV9 {
         let schedule = try JSONEncoder().encode(habit.schedule)
         let reminders = try JSONEncoder().encode(habit.reminders)
         let kindRaw = (habit.kind == .binary) ? 0 : 1
 
+        // Encode location configuration if present
+        var locationData: Data?
+        var lastTriggerDate: Date?
+        if let locationConfig = habit.locationConfiguration {
+            locationData = try? JSONEncoder().encode(locationConfig)
+            lastTriggerDate = locationConfig.lastTriggerDate
+        }
+
         // Set relationship from domain entity categoryId
-        var category: SchemaV1.HabitCategoryModel?
+        var category: SchemaV9.HabitCategoryModel?
         if let categoryId = habit.categoryId, let context = context {
-            let descriptor = FetchDescriptor<SchemaV1.HabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
+            let descriptor = FetchDescriptor<SchemaV9.HabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
             category = try? context.fetch(descriptor).first
         }
 
-        return SchemaV1.HabitModel(
+        return SchemaV9.HabitModel(
             id: habit.id,
             name: habit.name,
             colorHex: habit.colorHex,
@@ -340,30 +406,87 @@ extension SchemaV1.HabitModel {
             isActive: habit.isActive,
             displayOrder: habit.displayOrder,
             category: category,
-            suggestionId: habit.suggestionId
+            suggestionId: habit.suggestionId,
+            notes: habit.notes,
+            lastCompletedDate: habit.lastCompletedDate,
+            archivedDate: habit.archivedDate,
+            locationConfigData: locationData,
+            lastGeofenceTriggerDate: lastTriggerDate
         )
+    }
+
+    /// Update existing SwiftData model from domain entity
+    /// Eliminates duplicate mapping logic in HabitLocalDataSource.upsert()
+    public func updateFromEntity(_ habit: Habit, context: ModelContext, logger: DebugLogger) throws {
+        // Update basic properties
+        self.name = habit.name
+        self.colorHex = habit.colorHex
+        self.emoji = habit.emoji
+        self.kindRaw = (habit.kind == .binary) ? 0 : 1
+        self.unitLabel = habit.unitLabel
+        self.dailyTarget = habit.dailyTarget
+        self.scheduleData = try JSONEncoder().encode(habit.schedule)
+        self.remindersData = try JSONEncoder().encode(habit.reminders)
+        self.startDate = habit.startDate
+        self.endDate = habit.endDate
+        self.isActive = habit.isActive
+        self.displayOrder = habit.displayOrder
+        self.suggestionId = habit.suggestionId
+        self.notes = habit.notes
+        self.lastCompletedDate = habit.lastCompletedDate
+        self.archivedDate = habit.archivedDate
+
+        // Update category relationship with proper error handling
+        if let categoryId = habit.categoryId {
+            let categoryDescriptor = FetchDescriptor<SchemaV9.HabitCategoryModel>(
+                predicate: #Predicate { $0.id == categoryId }
+            )
+            guard let fetchedCategory = try context.fetch(categoryDescriptor).first else {
+                // Log warning but don't fail - category might be deleted
+                logger.log("Category \(categoryId) not found for habit \(habit.id)", level: .warning, category: .dataIntegrity)
+                self.category = nil
+                return
+            }
+            self.category = fetchedCategory
+        } else {
+            self.category = nil
+        }
+
+        // Update location configuration with proper error handling
+        if let locationConfig = habit.locationConfiguration {
+            do {
+                self.locationConfigData = try JSONEncoder().encode(locationConfig)
+                self.lastGeofenceTriggerDate = locationConfig.lastTriggerDate
+            } catch {
+                // Log error and rethrow - data integrity is critical
+                logger.log("Error encoding location configuration for habit \(habit.id): \(error)", level: .error, category: .dataIntegrity)
+                throw error
+            }
+        } else {
+            self.locationConfigData = nil
+            self.lastGeofenceTriggerDate = nil
+        }
     }
 }
 
-extension SchemaV1.HabitLogModel {
+extension SchemaV9.HabitLogModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> HabitLog {
         return HabitLog(id: id, habitID: habitID, date: date, value: value, timezone: timezone)
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ log: HabitLog, context: ModelContext? = nil) -> HabitLogModelV1 {
-        // Store both habitID (for CloudKit) and relationship (for local queries)
-        var habit: HabitModelV1?
+    public static func fromEntity(_ log: HabitLog, context: ModelContext? = nil) -> HabitLogModelV9 {
+        var habit: HabitModelV9?
         if let context = context {
-            let descriptor = FetchDescriptor<SchemaV1.HabitModel>(predicate: #Predicate { $0.id == log.habitID })
+            let descriptor = FetchDescriptor<SchemaV9.HabitModel>(predicate: #Predicate { $0.id == log.habitID })
             habit = try? context.fetch(descriptor).first
         }
-        return SchemaV1.HabitLogModel(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value, timezone: log.timezone)
+        return SchemaV9.HabitLogModel(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value, timezone: log.timezone)
     }
 }
 
-extension SchemaV1.HabitCategoryModel {
+extension SchemaV9.HabitCategoryModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> HabitCategory {
         HabitCategory(
@@ -378,8 +501,8 @@ extension SchemaV1.HabitCategoryModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModelV1 {
-        HabitCategoryModelV1(
+    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModelV9 {
+        HabitCategoryModelV9(
             id: category.id,
             name: category.name,
             displayName: category.displayName,
@@ -391,55 +514,66 @@ extension SchemaV1.HabitCategoryModel {
     }
 }
 
-extension SchemaV1.UserProfileModel {
+extension SchemaV9.UserProfileModel {
     /// Convert SwiftData model to domain entity
-    /// NOTE: Subscription fields preserved in database but not passed to domain entity (removed in V8)
     public func toEntity() -> UserProfile {
         let id = UUID(uuidString: self.id) ?? UUID()
         let appearance = Int(self.appearance) ?? 0
 
-        // Convert V1 timezone fields to V9 UserProfile three-timezone model
-        let currentTz = TimeZone.current.identifier
-        let homeTz = homeTimezone ?? TimeZone.current.identifier
-        let displayMode = DisplayTimezoneMode.fromLegacyString(displayTimezoneMode ?? "current")
+        // Decode DisplayTimezoneMode from JSON
+        let displayMode: DisplayTimezoneMode
+        if !displayTimezoneModeData.isEmpty {
+            displayMode = (try? JSONDecoder().decode(DisplayTimezoneMode.self, from: displayTimezoneModeData)) ?? .current
+        } else {
+            displayMode = .current
+        }
+
+        // Decode timezone change history from JSON
+        let changeHistory: [TimezoneChange]
+        if !timezoneChangeHistoryData.isEmpty {
+            changeHistory = (try? JSONDecoder().decode([TimezoneChange].self, from: timezoneChangeHistoryData)) ?? []
+        } else {
+            changeHistory = []
+        }
 
         return UserProfile(
             id: id,
             name: name,
             avatarImageData: avatarImageData,
             appearance: appearance,
-            currentTimezoneIdentifier: currentTz,
-            homeTimezoneIdentifier: homeTz,
+            currentTimezoneIdentifier: currentTimezoneIdentifier,
+            homeTimezoneIdentifier: homeTimezoneIdentifier,
             displayTimezoneMode: displayMode,
-            timezoneChangeHistory: [],  // No history in V1
+            timezoneChangeHistory: changeHistory,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
     }
 
     /// Create SwiftData model from domain entity
-    /// NOTE: Subscription fields use defaults - actual data comes from migration, not domain entity
-    public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV1 {
-        // Convert V9 three-timezone model back to V1 format
-        let homeTimezoneV1 = profile.homeTimezoneIdentifier
-        let displayModeV1 = profile.displayTimezoneMode.toLegacyString()
+    public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV9 {
+        // Encode DisplayTimezoneMode to JSON
+        let displayModeData = (try? JSONEncoder().encode(profile.displayTimezoneMode)) ?? Data()
 
-        return SchemaV1.UserProfileModel(
+        // Encode timezone change history to JSON
+        let historyData = (try? JSONEncoder().encode(profile.timezoneChangeHistory)) ?? Data()
+
+        return SchemaV9.UserProfileModel(
             id: profile.id.uuidString,
             name: profile.name,
             avatarImageData: profile.avatarImageData,
             appearance: String(profile.appearance),
-            homeTimezone: homeTimezoneV1,
-            displayTimezoneMode: displayModeV1,
-            subscriptionPlan: "free",  // Default - removed from UserProfile in V8
-            subscriptionExpiryDate: nil,  // Default - removed from UserProfile in V8
+            currentTimezoneIdentifier: profile.currentTimezoneIdentifier,
+            homeTimezoneIdentifier: profile.homeTimezoneIdentifier,
+            displayTimezoneModeData: displayModeData,
+            timezoneChangeHistoryData: historyData,
             createdAt: profile.createdAt,
             updatedAt: profile.updatedAt
         )
     }
 }
 
-extension SchemaV1.OnboardingStateModel {
+extension SchemaV9.OnboardingStateModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> OnboardingState {
         return OnboardingState(
@@ -451,8 +585,8 @@ extension SchemaV1.OnboardingStateModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ state: OnboardingState) -> OnboardingStateModelV1 {
-        return SchemaV1.OnboardingStateModel(
+    public static func fromEntity(_ state: OnboardingState) -> OnboardingStateModelV9 {
+        return SchemaV9.OnboardingStateModel(
             isCompleted: state.isCompleted,
             completedDate: state.completedDate,
             userName: state.userName,
@@ -461,7 +595,7 @@ extension SchemaV1.OnboardingStateModel {
     }
 }
 
-extension SchemaV1.PersonalityAnalysisModel {
+extension SchemaV9.PersonalityAnalysisModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> PersonalityProfile? {
         guard let dominantTrait = PersonalityTrait(rawValue: dominantTraitRawValue),
@@ -495,8 +629,8 @@ extension SchemaV1.PersonalityAnalysisModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityAnalysisModelV1 {
-        PersonalityAnalysisModelV1(
+    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityAnalysisModelV9 {
+        PersonalityAnalysisModelV9(
             id: entity.id.uuidString,
             userId: entity.userId.uuidString,
             analysisDate: entity.analysisMetadata.analysisDate,
