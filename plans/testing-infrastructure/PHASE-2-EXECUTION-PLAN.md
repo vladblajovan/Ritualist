@@ -14,16 +14,16 @@ Phase 1 audits identified **~1,819 lines** of consolidation opportunities across
 
 **REVISED APPROACH (Nov 15, 2025):** Focus on high-impact fixes only, skip cosmetic UseCase consolidation.
 
-**Current Progress: 599 of ~1,200 lines (50% complete) ✅**
+**Current Progress: 660 of ~1,200 lines (55% complete) ✅**
 
 | Layer | Quality | Lines to Consolidate | Completed | Remaining | Status | Revised Plan |
 |-------|---------|---------------------|-----------|-----------|--------|--------------|
 | **Data** | 8.5/10 ⭐ | ~303 lines (19%) | 157 lines | 146 lines | 🔄 Week 1-3 | Continue |
 | **Repositories** | 6/10 | ~281 lines (49%) | 241 lines | 40 lines | ✅ Week 3 | Complete ✅ |
 | **UseCases** | 5/10 ⚠️ | ~~735 lines (51%)~~ | 20 lines | **100 lines** | ⬜ Week 9 | **REDUCED SCOPE** |
-| **Services** | 6.5/10 | ~500 lines (29%) | 181 lines | 319 lines | ⬜ Week 4-8 | Continue |
+| **Services** | 6.5/10 | ~500 lines (29%) | 242 lines | 258 lines | 🔄 Week 4-8 | Continue |
 | **ViewModels** | 9.5/10 ✅ | 0 lines (perfect!) | N/A | N/A | ✅ Perfect | No changes |
-| **TOTAL** | 7.1/10 | **~1,200** | **599** | **~605** | 🔄 **50%** | **9 weeks total** |
+| **TOTAL** | 7.1/10 | **~1,200** | **660** | **~544** | 🔄 **55%** | **9 weeks total** |
 
 ---
 
@@ -212,7 +212,49 @@ These were **measurable architecture/performance fixes**, not cosmetic cleanup.
 
 **Quality Gates**: All passed ✅
 
-**Total Progress**: 599 of ~1,819 lines (32.9% complete)
+### Phase 2, Week 4: Extract Shared Utilities from Services (Commits 37bd3c6, 19c9289)
+**Status**: ✅ Complete
+**Date**: November 15, 2025
+**Lines Reduced**: 61 lines
+
+**Completed Tasks**:
+1. ✅ **HabitLogCompletionValidator Utility**
+   - Created shared utility for habit log completion validation
+   - Eliminated 48 lines of duplicate `isLogCompleted()` logic from 3 services:
+     - HabitCompletionService (17 lines)
+     - StreakCalculationService (13 lines)
+     - ScheduleAwareCompletionCalculator (18 lines - unused dead code)
+   - Single source of truth for binary/numeric habit completion rules
+
+2. ✅ **CalendarUtils.habitWeekday() Method**
+   - Added convenience method combining weekday conversion operations
+   - Eliminated 5 lines of duplicate `getHabitWeekday()` logic from 2 services:
+     - HabitCompletionService
+     - StreakCalculationService
+   - Centralized weekday calculation (1=Monday...7=Sunday)
+
+3. ✅ **FeatureGatingConstants Utility**
+   - Created centralized constants for premium feature messaging
+   - Eliminated 8 lines of duplicate error messages from 2 services:
+     - DefaultFeatureGatingBusinessService
+     - DefaultFeatureGatingService
+   - Single source of truth for user-facing premium feature copy
+
+**Architecture Impact**:
+- Established proper Utilities layer for shared business logic
+- Services now depend on utilities (correct direction)
+- Eliminated duplicate implementations across service layer
+- Discovered and removed dead code (bonus cleanup)
+
+**Note on Estimates**:
+- Original estimate: ~150 lines
+- Actual completion: 61 lines
+- Reason for variance: FeatureGatingConstants had less duplication than expected (8 lines vs 100+ estimated)
+- Despite lower line count, all planned utilities were successfully extracted
+
+**Quality Gates**: All passed ✅
+
+**Total Progress**: 660 of ~1,200 lines (55% complete)
 
 ---
 
@@ -539,11 +581,11 @@ let logsByHabitId = try await getBatchLogs.execute(...)
 | 2 | Data + Repos | Data layer optimizations | 69 | ✅ Complete (PR #41) |
 | 3 | Repository Refactoring | PersonalityAnalysis extraction | 241 ⭐ | ✅ Complete (PR #43) |
 | ~~4-7~~ | ~~UseCases~~ | ~~Thin wrappers consolidated~~ | ~~735~~ | ❌ **SKIPPED** |
-| 4 | Services P1 | Extract shared utilities | ~150 | ⬜ Pending |
+| 4 | Services P1 | Extract shared utilities | 61 | ✅ Complete (Commits 37bd3c6, 19c9289) |
 | 5-6 | Services P2 | Consolidate deprecated services | ~250 | ⬜ Pending |
 | 7-8 | Services P3 | Architecture refactoring | ~100 | ⬜ Pending |
 | 9 | UseCases (targeted) | PersonalityAnalysis cleanup | ~100 | ⬜ Pending |
-| **TOTAL** | | **Phase 2 Complete** | **~1,200** | 🔄 In Progress (599/1,200 = **50%**) |
+| **TOTAL** | | **Phase 2 Complete** | **~1,200** | 🔄 In Progress (660/1,200 = **55%**) |
 
 ### Quality Gates (Must Pass at Each Week):
 
@@ -600,7 +642,7 @@ let logsByHabitId = try await getBatchLogs.execute(...)
 
 ## 📝 Next Steps (REVISED)
 
-### Current Status: Week 3 Complete ✅ - Ready for Week 4
+### Current Status: Week 4 Complete ✅ - Ready for Week 5-6
 
 1. ✅ **Week 1 Complete** - PR #39 merged (289 lines)
 2. ✅ **Week 2 Complete** - PR #41 merged (69 lines)
@@ -611,32 +653,31 @@ let logsByHabitId = try await getBatchLogs.execute(...)
    - ✅ Fixed DataThresholdValidator circular dependency
    - ✅ PersonalityAnalysisRepositoryImpl reduced from 359 → 118 lines (-67%)
 4. ~~⬜ Week 4-7: UseCase Layer Consolidation~~ ❌ **SKIPPED** (See Decision Log)
-5. ⬜ **Week 4: Service Layer P1** - Extract shared utilities (~150 lines)
-   - **NEXT IMMEDIATE TASK** ⬅️
-   - Create HabitLogCompletionValidator
-   - Extract CalendarUtils.habitWeekday()
-   - Extract FeatureGatingConstants
+5. ✅ **Week 4 Complete** - Commits 37bd3c6, 19c9289 (61 lines)
+   - ✅ Created HabitLogCompletionValidator utility (48 lines eliminated)
+   - ✅ Added CalendarUtils.habitWeekday() method (5 lines eliminated)
+   - ✅ Created FeatureGatingConstants utility (8 lines eliminated)
 6. ⬜ **Week 5-6: Service Layer P2** - Consolidate deprecated services (~250 lines)
+   - **NEXT IMMEDIATE TASK** ⬅️
 7. ⬜ **Week 7-8: Service Layer P3** - Architecture refactoring (~100 lines)
 8. ⬜ **Week 9: PersonalityAnalysis UseCase Cleanup** - Complete Week 3 work (~100 lines)
 
 ### Immediate Next Actions:
 
-1. **Begin Week 4: Extract Shared Utilities from Services**
-   - Create `HabitLogCompletionValidator` utility
-   - Extract `isLogCompleted()` from 3 duplicate services
-   - Add `CalendarUtils.habitWeekday()` method
-   - Create `FeatureGatingConstants` for error messages
-   - Update 5 services to use new utilities
-   - **Expected Impact**: ~150 lines of duplication eliminated
+1. **Begin Week 5-6: Consolidate Deprecated Services**
+   - Migrate UseCases from sync FeatureGating services to async variants
+   - Delete `ScheduleAwareCompletionCalculator.swift` (pure wrapper)
+   - Delete 3 deprecated sync variant services
+   - Update DI registrations
+   - **Expected Impact**: ~250 lines of parallel hierarchy duplication eliminated
 
 2. **Continue progress tracking** - Update plan after each week
 3. **Document lessons learned** - Capture insights from completed work
 
 ---
 
-**Plan Status**: In Progress (**50% complete**) 🔄 ⬅️ **REVISED**
-**Last PR**: PR #43 (PersonalityAnalysis Repository Refactoring - merged Nov 14)
-**Completed**: 599 of ~1,200 lines ⬅️ **REVISED TARGET**
-**Estimated Completion**: Week 9 (remaining **6 weeks**) ⬅️ **3 WEEKS SAVED**
-**Next Action**: Begin Week 4 - Extract Shared Utilities from Services (P1)
+**Plan Status**: In Progress (**55% complete**) 🔄 ⬅️ **REVISED**
+**Last Commit**: 19c9289 (Week 4, Task 3 - FeatureGatingConstants - Nov 15)
+**Completed**: 660 of ~1,200 lines ⬅️ **REVISED TARGET**
+**Estimated Completion**: Week 9 (remaining **5 weeks**) ⬅️ **3 WEEKS SAVED**
+**Next Action**: Begin Week 5-6 - Consolidate Deprecated Services (P2)
