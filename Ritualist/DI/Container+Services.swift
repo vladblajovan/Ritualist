@@ -182,7 +182,17 @@ extension Container {
         self { DefaultHistoricalDateValidationService() }
             .singleton
     }
-    
+
+    var timezoneService: Factory<TimezoneService> {
+        self {
+            DefaultTimezoneService(
+                loadProfile: self.loadProfile(),
+                saveProfile: self.saveProfile()
+            )
+        }
+        .singleton
+    }
+
     // MARK: - User & Analytics Services
     
     var userActionTracker: Factory<UserActionTrackerService> {
