@@ -219,7 +219,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         // Get all compliant dates that fall on scheduled days
         let compliantDates = getCompliantDates(habit: habit, logs: logs)
         let scheduledCompliantDates = compliantDates.filter { date in
-            let weekday = getHabitWeekday(from: date)
+            let weekday = CalendarUtils.habitWeekday(from: date)
             return scheduledDays.contains(weekday)
         }
         
@@ -236,7 +236,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     
     private func getCompliantDates(habit: Habit, logs: [HabitLog]) -> [Date] {
         return logs.compactMap { log in
-            guard isLogCompleted(log: log, habit: habit) else { return nil }
+            guard HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit) else { return nil }
             return CalendarUtils.startOfDayLocal(for: log.date)
         }
         .sorted()
@@ -279,7 +279,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         let endDate = uniqueDates.last ?? startDate
         
         while checkDate <= endDate {
-            let weekday = getHabitWeekday(from: checkDate)
+            let weekday = CalendarUtils.habitWeekday(from: checkDate)
             
             if scheduledDays.contains(weekday) {
                 if uniqueDates.contains(checkDate) {
@@ -300,7 +300,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         var weeklyCompletions: [Date: Int] = [:]
         
         for log in logs {
-            guard isLogCompleted(log: log, habit: habit) else { continue }
+            guard HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit) else { continue }
             guard let weekInterval = CalendarUtils.weekIntervalLocal(for: log.date) else { continue }
             
             let weekStart = weekInterval.start
@@ -308,25 +308,5 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         }
         
         return weeklyCompletions
-    }
-    
-    private func getHabitWeekday(from date: Date) -> Int {
-        let calendarWeekday = CalendarUtils.weekdayComponentLocal(from: date)
-        return CalendarUtils.calendarWeekdayToHabitWeekday(calendarWeekday)
-    }
-    
-    /// Check if a single log meets the completion criteria for its habit
-    private func isLogCompleted(log: HabitLog, habit: Habit) -> Bool {
-        switch habit.kind {
-        case .binary:
-            return log.value != nil && log.value! > 0
-        case .numeric:
-            guard let logValue = log.value else { return false }
-            if let target = habit.dailyTarget {
-                return logValue >= target
-            } else {
-                return logValue > 0
-            }
-        }
     }
 }

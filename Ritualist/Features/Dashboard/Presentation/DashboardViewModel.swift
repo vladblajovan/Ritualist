@@ -36,7 +36,7 @@ public final class DashboardViewModel {
     @ObservationIgnored @Injected(\.isScheduledDay) internal var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
 
-    private let logger: DebugLogger
+    internal let logger: DebugLogger
 
     public init(logger: DebugLogger) {
         self.logger = logger
@@ -82,32 +82,130 @@ public final class DashboardViewModel {
         public let dayOfWeekPerformance: [DayOfWeekPerformanceViewModel]
         public let bestDay: String
         public let worstDay: String
+        public let bestDayCompletionRate: Double
+        public let worstDayCompletionRate: Double
         public let averageWeeklyCompletion: Double
         public let isDataSufficient: Bool
+        public let isOptimizationMeaningful: Bool
+        public let optimizationMessage: String
         public let thresholdRequirements: [ThresholdRequirement]
-        
-        init(from domain: WeeklyPatternsResult, daysWithData: Int, averageRate: Double, habitCount: Int, timePeriod: TimePeriod) {
+
+        // MARK: - Constants
+
+        /// Minimum performance gap (15%) required for meaningful optimization suggestions.
+        ///
+        /// **UX Reasoning:**
+        /// Below 15%, the performance difference between best and worst days is too small to justify
+        /// suggesting users reschedule their habits. This threshold prevents suggesting optimizations
+        /// for statistically insignificant variations that could be due to:
+        /// - Random day-to-day variance
+        /// - External factors (work schedule, social commitments)
+        /// - Small sample sizes
+        ///
+        /// A 15% gap represents a meaningful behavioral pattern worth addressing.
+        private static let minimumMeaningfulPerformanceGap: Double = 0.15
+
+        /// Near-perfect completion threshold (95%) - beyond this, optimization suggestions aren't needed.
+        ///
+        /// **UX Reasoning:**
+        /// When users are completing 95%+ of their habits on their best day, they're already performing
+        /// exceptionally well. Suggesting further optimization would be:
+        /// - Unnecessary microoptimization
+        /// - Potentially demotivating ("I'm at 96% and you still want me to improve?")
+        /// - Ignoring the reality that 100% completion is unrealistic long-term
+        ///
+        /// At this level, we celebrate success rather than push for marginal gains.
+        private static let nearPerfectCompletionThreshold: Double = 0.95
+
+        /// Minimum completion rate (30%) required for schedule optimization insights.
+        ///
+        /// **Data Quality Reasoning:**
+        /// Below 30%, users are struggling with basic habit consistency. Optimization suggestions
+        /// would be premature - they need to focus on building the habit tracking practice first.
+        /// This threshold ensures we only suggest optimizations when there's meaningful data.
+        private static let minimumCompletionRateForOptimization: Double = 0.3
+
+        /// Minimum number of habits required for meaningful schedule optimization analysis.
+        private static let minimumHabitsRequired: Int = 2
+
+        /// Minimum performance spread (10%) required to show optimization insights.
+        ///
+        /// **Data Quality Reasoning:**
+        /// Below 10%, the difference between best and worst performing days is too small to
+        /// provide meaningful optimization insights. This threshold ensures we have sufficient
+        /// variation in the data to make useful recommendations. A 10% spread indicates that
+        /// some days are clearly more successful than others, making schedule optimization valuable.
+        private static let minimumPerformanceSpread: Double = 0.1
+
+        init(from domain: WeeklyPatternsResult, daysWithData: Int, averageRate: Double, habitCount: Int, timePeriod: TimePeriod, logger: DebugLogger? = nil) {
             self.dayOfWeekPerformance = domain.dayOfWeekPerformance.map(DayOfWeekPerformanceViewModel.init)
             self.bestDay = domain.bestDay
             self.worstDay = domain.worstDay
             self.averageWeeklyCompletion = domain.averageWeeklyCompletion
-            
+
+            // Create lookup dictionary for O(1) access instead of O(n) searches
+            let performanceByDay = Dictionary(
+                uniqueKeysWithValues: domain.dayOfWeekPerformance.map { ($0.dayName, $0.completionRate) }
+            )
+
+            // Edge case: bestDay/worstDay should always exist in performance data since they come from the same source.
+            // Defaulting to 0 is safe - if this occurs, it indicates a data integrity issue upstream
+            // (e.g., WeeklyPatternsResult.bestDay doesn't match any dayName in dayOfWeekPerformance).
+            // The ?? 0 fallback ensures the app doesn't crash, and isDataSufficient validation will catch
+            // this scenario (0% completion won't meet minimum thresholds).
+            self.bestDayCompletionRate = performanceByDay[domain.bestDay] ?? {
+                logger?.log(
+                    "Edge case triggered: bestDay '\(domain.bestDay)' not found in performance data. Available days: \(performanceByDay.keys.joined(separator: ", ")). Defaulting to 0.",
+                    level: .warning,
+                    category: .dataIntegrity
+                )
+                return 0.0
+            }()
+            self.worstDayCompletionRate = performanceByDay[domain.worstDay] ?? {
+                logger?.log(
+                    "Edge case triggered: worstDay '\(domain.worstDay)' not found in performance data. Available days: \(performanceByDay.keys.joined(separator: ", ")). Defaulting to 0.",
+                    level: .warning,
+                    category: .dataIntegrity
+                )
+                return 0.0
+            }()
+
             // Calculate period-aware data quality requirements
             let minDaysRequired = Self.calculateMinDaysRequired(for: timePeriod)
-            let minCompletionRate = 0.3
-            let minHabitsRequired = 2
+            let minCompletionRate = Self.minimumCompletionRateForOptimization
+            let minHabitsRequired = Self.minimumHabitsRequired
             // Only calculate spread from days with actual data (not 0%)
             let daysWithPerformanceData = domain.dayOfWeekPerformance.filter { $0.completionRate > 0 }
-            let performanceSpread = daysWithPerformanceData.isEmpty ? 0.0 : 
-                (daysWithPerformanceData.max(by: { $0.completionRate < $1.completionRate })?.completionRate ?? 0) - 
+            let performanceSpread = daysWithPerformanceData.isEmpty ? 0.0 :
+                (daysWithPerformanceData.max(by: { $0.completionRate < $1.completionRate })?.completionRate ?? 0) -
                 (daysWithPerformanceData.min(by: { $0.completionRate < $1.completionRate })?.completionRate ?? 0)
-            
+
             let hasEnoughDays = daysWithData >= minDaysRequired
             let hasEnoughCompletion = averageRate >= minCompletionRate
             let hasEnoughHabits = habitCount >= minHabitsRequired
-            let hasVariation = performanceSpread > 0.1
-            
+            let hasVariation = performanceSpread > Self.minimumPerformanceSpread
+
             self.isDataSufficient = hasEnoughDays && hasEnoughCompletion && hasEnoughHabits && hasVariation
+
+            // Fix #3: Validation - Check if optimization is meaningful
+            let performanceGap = self.bestDayCompletionRate - self.worstDayCompletionRate
+            let hasMeaningfulGap = performanceGap >= Self.minimumMeaningfulPerformanceGap
+            let bestDayNotPerfect = self.bestDayCompletionRate < Self.nearPerfectCompletionThreshold
+            self.isOptimizationMeaningful = self.isDataSufficient && hasMeaningfulGap && bestDayNotPerfect
+
+            // Fix #4: Smart messaging based on actual performance (localized)
+            if !self.isOptimizationMeaningful {
+                if !hasMeaningfulGap {
+                    self.optimizationMessage = Strings.Dashboard.optimizationConsistentPerformance
+                } else if !bestDayNotPerfect {
+                    self.optimizationMessage = Strings.Dashboard.optimizationNearPerfect
+                } else {
+                    self.optimizationMessage = Strings.Dashboard.optimizationKeepBuilding
+                }
+            } else {
+                let gapPercentage = Int(performanceGap * 100)
+                self.optimizationMessage = String(format: Strings.Dashboard.optimizationSuggestion, domain.bestDay, gapPercentage, domain.worstDay)
+            }
             
             // Build requirements list
             var requirements: [ThresholdRequirement] = []

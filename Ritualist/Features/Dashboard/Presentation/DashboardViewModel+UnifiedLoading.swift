@@ -200,7 +200,7 @@ extension DashboardViewModel {
         
         let performanceSpread = bestDayRate - worstDayRate
         
-        return WeeklyPatternsViewModel(from: weeklyPatternsResult, daysWithData: daysWithData, averageRate: averageRate, habitCount: habits.count, timePeriod: self.selectedTimePeriod)
+        return WeeklyPatternsViewModel(from: weeklyPatternsResult, daysWithData: daysWithData, averageRate: averageRate, habitCount: habits.count, timePeriod: self.selectedTimePeriod, logger: self.logger)
     }
     
     // MARK: - Debug Logging Helpers

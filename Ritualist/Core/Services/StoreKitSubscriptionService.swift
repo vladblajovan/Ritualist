@@ -104,19 +104,19 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
 
         // Check for lifetime purchase first (highest priority)
         if cachedValidPurchases.contains("com.ritualist.lifetime") ||
-           cachedValidPurchases.contains("com.vladblajovan.ritualist.lifetime") {
+           cachedValidPurchases.contains(StoreKitProductID.lifetime) {
             return .lifetime
         }
 
         // Check for annual subscription
         if cachedValidPurchases.contains("com.ritualist.annual") ||
-           cachedValidPurchases.contains("com.vladblajovan.ritualist.annual") {
+           cachedValidPurchases.contains(StoreKitProductID.annual) {
             return .annual
         }
 
         // Check for monthly subscription
         if cachedValidPurchases.contains("com.ritualist.monthly") ||
-           cachedValidPurchases.contains("com.vladblajovan.ritualist.monthly") {
+           cachedValidPurchases.contains(StoreKitProductID.monthly) {
             return .monthly
         }
 

@@ -64,19 +64,19 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
         // Check for lifetime purchase first (highest priority)
         // Support both com.ritualist.* and com.vladblajovan.ritualist.* product IDs
         if validatedPurchases.contains("com.ritualist.lifetime") ||
-           validatedPurchases.contains("com.vladblajovan.ritualist.lifetime") {
+           validatedPurchases.contains(StoreKitProductID.lifetime) {
             return .lifetime
         }
 
         // Check for annual subscription
         if validatedPurchases.contains("com.ritualist.annual") ||
-           validatedPurchases.contains("com.vladblajovan.ritualist.annual") {
+           validatedPurchases.contains(StoreKitProductID.annual) {
             return .annual
         }
 
         // Check for monthly subscription
         if validatedPurchases.contains("com.ritualist.monthly") ||
-           validatedPurchases.contains("com.vladblajovan.ritualist.monthly") {
+           validatedPurchases.contains(StoreKitProductID.monthly) {
             return .monthly
         }
 

@@ -127,27 +127,7 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
     }
     
     // MARK: - Private Methods
-    
-    /// Standardized completion check for habit logs
-    private func isLogCompleted(log: HabitLog, habit: Habit) -> Bool {
-        switch habit.kind {
-        case .binary:
-            // For binary habits: log exists AND value > 0 (standardized logic)
-            return log.value != nil && log.value! > 0
-            
-        case .numeric:
-            guard let logValue = log.value else { return false }
-            
-            // For numeric habits: must meet daily target if set, otherwise any positive value
-            if let target = habit.dailyTarget {
-                return logValue >= target
-            } else {
-                // Require positive value for numeric habits without explicit targets
-                return logValue > 0
-            }
-        }
-    }
-    
+
     private func calculateDailyCompletionRate(
         habit: Habit,
         logs: [HabitLog],

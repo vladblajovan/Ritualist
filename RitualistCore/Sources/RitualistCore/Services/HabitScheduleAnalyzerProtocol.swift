@@ -58,12 +58,7 @@ public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
             
         case .daysOfWeek(let days):
             // Convert Calendar weekday (Sunday=1) to HabitSchedule format (Monday=1)
-            let habitWeekday: Int
-            if weekday == 1 { // Sunday
-                habitWeekday = 7
-            } else { // Monday=2 -> 1, Tuesday=3 -> 2, etc.
-                habitWeekday = weekday - 1
-            }
+            let habitWeekday = CalendarUtils.calendarWeekdayToHabitWeekday(weekday)
             return days.contains(habitWeekday)
             
         }
