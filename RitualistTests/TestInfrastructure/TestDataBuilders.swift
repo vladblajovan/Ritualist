@@ -16,7 +16,8 @@ enum HabitBuilder {
         categoryId: String? = nil,
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
-        displayOrder: Int = 0
+        displayOrder: Int = 0,
+        startDate: Date = TestDates.today  // Use TestDates.today for predictable testing
     ) -> Habit {
         return Habit(
             id: id,
@@ -28,7 +29,7 @@ enum HabitBuilder {
             dailyTarget: nil,
             schedule: schedule,
             reminders: [],
-            startDate: Date(),
+            startDate: startDate,
             endDate: nil,
             isActive: isActive,
             displayOrder: displayOrder,
@@ -53,7 +54,8 @@ enum HabitBuilder {
         categoryId: String? = nil,
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
-        displayOrder: Int = 0
+        displayOrder: Int = 0,
+        startDate: Date = TestDates.today  // Use TestDates.today for predictable testing
     ) -> Habit {
         return Habit(
             id: id,
@@ -65,7 +67,7 @@ enum HabitBuilder {
             dailyTarget: target,
             schedule: schedule,
             reminders: [],
-            startDate: Date(),
+            startDate: startDate,
             endDate: nil,
             isActive: isActive,
             displayOrder: displayOrder,
@@ -142,6 +144,146 @@ enum HabitLogBuilder {
                 date: CalendarUtils.startOfDayLocal(for: date),
                 value: value,
                 timezone: TimeZone.current.identifier
+            )
+        }
+    }
+}
+
+// MARK: - Timezone-Aware Builders (Phase 3)
+
+extension HabitBuilder {
+
+    /// Create a habit with timezone-aware logs for testing
+    ///
+    /// **Use Case:** Testing habits with logs in specific timezones (e.g., user traveling)
+    ///
+    /// - Parameters:
+    ///   - schedule: Habit schedule (daily, Mon/Wed/Fri, etc.)
+    ///   - logDates: Dates when habit was logged
+    ///   - timezone: Timezone for the logs
+    /// - Returns: Tuple of (Habit, [HabitLog])
+    static func habitWithLogs(
+        schedule: HabitSchedule = .daily,
+        logDates: [Date],
+        timezone: TimeZone = .current
+    ) -> (Habit, [HabitLog]) {
+        let habit = binary(schedule: schedule)
+        let logs = logDates.map { date in
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: date,
+                value: 1.0,
+                timezone: timezone.identifier
+            )
+        }
+        return (habit, logs)
+    }
+
+    /// Create a Mon/Wed/Fri habit with realistic logs
+    ///
+    /// **Use Case:** Testing weekly schedule habits
+    ///
+    /// - Parameters:
+    ///   - completedDays: Dates when habit was completed (should be Mon/Wed/Fri)
+    ///   - timezone: Timezone for the logs
+    /// - Returns: Tuple of (Habit, [HabitLog])
+    static func monWedFriHabit(
+        completedDays: [Date] = [],
+        timezone: TimeZone = .current
+    ) -> (Habit, [HabitLog]) {
+        let schedule = HabitSchedule.daysOfWeek([1, 3, 5])  // Mon/Wed/Fri
+        return habitWithLogs(
+            schedule: schedule,
+            logDates: completedDays,
+            timezone: timezone
+        )
+    }
+
+    /// Create a count habit with daily progress values
+    ///
+    /// **Use Case:** Testing numeric habits with varying daily progress
+    ///
+    /// - Parameters:
+    ///   - dailyTarget: Target value for completion
+    ///   - progressValues: Dictionary of date → progress value
+    /// - Returns: Tuple of (Habit, [HabitLog])
+    static func countHabit(
+        dailyTarget: Double,
+        progressValues: [Date: Double]
+    ) -> (Habit, [HabitLog]) {
+        let habit = numeric(target: dailyTarget)
+        let logs = progressValues.map { date, value in
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: date,
+                value: value,
+                timezone: TimeZone.current.identifier
+            )
+        }
+        return (habit, logs)
+    }
+}
+
+extension HabitLogBuilder {
+
+    /// Create logs for multiple dates with timezone awareness
+    ///
+    /// **Use Case:** Testing timezone transitions (e.g., user traveling)
+    ///
+    /// - Parameters:
+    ///   - habitId: ID of the habit
+    ///   - dates: Dates when habit was logged
+    ///   - timezone: Timezone for all logs
+    ///   - value: Log value (default 1.0 for binary)
+    /// - Returns: Array of HabitLog instances
+    static func logsInTimezone(
+        habitId: UUID,
+        dates: [Date],
+        timezone: TimeZone,
+        value: Double = 1.0
+    ) -> [HabitLog] {
+        return dates.map { date in
+            HabitLog(
+                id: UUID(),
+                habitID: habitId,
+                date: date,
+                value: value,
+                timezone: timezone.identifier
+            )
+        }
+    }
+
+    /// Create late-night logs (11:30 PM) for testing edge cases
+    ///
+    /// **Use Case:** Testing that late-night logging counts for the correct day
+    ///
+    /// - Parameters:
+    ///   - habitId: ID of the habit
+    ///   - timezone: Timezone for the late-night dates
+    ///   - count: Number of consecutive late-night logs to create
+    /// - Returns: Array of HabitLog instances at 11:30 PM
+    static func lateNightLogs(
+        habitId: UUID,
+        timezone: TimeZone,
+        count: Int = 3
+    ) -> [HabitLog] {
+        return (0..<count).map { dayOffset in
+            let date = TimezoneTestHelpers.createDate(
+                year: 2025,
+                month: 11,
+                day: 8 + dayOffset,
+                hour: 23,
+                minute: 30,
+                timezone: timezone
+            )
+            return HabitLog(
+                id: UUID(),
+                habitID: habitId,
+                date: date,
+                value: 1.0,
+                timezone: timezone.identifier
             )
         }
     }
