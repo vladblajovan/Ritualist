@@ -92,10 +92,29 @@ public final class DashboardViewModel {
 
         // MARK: - Constants
 
-        /// Minimum performance gap (15%) required for meaningful optimization suggestions
+        /// Minimum performance gap (15%) required for meaningful optimization suggestions.
+        ///
+        /// **UX Reasoning:**
+        /// Below 15%, the performance difference between best and worst days is too small to justify
+        /// suggesting users reschedule their habits. This threshold prevents suggesting optimizations
+        /// for statistically insignificant variations that could be due to:
+        /// - Random day-to-day variance
+        /// - External factors (work schedule, social commitments)
+        /// - Small sample sizes
+        ///
+        /// A 15% gap represents a meaningful behavioral pattern worth addressing.
         private static let minimumMeaningfulPerformanceGap: Double = 0.15
 
-        /// Near-perfect completion threshold (95%) - beyond this, optimization suggestions aren't needed
+        /// Near-perfect completion threshold (95%) - beyond this, optimization suggestions aren't needed.
+        ///
+        /// **UX Reasoning:**
+        /// When users are completing 95%+ of their habits on their best day, they're already performing
+        /// exceptionally well. Suggesting further optimization would be:
+        /// - Unnecessary microoptimization
+        /// - Potentially demotivating ("I'm at 96% and you still want me to improve?")
+        /// - Ignoring the reality that 100% completion is unrealistic long-term
+        ///
+        /// At this level, we celebrate success rather than push for marginal gains.
         private static let nearPerfectCompletionThreshold: Double = 0.95
 
         init(from domain: WeeklyPatternsResult, daysWithData: Int, averageRate: Double, habitCount: Int, timePeriod: TimePeriod) {
@@ -104,9 +123,12 @@ public final class DashboardViewModel {
             self.worstDay = domain.worstDay
             self.averageWeeklyCompletion = domain.averageWeeklyCompletion
 
-            // Calculate best/worst day completion rates (Fix #2: Performance)
-            self.bestDayCompletionRate = domain.dayOfWeekPerformance.first { $0.dayName == domain.bestDay }?.completionRate ?? 0
-            self.worstDayCompletionRate = domain.dayOfWeekPerformance.first { $0.dayName == domain.worstDay }?.completionRate ?? 0
+            // Create lookup dictionary for O(1) access instead of O(n) searches
+            let performanceByDay = Dictionary(
+                uniqueKeysWithValues: domain.dayOfWeekPerformance.map { ($0.dayName, $0.completionRate) }
+            )
+            self.bestDayCompletionRate = performanceByDay[domain.bestDay] ?? 0
+            self.worstDayCompletionRate = performanceByDay[domain.worstDay] ?? 0
 
             // Calculate period-aware data quality requirements
             let minDaysRequired = Self.calculateMinDaysRequired(for: timePeriod)
