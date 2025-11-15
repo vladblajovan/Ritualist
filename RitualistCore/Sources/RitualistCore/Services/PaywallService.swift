@@ -56,7 +56,7 @@ public final class MockPaywallService: PaywallService {
             isPopular: false
         ),
         Product(
-            id: "com.vladblajovan.ritualist.monthly",
+            id: StoreKitProductID.monthly,
             name: "Ritualist Pro",
             description: "Most flexible option",
             price: "$9.99",
@@ -74,7 +74,7 @@ public final class MockPaywallService: PaywallService {
             isPopular: false
         ),
         Product(
-            id: "com.vladblajovan.ritualist.annual",
+            id: StoreKitProductID.annual,
             name: "Ritualist Pro",
             description: "Best value - Save 58%! Includes 7-day free trial",
             price: "$49.99",
@@ -96,7 +96,7 @@ public final class MockPaywallService: PaywallService {
             discount: "Save 58%"
         ),
         Product(
-            id: "com.vladblajovan.ritualist.lifetime",
+            id: StoreKitProductID.lifetime,
             name: "Ritualist Pro Lifetime",
             description: "One-time purchase, lifetime access",
             price: "$100.00",
