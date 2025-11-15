@@ -90,6 +90,14 @@ public final class DashboardViewModel {
         public let optimizationMessage: String
         public let thresholdRequirements: [ThresholdRequirement]
 
+        // MARK: - Constants
+
+        /// Minimum performance gap (15%) required for meaningful optimization suggestions
+        private static let minimumMeaningfulPerformanceGap: Double = 0.15
+
+        /// Near-perfect completion threshold (95%) - beyond this, optimization suggestions aren't needed
+        private static let nearPerfectCompletionThreshold: Double = 0.95
+
         init(from domain: WeeklyPatternsResult, daysWithData: Int, averageRate: Double, habitCount: Int, timePeriod: TimePeriod) {
             self.dayOfWeekPerformance = domain.dayOfWeekPerformance.map(DayOfWeekPerformanceViewModel.init)
             self.bestDay = domain.bestDay
@@ -119,8 +127,8 @@ public final class DashboardViewModel {
 
             // Fix #3: Validation - Check if optimization is meaningful
             let performanceGap = self.bestDayCompletionRate - self.worstDayCompletionRate
-            let hasMeaningfulGap = performanceGap >= 0.15 // At least 15% difference
-            let bestDayNotPerfect = self.bestDayCompletionRate < 0.95 // Room for improvement
+            let hasMeaningfulGap = performanceGap >= Self.minimumMeaningfulPerformanceGap
+            let bestDayNotPerfect = self.bestDayCompletionRate < Self.nearPerfectCompletionThreshold
             self.isOptimizationMeaningful = self.isDataSufficient && hasMeaningfulGap && bestDayNotPerfect
 
             // Fix #4: Smart messaging based on actual performance

@@ -33,7 +33,8 @@ public enum HabitLogCompletionValidator {
         switch habit.kind {
         case .binary:
             // For binary habits: log exists AND value > 0
-            return log.value != nil && log.value! > 0
+            guard let value = log.value else { return false }
+            return value > 0
 
         case .numeric:
             guard let logValue = log.value else { return false }
