@@ -14,6 +14,8 @@ struct AdvancedSettingsView: View {
     @State private var displayMode: DisplayTimezoneMode = .current
     @State private var showingHomeTimezonePicker = false
     @State private var travelStatus: TravelStatus?
+    @State private var errorMessage: String?
+    @State private var showError = false
 
     var body: some View {
         Form {
@@ -46,6 +48,13 @@ struct AdvancedSettingsView: View {
                 onSelect: updateHomeTimezone
             )
         }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let errorMessage {
+                Text(errorMessage)
+            }
+        }
         .task {
             await loadTimezoneData()
         }
@@ -75,7 +84,8 @@ struct AdvancedSettingsView: View {
                 vm.profile.displayTimezoneMode = newMode
                 _ = await vm.save()
             } catch {
-                // Error handled silently - mode reverts to previous state
+                errorMessage = "Failed to update display mode: \(error.localizedDescription)"
+                showError = true
             }
         }
     }
@@ -90,7 +100,8 @@ struct AdvancedSettingsView: View {
                 // Refresh travel status
                 travelStatus = try await timezoneService.detectTravelStatus()
             } catch {
-                // Error handled silently
+                errorMessage = "Failed to update timezone: \(error.localizedDescription)"
+                showError = true
             }
         }
     }

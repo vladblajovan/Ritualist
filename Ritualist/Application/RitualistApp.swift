@@ -123,34 +123,38 @@ import RitualistCore
     /// This is part of the three-timezone model for proper travel handling
     private func detectTimezoneChanges() async {
         do {
-            // Check if timezone changed since last app launch
-            if let change = try await timezoneService.detectTimezoneChange() {
-                logger.log(
-                    "🌐 Timezone change detected",
-                    level: .info,
-                    category: .system,
-                    metadata: [
-                        "previousTimezone": change.previousTimezone,
-                        "newTimezone": change.newTimezone,
-                        "detectedAt": change.detectedAt.ISO8601Format()
-                    ]
-                )
+            // Atomically capture current device timezone to prevent race conditions
+            let currentDeviceTimezone = TimeZone.current.identifier
+            let storedTimezone = try await timezoneService.getCurrentTimezone().identifier
 
-                // Update stored current timezone
-                try await timezoneService.updateCurrentTimezone()
+            // Check if timezone changed
+            guard currentDeviceTimezone != storedTimezone else { return }
 
-                logger.log(
-                    "✅ Updated current timezone",
-                    level: .info,
-                    category: .system,
-                    metadata: ["newTimezone": change.newTimezone]
-                )
+            logger.log(
+                "🌐 Timezone change detected",
+                level: .info,
+                category: .system,
+                metadata: [
+                    "previousTimezone": storedTimezone,
+                    "newTimezone": currentDeviceTimezone,
+                    "detectedAt": Date().ISO8601Format()
+                ]
+            )
 
-                // TODO Phase 3: Show travel notification to user
-                // if let travelStatus = try await timezoneService.detectTravelStatus(), travelStatus.isTravel {
-                //     // Show notification about timezone change and travel mode
-                // }
-            }
+            // Update stored current timezone with the captured value
+            try await timezoneService.updateCurrentTimezone()
+
+            logger.log(
+                "✅ Updated current timezone",
+                level: .info,
+                category: .system,
+                metadata: ["newTimezone": currentDeviceTimezone]
+            )
+
+            // TODO Phase 3: Show travel notification to user
+            // if let travelStatus = try await timezoneService.detectTravelStatus(), travelStatus.isTravel {
+            //     // Show notification about timezone change and travel mode
+            // }
         } catch {
             logger.log(
                 "⚠️ Failed to detect timezone changes",
