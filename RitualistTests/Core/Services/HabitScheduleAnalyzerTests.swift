@@ -203,8 +203,10 @@ struct HabitScheduleAnalyzerTests {
             timezone: .current
         )
 
-        // November 2025: 30 days, starts on Saturday
-        // Should have 8 Saturdays + 8 Sundays = 16 weekend days
+        // November 2025: 30 days, starts on Saturday (Nov 1)
+        // Saturdays: Nov 1, 8, 15, 22, 29 = 5 days
+        // Sundays: Nov 2, 9, 16, 23, 30 = 5 days
+        // Total weekend days: 10
         let habit = HabitBuilder.binary(
             schedule: .daysOfWeek([6, 7]),  // Sat, Sun
             startDate: startDate  // Align with query range
@@ -217,8 +219,8 @@ struct HabitScheduleAnalyzerTests {
             to: endDate
         )
 
-        // Assert: November 2025 has 8 Saturdays + 9 Sundays = 17 weekend days
-        #expect(expectedDays == 9, "Weekend habit should expect correct number of weekend days in November 2025")
+        // Assert: November 2025 has 5 Saturdays + 5 Sundays = 10 weekend days
+        #expect(expectedDays == 10, "Weekend habit should expect correct number of weekend days in November 2025")
     }
 
     // MARK: - Edge Cases
