@@ -426,7 +426,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: nov10
+            asOf: nov10,
+            timezone: TimezoneTestHelpers.tokyo
         )
 
         // Assert: All 3 days should count
@@ -452,7 +453,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: saturdayNoon
+            asOf: saturdayNoon,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should be 2-day streak (Friday + Saturday)
@@ -476,7 +478,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: nov9NewYork
+            asOf: nov9NewYork,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should be 2-day streak despite timezone change
@@ -500,7 +503,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: day4
+            asOf: day4,
+            timezone: TimezoneTestHelpers.sydney
         )
 
         // Assert
@@ -515,7 +519,8 @@ struct StreakCalculationServiceTimezoneTests {
         // Act
         let longestStreak = streakService.calculateLongestStreak(
             habit: scenario.habit,
-            logs: scenario.logs
+            logs: scenario.logs,
+            timezone: TimezoneTestHelpers.sydney
         )
 
         // Assert: Should be 4 consecutive days despite timezone changes
@@ -537,7 +542,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: fallBackDate
+            asOf: fallBackDate,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should have at least 1 day (fall back date)
@@ -561,7 +567,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: sundayNight
+            asOf: sundayNight,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should have 7-day streak (full week including Sunday)
@@ -586,7 +593,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: friday
+            asOf: friday,
+            timezone: TimezoneTestHelpers.tokyo
         )
 
         // Assert: Should be 3-day streak (Mon, Wed, Fri)

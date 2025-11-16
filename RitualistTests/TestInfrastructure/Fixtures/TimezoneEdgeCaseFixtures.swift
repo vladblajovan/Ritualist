@@ -171,7 +171,7 @@ public enum TimezoneEdgeCaseFixtures {
             HabitLog(
                 id: UUID(),
                 habitID: habit.id,
-                date: date,
+                date: CalendarUtils.startOfDayLocal(for: date, timezone: timezone),
                 value: 1.0,
                 timezone: timezone.identifier
             )
@@ -210,18 +210,20 @@ public enum TimezoneEdgeCaseFixtures {
         let sundayNight = TimezoneTestHelpers.createWeekBoundaryDate(timezone: timezone)
 
         // Start habit on the first day of the week to avoid gap
+        // IMPORTANT: Normalize startDate to start of day
+        let habitStartDate = fullWeek.first ?? sundayNight
         let habit = HabitBuilder.binary(
             name: "Weekly Review",
             emoji: "📊",
             schedule: .daily,
-            startDate: fullWeek.first ?? sundayNight
+            startDate: CalendarUtils.startOfDayLocal(for: habitStartDate, timezone: timezone)
         )
 
         var logs = fullWeek.map { date in
             HabitLog(
                 id: UUID(),
                 habitID: habit.id,
-                date: date,
+                date: CalendarUtils.startOfDayLocal(for: date, timezone: timezone),
                 value: 1.0,
                 timezone: timezone.identifier
             )
@@ -231,7 +233,7 @@ public enum TimezoneEdgeCaseFixtures {
         logs.append(HabitLog(
             id: UUID(),
             habitID: habit.id,
-            date: sundayNight,
+            date: CalendarUtils.startOfDayLocal(for: sundayNight, timezone: timezone),
             value: 1.0,
             timezone: timezone.identifier
         ))
@@ -274,14 +276,14 @@ public enum TimezoneEdgeCaseFixtures {
             HabitLog(
                 id: UUID(),
                 habitID: habit.id,
-                date: springForward,
+                date: CalendarUtils.startOfDayLocal(for: springForward, timezone: TimezoneTestHelpers.newYork),
                 value: 1.0,
                 timezone: TimezoneTestHelpers.newYork.identifier
             ),
             HabitLog(
                 id: UUID(),
                 habitID: habit.id,
-                date: fallBack,
+                date: CalendarUtils.startOfDayLocal(for: fallBack, timezone: TimezoneTestHelpers.newYork),
                 value: 1.0,
                 timezone: TimezoneTestHelpers.newYork.identifier
             )
@@ -495,25 +497,26 @@ public enum TimezoneEdgeCaseFixtures {
         let afterMidnight = TimezoneTestHelpers.createEarlyMorningDate(timezone: timezone)
 
         // Start habit on Friday (day of first log) to avoid gap
+        // IMPORTANT: Normalize startDate to start of day
         let habit = HabitBuilder.binary(
             name: "Gratitude Log",
             emoji: "🙏",
             schedule: .daily,
-            startDate: beforeMidnight
+            startDate: CalendarUtils.startOfDayLocal(for: beforeMidnight, timezone: timezone)
         )
 
         let logs = [
             HabitLog(
                 id: UUID(),
                 habitID: habit.id,
-                date: beforeMidnight,
+                date: CalendarUtils.startOfDayLocal(for: beforeMidnight, timezone: timezone),
                 value: 1.0,
                 timezone: timezone.identifier
             ),
             HabitLog(
                 id: UUID(),
                 habitID: habit.id,
-                date: afterMidnight,
+                date: CalendarUtils.startOfDayLocal(for: afterMidnight, timezone: timezone),
                 value: 1.0,
                 timezone: timezone.identifier
             )
