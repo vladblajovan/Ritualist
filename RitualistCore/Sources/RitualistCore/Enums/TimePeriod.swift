@@ -40,14 +40,20 @@ public enum TimePeriod: CaseIterable {
 
         switch self {
         case .thisWeek:
-            // Use last 7 days instead of calendar week for consistent data availability
-            // Calendar week can have 1-7 days depending on current day of week
-            let sevenDaysAgo = CalendarUtils.addDays(-6, to: CalendarUtils.startOfDayLocal(for: now))
+            // Use actual calendar week respecting user's week start preference
+            let startOfWeek = CalendarUtils.startOfWeekLocal(for: now)
             #if DEBUG
-            let daysDifference = CalendarUtils.daysBetweenLocal(sevenDaysAgo, now)
-            print("🗓️ TimePeriod.thisWeek - Start: \(sevenDaysAgo), End: \(now), Days: \(daysDifference + 1)")
+            let daysDifference = CalendarUtils.daysBetweenLocal(startOfWeek, now)
+            let calendar = Calendar.current
+            let locale = Locale.current
+            let timezone = TimeZone.current
+            print("🗓️ TimePeriod.thisWeek DEBUG:")
+            print("   Locale: \(locale.identifier)")
+            print("   Timezone: \(timezone.identifier)")
+            print("   Calendar firstWeekday: \(calendar.firstWeekday) (1=Sun, 2=Mon, ..., 7=Sat)")
+            print("   Start: \(startOfWeek), End: \(now), Days: \(daysDifference + 1)")
             #endif
-            return (start: sevenDaysAgo, end: now)
+            return (start: startOfWeek, end: now)
             
         case .thisMonth:
             let startOfMonth = CalendarUtils.startOfMonthLocal(for: now)

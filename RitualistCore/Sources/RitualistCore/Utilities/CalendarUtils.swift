@@ -27,8 +27,9 @@ public struct CalendarUtils {
     }
     
     /// Create calendar for specific timezone (for home timezone feature)
+    /// Uses Calendar.current as base to preserve user's locale settings (firstWeekday, etc.)
     public static func localCalendar(for timezone: TimeZone) -> Calendar {
-        var calendar = Calendar(identifier: .gregorian)
+        var calendar = Calendar.current
         calendar.timeZone = timezone
         return calendar
     }
