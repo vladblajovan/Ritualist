@@ -315,19 +315,22 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     ) -> Int {
         guard !compliantDates.isEmpty else { return 0 }
 
-        let uniqueDates = Array(Set(compliantDates)).sorted()
+        // Convert to Set for O(1) lookup instead of O(n) array contains
+        let uniqueDatesSet = Set(compliantDates)
+        let sortedDates = uniqueDatesSet.sorted()
         var maxStreak = 0
         var currentStreak = 0
 
         // Start from habit start date and check each scheduled day
         var checkDate = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
-        let endDate = uniqueDates.last ?? startDate
+        let endDate = sortedDates.last ?? startDate
 
         while checkDate <= endDate {
             let weekday = CalendarUtils.habitWeekday(from: checkDate, timezone: timezone)
 
             if scheduledDays.contains(weekday) {
-                if uniqueDates.contains(checkDate) {
+                // O(1) lookup in Set vs O(n) in Array (prevents O(n²) performance)
+                if uniqueDatesSet.contains(checkDate) {
                     currentStreak += 1
                     maxStreak = max(maxStreak, currentStreak)
                 } else {

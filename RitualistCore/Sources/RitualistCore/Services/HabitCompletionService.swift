@@ -76,8 +76,23 @@ extension HabitCompletionService {
 /// Uses CalendarUtils for all date operations to ensure LOCAL timezone business logic
 public final class DefaultHabitCompletionService: HabitCompletionService {
 
+    /// Calendar cache to avoid creating Calendar instances repeatedly for the same timezone
+    /// Key: timezone identifier, Value: cached Calendar instance
+    private var calendarCache: [String: Calendar] = [:]
+
     public init() {
         // No longer need calendar parameter - using CalendarUtils for all operations
+    }
+
+    /// Get a calendar for the given timezone, using cache to avoid repeated creation
+    private func getCachedCalendar(for timezone: TimeZone) -> Calendar {
+        let identifier = timezone.identifier
+        if let cached = calendarCache[identifier] {
+            return cached
+        }
+        let calendar = CalendarUtils.localCalendar(for: timezone)
+        calendarCache[identifier] = calendar
+        return calendar
     }
     
     // MARK: - Public Methods
@@ -143,8 +158,8 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         // Check if any log for this habit was created on the specified calendar day
         // Important: Each log's timezone determines which calendar day it belongs to
 
-        // Extract the query day in the query timezone
-        let queryCalendar = CalendarUtils.localCalendar(for: timezone)
+        // Extract the query day in the query timezone (using cache)
+        let queryCalendar = getCachedCalendar(for: timezone)
         let queryComponents = queryCalendar.dateComponents([.year, .month, .day], from: date)
 
         let dayLogs = logs.filter { log in
@@ -162,7 +177,8 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
                 logTimezone = timezone
             }
 
-            let logCalendar = CalendarUtils.localCalendar(for: logTimezone)
+            // Use cached calendar for performance (avoids creating 100+ Calendar instances)
+            let logCalendar = getCachedCalendar(for: logTimezone)
             let logComponents = logCalendar.dateComponents([.year, .month, .day], from: log.date)
 
             // Compare calendar days (not absolute timestamps)
@@ -210,13 +226,14 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         // of 11:00 AM on Nov 2. Without a buffer, this log would be incorrectly excluded when querying
         // for Nov 3 progress.
         //
-        // The 14-hour buffer on each side ensures we capture all logs that could represent calendar days
-        // within the query range, regardless of their timezone. The final calendar day comparison in
-        // isCompletedOnSpecificDay() then filters out logs that don't actually match.
+        // The 15-hour buffer on each side ensures we capture all logs that could represent calendar days
+        // within the query range, regardless of their timezone. The extra hour beyond UTC+14 accounts for
+        // daylight saving time transitions. The final calendar day comparison in isCompletedOnSpecificDay()
+        // then filters out logs that don't actually match.
         //
-        // PERFORMANCE: This adds ~28 hours to each query range, but it's necessary for correctness
+        // PERFORMANCE: This adds ~30 hours to each query range, but it's necessary for correctness
         // and the overhead is acceptable since the final filtering is done in memory.
-        let bufferSeconds: TimeInterval = 14 * 60 * 60  // Maximum UTC offset is UTC+14
+        let bufferSeconds: TimeInterval = 15 * 60 * 60  // Maximum UTC offset is UTC+14 + 1 hour for DST
         let bufferedStart = startDate.addingTimeInterval(-bufferSeconds)
         let bufferedEnd = endDate.addingTimeInterval(bufferSeconds)
 

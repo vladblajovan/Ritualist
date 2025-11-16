@@ -144,9 +144,9 @@ public struct TimezoneChange: Codable, Equatable, Hashable {
     public let toTimezone: String
 
     /// How the change was triggered
-    public let trigger: ChangeTriggger
+    public let trigger: ChangeTrigger
 
-    public init(timestamp: Date, fromTimezone: String, toTimezone: String, trigger: ChangeTriggger) {
+    public init(timestamp: Date, fromTimezone: String, toTimezone: String, trigger: ChangeTrigger) {
         self.timestamp = timestamp
         self.fromTimezone = fromTimezone
         self.toTimezone = toTimezone
@@ -154,7 +154,7 @@ public struct TimezoneChange: Codable, Equatable, Hashable {
     }
 
     /// What triggered this timezone change
-    public enum ChangeTriggger: String, Codable {
+    public enum ChangeTrigger: String, Codable {
         /// Device timezone changed (user traveled or changed system settings)
         case deviceChange = "device_change"
 

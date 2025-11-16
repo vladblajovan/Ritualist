@@ -218,6 +218,11 @@ public final class DefaultTimezoneService: TimezoneService {
         )
         profile.timezoneChangeHistory.append(change)
 
+        // Trim history to last 100 entries to prevent unbounded growth
+        if profile.timezoneChangeHistory.count > 100 {
+            profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(100))
+        }
+
         // Update timestamps
         profile.updatedAt = Date()
 
@@ -241,6 +246,11 @@ public final class DefaultTimezoneService: TimezoneService {
                 trigger: .displayModeChange
             )
             profile.timezoneChangeHistory.append(change)
+
+            // Trim history to last 100 entries to prevent unbounded growth
+            if profile.timezoneChangeHistory.count > 100 {
+                profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(100))
+            }
         }
 
         // Update timestamps

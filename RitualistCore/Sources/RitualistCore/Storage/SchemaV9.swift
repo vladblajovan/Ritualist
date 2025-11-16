@@ -441,13 +441,13 @@ extension SchemaV9.HabitModel {
             let categoryDescriptor = FetchDescriptor<SchemaV9.HabitCategoryModel>(
                 predicate: #Predicate { $0.id == categoryId }
             )
-            guard let fetchedCategory = try context.fetch(categoryDescriptor).first else {
+            if let fetchedCategory = try? context.fetch(categoryDescriptor).first {
+                self.category = fetchedCategory
+            } else {
                 // Log warning but don't fail - category might be deleted
                 logger.log("Category \(categoryId) not found for habit \(habit.id)", level: .warning, category: .dataIntegrity)
                 self.category = nil
-                return
             }
-            self.category = fetchedCategory
         } else {
             self.category = nil
         }
