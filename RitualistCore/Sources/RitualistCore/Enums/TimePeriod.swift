@@ -37,14 +37,26 @@ public enum TimePeriod: CaseIterable {
     /// - Returns: A tuple containing start and end dates for the period
     public var dateRange: (start: Date, end: Date) {
         let now = Date()
-        
+
         switch self {
         case .thisWeek:
-            let startOfWeek = CalendarUtils.weekIntervalLocal(for: now)?.start ?? now
+            // Use actual calendar week respecting user's week start preference
+            let startOfWeek = CalendarUtils.startOfWeekLocal(for: now)
+            #if DEBUG
+            let daysDifference = CalendarUtils.daysBetweenLocal(startOfWeek, now)
+            let calendar = Calendar.current
+            let locale = Locale.current
+            let timezone = TimeZone.current
+            print("🗓️ TimePeriod.thisWeek DEBUG:")
+            print("   Locale: \(locale.identifier)")
+            print("   Timezone: \(timezone.identifier)")
+            print("   Calendar firstWeekday: \(calendar.firstWeekday) (1=Sun, 2=Mon, ..., 7=Sat)")
+            print("   Start: \(startOfWeek), End: \(now), Days: \(daysDifference + 1)")
+            #endif
             return (start: startOfWeek, end: now)
             
         case .thisMonth:
-            let startOfMonth = CalendarUtils.monthIntervalLocal(for: now)?.start ?? now
+            let startOfMonth = CalendarUtils.startOfMonthLocal(for: now)
             return (start: startOfMonth, end: now)
             
         case .last6Months:

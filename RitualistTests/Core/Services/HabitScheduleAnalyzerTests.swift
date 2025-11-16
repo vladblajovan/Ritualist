@@ -203,8 +203,10 @@ struct HabitScheduleAnalyzerTests {
             timezone: .current
         )
 
-        // November 2025: 30 days, starts on Saturday
-        // Should have 8 Saturdays + 8 Sundays = 16 weekend days
+        // November 2025: 30 days, starts on Saturday (Nov 1)
+        // Saturdays: Nov 1, 8, 15, 22, 29 = 5 days
+        // Sundays: Nov 2, 9, 16, 23, 30 = 5 days
+        // Total weekend days: 10
         let habit = HabitBuilder.binary(
             schedule: .daysOfWeek([6, 7]),  // Sat, Sun
             startDate: startDate  // Align with query range
@@ -217,8 +219,8 @@ struct HabitScheduleAnalyzerTests {
             to: endDate
         )
 
-        // Assert: November 2025 has 8 Saturdays + 9 Sundays = 17 weekend days
-        #expect(expectedDays == 9, "Weekend habit should expect correct number of weekend days in November 2025")
+        // Assert: November 2025 has 5 Saturdays + 5 Sundays = 10 weekend days
+        #expect(expectedDays == 10, "Weekend habit should expect correct number of weekend days in November 2025")
     }
 
     // MARK: - Edge Cases
@@ -317,8 +319,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
             timezone: TimezoneTestHelpers.tokyo
         )
 
-        // Act: Check if expected (should use LOCAL timezone, not UTC)
-        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: tokyoMonday)
+        // Act: Check if expected (should use Tokyo timezone, not UTC)
+        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: tokyoMonday, timezone: TimezoneTestHelpers.tokyo)
 
         // Assert: Should be true (it's Monday in Tokyo, which is scheduled)
         #expect(isExpected == true, "Should use LOCAL weekday (Monday in Tokyo), not UTC weekday (Sunday)")
@@ -347,7 +349,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let expectedDays = analyzer.calculateExpectedDays(
             for: habit,
             from: startDate,
-            to: endDate
+            to: endDate,
+            timezone: TimezoneTestHelpers.tokyo
         )
 
         // Assert: Should expect 3 days (Mon, Wed, Fri) in LOCAL timezone
@@ -375,7 +378,7 @@ struct HabitScheduleAnalyzerTimezoneTests {
         )
 
         // Act
-        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: mondayLateNight)
+        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: mondayLateNight, timezone: TimezoneTestHelpers.tokyo)
 
         // Assert: Should be true (it's still Monday at 11:30 PM)
         #expect(isExpected == true, "Late-night Monday (11:30 PM) should still count as Monday")
@@ -403,8 +406,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
         )
 
         // Act
-        let fridayExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: fridayNight)
-        let saturdayExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: saturdayMorning)
+        let fridayExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: fridayNight, timezone: TimezoneTestHelpers.newYork)
+        let saturdayExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: saturdayMorning, timezone: TimezoneTestHelpers.newYork)
 
         // Assert
         #expect(fridayExpected == true, "Friday 11:59 PM should be expected (Friday is scheduled)")
@@ -434,7 +437,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let expectedDays = analyzer.calculateExpectedDays(
             for: habit,
             from: startDate,
-            to: endDate
+            to: endDate,
+            timezone: TimezoneTestHelpers.tokyo
         )
 
         // Assert: Should expect 2 days (Saturday + Sunday) in LOCAL timezone
@@ -473,12 +477,14 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let tokyoExpected = analyzer.calculateExpectedDays(
             for: habit,
             from: tokyoStart,
-            to: tokyoEnd
+            to: tokyoEnd,
+            timezone: TimezoneTestHelpers.tokyo
         )
         let newYorkExpected = analyzer.calculateExpectedDays(
             for: habit,
             from: newYorkStart,
-            to: newYorkEnd
+            to: newYorkEnd,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Both should expect 7 days
@@ -499,7 +505,7 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let beforeSpringForward = TimezoneTestHelpers.dstSpringForwardDate()
 
         // Act
-        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: beforeSpringForward)
+        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: beforeSpringForward, timezone: TimezoneTestHelpers.newYork)
 
         // Assert: Sunday should NOT be expected for Mon-Fri habit
         #expect(isExpected == false, "Sunday during DST transition should not be expected for weekday habit")
@@ -526,7 +532,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let expectedDays = analyzer.calculateExpectedDays(
             for: habit,
             from: startDate,
-            to: endDate
+            to: endDate,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should still expect 7 days (DST doesn't change calendar days)

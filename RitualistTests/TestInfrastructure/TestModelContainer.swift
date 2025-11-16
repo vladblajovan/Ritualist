@@ -7,7 +7,7 @@ import SwiftData
 /// **Purpose:** Provide fast, isolated test environment using SwiftData's in-memory store
 ///
 /// **Key Features:**
-/// - Uses SchemaV8 (latest schema)
+/// - Uses Active* type aliases (automatically uses latest schema)
 /// - In-memory storage (no persistent files)
 /// - Tests don't interfere with each other
 /// - Fast setup/teardown
@@ -33,7 +33,7 @@ public enum TestModelContainer {
 
     // MARK: - Container Creation
 
-    /// Create an in-memory model container with SchemaV8
+    /// Create an in-memory model container with latest schema (via Active* aliases)
     ///
     /// - Returns: In-memory ModelContainer configured for testing
     /// - Throws: If container creation fails

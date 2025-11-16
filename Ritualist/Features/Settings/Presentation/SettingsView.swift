@@ -198,7 +198,7 @@ private struct SettingsFormView: View {
     private func updateLocalState() {
         name = vm.profile.name
         appearance = vm.profile.appearance
-        displayTimezoneMode = vm.profile.displayTimezoneMode
+        displayTimezoneMode = vm.profile.displayTimezoneMode.toLegacyString()
     }
     
     private func updateUserName() async {

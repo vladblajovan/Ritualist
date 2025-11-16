@@ -50,7 +50,7 @@ struct StreakCalculationServiceTests {
         let logs = [
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today),
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.yesterday),
-            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDays(-2, to: TestDates.today))
+            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDaysLocal(-2, to: TestDates.today, timezone: .current))
         ]
 
         // Act
@@ -89,7 +89,7 @@ struct StreakCalculationServiceTests {
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today),
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.yesterday),
             // Gap here - 2 days ago is missing
-            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDays(-3, to: TestDates.today))
+            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDaysLocal(-3, to: TestDates.today, timezone: .current))
         ]
 
         // Act
@@ -187,15 +187,15 @@ struct StreakCalculationServiceTests {
 
         // Create 5 consecutive days, then gap, then 3 consecutive days
         let dates = [
-            CalendarUtils.addDays(-10, to: TestDates.today),
-            CalendarUtils.addDays(-9, to: TestDates.today),
-            CalendarUtils.addDays(-8, to: TestDates.today),
-            CalendarUtils.addDays(-7, to: TestDates.today),
-            CalendarUtils.addDays(-6, to: TestDates.today),
+            CalendarUtils.addDaysLocal(-10, to: TestDates.today, timezone: .current),
+            CalendarUtils.addDaysLocal(-9, to: TestDates.today, timezone: .current),
+            CalendarUtils.addDaysLocal(-8, to: TestDates.today, timezone: .current),
+            CalendarUtils.addDaysLocal(-7, to: TestDates.today, timezone: .current),
+            CalendarUtils.addDaysLocal(-6, to: TestDates.today, timezone: .current),
             // Gap here
-            CalendarUtils.addDays(-3, to: TestDates.today),
-            CalendarUtils.addDays(-2, to: TestDates.today),
-            CalendarUtils.addDays(-1, to: TestDates.today)
+            CalendarUtils.addDaysLocal(-3, to: TestDates.today, timezone: .current),
+            CalendarUtils.addDaysLocal(-2, to: TestDates.today, timezone: .current),
+            CalendarUtils.addDaysLocal(-1, to: TestDates.today, timezone: .current)
         ]
 
         let logs = dates.map { HabitLogBuilder.binary(habitId: habit.id, date: $0) }
@@ -264,13 +264,14 @@ struct StreakCalculationServiceTests {
 
     @Test("Streak break dates includes all missed scheduled days")
     func streakBreakDatesIncludesMissedDays() async throws {
-        // Arrange
-        let habit = HabitBuilder.binary(schedule: .daily)
+        // Arrange: Habit started 3 days ago (matching first log) to avoid counting start date as break
+        let habitStartDate = CalendarUtils.addDaysLocal(-3, to: TestDates.today, timezone: .current)
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: habitStartDate)
 
         // Logged today and 3 days ago, missing yesterday and 2 days ago
         let logs = [
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today),
-            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDays(-3, to: TestDates.today))
+            HabitLogBuilder.binary(habitId: habit.id, date: habitStartDate)
         ]
 
         // Act
@@ -285,7 +286,7 @@ struct StreakCalculationServiceTests {
 
         // Convert to start of day for comparison
         let yesterday = CalendarUtils.startOfDayLocal(for: TestDates.yesterday)
-        let twoDaysAgo = CalendarUtils.startOfDayLocal(for: CalendarUtils.addDays(-2, to: TestDates.today))
+        let twoDaysAgo = CalendarUtils.startOfDayLocal(for: CalendarUtils.addDaysLocal(-2, to: TestDates.today, timezone: .current))
 
         let breakDatesStartOfDay = breakDates.map { CalendarUtils.startOfDayLocal(for: $0) }
         #expect(breakDatesStartOfDay.contains(yesterday), "Should include yesterday as break date")
@@ -294,12 +295,12 @@ struct StreakCalculationServiceTests {
 
     @Test("Streak break dates empty when no breaks")
     func streakBreakDatesEmptyWhenNoBreaks() async throws {
-        // Arrange: Perfect streak
-        let habit = HabitBuilder.binary(schedule: .daily)
+        // Arrange: Perfect streak starting 3 days ago (matches number of logs)
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: CalendarUtils.addDaysLocal(-2, to: TestDates.today, timezone: .current))
         let logs = [
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today),
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.yesterday),
-            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDays(-2, to: TestDates.today))
+            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDaysLocal(-2, to: TestDates.today, timezone: .current))
         ]
 
         // Act
@@ -369,7 +370,7 @@ struct StreakCalculationServiceTests {
             dailyTarget: nil,
             schedule: .daily,
             reminders: [],
-            startDate: CalendarUtils.addDays(-10, to: TestDates.today),
+            startDate: CalendarUtils.addDaysLocal(-10, to: TestDates.today, timezone: .current),
             endDate: TestDates.yesterday,
             isActive: false,
             displayOrder: 0,
@@ -425,7 +426,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: nov10
+            asOf: nov10,
+            timezone: TimezoneTestHelpers.tokyo
         )
 
         // Assert: All 3 days should count
@@ -451,7 +453,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: saturdayNoon
+            asOf: saturdayNoon,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should be 2-day streak (Friday + Saturday)
@@ -475,7 +478,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: nov9NewYork
+            asOf: nov9NewYork,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should be 2-day streak despite timezone change
@@ -499,7 +503,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: day4
+            asOf: day4,
+            timezone: TimezoneTestHelpers.sydney
         )
 
         // Assert
@@ -514,7 +519,8 @@ struct StreakCalculationServiceTimezoneTests {
         // Act
         let longestStreak = streakService.calculateLongestStreak(
             habit: scenario.habit,
-            logs: scenario.logs
+            logs: scenario.logs,
+            timezone: TimezoneTestHelpers.sydney
         )
 
         // Assert: Should be 4 consecutive days despite timezone changes
@@ -536,7 +542,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: fallBackDate
+            asOf: fallBackDate,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should have at least 1 day (fall back date)
@@ -560,7 +567,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: sundayNight
+            asOf: sundayNight,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should have 7-day streak (full week including Sunday)
@@ -585,7 +593,8 @@ struct StreakCalculationServiceTimezoneTests {
         let streak = streakService.calculateCurrentStreak(
             habit: scenario.habit,
             logs: scenario.logs,
-            asOf: friday
+            asOf: friday,
+            timezone: TimezoneTestHelpers.tokyo
         )
 
         // Assert: Should be 3-day streak (Mon, Wed, Fri)
@@ -680,7 +689,7 @@ struct StreakCalculationServiceErrorTests {
             schedule: .daysOfWeek([1, 3, 5])
         )
 
-        let farFutureDate = CalendarUtils.addYears(2, to: TestDates.today)
+        let farFutureDate = CalendarUtils.addYearsLocal(2, to: TestDates.today, timezone: .current)
 
         // Act: Should not hang or crash
         let nextDate = streakService.getNextScheduledDate(habit: habit, after: farFutureDate)

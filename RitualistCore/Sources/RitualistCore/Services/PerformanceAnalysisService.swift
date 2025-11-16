@@ -114,7 +114,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             let expectedDays = scheduleAnalyzer.calculateExpectedDays(
                 for: habit,
                 from: calculationStartDate,
-                to: endDate
+                to: endDate,
+                timezone: .current
             )
 
             // Count only logs that meet completion criteria
@@ -175,7 +176,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             let weekday = CalendarUtils.weekdayComponentLocal(from: currentDate)
             
             for habit in habits where habit.isActive {
-                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
+                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: .current) {
                     dayPerformance[weekday]?.total += 1
 
                     // Check if log exists AND meets completion criteria
@@ -252,21 +253,23 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
 
         let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayLocal(for: $0.date) })
 
-        var currentStreak = 0
+        var activeStreak = 0  // Active streak ending today (going backwards from today)
+        var tempStreak = 0    // Temporary streak while scanning backwards
         var longestStreak = 0
         var daysWithFullCompletion = 0
+        var isActiveStreakSet = false  // Track if we've captured the active streak yet
 
         let today = CalendarUtils.startOfDayLocal(for: Date())
         var currentDate = today
         let start = CalendarUtils.startOfDayLocal(for: startDate)
-        
+
         while currentDate >= start {
             let dayLogs = logsByDate[currentDate] ?? []
             var dayCompleted = true
             var expectedHabitsCount = 0
-            
+
             for habit in habits {
-                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
+                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: .current) {
                     expectedHabitsCount += 1
 
                     // Check if log exists AND meets completion criteria
@@ -282,36 +285,49 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                     }
                 }
             }
-            
+
             if expectedHabitsCount > 0 && dayCompleted {
-                currentStreak += 1
+                tempStreak += 1
                 daysWithFullCompletion += 1
             } else if expectedHabitsCount > 0 {
-                // Break current streak if we had expected habits but didn't complete them all
-                longestStreak = max(longestStreak, currentStreak)
-                currentStreak = 0
+                // Break streak - save it if it's the longest so far
+                longestStreak = max(longestStreak, tempStreak)
+
+                // If this is the first break we hit (coming from today), capture active streak
+                if !isActiveStreakSet {
+                    activeStreak = tempStreak
+                    isActiveStreakSet = true
+                }
+
+                tempStreak = 0
             }
-            
+
             currentDate = CalendarUtils.addDays(-1, to: currentDate)
         }
-        
-        longestStreak = max(longestStreak, currentStreak)
+
+        // End of period - check if we have a final streak to save
+        longestStreak = max(longestStreak, tempStreak)
+
+        // If we never hit a break (perfect streak entire period), active streak = temp streak
+        if !isActiveStreakSet {
+            activeStreak = tempStreak
+        }
 
         // Calculate consistency based on analysis period
         let totalDays = CalendarUtils.daysBetweenLocal(start, today)
         let consistencyScore = totalDays > 0 ? Double(daysWithFullCompletion) / Double(totalDays) : 0.0
-        
+
         let streakTrend: String
-        if currentStreak > Int(Double(longestStreak) * 0.8) {
+        if activeStreak > Int(Double(longestStreak) * 0.8) {
             streakTrend = "improving"
-        } else if currentStreak < Int(Double(longestStreak) * 0.5) {
+        } else if activeStreak < Int(Double(longestStreak) * 0.5) {
             streakTrend = "declining"
         } else {
             streakTrend = "stable"
         }
-        
+
         return PerfectDayStreakResult(
-            currentStreak: currentStreak,
+            currentStreak: activeStreak,  // Return active streak (ending today)
             longestStreak: longestStreak,
             streakTrend: streakTrend,
             daysWithFullCompletion: daysWithFullCompletion,
@@ -413,7 +429,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             let expectedDays = scheduleAnalyzer.calculateExpectedDays(
                 for: habit,
                 from: startDate,
-                to: endDate
+                to: endDate,
+                timezone: .current
             )
 
             // Count only logs that meet completion criteria

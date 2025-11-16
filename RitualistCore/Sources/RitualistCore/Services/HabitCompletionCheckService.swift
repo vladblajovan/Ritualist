@@ -26,75 +26,93 @@ public protocol HabitCompletionCheckService {
 }
 
 /// Default implementation of HabitCompletionCheckService
-/// 
+///
 /// This service coordinates between repositories and completion logic to determine
 /// notification visibility without duplicating existing business logic.
+///
+/// ## Timezone Support
+/// Integrates with TimezoneService to use display timezone for all date calculations,
+/// ensuring consistent behavior with the rest of the app.
 public final class DefaultHabitCompletionCheckService: HabitCompletionCheckService {
-    
+
     // MARK: - Dependencies
-    
+
     private let habitRepository: HabitRepository
     private let logRepository: LogRepository
     private let habitCompletionService: HabitCompletionService
+    private let timezoneService: TimezoneService
     private let calendar: Calendar
     private let errorHandler: ErrorHandler?
-    
+
     // MARK: - Initialization
-    
+
     public init(
         habitRepository: HabitRepository,
         logRepository: LogRepository,
         habitCompletionService: HabitCompletionService,
+        timezoneService: TimezoneService,
         calendar: Calendar = .current,
         errorHandler: ErrorHandler? = nil
     ) {
         self.habitRepository = habitRepository
         self.logRepository = logRepository
         self.habitCompletionService = habitCompletionService
+        self.timezoneService = timezoneService
         self.calendar = calendar
         self.errorHandler = errorHandler
     }
     
     // MARK: - Public Methods
-    
+
     public func shouldShowNotification(habitId: UUID, date: Date) async -> Bool {
         do {
+            // Fetch display timezone for timezone-aware calculations
+            let timezone: TimeZone
+            do {
+                timezone = try await timezoneService.getDisplayTimezone()
+            } catch {
+                // On timezone fetch error, fall back to current timezone
+                // Log the error but continue with fallback
+                await logError("Failed to fetch display timezone, using current", error: error)
+                timezone = TimeZone.current
+            }
+
             // PERFORMANCE FIX: Use targeted query instead of fetching all habits
             guard let habit = try await habitRepository.fetchHabit(by: habitId) else {
                 // Habit not found - fail safe by showing notification
                 await logError("Habit not found", context: ["habitId": habitId.uuidString])
                 return true
             }
-            
+
             // LIFECYCLE VALIDATIONS: Critical missing checks
             guard habit.isActive else {
                 // Don't notify for inactive habits
                 return false
             }
-            
-            // Use LOCAL timezone date comparisons for consistent business logic
-            let startOfToday = CalendarUtils.startOfDayLocal(for: date)
-            let startOfHabitStart = CalendarUtils.startOfDayLocal(for: habit.startDate)
-            
+
+            // Use display timezone for all date comparisons
+            let startOfToday = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
+            let startOfHabitStart = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
+
             guard startOfToday >= startOfHabitStart else {
                 // Don't notify before habit start date
                 return false
             }
-            
+
             if let endDate = habit.endDate {
-                let startOfHabitEnd = CalendarUtils.startOfDayLocal(for: endDate)
+                let startOfHabitEnd = CalendarUtils.startOfDayLocal(for: endDate, timezone: timezone)
                 guard startOfToday < startOfHabitEnd else {
                     // Don't notify after habit end date
                     return false
                 }
             }
-            
+
             // SCHEDULE-AWARE LOGIC: Different behavior for different schedule types
             switch habit.schedule {
             case .daily, .daysOfWeek:
-                return await shouldShowNotificationForDailyHabit(habit: habit, date: date)
+                return await shouldShowNotificationForDailyHabit(habit: habit, date: date, timezone: timezone)
             }
-            
+
         } catch {
             // On any error, fail safe by returning true (show notification)
             // This ensures users don't miss notifications due to technical issues
@@ -104,25 +122,25 @@ public final class DefaultHabitCompletionCheckService: HabitCompletionCheckServi
     }
     
     // MARK: - Private Methods
-    
+
     /// Handle notification logic for daily and daysOfWeek habits
-    private func shouldShowNotificationForDailyHabit(habit: Habit, date: Date) async -> Bool {
+    private func shouldShowNotificationForDailyHabit(habit: Habit, date: Date, timezone: TimeZone) async -> Bool {
         do {
             // For daysOfWeek habits, check if today is a scheduled day
             if case .daysOfWeek = habit.schedule {
-                guard habitCompletionService.isScheduledDay(habit: habit, date: date) else {
+                guard habitCompletionService.isScheduledDay(habit: habit, date: date, timezone: timezone) else {
                     // Not scheduled today - don't show notification
                     return false
                 }
             }
-            
+
             // Check if habit is completed today
             let logs = try await logRepository.logs(for: habit.id)
-            let isCompleted = habitCompletionService.isCompleted(habit: habit, on: date, logs: logs)
-            
+            let isCompleted = habitCompletionService.isCompleted(habit: habit, on: date, logs: logs, timezone: timezone)
+
             // Show notification if not completed
             return !isCompleted
-            
+
         } catch {
             // Fail-safe: show notification on error
             await logError("Failed to check daily habit completion", error: error, context: ["habitId": habit.id.uuidString])

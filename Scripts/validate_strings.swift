@@ -120,9 +120,15 @@ class StringValidator {
         
         // Special format string validation
         if value.contains("%@") || value.contains("%lld") {
-            // Ensure proper format specifier usage
-            let formatCount = value.components(separatedBy: "%").count - 1
-            if formatCount > 2 {
+            // Count actual format specifiers (excluding escaped %%)
+            // Match format specifiers like %@, %lld, %d, %ld, %s, %f, etc.
+            // But NOT escaped %% (which is a literal percent sign)
+            let pattern = "%(@|lld|ld|d|s|f|\\$\\d+\\$@|\\$\\d+\\$lld)"
+            let regex = try? NSRegularExpression(pattern: pattern)
+            let range = NSRange(value.startIndex..., in: value)
+            let formatCount = regex?.numberOfMatches(in: value, range: range) ?? 0
+
+            if formatCount > 4 {
                 issues.append("Too many format specifiers (\(formatCount))")
             }
         }

@@ -424,7 +424,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                         HStack {
                             Text("Display Mode:")
                             Spacer()
-                            Text(vm.profile.displayTimezoneMode)
+                            Text(vm.profile.displayTimezoneMode.toLegacyString())
                                 .fontWeight(.medium)
                                 .foregroundColor(.purple)
                         }
@@ -432,7 +432,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                         HStack {
                             Text("Home Timezone:")
                             Spacer()
-                            Text(vm.profile.homeTimezone ?? "Not Set")
+                            Text(vm.profile.homeTimezoneIdentifier)
                                 .fontWeight(.medium)
                         }
                     }

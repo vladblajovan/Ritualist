@@ -301,9 +301,8 @@ struct HabitCompletionServiceTimezoneTests {
     @Test("Midnight boundary edge case: 11:59 PM and 12:01 AM are different days")
     func midnightBoundaryEdgeCase() async throws {
         // Arrange: Use midnight boundary scenario
-        let scenario = TimezoneEdgeCaseFixtures.midnightBoundaryScenario(
-            timezone: TimezoneTestHelpers.newYork
-        )
+        let timezone = TimezoneTestHelpers.newYork
+        let scenario = TimezoneEdgeCaseFixtures.midnightBoundaryScenario(timezone: timezone)
 
         // Scenario has 2 logs: one at 11:59:59 PM Friday, one at 12:01 AM Saturday
         let fridayLog = scenario.logs[0]
@@ -313,34 +312,37 @@ struct HabitCompletionServiceTimezoneTests {
         let fridayNoon = TimezoneTestHelpers.createDate(
             year: 2025, month: 11, day: 8,
             hour: 12, minute: 0,
-            timezone: TimezoneTestHelpers.newYork
+            timezone: timezone
         )
         let saturdayNoon = TimezoneTestHelpers.createDate(
             year: 2025, month: 11, day: 9,
             hour: 12, minute: 0,
-            timezone: TimezoneTestHelpers.newYork
+            timezone: timezone
         )
 
-        // Act & Assert: Friday log should count for Friday only
+        // Act & Assert: Friday log should count for Friday only (USE TIMEZONE PARAMETER)
         let fridayCompleted = service.isCompleted(
             habit: scenario.habit,
             on: fridayNoon,
-            logs: [fridayLog]
+            logs: [fridayLog],
+            timezone: timezone
         )
         #expect(fridayCompleted == true, "11:59:59 PM Friday log should count for Friday")
 
         let saturdayFromFridayLog = service.isCompleted(
             habit: scenario.habit,
             on: saturdayNoon,
-            logs: [fridayLog]
+            logs: [fridayLog],
+            timezone: timezone
         )
         #expect(saturdayFromFridayLog == false, "11:59:59 PM Friday log should NOT count for Saturday")
 
-        // Act & Assert: Saturday log should count for Saturday only
+        // Act & Assert: Saturday log should count for Saturday only (USE TIMEZONE PARAMETER)
         let saturdayCompleted = service.isCompleted(
             habit: scenario.habit,
             on: saturdayNoon,
-            logs: [saturdayLog]
+            logs: [saturdayLog],
+            timezone: timezone
         )
         #expect(saturdayCompleted == true, "12:01 AM Saturday log should count for Saturday")
     }
@@ -348,9 +350,8 @@ struct HabitCompletionServiceTimezoneTests {
     @Test("Week boundary: Sunday 11:59 PM counts for current week")
     func weekBoundaryEdgeCase() async throws {
         // Arrange: Use week boundary scenario
-        let scenario = TimezoneEdgeCaseFixtures.weekBoundaryScenario(
-            timezone: TimezoneTestHelpers.newYork
-        )
+        let timezone = TimezoneTestHelpers.newYork
+        let scenario = TimezoneEdgeCaseFixtures.weekBoundaryScenario(timezone: timezone)
 
         // The scenario includes a log at Sunday 11:59 PM
         let sundayLateLog = scenario.logs.last! // Last log is Sunday night
@@ -359,14 +360,15 @@ struct HabitCompletionServiceTimezoneTests {
         let sundayNoon = TimezoneTestHelpers.createDate(
             year: 2025, month: 11, day: 10,  // Sunday
             hour: 12, minute: 0,
-            timezone: TimezoneTestHelpers.newYork
+            timezone: timezone
         )
 
-        // Act: Check if completed on Sunday
+        // Act: Check if completed on Sunday (USE TIMEZONE PARAMETER)
         let isCompleted = service.isCompleted(
             habit: scenario.habit,
             on: sundayNoon,
-            logs: [sundayLateLog]
+            logs: [sundayLateLog],
+            timezone: timezone
         )
 
         // Assert
@@ -418,30 +420,40 @@ struct HabitCompletionServiceTimezoneTests {
 
         // Scenario has 4 logs across 4 different timezones on consecutive days
         // Each log should count for its respective day
-        let allDates = [
-            TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 3, hour: 12, minute: 0, timezone: TimezoneTestHelpers.utc),
-            TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 4, hour: 12, minute: 0, timezone: TimezoneTestHelpers.tokyo),
-            TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 5, hour: 12, minute: 0, timezone: TimezoneTestHelpers.newYork),
-            TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 6, hour: 12, minute: 0, timezone: TimezoneTestHelpers.sydney)
+        let timezones = [
+            TimezoneTestHelpers.utc,
+            TimezoneTestHelpers.tokyo,
+            TimezoneTestHelpers.newYork,
+            TimezoneTestHelpers.sydney
         ]
 
-        // Act & Assert: Each day should be completed
+        let allDates = [
+            TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 3, hour: 12, minute: 0, timezone: timezones[0]),
+            TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 4, hour: 12, minute: 0, timezone: timezones[1]),
+            TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 5, hour: 12, minute: 0, timezone: timezones[2]),
+            TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 6, hour: 12, minute: 0, timezone: timezones[3])
+        ]
+
+        // Act & Assert: Each day should be completed (USE TIMEZONE PARAMETER)
         for (index, date) in allDates.enumerated() {
             let log = scenario.logs[index]
+            let timezone = timezones[index]
             let isCompleted = service.isCompleted(
                 habit: scenario.habit,
                 on: date,
-                logs: [log]
+                logs: [log],
+                timezone: timezone
             )
             #expect(isCompleted == true, "Day \(index + 1) should be completed despite timezone changes")
         }
 
-        // Act: Calculate progress for all 4 days
+        // Act: Calculate progress for all 4 days (use first timezone for overall calculation)
         let progress = service.calculateProgress(
             habit: scenario.habit,
             logs: scenario.logs,
             from: allDates.first!,
-            to: allDates.last!
+            to: allDates.last!,
+            timezone: timezones[0]
         )
 
         // Assert: Should have 100% completion (4 out of 4 days)

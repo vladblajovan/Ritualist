@@ -144,11 +144,12 @@ extension Container {
     }
     
     var habitCompletionCheckService: Factory<HabitCompletionCheckService> {
-        self { 
+        self {
             DefaultHabitCompletionCheckService(
                 habitRepository: self.habitRepository(),
                 logRepository: self.logRepository(),
                 habitCompletionService: self.habitCompletionService(),
+                timezoneService: self.timezoneService(),
                 calendar: CalendarUtils.currentLocalCalendar,
                 errorHandler: self.errorHandler()
             )
@@ -182,7 +183,17 @@ extension Container {
         self { DefaultHistoricalDateValidationService() }
             .singleton
     }
-    
+
+    var timezoneService: Factory<TimezoneService> {
+        self {
+            DefaultTimezoneService(
+                loadProfile: self.loadProfile(),
+                saveProfile: self.saveProfile()
+            )
+        }
+        .singleton
+    }
+
     // MARK: - User & Analytics Services
     
     var userActionTracker: Factory<UserActionTrackerService> {

@@ -25,13 +25,25 @@ public actor ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
         )
         
         if let existing = try modelContext.fetch(descriptor).first {
-            // Update existing profile (subscription fields managed by SubscriptionService)
+            // Update existing profile - use fromEntity for consistent mapping
             existing.name = profile.name
             existing.avatarImageData = profile.avatarImageData
             existing.appearance = String(profile.appearance)
-            existing.homeTimezone = profile.homeTimezone
-            existing.displayTimezoneMode = profile.displayTimezoneMode
-            // Note: subscriptionPlan and subscriptionExpiryDate removed in V8 - managed by SubscriptionService
+
+            // V9 Three-Timezone Model fields
+            existing.currentTimezoneIdentifier = profile.currentTimezoneIdentifier
+            existing.homeTimezoneIdentifier = profile.homeTimezoneIdentifier
+
+            // Encode DisplayTimezoneMode to Data
+            if let modeData = try? JSONEncoder().encode(profile.displayTimezoneMode) {
+                existing.displayTimezoneModeData = modeData
+            }
+
+            // Encode timezone change history to Data
+            if let historyData = try? JSONEncoder().encode(profile.timezoneChangeHistory) {
+                existing.timezoneChangeHistoryData = historyData
+            }
+
             existing.updatedAt = profile.updatedAt
         } else {
             // Create new profile in this ModelContext

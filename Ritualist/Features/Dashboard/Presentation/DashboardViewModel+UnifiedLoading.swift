@@ -106,10 +106,24 @@ extension DashboardViewModel {
     }
     
     /// Extract progress chart data from unified dashboard data
-    /// O(n) operation using pre-calculated data - no additional queries  
+    /// O(n) operation using pre-calculated data - no additional queries
     func extractProgressChartData(from dashboardData: DashboardData) -> [ChartDataPointViewModel] {
         let domainResults = dashboardData.chartDataPoints()
-        return domainResults.map(ChartDataPointViewModel.init)
+        let viewModels = domainResults.map(ChartDataPointViewModel.init)
+
+        // DEBUG: Log chart data extraction for weekly period
+        #if DEBUG
+        logger.log(
+            "📊 Progress Chart Data - Period: \(selectedTimePeriod.displayName), Range: \(dashboardData.dateRange.lowerBound) to \(dashboardData.dateRange.upperBound), Data Points: \(viewModels.count)",
+            level: .info,
+            category: .ui
+        )
+        if viewModels.isEmpty {
+            logger.log("⚠️ Progress chart data is EMPTY for \(selectedTimePeriod.displayName)", level: .warning, category: .ui)
+        }
+        #endif
+
+        return viewModels
     }
     
     /// Extract weekly patterns from unified dashboard data

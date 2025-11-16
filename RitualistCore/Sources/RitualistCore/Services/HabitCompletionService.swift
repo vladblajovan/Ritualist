@@ -9,28 +9,65 @@ import Foundation
 
 /// Centralized service for handling all habit completion logic with proper semantic handling
 /// for different schedule types (daily, daysOfWeek)
+///
+/// ## Timezone Support
+/// All methods accept an optional `timezone` parameter (defaults to `.current`).
+/// For timezone-aware calculations, use the display timezone from `TimezoneService`.
 public protocol HabitCompletionService {
     /// Check if a habit is completed on a specific date based on its schedule semantics
     /// - For daily/daysOfWeek: returns true if logged on that specific day
-    func isCompleted(habit: Habit, on date: Date, logs: [HabitLog]) -> Bool
-    
+    /// - Parameter timezone: Timezone for date calculations (defaults to current)
+    func isCompleted(habit: Habit, on date: Date, logs: [HabitLog], timezone: TimeZone) -> Bool
+
     /// Check if a habit is scheduled to be performed on a specific date
     /// - For daily: always true
     /// - For daysOfWeek: true only on specified weekdays
-    func isScheduledDay(habit: Habit, date: Date) -> Bool
-    
+    /// - Parameter timezone: Timezone for date calculations (defaults to current)
+    func isScheduledDay(habit: Habit, date: Date, timezone: TimeZone) -> Bool
+
     /// Calculate daily progress for a specific date
     /// - For daily/daysOfWeek: 1.0 if completed that day, 0.0 otherwise
-    func calculateDailyProgress(habit: Habit, logs: [HabitLog], for date: Date) -> Double
-    
+    /// - Parameter timezone: Timezone for date calculations (defaults to current)
+    func calculateDailyProgress(habit: Habit, logs: [HabitLog], for date: Date, timezone: TimeZone) -> Double
+
     /// Calculate overall progress percentage for a habit within a date range
     /// Returns value between 0.0 and 1.0
-    func calculateProgress(habit: Habit, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double
-    
+    /// - Parameter timezone: Timezone for date calculations (defaults to current)
+    func calculateProgress(habit: Habit, logs: [HabitLog], from startDate: Date, to endDate: Date, timezone: TimeZone) -> Double
+
     /// Get expected number of completions for a habit within a date range
     /// - For daily/daysOfWeek: number of scheduled days
-    func getExpectedCompletions(habit: Habit, from startDate: Date, to endDate: Date) -> Int
-    
+    /// - Parameter timezone: Timezone for date calculations (defaults to current)
+    func getExpectedCompletions(habit: Habit, from startDate: Date, to endDate: Date, timezone: TimeZone) -> Int
+}
+
+// MARK: - Backward Compatibility Extensions
+
+extension HabitCompletionService {
+    /// Backward compatible version using current timezone
+    public func isCompleted(habit: Habit, on date: Date, logs: [HabitLog]) -> Bool {
+        return isCompleted(habit: habit, on: date, logs: logs, timezone: .current)
+    }
+
+    /// Backward compatible version using current timezone
+    public func isScheduledDay(habit: Habit, date: Date) -> Bool {
+        return isScheduledDay(habit: habit, date: date, timezone: .current)
+    }
+
+    /// Backward compatible version using current timezone
+    public func calculateDailyProgress(habit: Habit, logs: [HabitLog], for date: Date) -> Double {
+        return calculateDailyProgress(habit: habit, logs: logs, for: date, timezone: .current)
+    }
+
+    /// Backward compatible version using current timezone
+    public func calculateProgress(habit: Habit, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double {
+        return calculateProgress(habit: habit, logs: logs, from: startDate, to: endDate, timezone: .current)
+    }
+
+    /// Backward compatible version using current timezone
+    public func getExpectedCompletions(habit: Habit, from startDate: Date, to endDate: Date) -> Int {
+        return getExpectedCompletions(habit: habit, from: startDate, to: endDate, timezone: .current)
+    }
 }
 
 // MARK: - Implementation
@@ -39,222 +76,288 @@ public protocol HabitCompletionService {
 /// Uses CalendarUtils for all date operations to ensure LOCAL timezone business logic
 public final class DefaultHabitCompletionService: HabitCompletionService {
 
+    /// Calendar cache to avoid creating Calendar instances repeatedly for the same timezone
+    /// Key: timezone identifier, Value: cached Calendar instance
+    private var calendarCache: [String: Calendar] = [:]
+
+    /// Maximum cache size to prevent unbounded growth
+    private let maxCacheSize = 10
+
     public init() {
         // No longer need calendar parameter - using CalendarUtils for all operations
     }
+
+    /// Get a calendar for the given timezone, using cache to avoid repeated creation
+    /// Implements LRU-style eviction when cache reaches max size
+    private func getCachedCalendar(for timezone: TimeZone) -> Calendar {
+        let identifier = timezone.identifier
+        if let cached = calendarCache[identifier] {
+            return cached
+        }
+
+        // Evict oldest entry if cache is full
+        if calendarCache.count >= maxCacheSize {
+            calendarCache.removeValue(forKey: calendarCache.keys.first!)
+        }
+
+        let calendar = CalendarUtils.localCalendar(for: timezone)
+        calendarCache[identifier] = calendar
+        return calendar
+    }
     
     // MARK: - Public Methods
-    
-    public func isCompleted(habit: Habit, on date: Date, logs: [HabitLog]) -> Bool {
+
+    public func isCompleted(habit: Habit, on date: Date, logs: [HabitLog], timezone: TimeZone) -> Bool {
         switch habit.schedule {
         case .daily, .daysOfWeek:
             // For daily and daysOfWeek habits: check if completed on that specific day
-            return isCompletedOnSpecificDay(habit: habit, date: date, logs: logs)
+            return isCompletedOnSpecificDay(habit: habit, date: date, logs: logs, timezone: timezone)
         }
     }
-    
-    public func calculateProgress(habit: Habit, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double {
+
+    public func calculateProgress(habit: Habit, logs: [HabitLog], from startDate: Date, to endDate: Date, timezone: TimeZone) -> Double {
         let habitLogs = filterLogsForHabit(logs, habitId: habit.id, from: startDate, to: endDate)
-        
+
         switch habit.schedule {
         case .daily:
-            return calculateDailyScheduleProgress(habit: habit, logs: habitLogs, from: startDate, to: endDate)
-            
+            return calculateDailyScheduleProgress(habit: habit, logs: habitLogs, from: startDate, to: endDate, timezone: timezone)
+
         case .daysOfWeek(let scheduledDays):
-            return calculateDaysOfWeekProgress(habit: habit, scheduledDays: scheduledDays, logs: habitLogs, from: startDate, to: endDate)
+            return calculateDaysOfWeekProgress(habit: habit, scheduledDays: scheduledDays, logs: habitLogs, from: startDate, to: endDate, timezone: timezone)
         }
     }
-    
-    public func calculateDailyProgress(habit: Habit, logs: [HabitLog], for date: Date) -> Double {
+
+    public func calculateDailyProgress(habit: Habit, logs: [HabitLog], for date: Date, timezone: TimeZone) -> Double {
         switch habit.schedule {
         case .daily, .daysOfWeek:
             // For daily and daysOfWeek: either 0.0 or 1.0 based on completion that day
-            return isCompletedOnSpecificDay(habit: habit, date: date, logs: logs) ? 1.0 : 0.0
+            return isCompletedOnSpecificDay(habit: habit, date: date, logs: logs, timezone: timezone) ? 1.0 : 0.0
         }
     }
-    
-    public func isScheduledDay(habit: Habit, date: Date) -> Bool {
+
+    public func isScheduledDay(habit: Habit, date: Date, timezone: TimeZone) -> Bool {
         switch habit.schedule {
         case .daily:
             return true
-            
+
         case .daysOfWeek(let scheduledDays):
-            let weekday = CalendarUtils.habitWeekday(from: date)
+            let weekday = CalendarUtils.habitWeekday(from: date, timezone: timezone)
             return scheduledDays.contains(weekday)
         }
     }
-    
-    public func getExpectedCompletions(habit: Habit, from startDate: Date, to endDate: Date) -> Int {
+
+    public func getExpectedCompletions(habit: Habit, from startDate: Date, to endDate: Date, timezone: TimeZone) -> Int {
         let habitStartDate = max(habit.startDate, startDate)
         let habitEndDate = habit.endDate.map { min($0, endDate) } ?? endDate
-        
+
         guard habitStartDate <= habitEndDate else { return 0 }
-        
+
         switch habit.schedule {
         case .daily:
-            return calculateDaysBetween(from: habitStartDate, to: habitEndDate)
-            
+            return calculateDaysBetween(from: habitStartDate, to: habitEndDate, timezone: timezone)
+
         case .daysOfWeek(let scheduledDays):
-            return calculateScheduledDays(scheduledDays: scheduledDays, from: habitStartDate, to: habitEndDate)
+            return calculateScheduledDays(scheduledDays: scheduledDays, from: habitStartDate, to: habitEndDate, timezone: timezone)
         }
     }
     
     
     // MARK: - Private Helper Methods
-    
-    private func isCompletedOnSpecificDay(habit: Habit, date: Date, logs: [HabitLog]) -> Bool {
-        let dayStart = CalendarUtils.startOfDayLocal(for: date)
-        let dayEnd = CalendarUtils.endOfDayLocal(for: date)
+
+    private func isCompletedOnSpecificDay(habit: Habit, date: Date, logs: [HabitLog], timezone: TimeZone) -> Bool {
+        // Check if any log for this habit was created on the specified calendar day
+        // Important: Each log's timezone determines which calendar day it belongs to
+
+        // Extract the query day in the query timezone (using cache)
+        let queryCalendar = getCachedCalendar(for: timezone)
+        let queryComponents = queryCalendar.dateComponents([.year, .month, .day], from: date)
 
         let dayLogs = logs.filter { log in
-            log.habitID == habit.id && log.date >= dayStart && log.date < dayEnd
+            guard log.habitID == habit.id else { return false }
+
+            // Use the log's timezone to determine which calendar day it belongs to
+            let logTimezone: TimeZone
+            if let tz = TimeZone(identifier: log.timezone) {
+                logTimezone = tz
+            } else {
+                // Invalid timezone identifier - log for monitoring and fall back to query timezone
+                #if DEBUG
+                print("⚠️ Invalid timezone identifier '\(log.timezone)' for log \(log.id). Falling back to \(timezone.identifier)")
+                #endif
+                logTimezone = timezone
+            }
+
+            // Use cached calendar for performance (avoids creating 100+ Calendar instances)
+            let logCalendar = getCachedCalendar(for: logTimezone)
+            let logComponents = logCalendar.dateComponents([.year, .month, .day], from: log.date)
+
+            // Compare calendar days (not absolute timestamps)
+            return logComponents.year == queryComponents.year &&
+                   logComponents.month == queryComponents.month &&
+                   logComponents.day == queryComponents.day
         }
 
         return dayLogs.contains { log in
             HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
         }
     }
-    
-    private func isWeeklyTargetMet(habit: Habit, weeklyTarget: Int, date: Date, logs: [HabitLog]) -> Bool {
-        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: date) else { return false }
-        
+
+    private func isWeeklyTargetMet(habit: Habit, weeklyTarget: Int, date: Date, logs: [HabitLog], timezone: TimeZone) -> Bool {
+        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: date, timezone: timezone) else { return false }
+
         let weekLogs = logs.filter { log in
-            log.habitID == habit.id && 
-            log.date >= weekInterval.start && 
+            log.habitID == habit.id &&
+            log.date >= weekInterval.start &&
             log.date < weekInterval.end &&
             HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
         }
-        
+
         return weekLogs.count >= weeklyTarget
     }
-    
-    private func calculateWeeklyProgressUpToDate(habit: Habit, weeklyTarget: Int, date: Date, logs: [HabitLog]) -> Double {
-        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: date) else { return 0.0 }
-        
+
+    private func calculateWeeklyProgressUpToDate(habit: Habit, weeklyTarget: Int, date: Date, logs: [HabitLog], timezone: TimeZone) -> Double {
+        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: date, timezone: timezone) else { return 0.0 }
+
         let weekLogs = logs.filter { log in
-            log.habitID == habit.id && 
-            log.date >= weekInterval.start && 
+            log.habitID == habit.id &&
+            log.date >= weekInterval.start &&
             log.date <= date &&
             HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
         }
-        
+
         return min(Double(weekLogs.count) / Double(weeklyTarget), 1.0)
     }
     
     private func filterLogsForHabit(_ logs: [HabitLog], habitId: UUID, from startDate: Date, to endDate: Date) -> [HabitLog] {
+        // Filter logs with timezone-aware buffer to handle logs across different timezones
+        //
+        // RATIONALE: The world's timezones span from UTC-12 (Baker Island) to UTC+14 (Line Islands),
+        // a total range of 26 hours. A log created at 1:00 AM on Nov 3 in UTC+14 has a UTC timestamp
+        // of 11:00 AM on Nov 2. Without a buffer, this log would be incorrectly excluded when querying
+        // for Nov 3 progress.
+        //
+        // The 15-hour buffer on each side ensures we capture all logs that could represent calendar days
+        // within the query range, regardless of their timezone. The extra hour beyond UTC+14 accounts for
+        // daylight saving time transitions. The final calendar day comparison in isCompletedOnSpecificDay()
+        // then filters out logs that don't actually match.
+        //
+        // PERFORMANCE: This adds ~30 hours to each query range, but it's necessary for correctness
+        // and the overhead is acceptable since the final filtering is done in memory.
+        let bufferSeconds: TimeInterval = 15 * 60 * 60  // Maximum UTC offset is UTC+14 + 1 hour for DST
+        let bufferedStart = startDate.addingTimeInterval(-bufferSeconds)
+        let bufferedEnd = endDate.addingTimeInterval(bufferSeconds)
+
         return logs.filter { log in
-            log.habitID == habitId && log.date >= startDate && log.date <= endDate
+            log.habitID == habitId && log.date >= bufferedStart && log.date <= bufferedEnd
         }
     }
     
-    private func calculateDailyScheduleProgress(habit: Habit, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double {
-        let expectedDays = calculateDaysBetween(from: startDate, to: endDate)
+    private func calculateDailyScheduleProgress(habit: Habit, logs: [HabitLog], from startDate: Date, to endDate: Date, timezone: TimeZone) -> Double {
+        let expectedDays = calculateDaysBetween(from: startDate, to: endDate, timezone: timezone)
         guard expectedDays > 0 else { return 0.0 }
 
         var completedDays = 0
-        var currentDate = CalendarUtils.startOfDayLocal(for: startDate)
-        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate)
-        
+        var currentDate = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
+        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate, timezone: timezone)
+
         while currentDate <= endOfRange {
-            if isCompletedOnSpecificDay(habit: habit, date: currentDate, logs: logs) {
+            if isCompletedOnSpecificDay(habit: habit, date: currentDate, logs: logs, timezone: timezone) {
                 completedDays += 1
             }
-            currentDate = CalendarUtils.nextDay(from: currentDate)
+            currentDate = CalendarUtils.nextDayLocal(from: currentDate, timezone: timezone)
         }
-        
+
         return Double(completedDays) / Double(expectedDays)
     }
-    
-    private func calculateDaysOfWeekProgress(habit: Habit, scheduledDays: Set<Int>, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double {
-        let expectedDays = calculateScheduledDays(scheduledDays: scheduledDays, from: startDate, to: endDate)
+
+    private func calculateDaysOfWeekProgress(habit: Habit, scheduledDays: Set<Int>, logs: [HabitLog], from startDate: Date, to endDate: Date, timezone: TimeZone) -> Double {
+        let expectedDays = calculateScheduledDays(scheduledDays: scheduledDays, from: startDate, to: endDate, timezone: timezone)
         guard expectedDays > 0 else { return 0.0 }
 
         var completedDays = 0
-        var currentDate = CalendarUtils.startOfDayLocal(for: startDate)
-        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate)
-        
+        var currentDate = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
+        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate, timezone: timezone)
+
         while currentDate <= endOfRange {
-            let weekday = CalendarUtils.habitWeekday(from: currentDate)
-            if scheduledDays.contains(weekday) && isCompletedOnSpecificDay(habit: habit, date: currentDate, logs: logs) {
+            let weekday = CalendarUtils.habitWeekday(from: currentDate, timezone: timezone)
+            if scheduledDays.contains(weekday) && isCompletedOnSpecificDay(habit: habit, date: currentDate, logs: logs, timezone: timezone) {
                 completedDays += 1
             }
-            currentDate = CalendarUtils.nextDay(from: currentDate)
+            currentDate = CalendarUtils.nextDayLocal(from: currentDate, timezone: timezone)
         }
-        
+
         return Double(completedDays) / Double(expectedDays)
     }
-    
-    private func calculateTimesPerWeekProgress(habit: Habit, weeklyTarget: Int, logs: [HabitLog], from startDate: Date, to endDate: Date) -> Double {
+
+    private func calculateTimesPerWeekProgress(habit: Habit, weeklyTarget: Int, logs: [HabitLog], from startDate: Date, to endDate: Date, timezone: TimeZone) -> Double {
         // Use duration-based week calculation for consistency with calculateWeeklyTargets
-        let totalDays = CalendarUtils.daysBetweenLocal(startDate, endDate) + 1 // +1 because range is inclusive
+        let totalDays = CalendarUtils.daysBetweenLocal(startDate, endDate, timezone: timezone) + 1 // +1 because range is inclusive
         let totalWeeks = max(1, Int(round(Double(totalDays) / 7.0))) // Use rounding to match user expectations
-        
+
         // Filter for only completed logs within the date range
         let completedLogs = logs.filter { log in
             log.date >= startDate && log.date <= endDate && HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
         }
-        
-        // Filter for only completed logs within the date range
-        
+
         // Group completed logs by week start date
         let completionsByWeek = Dictionary(grouping: completedLogs) { log in
-            CalendarUtils.startOfWeekLocal(for: log.date)
+            CalendarUtils.startOfWeekLocal(for: log.date, timezone: timezone)
         }
 
         var totalActualCompletions = 0
 
         // Calculate week by week using calendar week boundaries
-        var currentWeekStart = CalendarUtils.startOfWeekLocal(for: startDate)
-        let endWeekStart = CalendarUtils.startOfWeekLocal(for: endDate)
-        
+        var currentWeekStart = CalendarUtils.startOfWeekLocal(for: startDate, timezone: timezone)
+        let endWeekStart = CalendarUtils.startOfWeekLocal(for: endDate, timezone: timezone)
+
         while currentWeekStart <= endWeekStart {
             // Count unique days (not total logs) - consistent with getWeeklyProgress
             let weekLogs = completionsByWeek[currentWeekStart] ?? []
-            let uniqueDaysInWeek = Set(weekLogs.map { CalendarUtils.startOfDayLocal(for: $0.date) }).count
-            
+            let uniqueDaysInWeek = Set(weekLogs.map { CalendarUtils.startOfDayLocal(for: $0.date, timezone: timezone) }).count
+
             totalActualCompletions += min(uniqueDaysInWeek, weeklyTarget)
-            
+
             currentWeekStart = CalendarUtils.addWeeks(1, to: currentWeekStart)
         }
-        
+
         let totalExpected = totalWeeks * weeklyTarget
         guard totalExpected > 0 else { return 0.0 }
-        
+
         return Double(totalActualCompletions) / Double(totalExpected)
     }
 
-    private func calculateDaysBetween(from startDate: Date, to endDate: Date) -> Int {
-        let daysDifference = CalendarUtils.daysBetweenLocal(startDate, endDate)
+    private func calculateDaysBetween(from startDate: Date, to endDate: Date, timezone: TimeZone) -> Int {
+        let daysDifference = CalendarUtils.daysBetweenLocal(startDate, endDate, timezone: timezone)
         return max(1, daysDifference + 1)
     }
-    
-    private func calculateScheduledDays(scheduledDays: Set<Int>, from startDate: Date, to endDate: Date) -> Int {
+
+    private func calculateScheduledDays(scheduledDays: Set<Int>, from startDate: Date, to endDate: Date, timezone: TimeZone) -> Int {
         var count = 0
-        var currentDate = CalendarUtils.startOfDayLocal(for: startDate)
-        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate)
-        
+        var currentDate = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
+        let endOfRange = CalendarUtils.startOfDayLocal(for: endDate, timezone: timezone)
+
         while currentDate <= endOfRange {
-            let weekday = CalendarUtils.habitWeekday(from: currentDate)
+            let weekday = CalendarUtils.habitWeekday(from: currentDate, timezone: timezone)
             if scheduledDays.contains(weekday) {
                 count += 1
             }
-            currentDate = CalendarUtils.nextDay(from: currentDate)
+            currentDate = CalendarUtils.nextDayLocal(from: currentDate, timezone: timezone)
         }
-        
+
         return count
     }
-    
-    private func calculateWeeklyTargets(weeklyTarget: Int, from startDate: Date, to endDate: Date) -> Int {
+
+    private func calculateWeeklyTargets(weeklyTarget: Int, from startDate: Date, to endDate: Date, timezone: TimeZone) -> Int {
         // Count the number of calendar weeks that overlap with the date range
         var weekCount = 0
-        var currentWeekStart = CalendarUtils.startOfWeekLocal(for: startDate)
-        let endWeekStart = CalendarUtils.startOfWeekLocal(for: endDate)
-        
+        var currentWeekStart = CalendarUtils.startOfWeekLocal(for: startDate, timezone: timezone)
+        let endWeekStart = CalendarUtils.startOfWeekLocal(for: endDate, timezone: timezone)
+
         while currentWeekStart <= endWeekStart {
             weekCount += 1
             currentWeekStart = CalendarUtils.addWeeks(1, to: currentWeekStart)
         }
-        
+
         return weekCount * weeklyTarget
     }
 }

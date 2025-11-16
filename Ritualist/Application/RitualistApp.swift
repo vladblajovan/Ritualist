@@ -18,6 +18,7 @@ import RitualistCore
     @Injected(\.navigationService) private var navigationService
     @Injected(\.dailyNotificationScheduler) private var dailyNotificationScheduler
     @Injected(\.restoreGeofenceMonitoring) private var restoreGeofenceMonitoring
+    @Injected(\.timezoneService) private var timezoneService
     @Injected(\.debugLogger) private var logger
     
     var body: some Scene {
@@ -25,6 +26,7 @@ import RitualistCore
             RootAppView()
                 .modelContainer(persistenceContainer.container)
                 .task { @MainActor in
+                    await detectTimezoneChanges()
                     await setupNotifications()
                     await scheduleInitialNotifications()
                     await restoreGeofences()
@@ -32,6 +34,7 @@ import RitualistCore
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     // Re-schedule notifications when app becomes active (handles day changes while backgrounded)
                     Task {
+                        await detectTimezoneChanges()
                         await rescheduleNotificationsIfNeeded()
                     }
                 }
@@ -114,7 +117,54 @@ import RitualistCore
             )
         }
     }
-    
+
+    /// Detect timezone changes on app launch/resume
+    /// Updates stored current timezone if device timezone changed
+    /// This is part of the three-timezone model for proper travel handling
+    private func detectTimezoneChanges() async {
+        do {
+            // Atomically capture current device timezone to prevent race conditions
+            let currentDeviceTimezone = TimeZone.current.identifier
+            let storedTimezone = try await timezoneService.getCurrentTimezone().identifier
+
+            // Check if timezone changed
+            guard currentDeviceTimezone != storedTimezone else { return }
+
+            logger.log(
+                "🌐 Timezone change detected",
+                level: .info,
+                category: .system,
+                metadata: [
+                    "previousTimezone": storedTimezone,
+                    "newTimezone": currentDeviceTimezone,
+                    "detectedAt": Date().ISO8601Format()
+                ]
+            )
+
+            // Update stored current timezone with the captured value
+            try await timezoneService.updateCurrentTimezone()
+
+            logger.log(
+                "✅ Updated current timezone",
+                level: .info,
+                category: .system,
+                metadata: ["newTimezone": currentDeviceTimezone]
+            )
+
+            // TODO Phase 3: Show travel notification to user
+            // if let travelStatus = try await timezoneService.detectTravelStatus(), travelStatus.isTravel {
+            //     // Show notification about timezone change and travel mode
+            // }
+        } catch {
+            logger.log(
+                "⚠️ Failed to detect timezone changes",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
+        }
+    }
+
     /// Handle deep links from widget taps
     /// Navigates to appropriate habit or overview section with enhanced validation
     private func handleDeepLink(_ url: URL) {

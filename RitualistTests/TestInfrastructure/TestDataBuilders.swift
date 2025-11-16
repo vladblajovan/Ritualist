@@ -17,7 +17,7 @@ enum HabitBuilder {
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
         displayOrder: Int = 0,
-        startDate: Date = TestDates.today  // Use TestDates.today for predictable testing
+        startDate: Date = TestDates.daysAgo(30)  // Default to 30 days ago to allow streaks
     ) -> Habit {
         return Habit(
             id: id,
@@ -55,7 +55,7 @@ enum HabitBuilder {
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
         displayOrder: Int = 0,
-        startDate: Date = TestDates.today  // Use TestDates.today for predictable testing
+        startDate: Date = TestDates.daysAgo(30)  // Default to 30 days ago to allow streaks
     ) -> Habit {
         return Habit(
             id: id,
@@ -105,10 +105,11 @@ enum HabitLogBuilder {
         date: Date = Date(),
         timezone: String = TimeZone.current.identifier
     ) -> HabitLog {
+        let tz = TimeZone(identifier: timezone) ?? .current
         return HabitLog(
             id: id,
             habitID: habitId,
-            date: CalendarUtils.startOfDayLocal(for: date),
+            date: CalendarUtils.startOfDayLocal(for: date, timezone: tz),
             value: 1.0,
             timezone: timezone
         )
@@ -122,10 +123,11 @@ enum HabitLogBuilder {
         date: Date = Date(),
         timezone: String = TimeZone.current.identifier
     ) -> HabitLog {
+        let tz = TimeZone(identifier: timezone) ?? .current
         return HabitLog(
             id: id,
             habitID: habitId,
-            date: CalendarUtils.startOfDayLocal(for: date),
+            date: CalendarUtils.startOfDayLocal(for: date, timezone: tz),
             value: value,
             timezone: timezone
         )
@@ -135,15 +137,16 @@ enum HabitLogBuilder {
     static func multipleLogs(
         habitId: UUID,
         dates: [Date],
-        value: Double = 1.0
+        value: Double = 1.0,
+        timezone: TimeZone = .current
     ) -> [HabitLog] {
         return dates.map { date in
             HabitLog(
                 id: UUID(),
                 habitID: habitId,
-                date: CalendarUtils.startOfDayLocal(for: date),
+                date: CalendarUtils.startOfDayLocal(for: date, timezone: timezone),
                 value: value,
-                timezone: TimeZone.current.identifier
+                timezone: timezone.identifier
             )
         }
     }
@@ -360,6 +363,110 @@ enum OverviewDataBuilder {
             habits: habits,
             habitLogs: habitLogs,
             dateRange: dateRange
+        )
+    }
+}
+
+// MARK: - UserProfile Builder (SchemaV9)
+
+enum UserProfileBuilder {
+
+    /// Create a UserProfile with sensible defaults for SchemaV9
+    ///
+    /// **Use Case:** Testing timezone-aware features with custom timezone settings
+    ///
+    /// - Parameters:
+    ///   - id: Profile ID (defaults to UUID())
+    ///   - name: User name (defaults to "Test User")
+    ///   - currentTimezone: Current device timezone (defaults to .current)
+    ///   - homeTimezone: User's home timezone (defaults to .current)
+    ///   - displayMode: Display timezone mode (defaults to .current)
+    /// - Returns: UserProfile domain entity
+    static func standard(
+        id: UUID = UUID(),
+        name: String = "Test User",
+        currentTimezone: TimeZone = .current,
+        homeTimezone: TimeZone = .current,
+        displayMode: DisplayTimezoneMode = .current
+    ) -> UserProfile {
+        return UserProfile(
+            id: id,
+            name: name,
+            avatarImageData: nil,
+            appearance: 0,
+            currentTimezoneIdentifier: currentTimezone.identifier,
+            homeTimezoneIdentifier: homeTimezone.identifier,
+            displayTimezoneMode: displayMode,
+            timezoneChangeHistory: []
+        )
+    }
+
+    /// Create a UserProfile for travel scenario testing
+    ///
+    /// **Use Case:** Testing travel detection and timezone transitions
+    ///
+    /// - Parameters:
+    ///   - currentTimezone: Where user currently is (e.g., Tokyo)
+    ///   - homeTimezone: Where user's home is (e.g., Los Angeles)
+    ///   - displayMode: Which timezone to use for habits (defaults to .home while traveling)
+    /// - Returns: UserProfile domain entity representing traveling user
+    static func traveling(
+        currentTimezone: TimeZone,
+        homeTimezone: TimeZone,
+        displayMode: DisplayTimezoneMode = .home
+    ) -> UserProfile {
+        return UserProfile(
+            id: UUID(),
+            name: "Traveling User",
+            avatarImageData: nil,
+            appearance: 0,
+            currentTimezoneIdentifier: currentTimezone.identifier,
+            homeTimezoneIdentifier: homeTimezone.identifier,
+            displayTimezoneMode: displayMode,
+            timezoneChangeHistory: [
+                TimezoneChange(
+                    timestamp: Date(),
+                    fromTimezone: homeTimezone.identifier,
+                    toTimezone: currentTimezone.identifier,
+                    trigger: .deviceChange
+                )
+            ]
+        )
+    }
+}
+
+// MARK: - UserProfile Model Conversion
+
+extension UserProfile {
+    /// Convert domain UserProfile to ActiveUserProfileModel for testing
+    func toModel() -> ActiveUserProfileModel {
+        // Convert appearance Int to String for SchemaV9
+        let appearanceString: String = {
+            switch self.appearance {
+            case 0: return "followSystem"
+            case 1: return "light"
+            case 2: return "dark"
+            default: return "followSystem"
+            }
+        }()
+
+        // Encode DisplayTimezoneMode to JSON Data
+        let displayModeData = (try? JSONEncoder().encode(self.displayTimezoneMode)) ?? Data()
+
+        // Encode TimezoneChangeHistory to JSON Data
+        let historyData = (try? JSONEncoder().encode(self.timezoneChangeHistory)) ?? Data()
+
+        return ActiveUserProfileModel(
+            id: self.id.uuidString,  // SchemaV9 uses String ID
+            name: self.name,
+            avatarImageData: self.avatarImageData,
+            appearance: appearanceString,  // SchemaV9 uses String
+            currentTimezoneIdentifier: self.currentTimezoneIdentifier,
+            homeTimezoneIdentifier: self.homeTimezoneIdentifier,
+            displayTimezoneModeData: displayModeData,  // JSON encoded
+            timezoneChangeHistoryData: historyData,  // JSON encoded
+            createdAt: self.createdAt,
+            updatedAt: self.updatedAt
         )
     }
 }

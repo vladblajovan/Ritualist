@@ -25,7 +25,9 @@ public enum UserProfileCloudMapper {
 
     /// Current CloudKit schema version for UserProfile records
     /// Increment when adding/removing/changing fields to support migration
-    private static let currentSchemaVersion = "v1"
+    /// - v1: Original schema with homeTimezone (String?) and displayTimezoneMode (String)
+    /// - v2: Three-Timezone Model with currentTimezone, homeTimezone, displayMode, history
+    private static let currentSchemaVersion = "v2"
 
     // MARK: - Field Names (must match CloudKit schema)
 
@@ -34,11 +36,19 @@ public enum UserProfileCloudMapper {
         static let recordID = "recordID"
         static let name = "name"
         static let appearance = "appearance"
-        static let homeTimezone = "homeTimezone"
+
+        // V2 Three-Timezone Model fields
+        static let currentTimezoneIdentifier = "currentTimezoneIdentifier"
+        static let homeTimezoneIdentifier = "homeTimezoneIdentifier"
         static let displayTimezoneMode = "displayTimezoneMode"
+        static let timezoneChangeHistoryData = "timezoneChangeHistoryData"
+
         static let createdAt = "createdAt"
         static let updatedAt = "updatedAt"
         static let avatarAsset = "avatarAsset"
+
+        // V1 Legacy fields (for migration compatibility)
+        static let homeTimezone_v1 = "homeTimezone"  // Legacy V1 field
     }
 
     // MARK: - UserProfile → CKRecord
@@ -62,13 +72,21 @@ public enum UserProfileCloudMapper {
         record[FieldKey.recordID] = profile.id.uuidString
         record[FieldKey.name] = profile.name
         record[FieldKey.appearance] = Int64(profile.appearance)
-        record[FieldKey.displayTimezoneMode] = profile.displayTimezoneMode
         record[FieldKey.createdAt] = profile.createdAt
         record[FieldKey.updatedAt] = profile.updatedAt
 
-        // Map optional fields
-        if let homeTimezone = profile.homeTimezone {
-            record[FieldKey.homeTimezone] = homeTimezone
+        // Map V2 Three-Timezone Model fields
+        record[FieldKey.currentTimezoneIdentifier] = profile.currentTimezoneIdentifier
+        record[FieldKey.homeTimezoneIdentifier] = profile.homeTimezoneIdentifier
+
+        // Encode DisplayTimezoneMode enum to string for CloudKit storage
+        record[FieldKey.displayTimezoneMode] = profile.displayTimezoneMode.toLegacyString()
+
+        // Encode timezone change history as Data (JSON)
+        if let historyData = try? JSONEncoder().encode(profile.timezoneChangeHistory) {
+            record[FieldKey.timezoneChangeHistoryData] = historyData
+        } else {
+            record[FieldKey.timezoneChangeHistoryData] = Data()  // Empty array if encoding fails
         }
 
         // Map avatar image as CKAsset
@@ -122,13 +140,6 @@ public enum UserProfileCloudMapper {
         }
         let appearance = Int(appearanceInt64)
 
-        guard let displayTimezoneMode = record[FieldKey.displayTimezoneMode] as? String else {
-            throw CloudMapperError.missingRequiredField(
-                field: FieldKey.displayTimezoneMode,
-                recordType: recordType
-            )
-        }
-
         guard let createdAt = record[FieldKey.createdAt] as? Date else {
             throw CloudMapperError.missingRequiredField(
                 field: FieldKey.createdAt,
@@ -143,10 +154,55 @@ public enum UserProfileCloudMapper {
             )
         }
 
-        // Extract optional fields
-        let homeTimezone = record[FieldKey.homeTimezone] as? String
+        // Extract timezone fields based on schema version
+        let currentTimezoneIdentifier: String
+        let homeTimezoneIdentifier: String
+        let displayTimezoneMode: DisplayTimezoneMode
+        let timezoneChangeHistory: [TimezoneChange]
 
-        // FUTURE: When adding new fields in v2+, use schemaVersion for conditional parsing
+        if schemaVersion >= "v2" {
+            // V2 schema: Three-Timezone Model
+            currentTimezoneIdentifier = record[FieldKey.currentTimezoneIdentifier] as? String ?? TimeZone.current.identifier
+            homeTimezoneIdentifier = record[FieldKey.homeTimezoneIdentifier] as? String ?? TimeZone.current.identifier
+
+            // Decode displayTimezoneMode from string
+            if let modeString = record[FieldKey.displayTimezoneMode] as? String {
+                displayTimezoneMode = DisplayTimezoneMode.fromLegacyString(modeString)
+            } else {
+                displayTimezoneMode = .current  // Safe default
+            }
+
+            // Decode timezone change history from Data
+            if let historyData = record[FieldKey.timezoneChangeHistoryData] as? Data,
+               let history = try? JSONDecoder().decode([TimezoneChange].self, from: historyData) {
+                timezoneChangeHistory = history
+            } else {
+                timezoneChangeHistory = []  // Empty history for new records
+            }
+        } else {
+            // V1 schema: Legacy migration path
+            // Initialize all three timezones to device timezone (safe default)
+            currentTimezoneIdentifier = TimeZone.current.identifier
+
+            // Try to preserve V1 homeTimezone if it existed
+            if let legacyHomeTimezone = record[FieldKey.homeTimezone_v1] as? String {
+                homeTimezoneIdentifier = legacyHomeTimezone
+            } else {
+                homeTimezoneIdentifier = TimeZone.current.identifier
+            }
+
+            // Convert V1 displayTimezoneMode string to V2 enum
+            if let legacyModeString = record[FieldKey.displayTimezoneMode] as? String {
+                displayTimezoneMode = DisplayTimezoneMode.fromLegacyString(legacyModeString)
+            } else {
+                displayTimezoneMode = .current
+            }
+
+            // No history in V1 records
+            timezoneChangeHistory = []
+        }
+
+        // NOTE: Version-aware field parsing pattern for future migrations
         // Example pattern for version-aware field parsing:
         //
         // let favoriteColor: String?
@@ -172,14 +228,16 @@ public enum UserProfileCloudMapper {
             }
         }
 
-        // Construct UserProfile entity
+        // Construct UserProfile entity with V2 Three-Timezone Model
         return UserProfile(
             id: id,
             name: name,
             avatarImageData: avatarImageData,
             appearance: appearance,
-            homeTimezone: homeTimezone,
+            currentTimezoneIdentifier: currentTimezoneIdentifier,
+            homeTimezoneIdentifier: homeTimezoneIdentifier,
             displayTimezoneMode: displayTimezoneMode,
+            timezoneChangeHistory: timezoneChangeHistory,
             createdAt: createdAt,
             updatedAt: updatedAt
         )

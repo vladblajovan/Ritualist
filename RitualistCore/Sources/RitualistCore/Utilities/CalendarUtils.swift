@@ -10,20 +10,13 @@
 
 import Foundation
 
-/// Display mode for showing timestamps with timezone context
-public enum DisplayTimezoneMode: String, CaseIterable {
-    case original      // Show times as they were originally experienced
-    case current      // Show times in user's current timezone
-    case home         // Show times in user's designated home timezone
-}
-
 /// Centralized calendar utilities that handle timezone-aware date operations consistently
 /// Uses UTC for all business logic to ensure consistent behavior across timezones
 public struct CalendarUtils {
     
     /// UTC calendar for business logic - ensures consistent day boundaries regardless of user timezone
     public static let utcCalendar: Calendar = {
-        var calendar = Calendar.current
+        var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(abbreviation: "UTC")!
         return calendar
     }()
@@ -34,6 +27,7 @@ public struct CalendarUtils {
     }
     
     /// Create calendar for specific timezone (for home timezone feature)
+    /// Uses Calendar.current as base to preserve user's locale settings (firstWeekday, etc.)
     public static func localCalendar(for timezone: TimeZone) -> Calendar {
         var calendar = Calendar.current
         calendar.timeZone = timezone
@@ -277,6 +271,11 @@ public struct CalendarUtils {
         return calendar.dateInterval(of: .month, for: date)
     }
 
+    /// Get start of month in local timezone
+    public static func startOfMonthLocal(for date: Date, timezone: TimeZone = .current) -> Date {
+        return monthIntervalLocal(for: date, timezone: timezone)?.start ?? startOfDayLocal(for: date, timezone: timezone)
+    }
+
     // MARK: - Component Extraction (DEPRECATED: Use LOCAL methods)
 
     /// Extract date components (year, month, day, hour, minute, second)
@@ -339,11 +338,32 @@ public struct CalendarUtils {
         return utcCalendar.date(byAdding: .month, value: months, to: date) ?? date
     }
     
-    /// Get next day
+    /// Get next day (timezone-aware version)
+    /// Adds 1 day using the specified timezone's calendar to handle DST correctly
+    public static func nextDayLocal(from date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .day, value: 1, to: date) ?? date
+    }
+
+    /// Add days to date (timezone-aware version)
+    /// Adds days using the specified timezone's calendar to handle DST correctly
+    public static func addDaysLocal(_ days: Int, to date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .day, value: days, to: date) ?? date
+    }
+
+    /// Add years to date (timezone-aware version)
+    /// Adds years using the specified timezone's calendar to handle DST correctly
+    public static func addYearsLocal(_ years: Int, to date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .year, value: years, to: date) ?? date
+    }
+
+    /// Get next day (UTC version - deprecated for timezone-aware code)
     public static func nextDay(from date: Date) -> Date {
         return addDays(1, to: date)
     }
-    
+
     /// Get previous day
     public static func previousDay(from date: Date) -> Date {
         return addDays(-1, to: date)
@@ -419,20 +439,35 @@ public struct CalendarUtils {
     }
     
     /// Format log entry based on user's display preference
+    /// - Parameters:
+    ///   - utcTimestamp: The UTC timestamp to format
+    ///   - originalTimezone: The timezone where the log was originally recorded (preserved for context)
+    ///   - displayMode: How to display the timestamp (current/home/custom timezone)
+    ///   - userTimezone: The device's current timezone
+    ///   - homeTimezone: The user's designated home timezone
+    /// - Returns: Formatted string representation of the timestamp
     public static func formatLogEntry(_ utcTimestamp: Date, _ originalTimezone: String,
-                                    displayMode: DisplayTimezoneMode, 
+                                    displayMode: DisplayTimezoneMode,
                                     userTimezone: TimeZone = .current,
                                     homeTimezone: TimeZone? = nil) -> String {
         switch displayMode {
-        case .original:
-            return formatInOriginalTimezone(utcTimestamp, originalTimezone)
         case .current:
+            // Display in user's current device timezone
             return formatWithTimezoneContext(utcTimestamp, originalTimezone, currentTimezone: userTimezone)
         case .home:
+            // Display in user's home timezone
             guard let homeTimezone = homeTimezone else {
-                return formatInOriginalTimezone(utcTimestamp, originalTimezone)
+                // Fallback to current timezone if home timezone not set
+                return formatWithTimezoneContext(utcTimestamp, originalTimezone, currentTimezone: userTimezone)
             }
             return formatInTimezone(utcTimestamp, homeTimezone)
+        case .custom(let timezoneIdentifier):
+            // Display in specific custom timezone
+            guard let customTimezone = TimeZone(identifier: timezoneIdentifier) else {
+                // Fallback to current timezone if custom timezone is invalid
+                return formatWithTimezoneContext(utcTimestamp, originalTimezone, currentTimezone: userTimezone)
+            }
+            return formatInTimezone(utcTimestamp, customTimezone)
         }
     }
     
