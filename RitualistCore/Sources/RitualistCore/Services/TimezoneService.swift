@@ -12,6 +12,20 @@
 
 import Foundation
 
+// MARK: - Errors
+
+/// Errors that can occur during timezone operations
+public enum TimezoneError: Error, LocalizedError {
+    case invalidTimezoneIdentifier(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidTimezoneIdentifier(let identifier):
+            return "Invalid timezone identifier: '\(identifier)'"
+        }
+    }
+}
+
 // MARK: - Protocol
 
 /// Service for managing timezone operations in the three-timezone model
@@ -186,6 +200,11 @@ public final class DefaultTimezoneService: TimezoneService {
         var profile = try await loadProfile.execute()
         let oldHomeTimezone = profile.homeTimezoneIdentifier
         let newHomeTimezone = timezone.identifier
+
+        // Validate timezone identifier can be recreated (defensive check)
+        guard TimeZone(identifier: newHomeTimezone) != nil else {
+            throw TimezoneError.invalidTimezoneIdentifier(newHomeTimezone)
+        }
 
         // Update home timezone
         profile.homeTimezoneIdentifier = newHomeTimezone

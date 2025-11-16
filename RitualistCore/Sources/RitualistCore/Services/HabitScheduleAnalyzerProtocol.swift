@@ -42,15 +42,28 @@ public extension HabitScheduleAnalyzerProtocol {
 }
 
 public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
-    
+
+    /// Maximum allowed date range in days to prevent performance issues
+    /// 10 years = ~3,650 days is a reasonable upper limit for habit tracking
+    private static let maxDateRangeInDays = 3650
+
     public init() {
         // Using CalendarUtils for LOCAL timezone business logic consistency
     }
-    
+
     public func calculateExpectedDays(for habit: Habit, from startDate: Date, to endDate: Date, timezone: TimeZone) -> Int {
         var expectedDays = 0
         var currentDate = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
         let end = CalendarUtils.startOfDayLocal(for: endDate, timezone: timezone)
+
+        // Performance limit: Prevent infinite loops for extremely large date ranges
+        let daysDifference = CalendarUtils.daysBetweenLocal(startDate, endDate, timezone: timezone)
+        guard daysDifference >= 0 && daysDifference <= Self.maxDateRangeInDays else {
+            #if DEBUG
+            print("⚠️ Date range exceeds maximum allowed range of \(Self.maxDateRangeInDays) days. Actual: \(daysDifference) days")
+            #endif
+            return 0
+        }
 
         while currentDate <= end {
             defer {
