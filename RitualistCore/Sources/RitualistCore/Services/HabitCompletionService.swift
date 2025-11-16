@@ -196,7 +196,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
             if isCompletedOnSpecificDay(habit: habit, date: currentDate, logs: logs, timezone: timezone) {
                 completedDays += 1
             }
-            currentDate = CalendarUtils.nextDay(from: currentDate)
+            currentDate = CalendarUtils.nextDayLocal(from: currentDate, timezone: timezone)
         }
 
         return Double(completedDays) / Double(expectedDays)
@@ -215,7 +215,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
             if scheduledDays.contains(weekday) && isCompletedOnSpecificDay(habit: habit, date: currentDate, logs: logs, timezone: timezone) {
                 completedDays += 1
             }
-            currentDate = CalendarUtils.nextDay(from: currentDate)
+            currentDate = CalendarUtils.nextDayLocal(from: currentDate, timezone: timezone)
         }
 
         return Double(completedDays) / Double(expectedDays)
@@ -273,7 +273,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
             if scheduledDays.contains(weekday) {
                 count += 1
             }
-            currentDate = CalendarUtils.nextDay(from: currentDate)
+            currentDate = CalendarUtils.nextDayLocal(from: currentDate, timezone: timezone)
         }
 
         return count

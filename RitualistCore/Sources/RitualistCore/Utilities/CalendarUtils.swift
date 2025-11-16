@@ -16,7 +16,7 @@ public struct CalendarUtils {
     
     /// UTC calendar for business logic - ensures consistent day boundaries regardless of user timezone
     public static let utcCalendar: Calendar = {
-        var calendar = Calendar.current
+        var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(abbreviation: "UTC")!
         return calendar
     }()
@@ -28,7 +28,7 @@ public struct CalendarUtils {
     
     /// Create calendar for specific timezone (for home timezone feature)
     public static func localCalendar(for timezone: TimeZone) -> Calendar {
-        var calendar = Calendar.current
+        var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timezone
         return calendar
     }
@@ -332,11 +332,18 @@ public struct CalendarUtils {
         return utcCalendar.date(byAdding: .month, value: months, to: date) ?? date
     }
     
-    /// Get next day
+    /// Get next day (timezone-aware version)
+    /// Adds 1 day using the specified timezone's calendar to handle DST correctly
+    public static func nextDayLocal(from date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .day, value: 1, to: date) ?? date
+    }
+
+    /// Get next day (UTC version - deprecated for timezone-aware code)
     public static func nextDay(from date: Date) -> Date {
         return addDays(1, to: date)
     }
-    
+
     /// Get previous day
     public static func previousDay(from date: Date) -> Date {
         return addDays(-1, to: date)
