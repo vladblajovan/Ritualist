@@ -203,17 +203,19 @@ public enum TimezoneEdgeCaseFixtures {
     /// - Parameter timezone: Timezone for the week boundary test (default: New York)
     /// - Returns: Test scenario with logs near week boundary
     public static func weekBoundaryScenario(timezone: TimeZone = TimezoneTestHelpers.newYork) -> TestScenario {
-        let habit = HabitBuilder.binary(
-            name: "Weekly Review",
-            emoji: "📊",
-            schedule: .daily
-        )
-
         // Create logs for the full week leading up to the boundary
         let fullWeek = TimezoneTestHelpers.fullWeekDates(timezone: timezone)
 
         // Add a late Sunday night log (11:59 PM)
         let sundayNight = TimezoneTestHelpers.createWeekBoundaryDate(timezone: timezone)
+
+        // Start habit on the first day of the week to avoid gap
+        let habit = HabitBuilder.binary(
+            name: "Weekly Review",
+            emoji: "📊",
+            schedule: .daily,
+            startDate: fullWeek.first ?? sundayNight
+        )
 
         var logs = fullWeek.map { date in
             HabitLog(
@@ -486,17 +488,19 @@ public enum TimezoneEdgeCaseFixtures {
     /// - Parameter timezone: Timezone for the boundary test (default: New York)
     /// - Returns: Test scenario with logs at exact midnight boundary
     public static func midnightBoundaryScenario(timezone: TimeZone = TimezoneTestHelpers.newYork) -> TestScenario {
-        let habit = HabitBuilder.binary(
-            name: "Gratitude Log",
-            emoji: "🙏",
-            schedule: .daily
-        )
-
         // 11:59:59 PM Friday
         let beforeMidnight = TimezoneTestHelpers.createMidnightBoundaryDate(timezone: timezone)
 
         // 12:01 AM Saturday (just after midnight)
         let afterMidnight = TimezoneTestHelpers.createEarlyMorningDate(timezone: timezone)
+
+        // Start habit on Friday (day of first log) to avoid gap
+        let habit = HabitBuilder.binary(
+            name: "Gratitude Log",
+            emoji: "🙏",
+            schedule: .daily,
+            startDate: beforeMidnight
+        )
 
         let logs = [
             HabitLog(

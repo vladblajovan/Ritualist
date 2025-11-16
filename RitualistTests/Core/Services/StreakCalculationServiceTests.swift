@@ -264,13 +264,14 @@ struct StreakCalculationServiceTests {
 
     @Test("Streak break dates includes all missed scheduled days")
     func streakBreakDatesIncludesMissedDays() async throws {
-        // Arrange
-        let habit = HabitBuilder.binary(schedule: .daily)
+        // Arrange: Habit started 3 days ago (matching first log) to avoid counting start date as break
+        let habitStartDate = CalendarUtils.addDaysLocal(-3, to: TestDates.today, timezone: .current)
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: habitStartDate)
 
         // Logged today and 3 days ago, missing yesterday and 2 days ago
         let logs = [
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today),
-            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDaysLocal(-3, to: TestDates.today, timezone: .current))
+            HabitLogBuilder.binary(habitId: habit.id, date: habitStartDate)
         ]
 
         // Act
@@ -294,8 +295,8 @@ struct StreakCalculationServiceTests {
 
     @Test("Streak break dates empty when no breaks")
     func streakBreakDatesEmptyWhenNoBreaks() async throws {
-        // Arrange: Perfect streak
-        let habit = HabitBuilder.binary(schedule: .daily)
+        // Arrange: Perfect streak starting 3 days ago (matches number of logs)
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: CalendarUtils.addDaysLocal(-2, to: TestDates.today, timezone: .current))
         let logs = [
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today),
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.yesterday),
