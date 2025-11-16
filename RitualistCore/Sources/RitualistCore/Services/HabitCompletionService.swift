@@ -151,7 +151,17 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
             guard log.habitID == habit.id else { return false }
 
             // Use the log's timezone to determine which calendar day it belongs to
-            let logTimezone = TimeZone(identifier: log.timezone) ?? timezone
+            let logTimezone: TimeZone
+            if let tz = TimeZone(identifier: log.timezone) {
+                logTimezone = tz
+            } else {
+                // Invalid timezone identifier - log for monitoring and fall back to query timezone
+                #if DEBUG
+                print("⚠️ Invalid timezone identifier '\(log.timezone)' for log \(log.id). Falling back to \(timezone.identifier)")
+                #endif
+                logTimezone = timezone
+            }
+
             let logCalendar = CalendarUtils.localCalendar(for: logTimezone)
             let logComponents = logCalendar.dateComponents([.year, .month, .day], from: log.date)
 
@@ -193,10 +203,20 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     }
     
     private func filterLogsForHabit(_ logs: [HabitLog], habitId: UUID, from startDate: Date, to endDate: Date) -> [HabitLog] {
-        // Filter logs with timezone-aware buffer
-        // A log's UTC timestamp might be outside the range but still represent a day within the range
-        // Add 14-hour buffer on each side to account for maximum timezone offset (UTC-12 to UTC+14)
-        let bufferSeconds: TimeInterval = 14 * 60 * 60
+        // Filter logs with timezone-aware buffer to handle logs across different timezones
+        //
+        // RATIONALE: The world's timezones span from UTC-12 (Baker Island) to UTC+14 (Line Islands),
+        // a total range of 26 hours. A log created at 1:00 AM on Nov 3 in UTC+14 has a UTC timestamp
+        // of 11:00 AM on Nov 2. Without a buffer, this log would be incorrectly excluded when querying
+        // for Nov 3 progress.
+        //
+        // The 14-hour buffer on each side ensures we capture all logs that could represent calendar days
+        // within the query range, regardless of their timezone. The final calendar day comparison in
+        // isCompletedOnSpecificDay() then filters out logs that don't actually match.
+        //
+        // PERFORMANCE: This adds ~28 hours to each query range, but it's necessary for correctness
+        // and the overhead is acceptable since the final filtering is done in memory.
+        let bufferSeconds: TimeInterval = 14 * 60 * 60  // Maximum UTC offset is UTC+14
         let bufferedStart = startDate.addingTimeInterval(-bufferSeconds)
         let bufferedEnd = endDate.addingTimeInterval(bufferSeconds)
 

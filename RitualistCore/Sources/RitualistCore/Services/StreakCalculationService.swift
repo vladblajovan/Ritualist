@@ -271,7 +271,16 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         return logs.compactMap { log in
             guard HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit) else { return nil }
             // Use the log's own timezone to determine which calendar day it represents
-            let logTimezone = TimeZone(identifier: log.timezone) ?? timezone
+            let logTimezone: TimeZone
+            if let tz = TimeZone(identifier: log.timezone) {
+                logTimezone = tz
+            } else {
+                // Invalid timezone identifier - log for monitoring and fall back to query timezone
+                #if DEBUG
+                print("⚠️ Invalid timezone identifier '\(log.timezone)' for log \(log.id). Falling back to \(timezone.identifier)")
+                #endif
+                logTimezone = timezone
+            }
             return CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)
         }
         .sorted()
