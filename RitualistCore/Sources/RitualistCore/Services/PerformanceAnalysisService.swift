@@ -114,7 +114,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             let expectedDays = scheduleAnalyzer.calculateExpectedDays(
                 for: habit,
                 from: calculationStartDate,
-                to: endDate
+                to: endDate,
+                timezone: .current
             )
 
             // Count only logs that meet completion criteria
@@ -175,7 +176,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             let weekday = CalendarUtils.weekdayComponentLocal(from: currentDate)
             
             for habit in habits where habit.isActive {
-                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
+                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: .current) {
                     dayPerformance[weekday]?.total += 1
 
                     // Check if log exists AND meets completion criteria
@@ -266,7 +267,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             var expectedHabitsCount = 0
             
             for habit in habits {
-                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
+                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: .current) {
                     expectedHabitsCount += 1
 
                     // Check if log exists AND meets completion criteria
@@ -413,7 +414,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             let expectedDays = scheduleAnalyzer.calculateExpectedDays(
                 for: habit,
                 from: startDate,
-                to: endDate
+                to: endDate,
+                timezone: .current
             )
 
             // Count only logs that meet completion criteria

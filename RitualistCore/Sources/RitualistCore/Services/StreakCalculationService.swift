@@ -270,7 +270,9 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     private func getCompliantDates(habit: Habit, logs: [HabitLog], timezone: TimeZone) -> [Date] {
         return logs.compactMap { log in
             guard HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit) else { return nil }
-            return CalendarUtils.startOfDayLocal(for: log.date, timezone: timezone)
+            // Use the log's own timezone to determine which calendar day it represents
+            let logTimezone = TimeZone(identifier: log.timezone) ?? timezone
+            return CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)
         }
         .sorted()
     }

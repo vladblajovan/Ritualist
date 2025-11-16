@@ -97,7 +97,7 @@ public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
             let dayLogs = logsByDate[CalendarUtils.startOfDayLocal(for: currentDate)] ?? []
             
             for habit in habits {
-                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate) {
+                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: .current) {
                     totalExpectedDays += 1
                     
                     if dayLogs.contains(where: { $0.habitID == habit.id }) {

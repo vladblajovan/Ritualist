@@ -140,11 +140,25 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     // MARK: - Private Helper Methods
 
     private func isCompletedOnSpecificDay(habit: Habit, date: Date, logs: [HabitLog], timezone: TimeZone) -> Bool {
-        let dayStart = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
-        let dayEnd = CalendarUtils.endOfDayLocal(for: date, timezone: timezone)
+        // Check if any log for this habit was created on the specified calendar day
+        // Important: Each log's timezone determines which calendar day it belongs to
+
+        // Extract the query day in the query timezone
+        let queryCalendar = CalendarUtils.localCalendar(for: timezone)
+        let queryComponents = queryCalendar.dateComponents([.year, .month, .day], from: date)
 
         let dayLogs = logs.filter { log in
-            log.habitID == habit.id && log.date >= dayStart && log.date < dayEnd
+            guard log.habitID == habit.id else { return false }
+
+            // Use the log's timezone to determine which calendar day it belongs to
+            let logTimezone = TimeZone(identifier: log.timezone) ?? timezone
+            let logCalendar = CalendarUtils.localCalendar(for: logTimezone)
+            let logComponents = logCalendar.dateComponents([.year, .month, .day], from: log.date)
+
+            // Compare calendar days (not absolute timestamps)
+            return logComponents.year == queryComponents.year &&
+                   logComponents.month == queryComponents.month &&
+                   logComponents.day == queryComponents.day
         }
 
         return dayLogs.contains { log in
@@ -179,8 +193,15 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     }
     
     private func filterLogsForHabit(_ logs: [HabitLog], habitId: UUID, from startDate: Date, to endDate: Date) -> [HabitLog] {
+        // Filter logs with timezone-aware buffer
+        // A log's UTC timestamp might be outside the range but still represent a day within the range
+        // Add 14-hour buffer on each side to account for maximum timezone offset (UTC-12 to UTC+14)
+        let bufferSeconds: TimeInterval = 14 * 60 * 60
+        let bufferedStart = startDate.addingTimeInterval(-bufferSeconds)
+        let bufferedEnd = endDate.addingTimeInterval(bufferSeconds)
+
         return logs.filter { log in
-            log.habitID == habitId && log.date >= startDate && log.date <= endDate
+            log.habitID == habitId && log.date >= bufferedStart && log.date <= bufferedEnd
         }
     }
     

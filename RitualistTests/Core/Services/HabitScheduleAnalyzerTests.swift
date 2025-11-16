@@ -319,8 +319,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
             timezone: TimezoneTestHelpers.tokyo
         )
 
-        // Act: Check if expected (should use LOCAL timezone, not UTC)
-        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: tokyoMonday)
+        // Act: Check if expected (should use Tokyo timezone, not UTC)
+        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: tokyoMonday, timezone: TimezoneTestHelpers.tokyo)
 
         // Assert: Should be true (it's Monday in Tokyo, which is scheduled)
         #expect(isExpected == true, "Should use LOCAL weekday (Monday in Tokyo), not UTC weekday (Sunday)")
@@ -349,7 +349,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let expectedDays = analyzer.calculateExpectedDays(
             for: habit,
             from: startDate,
-            to: endDate
+            to: endDate,
+            timezone: TimezoneTestHelpers.tokyo
         )
 
         // Assert: Should expect 3 days (Mon, Wed, Fri) in LOCAL timezone
@@ -377,7 +378,7 @@ struct HabitScheduleAnalyzerTimezoneTests {
         )
 
         // Act
-        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: mondayLateNight)
+        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: mondayLateNight, timezone: TimezoneTestHelpers.tokyo)
 
         // Assert: Should be true (it's still Monday at 11:30 PM)
         #expect(isExpected == true, "Late-night Monday (11:30 PM) should still count as Monday")
@@ -405,8 +406,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
         )
 
         // Act
-        let fridayExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: fridayNight)
-        let saturdayExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: saturdayMorning)
+        let fridayExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: fridayNight, timezone: TimezoneTestHelpers.newYork)
+        let saturdayExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: saturdayMorning, timezone: TimezoneTestHelpers.newYork)
 
         // Assert
         #expect(fridayExpected == true, "Friday 11:59 PM should be expected (Friday is scheduled)")
@@ -436,7 +437,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let expectedDays = analyzer.calculateExpectedDays(
             for: habit,
             from: startDate,
-            to: endDate
+            to: endDate,
+            timezone: TimezoneTestHelpers.tokyo
         )
 
         // Assert: Should expect 2 days (Saturday + Sunday) in LOCAL timezone
@@ -475,12 +477,14 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let tokyoExpected = analyzer.calculateExpectedDays(
             for: habit,
             from: tokyoStart,
-            to: tokyoEnd
+            to: tokyoEnd,
+            timezone: TimezoneTestHelpers.tokyo
         )
         let newYorkExpected = analyzer.calculateExpectedDays(
             for: habit,
             from: newYorkStart,
-            to: newYorkEnd
+            to: newYorkEnd,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Both should expect 7 days
@@ -501,7 +505,7 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let beforeSpringForward = TimezoneTestHelpers.dstSpringForwardDate()
 
         // Act
-        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: beforeSpringForward)
+        let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: beforeSpringForward, timezone: TimezoneTestHelpers.newYork)
 
         // Assert: Sunday should NOT be expected for Mon-Fri habit
         #expect(isExpected == false, "Sunday during DST transition should not be expected for weekday habit")
@@ -528,7 +532,8 @@ struct HabitScheduleAnalyzerTimezoneTests {
         let expectedDays = analyzer.calculateExpectedDays(
             for: habit,
             from: startDate,
-            to: endDate
+            to: endDate,
+            timezone: TimezoneTestHelpers.newYork
         )
 
         // Assert: Should still expect 7 days (DST doesn't change calendar days)

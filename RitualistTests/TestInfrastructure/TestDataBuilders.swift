@@ -105,10 +105,11 @@ enum HabitLogBuilder {
         date: Date = Date(),
         timezone: String = TimeZone.current.identifier
     ) -> HabitLog {
+        let tz = TimeZone(identifier: timezone) ?? .current
         return HabitLog(
             id: id,
             habitID: habitId,
-            date: CalendarUtils.startOfDayLocal(for: date),
+            date: CalendarUtils.startOfDayLocal(for: date, timezone: tz),
             value: 1.0,
             timezone: timezone
         )
@@ -122,10 +123,11 @@ enum HabitLogBuilder {
         date: Date = Date(),
         timezone: String = TimeZone.current.identifier
     ) -> HabitLog {
+        let tz = TimeZone(identifier: timezone) ?? .current
         return HabitLog(
             id: id,
             habitID: habitId,
-            date: CalendarUtils.startOfDayLocal(for: date),
+            date: CalendarUtils.startOfDayLocal(for: date, timezone: tz),
             value: value,
             timezone: timezone
         )
@@ -135,15 +137,16 @@ enum HabitLogBuilder {
     static func multipleLogs(
         habitId: UUID,
         dates: [Date],
-        value: Double = 1.0
+        value: Double = 1.0,
+        timezone: TimeZone = .current
     ) -> [HabitLog] {
         return dates.map { date in
             HabitLog(
                 id: UUID(),
                 habitID: habitId,
-                date: CalendarUtils.startOfDayLocal(for: date),
+                date: CalendarUtils.startOfDayLocal(for: date, timezone: timezone),
                 value: value,
-                timezone: TimeZone.current.identifier
+                timezone: timezone.identifier
             )
         }
     }
