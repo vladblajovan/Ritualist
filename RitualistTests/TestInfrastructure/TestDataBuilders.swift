@@ -17,7 +17,7 @@ enum HabitBuilder {
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
         displayOrder: Int = 0,
-        startDate: Date = TestDates.today  // Use TestDates.today for predictable testing
+        startDate: Date = TestDates.daysAgo(30)  // Default to 30 days ago to allow streaks
     ) -> Habit {
         return Habit(
             id: id,
@@ -55,7 +55,7 @@ enum HabitBuilder {
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
         displayOrder: Int = 0,
-        startDate: Date = TestDates.today  // Use TestDates.today for predictable testing
+        startDate: Date = TestDates.daysAgo(30)  // Default to 30 days ago to allow streaks
     ) -> Habit {
         return Habit(
             id: id,
