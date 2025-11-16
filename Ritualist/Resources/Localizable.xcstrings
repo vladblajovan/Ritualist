@@ -1303,7 +1303,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Great! Your performance is consistent across all days"
+            "value" : "Consistent performance!"
           }
         }
       }
@@ -1315,7 +1315,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keep building your tracking habit"
+            "value" : "Keep building habits"
           }
         }
       }
@@ -1327,7 +1327,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Excellent! You're completing nearly all habits every day"
+            "value" : "Nearly perfect completion!"
           }
         }
       }
@@ -1339,7 +1339,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Try scheduling more habits on %@ (performs %d%% better than %@)"
+            "value" : "%@ is %d%% better than %@"
           }
         }
       }
