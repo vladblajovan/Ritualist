@@ -2,13 +2,13 @@
 
 ![Build and Test](https://github.com/vladblajovan/Ritualist/actions/workflows/i18n-validation.yml/badge.svg)
 ![Architecture Validation](https://github.com/vladblajovan/Ritualist/actions/workflows/architecture-check.yml/badge.svg)
-![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)
-![iOS](https://img.shields.io/badge/iOS-17.0+-blue.svg)
+![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)
+![iOS](https://img.shields.io/badge/iOS-18.0+-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-iOS-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
 
-A modern iOS habit tracking app built with SwiftUI and Clean Architecture principles. Features intelligent location-based reminders, iCloud sync, and ML-powered personality insights.
+A modern iOS habit tracking app built with SwiftUI and Clean Architecture principles. Features timezone-aware tracking, intelligent location-based reminders, iCloud sync, and ML-powered personality insights.
 
 **Status:** Pre-release (v0.1.0) - Active development
 
@@ -16,7 +16,8 @@ A modern iOS habit tracking app built with SwiftUI and Clean Architecture princi
 
 ### Core Functionality
 - 📊 **Habit Tracking** - Track daily and weekly habits with custom schedules
-- 📈 **Analytics Dashboard** - Visualize your progress with completion statistics
+- 🌍 **Timezone-Aware Tracking** - Three-timezone architecture (Current, Home, Display) ensures accurate habit tracking across time zones and DST transitions with proper date boundary handling
+- 📈 **Analytics Dashboard** - Visualize your progress with multiple time periods (This Week, This Month, Last 6 Months, Last Year, All Time), schedule optimization suggestions, weekly pattern analysis, and completion statistics
 - 🎯 **Streak Tracking** - Monitor current and best streaks for each habit
 - 🎨 **Customizable** - Personalize habits with colors, emojis, and categories
 
@@ -27,12 +28,22 @@ A modern iOS habit tracking app built with SwiftUI and Clean Architecture princi
 - 📊 **Test Scenarios** - Pre-built habit profiles (The Achiever, The Connector, etc.) for testing
 - 💳 **StoreKit Integration** - In-app subscriptions with feature gating
 
+### Settings & Customization
+- 👤 **Profile Management** - Personalize with profile photo and display name
+- 🎨 **Appearance Modes** - Light, Dark, or System-adaptive themes
+- 📅 **Week Configuration** - Customize first day of week (respects locale settings)
+- 🔔 **Notification Controls** - Granular permission management
+- 🌍 **Timezone Management** - Configure home timezone for consistent tracking across locations
+- 📜 **Timezone History** - View complete timezone change history with timestamps
+- 🐛 **Debug Menu** - Development tools including test data scenarios and migration testing
+
 ### Technical Excellence
-- 🌍 **Full Localization** - i18n support with validated string lengths
+- 🌍 **Full Localization** - i18n support with validated string lengths (239 strings validated)
 - 🔒 **Clean Architecture** - 9/10 architecture rating with proper layer separation
 - ⚡ **Performance Optimized** - 95% database query reduction, 65% MainActor optimization
-- 🧪 **Comprehensive Testing** - Real implementations, no mocks, proper test infrastructure
+- 🧪 **Comprehensive Testing** - 21+ timezone edge case scenarios, real implementations, no mocks
 - 📦 **Modular Design** - RitualistCore package for shared business logic
+- 🗄️ **SwiftData Schema V9** - Timezone-aware persistence with migration support
 
 ## Architecture
 
@@ -47,8 +58,9 @@ Built using Clean Architecture with the following layers:
 - **Repository Pattern** - Data access abstraction
 - **UseCase Pattern** - Single-responsibility business operations
 - **MVVM** - Presentation layer architecture
-- **SwiftData** - Persistence with proper `@Relationship` modeling
+- **SwiftData Schema V9** - Persistence with proper `@Relationship` modeling and timezone fields
 - **RitualistCore Package** - Shared business logic and domain models
+- **Three-Timezone Architecture** - Current (device), Home (user-defined), Display (functional) for accurate date calculations across time zones and DST transitions
 
 ### Performance Optimizations
 - **N+1 Query Elimination** - Batch operations (95% database query reduction)
@@ -58,9 +70,10 @@ Built using Clean Architecture with the following layers:
 
 ## Requirements
 
-- iOS 17.0+
-- Xcode 15.0+
-- Swift 5.9+
+- iOS 18.0+
+- Xcode 16.0+
+- Swift 6.0+
+- SwiftData Schema V9
 
 ## Building
 
@@ -135,7 +148,22 @@ The `main` branch is protected with:
 ```bash
 # Install SwiftLint
 brew install swiftlint
+
+# Install pre-commit hook for string validation
+cp Scripts/pre-commit-hook.sh .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
 ```
+
+### Developer Tools
+
+- **Pre-commit Hooks** - Automatic string validation before commits prevents CI failures
+- **String Validation Script** - Run `swift Scripts/validate_strings.swift` to validate all 239 localized strings for length constraints and format issues
+- **Debug Menu** - In-app development tools accessible via Settings:
+  - Test data scenarios (`.minimal`, `.moderate`, `.full`)
+  - Schema migration testing (V1 → V9)
+  - Timezone configuration testing
+  - Performance testing fixtures
+- **Architecture Checks** - Automated CI validation of Clean Architecture patterns
 
 ### Project Structure
 
@@ -199,6 +227,16 @@ docs/                     # Documentation
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Recent Improvements
+
+### Latest: Timezone-Aware Tracking ([PR #47](https://github.com/vladblajovan/Ritualist/pull/47))
+- **Three-Timezone Architecture** - Current (device), Home (user-defined), Display (functional) for accurate habit tracking across time zones
+- **DST Transition Handling** - Proper date boundary calculations during daylight saving time changes (e.g., November 2025)
+- **Locale-Aware Week Calculations** - Calendar week respects user's first day of week preference (Monday for Romania locale)
+- **Timezone History Tracking** - Complete audit trail of timezone changes with timestamps
+- **21+ Edge Case Tests** - Comprehensive test coverage for timezone scenarios including retroactive logging, midnight boundaries, and weekly analytics
+- **Dashboard Fix** - Fixed weekly period charts showing insufficient data due to Calendar locale bug
+- **String Validation** - Pre-commit hooks with regex-based format specifier validation (239 strings validated)
+- **Schema V9 Migration** - Added timezone fields to persistence layer with proper migration support
 
 ### Performance & Optimization
 - **N+1 Query Elimination** - Batch query operations (GetBatchHabitLogsUseCase)
