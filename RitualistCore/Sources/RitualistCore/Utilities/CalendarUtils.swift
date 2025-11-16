@@ -270,6 +270,11 @@ public struct CalendarUtils {
         return calendar.dateInterval(of: .month, for: date)
     }
 
+    /// Get start of month in local timezone
+    public static func startOfMonthLocal(for date: Date, timezone: TimeZone = .current) -> Date {
+        return monthIntervalLocal(for: date, timezone: timezone)?.start ?? startOfDayLocal(for: date, timezone: timezone)
+    }
+
     // MARK: - Component Extraction (DEPRECATED: Use LOCAL methods)
 
     /// Extract date components (year, month, day, hour, minute, second)
