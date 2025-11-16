@@ -339,6 +339,20 @@ public struct CalendarUtils {
         return calendar.date(byAdding: .day, value: 1, to: date) ?? date
     }
 
+    /// Add days to date (timezone-aware version)
+    /// Adds days using the specified timezone's calendar to handle DST correctly
+    public static func addDaysLocal(_ days: Int, to date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .day, value: days, to: date) ?? date
+    }
+
+    /// Add years to date (timezone-aware version)
+    /// Adds years using the specified timezone's calendar to handle DST correctly
+    public static func addYearsLocal(_ years: Int, to date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .year, value: years, to: date) ?? date
+    }
+
     /// Get next day (UTC version - deprecated for timezone-aware code)
     public static func nextDay(from date: Date) -> Date {
         return addDays(1, to: date)

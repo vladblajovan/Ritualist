@@ -27,34 +27,34 @@ enum TestDates {
 
     /// Yesterday (reference date - 1 day)
     static var yesterday: Date {
-        CalendarUtils.addDays(-1, to: today)
+        CalendarUtils.addDaysLocal(-1, to: today, timezone: .current)
     }
 
     /// Tomorrow (reference date + 1 day)
     static var tomorrow: Date {
-        CalendarUtils.addDays(1, to: today)
+        CalendarUtils.addDaysLocal(1, to: today, timezone: .current)
     }
 
     // MARK: - Relative Date Helpers
 
     /// Get date N days ago from reference date
     static func daysAgo(_ days: Int) -> Date {
-        CalendarUtils.addDays(-days, to: today)
+        CalendarUtils.addDaysLocal(-days, to: today, timezone: .current)
     }
 
     /// Get date N days from now (from reference date)
     static func daysFromNow(_ days: Int) -> Date {
-        CalendarUtils.addDays(days, to: today)
+        CalendarUtils.addDaysLocal(days, to: today, timezone: .current)
     }
 
     /// Get date N weeks ago from reference date
     static func weeksAgo(_ weeks: Int) -> Date {
-        CalendarUtils.addDays(-weeks * 7, to: today)
+        CalendarUtils.addDaysLocal(-weeks * 7, to: today, timezone: .current)
     }
 
     /// Get date N months ago from reference date (approximate - 30 days)
     static func monthsAgo(_ months: Int) -> Date {
-        CalendarUtils.addDays(-months * 30, to: today)
+        CalendarUtils.addDaysLocal(-months * 30, to: today, timezone: .current)
     }
 
     // MARK: - Date Range Helpers
@@ -70,13 +70,13 @@ enum TestDates {
 
     /// Create a date range for the last N days (inclusive)
     static func dateRange(days: Int, endingAt endDate: Date = today) -> ClosedRange<Date> {
-        let startDate = CalendarUtils.addDays(-(days - 1), to: endDate)
+        let startDate = CalendarUtils.addDaysLocal(-(days - 1), to: endDate, timezone: .current)
         return CalendarUtils.startOfDayLocal(for: startDate)...CalendarUtils.startOfDayLocal(for: endDate)
     }
 
     /// Create a standard 30-day cache range (today back to 29 days ago)
     static func standard30DayRange(from startDate: Date = today) -> ClosedRange<Date> {
-        let endDate = CalendarUtils.addDays(29, to: startDate)
+        let endDate = CalendarUtils.addDaysLocal(29, to: startDate, timezone: .current)
         return CalendarUtils.startOfDayLocal(for: startDate)...CalendarUtils.startOfDayLocal(for: endDate)
     }
 

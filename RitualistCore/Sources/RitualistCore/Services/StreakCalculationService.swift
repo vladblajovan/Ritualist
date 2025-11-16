@@ -126,7 +126,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 }
             }
 
-            currentDate = CalendarUtils.addDays(-1, to: currentDate)
+            currentDate = CalendarUtils.addDaysLocal(-1, to: currentDate, timezone: timezone)
             // currentDate already updated above
         }
 
@@ -140,8 +140,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
             return nil
         }
 
-        var searchDate = CalendarUtils.addDays(1, to: CalendarUtils.startOfDayLocal(for: date, timezone: timezone))
-        let searchLimit = CalendarUtils.addYears(1, to: date) // Prevent infinite loops
+        var searchDate = CalendarUtils.addDaysLocal(1, to: CalendarUtils.startOfDayLocal(for: date, timezone: timezone), timezone: timezone)
+        let searchLimit = CalendarUtils.addYearsLocal(1, to: date, timezone: timezone) // Prevent infinite loops
 
         while searchDate <= searchLimit {
             if habitCompletionService.isScheduledDay(habit: habit, date: searchDate, timezone: timezone) {
@@ -157,7 +157,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 }
             }
 
-            searchDate = CalendarUtils.addDays(1, to: searchDate)
+            searchDate = CalendarUtils.addDaysLocal(1, to: searchDate, timezone: timezone)
         }
 
         return nil
@@ -201,7 +201,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 break
             }
 
-            currentDate = CalendarUtils.addDays(-1, to: currentDate)
+            currentDate = CalendarUtils.addDaysLocal(-1, to: currentDate, timezone: timezone)
             // currentDate already updated above
         }
 
@@ -238,7 +238,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
             }
             // Skip non-scheduled days - they don't affect the streak
 
-            currentDate = CalendarUtils.addDays(-1, to: currentDate)
+            currentDate = CalendarUtils.addDaysLocal(-1, to: currentDate, timezone: timezone)
             // currentDate already updated above
         }
 
@@ -324,7 +324,7 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 }
             }
 
-            checkDate = CalendarUtils.addDays(1, to: checkDate)
+            checkDate = CalendarUtils.addDaysLocal(1, to: checkDate, timezone: timezone)
         }
 
         return maxStreak
