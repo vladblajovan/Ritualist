@@ -83,6 +83,9 @@ class StringValidator {
             return .validationMessage
         case _ where key.hasPrefix("accessibility.") || key.hasPrefix("accessibility"):
             return .accessibilityLabel
+        // Onboarding and habits assistant strings are descriptive text, not form fields
+        case _ where key.hasPrefix("onboarding.") || key.hasPrefix("habits_assistant."):
+            return .validationMessage
         // Recognize message/warning/error patterns as validation strings
         case _ where lowercaseKey.contains("message") ||
                      lowercaseKey.contains("warning") ||
