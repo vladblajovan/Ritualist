@@ -9,24 +9,42 @@ import Foundation
 
 public protocol PaywallService {
     var purchaseState: PurchaseState { get }
-    
+
     /// Load available products from the App Store
     func loadProducts() async throws -> [Product]
-    
+
     /// Purchase a product
     func purchase(_ product: Product) async throws -> Bool
-    
+
     /// Restore previous purchases
     func restorePurchases() async throws -> Bool
-    
+
     /// Check if a specific product is purchased
     func isProductPurchased(_ productId: String) async -> Bool
-    
+
     /// Reset purchase state to idle (useful for UI state management)
     func resetPurchaseState()
-    
+
     /// Clear all purchases for a user (useful when subscription is cancelled)
     func clearPurchases()
+
+    // MARK: - Offer Code Redemption
+
+    /// Present the system offer code redemption sheet (iOS 14+)
+    ///
+    /// This shows Apple's native UI for entering and redeeming offer codes.
+    /// Redemptions are processed automatically by StoreKit and arrive via
+    /// the transaction listener.
+    ///
+    /// **Note:** Only available on iOS 14.0 or later
+    ///
+    func presentOfferCodeRedemptionSheet()
+
+    /// Check if offer code redemption is available on this device
+    ///
+    /// - Returns: `true` if the device supports offer code redemption (iOS 14+)
+    ///
+    func isOfferCodeRedemptionAvailable() -> Bool
 }
 
 // MARK: - Mock Implementation
@@ -254,6 +272,21 @@ public final class MockPaywallService: PaywallService {
     public var hasPremiumPurchase: Bool {
         subscriptionService.isPremiumUser()
     }
+
+    // MARK: - Offer Code Redemption (Stub)
+
+    /// Present offer code redemption sheet
+    /// **Note:** This is a stub for MockPaywallService. Real implementation will be added in Phase 2.
+    public func presentOfferCodeRedemptionSheet() {
+        // Stub implementation - will be enhanced in Phase 2 with programmatic redemption
+        print("[MockPaywallService] presentOfferCodeRedemptionSheet() called - stub implementation")
+    }
+
+    /// Check if offer code redemption is available
+    /// **Note:** Always returns true for mock service
+    public func isOfferCodeRedemptionAvailable() -> Bool {
+        return true
+    }
 }
 
 // MARK: - NoOp Implementation
@@ -286,5 +319,15 @@ public final class NoOpPaywallService: PaywallService {
     
     public func clearPurchases() {
         // No-op implementation
+    }
+
+    // MARK: - Offer Code Redemption (No-op)
+
+    public func presentOfferCodeRedemptionSheet() {
+        // No-op implementation
+    }
+
+    public func isOfferCodeRedemptionAvailable() -> Bool {
+        return false
     }
 }
