@@ -23,6 +23,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
     @ObservationIgnored @Injected(\.subscriptionService) var subscriptionService
+    @ObservationIgnored @Injected(\.paywallService) var paywallService
     @ObservationIgnored @Injected(\.debugLogger) var logger
 
     #if DEBUG
