@@ -10,6 +10,9 @@ import Foundation
 public protocol PaywallService {
     var purchaseState: PurchaseState { get }
 
+    /// Current state of offer code redemption
+    var offerCodeRedemptionState: OfferCodeRedemptionState { get }
+
     /// Load available products from the App Store
     func loadProducts() async throws -> [Product]
 
@@ -389,7 +392,8 @@ public final class MockPaywallService: PaywallService {
 @Observable
 public final class NoOpPaywallService: PaywallService {
     public var purchaseState: PurchaseState = .idle
-    
+    public var offerCodeRedemptionState: OfferCodeRedemptionState = .idle
+
     public init() {}
     
     public func loadProducts() async throws -> [Product] {

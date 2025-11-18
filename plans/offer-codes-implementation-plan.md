@@ -4,15 +4,15 @@
 
 **Timeline:** 12-16 hours (complete implementation from foundation to production)
 
-**Status:** 🟢 In Progress - Phase 4 Complete (4/7 phases done)
+**Status:** 🟢 In Progress - Phase 5 Complete (5/7 phases done)
 
 **Progress:**
 - ✅ Phase 1: Foundation & Domain Layer (Complete)
 - ✅ Phase 2: Mock Service Implementation (Complete)
 - ✅ Phase 3: Debug Menu Integration (Complete)
 - ✅ Phase 4: Production Service Updates (Complete)
-- ⬜ Phase 5: UI Layer Integration (Next)
-- ⬜ Phase 6: Testing & Validation
+- ✅ Phase 5: UI Layer Integration (Complete)
+- ⬜ Phase 6: Testing & Validation (Next)
 - ⬜ Phase 7: Production Activation
 
 ---
@@ -309,43 +309,55 @@ Ritualist/Core/Services/
 ## Phase 5: UI Layer Integration
 
 **Duration:** 2-3 hours
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 ### Tasks
 
 #### 5.1: PaywallView Updates
 
-- [ ] **Update `PaywallView.swift`**
+- [x] **Update `PaywallView.swift`**
   - Location: `Ritualist/Features/Paywall/Presentation/PaywallView.swift`
   - Add `offerCodeSection` after `pricingSection`
   - Add `onChange` handler for `offerCodeRedemptionState`
-  - Create `handleOfferCodeSuccess()` method
-  - Create `handleOfferCodeError()` method
+  - Add `handleOfferCodeStateChange()` method for state handling
+  - Add separate alerts for success and error states
 
-- [ ] **Create `offerCodeSection` view**
+- [x] **Create `offerCodeSection` view**
   - Divider
   - Button with:
-    - Icon: "giftcard.fill"
+    - Icon: "giftcard.fill" with purple-pink gradient
     - Title: "Have a promo code?"
     - Subtitle: "Redeem your offer code here"
     - Chevron right
-  - Card-style background with shadow
-  - Disabled state if not available (iOS < 14)
+  - Card-style background with .ultraThinMaterial
+  - Conditional rendering if iOS 14+ available
+  - Added `.offerCodeRedemption(isPresented:)` modifier
 
 #### 5.2: PaywallViewModel Updates
 
-- [ ] **Update `PaywallViewModel.swift`**
+- [x] **Update `PaywallViewModel.swift`**
   - Location: `Ritualist/Features/Paywall/Presentation/PaywallViewModel.swift`
   - Add computed property: `offerCodeRedemptionState`
   - Add computed property: `isOfferCodeRedemptionAvailable`
   - Add method: `presentOfferCodeSheet()`
   - Log user action when tapped
+  - Inject `paywallService` dependency
 
-### Files Modified (2)
+#### 5.3: PaywallService Protocol Extension
+
+- [x] **Add `offerCodeRedemptionState` to protocol**
+  - Location: `RitualistCore/Sources/RitualistCore/Services/PaywallService.swift`
+  - Added property to protocol: `var offerCodeRedemptionState: OfferCodeRedemptionState { get }`
+  - Updated `NoOpPaywallService` to conform
+
+### Files Modified (3)
 ```
 Ritualist/Features/Paywall/Presentation/
-├── PaywallView.swift [+offer code section]
-└── PaywallViewModel.swift [+offer code methods]
+├── PaywallView.swift [+offer code section, +modifiers, +alerts]
+└── PaywallViewModel.swift [+offer code properties & methods]
+
+RitualistCore/Sources/RitualistCore/Services/
+└── PaywallService.swift [+offerCodeRedemptionState to protocol & NoOp]
 ```
 
 ---
