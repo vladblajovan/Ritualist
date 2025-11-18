@@ -4,14 +4,14 @@
 
 **Timeline:** 12-16 hours (complete implementation from foundation to production)
 
-**Status:** 🟢 In Progress - Phase 3 Complete (3/7 phases done)
+**Status:** 🟢 In Progress - Phase 4 Complete (4/7 phases done)
 
 **Progress:**
 - ✅ Phase 1: Foundation & Domain Layer (Complete)
 - ✅ Phase 2: Mock Service Implementation (Complete)
 - ✅ Phase 3: Debug Menu Integration (Complete)
-- ⬜ Phase 4: Production Service Updates (Next)
-- ⬜ Phase 5: UI Layer Integration
+- ✅ Phase 4: Production Service Updates (Complete)
+- ⬜ Phase 5: UI Layer Integration (Next)
 - ⬜ Phase 6: Testing & Validation
 - ⬜ Phase 7: Production Activation
 
@@ -266,38 +266,37 @@ Ritualist/Features/Settings/Presentation/
 ## Phase 4: Production Service Updates
 
 **Duration:** 2-3 hours
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 ### Tasks
 
 #### 4.1: StoreKitPaywallService Updates
 
-- [ ] **Update `StoreKitPaywallService.swift`**
+- [x] **Update `StoreKitPaywallService.swift`**
   - Location: `Ritualist/Core/Services/StoreKitPaywallService.swift`
   - Add property: `offerCodeRedemptionState: OfferCodeRedemptionState`
-  - Add import: `UIKit` (if not present)
+  - ~~Add import: `UIKit`~~ - **NOT NEEDED** (using pure StoreKit 2)
 
-- [ ] **Implement `presentOfferCodeRedemptionSheet()`**
-  - Check iOS 14+ availability
-  - Get window scene
-  - Call `SKPaymentQueue.default().presentCodeRedemptionSheet()`
-  - Update `offerCodeRedemptionState` to `.validating`
-  - Log event
+- [x] **Implement `presentOfferCodeRedemptionSheet()`**
+  - Kept as stub for Phase 4 (service layer)
+  - UI presentation will be done in Phase 5 via SwiftUI `.offerCodeRedemption()` modifier
+  - Pure StoreKit 2 approach (no UIKit/SKPaymentQueue)
 
-- [ ] **Implement `isOfferCodeRedemptionAvailable()`**
+- [x] **Implement `isOfferCodeRedemptionAvailable()`**
   - Return true for iOS 14+, false otherwise
+  - Uses `#available(iOS 14.0, *)` check
 
-- [ ] **Enhance `listenForTransactions()` method**
+- [x] **Enhance `listenForTransactions()` method**
   - Check if transaction has `offer` property (iOS 15+)
   - Create `handleOfferCodeTransaction()` helper
   - Create `handleRegularTransaction()` helper
   - Update `offerCodeRedemptionState` on success
-  - Log offer details (type, payment mode, offer ID)
+  - Log offer details (offer ID, product ID)
 
-- [ ] **Add transaction handlers**
+- [x] **Add transaction handlers**
   - `handleOfferCodeTransaction()`: Process offer redemptions
   - `handleRegularTransaction()`: Process regular purchases
-  - Update UI state on main actor
+  - Update UI state on main actor via `await MainActor.run`
 
 ### Files Modified (1)
 ```

@@ -52,6 +52,12 @@ public final class StoreKitPaywallService: PaywallService {
     /// Debug logger for diagnostics
     private let logger: DebugLogger
 
+    // MARK: - Offer Code State
+
+    /// Current state of offer code redemption
+    /// Updated automatically when offer codes are redeemed via system sheet
+    public var offerCodeRedemptionState: OfferCodeRedemptionState = .idle
+
     // MARK: - Initialization
 
     public init(
@@ -206,20 +212,29 @@ public final class StoreKitPaywallService: PaywallService {
         purchaseState = .idle
     }
 
-    // MARK: - Offer Code Redemption (Stub - Phase 4)
+    // MARK: - Offer Code Redemption
 
     /// Present offer code redemption sheet
-    /// **Note:** Stub implementation - will be fully implemented in Phase 4
+    /// **Note:** Stub - UI presentation will be implemented in Phase 5 (View Layer)
+    /// The actual sheet is presented using SwiftUI's `.offerCodeRedemption()` modifier
     public func presentOfferCodeRedemptionSheet() {
-        // Stub - Phase 4 will implement system sheet presentation
-        logger.log("[StoreKitPaywallService] Offer code redemption sheet - Phase 4", level: .info, category: .subscription)
+        // This is intentionally a stub - the view layer will present the sheet
+        // See Phase 5 for SwiftUI modifier implementation
+        logger.log("[StoreKitPaywallService] Offer code sheet request - use SwiftUI modifier in view layer", level: .info, category: .subscription)
     }
 
-    /// Check if offer code redemption is available
-    /// **Note:** Stub implementation - will check iOS 14+ in Phase 4
+    /// Check if offer code redemption is available on this device
+    ///
+    /// Offer code redemption requires iOS 14.0 or later
+    ///
+    /// - Returns: `true` if the device supports offer code redemption
+    ///
     public func isOfferCodeRedemptionAvailable() -> Bool {
-        // Stub - Phase 4 will check iOS 14+ availability
-        return false
+        if #available(iOS 14.0, *) {
+            return true
+        } else {
+            return false
+        }
     }
 
     // MARK: - Private Methods
@@ -315,6 +330,7 @@ public final class StoreKitPaywallService: PaywallService {
     /// - Interrupted transactions that need to be completed
     /// - Refunds from App Store
     /// - Subscription renewals/cancellations
+    /// - **Offer code redemptions** (iOS 14+)
     ///
     private func listenForTransactions() -> Task<Void, Never> {
         Task.detached { [weak self] in
@@ -326,8 +342,14 @@ public final class StoreKitPaywallService: PaywallService {
                     // Verify the transaction
                     let transaction = try await self.checkVerified(result)
 
-                    // Update subscription service
-                    try? await self.subscriptionService.mockPurchase(transaction.productID)
+                    // Check if this transaction was from an offer code redemption
+                    if #available(iOS 15.0, *), let offer = transaction.offer {
+                        // Handle offer code redemption
+                        await self.handleOfferCodeTransaction(transaction, offer: offer)
+                    } else {
+                        // Handle regular purchase
+                        await self.handleRegularTransaction(transaction)
+                    }
 
                     // Finish the transaction
                     await transaction.finish()
@@ -338,6 +360,49 @@ public final class StoreKitPaywallService: PaywallService {
                 }
             }
         }
+    }
+
+    /// Handles a transaction that originated from an offer code redemption
+    ///
+    /// Updates state to reflect successful offer code redemption and logs the event
+    ///
+    /// - Parameters:
+    ///   - transaction: The verified transaction
+    ///   - offer: The offer details (iOS 15+)
+    ///
+    @available(iOS 15.0, *)
+    private func handleOfferCodeTransaction(_ transaction: Transaction, offer: Transaction.Offer) async {
+        logger.log(
+            "✨ Offer code redeemed - Product: \(transaction.productID), Offer ID: \(offer.id)",
+            level: .info,
+            category: .subscription
+        )
+
+        // Update subscription service with the purchase
+        try? await subscriptionService.mockPurchase(transaction.productID)
+
+        // Update state on main actor
+        await MainActor.run {
+            self.offerCodeRedemptionState = .success(
+                code: "OFFER_\(offer.id)",
+                productId: transaction.productID
+            )
+        }
+    }
+
+    /// Handles a regular transaction (not from offer code)
+    ///
+    /// - Parameter transaction: The verified transaction
+    ///
+    private func handleRegularTransaction(_ transaction: Transaction) async {
+        logger.log(
+            "✅ Regular transaction processed - Product: \(transaction.productID)",
+            level: .info,
+            category: .subscription
+        )
+
+        // Update subscription service
+        try? await subscriptionService.mockPurchase(transaction.productID)
     }
 
     /// Verifies a transaction using StoreKit's built-in verification
