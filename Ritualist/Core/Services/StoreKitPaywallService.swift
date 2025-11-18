@@ -206,6 +206,22 @@ public final class StoreKitPaywallService: PaywallService {
         purchaseState = .idle
     }
 
+    // MARK: - Offer Code Redemption (Stub - Phase 4)
+
+    /// Present offer code redemption sheet
+    /// **Note:** Stub implementation - will be fully implemented in Phase 4
+    public func presentOfferCodeRedemptionSheet() {
+        // Stub - Phase 4 will implement system sheet presentation
+        logger.log("[StoreKitPaywallService] Offer code redemption sheet - Phase 4", level: .info, category: .subscription)
+    }
+
+    /// Check if offer code redemption is available
+    /// **Note:** Stub implementation - will check iOS 14+ in Phase 4
+    public func isOfferCodeRedemptionAvailable() -> Bool {
+        // Stub - Phase 4 will check iOS 14+ availability
+        return false
+    }
+
     // MARK: - Private Methods
 
     /// Maps a StoreKit product to our domain Product entity
