@@ -1,9 +1,9 @@
 🌍 Ritualist String Validation Report
 =====================================
-Generated: 2025-11-01 22:44:42 +0000
+Generated: 2025-11-18 23:19:23 +0000
 📊 Summary:
-   Total strings: 229
-   ✅ Valid: 229
+   Total strings: 240
+   ✅ Valid: 240
    ❌ Invalid: 0
    📈 Success rate: 100%
 
@@ -30,17 +30,22 @@ Generated: 2025-11-01 22:44:42 +0000
 ✅ buttonRetry: "Retry"
 ✅ buttonSave: "Save"
 
-📱 Form Field Strings (188/188 valid)
+📱 Form Field Strings (198/198 valid)
 --------------------------------------------------
 ✅ %@ %@: "%1$@ %2$@"
+✅ %@ → %@: "%1$@ → %2$@"
+✅ %@. %@: "%1$@. %2$@"
 ✅ %lld: "%lld"
 ✅ %lld %@: "%1$lld %2$@"
 ✅ %lld %@ - Completed: "%1$lld %2$@ - Completed"
+✅ %lld (%@): "%1$lld (%2$@)"
 ✅ %lld of %lld %@: "%1$lld of %2$lld %3$@"
 ✅ %lld/%lld: "%1$lld/%2$lld"
 ✅ %lld/%lld %@: "%1$lld/%2$lld %3$@"
-✅ %lld/%lld habits completed: "%1$lld/%2$lld habits completed"
+✅ %lld/%lld habits (Free): "%1$lld/%2$lld habits (Free)"
+✅ %lld/%lld used: "%1$lld/%2$lld used"
 ✅ ...: "…"
+✅ Alerts when %@ within %lldm: "Alert: %1$@ within %2$lldm"
 ✅ Back: "Back"
 ✅ Cancel: "Cancel"
 ✅ Category: "Category"
@@ -55,6 +60,7 @@ Generated: 2025-11-01 22:44:42 +0000
 ✅ Get expert tips and insights to help you build better habits and maintain long-term consistency.: "Get tips for better habits"
 ✅ Habits: "Habits"
 ✅ Initializing...: "Initializing..."
+✅ Last Reset: %@ at %@: "Last Reset: %1$@ at %2$@"
 ✅ Learn & Improve: "Learn & Improve"
 ✅ Let's start by getting to know you better. What should we call you?: "What should we call you?"
 ✅ Loading settings...: "Loading settings..."
@@ -90,6 +96,10 @@ Generated: 2025-11-01 22:44:42 +0000
 ✅ dashboardLast6Months: "Last 6 Months"
 ✅ dashboardLastYear: "Last Year"
 ✅ dashboardNoDataAvailable: "No Data Available"
+✅ dashboardOptimizationConsistentPerformance: "Consistent performance!"
+✅ dashboardOptimizationKeepBuilding: "Keep building habits"
+✅ dashboardOptimizationNearPerfect: "Nearly perfect completion!"
+✅ dashboardOptimizationSuggestion: "%@ is %d%% better than %@"
 ✅ dashboardOverallCompletion: "Overall Completion"
 ✅ dashboardThisMonth: "This Month"
 ✅ dashboardThisWeek: "This Week"
@@ -230,10 +240,11 @@ Generated: 2025-11-01 22:44:42 +0000
 ✅ navigationOverview: "Overview"
 ✅ navigationSettings: "Settings"
 
-📱 Validation Strings (18/18 valid)
+📱 Validation Strings (19/19 valid)
 --------------------------------------------------
 ✅ Error: "Error"
 ✅ This will remove the log entry for "%@" from %@. The habit itself will remain.: "This will remove the log entry for "%1$@..."
+✅ alert.message.migration_restart_test: "Restart to test V%1$lld → V%2$@"
 ✅ dashboardStartTrackingMessage: "Start tracking habits to see your analyt..."
 ✅ dialogDeleteHabitMessage: "Delete "%@"? Cannot be undone."
 ✅ duplicateHabitWarning: "A habit with this name and category alre..."
