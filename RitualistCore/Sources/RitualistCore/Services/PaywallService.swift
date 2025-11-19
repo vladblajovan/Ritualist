@@ -48,6 +48,25 @@ public protocol PaywallService {
     /// - Returns: `true` if the device supports offer code redemption (iOS 14+)
     ///
     func isOfferCodeRedemptionAvailable() -> Bool
+
+    // MARK: - Active Discounts
+
+    /// Get the active discount for a specific product (if any)
+    ///
+    /// - Parameter productId: The product to check for discounts
+    /// - Returns: The active discount if one exists, nil otherwise
+    ///
+    func getActiveDiscount(for productId: String) async -> ActiveDiscount?
+
+    /// Check if there's an active discount for a specific product
+    ///
+    /// - Parameter productId: The product to check
+    /// - Returns: True if a valid discount exists
+    ///
+    func hasActiveDiscount(for productId: String) async -> Bool
+
+    /// Clear the active discount (typically after purchase completion or expiration)
+    func clearActiveDiscount() async
 }
 
 // MARK: - Mock Implementation
@@ -59,6 +78,7 @@ public final class MockPaywallService: PaywallService {
     // MARK: - Dependencies
     private let subscriptionService: SecureSubscriptionService
     private let offerCodeStorage: OfferCodeStorageService
+    private let activeDiscountService: ActiveDiscountService
 
     // MARK: - Offer Code State
     public var offerCodeRedemptionState: OfferCodeRedemptionState = .idle
@@ -160,10 +180,12 @@ public final class MockPaywallService: PaywallService {
     public init(
         subscriptionService: SecureSubscriptionService,
         offerCodeStorage: OfferCodeStorageService = MockOfferCodeStorageService(),
+        activeDiscountService: ActiveDiscountService = MockActiveDiscountService(),
         testingScenario: TestingScenario = .randomResults
     ) {
         self.subscriptionService = subscriptionService
         self.offerCodeStorage = offerCodeStorage
+        self.activeDiscountService = activeDiscountService
         self.currentTestingScenario = testingScenario
     }
     
@@ -178,11 +200,14 @@ public final class MockPaywallService: PaywallService {
     
     public func purchase(_ product: Product) async throws -> Bool {
         purchaseState = .purchasing(product.id)
-        
+
+        // Check if there's an active discount for this product
+        let activeDiscount = await activeDiscountService.getActiveDiscount(for: product.id)
+
         // Simulate realistic purchase delay
         let delayNanoseconds = UInt64(simulatePurchaseDelay * 1_000_000_000)
         try await Task.sleep(nanoseconds: delayNanoseconds)
-        
+
         // Determine outcome based on testing scenario
         let shouldSucceed: Bool
         switch currentTestingScenario {
@@ -199,10 +224,18 @@ public final class MockPaywallService: PaywallService {
             purchaseState = .idle
             throw PaywallError.userCancelled
         }
-        
+
         if shouldSucceed {
             // Use secure subscription service to validate purchase
+            // Note: In production, discounted price would be sent to StoreKit
+            // For mock, we just grant the subscription regardless of discount
             try await subscriptionService.mockPurchase(product.id)
+
+            // Clear the discount after successful purchase
+            if activeDiscount != nil {
+                await activeDiscountService.clearActiveDiscount()
+            }
+
             purchaseState = .success(product)
             
             return true
@@ -311,7 +344,9 @@ public final class MockPaywallService: PaywallService {
     /// 3. Check redemption limits
     /// 4. Check eligibility (new subscribers only)
     /// 5. Check if already redeemed by user
-    /// 6. Grant purchase
+    /// 6. Handle based on offer type:
+    ///    - **Free Trial**: Grant immediate subscription access
+    ///    - **Discount**: Store discount for later application during purchase
     /// 7. Record redemption
     /// 8. Increment redemption count
     ///
@@ -367,8 +402,32 @@ public final class MockPaywallService: PaywallService {
         offerCodeRedemptionState = .redeeming(code)
         try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
 
-        // Step 8: Grant the purchase via subscription service
-        try await subscriptionService.mockPurchase(offerCode.productId)
+        // Step 8: Handle redemption based on offer type
+        switch offerCode.offerType {
+        case .freeTrial:
+            // Free trial codes grant immediate subscription access
+            try await subscriptionService.mockPurchase(offerCode.productId)
+
+        case .upgrade:
+            // Upgrade codes grant immediate subscription access to a higher tier
+            try await subscriptionService.mockPurchase(offerCode.productId)
+
+        case .discount:
+            // Discount codes store the discount for later application during purchase
+            guard let discount = offerCode.discount else {
+                offerCodeRedemptionState = .failed("Discount configuration missing")
+                throw PaywallError.offerCodeInvalid
+            }
+
+            let activeDiscount = ActiveDiscount(
+                codeId: offerCode.id,
+                productId: offerCode.productId,
+                discountType: discount.type,
+                discountValue: discount.value,
+                duration: discount.duration
+            )
+            try await activeDiscountService.setActiveDiscount(activeDiscount)
+        }
 
         // Step 9: Record redemption in history
         let redemption = OfferCodeRedemption(
@@ -384,6 +443,23 @@ public final class MockPaywallService: PaywallService {
         offerCodeRedemptionState = .success(code: code, productId: offerCode.productId)
 
         return true
+    }
+
+    // MARK: - Active Discount Methods
+
+    /// Get the active discount for a specific product
+    public func getActiveDiscount(for productId: String) async -> ActiveDiscount? {
+        await activeDiscountService.getActiveDiscount(for: productId)
+    }
+
+    /// Check if there's an active discount for a specific product
+    public func hasActiveDiscount(for productId: String) async -> Bool {
+        await activeDiscountService.hasActiveDiscount(for: productId)
+    }
+
+    /// Clear the active discount
+    public func clearActiveDiscount() async {
+        await activeDiscountService.clearActiveDiscount()
     }
 }
 
@@ -428,5 +504,19 @@ public final class NoOpPaywallService: PaywallService {
 
     public func isOfferCodeRedemptionAvailable() -> Bool {
         return false
+    }
+
+    // MARK: - Active Discount Methods (No-op)
+
+    public func getActiveDiscount(for productId: String) async -> ActiveDiscount? {
+        return nil
+    }
+
+    public func hasActiveDiscount(for productId: String) async -> Bool {
+        return false
+    }
+
+    public func clearActiveDiscount() async {
+        // No-op implementation
     }
 }

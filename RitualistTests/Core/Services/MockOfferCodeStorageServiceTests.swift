@@ -15,24 +15,24 @@ struct MockOfferCodeStorageServiceTests {
 
     // MARK: - Test Helpers
 
-    /// Clear all UserDefaults keys used across test suites
-    private func clearAllTestKeys() {
-        UserDefaults.standard.removeObject(forKey: "mock_offer_codes")
-        UserDefaults.standard.removeObject(forKey: "mock_offer_code_redemptions")
-        UserDefaults.standard.removeObject(forKey: "secure_mock_purchases")
+    /// Get isolated UserDefaults for this test suite
+    private func getTestDefaults() -> UserDefaults {
+        let testDefaults = UserDefaults(suiteName: "MockOfferCodeStorageServiceTests")!
+        // Clear the entire suite domain to ensure clean state
+        testDefaults.removePersistentDomain(forName: "MockOfferCodeStorageServiceTests")
+        return testDefaults
     }
 
-    /// Create a service with empty storage (deterministic, no async loading)
-    /// Clears UserDefaults to ensure clean state for each test
+    /// Create a service with empty storage using isolated UserDefaults
     private func createEmptyService() -> MockOfferCodeStorageService {
-        clearAllTestKeys()
-        return MockOfferCodeStorageService()
+        let testDefaults = getTestDefaults()
+        return MockOfferCodeStorageService(userDefaults: testDefaults)
     }
 
-    /// Create a service with default test codes pre-loaded
+    /// Create a service with default test codes pre-loaded using isolated UserDefaults
     private func createServiceWithDefaults() async -> MockOfferCodeStorageService {
-        clearAllTestKeys()
-        let service = MockOfferCodeStorageService()
+        let testDefaults = getTestDefaults()
+        let service = MockOfferCodeStorageService(userDefaults: testDefaults)
         await service.loadDefaultTestCodes()
         return service
     }

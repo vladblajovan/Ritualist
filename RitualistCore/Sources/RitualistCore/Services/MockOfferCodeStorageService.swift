@@ -37,6 +37,10 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
     private let codesKey = "mock_offer_codes"
     private let redemptionsKey = "mock_offer_code_redemptions"
 
+    // MARK: - Storage
+
+    private let userDefaults: UserDefaults
+
     // MARK: - Pre-configured Test Codes
 
     /// Default test codes for various testing scenarios
@@ -141,8 +145,11 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
     /// if you want automatic loading, or `loadDefaultTestCodes()` to force load.
     ///
     /// This design ensures tests have full control over storage state without timing issues.
-    public init() {
-        // Intentionally empty - tests control when codes are loaded
+    ///
+    /// - Parameter userDefaults: UserDefaults instance to use for storage (defaults to .standard)
+    ///
+    public init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
     }
 
     /// Load default test codes only if storage is empty
@@ -158,7 +165,7 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
     // MARK: - OfferCodeStorageService Protocol
 
     public func getAllOfferCodes() async throws -> [OfferCode] {
-        guard let data = UserDefaults.standard.data(forKey: codesKey) else {
+        guard let data = userDefaults.data(forKey: codesKey) else {
             return []
         }
 
@@ -167,7 +174,7 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
             return codes
         } catch {
             // If decoding fails, clear corrupted data and return empty
-            UserDefaults.standard.removeObject(forKey: codesKey)
+            userDefaults.removeObject(forKey: codesKey)
             return []
         }
     }
@@ -189,7 +196,7 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
         }
 
         let data = try JSONEncoder().encode(codes)
-        UserDefaults.standard.set(data, forKey: codesKey)
+        userDefaults.set(data, forKey: codesKey)
     }
 
     public func deleteOfferCode(_ codeId: String) async throws {
@@ -197,7 +204,7 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
         codes.removeAll { $0.id == codeId }
 
         let data = try JSONEncoder().encode(codes)
-        UserDefaults.standard.set(data, forKey: codesKey)
+        userDefaults.set(data, forKey: codesKey)
     }
 
     public func incrementRedemptionCount(_ codeId: String) async throws {
@@ -210,7 +217,7 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
     }
 
     public func getRedemptionHistory() async throws -> [OfferCodeRedemption] {
-        guard let data = UserDefaults.standard.data(forKey: redemptionsKey) else {
+        guard let data = userDefaults.data(forKey: redemptionsKey) else {
             return []
         }
 
@@ -219,7 +226,7 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
             return redemptions
         } catch {
             // If decoding fails, clear corrupted data and return empty
-            UserDefaults.standard.removeObject(forKey: redemptionsKey)
+            userDefaults.removeObject(forKey: redemptionsKey)
             return []
         }
     }
@@ -229,7 +236,7 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
         redemptions.append(redemption)
 
         let data = try JSONEncoder().encode(redemptions)
-        UserDefaults.standard.set(data, forKey: redemptionsKey)
+        userDefaults.set(data, forKey: redemptionsKey)
     }
 
     // MARK: - Debug Helpers
@@ -241,9 +248,18 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
     /// - Resetting to known state
     /// - Debug menu "Reset to Default" action
     ///
+    /// **Note:** This appends/updates codes without clearing existing ones.
+    /// Use `resetToDefaults()` if you need to clear first.
+    ///
     public func loadDefaultTestCodes() async {
+        // Load all default codes (will update existing or append new)
         for code in Self.defaultTestCodes {
-            try? await saveOfferCode(code)
+            do {
+                try await saveOfferCode(code)
+            } catch {
+                // Log error but continue loading other codes
+                print("⚠️ Failed to load default code '\(code.id)': \(error)")
+            }
         }
     }
 
@@ -252,7 +268,7 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
     /// **Warning:** This removes all codes including custom ones
     ///
     public func clearAllCodes() async {
-        UserDefaults.standard.removeObject(forKey: codesKey)
+        userDefaults.removeObject(forKey: codesKey)
     }
 
     /// Clear redemption history
@@ -260,7 +276,7 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
     /// Useful for testing redemption flows multiple times
     ///
     public func clearRedemptionHistory() async {
-        UserDefaults.standard.removeObject(forKey: redemptionsKey)
+        userDefaults.removeObject(forKey: redemptionsKey)
     }
 
     /// Reset to default state (codes + history)

@@ -247,6 +247,44 @@ public final class StoreKitPaywallService: PaywallService {
         }
     }
 
+    // MARK: - Active Discounts
+
+    /// Get the active discount for a specific product
+    ///
+    /// **Note:** Discount vouchers are not yet supported in production StoreKit implementation.
+    /// This will be implemented in Phase 3 of the discount voucher feature.
+    ///
+    /// - Parameter productId: The product to check for discounts
+    /// - Returns: Always returns nil (not yet implemented)
+    ///
+    public func getActiveDiscount(for productId: String) async -> ActiveDiscount? {
+        // TODO: Implement production discount voucher support
+        // Will require:
+        // 1. StoreKit offer codes configured in App Store Connect
+        // 2. Transaction listener updates to detect offer redemptions
+        // 3. ActiveDiscountService integration
+        return nil
+    }
+
+    /// Check if there's an active discount for a specific product
+    ///
+    /// **Note:** Discount vouchers are not yet supported in production StoreKit implementation.
+    ///
+    /// - Parameter productId: The product to check
+    /// - Returns: Always returns false (not yet implemented)
+    ///
+    public func hasActiveDiscount(for productId: String) async -> Bool {
+        return false
+    }
+
+    /// Clear the active discount
+    ///
+    /// **Note:** Discount vouchers are not yet supported in production StoreKit implementation.
+    ///
+    public func clearActiveDiscount() async {
+        // No-op for now
+    }
+
     // MARK: - Private Methods
 
     /// Maps a StoreKit product to our domain Product entity
