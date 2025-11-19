@@ -137,9 +137,9 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
 
     public init() {
         // Auto-initialize with default test codes if storage is empty
-        Task {
-            let codes = try? await getAllOfferCodes()
-            if codes?.isEmpty ?? true {
+        // Check synchronously to avoid race conditions
+        if UserDefaults.standard.data(forKey: codesKey) == nil {
+            Task {
                 await loadDefaultTestCodes()
             }
         }

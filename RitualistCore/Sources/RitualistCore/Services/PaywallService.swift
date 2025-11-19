@@ -328,7 +328,7 @@ public final class MockPaywallService: PaywallService {
 
         // Step 1: Get the code from storage
         guard let offerCode = try await offerCodeStorage.getOfferCode(code) else {
-            offerCodeRedemptionState = .failed("Invalid code")
+            offerCodeRedemptionState = .failed("Code '\(code)' not found. Please check and try again.")
             throw PaywallError.offerCodeInvalid
         }
 

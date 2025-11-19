@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum PaywallError: Error, LocalizedError {
+public enum PaywallError: Error, LocalizedError, Equatable {
     case productsNotAvailable
     case purchaseFailed(String)
     case userCancelled
