@@ -9,24 +9,45 @@ import Foundation
 
 public protocol PaywallService {
     var purchaseState: PurchaseState { get }
-    
+
+    /// Current state of offer code redemption
+    var offerCodeRedemptionState: OfferCodeRedemptionState { get }
+
     /// Load available products from the App Store
     func loadProducts() async throws -> [Product]
-    
+
     /// Purchase a product
     func purchase(_ product: Product) async throws -> Bool
-    
+
     /// Restore previous purchases
     func restorePurchases() async throws -> Bool
-    
+
     /// Check if a specific product is purchased
     func isProductPurchased(_ productId: String) async -> Bool
-    
+
     /// Reset purchase state to idle (useful for UI state management)
     func resetPurchaseState()
-    
+
     /// Clear all purchases for a user (useful when subscription is cancelled)
     func clearPurchases()
+
+    // MARK: - Offer Code Redemption
+
+    /// Present the system offer code redemption sheet (iOS 14+)
+    ///
+    /// This shows Apple's native UI for entering and redeeming offer codes.
+    /// Redemptions are processed automatically by StoreKit and arrive via
+    /// the transaction listener.
+    ///
+    /// **Note:** Only available on iOS 14.0 or later
+    ///
+    func presentOfferCodeRedemptionSheet()
+
+    /// Check if offer code redemption is available on this device
+    ///
+    /// - Returns: `true` if the device supports offer code redemption (iOS 14+)
+    ///
+    func isOfferCodeRedemptionAvailable() -> Bool
 }
 
 // MARK: - Mock Implementation
@@ -34,9 +55,13 @@ public protocol PaywallService {
 @Observable
 public final class MockPaywallService: PaywallService {
     public var purchaseState: PurchaseState = .idle
-    
+
     // MARK: - Dependencies
     private let subscriptionService: SecureSubscriptionService
+    private let offerCodeStorage: OfferCodeStorageService
+
+    // MARK: - Offer Code State
+    public var offerCodeRedemptionState: OfferCodeRedemptionState = .idle
     
     // Enhanced mock products with realistic pricing and features
     private let mockProducts: [Product] = [
@@ -131,9 +156,14 @@ public final class MockPaywallService: PaywallService {
     }
     
     public var currentTestingScenario: TestingScenario = .randomResults
-    
-    public init(subscriptionService: SecureSubscriptionService, testingScenario: TestingScenario = .randomResults) {
+
+    public init(
+        subscriptionService: SecureSubscriptionService,
+        offerCodeStorage: OfferCodeStorageService = MockOfferCodeStorageService(),
+        testingScenario: TestingScenario = .randomResults
+    ) {
         self.subscriptionService = subscriptionService
+        self.offerCodeStorage = offerCodeStorage
         self.currentTestingScenario = testingScenario
     }
     
@@ -254,6 +284,107 @@ public final class MockPaywallService: PaywallService {
     public var hasPremiumPurchase: Bool {
         subscriptionService.isPremiumUser()
     }
+
+    // MARK: - Offer Code Redemption
+
+    /// Present offer code redemption sheet
+    ///
+    /// **Note:** In mock service, this is a no-op. Use `redeemOfferCode(_ code: String)` directly for testing.
+    ///
+    public func presentOfferCodeRedemptionSheet() {
+        // In mock mode, we don't show a system sheet
+        // Instead, use the debug menu or call redeemOfferCode() directly
+        print("[MockPaywallService] System redemption sheet not available in mock mode. Use redeemOfferCode() instead.")
+    }
+
+    /// Check if offer code redemption is available
+    /// **Note:** Always returns true for mock service
+    public func isOfferCodeRedemptionAvailable() -> Bool {
+        return true
+    }
+
+    /// Redeem an offer code (programmatic redemption for mock/debug)
+    ///
+    /// This method performs full validation and redemption:
+    /// 1. Validate code exists
+    /// 2. Check expiration
+    /// 3. Check redemption limits
+    /// 4. Check eligibility (new subscribers only)
+    /// 5. Check if already redeemed by user
+    /// 6. Grant purchase
+    /// 7. Record redemption
+    /// 8. Increment redemption count
+    ///
+    /// - Parameter code: The offer code to redeem
+    /// - Returns: `true` if redemption successful
+    /// - Throws: `PaywallError` if validation or redemption fails
+    ///
+    public func redeemOfferCode(_ code: String) async throws -> Bool {
+        // Update state to validating
+        offerCodeRedemptionState = .validating(code)
+
+        // Simulate validation delay
+        try await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+
+        // Step 1: Get the code from storage
+        guard let offerCode = try await offerCodeStorage.getOfferCode(code) else {
+            offerCodeRedemptionState = .failed("Code '\(code)' not found. Please check and try again.")
+            throw PaywallError.offerCodeInvalid
+        }
+
+        // Step 2: Validate expiration
+        if offerCode.isExpired {
+            offerCodeRedemptionState = .failed("Code has expired")
+            throw PaywallError.offerCodeExpired
+        }
+
+        // Step 3: Validate redemption limit
+        if offerCode.isRedemptionLimitReached {
+            offerCodeRedemptionState = .failed("Redemption limit reached")
+            throw PaywallError.offerCodeRedemptionLimitReached
+        }
+
+        // Step 4: Validate active status
+        if !offerCode.isValid {
+            offerCodeRedemptionState = .failed("Code is not active")
+            throw PaywallError.offerCodeInvalid
+        }
+
+        // Step 5: Check eligibility (new subscribers only)
+        if offerCode.isNewSubscribersOnly && subscriptionService.isPremiumUser() {
+            offerCodeRedemptionState = .failed("Only for new subscribers")
+            throw PaywallError.offerCodeNotEligible
+        }
+
+        // Step 6: Check if already redeemed by this user
+        let history = try await offerCodeStorage.getRedemptionHistory()
+        if history.contains(where: { $0.codeId == offerCode.id }) {
+            offerCodeRedemptionState = .failed("Already redeemed")
+            throw PaywallError.offerCodeAlreadyRedeemed
+        }
+
+        // Step 7: Begin redemption process
+        offerCodeRedemptionState = .redeeming(code)
+        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+
+        // Step 8: Grant the purchase via subscription service
+        try await subscriptionService.mockPurchase(offerCode.productId)
+
+        // Step 9: Record redemption in history
+        let redemption = OfferCodeRedemption(
+            codeId: offerCode.id,
+            productId: offerCode.productId
+        )
+        try await offerCodeStorage.recordRedemption(redemption)
+
+        // Step 10: Increment redemption count
+        try await offerCodeStorage.incrementRedemptionCount(offerCode.id)
+
+        // Step 11: Update state to success
+        offerCodeRedemptionState = .success(code: code, productId: offerCode.productId)
+
+        return true
+    }
 }
 
 // MARK: - NoOp Implementation
@@ -261,7 +392,8 @@ public final class MockPaywallService: PaywallService {
 @Observable
 public final class NoOpPaywallService: PaywallService {
     public var purchaseState: PurchaseState = .idle
-    
+    public var offerCodeRedemptionState: OfferCodeRedemptionState = .idle
+
     public init() {}
     
     public func loadProducts() async throws -> [Product] {
@@ -286,5 +418,15 @@ public final class NoOpPaywallService: PaywallService {
     
     public func clearPurchases() {
         // No-op implementation
+    }
+
+    // MARK: - Offer Code Redemption (No-op)
+
+    public func presentOfferCodeRedemptionSheet() {
+        // No-op implementation
+    }
+
+    public func isOfferCodeRedemptionAvailable() -> Bool {
+        return false
     }
 }

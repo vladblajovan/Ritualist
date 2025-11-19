@@ -19,6 +19,11 @@ public struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var vm: PaywallViewModel
     @State private var showingError = false
+    @State private var showingOfferCodeSheet = false
+    @State private var showingOfferCodeSuccess = false
+    @State private var showingOfferCodeError = false
+    @State private var offerCodeSuccessMessage: String?
+    @State private var offerCodeErrorMessage: String?
     
     public init(vm: PaywallViewModel) {
         self.vm = vm
@@ -69,7 +74,12 @@ public struct PaywallView: View {
                             
                             // Pricing Plans
                             pricingSection
-                            
+
+                            // Offer Code Section
+                            if vm.isOfferCodeRedemptionAvailable {
+                                offerCodeSection
+                            }
+
                             // Purchase Button
                             purchaseSection
                             
@@ -109,11 +119,31 @@ public struct PaywallView: View {
                     while vm.isUpdatingUser {
                         try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
                     }
-                    
+
                     // Now dismiss with the updated user state
                     dismiss()
                 }
             }
+        }
+        .offerCodeRedemption(isPresented: $showingOfferCodeSheet)
+        .onChange(of: vm.offerCodeRedemptionState) { _, state in
+            handleOfferCodeStateChange(state)
+        }
+        .alert("Offer Code Redeemed!", isPresented: $showingOfferCodeSuccess) {
+            Button("Great!") {
+                offerCodeSuccessMessage = nil
+                // Dismiss paywall after successful redemption
+                dismiss()
+            }
+        } message: {
+            Text(offerCodeSuccessMessage ?? "Your subscription is now active")
+        }
+        .alert("Redemption Failed", isPresented: $showingOfferCodeError) {
+            Button("OK") {
+                offerCodeErrorMessage = nil
+            }
+        } message: {
+            Text(offerCodeErrorMessage ?? "Unable to redeem offer code. Please try again.")
         }
     }
     
@@ -188,8 +218,64 @@ public struct PaywallView: View {
         }
     }
     
+    // MARK: - Offer Code Section
+
+    private var offerCodeSection: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .padding(.vertical, 8)
+
+            Button {
+                showingOfferCodeSheet = true
+                vm.presentOfferCodeSheet()
+            } label: {
+                HStack(spacing: 12) {
+                    // Icon
+                    Image(systemName: "giftcard.fill")
+                        .font(.title3)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.purple, .pink],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32)
+
+                    // Text content
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Have a promo code?")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+
+                        Text("Redeem your offer code here")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    // Chevron
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                }
+                .padding(16)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CornerRadius.large))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.large)
+                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     // MARK: - Purchase Section
-    
+
     private var purchaseSection: some View {
         VStack(spacing: 12) {
             Button {
@@ -225,8 +311,33 @@ public struct PaywallView: View {
         }
     }
     
+    // MARK: - Offer Code Handlers
+
+    /// Handle changes to offer code redemption state
+    private func handleOfferCodeStateChange(_ state: OfferCodeRedemptionState) {
+        switch state {
+        case .success(let code, let productId):
+            // Show success message
+            offerCodeSuccessMessage = "Successfully redeemed code for \(productId)"
+            showingOfferCodeSuccess = true
+            // Reset sheet state
+            showingOfferCodeSheet = false
+
+        case .failed(let message):
+            // Show error in dedicated offer code error alert
+            offerCodeErrorMessage = message
+            showingOfferCodeError = true
+            // Reset sheet state
+            showingOfferCodeSheet = false
+
+        case .idle, .validating, .redeeming:
+            // No action needed for these states
+            break
+        }
+    }
+
     // MARK: - Helper Properties
-    
+
     private var purchaseButtonText: String {
         guard let selectedProduct = vm.selectedProduct else { return "Purchase" }
         return selectedProduct.duration == .annual ? "Start Free Trial" : "Purchase"

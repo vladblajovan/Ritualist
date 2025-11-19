@@ -52,6 +52,12 @@ public final class StoreKitPaywallService: PaywallService {
     /// Debug logger for diagnostics
     private let logger: DebugLogger
 
+    // MARK: - Offer Code State
+
+    /// Current state of offer code redemption
+    /// Updated automatically when offer codes are redeemed via system sheet
+    public var offerCodeRedemptionState: OfferCodeRedemptionState = .idle
+
     // MARK: - Initialization
 
     public init(
@@ -206,6 +212,41 @@ public final class StoreKitPaywallService: PaywallService {
         purchaseState = .idle
     }
 
+    // MARK: - Offer Code Redemption
+
+    /// Present offer code redemption sheet
+    /// **Note:** Stub - UI presentation will be implemented in Phase 5 (View Layer)
+    /// The actual sheet is presented using SwiftUI's `.offerCodeRedemption()` modifier
+    public func presentOfferCodeRedemptionSheet() {
+        // This is intentionally a stub - the view layer will present the sheet
+        // See Phase 5 for SwiftUI modifier implementation
+        logger.log("[StoreKitPaywallService] Offer code sheet request - use SwiftUI modifier in view layer", level: .info, category: .subscription)
+    }
+
+    /// Check if offer code redemption is available on this device
+    ///
+    /// **iOS Version Requirements:**
+    /// - **iOS 14.0+**: Apple's native redemption sheet (`.offerCodeRedemption()` modifier)
+    /// - **iOS 15.0+**: Automatic transaction detection via `transaction.offer` property
+    ///
+    /// Both features work together for the complete offer code flow:
+    /// 1. User enters code in redemption sheet (iOS 14+)
+    /// 2. Transaction listener detects offer redemption (iOS 15+)
+    /// 3. App grants subscription access
+    ///
+    /// **Note:** On iOS 14.x, the redemption sheet works but automatic detection
+    /// via transaction listener is unavailable (uses manual verification instead).
+    ///
+    /// - Returns: `true` if the device supports offer code redemption (iOS 14+)
+    ///
+    public func isOfferCodeRedemptionAvailable() -> Bool {
+        if #available(iOS 14.0, *) {
+            return true
+        } else {
+            return false
+        }
+    }
+
     // MARK: - Private Methods
 
     /// Maps a StoreKit product to our domain Product entity
@@ -299,6 +340,10 @@ public final class StoreKitPaywallService: PaywallService {
     /// - Interrupted transactions that need to be completed
     /// - Refunds from App Store
     /// - Subscription renewals/cancellations
+    /// - **Offer code redemptions** (iOS 15+ via `transaction.offer` property)
+    ///
+    /// **Note:** On iOS 14.x, offer code redemptions still work via the redemption sheet,
+    /// but automatic detection requires iOS 15+ for the `transaction.offer` property.
     ///
     private func listenForTransactions() -> Task<Void, Never> {
         Task.detached { [weak self] in
@@ -310,8 +355,15 @@ public final class StoreKitPaywallService: PaywallService {
                     // Verify the transaction
                     let transaction = try await self.checkVerified(result)
 
-                    // Update subscription service
-                    try? await self.subscriptionService.mockPurchase(transaction.productID)
+                    // Check if this transaction was from an offer code redemption
+                    // iOS 15+ required for transaction.offer property
+                    if #available(iOS 15.0, *), let offer = transaction.offer {
+                        // Handle offer code redemption
+                        await self.handleOfferCodeTransaction(transaction, offer: offer)
+                    } else {
+                        // Handle regular purchase (or iOS 14.x offer code without automatic detection)
+                        await self.handleRegularTransaction(transaction)
+                    }
 
                     // Finish the transaction
                     await transaction.finish()
@@ -322,6 +374,49 @@ public final class StoreKitPaywallService: PaywallService {
                 }
             }
         }
+    }
+
+    /// Handles a transaction that originated from an offer code redemption
+    ///
+    /// Updates state to reflect successful offer code redemption and logs the event
+    ///
+    /// - Parameters:
+    ///   - transaction: The verified transaction
+    ///   - offer: The offer details (iOS 15+)
+    ///
+    @available(iOS 15.0, *)
+    private func handleOfferCodeTransaction(_ transaction: Transaction, offer: Transaction.Offer) async {
+        logger.log(
+            "✨ Offer code redeemed - Product: \(transaction.productID), Offer ID: \(offer.id)",
+            level: .info,
+            category: .subscription
+        )
+
+        // Update subscription service with the purchase
+        try? await subscriptionService.mockPurchase(transaction.productID)
+
+        // Update state on main actor
+        await MainActor.run {
+            self.offerCodeRedemptionState = .success(
+                code: "OFFER_\(offer.id)",
+                productId: transaction.productID
+            )
+        }
+    }
+
+    /// Handles a regular transaction (not from offer code)
+    ///
+    /// - Parameter transaction: The verified transaction
+    ///
+    private func handleRegularTransaction(_ transaction: Transaction) async {
+        logger.log(
+            "✅ Regular transaction processed - Product: \(transaction.productID)",
+            level: .info,
+            category: .subscription
+        )
+
+        // Update subscription service
+        try? await subscriptionService.mockPurchase(transaction.productID)
     }
 
     /// Verifies a transaction using StoreKit's built-in verification

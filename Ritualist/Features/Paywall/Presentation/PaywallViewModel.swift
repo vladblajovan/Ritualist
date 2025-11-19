@@ -10,6 +10,7 @@ public final class PaywallViewModel {
     private let checkProductPurchased: CheckProductPurchasedUseCase
     private let errorHandler: ErrorHandler?
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
+    @ObservationIgnored @Injected(\.paywallService) var paywallService
     
     // UI State - now managed directly in ViewModel
     public private(set) var products: [Product] = []
@@ -30,13 +31,25 @@ public final class PaywallViewModel {
     public var isPurchasing: Bool {
         purchaseState.isPurchasing
     }
-    
+
     public var hasError: Bool {
         error != nil || purchaseState.errorMessage != nil
     }
-    
+
     public var errorMessage: String? {
         error?.localizedDescription ?? purchaseState.errorMessage
+    }
+
+    // MARK: - Offer Code Properties
+
+    /// Current state of offer code redemption from the paywall service
+    public var offerCodeRedemptionState: OfferCodeRedemptionState {
+        paywallService.offerCodeRedemptionState
+    }
+
+    /// Check if offer code redemption is available (iOS 14+)
+    public var isOfferCodeRedemptionAvailable: Bool {
+        paywallService.isOfferCodeRedemptionAvailable()
     }
     
     public init(
@@ -221,7 +234,29 @@ public final class PaywallViewModel {
         error = nil
         purchaseState = .idle
     }
-    
+
+    // MARK: - Offer Code Methods
+
+    /// Present the system offer code redemption sheet
+    ///
+    /// This triggers the native iOS offer code entry UI. The actual sheet
+    /// is presented using SwiftUI's `.offerCodeRedemption()` modifier in the view layer.
+    ///
+    public func presentOfferCodeSheet() {
+        // Track user action
+        userActionTracker.track(.custom(
+            event: "offer_code_sheet_presented",
+            parameters: [
+                "source": paywallSource,
+                "trigger": "promo_button"
+            ]
+        ))
+
+        // The actual sheet presentation is handled by the view layer
+        // using the `.offerCodeRedemption()` modifier
+        paywallService.presentOfferCodeRedemptionSheet()
+    }
+
     // MARK: - Private Methods
     
     private func handleRestoredPurchases() async {
