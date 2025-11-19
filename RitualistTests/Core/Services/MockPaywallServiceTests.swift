@@ -10,13 +10,19 @@ import Testing
 import Foundation
 @testable import RitualistCore
 
-@Suite("MockPaywallService - Offer Code Redemption Flow")
+@Suite("MockPaywallService - Offer Code Redemption Flow", .serialized)
 struct MockPaywallServiceTests {
 
     // MARK: - Test Helpers
 
     /// Create a fresh MockPaywallService with storage pre-loaded with default codes
+    /// Clears UserDefaults to ensure clean state for each test
     private func createService() async -> (MockPaywallService, MockOfferCodeStorageService, MockSecureSubscriptionService) {
+        // Clear UserDefaults to ensure clean state
+        UserDefaults.standard.removeObject(forKey: "mock_offer_codes")
+        UserDefaults.standard.removeObject(forKey: "mock_offer_code_redemptions")
+        UserDefaults.standard.removeObject(forKey: "secure_mock_purchases")
+
         let storage = MockOfferCodeStorageService()
         await storage.loadDefaultTestCodes() // Load defaults for tests
         let subscriptionService = MockSecureSubscriptionService()
@@ -73,7 +79,7 @@ struct MockPaywallServiceTests {
         let (service, storage, _) = await createService()
         let codes = try await storage.getAllOfferCodes()
         guard let validCode = codes.first(where: { $0.isValid && !$0.isNewSubscribersOnly }) else {
-            Issue.record("No valid non-new-subscriber code found in default codes")
+        Issue.record("No valid non-new-subscriber code found in default codes")
             return
         }
 
@@ -138,7 +144,7 @@ struct MockPaywallServiceTests {
         let (service, _, subscriptionService) = await createService()
 
         // Act
-        try? await service.redeemOfferCode("INVALID")
+        _ = try? await service.redeemOfferCode("INVALID")
 
         // Assert
         #expect(subscriptionService.isPremiumUser() == false, "Invalid code should not grant premium access")

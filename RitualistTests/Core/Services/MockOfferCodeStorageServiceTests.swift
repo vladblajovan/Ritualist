@@ -10,18 +10,28 @@ import Testing
 import Foundation
 @testable import RitualistCore
 
-@Suite("MockOfferCodeStorageService - CRUD Operations")
+@Suite("MockOfferCodeStorageService - CRUD Operations", .serialized)
 struct MockOfferCodeStorageServiceTests {
 
     // MARK: - Test Helpers
 
+    /// Clear all UserDefaults keys used across test suites
+    private func clearAllTestKeys() {
+        UserDefaults.standard.removeObject(forKey: "mock_offer_codes")
+        UserDefaults.standard.removeObject(forKey: "mock_offer_code_redemptions")
+        UserDefaults.standard.removeObject(forKey: "secure_mock_purchases")
+    }
+
     /// Create a service with empty storage (deterministic, no async loading)
+    /// Clears UserDefaults to ensure clean state for each test
     private func createEmptyService() -> MockOfferCodeStorageService {
-        MockOfferCodeStorageService()
+        clearAllTestKeys()
+        return MockOfferCodeStorageService()
     }
 
     /// Create a service with default test codes pre-loaded
     private func createServiceWithDefaults() async -> MockOfferCodeStorageService {
+        clearAllTestKeys()
         let service = MockOfferCodeStorageService()
         await service.loadDefaultTestCodes()
         return service
@@ -355,7 +365,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Get redemption history returns empty when no redemptions")
     func getRedemptionHistory_whenEmpty_returnsEmpty() async throws {
         // Arrange
-        let service = createService()
+        let service = createEmptyService()
         await service.clearRedemptionHistory()
 
         // Act
@@ -368,7 +378,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Record redemption adds to history")
     func recordRedemption_addsToHistory() async throws {
         // Arrange
-        let service = createService()
+        let service = createEmptyService()
         await service.clearRedemptionHistory()
 
         let redemption = OfferCodeRedemption(
@@ -389,7 +399,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Record multiple redemptions preserves all entries")
     func recordRedemption_multiple_preservesAll() async throws {
         // Arrange
-        let service = createService()
+        let service = createEmptyService()
         await service.clearRedemptionHistory()
 
         // Act - Record 3 redemptions
@@ -464,7 +474,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Clear all codes removes all codes")
     func clearAllCodes_removesAllCodes() async throws {
         // Arrange
-        let service = createService()
+        let service = createEmptyService()
         await service.loadDefaultTestCodes()
 
         // Verify codes exist
@@ -482,7 +492,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Clear redemption history removes all history")
     func clearRedemptionHistory_removesAllHistory() async throws {
         // Arrange
-        let service = createService()
+        let service = createEmptyService()
 
         // Add some history
         for i in 1...3 {
@@ -504,7 +514,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Reset to defaults clears everything and loads defaults")
     func resetToDefaults_clearsAndLoadsDefaults() async throws {
         // Arrange
-        let service = createService()
+        let service = createEmptyService()
 
         // Add custom code and history
         try await service.saveOfferCode(createTestCode(id: "CUSTOM"))
