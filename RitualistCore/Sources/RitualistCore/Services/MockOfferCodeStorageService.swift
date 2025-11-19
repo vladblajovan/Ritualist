@@ -135,13 +135,23 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
 
     // MARK: - Initialization
 
+    /// Initialize storage service
+    ///
+    /// **Note:** Does NOT auto-load default codes. Call `loadDefaultTestCodesIfNeeded()`
+    /// if you want automatic loading, or `loadDefaultTestCodes()` to force load.
+    ///
+    /// This design ensures tests have full control over storage state without timing issues.
     public init() {
-        // Auto-initialize with default test codes if storage is empty
-        // Check synchronously to avoid race conditions
-        if UserDefaults.standard.data(forKey: codesKey) == nil {
-            Task {
-                await loadDefaultTestCodes()
-            }
+        // Intentionally empty - tests control when codes are loaded
+    }
+
+    /// Load default test codes only if storage is empty
+    ///
+    /// Safe to call multiple times - only loads if storage is empty
+    public func loadDefaultTestCodesIfNeeded() async {
+        let codes = try? await getAllOfferCodes()
+        if codes?.isEmpty ?? true {
+            await loadDefaultTestCodes()
         }
     }
 

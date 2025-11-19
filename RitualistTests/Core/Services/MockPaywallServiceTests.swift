@@ -15,9 +15,10 @@ struct MockPaywallServiceTests {
 
     // MARK: - Test Helpers
 
-    /// Create a fresh MockPaywallService with storage
-    private func createService() -> (MockPaywallService, MockOfferCodeStorageService, MockSecureSubscriptionService) {
+    /// Create a fresh MockPaywallService with storage pre-loaded with default codes
+    private func createService() async -> (MockPaywallService, MockOfferCodeStorageService, MockSecureSubscriptionService) {
         let storage = MockOfferCodeStorageService()
+        await storage.loadDefaultTestCodes() // Load defaults for tests
         let subscriptionService = MockSecureSubscriptionService()
         let service = MockPaywallService(
             subscriptionService: subscriptionService,
@@ -41,7 +42,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem valid offer code grants subscription and updates state")
     func redeemOfferCode_withValidCode_grantsSubscription() async throws {
         // Arrange
-        let (service, storage, subscriptionService) = createService()
+        let (service, storage, subscriptionService) = await createService()
 
         // Get a valid code
         let codes = try await storage.getAllOfferCodes()
@@ -69,7 +70,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem offer code records redemption in history")
     func redeemOfferCode_recordsRedemptionHistory() async throws {
         // Arrange
-        let (service, storage, _) = createService()
+        let (service, storage, _) = await createService()
         let codes = try await storage.getAllOfferCodes()
         guard let validCode = codes.first(where: { $0.isValid && !$0.isNewSubscribersOnly }) else {
             Issue.record("No valid non-new-subscriber code found in default codes")
@@ -93,7 +94,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem offer code increments redemption count")
     func redeemOfferCode_incrementsRedemptionCount() async throws {
         // Arrange
-        let (service, storage, _) = createService()
+        let (service, storage, _) = await createService()
         let codes = try await storage.getAllOfferCodes()
         guard let validCode = codes.first(where: { $0.isValid && !$0.isNewSubscribersOnly }) else {
             Issue.record("No valid non-new-subscriber code found in default codes")
@@ -114,7 +115,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem non-existent code throws error and updates state")
     func redeemOfferCode_withNonExistentCode_throwsError() async throws {
         // Arrange
-        let (service, _, _) = createService()
+        let (service, _, _) = await createService()
         let invalidCode = "DOESNOTEXIST123"
 
         // Act & Assert
@@ -134,7 +135,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem invalid code does not grant subscription")
     func redeemOfferCode_withInvalidCode_doesNotGrantSubscription() async throws {
         // Arrange
-        let (service, _, subscriptionService) = createService()
+        let (service, _, subscriptionService) = await createService()
 
         // Act
         try? await service.redeemOfferCode("INVALID")
@@ -148,7 +149,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem expired code throws error")
     func redeemOfferCode_withExpiredCode_throwsError() async throws {
         // Arrange
-        let (service, storage, _) = createService()
+        let (service, storage, _) = await createService()
 
         // Get the expired test code
         let codes = try await storage.getAllOfferCodes()
@@ -174,7 +175,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem code at redemption limit throws error")
     func redeemOfferCode_atRedemptionLimit_throwsError() async throws {
         // Arrange
-        let (service, storage, _) = createService()
+        let (service, storage, _) = await createService()
 
         // Get the limit reached test code
         let codes = try await storage.getAllOfferCodes()
@@ -203,7 +204,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem inactive code throws error")
     func redeemOfferCode_withInactiveCode_throwsError() async throws {
         // Arrange
-        let (service, storage, _) = createService()
+        let (service, storage, _) = await createService()
 
         // Get the inactive test code
         let codes = try await storage.getAllOfferCodes()
@@ -232,7 +233,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem new-subscribers-only code when existing user throws error")
     func redeemOfferCode_newSubscribersOnly_whenExistingUser_throwsError() async throws {
         // Arrange
-        let (service, storage, subscriptionService) = createService()
+        let (service, storage, subscriptionService) = await createService()
 
         // Make user a premium user (existing subscriber)
         try await subscriptionService.mockPurchase(StoreKitProductID.monthly)
@@ -260,7 +261,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem new-subscribers-only code when new user succeeds")
     func redeemOfferCode_newSubscribersOnly_whenNewUser_succeeds() async throws {
         // Arrange
-        let (service, storage, subscriptionService) = createService()
+        let (service, storage, subscriptionService) = await createService()
 
         // Ensure user is not premium
         #expect(subscriptionService.isPremiumUser() == false, "User should not be premium initially")
@@ -284,7 +285,7 @@ struct MockPaywallServiceTests {
     @Test("Redeem code twice throws already redeemed error")
     func redeemOfferCode_alreadyRedeemed_throwsError() async throws {
         // Arrange
-        let (service, storage, _) = createService()
+        let (service, storage, _) = await createService()
         let codes = try await storage.getAllOfferCodes()
         guard let validCode = codes.first(where: { $0.isValid && !$0.isNewSubscribersOnly }) else {
             Issue.record("No valid non-new-subscriber code found in default codes")
@@ -315,7 +316,7 @@ struct MockPaywallServiceTests {
     @Test("Redemption state transitions correctly during flow")
     func redeemOfferCode_stateTransitions_areCorrect() async throws {
         // Arrange
-        let (service, storage, _) = createService()
+        let (service, storage, _) = await createService()
         let codes = try await storage.getAllOfferCodes()
         guard let validCode = codes.first(where: { $0.isValid && !$0.isNewSubscribersOnly }) else {
             Issue.record("No valid non-new-subscriber code found in default codes")
@@ -358,7 +359,7 @@ struct MockPaywallServiceTests {
     @Test("Case-insensitive code matching works")
     func redeemOfferCode_caseInsensitive_succeeds() async throws {
         // Arrange
-        let (service, storage, _) = createService()
+        let (service, storage, _) = await createService()
         let codes = try await storage.getAllOfferCodes()
         guard let validCode = codes.first(where: { $0.isValid && !$0.isNewSubscribersOnly }) else {
             Issue.record("No valid non-new-subscriber code found in default codes")
@@ -378,7 +379,7 @@ struct MockPaywallServiceTests {
     @Test("Complete redemption flow updates all related state")
     func redeemOfferCode_completeFlow_updatesAllState() async throws {
         // Arrange
-        let (service, storage, subscriptionService) = createService()
+        let (service, storage, subscriptionService) = await createService()
         let codes = try await storage.getAllOfferCodes()
         guard let validCode = codes.first(where: { $0.isValid && !$0.isNewSubscribersOnly }) else {
             Issue.record("No valid non-new-subscriber code found in default codes")

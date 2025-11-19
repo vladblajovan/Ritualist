@@ -15,21 +15,15 @@ struct MockOfferCodeStorageServiceTests {
 
     // MARK: - Test Helpers
 
-    /// Create a fresh service instance for each test
-    /// Note: Service auto-loads default codes on init (async)
-    /// Tests should explicitly call clearAllCodes() if they need empty storage
-    private func createService() -> MockOfferCodeStorageService {
+    /// Create a service with empty storage (deterministic, no async loading)
+    private func createEmptyService() -> MockOfferCodeStorageService {
         MockOfferCodeStorageService()
     }
 
-    /// Create a service with clean empty storage
-    /// Use this for tests that need to start with no codes
-    private func createEmptyService() async -> MockOfferCodeStorageService {
+    /// Create a service with default test codes pre-loaded
+    private func createServiceWithDefaults() async -> MockOfferCodeStorageService {
         let service = MockOfferCodeStorageService()
-        // Wait for init to complete, then clear
-        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-        await service.clearAllCodes()
-        await service.clearRedemptionHistory()
+        await service.loadDefaultTestCodes()
         return service
     }
 
@@ -52,17 +46,17 @@ struct MockOfferCodeStorageServiceTests {
 
     // MARK: - Initialization Tests
 
-    @Test("Service initializes with default test codes")
+    @Test("Service can load default test codes")
     func service_initialization_loadsDefaultCodes() async throws {
-        // Arrange & Act
-        let service = MockOfferCodeStorageService()
+        // Arrange
+        let service = createEmptyService()
 
-        // Wait for initialization to complete
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        // Act
+        await service.loadDefaultTestCodes()
 
         // Assert
         let codes = try await service.getAllOfferCodes()
-        #expect(codes.count > 0, "Service should load default test codes on initialization")
+        #expect(codes.count > 0, "Service should load default test codes")
 
         // Verify some expected default codes
         let codeIds = codes.map { $0.id }
@@ -74,8 +68,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Service provides various test code types")
     func service_defaultCodes_includeVariousTypes() async throws {
         // Arrange
-        let service = MockOfferCodeStorageService()
-        try await Task.sleep(nanoseconds: 500_000_000)
+        let service = await createServiceWithDefaults()
 
         // Act
         let codes = try await service.getAllOfferCodes()
@@ -99,7 +92,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Get all codes returns empty array when no codes exist")
     func getAllOfferCodes_whenEmpty_returnsEmptyArray() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         // Act
         let codes = try await service.getAllOfferCodes()
@@ -111,7 +104,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Get all codes returns all saved codes")
     func getAllOfferCodes_returnsSavedCodes() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         let code1 = createTestCode(id: "CODE1")
         let code2 = createTestCode(id: "CODE2")
@@ -137,7 +130,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Get offer code returns nil when code doesn't exist")
     func getOfferCode_whenNotExists_returnsNil() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         // Act
         let code = try await service.getOfferCode("DOESNOTEXIST")
@@ -149,7 +142,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Get offer code returns code when exists")
     func getOfferCode_whenExists_returnsCode() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         let testCode = createTestCode(id: "FINDME")
         try await service.saveOfferCode(testCode)
@@ -166,7 +159,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Get offer code is case-insensitive")
     func getOfferCode_caseInsensitive_findsCode() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         let testCode = createTestCode(id: "UPPERCASE")
         try await service.saveOfferCode(testCode)
@@ -187,7 +180,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Save offer code creates new code")
     func saveOfferCode_createsNewCode() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         let newCode = createTestCode(id: "NEWCODE")
 
@@ -203,7 +196,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Save offer code updates existing code")
     func saveOfferCode_updatesExistingCode() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         // Save initial code
         let originalCode = createTestCode(id: "UPDATE", productId: StoreKitProductID.monthly)
@@ -236,7 +229,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Save multiple codes persists all codes")
     func saveOfferCode_multipleCodes_persistsAll() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         // Act - Save multiple codes
         for i in 1...10 {
@@ -254,7 +247,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Delete offer code removes code from storage")
     func deleteOfferCode_removesCode() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         let code = createTestCode(id: "DELETE_ME")
         try await service.saveOfferCode(code)
@@ -274,7 +267,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Delete non-existent code doesn't throw error")
     func deleteOfferCode_nonExistent_doesNotThrow() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         // Act & Assert - Should not throw
         try await service.deleteOfferCode("DOESNOTEXIST")
@@ -287,7 +280,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Delete code doesn't affect other codes")
     func deleteOfferCode_doesNotAffectOtherCodes() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         try await service.saveOfferCode(createTestCode(id: "KEEP1"))
         try await service.saveOfferCode(createTestCode(id: "DELETE"))
@@ -310,7 +303,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Increment redemption count increases count by 1")
     func incrementRedemptionCount_increasesCountByOne() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         let code = createTestCode(id: "INCREMENT")
         try await service.saveOfferCode(code)
@@ -329,7 +322,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Increment redemption count multiple times accumulates")
     func incrementRedemptionCount_multipleTimes_accumulates() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         let code = createTestCode(id: "MULTI_INCREMENT")
         try await service.saveOfferCode(code)
@@ -349,7 +342,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Increment non-existent code throws error")
     func incrementRedemptionCount_nonExistent_throwsError() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         // Act & Assert
         await #expect(throws: PaywallError.offerCodeInvalid) {
@@ -423,7 +416,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Statistics shows correct counts")
     func getStatistics_showsCorrectCounts() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         // Add various codes
         let activeValid = createTestCode(id: "ACTIVE", isActive: true)
@@ -452,7 +445,7 @@ struct MockOfferCodeStorageServiceTests {
     @Test("Load default test codes populates storage")
     func loadDefaultTestCodes_populatesStorage() async throws {
         // Arrange
-        let service = await createEmptyService()
+        let service = createEmptyService()
 
         // Verify empty
         var codes = try await service.getAllOfferCodes()
