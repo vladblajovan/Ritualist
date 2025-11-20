@@ -393,8 +393,9 @@ struct HabitSuggestionsServiceTests {
 | SystemNotificationCenter | Production wrapper for UNUserNotificationCenter | 30 min | 🔴 Critical |
 | InMemoryNotificationCenter | Test implementation with real in-memory behavior | 1 hour | 🔴 Critical |
 | UserProfileBuilder | Simplify timezone/profile test data creation | 30-45 min | 🔴 Critical |
+| Infrastructure Validation Tests | Meta-tests to validate test infrastructure behavior | 30-45 min | 🔴 Critical |
 
-**Total Phase 0:** 2.5-3.5 hours
+**Total Phase 0:** 3-4.5 hours
 
 **Deliverables:**
 - `RitualistTests/TestInfrastructure/NotificationTestHelpers.swift`
@@ -403,6 +404,9 @@ struct HabitSuggestionsServiceTests {
   - InMemoryNotificationCenter implementation
 - `RitualistTests/TestInfrastructure/TestDataBuilders.swift` (extend existing)
   - UserProfileBuilder enum with helper methods
+- `RitualistTests/TestInfrastructure/InfrastructureValidationTests.swift` (NEW)
+  - Meta-tests validating test infrastructure behavior
+  - 5-8 test cases ensuring infrastructure reliability
 
 **Success Criteria:**
 - ✅ NotificationCenterProtocol compiles and passes basic smoke test
@@ -411,21 +415,69 @@ struct HabitSuggestionsServiceTests {
 - ✅ All infrastructure follows existing patterns (TestModelContainer, TestDataBuilders)
 - ✅ No production code changes required (test-only infrastructure)
 
-**Validation:**
-Create simple proof-of-concept tests to validate each component:
+**Infrastructure Validation Tests:**
+Create comprehensive meta-tests to validate test infrastructure before using it in Phase 1-3:
+
 ```swift
-@Test("InMemoryNotificationCenter stores and retrieves requests")
-func notificationCenterBasicBehavior() async throws {
-    let center = InMemoryNotificationCenter()
-    let request = UNNotificationRequest(/* ... */)
+// File: RitualistTests/TestInfrastructure/InfrastructureValidationTests.swift
+@Suite("Infrastructure Validation Tests")
+struct InfrastructureValidationTests {
 
-    try await center.add(request)
-    let pending = await center.pendingNotificationRequests()
+    // NOTIFICATION CENTER PROTOCOL VALIDATION (3-4 tests)
+    @Test("InMemoryNotificationCenter stores and retrieves requests")
+    func notificationCenterBasicBehavior() async throws {
+        let center = InMemoryNotificationCenter()
+        let request = UNNotificationRequest(
+            identifier: "test",
+            content: UNMutableNotificationContent(),
+            trigger: nil
+        )
 
-    #expect(pending.count == 1)
-    #expect(pending.first?.identifier == request.identifier)
+        try await center.add(request)
+        let pending = await center.pendingNotificationRequests()
+
+        #expect(pending.count == 1)
+        #expect(pending.first?.identifier == request.identifier)
+    }
+
+    @Test("InMemoryNotificationCenter removes requests by identifier")
+    func notificationCenterRemoval() async throws {
+        let center = InMemoryNotificationCenter()
+        let request = UNNotificationRequest(identifier: "test", content: UNMutableNotificationContent(), trigger: nil)
+
+        try await center.add(request)
+        center.removePendingNotificationRequests(withIdentifiers: ["test"])
+        let pending = await center.pendingNotificationRequests()
+
+        #expect(pending.isEmpty)
+    }
+
+    @Test("InMemoryNotificationCenter isolates multiple requests")
+    // Validates: Adding multiple requests doesn't cause overlap
+
+    @Test("InMemoryNotificationCenter handles duplicate identifiers correctly")
+    // Validates: Adding same identifier replaces previous request (matches UNUserNotificationCenter behavior)
+
+    // USER PROFILE BUILDER VALIDATION (2-3 tests)
+    @Test("UserProfileBuilder creates profile with home timezone")
+    func userProfileBuilderHomeTimezone() throws {
+        let profile = UserProfileBuilder.withHomeTimezone("America/New_York")
+
+        #expect(profile.homeTimezone == "America/New_York")
+        #expect(profile.currentTimezone == "UTC") // Default
+    }
+
+    @Test("UserProfileBuilder creates profile with display timezone mode")
+    // Validates: DisplayTimezoneMode is correctly set
+
+    @Test("UserProfileBuilder creates profile with travel status")
+    // Validates: Can create profiles simulating travel (current ≠ home)
 }
 ```
+
+**Test Count:** 5-8 validation tests
+**Effort:** 30-45 minutes
+**Why Critical:** Ensures test infrastructure is reliable before building hundreds of tests on top of it
 
 **Why Phase 0 is Critical:**
 - Phase 2 (notifications) depends on NotificationCenterProtocol
