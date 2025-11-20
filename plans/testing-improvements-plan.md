@@ -18,7 +18,7 @@ This plan outlines a comprehensive testing improvement initiative to strengthen 
 - ❌ No CI/CD test automation
 
 **Goals:**
-- Add 135-175 new test cases across 10+ services
+- Add 133-154 new test cases across 10+ services
 - Address code comments requesting regression tests (PerformanceAnalysisService)
 - Strengthen notification reliability testing
 - Improve timezone edge case coverage
@@ -551,6 +551,129 @@ enum UserProfileBuilder {
 
 ---
 
+## 🗂️ Test Data Management Strategy
+
+### **Test Data Lifecycle**
+
+All tests in this plan follow the existing **test data management patterns** established in `RitualistTests/`:
+
+**1. Test Data Creation:**
+- **Use Builders (REQUIRED):** All test data created via `TestDataBuilders` (HabitBuilder, HabitLogBuilder, OverviewDataBuilder)
+- **No Manual Construction:** Never manually create entities - use builders for consistency
+- **Fixed Reference Dates:** Use `TestDates` helpers (today, yesterday, tomorrow) - never `Date()`
+
+**2. Test Isolation:**
+- **In-Memory Containers:** Each test gets a fresh `TestModelContainer` for complete isolation
+- **Automatic Cleanup:** SwiftData containers are automatically discarded after each test
+- **No Shared State:** Tests run independently with zero cross-test contamination
+
+**3. Existing Test Fixtures (Leverage These):**
+
+#### **TimezoneTestHelpers** (`RitualistTests/TestInfrastructure/TimezoneTestHelpers.swift`)
+```swift
+// Already available - use for timezone tests
+static let utc, newYork, tokyo, sydney, london, losAngeles
+static func createDate(year:month:day:hour:minute:timezone:)
+static func createLateNightDate(timezone:)
+static func createMidnightBoundaryDate(timezone:)
+static func dstSpringForwardDate()
+```
+
+#### **TimezoneEdgeCaseFixtures** (`RitualistTests/TestInfrastructure/Fixtures/TimezoneEdgeCaseFixtures.swift`)
+```swift
+// Pre-built test scenarios - use for timezone edge cases
+static func lateNightLoggingScenario(timezone:)
+static func timezoneTransitionScenario()
+static func weeklyScheduleScenario()
+static func dstTransitionScenario()
+static func midnightBoundaryScenario()
+```
+
+#### **TestDates** (`RitualistTests/TestInfrastructure/TestHelpers.swift`)
+```swift
+// Fixed reference dates - use to prevent timezone-dependent tests
+static let today, yesterday, tomorrow
+static func daysAgo(_ count: Int) -> Date
+static func daysFromNow(_ count: Int) -> Date
+static func dateRange() -> (start: Date, end: Date)
+```
+
+### **New Test Data Patterns for This Initiative**
+
+#### **Historical Date Validation Tests:**
+```swift
+// Pattern: Use TestDates with offset calculations
+let maxHistoryLimit = 30
+let validDate = TestDates.daysAgo(29)  // Within limit
+let invalidDate = TestDates.daysAgo(31)  // Beyond limit
+let boundaryDate = TestDates.daysAgo(30)  // Exactly at limit
+```
+
+#### **Notification Scheduling Tests:**
+```swift
+// Pattern: Use InMemoryNotificationCenter for test data
+let notificationCenter = InMemoryNotificationCenter()
+let habit = HabitBuilder.binary()
+// Test schedules notifications and verifies via notificationCenter.pendingRequests
+```
+
+#### **Timezone Service Tests:**
+```swift
+// Pattern: Use UserProfileBuilder with specific timezones
+let profile = UserProfileBuilder.withTimezone(TimezoneTestHelpers.tokyo)
+let travelingProfile = UserProfileBuilder.traveling()
+// Test timezone operations with known timezone configurations
+```
+
+### **Test Data Cleanup Strategy**
+
+**Automatic Cleanup (No Action Required):**
+- ✅ SwiftData containers discarded after each test
+- ✅ In-memory notification center reset per test
+- ✅ User profiles created fresh per test
+
+**No Manual Cleanup Needed:**
+- ❌ No `tearDown()` methods required
+- ❌ No state reset logic needed
+- ❌ No shared fixtures to manage
+
+### **Test Data Versioning for Regression Tests**
+
+**PerformanceAnalysisService Regression Tests:**
+These tests validate the specific bug mentioned in code comments (line 70-75):
+
+```swift
+// Regression test data: partial progress should NOT count as complete
+let habitWithTarget8 = HabitBuilder.numeric(target: 8.0)
+let partialLog = HabitLogBuilder.numeric(value: 3.0)  // 3/8 = incomplete
+let completeLog = HabitLogBuilder.numeric(value: 8.0)  // 8/8 = complete
+
+// Test that partialLog is NOT counted as complete (regression validation)
+```
+
+**Data Versioning Approach:**
+- **No versioning needed** - Tests use current domain models
+- **Regression captured in code comments** - Test names reference the bug being prevented
+- **Future-proof** - If models change, tests will fail at compile time (type safety)
+
+### **Test Data Best Practices**
+
+**✅ Do:**
+- Use `TestDataBuilders` for all entity creation
+- Use `TestDates` for all date values
+- Use `TimezoneTestHelpers` for timezone-specific tests
+- Use `TestModelContainer` for SwiftData integration
+- Leverage existing `TimezoneEdgeCaseFixtures` for complex scenarios
+
+**❌ Don't:**
+- Create entities manually (use builders)
+- Use `Date()` in tests (use TestDates)
+- Share state between tests
+- Mock domain entities (use real builders)
+- Create standalone test fixtures (use existing infrastructure)
+
+---
+
 ## ⚠️ Risks & Mitigation
 
 ### **Risk 1: Notification Testing Complexity**
@@ -589,7 +712,7 @@ enum UserProfileBuilder {
 ## 📈 Success Metrics
 
 ### **Quantitative Metrics**
-- ✅ 140-180 new test cases added
+- ✅ 133-154 new test cases added
 - ✅ 10+ previously untested services now covered
 - ✅ Test suite execution time < 30 seconds
 - ✅ 0 flaky tests (deterministic test suite)
