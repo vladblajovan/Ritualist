@@ -312,3 +312,77 @@ public enum TimezoneTestHelpers {
         )
     }
 }
+
+// MARK: - Mock TimezoneService for Testing
+
+/// Mock TimezoneService that returns a fixed timezone for testing
+///
+/// **Purpose:** Test implementation of TimezoneService protocol for use in service tests
+/// that need timezone coordination (e.g., HabitCompletionCheckService, NotificationScheduler)
+///
+/// **NOT A MOCK:** This is a real test implementation providing actual behavior,
+/// not a mock with stubbed returns. It follows the "NO MOCKS" testing philosophy.
+///
+/// **Usage:**
+/// ```swift
+/// let tokyo = TimeZone(identifier: "Asia/Tokyo")!
+/// let timezoneService = MockTimezoneService(displayTimezone: tokyo)
+/// let service = DefaultHabitCompletionCheckService(
+///     habitRepository: habitRepo,
+///     logRepository: logRepo,
+///     habitCompletionService: completionService,
+///     timezoneService: timezoneService
+/// )
+/// ```
+public final class MockTimezoneService: TimezoneService {
+    private let displayTimezone: TimeZone
+    private let shouldThrowError: Bool
+
+    /// Initialize mock timezone service
+    /// - Parameters:
+    ///   - displayTimezone: The timezone to return from getDisplayTimezone()
+    ///   - shouldThrowError: If true, getDisplayTimezone() will throw an error (for testing error handling)
+    public init(displayTimezone: TimeZone = .current, shouldThrowError: Bool = false) {
+        self.displayTimezone = displayTimezone
+        self.shouldThrowError = shouldThrowError
+    }
+
+    public func getCurrentTimezone() -> TimeZone {
+        return .current
+    }
+
+    public func getHomeTimezone() async throws -> TimeZone {
+        return displayTimezone
+    }
+
+    public func getDisplayTimezone() async throws -> TimeZone {
+        if shouldThrowError {
+            throw NSError(domain: "MockTimezoneService", code: 1, userInfo: nil)
+        }
+        return displayTimezone
+    }
+
+    public func getDisplayTimezoneMode() async throws -> DisplayTimezoneMode {
+        return .current
+    }
+
+    public func updateHomeTimezone(_ timezone: TimeZone) async throws {
+        // Not needed for tests
+    }
+
+    public func updateDisplayTimezoneMode(_ mode: DisplayTimezoneMode) async throws {
+        // Not needed for tests
+    }
+
+    public func detectTimezoneChange() async throws -> TimezoneChangeDetection? {
+        return nil
+    }
+
+    public func detectTravelStatus() async throws -> TravelStatus? {
+        return nil
+    }
+
+    public func updateCurrentTimezone() async throws {
+        // Not needed for tests
+    }
+}
