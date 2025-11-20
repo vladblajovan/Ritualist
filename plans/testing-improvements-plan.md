@@ -382,8 +382,63 @@ struct HabitSuggestionsServiceTests {
 
 ## 📅 Implementation Roadmap
 
+### **Phase 0: Test Infrastructure Setup** (Before Phase 1)
+**Focus:** Build reusable test infrastructure to support all subsequent phases
+
+**Infrastructure Components:**
+
+| Component | Purpose | Effort | Priority |
+|-----------|---------|--------|----------|
+| NotificationCenterProtocol | Protocol abstraction for notification testing | 1-1.5 hours | 🔴 Critical |
+| SystemNotificationCenter | Production wrapper for UNUserNotificationCenter | 30 min | 🔴 Critical |
+| InMemoryNotificationCenter | Test implementation with real in-memory behavior | 1 hour | 🔴 Critical |
+| UserProfileBuilder | Simplify timezone/profile test data creation | 30-45 min | 🔴 Critical |
+
+**Total Phase 0:** 2.5-3.5 hours
+
+**Deliverables:**
+- `RitualistTests/TestInfrastructure/NotificationTestHelpers.swift`
+  - NotificationCenterProtocol definition
+  - SystemNotificationCenter implementation
+  - InMemoryNotificationCenter implementation
+- `RitualistTests/TestInfrastructure/TestDataBuilders.swift` (extend existing)
+  - UserProfileBuilder enum with helper methods
+
+**Success Criteria:**
+- ✅ NotificationCenterProtocol compiles and passes basic smoke test
+- ✅ InMemoryNotificationCenter correctly stores/removes pending requests
+- ✅ UserProfileBuilder creates valid UserProfile instances
+- ✅ All infrastructure follows existing patterns (TestModelContainer, TestDataBuilders)
+- ✅ No production code changes required (test-only infrastructure)
+
+**Validation:**
+Create simple proof-of-concept tests to validate each component:
+```swift
+@Test("InMemoryNotificationCenter stores and retrieves requests")
+func notificationCenterBasicBehavior() async throws {
+    let center = InMemoryNotificationCenter()
+    let request = UNNotificationRequest(/* ... */)
+
+    try await center.add(request)
+    let pending = await center.pendingNotificationRequests()
+
+    #expect(pending.count == 1)
+    #expect(pending.first?.identifier == request.identifier)
+}
+```
+
+**Why Phase 0 is Critical:**
+- Phase 2 (notifications) depends on NotificationCenterProtocol
+- Phase 2 (timezone) depends on UserProfileBuilder
+- Building infrastructure first prevents blocking during test implementation
+- Allows early validation of "NO MOCKS" protocol abstraction approach
+
+---
+
 ### **Phase 1: Critical Business Logic** (Week 1)
 **Focus:** High-impact, pure logic tests
+
+**Prerequisites:** ✅ Phase 0 complete (UserProfileBuilder available)
 
 | Service | Effort | Test Cases | Priority |
 |---------|--------|------------|----------|
@@ -402,6 +457,8 @@ struct HabitSuggestionsServiceTests {
 
 ### **Phase 2: Timezone & Notification Logic** (Week 2)
 **Focus:** Complex timezone handling and notification reliability
+
+**Prerequisites:** ✅ Phase 0 complete (NotificationCenterProtocol + UserProfileBuilder available)
 
 | Service | Effort | Test Cases | Priority |
 |---------|--------|------------|----------|
@@ -436,6 +493,110 @@ struct HabitSuggestionsServiceTests {
 
 ---
 
+### **Phase 4: CI/CD Test Automation** (Future - Post-Implementation)
+**Focus:** Automate test execution and enforce quality gates
+
+**Scope:** CI/CD integration is **deferred to future work** but documented here for completeness.
+
+**Proposed GitHub Actions Workflow:**
+
+| Component | Purpose | Effort | Priority |
+|-----------|---------|--------|----------|
+| Test Execution Workflow | Run all tests on PR creation | 2-3 hours | 🟡 Medium |
+| Coverage Reporting | Generate and upload code coverage reports | 1-2 hours | 🟡 Medium |
+| Build Matrix Testing | Test all 4 build configurations | 1 hour | 🟡 Medium |
+| Quality Gates | Enforce minimum coverage thresholds | 30 min | 🟡 Medium |
+
+**Total Phase 4:** 4.5-6.5 hours
+
+**Proposed Workflow Configuration (`.github/workflows/test.yml`):**
+```yaml
+name: Run Tests
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        configuration:
+          - Debug-AllFeatures
+          - Debug-Subscription
+          - Release-AllFeatures
+          - Release-Subscription
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Run Tests (${{ matrix.configuration }})
+        run: |
+          xcodebuild test \
+            -project Ritualist.xcodeproj \
+            -scheme Ritualist-AllFeatures \
+            -configuration ${{ matrix.configuration }} \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -enableCodeCoverage YES \
+            -resultBundlePath TestResults-${{ matrix.configuration }}.xcresult
+
+      - name: Generate Coverage Report
+        if: matrix.configuration == 'Debug-AllFeatures'
+        run: |
+          xcrun xccov view --report --json TestResults-Debug-AllFeatures.xcresult > coverage.json
+          # Parse and enforce minimum 80% coverage for tested services
+
+      - name: Upload Coverage to Codecov
+        if: matrix.configuration == 'Debug-AllFeatures'
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.json
+          fail_ci_if_error: false
+
+      - name: Archive Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.configuration }}
+          path: TestResults-${{ matrix.configuration }}.xcresult
+```
+
+**Quality Gates:**
+- ✅ All tests must pass before merge
+- ✅ Minimum 80% code coverage for services with tests
+- ✅ Test execution time < 60s (allows headroom beyond 30s target)
+- ✅ All 4 build configurations must build successfully
+
+**Success Criteria:**
+- ✅ Tests run automatically on every PR
+- ✅ Coverage reports generated and uploaded
+- ✅ Failed tests block PR merge
+- ✅ Coverage trends tracked over time
+- ✅ Build matrix validates all configurations
+
+**Why Phase 4 is Deferred:**
+- Focus first on writing high-quality tests (Phases 0-3)
+- CI/CD setup requires infrastructure decisions (coverage tool, report hosting)
+- Can be added incrementally after tests are stable
+- Existing manual testing workflow is adequate during implementation
+
+**Integration with Existing Workflows:**
+The repository already has these GitHub Actions workflows:
+- `codeql-analysis.yml` - Security scanning
+- `i18n-validation.yml` - Localization validation
+- `claude-code-review.yml` - AI code review
+
+Phase 4 would add `test.yml` to complement these existing workflows.
+
+---
+
 ## 📊 Expected Outcomes
 
 ### **Test Coverage Metrics**
@@ -443,9 +604,10 @@ struct HabitSuggestionsServiceTests {
 | Metric | Current | Target | Change |
 |--------|---------|--------|--------|
 | Test Files | 20 | 27-30 | +35-50% |
-| Test Cases | 337 | 475-495 | +40-47% |
+| Test Cases | 337 | 470-491 | +39-46% |
 | Lines of Test Code | 8,143 | 12,000-13,000 | +47-60% |
 | Services Tested | 9 | 17-19 | +89-111% |
+| Test Infrastructure Components | 4 | 8 | +100% (Phase 0) |
 
 ### **Coverage by Layer**
 
