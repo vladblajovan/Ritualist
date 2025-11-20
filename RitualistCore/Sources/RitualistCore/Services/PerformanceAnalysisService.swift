@@ -314,7 +314,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         }
 
         // Calculate consistency based on analysis period
-        let totalDays = CalendarUtils.daysBetweenLocal(start, today)
+        // Add 1 to convert from "difference" to "count" (3 days = difference of 2)
+        let totalDays = CalendarUtils.daysBetweenLocal(start, today) + 1
         let consistencyScore = totalDays > 0 ? Double(daysWithFullCompletion) / Double(totalDays) : 0.0
 
         let streakTrend: String
