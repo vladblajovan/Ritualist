@@ -51,6 +51,23 @@ public final class PaywallViewModel {
     public var isOfferCodeRedemptionAvailable: Bool {
         paywallService.isOfferCodeRedemptionAvailable()
     }
+
+    // MARK: - Discount Properties
+
+    /// Active discounts for products (keyed by product ID)
+    public private(set) var activeDiscounts: [String: ActiveDiscount] = [:]
+
+    /// Check if there's an active discount for the selected product
+    public var hasActiveDiscountForSelectedProduct: Bool {
+        guard let productId = selectedProduct?.id else { return false }
+        return activeDiscounts[productId] != nil
+    }
+
+    /// Get active discount for the selected product
+    public var activeDiscountForSelectedProduct: ActiveDiscount? {
+        guard let productId = selectedProduct?.id else { return nil }
+        return activeDiscounts[productId]
+    }
     
     public init(
         loadPaywallProducts: LoadPaywallProductsUseCase,
@@ -94,10 +111,13 @@ public final class PaywallViewModel {
         }
         
         isLoading = false
-        
+
         // Auto-select the popular product or first one
         selectedProduct = products.first { $0.isPopular } ?? products.first
-        
+
+        // Load active discounts for all products
+        await loadActiveDiscounts()
+
         // Track performance metrics
         let loadTime = Date().timeIntervalSince(startTime)
         userActionTracker.trackPerformance(
@@ -106,7 +126,7 @@ public final class PaywallViewModel {
             unit: "ms",
             additionalProperties: ["products_count": products.count]
         )
-        
+
         // Track error if loading failed
         if let error = error {
             userActionTracker.trackError(error, context: "paywall_load")
@@ -255,6 +275,47 @@ public final class PaywallViewModel {
         // The actual sheet presentation is handled by the view layer
         // using the `.offerCodeRedemption()` modifier
         paywallService.presentOfferCodeRedemptionSheet()
+    }
+
+    // MARK: - Discount Methods
+
+    /// Load active discounts for all products
+    public func loadActiveDiscounts() async {
+        // Clear existing discounts
+        activeDiscounts.removeAll()
+
+        // Load discounts for each product
+        for product in products {
+            if let discount = await paywallService.getActiveDiscount(for: product.id) {
+                activeDiscounts[product.id] = discount
+            }
+        }
+    }
+
+    /// Check if a specific product has an active discount
+    public func hasActiveDiscount(for product: Product) -> Bool {
+        activeDiscounts[product.id] != nil
+    }
+
+    /// Get active discount for a specific product
+    public func getActiveDiscount(for product: Product) -> ActiveDiscount? {
+        activeDiscounts[product.id]
+    }
+
+    /// Calculate discounted price for a product
+    /// - Parameter product: The product to calculate price for
+    /// - Returns: Discounted price if discount exists, nil otherwise
+    public func getDiscountedPrice(for product: Product) -> Double? {
+        guard let discount = activeDiscounts[product.id] else { return nil }
+        guard let price = product.numericPrice else { return nil }
+
+        return discount.calculateDiscountedPrice(price)
+    }
+
+    /// Clear active discount (typically after purchase)
+    public func clearActiveDiscount() async {
+        await paywallService.clearActiveDiscount()
+        activeDiscounts.removeAll()
     }
 
     // MARK: - Private Methods

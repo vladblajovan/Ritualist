@@ -473,7 +473,7 @@ struct CreateOfferCodeView: View {
 
     private func saveCode() {
         let expiration: Date? = hasExpiration
-            ? Date().addingTimeInterval(Double(expirationDays) ?? 90 * 24 * 60 * 60)
+            ? Date().addingTimeInterval(Double(expirationDays) ?? BusinessConstants.ninetyDaysInterval)
             : nil
 
         let discount: OfferCode.OfferDiscount? = offerType == .discount

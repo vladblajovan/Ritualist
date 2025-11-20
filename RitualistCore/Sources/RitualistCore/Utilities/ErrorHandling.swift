@@ -98,8 +98,8 @@ public actor ErrorHandler {
     /// Get error statistics
     public func getErrorStatistics() async -> ErrorStatistics {
         let now = Date()
-        let last24Hours = now.addingTimeInterval(-24 * 60 * 60)
-        let lastHour = now.addingTimeInterval(-60 * 60)
+        let last24Hours = now.addingTimeInterval(-BusinessConstants.oneDayInterval)
+        let lastHour = now.addingTimeInterval(-BusinessConstants.oneHourInterval)
         
         let recent24h = errorLog.filter { $0.timestamp >= last24Hours }
         let recentHour = errorLog.filter { $0.timestamp >= lastHour }

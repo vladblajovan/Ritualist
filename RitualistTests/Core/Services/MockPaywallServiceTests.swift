@@ -15,17 +15,19 @@ struct MockPaywallServiceTests {
 
     // MARK: - Test Helpers
 
-    /// Create a fresh MockPaywallService with storage pre-loaded with default codes
-    /// Clears UserDefaults to ensure clean state for each test
+    /// Create a fresh MockPaywallService with storage pre-loaded with default codes using isolated UserDefaults
     private func createService() async -> (MockPaywallService, MockOfferCodeStorageService, MockSecureSubscriptionService) {
-        // Clear UserDefaults to ensure clean state
-        UserDefaults.standard.removeObject(forKey: "mock_offer_codes")
-        UserDefaults.standard.removeObject(forKey: "mock_offer_code_redemptions")
-        UserDefaults.standard.removeObject(forKey: "secure_mock_purchases")
+        // Create unique UserDefaults suite for this test class
+        let testDefaults = UserDefaults(suiteName: "MockPaywallServiceTests")!
 
-        let storage = MockOfferCodeStorageService()
-        await storage.loadDefaultTestCodes() // Load defaults for tests
-        let subscriptionService = MockSecureSubscriptionService()
+        // Clear the entire suite domain to ensure clean state
+        testDefaults.removePersistentDomain(forName: "MockPaywallServiceTests")
+
+        // Create services with isolated UserDefaults
+        let storage = MockOfferCodeStorageService(userDefaults: testDefaults)
+        await storage.loadDefaultTestCodes()
+
+        let subscriptionService = MockSecureSubscriptionService(userDefaults: testDefaults)
         let service = MockPaywallService(
             subscriptionService: subscriptionService,
             offerCodeStorage: storage
@@ -45,15 +47,24 @@ struct MockPaywallServiceTests {
 
     // MARK: - Successful Redemption Tests
 
-    @Test("Redeem valid offer code grants subscription and updates state")
+    @Test("Redeem valid free trial offer code grants subscription and updates state")
     func redeemOfferCode_withValidCode_grantsSubscription() async throws {
         // Arrange
         let (service, storage, subscriptionService) = await createService()
 
-        // Get a valid code
+        // Get a valid FREE TRIAL code (user is new, so new-subscriber-only codes are OK)
+        // Note: NOT discount codes - those don't grant immediate subscriptions
         let codes = try await storage.getAllOfferCodes()
-        guard let validCode = codes.first(where: { $0.isValid && !$0.isNewSubscribersOnly }) else {
-            Issue.record("No valid non-new-subscriber code found in default codes")
+        guard let validCode = codes.first(where: { $0.isValid && $0.offerType == .freeTrial }) else {
+            // If no free trial code exists, test with upgrade type
+            guard let upgradeCode = codes.first(where: { $0.isValid && $0.offerType == .upgrade }) else {
+                Issue.record("No valid free trial or upgrade code found in default codes")
+                return
+            }
+            // Use upgrade code for testing
+            let result = try await service.redeemOfferCode(upgradeCode.id)
+            #expect(result == true, "Redemption should succeed")
+            #expect(subscriptionService.isPremiumUser() == true, "User should be premium after redemption")
             return
         }
 
@@ -382,13 +393,27 @@ struct MockPaywallServiceTests {
 
     // MARK: - Integration Tests
 
-    @Test("Complete redemption flow updates all related state")
+    @Test("Complete free trial redemption flow updates all related state")
     func redeemOfferCode_completeFlow_updatesAllState() async throws {
         // Arrange
         let (service, storage, subscriptionService) = await createService()
         let codes = try await storage.getAllOfferCodes()
-        guard let validCode = codes.first(where: { $0.isValid && !$0.isNewSubscribersOnly }) else {
-            Issue.record("No valid non-new-subscriber code found in default codes")
+
+        // Get a FREE TRIAL code (user is new, so new-subscriber-only codes are OK)
+        // Note: NOT discount codes - those don't grant subscriptions
+        guard let validCode = codes.first(where: { $0.isValid && $0.offerType == .freeTrial }) else {
+            // Try upgrade type as fallback
+            guard let upgradeCode = codes.first(where: { $0.isValid && $0.offerType == .upgrade }) else {
+                Issue.record("No valid free trial or upgrade code found in default codes")
+                return
+            }
+            // Use upgrade code for this test
+            let initialHistory = try await storage.getRedemptionHistory()
+            let initialCount = upgradeCode.redemptionCount
+            _ = try await service.redeemOfferCode(upgradeCode.id)
+            #expect(subscriptionService.isPremiumUser() == true, "User should be premium")
+            let finalHistory = try await storage.getRedemptionHistory()
+            #expect(finalHistory.count == initialHistory.count + 1, "History should have one more entry")
             return
         }
 
@@ -401,7 +426,7 @@ struct MockPaywallServiceTests {
         _ = try await service.redeemOfferCode(validCode.id)
 
         // Assert - Verify all state changes
-        // 1. User is now premium
+        // 1. User is now premium (for free trial codes)
         #expect(subscriptionService.isPremiumUser() == true, "User should be premium")
         #expect(subscriptionService.isPremiumUser() != initialPremiumStatus, "Premium status should change")
 

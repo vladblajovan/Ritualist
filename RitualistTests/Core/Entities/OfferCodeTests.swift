@@ -16,8 +16,8 @@ struct OfferCodeTests {
     // MARK: - Test Dates
 
     private var now: Date { Date() }
-    private var pastDate: Date { Date().addingTimeInterval(-30 * 24 * 60 * 60) } // 30 days ago
-    private var futureDate: Date { Date().addingTimeInterval(30 * 24 * 60 * 60) } // 30 days from now
+    private var pastDate: Date { Date().addingTimeInterval(-BusinessConstants.thirtyDaysInterval) } // 30 days ago
+    private var futureDate: Date { Date().addingTimeInterval(BusinessConstants.thirtyDaysInterval) } // 30 days from now
 
     // MARK: - isExpired Tests
 
