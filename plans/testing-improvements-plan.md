@@ -18,8 +18,8 @@ This plan outlines a comprehensive testing improvement initiative to strengthen 
 - ❌ No CI/CD test automation
 
 **Goals:**
-- Add 140-180 new test cases across 10+ services
-- Address code comments requesting regression tests
+- Add 135-175 new test cases across 10+ services
+- Address code comments requesting regression tests (PerformanceAnalysisService)
 - Strengthen notification reliability testing
 - Improve timezone edge case coverage
 
@@ -130,43 +130,49 @@ struct PerformanceAnalysisServiceTests {
 
 #### 3. HabitCompletionCheckService Tests
 **File:** `RitualistCore/Sources/RitualistCore/Services/HabitCompletionCheckService.swift:36`
-**Why Critical:** Determines notification visibility; fail-safe logic critical
+**Why Critical:** Orchestrates notification decisions; fail-safe logic critical
 **Current Coverage:** ❌ None
-**Test Value:** ⭐⭐⭐⭐⭐
+**Test Value:** ⭐⭐⭐⭐
 
-**Test Cases to Add:**
+**📝 Note:** This is different from `HabitCompletionService` (which already has 25 test cases).
+`HabitCompletionService` handles pure completion logic, while `HabitCompletionCheckService`
+orchestrates multiple services (repositories, timezone, completion) for notification decisions.
+
+**Test Cases to Add (Focus on Orchestration & Integration):**
 ```swift
 @Suite("HabitCompletionCheckService Tests")
 struct HabitCompletionCheckServiceTests {
 
-    // Basic Completion Logic
-    @Test("shouldShowNotification returns false for completed habit")
-    @Test("shouldShowNotification returns true for incomplete habit")
+    // NOTE: These tests focus on orchestration logic, NOT core completion logic
+    // (Core completion logic is already tested in HabitCompletionServiceTests)
 
-    // Lifecycle Validations
+    // Lifecycle Validations (not in HabitCompletionService)
     @Test("shouldShowNotification returns false for inactive habit")
     @Test("shouldShowNotification returns false before habit start date")
     @Test("shouldShowNotification returns false after habit end date")
     @Test("shouldShowNotification returns false on habit end date boundary")
 
-    // Schedule-Aware Logic
+    // Repository Integration (async fetching)
+    @Test("shouldShowNotification fetches habit from repository")
+    @Test("shouldShowNotification fetches logs from repository")
+    @Test("shouldShowNotification fails safe when habit not found (returns true)")
+
+    // Timezone Service Integration
+    @Test("shouldShowNotification uses display timezone from TimezoneService")
+    @Test("shouldShowNotification falls back to current timezone on fetch error")
+
+    // Error Handling (Fail-Safe Behavior)
+    @Test("shouldShowNotification fails safe on repository error (returns true)")
+    @Test("shouldShowNotification fails safe on completion check error (returns true)")
+
+    // Schedule-Aware Logic (delegates to HabitCompletionService)
     @Test("shouldShowNotification returns false for daysOfWeek habit on non-scheduled day")
     @Test("shouldShowNotification returns true for daysOfWeek habit on scheduled day when incomplete")
-    @Test("shouldShowNotification handles daily schedule correctly")
-
-    // Timezone Support
-    @Test("shouldShowNotification uses display timezone for calculations")
-    @Test("shouldShowNotification handles timezone fetch error gracefully (falls back to current)")
-
-    // Error Handling (Fail-Safe)
-    @Test("shouldShowNotification fails safe on error (returns true)")
-    @Test("shouldShowNotification fails safe when habit not found (returns true)")
-    @Test("shouldShowNotification fails safe on repository error (returns true)")
 }
 ```
 
 **Estimated Effort:** 2-3 hours
-**Estimated Test Cases:** 15-18
+**Estimated Test Cases:** 12-15 (reduced - focuses on orchestration, not core logic)
 
 ---
 
@@ -333,9 +339,9 @@ struct HabitSuggestionsServiceTests {
 |---------|--------|------------|----------|
 | HistoricalDateValidationService | 1-2 hours | 10-12 | 🔴 High |
 | PerformanceAnalysisService | 3-4 hours | 25-30 | 🔴 High |
-| HabitCompletionCheckService | 2-3 hours | 15-18 | 🔴 High |
+| HabitCompletionCheckService | 2-3 hours | 12-15 | 🔴 High |
 
-**Total Phase 1:** 6-9 hours, 50-60 test cases
+**Total Phase 1:** 6-9 hours, 47-57 test cases
 
 **Success Criteria:**
 - ✅ All high-priority services have test coverage
