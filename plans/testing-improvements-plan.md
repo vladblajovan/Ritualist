@@ -128,51 +128,101 @@ struct PerformanceAnalysisServiceTests {
 
 ---
 
-#### 3. HabitCompletionCheckService Tests
+#### 3. HabitCompletionCheckService Tests - Orchestration Layer Only
 **File:** `RitualistCore/Sources/RitualistCore/Services/HabitCompletionCheckService.swift:36`
-**Why Critical:** Orchestrates notification decisions; fail-safe logic critical
+**Why Critical:** Orchestrates notification decisions; fail-safe logic critical for reliability
 **Current Coverage:** ❌ None
 **Test Value:** ⭐⭐⭐⭐
 
-**📝 Note:** This is different from `HabitCompletionService` (which already has 25 test cases).
-`HabitCompletionService` handles pure completion logic, while `HabitCompletionCheckService`
-orchestrates multiple services (repositories, timezone, completion) for notification decisions.
+**🎯 TESTING SCOPE CLARITY:**
 
-**Test Cases to Add (Focus on Orchestration & Integration):**
+This service is an **orchestration layer** that coordinates multiple services for notification decisions. It is fundamentally different from `HabitCompletionService`:
+
+| Aspect | HabitCompletionService | HabitCompletionCheckService |
+|--------|------------------------|----------------------------|
+| **Purpose** | Pure completion logic | Notification orchestration |
+| **Dependencies** | None (pure functions) | 4 dependencies (repositories, services) |
+| **Test Coverage** | ✅ 25 test cases (656 lines) | ❌ None |
+| **What it does** | Calculates if habit is completed | Decides if notification should show |
+| **Layer** | Business logic | Application/Orchestration |
+
+**What is ALREADY TESTED (HabitCompletionService):**
+- ❌ Binary habit completion logic
+- ❌ Numeric habit completion logic (target validation)
+- ❌ Schedule-specific completion (daily, daysOfWeek)
+- ❌ Progress calculations
+- ❌ Timezone-aware date comparisons
+
+**What NEEDS TESTING (HabitCompletionCheckService):**
+- ✅ Lifecycle validation (isActive, startDate, endDate checks)
+- ✅ Repository orchestration (async habit/log fetching)
+- ✅ Timezone service integration (display timezone fetching)
+- ✅ Fail-safe error handling (returns true on errors)
+- ✅ Service coordination (calls HabitCompletionService correctly)
+
+**Test Cases to Add (Orchestration-Only Focus):**
 ```swift
-@Suite("HabitCompletionCheckService Tests")
+@Suite("HabitCompletionCheckService - Orchestration Layer Tests")
 struct HabitCompletionCheckServiceTests {
 
-    // NOTE: These tests focus on orchestration logic, NOT core completion logic
-    // (Core completion logic is already tested in HabitCompletionServiceTests)
+    // CRITICAL: These tests validate ORCHESTRATION, not completion logic
+    // Core completion logic is thoroughly tested in HabitCompletionServiceTests (25 tests)
 
-    // Lifecycle Validations (not in HabitCompletionService)
+    // 1. LIFECYCLE VALIDATIONS (Unique to this service - not in HabitCompletionService)
     @Test("shouldShowNotification returns false for inactive habit")
+    // Tests that service checks habit.isActive before evaluating completion
+
     @Test("shouldShowNotification returns false before habit start date")
+    // Tests date boundary: today < habit.startDate
+
     @Test("shouldShowNotification returns false after habit end date")
+    // Tests date boundary: today >= habit.endDate
+
     @Test("shouldShowNotification returns false on habit end date boundary")
+    // Tests edge case: exactly on endDate
 
-    // Repository Integration (async fetching)
-    @Test("shouldShowNotification fetches habit from repository")
-    @Test("shouldShowNotification fetches logs from repository")
+    // 2. REPOSITORY ORCHESTRATION (Async coordination - not in HabitCompletionService)
+    @Test("shouldShowNotification fetches habit from repository asynchronously")
+    // Tests: await habitRepository.fetchHabit(by:)
+
+    @Test("shouldShowNotification fetches logs from repository asynchronously")
+    // Tests: await logRepository.logs(for:)
+
     @Test("shouldShowNotification fails safe when habit not found (returns true)")
+    // Tests fail-safe: repository returns nil → return true (show notification)
 
-    // Timezone Service Integration
+    // 3. TIMEZONE SERVICE INTEGRATION (Service coordination - not in HabitCompletionService)
     @Test("shouldShowNotification uses display timezone from TimezoneService")
+    // Tests: await timezoneService.getDisplayTimezone()
+
     @Test("shouldShowNotification falls back to current timezone on fetch error")
+    // Tests fail-safe: timezone service throws → use TimeZone.current
 
-    // Error Handling (Fail-Safe Behavior)
+    // 4. FAIL-SAFE ERROR HANDLING (Critical orchestration behavior)
     @Test("shouldShowNotification fails safe on repository error (returns true)")
-    @Test("shouldShowNotification fails safe on completion check error (returns true)")
+    // Tests: repository throws → return true (safer to show notification)
 
-    // Schedule-Aware Logic (delegates to HabitCompletionService)
-    @Test("shouldShowNotification returns false for daysOfWeek habit on non-scheduled day")
-    @Test("shouldShowNotification returns true for daysOfWeek habit on scheduled day when incomplete")
+    @Test("shouldShowNotification fails safe on completion check error (returns true)")
+    // Tests: habitCompletionService throws → return true
+
+    // 5. SERVICE DELEGATION (Validates correct HabitCompletionService usage)
+    @Test("shouldShowNotification delegates completion check to HabitCompletionService")
+    // Tests: Calls habitCompletionService.isCompleted() with correct parameters
+
+    @Test("shouldShowNotification delegates schedule check to HabitCompletionService")
+    // Tests: Calls habitCompletionService.isScheduledDay() for daysOfWeek habits
 }
 ```
 
+**Key Testing Principles:**
+1. **No Duplication:** Do NOT re-test completion logic (already covered)
+2. **Focus on Glue:** Test how services are coordinated together
+3. **Async Behavior:** Test proper async/await orchestration
+4. **Error Paths:** Test all fail-safe scenarios (critical for notifications)
+5. **Integration Points:** Test service boundaries and handoffs
+
 **Estimated Effort:** 2-3 hours
-**Estimated Test Cases:** 12-15 (reduced - focuses on orchestration, not core logic)
+**Estimated Test Cases:** 12-15 (orchestration-focused, no logic duplication)
 
 ---
 
@@ -237,7 +287,7 @@ struct TimezoneServiceTests {
 **Why Important:** Daily notification rescheduling reliability
 **Current Coverage:** ❌ None
 **Test Value:** ⭐⭐⭐⭐
-**Challenge:** Requires mocking `UNUserNotificationCenter`
+**Challenge:** Requires protocol abstraction for `UNUserNotificationCenter` (see Infrastructure section)
 
 **Test Cases to Add:**
 ```swift
@@ -257,7 +307,7 @@ struct DailyNotificationSchedulerServiceTests {
 }
 ```
 
-**Estimated Effort:** 4-5 hours (mocking complexity)
+**Estimated Effort:** 3-4 hours (protocol abstraction complexity)
 **Estimated Test Cases:** 10-12
 
 ---
@@ -356,9 +406,9 @@ struct HabitSuggestionsServiceTests {
 | Service | Effort | Test Cases | Priority |
 |---------|--------|------------|----------|
 | TimezoneService | 3-4 hours | 28-30 | 🔴 High |
-| DailyNotificationSchedulerService | 4-5 hours | 10-12 | 🟡 Medium |
+| DailyNotificationSchedulerService | 3-4 hours | 10-12 | 🟡 Medium |
 
-**Total Phase 2:** 7-9 hours, 38-42 test cases
+**Total Phase 2:** 6-8 hours, 38-42 test cases
 
 **Success Criteria:**
 - ✅ Three-timezone model fully tested
@@ -419,20 +469,72 @@ struct HabitSuggestionsServiceTests {
 
 ### **New Infrastructure Needed**
 
-#### 1. Notification Test Helpers
-**Purpose:** Mock `UNUserNotificationCenter` for notification tests
+#### 1. Notification Test Infrastructure - Protocol Abstraction Approach
+
+**Philosophy Note:** This project follows a strict "NO MOCKS" philosophy (see `MICRO-CONTEXTS/testing-strategy.md`). However, testing `UNUserNotificationCenter` presents a challenge as it's a system framework that cannot be instantiated for testing.
+
+**Decision: Protocol Abstraction over Mocking**
+
+Instead of creating mock objects, we'll use **protocol abstraction** to maintain real implementations while enabling testability:
+
 **Location:** `RitualistTests/TestInfrastructure/NotificationTestHelpers.swift`
 
 ```swift
-final class MockNotificationCenter {
+// Protocol abstraction (not a mock - real interface)
+protocol NotificationCenterProtocol: Sendable {
+    func add(_ request: UNNotificationRequest) async throws
+    func pendingNotificationRequests() async -> [UNNotificationRequest]
+    func removePendingNotificationRequests(withIdentifiers: [String])
+}
+
+// Production wrapper (real implementation)
+final class SystemNotificationCenter: NotificationCenterProtocol {
+    private let center = UNUserNotificationCenter.current()
+
+    func add(_ request: UNNotificationRequest) async throws {
+        try await center.add(request)
+    }
+
+    func pendingNotificationRequests() async -> [UNNotificationRequest] {
+        return await center.pendingNotificationRequests()
+    }
+
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+}
+
+// Test implementation (in-memory, real behavior)
+final class InMemoryNotificationCenter: NotificationCenterProtocol {
     var pendingRequests: [UNNotificationRequest] = []
     var removedIdentifiers: [String] = []
 
-    func add(_ request: UNNotificationRequest) async throws
-    func getPendingNotificationRequests() async -> [UNNotificationRequest]
-    func removePendingNotificationRequests(withIdentifiers: [String])
+    func add(_ request: UNNotificationRequest) async throws {
+        pendingRequests.append(request)
+    }
+
+    func pendingNotificationRequests() async -> [UNNotificationRequest] {
+        return pendingRequests
+    }
+
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+        removedIdentifiers.append(contentsOf: identifiers)
+        pendingRequests.removeAll { identifiers.contains($0.identifier) }
+    }
 }
 ```
+
+**Why This Approach:**
+- ✅ **Maintains "NO MOCKS" philosophy** - Real implementations, not stubs
+- ✅ **Production code uses real `UNUserNotificationCenter`**
+- ✅ **Tests use real in-memory implementation** (not fake behavior)
+- ✅ **Protocol provides compile-time safety**
+- ✅ **Follows existing pattern** (similar to `TestModelContainer` for SwiftData)
+
+**Exception Justification:** This is the ONLY acceptable exception to the "NO MOCKS" rule because:
+1. Apple system frameworks cannot be instantiated for testing
+2. Protocol abstraction maintains real implementation semantics
+3. Test implementation provides actual notification scheduling behavior (not mocked returns)
 
 #### 2. UserProfile Test Builder
 **Purpose:** Simplify creating test user profiles with timezones
@@ -453,7 +555,7 @@ enum UserProfileBuilder {
 
 ### **Risk 1: Notification Testing Complexity**
 **Impact:** Medium
-**Mitigation:** Create reusable `MockNotificationCenter` infrastructure before Phase 2
+**Mitigation:** Use protocol abstraction (`NotificationCenterProtocol`) with `InMemoryNotificationCenter` implementation - maintains "NO MOCKS" philosophy while enabling testing
 
 ### **Risk 2: Timezone Test Flakiness**
 **Impact:** Medium
