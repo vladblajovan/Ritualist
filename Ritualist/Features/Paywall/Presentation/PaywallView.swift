@@ -441,13 +441,12 @@ private struct DiscountBadge: View {
     }
 
     private var discountText: String {
+        let value = Int(discount.discountValue)
         switch discount.discountType {
         case .percentage:
-            return String(localized: "%lld%% OFF", defaultValue: "\(Int(discount.discountValue))% OFF")
-                .replacingOccurrences(of: "%lld", with: "\(Int(discount.discountValue))")
+            return String(format: NSLocalizedString("%lld%% OFF", comment: "Percentage discount badge"), value)
         case .fixed:
-            return String(localized: "$%lld OFF", defaultValue: "$\(Int(discount.discountValue)) OFF")
-                .replacingOccurrences(of: "%lld", with: "\(Int(discount.discountValue))")
+            return String(format: NSLocalizedString("$%lld OFF", comment: "Fixed amount discount badge"), value)
         }
     }
 }
@@ -481,8 +480,7 @@ private struct DiscountBannerCard: View {
                         DiscountBadge(discount: discount)
                     }
 
-                    Text(String(localized: "Code: %@", defaultValue: "Code: \(discount.codeId.uppercased())")
-                        .replacingOccurrences(of: "%@", with: discount.codeId.uppercased()))
+                    Text(String(format: NSLocalizedString("Code: %@", comment: "Discount code label"), discount.codeId.uppercased()))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -637,8 +635,7 @@ private struct PricingCard: View {
 
                             // Savings amount
                             if let savings = calculateSavings(discountedPrice) {
-                                Text(String(localized: "Save %@", defaultValue: "Save \(savings)")
-                                    .replacingOccurrences(of: "%@", with: savings))
+                                Text(String(format: NSLocalizedString("Save %@", comment: "Savings amount label"), savings))
                                     .font(.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.green)
@@ -689,11 +686,7 @@ private struct PricingCard: View {
     // MARK: - Helper Methods
 
     private func formattedDiscountedPrice(_ price: Double) -> String {
-        // Format as currency (assumes USD for now)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        return formatter.string(from: NSNumber(value: price)) ?? "$\(String(format: "%.2f", price))"
+        price.asCurrency()
     }
 
     private func calculateSavings(_ discountedPrice: Double) -> String? {
@@ -702,10 +695,7 @@ private struct PricingCard: View {
         let savings = originalPrice - discountedPrice
         guard savings > 0 else { return nil }
 
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        return formatter.string(from: NSNumber(value: savings)) ?? "$\(String(format: "%.2f", savings))"
+        return savings.asCurrency()
     }
 }
 

@@ -67,7 +67,7 @@ public struct ActiveDiscount: Codable, Equatable {
         self.discountValue = discountValue
         self.duration = duration
         self.redeemedAt = redeemedAt
-        self.expiresAt = expiresAt ?? Date().addingTimeInterval(24 * 60 * 60) // Default: 24 hours
+        self.expiresAt = expiresAt ?? Date().addingTimeInterval(BusinessConstants.oneDayInterval) // Default: 24 hours
     }
 
     // MARK: - Computed Properties

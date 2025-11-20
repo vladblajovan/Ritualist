@@ -1,9 +1,9 @@
 🌍 Ritualist String Validation Report
 =====================================
-Generated: 2025-11-18 23:19:23 +0000
+Generated: 2025-11-20 07:24:54 +0000
 📊 Summary:
-   Total strings: 240
-   ✅ Valid: 240
+   Total strings: 264
+   ✅ Valid: 264
    ❌ Invalid: 0
    📈 Success rate: 100%
 
@@ -30,7 +30,7 @@ Generated: 2025-11-18 23:19:23 +0000
 ✅ buttonRetry: "Retry"
 ✅ buttonSave: "Save"
 
-📱 Form Field Strings (198/198 valid)
+📱 Form Field Strings (182/182 valid)
 --------------------------------------------------
 ✅ %@ %@: "%1$@ %2$@"
 ✅ %@ → %@: "%1$@ → %2$@"
@@ -172,22 +172,6 @@ Generated: 2025-11-18 23:19:23 +0000
 ✅ noTipsAvailable: "No tips available"
 ✅ notification.body: "It's time for your habit."
 ✅ notification.title: "Ritualist"
-✅ onboarding.customize_description: "Customize colors and emojis"
-✅ onboarding.customize_title: "Make It Yours"
-✅ onboarding.enable_notifications: "Enable Notifications"
-✅ onboarding.get_started: "Get Started"
-✅ onboarding.learn_description: "Get tips for better habits"
-✅ onboarding.learn_title: "Learn & Improve"
-✅ onboarding.name_note: "You can change this later"
-✅ onboarding.name_placeholder: "Enter your name"
-✅ onboarding.name_prompt: "What should we call you?"
-✅ onboarding.notifications_description: "Get gentle habit reminders"
-✅ onboarding.notifications_enabled: "Notifications Enabled"
-✅ onboarding.notifications_title: "Stay on Track"
-✅ onboarding.skip_notifications: "You can enable later"
-✅ onboarding.track_habits_description: "Track daily for lasting habits"
-✅ onboarding.track_habits_title: "Track Your Habits"
-✅ onboarding.welcome_title: "Welcome to Ritualist!"
 ✅ overviewBest: "Best"
 ✅ overviewCalendar: "Calendar"
 ✅ overviewCurrent: "Current"
@@ -240,7 +224,7 @@ Generated: 2025-11-18 23:19:23 +0000
 ✅ navigationOverview: "Overview"
 ✅ navigationSettings: "Settings"
 
-📱 Validation Strings (19/19 valid)
+📱 Validation Strings (59/59 valid)
 --------------------------------------------------
 ✅ Error: "Error"
 ✅ This will remove the log entry for "%@" from %@. The habit itself will remain.: "This will remove the log entry for "%1$@..."
@@ -256,6 +240,46 @@ Generated: 2025-11-18 23:19:23 +0000
 ✅ errorUnableSetupOverview: "Unable to setup overview"
 ✅ errorUnableSetupSettings: "Unable to setup settings"
 ✅ habitSuggestionRestriction: "This habit was added from a suggestion a..."
+✅ habits_assistant.first_visit.description: "Select habits that align with your goals..."
+✅ habits_assistant.first_visit.title: "Welcome! Let's Build Your Habits"
+✅ onboarding.customize_description: "Customize colors and emojis"
+✅ onboarding.customize_title: "Make It Yours"
+✅ onboarding.enable_notifications: "Enable Notifications"
+✅ onboarding.get_started: "Get Started"
+✅ onboarding.learn_description: "Get tips for better habits"
+✅ onboarding.learn_title: "Learn & Improve"
+✅ onboarding.name_note: "You can change this later"
+✅ onboarding.name_placeholder: "Enter your name"
+✅ onboarding.name_prompt: "What should we call you?"
+✅ onboarding.notifications_description: "Get gentle habit reminders"
+✅ onboarding.notifications_enabled: "Notifications Enabled"
+✅ onboarding.notifications_title: "Stay on Track"
+✅ onboarding.permissions.enable_location: "Enable Location"
+✅ onboarding.permissions.enable_notifications: "Enable Notifications"
+✅ onboarding.permissions.location_description: "Receive location-based habit reminders"
+✅ onboarding.permissions.location_granted: "Location Enabled"
+✅ onboarding.permissions.notifications_description: "Get reminders for your daily habits"
+✅ onboarding.permissions.notifications_granted: "Notifications Enabled"
+✅ onboarding.permissions.skip_for_now: "You can enable these anytime in Settings"
+✅ onboarding.permissions.subtitle: "Enable notifications and location to mak..."
+✅ onboarding.permissions.title: "Stay On Track"
+✅ onboarding.premium.advanced_analytics: "Advanced analytics"
+✅ onboarding.premium.basic_notifications: "Basic notifications"
+✅ onboarding.premium.custom_reminders: "Custom reminders"
+✅ onboarding.premium.daily_tracking: "Daily tracking"
+✅ onboarding.premium.data_export: "Data export"
+✅ onboarding.premium.five_habits: "5 habits"
+✅ onboarding.premium.footer: "You can upgrade to Pro anytime from Sett..."
+✅ onboarding.premium.free_tier: "Free"
+✅ onboarding.premium.pro_tier: "Pro"
+✅ onboarding.premium.subtitle: "Start with our free plan and upgrade any..."
+✅ onboarding.premium.tips_insights: "Tips & insights"
+✅ onboarding.premium.title: "Unlock Your Full Potential"
+✅ onboarding.premium.unlimited_habits: "Unlimited habits"
+✅ onboarding.skip_notifications: "You can enable later"
+✅ onboarding.track_habits_description: "Track daily for lasting habits"
+✅ onboarding.track_habits_title: "Track Your Habits"
+✅ onboarding.welcome_title: "Welcome to Ritualist!"
 ✅ validationCategoryRequired: "Please select a category"
 ✅ validationNameRequired: "Name is required"
 ✅ validationSelectAtLeastOneDay: "Please select at least one day"
