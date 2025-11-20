@@ -307,12 +307,7 @@ public final class PaywallViewModel {
     /// - Returns: Discounted price if discount exists, nil otherwise
     public func getDiscountedPrice(for product: Product) -> Double? {
         guard let discount = activeDiscounts[product.id] else { return nil }
-
-        // Extract numeric price from localized string (e.g., "$9.99/month" -> 9.99)
-        let priceString = product.price
-        guard let price = Double(priceString.filter { "0123456789.".contains($0) }) else {
-            return nil
-        }
+        guard let price = product.numericPrice else { return nil }
 
         return discount.calculateDiscountedPrice(price)
     }

@@ -433,7 +433,7 @@ struct MockOfferCodeStorageServiceTests {
         let inactiveCode = createTestCode(id: "INACTIVE", isActive: false)
         let expiredCode = createTestCode(
             id: "EXPIRED",
-            expirationDate: Date().addingTimeInterval(-30 * 24 * 60 * 60)
+            expirationDate: Date().addingTimeInterval(-BusinessConstants.thirtyDaysInterval)
         )
 
         try await service.saveOfferCode(activeValid)

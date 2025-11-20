@@ -443,9 +443,11 @@ private struct DiscountBadge: View {
     private var discountText: String {
         switch discount.discountType {
         case .percentage:
-            return "\(Int(discount.discountValue))% OFF"
+            return String(localized: "%lld%% OFF", defaultValue: "\(Int(discount.discountValue))% OFF")
+                .replacingOccurrences(of: "%lld", with: "\(Int(discount.discountValue))")
         case .fixed:
-            return "$\(Int(discount.discountValue)) OFF"
+            return String(localized: "$%lld OFF", defaultValue: "$\(Int(discount.discountValue)) OFF")
+                .replacingOccurrences(of: "%lld", with: "\(Int(discount.discountValue))")
         }
     }
 }
@@ -479,7 +481,8 @@ private struct DiscountBannerCard: View {
                         DiscountBadge(discount: discount)
                     }
 
-                    Text("Code: \(discount.codeId.uppercased())")
+                    Text(String(localized: "Code: %@", defaultValue: "Code: \(discount.codeId.uppercased())")
+                        .replacingOccurrences(of: "%@", with: discount.codeId.uppercased()))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -634,7 +637,8 @@ private struct PricingCard: View {
 
                             // Savings amount
                             if let savings = calculateSavings(discountedPrice) {
-                                Text("Save \(savings)")
+                                Text(String(localized: "Save %@", defaultValue: "Save \(savings)")
+                                    .replacingOccurrences(of: "%@", with: savings))
                                     .font(.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.green)
@@ -693,11 +697,7 @@ private struct PricingCard: View {
     }
 
     private func calculateSavings(_ discountedPrice: Double) -> String? {
-        // Extract original price from localizedPrice string
-        let priceString = product.price
-        guard let originalPrice = Double(priceString.filter { "0123456789.".contains($0) }) else {
-            return nil
-        }
+        guard let originalPrice = product.numericPrice else { return nil }
 
         let savings = originalPrice - discountedPrice
         guard savings > 0 else { return nil }

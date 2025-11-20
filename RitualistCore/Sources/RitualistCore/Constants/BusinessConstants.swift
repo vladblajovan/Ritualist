@@ -87,19 +87,39 @@ public struct BusinessConstants {
     /// Background notification delay (20 minutes)
     public static let backgroundNotificationDelay: TimeInterval = 20 * 60
     
+    // MARK: - Time Intervals
+
+    /// Time interval for 1 day in seconds
+    public static let oneDayInterval: TimeInterval = 24 * 60 * 60
+
+    /// Time interval for 1 hour in seconds
+    public static let oneHourInterval: TimeInterval = 60 * 60
+
+    /// Time interval for 30 days in seconds
+    public static let thirtyDaysInterval: TimeInterval = 30 * 24 * 60 * 60
+
+    /// Time interval for 60 days in seconds
+    public static let sixtyDaysInterval: TimeInterval = 60 * 24 * 60 * 60
+
+    /// Time interval for 90 days in seconds
+    public static let ninetyDaysInterval: TimeInterval = 90 * 24 * 60 * 60
+
+    /// Time interval for 365 days (1 year) in seconds
+    public static let oneYearInterval: TimeInterval = 365 * 24 * 60 * 60
+
     // MARK: - Error Handling & Analytics
-    
+
     /// Error log retention period in days
     public static let errorLogRetentionDays = 7
-    
+
     /// Maximum number of errors to keep in memory
     public static let maxErrorLogSize = 100
-    
+
     /// Time window for error rate calculations (24 hours)
-    public static let errorRateTimeWindow: TimeInterval = 24 * 60 * 60
-    
+    public static let errorRateTimeWindow: TimeInterval = oneDayInterval
+
     /// Time window for recent error analysis (1 hour)
-    public static let recentErrorTimeWindow: TimeInterval = 60 * 60
+    public static let recentErrorTimeWindow: TimeInterval = oneHourInterval
     
     // MARK: - Streak Calculation Rules
     

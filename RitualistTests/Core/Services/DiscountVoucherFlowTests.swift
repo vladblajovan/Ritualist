@@ -47,10 +47,10 @@ struct DiscountVoucherFlowTests {
 
         // Get a discount code
         let codes = try await storage.getAllOfferCodes()
-        guard let discountCode = codes.first(where: { $0.offerType == .discount && $0.isValid }) else {
-            Issue.record("No valid discount code found in default codes")
-            return
-        }
+        let discountCode = try #require(
+            codes.first(where: { $0.offerType == .discount && $0.isValid }),
+            "No valid discount code found in default codes"
+        )
 
         // Act
         let result = try await paywallService.redeemOfferCode(discountCode.id)
@@ -73,15 +73,15 @@ struct DiscountVoucherFlowTests {
 
         // Get WELCOME50 - a 50% discount code
         let codes = try await storage.getAllOfferCodes()
-        guard let discountCode = codes.first(where: { $0.id == "WELCOME50" }) else {
-            Issue.record("WELCOME50 code not found")
-            return
-        }
+        let discountCode = try #require(
+            codes.first(where: { $0.id == "WELCOME50" }),
+            "WELCOME50 code not found"
+        )
 
-        guard let expectedDiscount = discountCode.discount else {
-            Issue.record("WELCOME50 should have discount configuration")
-            return
-        }
+        let expectedDiscount = try #require(
+            discountCode.discount,
+            "WELCOME50 should have discount configuration"
+        )
 
         // Act
         _ = try await paywallService.redeemOfferCode(discountCode.id)
@@ -102,10 +102,10 @@ struct DiscountVoucherFlowTests {
 
         // Redeem a discount code
         let codes = try await storage.getAllOfferCodes()
-        guard let discountCode = codes.first(where: { $0.offerType == .discount && $0.isValid }) else {
-            Issue.record("No valid discount code found")
-            return
-        }
+        let discountCode = try #require(
+            codes.first(where: { $0.offerType == .discount && $0.isValid }),
+            "No valid discount code found"
+        )
 
         _ = try await paywallService.redeemOfferCode(discountCode.id)
 
@@ -172,10 +172,10 @@ struct DiscountVoucherFlowTests {
 
         // Get a discount code
         let codes = try await storage.getAllOfferCodes()
-        guard let discountCode = codes.first(where: { $0.offerType == .discount && $0.isValid }) else {
-            Issue.record("No valid discount code found")
-            return
-        }
+        let discountCode = try #require(
+            codes.first(where: { $0.offerType == .discount && $0.isValid }),
+            "No valid discount code found"
+        )
 
         // Step 1: User is not premium initially
         #expect(subscriptionService.isPremiumUser() == false, "User should start as non-premium")
@@ -215,14 +215,14 @@ struct DiscountVoucherFlowTests {
 
         // Redeem a discount for monthly product
         let codes = try await storage.getAllOfferCodes()
-        guard let monthlyDiscount = codes.first(where: {
-            $0.offerType == .discount &&
-            $0.isValid &&
-            $0.productId == StoreKitProductID.monthly
-        }) else {
-            Issue.record("No valid monthly discount code found")
-            return
-        }
+        let monthlyDiscount = try #require(
+            codes.first(where: {
+                $0.offerType == .discount &&
+                $0.isValid &&
+                $0.productId == StoreKitProductID.monthly
+            }),
+            "No valid monthly discount code found"
+        )
 
         _ = try await paywallService.redeemOfferCode(monthlyDiscount.id)
 
@@ -265,11 +265,14 @@ struct DiscountVoucherFlowTests {
             duration: 3
         )
 
-        // Act & Assert
+        // Act
         let originalPrice = 9.99
         let discountedPrice = discount.calculateDiscountedPrice(originalPrice)
 
-        #expect(discountedPrice == 4.995, "50% off $9.99 should be $4.995")
+        // Assert - Use tolerance for floating-point comparison
+        let expectedPrice = 4.995
+        let tolerance = 0.001
+        #expect(abs(discountedPrice - expectedPrice) < tolerance, "50% off $9.99 should be approximately $4.995")
     }
 
     @Test("ActiveDiscount calculates fixed discount correctly")
@@ -283,11 +286,14 @@ struct DiscountVoucherFlowTests {
             duration: nil
         )
 
-        // Act & Assert
+        // Act
         let originalPrice = 100.00
         let discountedPrice = discount.calculateDiscountedPrice(originalPrice)
 
-        #expect(discountedPrice == 80.00, "$20 off $100 should be $80")
+        // Assert - Use tolerance for floating-point comparison
+        let expectedPrice = 80.00
+        let tolerance = 0.001
+        #expect(abs(discountedPrice - expectedPrice) < tolerance, "$20 off $100 should be approximately $80")
     }
 
     @Test("ActiveDiscount never produces negative price")
@@ -305,7 +311,9 @@ struct DiscountVoucherFlowTests {
         let originalPrice = 10.00
         let discountedPrice = discount.calculateDiscountedPrice(originalPrice)
 
-        // Assert
-        #expect(discountedPrice == 0.0, "Discount should floor at $0, not go negative")
+        // Assert - Use tolerance for floating-point comparison
+        let expectedPrice = 0.0
+        let tolerance = 0.001
+        #expect(abs(discountedPrice - expectedPrice) < tolerance, "Discount should floor at approximately $0, not go negative")
     }
 }

@@ -270,10 +270,10 @@ struct SubscriptionManagementSectionView: View {
             SubscriptionManagementSectionView(vm: makePreviewVM(plan: .free))
 
             // Monthly subscriber preview
-            SubscriptionManagementSectionView(vm: makePreviewVM(plan: .monthly, expiryDate: Date().addingTimeInterval(30*24*60*60)))
+            SubscriptionManagementSectionView(vm: makePreviewVM(plan: .monthly, expiryDate: Date().addingTimeInterval(BusinessConstants.thirtyDaysInterval)))
 
             // Annual subscriber preview
-            SubscriptionManagementSectionView(vm: makePreviewVM(plan: .annual, expiryDate: Date().addingTimeInterval(365*24*60*60)))
+            SubscriptionManagementSectionView(vm: makePreviewVM(plan: .annual, expiryDate: Date().addingTimeInterval(BusinessConstants.oneYearInterval)))
 
             // Lifetime access preview
             SubscriptionManagementSectionView(vm: makePreviewVM(plan: .lifetime))
