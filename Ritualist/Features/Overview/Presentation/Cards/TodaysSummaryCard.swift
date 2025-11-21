@@ -441,7 +441,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     } else if habit.kind == .numeric {
                         let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
-                        Text("\(Int(currentValue))/\(Int(target)) \(habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? habit.unitLabel! : "units")")
+                        let unitText = habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        Text("\(Int(currentValue))/\(Int(target)) \(!unitText.isEmpty ? unitText : "units")")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
