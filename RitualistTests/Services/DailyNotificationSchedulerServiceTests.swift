@@ -31,25 +31,6 @@ struct DailyNotificationSchedulerServiceTests {
 
     // MARK: - Test Helpers
 
-    /// Test implementation of NotificationService (minimal - only what's needed)
-    final class TestNotificationService: NotificationService {
-        func requestAuthorizationIfNeeded() async throws -> Bool { return true }
-        func checkAuthorizationStatus() async -> Bool { return true }
-        func schedule(for habitID: UUID, times: [ReminderTime]) async throws {}
-        func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {}
-        func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws {}
-        func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws {}
-        func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws {}
-        func cancel(for habitID: UUID) async {}
-        func sendImmediate(title: String, body: String) async throws {}
-        func setupNotificationCategories() async {}
-        func schedulePersonalityAnalysis(userId: UUID, at date: Date, frequency: AnalysisFrequency) async throws {}
-        func sendPersonalityAnalysisCompleted(userId: UUID, profile: PersonalityProfile) async throws {}
-        func cancelPersonalityAnalysis(userId: UUID) {}
-        func getNotificationSettings() async -> NotificationAuthorizationStatus { return .authorized }
-        func sendLocationTriggeredNotification(for habitID: UUID, habitName: String, event: GeofenceEvent) async throws {}
-    }
-
     /// Create service with REAL dependencies
     func createService(
         container: ModelContainer,
@@ -220,6 +201,8 @@ struct DailyNotificationSchedulerServiceTests {
         #expect(scheduledHabits.count == 3)
     }
 
+    /// Note: This test assumes sequential habit processing. If scheduler changes to
+    /// parallel processing, verification logic may need adjustment.
     @Test("Continues processing if one habit fails to schedule")
     func continuesProcessingIfOneHabitFailsToSchedule() async throws {
         let container = try TestModelContainer.create()
