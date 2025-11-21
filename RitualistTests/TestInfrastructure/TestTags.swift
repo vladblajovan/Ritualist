@@ -2,7 +2,8 @@ import Testing
 
 /// Centralized test tags for organizing and running test suites by flow/feature
 ///
-/// **Note:** Tags require Swift 6+ (Xcode 26+). On older toolchains, tags are disabled.
+/// **Note:** Tags require Swift 6.1+ (Xcode 26+). On Xcode 16.x (Swift 6.0), tags are
+/// disabled via `#if swift(>=6.1)` guards since the @Tag macro was introduced in Swift 6.1.
 ///
 /// **Usage:**
 /// ```swift
@@ -158,32 +159,12 @@ extension Tag {
     @Tag static var scheduling: Self
 }
 
-// MARK: - Tag Combinations for Common Scenarios
-
-extension Tag {
-    /// Quick smoke test - critical tests only, fast execution
-    static var smokeTest: [Self] { [.critical, .fast] }
-
-    /// Pre-commit checks - fast tests without system dependencies
-    static var preCommit: [Self] { [.fast, .isolated] }
-
-    /// Full regression suite - all regression tests
-    static var fullRegression: [Self] { [.regression] }
-
-    /// Database-related tests - useful for schema changes
-    static var databaseTests: [Self] { [.database] }
-
-    /// Timezone-related tests - useful when changing timezone logic
-    static var timezoneTests: [Self] { [.timezone, .travel] }
-
-    /// Business critical - all critical business logic tests
-    static var businessCritical: [Self] { [.businessLogic, .critical] }
-
-    /// Notification flow - all notification-related tests
-    static var notificationFlow: [Self] { [.notifications, .scheduling] }
-
-    /// Habit tracking flow - all habit-related tests
-    static var habitFlow: [Self] { [.habits, .habitLogging, .completion] }
-}
+// MARK: - CLI Tag Combinations
+//
+// Use these combinations with CLI filtering:
+//   swift test --filter '.critical && .fast'     # Smoke tests
+//   swift test --filter '.fast && .isolated'     # Pre-commit checks
+//   swift test --filter '.timezone || .travel'   # Timezone flow
+//   swift test --filter '.notifications'         # Notification flow
 
 #endif

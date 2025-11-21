@@ -31,43 +31,6 @@ struct DailyNotificationSchedulerServiceTests {
 
     // MARK: - Test Helpers
 
-    /// Test implementation of ScheduleHabitRemindersUseCase that tracks calls
-    actor TrackingScheduleHabitReminders: ScheduleHabitRemindersUseCase {
-        var scheduledHabits: [Habit] = []
-        var shouldThrowError: Bool = false
-        var habitsToFailFor: Set<UUID> = []
-
-        func execute(habit: Habit) async throws {
-            if shouldThrowError {
-                throw NSError(domain: "TrackingScheduleHabitReminders", code: 1, userInfo: [NSLocalizedDescriptionKey: "Schedule failed"])
-            }
-
-            if habitsToFailFor.contains(habit.id) {
-                throw NSError(domain: "TrackingScheduleHabitReminders", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed for specific habit"])
-            }
-
-            scheduledHabits.append(habit)
-        }
-
-        func getScheduledHabits() -> [Habit] {
-            return scheduledHabits
-        }
-
-        func reset() {
-            scheduledHabits = []
-            shouldThrowError = false
-            habitsToFailFor = []
-        }
-
-        func setHabitsToFailFor(_ habitIds: Set<UUID>) {
-            self.habitsToFailFor = habitIds
-        }
-
-        func setHabitToFailFor(_ habitId: UUID) {
-            self.habitsToFailFor = [habitId]
-        }
-    }
-
     /// Test implementation of NotificationService (minimal - only what's needed)
     final class TestNotificationService: NotificationService {
         func requestAuthorizationIfNeeded() async throws -> Bool { return true }
@@ -284,7 +247,7 @@ struct DailyNotificationSchedulerServiceTests {
         try await saveHabits([habit1, habit2, habit3], to: container)
 
         // Configure to fail for habit2
-        await scheduleHabitReminders.setHabitToFailFor(habit2.id)
+        await scheduleHabitReminders.setHabitsToFailFor([habit2.id])
 
         let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
