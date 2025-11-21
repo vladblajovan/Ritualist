@@ -5,6 +5,8 @@ on:
     branches: [ main, develop ]
     paths:
       - 'Ritualist/**/*.swift'
+      - 'RitualistTests/**/*.swift'
+      - 'RitualistCore/**/*.swift'
       - 'Ritualist/Resources/**'
       - 'Ritualist.xcodeproj/**'
       - 'TestPlan.xctestplan'
@@ -14,6 +16,8 @@ on:
     branches: [ main ]
     paths:
       - 'Ritualist/**/*.swift'
+      - 'RitualistTests/**/*.swift'
+      - 'RitualistCore/**/*.swift'
       - 'Ritualist/Resources/**'
       - 'Ritualist.xcodeproj/**'
       - 'TestPlan.xctestplan'
