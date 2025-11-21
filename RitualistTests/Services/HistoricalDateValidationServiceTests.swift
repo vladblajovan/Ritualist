@@ -14,7 +14,14 @@ import Foundation
 /// - API completeness (all public methods)
 /// - Configuration customization
 /// - Date string parsing
+#if swift(>=6.1)
+@Suite(
+    "HistoricalDateValidationService Tests",
+    .tags(.history, .businessLogic, .critical, .isolated, .fast, .edgeCases)
+)
+#else
 @Suite("HistoricalDateValidationService Tests")
+#endif
 struct HistoricalDateValidationServiceTests {
 
     // MARK: - Boundary Tests
