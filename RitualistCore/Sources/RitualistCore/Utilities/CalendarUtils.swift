@@ -28,12 +28,38 @@ public struct CalendarUtils {
     
     /// Create calendar for specific timezone (for home timezone feature)
     /// Uses Calendar.current as base to preserve user's locale settings (firstWeekday, etc.)
+    /// Note: Creates a new instance each time. For hot paths, use `cachedCalendar(for:)` instead.
     public static func localCalendar(for timezone: TimeZone) -> Calendar {
         var calendar = Calendar.current
         calendar.timeZone = timezone
         return calendar
     }
-    
+
+    // MARK: - Calendar Caching
+
+    /// Thread-safe cache for Calendar instances by timezone identifier.
+    /// Avoids creating thousands of Calendar instances in hot paths like streak calculations.
+    private static var calendarCache: [String: Calendar] = [:]
+    private static let calendarCacheLock = NSLock()
+
+    /// Get a cached Calendar for the given timezone.
+    /// Thread-safe and reuses Calendar instances across calls.
+    /// Use this in hot paths (loops over many logs/days) to avoid excessive object creation.
+    public static func cachedCalendar(for timezone: TimeZone) -> Calendar {
+        let identifier = timezone.identifier
+
+        calendarCacheLock.lock()
+        defer { calendarCacheLock.unlock() }
+
+        if let cached = calendarCache[identifier] {
+            return cached
+        }
+
+        let calendar = localCalendar(for: timezone)
+        calendarCache[identifier] = calendar
+        return calendar
+    }
+
     // MARK: - Storage with Timezone Context
     
     /// ISO8601 formatter for consistent date storage  
@@ -503,5 +529,42 @@ public struct CalendarUtils {
     /// Check if date is within range
     public static func isWithinRange(_ date: Date, from: Date, to: Date) -> Bool {
         return date >= from && date <= to
+    }
+
+    // MARK: - Cross-Timezone Day Comparison
+
+    /// Check if two dates fall on the same calendar day when each is interpreted in its own timezone.
+    ///
+    /// Unlike `areSameDayLocal` which uses one timezone for both dates, this method allows
+    /// each date to be interpreted in a different timezone before comparing calendar days.
+    ///
+    /// Example: A timestamp at 11 PM EST (Nov 20) and a timestamp at 2 AM UTC (Nov 21)
+    /// would be considered the same calendar day if tz1=EST and tz2=UTC, because:
+    /// - Date1 in EST = Nov 20
+    /// - Date2 in UTC = Nov 21
+    /// Result: NOT the same day
+    ///
+    /// - Parameters:
+    ///   - date1: First date to compare
+    ///   - timezone1: Timezone to interpret date1 in
+    ///   - date2: Second date to compare
+    ///   - timezone2: Timezone to interpret date2 in
+    /// - Returns: `true` if both dates fall on the same calendar day (year, month, day match)
+    public static func areSameDayAcrossTimezones(
+        _ date1: Date,
+        timezone1: TimeZone,
+        _ date2: Date,
+        timezone2: TimeZone
+    ) -> Bool {
+        // Use cached calendars to avoid creating thousands of instances in hot paths
+        let calendar1 = cachedCalendar(for: timezone1)
+        let components1 = calendar1.dateComponents([.year, .month, .day], from: date1)
+
+        let calendar2 = cachedCalendar(for: timezone2)
+        let components2 = calendar2.dateComponents([.year, .month, .day], from: date2)
+
+        return components1.year == components2.year &&
+               components1.month == components2.month &&
+               components1.day == components2.day
     }
 }

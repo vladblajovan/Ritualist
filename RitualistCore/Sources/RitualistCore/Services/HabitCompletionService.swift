@@ -168,33 +168,27 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         // Check if any log for this habit was created on the specified calendar day
         // Important: Each log's timezone determines which calendar day it belongs to
 
-        // Extract the query day in the query timezone (using cache)
-        let queryCalendar = getCachedCalendar(for: timezone)
-        let queryComponents = queryCalendar.dateComponents([.year, .month, .day], from: date)
-
         let dayLogs = logs.filter { log in
             guard log.habitID == habit.id else { return false }
 
-            // Use the log's timezone to determine which calendar day it belongs to
+            // Resolve log timezone with fallback and debug logging
             let logTimezone: TimeZone
             if let tz = TimeZone(identifier: log.timezone) {
                 logTimezone = tz
             } else {
-                // Invalid timezone identifier - log for monitoring and fall back to query timezone
                 #if DEBUG
                 print("⚠️ Invalid timezone identifier '\(log.timezone)' for log \(log.id). Falling back to \(timezone.identifier)")
                 #endif
                 logTimezone = timezone
             }
 
-            // Use cached calendar for performance (avoids creating 100+ Calendar instances)
-            let logCalendar = getCachedCalendar(for: logTimezone)
-            let logComponents = logCalendar.dateComponents([.year, .month, .day], from: log.date)
-
-            // Compare calendar days (not absolute timestamps)
-            return logComponents.year == queryComponents.year &&
-                   logComponents.month == queryComponents.month &&
-                   logComponents.day == queryComponents.day
+            // Use shared utility for cross-timezone day comparison
+            return CalendarUtils.areSameDayAcrossTimezones(
+                log.date,
+                timezone1: logTimezone,
+                date,
+                timezone2: timezone
+            )
         }
 
         return dayLogs.contains { log in

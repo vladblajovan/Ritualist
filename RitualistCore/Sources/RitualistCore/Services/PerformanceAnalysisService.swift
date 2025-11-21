@@ -155,38 +155,43 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     }
     
     public func analyzeWeeklyPatterns(
-        habits: [Habit], 
-        logs: [HabitLog], 
-        from startDate: Date, 
+        habits: [Habit],
+        logs: [HabitLog],
+        from startDate: Date,
         to endDate: Date
     ) -> WeeklyPatternsResult {
+        let timezone = TimeZone.current
 
-        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayLocal(for: $0.date) })
-        
         // Initialize day performance tracking
         var dayPerformance: [Int: (total: Int, completed: Int)] = [:]
         for weekday in 1...7 {
             dayPerformance[weekday] = (0, 0)
         }
-        
+
         // Analyze each day in the range
         var currentDate = startDate
         while currentDate <= endDate {
-            let dayLogs = logsByDate[CalendarUtils.startOfDayLocal(for: currentDate)] ?? []
-            let weekday = CalendarUtils.weekdayComponentLocal(from: currentDate)
-            
+            let weekday = CalendarUtils.weekdayComponentLocal(from: currentDate, timezone: timezone)
+
             for habit in habits where habit.isActive {
-                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: .current) {
+                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: timezone) {
                     dayPerformance[weekday]?.total += 1
 
-                    // Check if log exists AND meets completion criteria
-                    if let habitLog = dayLogs.first(where: { $0.habitID == habit.id }),
+                    // Use timezone-aware log matching (consistent with streak calculations)
+                    let matchingLog = findLogForDay(
+                        habitId: habit.id,
+                        date: currentDate,
+                        logs: logs,
+                        queryTimezone: timezone
+                    )
+
+                    if let habitLog = matchingLog,
                        HabitLogCompletionValidator.isLogCompleted(log: habitLog, habit: habit) {
                         dayPerformance[weekday]?.completed += 1
                     }
                 }
             }
-            
+
             currentDate = CalendarUtils.addDays(1, to: currentDate)
         }
         
@@ -250,8 +255,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         from startDate: Date,
         to endDate: Date
     ) -> PerfectDayStreakResult {
-
-        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayLocal(for: $0.date) })
+        let timezone = TimeZone.current
 
         var activeStreak = 0  // Active streak ending today (going backwards from today)
         var tempStreak = 0    // Temporary streak while scanning backwards
@@ -259,21 +263,28 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         var daysWithFullCompletion = 0
         var isActiveStreakSet = false  // Track if we've captured the active streak yet
 
-        let today = CalendarUtils.startOfDayLocal(for: Date())
+        let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: timezone)
         var currentDate = today
-        let start = CalendarUtils.startOfDayLocal(for: startDate)
+        let start = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
 
         while currentDate >= start {
-            let dayLogs = logsByDate[currentDate] ?? []
             var dayCompleted = true
             var expectedHabitsCount = 0
 
             for habit in habits {
-                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: .current) {
+                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: timezone) {
                     expectedHabitsCount += 1
 
-                    // Check if log exists AND meets completion criteria
-                    if let habitLog = dayLogs.first(where: { $0.habitID == habit.id }) {
+                    // Use timezone-aware log matching: find log that matches this calendar day
+                    // considering the log's stored timezone (consistent with HabitCompletionService)
+                    let matchingLog = findLogForDay(
+                        habitId: habit.id,
+                        date: currentDate,
+                        logs: logs,
+                        queryTimezone: timezone
+                    )
+
+                    if let habitLog = matchingLog {
                         if !HabitLogCompletionValidator.isLogCompleted(log: habitLog, habit: habit) {
                             dayCompleted = false
                             break
@@ -444,5 +455,37 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         }
         
         return totalExpectedDays > 0 ? min(Double(totalCompletedDays) / Double(totalExpectedDays), 1.0) : 0.0
+    }
+
+    /// Find a log for a specific habit on a specific calendar day using timezone-aware comparison.
+    /// Uses CalendarUtils.areSameDayAcrossTimezones for consistent behavior across the codebase.
+    private func findLogForDay(
+        habitId: UUID,
+        date: Date,
+        logs: [HabitLog],
+        queryTimezone: TimeZone
+    ) -> HabitLog? {
+        return logs.first { log in
+            guard log.habitID == habitId else { return false }
+
+            // Resolve log timezone with fallback and debug logging
+            let logTimezone: TimeZone
+            if let tz = TimeZone(identifier: log.timezone) {
+                logTimezone = tz
+            } else {
+                #if DEBUG
+                print("⚠️ Invalid timezone identifier '\(log.timezone)' for log \(log.id). Falling back to \(queryTimezone.identifier)")
+                #endif
+                logTimezone = queryTimezone
+            }
+
+            // Use shared utility for cross-timezone day comparison
+            return CalendarUtils.areSameDayAcrossTimezones(
+                log.date,
+                timezone1: logTimezone,
+                date,
+                timezone2: queryTimezone
+            )
+        }
     }
 }
