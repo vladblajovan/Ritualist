@@ -192,34 +192,31 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
                         } else {
-                            Text(CalendarUtils.formatForDisplay(viewingDate, style: .full))
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
+                            HStack(spacing: 6) {
+                                Button(action: onGoToToday) {
+                                    Image(systemName: "arrow.uturn.backward")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+
+                                Text(CalendarUtils.formatForDisplay(viewingDate, style: .full))
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                            }
                         }
                     }
 
                     Spacer()
 
-                    // Next Day Button or Today Button
-                    if !isViewingToday && canGoToNext {
-                        Button(action: onNextDay) {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.secondary)
-                        }
-                    } else if !isViewingToday {
-                        Button(action: onGoToToday) {
-                            Text("Today")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
-                        }
-                    } else {
-                        // Invisible placeholder for alignment
+                    // Next Day Button
+                    Button(action: onNextDay) {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.clear)
+                            .foregroundColor(canGoToNext ? .secondary : .secondary.opacity(0.3))
                     }
+                    .disabled(!canGoToNext)
                 }
             }
             
