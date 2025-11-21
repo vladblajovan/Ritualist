@@ -27,4 +27,11 @@ public struct HabitLog: Identifiable, Codable, Hashable {
         let (utcTimestamp, timezoneId) = CalendarUtils.createTimestampedEntry()
         return HabitLog(id: id, habitID: habitID, date: utcTimestamp, value: value, timezone: timezoneId)
     }
+
+    /// Resolve the stored timezone identifier to a TimeZone, with fallback for invalid identifiers
+    /// - Parameter fallback: Timezone to use if the stored identifier is invalid
+    /// - Returns: The resolved TimeZone
+    public func resolvedTimezone(fallback: TimeZone) -> TimeZone {
+        TimeZone(identifier: timezone) ?? fallback
+    }
 }

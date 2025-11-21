@@ -171,16 +171,7 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
         let dayLogs = logs.filter { log in
             guard log.habitID == habit.id else { return false }
 
-            // Resolve log timezone with fallback and debug logging
-            let logTimezone: TimeZone
-            if let tz = TimeZone(identifier: log.timezone) {
-                logTimezone = tz
-            } else {
-                #if DEBUG
-                print("⚠️ Invalid timezone identifier '\(log.timezone)' for log \(log.id). Falling back to \(timezone.identifier)")
-                #endif
-                logTimezone = timezone
-            }
+            let logTimezone = log.resolvedTimezone(fallback: timezone)
 
             // Use shared utility for cross-timezone day comparison
             return CalendarUtils.areSameDayAcrossTimezones(
