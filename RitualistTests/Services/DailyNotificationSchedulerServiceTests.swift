@@ -19,10 +19,14 @@ import SwiftData
 /// - Use Case Orchestration (3 tests): Calls ScheduleHabitReminders for each habit
 /// - Error Handling (3 tests): Continues on individual failures, handles repository errors
 /// - Edge Cases (3 tests): Empty habits, all inactive, all without reminders
+#if compiler(>=6.0)
 @Suite(
     "DailyNotificationSchedulerService Tests",
     .tags(.notifications, .scheduling, .orchestration, .high, .database, .integration, .errorHandling)
 )
+#else
+@Suite("DailyNotificationSchedulerService Tests")
+#endif
 struct DailyNotificationSchedulerServiceTests {
 
     // MARK: - Test Helpers
@@ -53,6 +57,10 @@ struct DailyNotificationSchedulerServiceTests {
             scheduledHabits = []
             shouldThrowError = false
             habitToFailFor = nil
+        }
+
+        func setHabitToFailFor(_ habitId: UUID?) {
+            self.habitToFailFor = habitId
         }
     }
 
@@ -416,10 +424,3 @@ struct DailyNotificationSchedulerServiceTests {
     }
 }
 
-// MARK: - Actor Helper Extensions
-
-extension DailyNotificationSchedulerServiceTests.TrackingScheduleHabitReminders {
-    func setHabitToFailFor(_ habitId: UUID?) {
-        self.habitToFailFor = habitId
-    }
-}

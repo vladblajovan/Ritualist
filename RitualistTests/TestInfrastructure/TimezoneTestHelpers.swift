@@ -39,6 +39,10 @@ public enum TimezoneTestHelpers {
     public static let london = TimeZone(identifier: "Europe/London")!
     public static let losAngeles = TimeZone(identifier: "America/Los_Angeles")!
 
+    /// Extremely rare timezone for CI-safe tests (UTC+14, Line Islands)
+    /// Virtually guaranteed to never be a CI system's timezone
+    public static let kiritimati = TimeZone(identifier: "Pacific/Kiritimati")!
+
     // MARK: - Date Creation in Specific Timezone
 
     /// Create a date at a specific time in a specific timezone

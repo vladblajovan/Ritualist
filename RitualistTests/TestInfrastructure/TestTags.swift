@@ -2,23 +2,34 @@ import Testing
 
 /// Centralized test tags for organizing and running test suites by flow/feature
 ///
+/// **Note:** Tags require Swift 6+ (Xcode 26+). On older toolchains, tags are disabled.
+///
 /// **Usage:**
 /// ```swift
 /// @Suite("My Tests", .tags(.timezone, .critical))
 /// struct MyTests { }
 /// ```
 ///
-/// **Running tests by tag:**
+/// **Running tests by tag (CLI):**
 /// ```bash
 /// # Run all timezone-related tests
-/// swift test --filter tag:timezone
+/// swift test --filter .timezone
 ///
 /// # Run all critical tests
-/// swift test --filter tag:critical
+/// swift test --filter .critical
 ///
-/// # Run all business logic tests
-/// swift test --filter tag:businessLogic
+/// # Skip flaky tests
+/// swift test --skip .flaky
 /// ```
+///
+/// **Running tests by tag (xcodebuild - Xcode 16.3+):**
+/// ```bash
+/// xcodebuild test -only-testing-tags timezone -scheme MyScheme -destination '...'
+/// xcodebuild test -skip-testing-tags integrationTests,slow -scheme MyScheme -destination '...'
+/// ```
+
+#if compiler(>=6.0)
+
 extension Tag {
 
     // MARK: - Architectural Layers
@@ -174,3 +185,5 @@ extension Tag {
     /// Habit tracking flow - all habit-related tests
     static var habitFlow: [Self] { [.habits, .habitLogging, .completion] }
 }
+
+#endif

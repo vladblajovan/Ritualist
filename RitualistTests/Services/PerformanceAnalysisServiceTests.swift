@@ -19,10 +19,14 @@ import Foundation
 /// - generateProgressChartData (3-4 tests)
 /// - analyzeWeeklyPatterns (6-8 tests)
 /// - calculateStreakAnalysis (4-5 tests)
+#if compiler(>=6.0)
 @Suite(
     "PerformanceAnalysisService Tests",
     .tags(.dashboard, .businessLogic, .critical, .regression, .isolated, .fast, .streaks, .completion)
 )
+#else
+@Suite("PerformanceAnalysisService Tests")
+#endif
 struct PerformanceAnalysisServiceTests {
 
     // MARK: - Test Dependencies

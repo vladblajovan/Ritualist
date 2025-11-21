@@ -9,16 +9,26 @@ import SwiftData
 /// **Why Critical:** Complex timezone logic affects all habit calculations and travel detection
 /// **Test Strategy:** Use REAL dependencies with TestModelContainer (NO MOCKS)
 ///
+/// **CI Timezone Note:**
+/// Tests comparing against `TimeZone.current` are timezone-agnostic by design:
+/// - Fallback tests verify the service returns device timezone when no profile exists
+/// - Detection tests use Pacific/Kiritimati (UTC+14) - virtually no CI system uses this timezone
+/// - Tests safely skip if somehow running in that timezone (extremely rare edge case)
+///
 /// **Test Coverage:**
 /// - Getters (8 tests): Current, Home, Display timezone resolution modes
 /// - Setters (7 tests): Update operations with history logging
 /// - History Management (2 tests): Trimming to 100 entries
 /// - Detection (7 tests): Timezone change and travel detection
 /// - Update Operations (4 tests): Current timezone updates and change tracking
+#if compiler(>=6.0)
 @Suite(
     "TimezoneService Tests",
     .tags(.timezone, .travel, .businessLogic, .critical, .database, .integration)
 )
+#else
+@Suite("TimezoneService Tests")
+#endif
 struct TimezoneServiceTests {
 
     // MARK: - Test Helpers
@@ -486,9 +496,9 @@ struct TimezoneServiceTests {
     func detectTimezoneChangeDetectsDeviceTimezoneChange() async throws {
         let container = try TestModelContainer.create()
 
-        // Use a timezone we KNOW is different from any reasonable test environment
-        // Sydney is GMT+11, very unlikely to be the test device timezone
-        let storedTimezone = TimezoneTestHelpers.sydney
+        // Use an extremely rare timezone (UTC+14, Line Islands)
+        // Virtually guaranteed to never be a CI system's timezone
+        let storedTimezone = TimezoneTestHelpers.kiritimati
 
         let profile = UserProfileBuilder.standard(
             currentTimezone: storedTimezone
@@ -498,11 +508,9 @@ struct TimezoneServiceTests {
         let service = createService(container: container)
         let change = try await service.detectTimezoneChange()
 
-        // Should detect change (device is extremely unlikely to be in Sydney)
-        // If test fails, device is in Sydney - acceptable edge case
+        // Should detect change (device is virtually never in Kiritimati)
         if TimeZone.current.identifier == storedTimezone.identifier {
-            // Defensive: If somehow running in Sydney, use different timezone
-            return
+            return // Skip if somehow running in this extremely rare timezone
         }
 
         guard let change = change else {
@@ -518,8 +526,8 @@ struct TimezoneServiceTests {
     func detectTimezoneChangeReturnsCorrectPreviousAndNewTimezones() async throws {
         let container = try TestModelContainer.create()
 
-        // Use a timezone we KNOW is different from device
-        let storedTimezone = TimezoneTestHelpers.sydney
+        // Use an extremely rare timezone (UTC+14, Line Islands)
+        let storedTimezone = TimezoneTestHelpers.kiritimati
 
         let profile = UserProfileBuilder.standard(
             currentTimezone: storedTimezone
@@ -529,7 +537,7 @@ struct TimezoneServiceTests {
         let service = createService(container: container)
         let change = try await service.detectTimezoneChange()
 
-        // Skip test if somehow running in Sydney timezone
+        // Skip if somehow running in this extremely rare timezone
         if TimeZone.current.identifier == storedTimezone.identifier {
             return
         }
@@ -604,8 +612,8 @@ struct TimezoneServiceTests {
     func updateCurrentTimezoneUpdatesDeviceTimezone() async throws {
         let container = try TestModelContainer.create()
 
-        // Use Sydney timezone (extremely unlikely to be test device)
-        let storedTimezone = TimezoneTestHelpers.sydney
+        // Use an extremely rare timezone (UTC+14, Line Islands)
+        let storedTimezone = TimezoneTestHelpers.kiritimati
 
         let profile = UserProfileBuilder.standard(
             currentTimezone: storedTimezone
@@ -617,7 +625,7 @@ struct TimezoneServiceTests {
         // Update current timezone to device timezone
         try await service.updateCurrentTimezone()
 
-        // Skip if somehow running in Sydney
+        // Skip if somehow running in this extremely rare timezone
         if TimeZone.current.identifier == storedTimezone.identifier {
             return
         }
@@ -634,8 +642,8 @@ struct TimezoneServiceTests {
     func updateCurrentTimezoneLogsTimezoneChange() async throws {
         let container = try TestModelContainer.create()
 
-        // Use Sydney timezone (extremely unlikely to be test device)
-        let storedTimezone = TimezoneTestHelpers.sydney
+        // Use an extremely rare timezone (UTC+14, Line Islands)
+        let storedTimezone = TimezoneTestHelpers.kiritimati
 
         let profile = UserProfileBuilder.standard(
             currentTimezone: storedTimezone
@@ -647,7 +655,7 @@ struct TimezoneServiceTests {
         // Update current timezone
         try await service.updateCurrentTimezone()
 
-        // Skip if somehow running in Sydney
+        // Skip if somehow running in this extremely rare timezone
         if TimeZone.current.identifier == storedTimezone.identifier {
             return
         }
@@ -691,8 +699,8 @@ struct TimezoneServiceTests {
     func updateCurrentTimezoneUpdatesTimestampsWhenChangeOccurs() async throws {
         let container = try TestModelContainer.create()
 
-        // Use Sydney timezone (extremely unlikely to be test device)
-        let storedTimezone = TimezoneTestHelpers.sydney
+        // Use an extremely rare timezone (UTC+14, Line Islands)
+        let storedTimezone = TimezoneTestHelpers.kiritimati
 
         let profile = UserProfileBuilder.standard(
             currentTimezone: storedTimezone
@@ -705,7 +713,7 @@ struct TimezoneServiceTests {
         // Update current timezone
         try await service.updateCurrentTimezone()
 
-        // Skip if somehow running in Sydney
+        // Skip if somehow running in this extremely rare timezone
         if TimeZone.current.identifier == storedTimezone.identifier {
             return
         }
@@ -897,7 +905,7 @@ struct TimezoneServiceTests {
 
         // Set up profile with different timezone to trigger save
         let initialProfile = UserProfileBuilder.standard(
-            currentTimezone: TimezoneTestHelpers.sydney  // Different from device
+            currentTimezone: TimezoneTestHelpers.kiritimati  // Extremely rare timezone
         )
         await failingRepo.setProfileToReturn(initialProfile)
 
@@ -912,8 +920,8 @@ struct TimezoneServiceTests {
             saveProfile: saveProfile
         )
 
-        // Skip if device is in Sydney
-        if TimeZone.current.identifier == TimezoneTestHelpers.sydney.identifier {
+        // Skip if somehow running in this extremely rare timezone
+        if TimeZone.current.identifier == TimezoneTestHelpers.kiritimati.identifier {
             return
         }
 
