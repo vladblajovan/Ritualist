@@ -55,20 +55,15 @@ struct StreaksCard: View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 8) {
-                        Text("🔥")
-                            .font(.title2)
-                        Text("Current Streaks")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                    }
-                    Text("Active as of today")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                HStack(spacing: 8) {
+                    Text("🔥")
+                        .font(.title2)
+                    Text("Current Streaks")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
                 }
-                
+
                 Spacer()
                 
                 Text("\(streaks.count) \(streaks.count == 1 ? "streak" : "streaks")")

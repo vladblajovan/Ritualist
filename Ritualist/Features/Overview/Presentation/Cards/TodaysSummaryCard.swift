@@ -21,17 +21,36 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let onGoToToday: () -> Void
     
     @State private var isCompletedSectionExpanded = false
-    @State private var isRemainingSectionExpanded = false
+    @State private var isRemainingSectionExpanded = true  // Show all remaining habits by default
     @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     @State private var animatingHabitId: UUID? = nil
     @State private var glowingHabitId: UUID? = nil
     @State private var animatingProgress: Double = 0.0
     @State private var isAnimatingCompletion = false
+    @State private var showProgressGlow = false
+    @State private var animatedCompletionPercentage: Double = 0.0
+    @State private var hasInitializedProgress = false
+    @State private var habitAnimatedProgress: [UUID: Double] = [:] // Track animated progress per habit
+
+    // CONFIGURATION: Set to false to disable progress bar animation on initial load
+    // When true (default), the progress bar will animate from 0% to current value when the view first appears
+    // When false, it will immediately show the current value without animation
+    private let animateProgressOnLoad: Bool = true
 
     // PERFORMANCE: Pre-computed arrays to avoid creating NEW arrays on every render
     @State private var visibleIncompleteHabits: [Habit] = []
     @State private var visibleCompletedHabits: [Habit] = []
+    @State private var scheduledIncompleteCount: Int = 0  // Track filtered count for display
+
+    // Computed ID that changes when any numeric habit progress changes
+    private var habitProgressStateId: String {
+        guard let summary = summary else { return "" }
+        return summary.incompleteHabits
+            .filter { $0.kind == .numeric }
+            .map { "\($0.id.uuidString)-\(getProgress($0))" }
+            .joined(separator: "|")
+    }
 
     // PERFORMANCE: Static DateFormatters - created ONCE, reused forever
     // DateFormatter is extremely expensive to create (50ms+ overhead eliminated)
@@ -49,20 +68,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         formatter.timeZone = TimeZone.current
         return formatter
     }()
-
-    // PERFORMANCE: Pre-compute navigation button colors to avoid repeated calculations
-    private var navigationButtonColor: Color {
-        // Use same color as circular progress (Icon-Inspired Gradient)
-        Color.ritualistBlue
-    }
-
-    private var navigationButtonBackgroundColor: Color {
-        navigationButtonColor.opacity(0.1)
-    }
-
-    private var navigationButtonStrokeColor: Color {
-        navigationButtonColor.opacity(0.3)
-    }
 
     init(summary: TodaysSummary?,
          viewingDate: Date,
@@ -103,18 +108,65 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         guard let summary = summary else {
             visibleIncompleteHabits = []
             visibleCompletedHabits = []
+            scheduledIncompleteCount = 0
             return
         }
 
+        // BUGFIX: Additional safety filter to prevent race condition where summary contains habits
+        // from previous viewingDate. Only show habits that are actually scheduled for viewingDate.
+        let scheduledIncompleteHabits = summary.incompleteHabits.filter { habit in
+            habit.schedule.isActiveOn(date: viewingDate)
+        }
+
+        // Store the filtered count for display
+        scheduledIncompleteCount = scheduledIncompleteHabits.count
+
         // Pre-compute incomplete habits array
         visibleIncompleteHabits = isRemainingSectionExpanded ?
-            summary.incompleteHabits :
-            Array(summary.incompleteHabits.prefix(3))
+            scheduledIncompleteHabits :
+            Array(scheduledIncompleteHabits.prefix(3))
 
-        // Pre-compute completed habits array
+        // Pre-compute completed habits array (no need to filter - completed habits are always valid)
         visibleCompletedHabits = isCompletedSectionExpanded ?
             Array(summary.completedHabits.dropFirst(2)) :
             []
+    }
+
+    // Update habit progress animations when data changes
+    private func updateHabitProgressAnimations() {
+        guard let summary = summary else { return }
+
+        // Get current incomplete habit IDs
+        let currentHabitIds = Set(summary.incompleteHabits.filter { $0.kind == .numeric }.map { $0.id })
+
+        // Remove progress for habits that are no longer in the list
+        habitAnimatedProgress = habitAnimatedProgress.filter { currentHabitIds.contains($0.key) }
+
+        // Update all incomplete numeric habits only
+        for habit in summary.incompleteHabits where habit.kind == .numeric {
+            let currentValue = getProgress(habit)
+            let target = habit.dailyTarget ?? 1.0
+
+            // BUGFIX: Use truncated integers to match the text display (e.g., "4/5")
+            // This prevents visual mismatch where text shows "4/5" but circle shows 4.8/5.0 = 96%
+            let currentInt = Int(currentValue)
+            let targetInt = Int(target)
+            let actualProgress = targetInt > 0 ? min(max(Double(currentInt) / Double(targetInt), 0.0), 1.0) : 0.0
+
+            // If not tracked (new habit or coming from non-scheduled day), start from 0 and animate
+            if habitAnimatedProgress[habit.id] == nil {
+                habitAnimatedProgress[habit.id] = 0.0
+                // Animate from 0 to actual progress
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    habitAnimatedProgress[habit.id] = actualProgress
+                }
+            } else {
+                // Already tracked, animate from previous value
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    habitAnimatedProgress[habit.id] = actualProgress
+                }
+            }
+        }
     }
 
     var body: some View {
@@ -125,25 +177,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     // Previous Day Button
                     Button(action: onPreviousDay) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(canGoToPrevious ? navigationButtonColor : .secondary)
-                            .frame(width: 28, height: 28)
-                            .background(
-                                Circle()
-                                    .fill(canGoToPrevious ? navigationButtonBackgroundColor : Color.clear)
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(
-                                        canGoToPrevious ? navigationButtonStrokeColor : Color.secondary.opacity(0.2),
-                                        lineWidth: 1.0
-                                    )
-                            )
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(canGoToPrevious ? .secondary : .secondary.opacity(0.3))
                     }
                     .disabled(!canGoToPrevious)
-                    
+
                     Spacer()
-                    
+
                     // Date and Title
                     VStack(spacing: 4) {
                         if isViewingToday {
@@ -158,30 +198,21 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                 .foregroundColor(.primary)
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     // Next Day Button or Today Button
                     if !isViewingToday && canGoToNext {
                         Button(action: onNextDay) {
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(navigationButtonColor)
-                                .frame(width: 28, height: 28)
-                                .background(
-                                    Circle()
-                                        .fill(navigationButtonBackgroundColor)
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(navigationButtonStrokeColor, lineWidth: 1.0)
-                                )
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.secondary)
                         }
                     } else if !isViewingToday {
                         Button(action: onGoToToday) {
                             Text("Today")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(navigationButtonColor)
+                                .foregroundColor(.secondary)
                         }
                     } else {
                         // Invisible placeholder for alignment
@@ -203,12 +234,18 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         RoundedRectangle(cornerRadius: 4)
                             .fill(
                                 .linearGradient(
-                                    colors: [Color.ritualistCyan, Color.ritualistBlue],
+                                    colors: progressGradientColors(for: animatedCompletionPercentage),
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: geometry.size.width * summary.completionPercentage, height: 8)
+                            .frame(width: geometry.size.width * animatedCompletionPercentage, height: 8)
+                            .shadow(
+                                color: showProgressGlow ? Color.green.opacity(0.6) : .clear,
+                                radius: showProgressGlow ? 8 : 0,
+                                x: 0,
+                                y: 0
+                            )
                     }
                 }
                 .frame(height: 8)
@@ -241,12 +278,27 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         // PERFORMANCE: Update pre-computed arrays when data or expansion state changes
         .onAppear {
             updateVisibleHabits()
+            updateHabitProgressAnimations()
+            // Note: animatedCompletionPercentage starts at 0.0
+            // The onChange handler will handle initial animation based on animateProgressOnLoad flag
         }
         .onChange(of: summary?.completedHabitsCount) { _, _ in
             updateVisibleHabits()
+            updateHabitProgressAnimations()
         }
         .onChange(of: summary?.totalHabits) { _, _ in
             updateVisibleHabits()
+        }
+        .onChange(of: summary?.incompleteHabits.count) { _, _ in
+            updateHabitProgressAnimations()
+        }
+        .onChange(of: habitProgressStateId) { _, _ in
+            updateHabitProgressAnimations()
+        }
+        .onChange(of: viewingDate) { _, _ in
+            // When date changes, update visible habits list and animations
+            updateVisibleHabits()
+            updateHabitProgressAnimations()
         }
         .onChange(of: isRemainingSectionExpanded) { _, _ in
             updateVisibleHabits()
@@ -254,8 +306,73 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         .onChange(of: isCompletedSectionExpanded) { _, _ in
             updateVisibleHabits()
         }
+        .onChange(of: summary?.completionPercentage) { oldValue, newValue in
+            guard let newValue = newValue else { return }
+
+            // Determine if we should animate this change
+            // First time: animate only if animateProgressOnLoad is true
+            // Subsequent times: always animate
+            let shouldAnimate = hasInitializedProgress ? true : animateProgressOnLoad
+
+            // Animate the progress bar filling/draining smoothly
+            if shouldAnimate {
+                withAnimation(.easeInOut(duration: 0.6)) {
+                    animatedCompletionPercentage = newValue
+                }
+            } else {
+                // No animation - instant update
+                animatedCompletionPercentage = newValue
+            }
+
+            // Mark as initialized after first change
+            hasInitializedProgress = true
+
+            // Trigger glow when reaching 100% completion (only if animated)
+            if shouldAnimate && newValue >= 1.0, oldValue ?? 0.0 < 1.0 {
+                // Delay glow until progress animation completes
+                Task {
+                    try? await Task.sleep(nanoseconds: 600_000_000) // 0.6s - match progress animation
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showProgressGlow = true
+                        }
+
+                        // Fade out the glow after 2 seconds
+                        Task {
+                            try? await Task.sleep(nanoseconds: 2_000_000_000)
+                            await MainActor.run {
+                                withAnimation(.easeOut(duration: 0.5)) {
+                                    showProgressGlow = false
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     
+    // MARK: - Progress Bar Helpers
+
+    /// Calculate gradient colors based on completion percentage
+    /// - 0-50%: Blue dominant (ritualistBlue)
+    /// - 50-100%: Transitions to green
+    /// - 100%: Nice green gradient
+    private func progressGradientColors(for completion: Double) -> [Color] {
+        let percentage = min(max(completion, 0.0), 1.0)
+
+        if percentage < 0.5 {
+            // Low completion: Brand blue gradient
+            return [Color.ritualistCyan, Color.ritualistBlue]
+        } else if percentage < 1.0 {
+            // Mid to high completion: Blue to green transition
+            return [Color.ritualistCyan, Color.green]
+        } else {
+            // 100% completion: Vibrant green gradient
+            return [Color.green.opacity(0.8), Color.green]
+        }
+    }
+
     @ViewBuilder
     private func quickActionButton(for habit: Habit) -> some View {
         let scheduleStatus = getScheduleStatus(habit)
@@ -288,14 +405,19 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         .fill(Color(hex: habit.colorHex).opacity(0.15))
                         .frame(width: 44, height: 44)
                     
-                    // Progress border for numeric habits (Icon-Inspired Gradient)
+                    // Progress border for numeric habits with animated gradient
                     if habit.kind == .numeric {
                         let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
-                        let progressValue = min(max(currentValue / target, 0.0), 1.0)
+
+                        // Use truncated integers to match text display
+                        let currentInt = Int(currentValue)
+                        let targetInt = Int(target)
+                        let actualProgress = targetInt > 0 ? min(max(Double(currentInt) / Double(targetInt), 0.0), 1.0) : 0.0
+                        let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
 
                         Circle()
-                            .trim(from: 0, to: progressValue)
+                            .trim(from: 0, to: animatedProgress)
                             .stroke(
                                 .linearGradient(
                                     colors: [Color.ritualistCyan, Color.ritualistBlue],
@@ -306,7 +428,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                             )
                             .frame(width: 44, height: 44)
                             .rotationEffect(.degrees(-90))
-                            // PERFORMANCE: Removed animation - numeric progress updates don't need animation
                     }
                     
                     // Emoji
@@ -327,10 +448,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
                         Text("\(Int(currentValue))/\(Int(target)) \(habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? habit.unitLabel! : "units")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("Tap to complete")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -379,15 +496,15 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func habitsSection(summary: TodaysSummary) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             // Section header
-            if !summary.incompleteHabits.isEmpty {
+            if scheduledIncompleteCount > 0 {
                 HStack {
-                    Text("Remaining Habits")
+                    Text("Remaining")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.primary)
-                    
+
                     Spacer()
-                    
-                    Text("\(summary.incompleteHabits.count)")
+
+                    Text("\(scheduledIncompleteCount)")
                         .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
@@ -398,50 +515,52 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         )
                 }
             }
-            
+
             // Incomplete habits
-            if !summary.incompleteHabits.isEmpty {
+            if scheduledIncompleteCount > 0 {
                 VStack(spacing: 8) {
                     // Show first 3 habits, or all if expanded
                     // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
                     ForEach(visibleIncompleteHabits, id: \.id) { habit in
                         habitRow(habit: habit, isCompleted: false)
                     }
-                    
-                    if summary.incompleteHabits.count > 3 {
+
+                    if scheduledIncompleteCount > 3 {
                         if isRemainingSectionExpanded {
                             // Collapse button
                             Button {
-                                // PERFORMANCE: Removed animation - expansion/collapse doesn't need animation
                                 isRemainingSectionExpanded = false
                             } label: {
                                 HStack {
                                     Text("Show less")
-                                        .font(.caption)
+                                        .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(AppColors.brand)
-                                    
+
                                     Image(systemName: "chevron.up")
-                                        .font(.caption2)
+                                        .font(.system(size: 11, weight: .semibold))
                                         .foregroundColor(AppColors.brand)
                                 }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
                             }
                             .buttonStyle(PlainButtonStyle())
                             .padding(.top, 4)
                         } else {
                             // Expand button
                             Button {
-                                // PERFORMANCE: Removed animation - expansion/collapse doesn't need animation
                                 isRemainingSectionExpanded = true
                             } label: {
                                 HStack {
-                                    Text("+ \(summary.incompleteHabits.count - 3) more remaining")
-                                        .font(.caption)
+                                    Text("+ \(scheduledIncompleteCount - 3) more remaining")
+                                        .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(AppColors.brand)
-                                    
+
                                     Image(systemName: "chevron.down")
-                                        .font(.caption2)
+                                        .font(.system(size: 11, weight: .semibold))
                                         .foregroundColor(AppColors.brand)
                                 }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
                             }
                             .buttonStyle(PlainButtonStyle())
                             .padding(.top, 2)
@@ -449,7 +568,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     }
                 }
             }
-            
+
             // Completed habits section (always show if any exist)
             if !summary.completedHabits.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
@@ -486,39 +605,41 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                 ForEach(visibleCompletedHabits, id: \.id) { habit in
                                     habitRow(habit: habit, isCompleted: true)
                                 }
-                                
+
                                 // Collapse button
                                 Button {
-                                    // PERFORMANCE: Removed animation - expansion/collapse doesn't need animation
                                     isCompletedSectionExpanded = false
                                 } label: {
                                     HStack {
                                         Text("Show less")
-                                            .font(.caption)
-                                            .foregroundColor(AppColors.brand)
-                                        
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(.green)
+
                                         Image(systemName: "chevron.up")
-                                            .font(.caption2)
-                                            .foregroundColor(AppColors.brand)
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundColor(.green)
                                     }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 .padding(.top, 4)
                             } else {
                                 // Expand button
                                 Button {
-                                    // PERFORMANCE: Removed animation - expansion/collapse doesn't need animation
                                     isCompletedSectionExpanded = true
                                 } label: {
                                     HStack {
                                         Text("+ \(summary.completedHabits.count - 2) more completed")
-                                            .font(.caption)
-                                            .foregroundColor(AppColors.brand)
-                                        
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(.green)
+
                                         Image(systemName: "chevron.down")
-                                            .font(.caption2)
-                                            .foregroundColor(AppColors.brand)
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundColor(.green)
                                     }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 .padding(.top, 2)
@@ -562,21 +683,26 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         .fill(Color(hex: habit.colorHex).opacity(0.15))
                         .frame(width: 32, height: 32)
                     
-                    // Progress ring for numeric habits (Icon-Inspired Gradient)
+                    // Progress ring for numeric habits with animated gradient (only for incomplete)
                     if habit.kind == .numeric && !isCompleted {
                         let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
-                        let progressValue = min(max(currentValue / target, 0.0), 1.0)
+
+                        // Use truncated integers to match text display
+                        let currentInt = Int(currentValue)
+                        let targetInt = Int(target)
+                        let actualProgress = targetInt > 0 ? min(max(Double(currentInt) / Double(targetInt), 0.0), 1.0) : 0.0
+                        let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
 
                         Circle()
-                            .trim(from: 0, to: progressValue)
+                            .trim(from: 0, to: animatedProgress)
                             .stroke(
                                 .linearGradient(
                                     colors: [Color.ritualistCyan, Color.ritualistBlue],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                style: StrokeStyle(lineWidth: 2, lineCap: .round)
+                                style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
                             )
                             .frame(width: 32, height: 32)
                             .rotationEffect(.degrees(-90))
@@ -597,32 +723,29 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         Text(habit.name)
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(isCompleted ? .gray : (isDisabled ? .secondary.opacity(0.7) : .primary))
+                            .strikethrough(isCompleted, color: .gray)
                             .lineLimit(1)
-                        
-                        // Schedule indicator icon
-                        scheduleIcon(for: habit.schedule)
+
+                        // Schedule indicator icon (only show for incomplete habits)
+                        if !isCompleted {
+                            scheduleIcon(for: habit.schedule)
+                        }
                     }
-                    
-                    if isCompleted {
-                        Text("Completed")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    } else if habit.kind == .numeric {
-                        let currentValue = getProgress(habit)
-                        let target = habit.dailyTarget ?? 1.0
-                        let currentInt = Int(currentValue)
-                        let targetInt = Int(target)
-                        Text("\(currentInt)/\(targetInt) \(habit.unitLabel ?? "units")")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    } else if isDisabled {
-                        Text(scheduleStatus.displayText)
-                            .font(.caption)
-                            .foregroundColor(scheduleStatus.color)
-                    } else {
-                        Text("Tap to complete")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+
+                    if !isCompleted {
+                        if habit.kind == .numeric {
+                            let currentValue = getProgress(habit)
+                            let target = habit.dailyTarget ?? 1.0
+                            let currentInt = Int(currentValue)
+                            let targetInt = Int(target)
+                            Text("\(currentInt)/\(targetInt) \(habit.unitLabel ?? "units")")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        } else if isDisabled {
+                            Text(scheduleStatus.displayText)
+                                .font(.caption)
+                                .foregroundColor(scheduleStatus.color)
+                        }
                     }
                 }
                 
@@ -645,11 +768,15 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         .foregroundColor(isDisabled ? .secondary : AppColors.brand)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
             .padding(.horizontal, 12)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isCompleted ? Color.green.opacity(0.08) : (isDisabled ? .clear : AppColors.brand.opacity(0.05)))
+                    .fill(isCompleted ? Color.green.opacity(0.1) : (isDisabled ? CardDesign.secondaryBackground.opacity(0.5) : AppColors.brand.opacity(0.1)))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isCompleted ? Color.green.opacity(0.2) : (isDisabled ? Color.secondary.opacity(0.1) : AppColors.brand.opacity(0.2)), lineWidth: 1)
             )
         }
         .buttonStyle(PlainButtonStyle())

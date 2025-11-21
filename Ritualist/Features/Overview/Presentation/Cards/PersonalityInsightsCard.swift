@@ -70,27 +70,27 @@ struct PersonalityInsightsCard: View {
     
     @ViewBuilder
     private var insightsContent: some View {
-        let initialInsightsCount = 2
-        
+        let initialInsightsCount = 3
+
         VStack(spacing: 16) {
             ForEach(Array(insights.prefix(isExpanded ? insights.count : initialInsightsCount).enumerated()), id: \.element.id) { index, insight in
                 InsightRow(insight: insight)
-                
+
                 if index < min(insights.count, isExpanded ? insights.count : initialInsightsCount) - 1 {
                     Divider()
                         .opacity(0.3)
                 }
             }
-            
+
             // Show more/less indicator if there are additional insights
             if insights.count > initialInsightsCount {
                 HStack {
                     Text(isExpanded ? "Show less" : "View \(insights.count - initialInsightsCount) more insights")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Spacer()
-                    
+
                     // Expand/collapse handled by tap on this row only
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
                         .font(.caption2)
