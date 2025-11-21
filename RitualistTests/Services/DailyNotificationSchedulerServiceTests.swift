@@ -116,17 +116,15 @@ struct DailyNotificationSchedulerServiceTests {
         // Create habits: 2 active with reminders, 1 active without, 1 inactive with reminders
         let activeWithReminders1 = HabitBuilder.binary(
             name: "Active With Reminders 1",
-            isActive: true
+            isActive: true,
+            reminders: [ReminderTime(hour: 9, minute: 0)]
         )
-        var activeWithReminders1Modified = activeWithReminders1
-        activeWithReminders1Modified.reminders = [ReminderTime(hour: 9, minute: 0)]
 
         let activeWithReminders2 = HabitBuilder.binary(
             name: "Active With Reminders 2",
-            isActive: true
+            isActive: true,
+            reminders: [ReminderTime(hour: 10, minute: 0)]
         )
-        var activeWithReminders2Modified = activeWithReminders2
-        activeWithReminders2Modified.reminders = [ReminderTime(hour: 10, minute: 0)]
 
         let activeWithoutReminders = HabitBuilder.binary(
             name: "Active Without Reminders",
@@ -135,16 +133,15 @@ struct DailyNotificationSchedulerServiceTests {
 
         let inactiveWithReminders = HabitBuilder.binary(
             name: "Inactive With Reminders",
-            isActive: false
+            isActive: false,
+            reminders: [ReminderTime(hour: 11, minute: 0)]
         )
-        var inactiveWithRemindersModified = inactiveWithReminders
-        inactiveWithRemindersModified.reminders = [ReminderTime(hour: 11, minute: 0)]
 
         try await saveHabits([
-            activeWithReminders1Modified,
-            activeWithReminders2Modified,
+            activeWithReminders1,
+            activeWithReminders2,
             activeWithoutReminders,
-            inactiveWithRemindersModified
+            inactiveWithReminders
         ], to: container)
 
         let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
@@ -165,15 +162,19 @@ struct DailyNotificationSchedulerServiceTests {
         let scheduleHabitReminders = TrackingScheduleHabitReminders()
 
         // Create only inactive habits with reminders
-        let inactive1 = HabitBuilder.binary(name: "Inactive 1", isActive: false)
-        var inactive1Modified = inactive1
-        inactive1Modified.reminders = [ReminderTime(hour: 9, minute: 0)]
+        let inactive1 = HabitBuilder.binary(
+            name: "Inactive 1",
+            isActive: false,
+            reminders: [ReminderTime(hour: 9, minute: 0)]
+        )
 
-        let inactive2 = HabitBuilder.binary(name: "Inactive 2", isActive: false)
-        var inactive2Modified = inactive2
-        inactive2Modified.reminders = [ReminderTime(hour: 10, minute: 0)]
+        let inactive2 = HabitBuilder.binary(
+            name: "Inactive 2",
+            isActive: false,
+            reminders: [ReminderTime(hour: 10, minute: 0)]
+        )
 
-        try await saveHabits([inactive1Modified, inactive2Modified], to: container)
+        try await saveHabits([inactive1, inactive2], to: container)
 
         let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
@@ -214,19 +215,25 @@ struct DailyNotificationSchedulerServiceTests {
         let scheduleHabitReminders = TrackingScheduleHabitReminders()
 
         // Create 3 active habits with reminders
-        let habit1 = HabitBuilder.binary(name: "Habit 1", isActive: true)
-        var habit1Modified = habit1
-        habit1Modified.reminders = [ReminderTime(hour: 9, minute: 0)]
+        let habit1 = HabitBuilder.binary(
+            name: "Habit 1",
+            isActive: true,
+            reminders: [ReminderTime(hour: 9, minute: 0)]
+        )
 
-        let habit2 = HabitBuilder.binary(name: "Habit 2", isActive: true)
-        var habit2Modified = habit2
-        habit2Modified.reminders = [ReminderTime(hour: 10, minute: 0)]
+        let habit2 = HabitBuilder.binary(
+            name: "Habit 2",
+            isActive: true,
+            reminders: [ReminderTime(hour: 10, minute: 0)]
+        )
 
-        let habit3 = HabitBuilder.binary(name: "Habit 3", isActive: true)
-        var habit3Modified = habit3
-        habit3Modified.reminders = [ReminderTime(hour: 11, minute: 0)]
+        let habit3 = HabitBuilder.binary(
+            name: "Habit 3",
+            isActive: true,
+            reminders: [ReminderTime(hour: 11, minute: 0)]
+        )
 
-        try await saveHabits([habit1Modified, habit2Modified, habit3Modified], to: container)
+        try await saveHabits([habit1, habit2, habit3], to: container)
 
         let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
@@ -244,19 +251,25 @@ struct DailyNotificationSchedulerServiceTests {
         let scheduleHabitReminders = TrackingScheduleHabitReminders()
 
         // Create 3 active habits with reminders
-        let habit1 = HabitBuilder.binary(name: "Habit 1", isActive: true)
-        var habit1Modified = habit1
-        habit1Modified.reminders = [ReminderTime(hour: 9, minute: 0)]
+        let habit1 = HabitBuilder.binary(
+            name: "Habit 1",
+            isActive: true,
+            reminders: [ReminderTime(hour: 9, minute: 0)]
+        )
 
-        let habit2 = HabitBuilder.binary(name: "Habit 2", isActive: true)
-        var habit2Modified = habit2
-        habit2Modified.reminders = [ReminderTime(hour: 10, minute: 0)]
+        let habit2 = HabitBuilder.binary(
+            name: "Habit 2",
+            isActive: true,
+            reminders: [ReminderTime(hour: 10, minute: 0)]
+        )
 
-        let habit3 = HabitBuilder.binary(name: "Habit 3", isActive: true)
-        var habit3Modified = habit3
-        habit3Modified.reminders = [ReminderTime(hour: 11, minute: 0)]
+        let habit3 = HabitBuilder.binary(
+            name: "Habit 3",
+            isActive: true,
+            reminders: [ReminderTime(hour: 11, minute: 0)]
+        )
 
-        try await saveHabits([habit1Modified, habit2Modified, habit3Modified], to: container)
+        try await saveHabits([habit1, habit2, habit3], to: container)
 
         // Configure to fail for habit2
         await scheduleHabitReminders.setHabitToFailFor(habit2.id)
@@ -281,10 +294,11 @@ struct DailyNotificationSchedulerServiceTests {
 
         // Create 5 active habits with reminders
         let habits = (1...5).map { index in
-            let habit = HabitBuilder.binary(name: "Habit \(index)", isActive: true)
-            var modified = habit
-            modified.reminders = [ReminderTime(hour: 8 + index, minute: 0)]
-            return modified
+            HabitBuilder.binary(
+                name: "Habit \(index)",
+                isActive: true,
+                reminders: [ReminderTime(hour: 8 + index, minute: 0)]
+            )
         }
 
         try await saveHabits(habits, to: container)
@@ -358,13 +372,15 @@ struct DailyNotificationSchedulerServiceTests {
         let scheduleHabitReminders = TrackingScheduleHabitReminders()
 
         // Create habits that should all be filtered out
-        let inactiveWithReminders = HabitBuilder.binary(name: "Inactive", isActive: false)
-        var inactiveModified = inactiveWithReminders
-        inactiveModified.reminders = [ReminderTime(hour: 9, minute: 0)]
+        let inactiveWithReminders = HabitBuilder.binary(
+            name: "Inactive",
+            isActive: false,
+            reminders: [ReminderTime(hour: 9, minute: 0)]
+        )
 
         let activeWithoutReminders = HabitBuilder.binary(name: "No Reminders", isActive: true)
 
-        try await saveHabits([inactiveModified, activeWithoutReminders], to: container)
+        try await saveHabits([inactiveWithReminders, activeWithoutReminders], to: container)
 
         let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 

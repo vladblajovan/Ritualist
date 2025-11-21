@@ -17,7 +17,8 @@ enum HabitBuilder {
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
         displayOrder: Int = 0,
-        startDate: Date = TestDates.daysAgo(30)  // Default to 30 days ago to allow streaks
+        startDate: Date = TestDates.daysAgo(30),  // Default to 30 days ago to allow streaks
+        reminders: [ReminderTime] = []
     ) -> Habit {
         return Habit(
             id: id,
@@ -28,7 +29,7 @@ enum HabitBuilder {
             unitLabel: nil,
             dailyTarget: nil,
             schedule: schedule,
-            reminders: [],
+            reminders: reminders,
             startDate: startDate,
             endDate: nil,
             isActive: isActive,
@@ -55,7 +56,8 @@ enum HabitBuilder {
         schedule: HabitSchedule = .daily,
         isActive: Bool = true,
         displayOrder: Int = 0,
-        startDate: Date = TestDates.daysAgo(30)  // Default to 30 days ago to allow streaks
+        startDate: Date = TestDates.daysAgo(30),  // Default to 30 days ago to allow streaks
+        reminders: [ReminderTime] = []
     ) -> Habit {
         return Habit(
             id: id,
@@ -66,7 +68,7 @@ enum HabitBuilder {
             unitLabel: unit,
             dailyTarget: target,
             schedule: schedule,
-            reminders: [],
+            reminders: reminders,
             startDate: startDate,
             endDate: nil,
             isActive: isActive,
