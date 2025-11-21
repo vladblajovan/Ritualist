@@ -1,8 +1,8 @@
 # Testing Improvements Plan
 
 **Created:** 2025-11-20
-**Branch:** `feature/modern-habit-edit-ux`
-**Status:** ✅ Phase 1 Complete - Ready for PR
+**Branch:** `feature/phase-2-timezone-notification-tests`
+**Status:** ✅ Phase 2 Complete - Ready for PR
 
 ---
 
@@ -39,11 +39,29 @@
 - ✅ Effort: ~2 hours
 - 📁 File: `RitualistTests/Services/HabitCompletionCheckServiceTests.swift`
 
+### **Phase 2: Timezone & Notification Logic** ✅ COMPLETE (2/2)
+
+#### ✅ 1. TimezoneService - COMPLETE
+- ✅ 38/38 tests passed (exceeded 28-30 target)
+- ✅ Getters (8), Setters (7), History (2), Detection (7), Updates (4), First Launch (3), Error Paths (7)
+- ✅ NO MOCKS - Uses REAL DefaultTimezoneService with REAL SwiftData
+- ✅ Verified by breaking implementation (3 tests failed when timezone update commented out)
+- ✅ Effort: ~4 hours
+- 📁 File: `RitualistTests/Services/TimezoneServiceTests.swift`
+
+#### ✅ 2. DailyNotificationSchedulerService - COMPLETE
+- ✅ 12/12 tests passed (hit 10-12 target)
+- ✅ Habit Filtering (3), Orchestration (3), Error Handling (3), Edge Cases (3)
+- ✅ NO MOCKS - Uses REAL DefaultDailyNotificationScheduler with REAL SwiftData
+- ✅ Verified by breaking implementation (2 tests failed when isActive check removed)
+- ✅ Effort: ~3 hours
+- 📁 File: `RitualistTests/Services/DailyNotificationSchedulerServiceTests.swift`
+
 ### **Current Totals:**
-- ✅ Tests Added: 69 (9 infrastructure + 17 validation + 33 performance + 10 orchestration)
+- ✅ Tests Added: 119 (9 infrastructure + 60 Phase 1 + 50 Phase 2)
 - ✅ Production Bugs Fixed: 1 (critical Dashboard consistency bug)
-- ✅ Time Invested: ~10.5 hours
-- 📊 Progress: **Phase 0 ✅ COMPLETE | Phase 1 ✅ COMPLETE (100%)**
+- ✅ Time Invested: ~17.5 hours
+- 📊 Progress: **Phase 0 ✅ | Phase 1 ✅ | Phase 2 ✅ COMPLETE (100%)**
 
 ---
 
@@ -548,22 +566,27 @@ struct InfrastructureValidationTests {
 
 ---
 
-### **Phase 2: Timezone & Notification Logic** (Week 2)
+### **Phase 2: Timezone & Notification Logic** ✅ COMPLETE
 **Focus:** Complex timezone handling and notification reliability
 
 **Prerequisites:** ✅ Phase 0 complete (NotificationCenterProtocol + UserProfileBuilder available)
 
-| Service | Effort | Test Cases | Priority |
-|---------|--------|------------|----------|
-| TimezoneService | 3-4 hours | 28-30 | 🔴 High |
-| DailyNotificationSchedulerService | 3-4 hours | 10-12 | 🟡 Medium |
+| Service | Effort | Test Cases | Priority | Status |
+|---------|--------|------------|----------|--------|
+| TimezoneService | 3-4 hours | 28-30 → **38 tests** | 🔴 High | ✅ COMPLETE |
+| DailyNotificationSchedulerService | 3-4 hours | 10-12 → **12 tests** | 🟡 Medium | ✅ COMPLETE |
 
-**Total Phase 2:** 6-8 hours, 38-42 test cases
+**Total Phase 2:** ✅ 6-8 hours, **50 test cases** (exceeded 38-42 target)
 
 **Success Criteria:**
-- ✅ Three-timezone model fully tested
-- ✅ Travel detection validated
-- ✅ Notification scheduling logic covered
+- ✅ Three-timezone model fully tested (38 tests covering getters, setters, history, detection, first launch, error paths)
+- ✅ Travel detection validated (7 detection tests)
+- ✅ Notification scheduling logic covered (12 tests covering filtering, orchestration, error handling, edge cases)
+
+**Test Strategy:**
+- ✅ NO MOCKS - Uses REAL services with REAL SwiftData
+- ✅ Both test suites verified by breaking implementation
+- ✅ Comprehensive error path coverage (FailingProfileRepository, FailingHabitRepository)
 
 ---
 
