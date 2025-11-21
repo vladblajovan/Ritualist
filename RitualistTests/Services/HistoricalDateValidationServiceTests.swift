@@ -14,7 +14,10 @@ import Foundation
 /// - API completeness (all public methods)
 /// - Configuration customization
 /// - Date string parsing
-@Suite("HistoricalDateValidationService Tests")
+@Suite(
+    "HistoricalDateValidationService Tests",
+    .tags(.history, .businessLogic, .critical, .isolated, .fast, .edgeCases)
+)
 struct HistoricalDateValidationServiceTests {
 
     // MARK: - Boundary Tests

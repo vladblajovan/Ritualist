@@ -19,7 +19,10 @@ import SwiftData
 /// - Use Case Orchestration (3 tests): Calls ScheduleHabitReminders for each habit
 /// - Error Handling (3 tests): Continues on individual failures, handles repository errors
 /// - Edge Cases (3 tests): Empty habits, all inactive, all without reminders
-@Suite("DailyNotificationSchedulerService Tests")
+@Suite(
+    "DailyNotificationSchedulerService Tests",
+    .tags(.notifications, .scheduling, .orchestration, .high, .database, .integration, .errorHandling)
+)
 struct DailyNotificationSchedulerServiceTests {
 
     // MARK: - Test Helpers

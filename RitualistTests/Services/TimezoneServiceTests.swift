@@ -15,7 +15,10 @@ import SwiftData
 /// - History Management (2 tests): Trimming to 100 entries
 /// - Detection (7 tests): Timezone change and travel detection
 /// - Update Operations (4 tests): Current timezone updates and change tracking
-@Suite("TimezoneService Tests")
+@Suite(
+    "TimezoneService Tests",
+    .tags(.timezone, .travel, .businessLogic, .critical, .database, .integration)
+)
 struct TimezoneServiceTests {
 
     // MARK: - Test Helpers

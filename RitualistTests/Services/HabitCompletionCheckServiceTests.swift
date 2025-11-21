@@ -25,7 +25,10 @@ import SwiftData
 /// - Timezone service integration (display timezone, error fallback)
 /// - Fail-safe behavior (errors return true to show notifications)
 /// - Service delegation (correct calls to HabitCompletionService)
-@Suite("HabitCompletionCheckService - Orchestration Layer Tests")
+@Suite(
+    "HabitCompletionCheckService - Orchestration Layer Tests",
+    .tags(.notifications, .completion, .orchestration, .high, .database, .integration, .errorHandling, .fast)
+)
 struct HabitCompletionCheckServiceTests {
 
     // MARK: - Test Fixtures
