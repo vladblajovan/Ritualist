@@ -896,4 +896,103 @@ struct PerformanceAnalysisServiceTests {
         #expect(result.currentStreak == 1)
         #expect(result.daysWithFullCompletion == 1)
     }
+
+    // MARK: - Cross-Timezone Tests
+
+    @Test("Perfect day streak finds log created in different timezone")
+    func perfectDayStreakCrossTimezone() {
+        let service = createService()
+
+        let habit = HabitBuilder.binary(name: "Test Habit", schedule: .daily)
+
+        // Create a log at 11 PM New York time (which is next day in UTC)
+        // The log should still be attributed to the correct day based on its stored timezone
+        let newYork = TimezoneTestHelpers.newYork
+        let logDate = TimezoneTestHelpers.createDate(
+            year: 2025, month: 11, day: 20,
+            hour: 23, minute: 30,
+            timezone: newYork
+        )
+
+        // Create log with New York timezone stored
+        let log = HabitLog(
+            id: UUID(),
+            habitID: habit.id,
+            date: logDate,
+            value: 1.0,
+            timezone: newYork.identifier
+        )
+
+        // Query using the same day boundaries
+        let startOfDay = CalendarUtils.startOfDayLocal(for: logDate, timezone: newYork)
+
+        let result = service.calculateStreakAnalysis(
+            habits: [habit],
+            logs: [log],
+            from: startOfDay,
+            to: startOfDay
+        )
+
+        // The log at 11:30 PM should count for Nov 20 (the day it was created in its timezone)
+        #expect(result.daysWithFullCompletion >= 1, "Late night log should be found for its calendar day")
+    }
+
+    @Test("Weekly patterns correctly handles log with stored timezone")
+    func weeklyPatternsCrossTimezone() {
+        let service = createService()
+
+        let habit = HabitBuilder.binary(name: "Test Habit", schedule: .daily)
+
+        // Use current timezone to ensure test works on any machine
+        // The service uses TimeZone.current for dashboard statistics
+        let currentTz = TimeZone.current
+        let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: currentTz)
+
+        // Create log with explicitly stored timezone
+        let log = HabitLog(
+            id: UUID(),
+            habitID: habit.id,
+            date: today,
+            value: 1.0,
+            timezone: currentTz.identifier
+        )
+
+        let result = service.analyzeWeeklyPatterns(
+            habits: [habit],
+            logs: [log],
+            from: today,
+            to: today
+        )
+
+        // Should find the log and have non-zero completion rate
+        let hasCompletions = result.dayOfWeekPerformance.contains { $0.completionRate > 0 }
+        #expect(hasCompletions, "Log with stored timezone should be counted in weekly patterns")
+    }
+
+    @Test("Invalid timezone identifier falls back gracefully")
+    func invalidTimezoneFallback() {
+        let service = createService()
+
+        let habit = HabitBuilder.binary(name: "Test Habit", schedule: .daily)
+        let today = CalendarUtils.startOfDayLocal(for: Date())
+
+        // Create log with invalid timezone identifier
+        let log = HabitLog(
+            id: UUID(),
+            habitID: habit.id,
+            date: today,
+            value: 1.0,
+            timezone: "Invalid/Timezone"  // Invalid!
+        )
+
+        let result = service.calculateStreakAnalysis(
+            habits: [habit],
+            logs: [log],
+            from: today,
+            to: today
+        )
+
+        // Should still find the log using fallback timezone
+        #expect(result.daysWithFullCompletion == 1, "Invalid timezone should fall back gracefully")
+    }
 }
