@@ -315,20 +315,22 @@ struct DailyNotificationSchedulerServiceTests {
 
         try await saveHabits(habits, to: container)
 
-        // Configure to fail for habits 2 and 4
-        await scheduleHabitReminders.setHabitToFailFor(habits[1].id)
+        // Configure to fail for habits 2 and 4 (indices 1 and 3)
+        await scheduleHabitReminders.setHabitsToFailFor([habits[1].id, habits[3].id])
 
         let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
-        // Execute - should not throw despite failures
+        // Execute - should not throw despite multiple failures
         try await service.rescheduleAllHabitNotifications()
 
-        // Verify: Should have scheduled 4 habits (all except habit 2)
+        // Verify: Should have scheduled 3 habits (1, 3, and 5 - skipping 2 and 4)
         let scheduledHabits = await scheduleHabitReminders.getScheduledHabits()
-
-        // Note: Only one habit will fail because we can only set one habitToFailFor
-        // This still validates error handling continues processing
-        #expect(scheduledHabits.count == 4)
+        #expect(scheduledHabits.count == 3)
+        #expect(scheduledHabits.contains { $0.name == "Habit 1" })
+        #expect(scheduledHabits.contains { $0.name == "Habit 3" })
+        #expect(scheduledHabits.contains { $0.name == "Habit 5" })
+        #expect(!scheduledHabits.contains { $0.name == "Habit 2" })
+        #expect(!scheduledHabits.contains { $0.name == "Habit 4" })
     }
 
     // MARK: - Error Handling Tests
