@@ -188,6 +188,16 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
+            // Card Title
+            HStack(spacing: 8) {
+                Text("✨")
+                    .font(.title2)
+                Text("You are your rituals")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+            }
+
             // Card Header with Date Navigation
             VStack(spacing: 12) {
                 HStack {
