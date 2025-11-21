@@ -33,10 +33,25 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @State private var hasInitializedProgress = false
     @State private var habitAnimatedProgress: [UUID: Double] = [:] // Track animated progress per habit
 
+    // Task references for proper cancellation on view disappear
+    @State private var progressGlowTask: Task<Void, Never>?
+    @State private var quickActionGlowTask: Task<Void, Never>?
+    @State private var habitRowGlowTask: Task<Void, Never>?
+    @State private var completionAnimationTask: Task<Void, Never>?
+
     // CONFIGURATION: Set to false to disable progress bar animation on initial load
     // When true (default), the progress bar will animate from 0% to current value when the view first appears
     // When false, it will immediately show the current value without animation
     private let animateProgressOnLoad: Bool = true
+
+    // Animation timing constants (in nanoseconds)
+    private enum AnimationTiming {
+        static let progressAnimationDelay: UInt64 = 600_000_000       // 0.6s - match progress bar animation
+        static let glowFadeDelay: UInt64 = 2_000_000_000              // 2s - glow fade out delay
+        static let completionGlowDelay: UInt64 = 500_000_000          // 0.5s - completion glow duration
+        static let completionAnimationDelay: UInt64 = 800_000_000     // 0.8s - completion animation duration
+        static let animationCleanupDelay: UInt64 = 500_000_000        // 0.5s - cleanup delay after animation
+    }
 
     // PERFORMANCE: Pre-computed arrays to avoid creating NEW arrays on every render
     @State private var visibleIncompleteHabits: [Habit] = []
@@ -112,10 +127,12 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             return
         }
 
-        // BUGFIX: Additional safety filter to prevent race condition where summary contains habits
+        // BUGFIX: Capture viewingDate at start to ensure consistency during filter
+        // Additional safety filter to prevent race condition where summary contains habits
         // from previous viewingDate. Only show habits that are actually scheduled for viewingDate.
+        let capturedDate = viewingDate
         let scheduledIncompleteHabits = summary.incompleteHabits.filter { habit in
-            habit.schedule.isActiveOn(date: viewingDate)
+            habit.schedule.isActiveOn(date: capturedDate)
         }
 
         // Store the filtered count for display
@@ -147,7 +164,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             let currentValue = getProgress(habit)
             let target = habit.dailyTarget ?? 1.0
 
-            // BUGFIX: Use truncated integers to match the text display (e.g., "4/5")
+            // Use truncated integers to match the text display (e.g., "4/5")
             // This prevents visual mismatch where text shows "4/5" but circle shows 4.8/5.0 = 96%
             let currentInt = Int(currentValue)
             let targetInt = Int(target)
@@ -279,6 +296,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             // Note: animatedCompletionPercentage starts at 0.0
             // The onChange handler will handle initial animation based on animateProgressOnLoad flag
         }
+        .onDisappear {
+            // Cancel all running animation tasks to prevent memory leaks
+            progressGlowTask?.cancel()
+            quickActionGlowTask?.cancel()
+            habitRowGlowTask?.cancel()
+            completionAnimationTask?.cancel()
+        }
         .onChange(of: summary?.completedHabitsCount) { _, _ in
             updateVisibleHabits()
             updateHabitProgressAnimations()
@@ -326,16 +350,19 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
             // Trigger glow when reaching 100% completion (only if animated)
             if shouldAnimate && newValue >= 1.0, oldValue ?? 0.0 < 1.0 {
+                // Cancel any existing glow task
+                progressGlowTask?.cancel()
+
                 // Delay glow until progress animation completes
                 // Note: Task inherits MainActor context from View, no MainActor.run needed
-                Task {
-                    try? await Task.sleep(nanoseconds: 600_000_000) // 0.6s - match progress animation
+                progressGlowTask = Task {
+                    try? await Task.sleep(nanoseconds: AnimationTiming.progressAnimationDelay)
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showProgressGlow = true
                     }
 
                     // Fade out the glow after 2 seconds
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    try? await Task.sleep(nanoseconds: AnimationTiming.glowFadeDelay)
                     withAnimation(.easeOut(duration: 0.5)) {
                         showProgressGlow = false
                     }
@@ -378,10 +405,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     // For binary habits, complete with glow effect
                     glowingHabitId = habit.id
 
+                    // Cancel any existing quick action glow task
+                    quickActionGlowTask?.cancel()
+
                     // Small delay for glow effect, then complete
                     // Note: Task inherits MainActor context from View, no MainActor.run needed
-                    Task {
-                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds for glow
+                    quickActionGlowTask = Task {
+                        try? await Task.sleep(nanoseconds: AnimationTiming.completionGlowDelay)
                         onQuickAction(habit)
                         glowingHabitId = nil
                     }
@@ -657,11 +687,14 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     // Binary habit - animate completion with glow
                     glowingHabitId = habit.id
                     performCompletionAnimation(for: habit)
-                    
+
+                    // Cancel any existing habit row glow task
+                    habitRowGlowTask?.cancel()
+
                     // Clear glow after animation
                     // Note: Task inherits MainActor context from View, no MainActor.run needed
-                    Task {
-                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                    habitRowGlowTask = Task {
+                        try? await Task.sleep(nanoseconds: AnimationTiming.completionGlowDelay)
                         glowingHabitId = nil
                     }
                 }
@@ -807,11 +840,14 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         withAnimation(.easeInOut(duration: 0.6)) {
             animatingProgress = 1.0
         }
-        
+
+        // Cancel any existing completion animation task
+        completionAnimationTask?.cancel()
+
         // After animation completes, fade and trigger actual completion
         // Note: Task inherits MainActor context from View, no MainActor.run needed
-        Task {
-            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8 seconds
+        completionAnimationTask = Task {
+            try? await Task.sleep(nanoseconds: AnimationTiming.completionAnimationDelay)
 
             // Start fade out
             withAnimation(.easeOut(duration: 0.4)) {
@@ -822,7 +858,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             onQuickAction(habit)
 
             // Clean up animation state
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            try? await Task.sleep(nanoseconds: AnimationTiming.animationCleanupDelay)
             resetAnimationState()
         }
     }
@@ -837,11 +873,14 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         withAnimation(.easeInOut(duration: 0.6)) {
             animatingProgress = 0.0
         }
-        
+
+        // Cancel any existing completion animation task
+        completionAnimationTask?.cancel()
+
         // After animation completes, fade and trigger actual removal
         // Note: Task inherits MainActor context from View, no MainActor.run needed
-        Task {
-            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8 seconds
+        completionAnimationTask = Task {
+            try? await Task.sleep(nanoseconds: AnimationTiming.completionAnimationDelay)
 
             // Start fade out
             withAnimation(.easeOut(duration: 0.4)) {
@@ -852,7 +891,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             onDeleteHabitLog(habit)
 
             // Clean up animation state
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            try? await Task.sleep(nanoseconds: AnimationTiming.animationCleanupDelay)
             resetAnimationState()
         }
     }
