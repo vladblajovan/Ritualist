@@ -21,7 +21,7 @@ import SwiftData
 /// - History Management (2 tests): Trimming to 100 entries
 /// - Detection (7 tests): Timezone change and travel detection
 /// - Update Operations (4 tests): Current timezone updates and change tracking
-#if compiler(>=6.0)
+#if swift(>=6.1)
 @Suite(
     "TimezoneService Tests",
     .tags(.timezone, .travel, .businessLogic, .critical, .database, .integration)
@@ -718,27 +718,6 @@ struct TimezoneServiceTests {
 
     // MARK: - Error Path Tests
 
-    /// Mock repository that throws errors for testing error handling
-    actor FailingProfileRepository: ProfileRepository {
-        var shouldFailLoad: Bool = false
-        var shouldFailSave: Bool = false
-        var profileToReturn: UserProfile?
-
-        func loadProfile() async throws -> UserProfile? {
-            if shouldFailLoad {
-                throw NSError(domain: "FailingRepository", code: 1, userInfo: [NSLocalizedDescriptionKey: "Load failed"])
-            }
-            return profileToReturn
-        }
-
-        func saveProfile(_ profile: UserProfile) async throws {
-            if shouldFailSave {
-                throw NSError(domain: "FailingRepository", code: 2, userInfo: [NSLocalizedDescriptionKey: "Save failed"])
-            }
-            profileToReturn = profile
-        }
-    }
-
     @Test("getHomeTimezone propagates repository errors")
     func getHomeTimezonePropagatesRepositoryErrors() async throws {
         let failingRepo = FailingProfileRepository()
@@ -919,21 +898,5 @@ struct TimezoneServiceTests {
             // Verify save error was propagated
             #expect(error.localizedDescription.contains("Save failed"))
         }
-    }
-}
-
-// MARK: - Actor Helper Extensions
-
-extension TimezoneServiceTests.FailingProfileRepository {
-    func setShouldFailLoad(_ value: Bool) {
-        self.shouldFailLoad = value
-    }
-
-    func setShouldFailSave(_ value: Bool) {
-        self.shouldFailSave = value
-    }
-
-    func setProfileToReturn(_ profile: UserProfile?) {
-        self.profileToReturn = profile
     }
 }

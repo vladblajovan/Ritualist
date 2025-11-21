@@ -19,7 +19,7 @@ import SwiftData
 /// - Use Case Orchestration (3 tests): Calls ScheduleHabitReminders for each habit
 /// - Error Handling (3 tests): Continues on individual failures, handles repository errors
 /// - Edge Cases (3 tests): Empty habits, all inactive, all without reminders
-#if compiler(>=6.0)
+#if swift(>=6.1)
 @Suite(
     "DailyNotificationSchedulerService Tests",
     .tags(.notifications, .scheduling, .orchestration, .high, .database, .integration, .errorHandling)
@@ -35,14 +35,14 @@ struct DailyNotificationSchedulerServiceTests {
     actor TrackingScheduleHabitReminders: ScheduleHabitRemindersUseCase {
         var scheduledHabits: [Habit] = []
         var shouldThrowError: Bool = false
-        var habitToFailFor: UUID? = nil
+        var habitsToFailFor: Set<UUID> = []
 
         func execute(habit: Habit) async throws {
             if shouldThrowError {
                 throw NSError(domain: "TrackingScheduleHabitReminders", code: 1, userInfo: [NSLocalizedDescriptionKey: "Schedule failed"])
             }
 
-            if let failHabitId = habitToFailFor, habit.id == failHabitId {
+            if habitsToFailFor.contains(habit.id) {
                 throw NSError(domain: "TrackingScheduleHabitReminders", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed for specific habit"])
             }
 
@@ -56,11 +56,15 @@ struct DailyNotificationSchedulerServiceTests {
         func reset() {
             scheduledHabits = []
             shouldThrowError = false
-            habitToFailFor = nil
+            habitsToFailFor = []
         }
 
-        func setHabitToFailFor(_ habitId: UUID?) {
-            self.habitToFailFor = habitId
+        func setHabitsToFailFor(_ habitIds: Set<UUID>) {
+            self.habitsToFailFor = habitIds
+        }
+
+        func setHabitToFailFor(_ habitId: UUID) {
+            self.habitsToFailFor = [habitId]
         }
     }
 
@@ -400,27 +404,5 @@ struct DailyNotificationSchedulerServiceTests {
         #expect(scheduledHabits.count == 0)
     }
 
-    // MARK: - Supporting Test Infrastructure
-
-    /// Mock repository that throws errors for testing
-    actor FailingHabitRepository: HabitRepository {
-        var shouldFailFetchAll: Bool = false
-
-        func fetchAllHabits() async throws -> [Habit] {
-            if shouldFailFetchAll {
-                throw NSError(domain: "FailingHabitRepository", code: 1, userInfo: [NSLocalizedDescriptionKey: "Fetch failed"])
-            }
-            return []
-        }
-
-        func fetchHabit(by id: UUID) async throws -> Habit? { return nil }
-        func update(_ habit: Habit) async throws {}
-        func delete(id: UUID) async throws {}
-        func cleanupOrphanedHabits() async throws -> Int { return 0 }
-
-        func setShouldFailFetchAll(_ value: Bool) {
-            self.shouldFailFetchAll = value
-        }
-    }
 }
 

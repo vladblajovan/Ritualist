@@ -19,7 +19,7 @@ import Foundation
 /// - generateProgressChartData (3-4 tests)
 /// - analyzeWeeklyPatterns (6-8 tests)
 /// - calculateStreakAnalysis (4-5 tests)
-#if compiler(>=6.0)
+#if swift(>=6.1)
 @Suite(
     "PerformanceAnalysisService Tests",
     .tags(.dashboard, .businessLogic, .critical, .regression, .isolated, .fast, .streaks, .completion)

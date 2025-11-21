@@ -28,7 +28,7 @@ import Testing
 /// xcodebuild test -skip-testing-tags integrationTests,slow -scheme MyScheme -destination '...'
 /// ```
 
-#if compiler(>=6.0)
+#if swift(>=6.1)
 
 extension Tag {
 
