@@ -509,9 +509,7 @@ struct TimezoneServiceTests {
         let change = try await service.detectTimezoneChange()
 
         // Should detect change (device is virtually never in Kiritimati)
-        if TimeZone.current.identifier == storedTimezone.identifier {
-            return // Skip if somehow running in this extremely rare timezone
-        }
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
 
         guard let change = change else {
             Issue.record("Should detect timezone change when stored differs from device")
@@ -538,11 +536,7 @@ struct TimezoneServiceTests {
         let change = try await service.detectTimezoneChange()
 
         // Skip if somehow running in this extremely rare timezone
-        if TimeZone.current.identifier == storedTimezone.identifier {
-            return
-        }
-
-        // Now we can assert without conditionals
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
         guard let change = change else {
             Issue.record("Expected timezone change to be detected")
             return
@@ -626,9 +620,7 @@ struct TimezoneServiceTests {
         try await service.updateCurrentTimezone()
 
         // Skip if somehow running in this extremely rare timezone
-        if TimeZone.current.identifier == storedTimezone.identifier {
-            return
-        }
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
 
         // Verify profile was updated to device timezone
         let profileDataSource = ProfileLocalDataSource(modelContainer: container)
@@ -656,9 +648,7 @@ struct TimezoneServiceTests {
         try await service.updateCurrentTimezone()
 
         // Skip if somehow running in this extremely rare timezone
-        if TimeZone.current.identifier == storedTimezone.identifier {
-            return
-        }
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
 
         // Verify timezone change was logged
         let profileDataSource = ProfileLocalDataSource(modelContainer: container)
@@ -714,9 +704,7 @@ struct TimezoneServiceTests {
         try await service.updateCurrentTimezone()
 
         // Skip if somehow running in this extremely rare timezone
-        if TimeZone.current.identifier == storedTimezone.identifier {
-            return
-        }
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
 
         // Verify updatedAt was updated
         let profileDataSource = ProfileLocalDataSource(modelContainer: container)
@@ -921,9 +909,7 @@ struct TimezoneServiceTests {
         )
 
         // Skip if somehow running in this extremely rare timezone
-        if TimeZone.current.identifier == TimezoneTestHelpers.kiritimati.identifier {
-            return
-        }
+        try #require(TimeZone.current.identifier != TimezoneTestHelpers.kiritimati.identifier, "Test not applicable in Kiritimati timezone")
 
         // Should throw when save fails
         do {
