@@ -39,8 +39,10 @@ public struct CalendarUtils {
 
     /// Thread-safe cache for Calendar instances by timezone identifier.
     /// Avoids creating thousands of Calendar instances in hot paths like streak calculations.
+    /// Limited to maxCalendarCacheSize entries to prevent unbounded growth.
     private static var calendarCache: [String: Calendar] = [:]
     private static let calendarCacheLock = NSLock()
+    private static let maxCalendarCacheSize = 20  // More than enough for typical use (1-3 timezones)
 
     /// Get a cached Calendar for the given timezone.
     /// Thread-safe and reuses Calendar instances across calls.
@@ -53,6 +55,13 @@ public struct CalendarUtils {
 
         if let cached = calendarCache[identifier] {
             return cached
+        }
+
+        // Evict oldest entry if cache is full (simple FIFO eviction)
+        if calendarCache.count >= maxCalendarCacheSize {
+            if let firstKey = calendarCache.keys.first {
+                calendarCache.removeValue(forKey: firstKey)
+            }
         }
 
         let calendar = localCalendar(for: timezone)
@@ -317,8 +326,9 @@ public struct CalendarUtils {
     }
 
     /// Get weekday component in local timezone (1=Sunday...7=Saturday)
+    /// Uses cached calendar for performance in hot paths.
     public static func weekdayComponentLocal(from date: Date, timezone: TimeZone = .current) -> Int {
-        let calendar = localCalendar(for: timezone)
+        let calendar = cachedCalendar(for: timezone)
         return calendar.component(.weekday, from: date)
     }
 
