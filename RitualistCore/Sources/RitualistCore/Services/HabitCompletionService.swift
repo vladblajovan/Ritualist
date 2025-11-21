@@ -76,35 +76,8 @@ extension HabitCompletionService {
 /// Uses CalendarUtils for all date operations to ensure LOCAL timezone business logic
 public final class DefaultHabitCompletionService: HabitCompletionService {
 
-    /// Calendar cache to avoid creating Calendar instances repeatedly for the same timezone
-    /// Key: timezone identifier, Value: cached Calendar instance
-    private var calendarCache: [String: Calendar] = [:]
+    public init() {}
 
-    /// Maximum cache size to prevent unbounded growth
-    private let maxCacheSize = 10
-
-    public init() {
-        // No longer need calendar parameter - using CalendarUtils for all operations
-    }
-
-    /// Get a calendar for the given timezone, using cache to avoid repeated creation
-    /// Implements LRU-style eviction when cache reaches max size
-    private func getCachedCalendar(for timezone: TimeZone) -> Calendar {
-        let identifier = timezone.identifier
-        if let cached = calendarCache[identifier] {
-            return cached
-        }
-
-        // Evict oldest entry if cache is full
-        if calendarCache.count >= maxCacheSize {
-            calendarCache.removeValue(forKey: calendarCache.keys.first!)
-        }
-
-        let calendar = CalendarUtils.localCalendar(for: timezone)
-        calendarCache[identifier] = calendar
-        return calendar
-    }
-    
     // MARK: - Public Methods
 
     public func isCompleted(habit: Habit, on date: Date, logs: [HabitLog], timezone: TimeZone) -> Bool {
