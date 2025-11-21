@@ -330,22 +330,17 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             // Trigger glow when reaching 100% completion (only if animated)
             if shouldAnimate && newValue >= 1.0, oldValue ?? 0.0 < 1.0 {
                 // Delay glow until progress animation completes
+                // Note: Task inherits MainActor context from View, no MainActor.run needed
                 Task {
                     try? await Task.sleep(nanoseconds: 600_000_000) // 0.6s - match progress animation
-                    await MainActor.run {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showProgressGlow = true
-                        }
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showProgressGlow = true
+                    }
 
-                        // Fade out the glow after 2 seconds
-                        Task {
-                            try? await Task.sleep(nanoseconds: 2_000_000_000)
-                            await MainActor.run {
-                                withAnimation(.easeOut(duration: 0.5)) {
-                                    showProgressGlow = false
-                                }
-                            }
-                        }
+                    // Fade out the glow after 2 seconds
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        showProgressGlow = false
                     }
                 }
             }
@@ -385,14 +380,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 } else {
                     // For binary habits, complete with glow effect
                     glowingHabitId = habit.id
-                    
+
                     // Small delay for glow effect, then complete
+                    // Note: Task inherits MainActor context from View, no MainActor.run needed
                     Task {
                         try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds for glow
-                        await MainActor.run {
-                            onQuickAction(habit)
-                            glowingHabitId = nil
-                        }
+                        onQuickAction(habit)
+                        glowingHabitId = nil
                     }
                 }
             }
@@ -667,11 +661,10 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     performCompletionAnimation(for: habit)
                     
                     // Clear glow after animation
+                    // Note: Task inherits MainActor context from View, no MainActor.run needed
                     Task {
                         try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                        await MainActor.run {
-                            glowingHabitId = nil
-                        }
+                        glowingHabitId = nil
                     }
                 }
             }
@@ -818,26 +811,21 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         }
         
         // After animation completes, fade and trigger actual completion
+        // Note: Task inherits MainActor context from View, no MainActor.run needed
         Task {
             try? await Task.sleep(nanoseconds: 800_000_000) // 0.8 seconds
-            
-            await MainActor.run {
-                // Start fade out
-                withAnimation(.easeOut(duration: 0.4)) {
-                    // Fade effect handled by opacity in view
-                }
-                
-                // Complete the habit
-                onQuickAction(habit)
-                
-                // Clean up animation state
-                Task {
-                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                    await MainActor.run {
-                        resetAnimationState()
-                    }
-                }
+
+            // Start fade out
+            withAnimation(.easeOut(duration: 0.4)) {
+                // Fade effect handled by opacity in view
             }
+
+            // Complete the habit
+            onQuickAction(habit)
+
+            // Clean up animation state
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            resetAnimationState()
         }
     }
     
@@ -853,26 +841,21 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         }
         
         // After animation completes, fade and trigger actual removal
+        // Note: Task inherits MainActor context from View, no MainActor.run needed
         Task {
             try? await Task.sleep(nanoseconds: 800_000_000) // 0.8 seconds
-            
-            await MainActor.run {
-                // Start fade out
-                withAnimation(.easeOut(duration: 0.4)) {
-                    // Fade effect handled by opacity in view
-                }
-                
-                // Remove the habit log
-                onDeleteHabitLog(habit)
-                
-                // Clean up animation state
-                Task {
-                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                    await MainActor.run {
-                        resetAnimationState()
-                    }
-                }
+
+            // Start fade out
+            withAnimation(.easeOut(duration: 0.4)) {
+                // Fade effect handled by opacity in view
             }
+
+            // Remove the habit log
+            onDeleteHabitLog(habit)
+
+            // Clean up animation state
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            resetAnimationState()
         }
     }
     
