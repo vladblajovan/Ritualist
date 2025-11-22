@@ -53,6 +53,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         static let animationCleanupDelay: UInt64 = 500_000_000        // 0.5s - cleanup delay after animation
     }
 
+    // App name from bundle (uses display name if available, falls back to bundle name)
+    private static let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+        ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+        ?? "Ritualist"
+
     // PERFORMANCE: Pre-computed arrays to avoid creating NEW arrays on every render
     @State private var visibleIncompleteHabits: [Habit] = []
     @State private var visibleCompletedHabits: [Habit] = []
@@ -207,7 +212,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                             x: 0,
                             y: 0
                         )
-                    Text("Ritualist")
+                    Text(Self.appName)
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(

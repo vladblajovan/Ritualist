@@ -7,6 +7,9 @@ public struct CircularProgressView: View {
     let showPercentage: Bool
     let strokeStyle: StrokeStyle
 
+    // Animation duration constant for consistent timing across all circular progress indicators
+    private static let progressAnimationDuration: Double = 1.0
+
     // Support both single color and gradient
     private let color: Color?
     private let gradient: LinearGradient?
@@ -70,7 +73,7 @@ public struct CircularProgressView: View {
                     style: strokeStyle
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 1), value: progress)
+                .animation(.easeInOut(duration: Self.progressAnimationDuration), value: progress)
 
             // Percentage text (optional)
             if showPercentage {
