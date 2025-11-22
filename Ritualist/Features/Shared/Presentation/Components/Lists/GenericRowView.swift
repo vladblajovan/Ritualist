@@ -231,41 +231,16 @@ public extension GenericRowView {
         )
     }
     
-    /// For habit rows with emoji, status, and schedule indicator
+    /// For habit rows with emoji, status, and schedule indicator with split hit zones
     static func habitRowWithSchedule(
         habit: Habit,
         scheduleStatus: HabitScheduleStatus,
         onTap: @escaping () -> Void
-    ) -> GenericRowView {
-        var badges: [RowBadge] = []
-        
-        // Add schedule badge
-        badges.append(RowBadge(
-            text: scheduleStatus.displayText,
-            color: scheduleStatus.color
-        ))
-        
-        // Add inactive badge if needed
-        if !habit.isActive {
-            badges.append(.inactive())
-        }
-        
-        return GenericRowView(
-            icon: .circleWithEmoji(habit.emoji ?? "•", backgroundColor: Color(hex: habit.colorHex)),
-            title: habit.name,
-            subtitle: scheduleStatus.isAvailable ? "Available for logging" : "Not scheduled today",
-            badges: badges,
-            trailing: AnyView(
-                HStack(spacing: 8) {
-                    HabitScheduleIndicator.compact(status: scheduleStatus)
-                    Image(systemName: "info.circle")
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                        .accessibilityLabel("View habit details")
-                }
-            ),
-            action: onTap,
-            isEnabled: habit.isActive && scheduleStatus.isAvailable
+    ) -> some View {
+        HabitRowWithSplitZones(
+            habit: habit,
+            scheduleStatus: scheduleStatus,
+            onTap: onTap
         )
     }
     
@@ -360,12 +335,12 @@ public extension GenericRowView {
             )
         )
         .padding()
-        
+
         GenericRowView.categoryRow(
             category: HabitCategory(
                 id: UUID().uuidString,
                 name: "Custom Goal",
-                displayName: "Custom Goal", 
+                displayName: "Custom Goal",
                 emoji: "🎯",
                 order: 1,
                 isActive: false,
@@ -373,5 +348,190 @@ public extension GenericRowView {
             )
         )
         .padding()
+    }
+}
+
+// MARK: - Habit Row with Split Hit Zones
+
+/// Habit row with split hit zones: main content taps to view details, icon area shows info sheet
+private struct HabitRowWithSplitZones: View {
+    let habit: Habit
+    let scheduleStatus: HabitScheduleStatus
+    let onTap: () -> Void
+
+    @State private var showingIconInfoSheet = false
+
+    private var isEnabled: Bool {
+        habit.isActive && scheduleStatus.isAvailable
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            // LEFT ZONE: Main content - tappable for habit details
+            Button(action: onTap) {
+                HStack(spacing: Spacing.medium) {
+                    // Habit emoji icon
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: habit.colorHex).opacity(0.1))
+                            .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                        Text(habit.emoji ?? "•")
+                            .font(.title3)
+                    }
+
+                    // Content Section
+                    VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                        // Title
+                        Text(habit.name)
+                            .font(.headline)
+                            .foregroundColor(isEnabled ? .primary : .secondary)
+                            .strikethrough(!habit.isActive)
+                            .multilineTextAlignment(.leading)
+
+                        // Badges
+                        HStack(spacing: Spacing.small) {
+                            if !habit.isActive {
+                                // Only show inactive badge for inactive habits
+                                Text("Inactive")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            } else {
+                                // Show schedule badge for active habits
+                                Text(scheduleStatus.displayText)
+                                    .font(.caption)
+                                    .foregroundColor(scheduleStatus.color)
+                            }
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // RIGHT ZONE: Icon area - tappable for info sheet
+            Button {
+                showingIconInfoSheet = true
+            } label: {
+                HStack(spacing: 8) {
+                    // Time-based reminders indicator (if reminders are set)
+                    if !habit.reminders.isEmpty {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.orange)
+                            .accessibilityLabel("Time-based reminders enabled")
+                    }
+
+                    // Location indicator (if location-based reminders are enabled)
+                    if habit.locationConfiguration?.isEnabled == true {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.blue)
+                            .accessibilityLabel("Location-based reminders enabled")
+                    }
+
+                    // Schedule indicator - use .medium size to match Today card
+                    HabitScheduleIndicator(status: scheduleStatus, size: .medium, style: .iconOnly)
+                }
+                .padding(.leading, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .opacity(isEnabled ? 1.0 : 0.7)
+        .sheet(isPresented: $showingIconInfoSheet) {
+            HabitIconInfoSheet()
+        }
+    }
+}
+
+// MARK: - Habit Icon Info Sheet
+
+private struct HabitIconInfoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    HabitIconInfoRow(
+                        icon: "bell.fill",
+                        iconColor: .orange,
+                        title: "Time-Based Reminders",
+                        description: "Habit has scheduled notification reminders at specific times"
+                    )
+
+                    HabitIconInfoRow(
+                        icon: "location.fill",
+                        iconColor: .blue,
+                        title: "Location-Based Reminders",
+                        description: "Habit has geofence reminders that trigger when arriving or leaving a location"
+                    )
+
+                    HabitIconInfoRow(
+                        icon: "infinity.circle.fill",
+                        iconColor: .blue,
+                        title: "Always Available",
+                        description: "Daily habits that can be logged any day"
+                    )
+
+                    HabitIconInfoRow(
+                        icon: "calendar.circle.fill",
+                        iconColor: .green,
+                        title: "Scheduled for Today",
+                        description: "Habit is scheduled for specific days, and today is one of them"
+                    )
+
+                    HabitIconInfoRow(
+                        icon: "calendar.circle.fill",
+                        iconColor: .green,
+                        title: "Not Scheduled Today",
+                        description: "Habit is scheduled for specific days, but not today (shown with reduced opacity)",
+                        opacity: 0.7
+                    )
+                } header: {
+                    Text("Habit Icons")
+                } footer: {
+                    Text("These icons show habit configuration at a glance: reminders, location features, and schedule type.")
+                }
+            }
+            .navigationTitle("Habit Indicators")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct HabitIconInfoRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let description: String
+    var opacity: Double = 1.0
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(iconColor)
+                .frame(width: 32)
+                .opacity(opacity)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }

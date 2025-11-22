@@ -61,7 +61,7 @@ struct MonthlyCalendarCard: View {
                         } label: {
                             Image(systemName: "arrow.uturn.backward")
                                 .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.secondary)
                         }
                     }
 

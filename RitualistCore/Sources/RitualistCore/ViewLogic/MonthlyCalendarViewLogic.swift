@@ -41,6 +41,7 @@ public enum MonthlyCalendarViewLogic {
     // MARK: - Background Color Logic
 
     /// Computes the background color based on completion percentage and date context
+    /// Matches CircularProgressView.adaptiveProgressColors thresholds
     /// - Parameter context: Day context with date and completion information
     /// - Returns: Background color for the day circle
     public static func backgroundColor(for context: DayContext) -> Color {
@@ -50,10 +51,14 @@ public enum MonthlyCalendarViewLogic {
         }
 
         // Past/today dates get color based on completion
+        // Matches gradient thresholds: 0-50% red, 50-80% orange, 80-100% green, 100% full green
         if context.completion >= 1.0 {
             return CardDesign.progressGreen
         }
         if context.completion >= 0.8 {
+            return CardDesign.progressGreen
+        }
+        if context.completion >= 0.5 {
             return CardDesign.progressOrange
         }
         if context.completion > 0 {

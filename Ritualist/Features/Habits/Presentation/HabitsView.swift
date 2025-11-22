@@ -33,67 +33,89 @@ private struct HabitsContentView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
     @Binding var showingCategoryManagement: Bool
-    @State private var dragOffset = CGSize.zero
+    @State private var paywallDelayTask: Task<Void, Never>?
+
+    // Constants
+    private let rightEdgeInset: CGFloat = 15
+
+    @State private var dragOffset: CGSize
+
+    init(vm: HabitsViewModel, showingCategoryManagement: Binding<Bool>) {
+        self._vm = Bindable(wrappedValue: vm)
+        self._showingCategoryManagement = showingCategoryManagement
+        // Initial position: right edge with breathing room (padding + rightEdgeInset = 16 + 15 = 31)
+        self._dragOffset = State(initialValue: CGSize(width: 16 + rightEdgeInset, height: 0))
+    }
 
     private var isEditMode: Bool {
         editMode?.wrappedValue.isEditing == true
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            HabitsListView(
-                vm: vm,
-                showingCategoryManagement: $showingCategoryManagement
-            )
-            .navigationTitle("Habits")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                // Primary action: Add Habit
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        vm.handleCreateHabitTap()
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [.blue, .cyan],
-                                    startPoint: .top,
-                                    endPoint: .bottom
+        ZStack {
+            GeometryReader { geometry in
+                HabitsListView(
+                    vm: vm,
+                    showingCategoryManagement: $showingCategoryManagement
+                )
+                .navigationTitle("Habits")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    // Primary action: Add Habit
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            vm.handleCreateHabitTap()
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [.blue, .cyan],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
                                 )
-                            )
-                    }
-                    .accessibilityLabel("Add Habit")
-                    .accessibilityHint("Create a new habit to track")
-                }
-
-                // Secondary action: Edit mode
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                        .foregroundColor(.secondary)
-                }
-            }
-            .overlay(alignment: .bottomTrailing) {
-                // Draggable Floating AI Assistant button - hidden in edit mode
-                if !isEditMode {
-                    DraggableFloatingButton(
-                        dragOffset: $dragOffset,
-                        screenSize: geometry.size,
-                        safeAreaInsets: geometry.safeAreaInsets,
-                        onTap: {
-                            vm.handleAssistantTap(source: "fab")
                         }
-                    )
-                    .padding(.trailing, Spacing.large)
-                    .padding(.bottom, Spacing.large)
+                        .accessibilityLabel("Add Habit")
+                        .accessibilityHint("Create a new habit to track")
+                    }
+
+                    // Secondary action: Edit mode
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        EditButton()
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .safeAreaInset(edge: .bottom) {
+                    // Ensure content doesn't get hidden by FAB - only when FAB is visible
+                    if !isEditMode {
+                        Color.clear.frame(height: 80)
+                    }
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                // Ensure content doesn't get hidden by FAB - only when FAB is visible
-                if !isEditMode {
-                    Color.clear.frame(height: 80)
+
+            // Draggable Floating AI Assistant button - outside GeometryReader to be truly on top
+            if !isEditMode {
+                GeometryReader { geometry in
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            DraggableFloatingButton(
+                                dragOffset: $dragOffset,
+                                screenSize: geometry.size,
+                                safeAreaInsets: geometry.safeAreaInsets,
+                                onTap: {
+                                    vm.handleAssistantTap(source: "fab")
+                                }
+                            )
+                            .padding(.trailing, Spacing.large)
+                            .padding(.bottom, Spacing.large)
+                        }
+                    }
                 }
+                .allowsHitTesting(true)
             }
         }
             .sheet(isPresented: $vm.showingCreateHabit) {
@@ -114,15 +136,15 @@ private struct HabitsContentView: View {
                     onShowPaywall: {
                         // Dismiss Assistant and show paywall
                         vm.showingHabitAssistant = false
-                        Task {
-                            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-                            await MainActor.run {
-                                vm.showPaywall()
-                            }
+                        paywallDelayTask?.cancel()
+                        paywallDelayTask = Task {
+                            try? await Task.sleep(for: .milliseconds(300))
+                            vm.showPaywall()
                         }
                     }
                 )
                 .onDisappear {
+                    paywallDelayTask?.cancel()
                     vm.handleAssistantDismissal()
                 }
             }
@@ -591,6 +613,7 @@ private struct DraggableFloatingButton: View {
 
     private let buttonSize: CGFloat = 60
     private let padding: CGFloat = 16
+    private let rightEdgeInset: CGFloat = 15 // Visual breathing room when snapped to right edge
 
     var body: some View {
         ZStack {
@@ -624,6 +647,7 @@ private struct DraggableFloatingButton: View {
         .gesture(
             DragGesture(minimumDistance: 0)
                 .updating($temporaryOffset) { value, state, _ in
+                    // Allow free dragging - no constraints during drag
                     state = value.translation
                     isDragging = true
                 }
@@ -640,29 +664,41 @@ private struct DraggableFloatingButton: View {
                     if dragDistance < 10 {
                         onTap()
                     } else {
-                        // It was a drag - accumulate the offset with boundary constraints
-                        let newOffsetWidth = dragOffset.width + value.translation.width
-                        let newOffsetHeight = dragOffset.height + value.translation.height
+                        // Drag completed - snap to nearest edge with top/bottom constraints
+                        // Offset is relative to bottomTrailing position
 
-                        // Calculate available draggable area respecting safe areas
-                        // Button starts at bottom-trailing with padding
-                        // Available width for dragging (accounting for safe areas)
-                        let availableWidth = screenSize.width - safeAreaInsets.leading - safeAreaInsets.trailing - buttonSize - padding * 2
-                        let availableHeight = screenSize.height - safeAreaInsets.top - safeAreaInsets.bottom - buttonSize - padding * 2 - 80 // 80 for bottom safe area inset
+                        let newWidth = dragOffset.width + value.translation.width
+                        let newHeight = dragOffset.height + value.translation.height
 
-                        // Max left: can drag to left edge (respecting leading safe area)
-                        let maxLeft = -availableWidth
-                        let maxRight: CGFloat = 0
-                        // Max up: can drag to top (respecting top safe area)
-                        let maxUp = -availableHeight
-                        let maxDown: CGFloat = 0
+                        // Calculate current absolute X position
+                        // bottomTrailing means: screen.width - padding for x=0
+                        // Moving left (negative) means we're moving toward left edge
+                        let currentAbsoluteX = screenSize.width - padding + newWidth
 
-                        let constrainedWidth = max(maxLeft, min(maxRight, newOffsetWidth))
-                        let constrainedHeight = max(maxUp, min(maxDown, newOffsetHeight))
+                        // Snap to nearest edge (left or right)
+                        let snapToLeft = currentAbsoluteX < screenSize.width / 2
+                        let snappedWidth: CGFloat
+                        if snapToLeft {
+                            snappedWidth = -(screenSize.width - buttonSize)
+                        } else {
+                            snappedWidth = padding + rightEdgeInset
+                        }
+
+                        // Calculate vertical constraints
+                        let buffer: CGFloat = 5
+                        let maxUpwardOffset = -(screenSize.height - safeAreaInsets.top - buffer)
+                        let maxDownwardOffset: CGFloat = 10
+
+                        // Constrain height to stay between navigation and tab bar
+                        let constrainedHeight = min(max(newHeight, maxUpwardOffset), maxDownwardOffset)
+
+                        // Haptic feedback on snap
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
 
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             dragOffset = CGSize(
-                                width: constrainedWidth,
+                                width: snappedWidth,
                                 height: constrainedHeight
                             )
                         }

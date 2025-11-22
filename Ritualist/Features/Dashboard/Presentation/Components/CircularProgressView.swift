@@ -7,6 +7,9 @@ public struct CircularProgressView: View {
     let showPercentage: Bool
     let strokeStyle: StrokeStyle
 
+    // Animation duration constant for consistent timing across all circular progress indicators
+    private static let progressAnimationDuration: Double = 1.0
+
     // Support both single color and gradient
     private let color: Color?
     private let gradient: LinearGradient?
@@ -30,6 +33,17 @@ public struct CircularProgressView: View {
             startPoint: .leading,
             endPoint: .trailing
         ) : nil
+        self.lineWidth = lineWidth
+        self.showPercentage = showPercentage
+        self.strokeStyle = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+    }
+
+    /// Creates a circular progress view with adaptive gradient based on completion percentage
+    /// Matches MonthlyCalendarViewLogic color thresholds
+    public init(progress: Double, lineWidth: CGFloat = 8, showPercentage: Bool = false, useAdaptiveGradient: Bool) {
+        self.progress = progress
+        self.color = nil
+        self.gradient = useAdaptiveGradient ? Self.adaptiveProgressGradient(for: progress) : nil
         self.lineWidth = lineWidth
         self.showPercentage = showPercentage
         self.strokeStyle = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
@@ -59,7 +73,7 @@ public struct CircularProgressView: View {
                     style: strokeStyle
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 1), value: progress)
+                .animation(.easeInOut(duration: Self.progressAnimationDuration), value: progress)
 
             // Percentage text (optional)
             if showPercentage {
@@ -91,6 +105,41 @@ public struct CircularProgressView: View {
 
     private var textColor: Color {
         color ?? .ritualistBlue
+    }
+
+    // MARK: - Static Helpers
+
+    /// Returns adaptive gradient colors based on completion percentage
+    /// Matches MonthlyCalendarViewLogic color thresholds:
+    /// - 0-50%: Red/Pink (low completion)
+    /// - 50-80%: Orange (medium completion)
+    /// - 80-100%: Green (high completion)
+    /// - 100%: Full green gradient (perfect completion)
+    public static func adaptiveProgressColors(for completion: Double) -> [Color] {
+        let percentage = min(max(completion, 0.0), 1.0)
+
+        if percentage < 0.5 {
+            // Low completion: Cyan → Red gradient
+            return [Color.ritualistCyan, CardDesign.progressRed]
+        } else if percentage < 0.8 {
+            // Medium completion: Cyan → Orange gradient
+            return [Color.ritualistCyan, CardDesign.progressOrange]
+        } else if percentage < 1.0 {
+            // High completion: Cyan → Green gradient
+            return [Color.ritualistCyan, CardDesign.progressGreen]
+        } else {
+            // 100% completion: Cyan → Bright Green gradient
+            return [Color.ritualistCyan, CardDesign.progressGreen]
+        }
+    }
+
+    /// Returns adaptive gradient based on completion percentage
+    public static func adaptiveProgressGradient(for completion: Double) -> LinearGradient {
+        return LinearGradient(
+            colors: adaptiveProgressColors(for: completion),
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 }
 
