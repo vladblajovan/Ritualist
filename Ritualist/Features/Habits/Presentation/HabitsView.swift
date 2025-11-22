@@ -679,6 +679,10 @@ private struct DraggableFloatingButton: View {
                         // Constrain height to stay between navigation and tab bar
                         let constrainedHeight = min(max(newHeight, maxUpwardOffset), maxDownwardOffset)
 
+                        // Haptic feedback on snap
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             dragOffset = CGSize(
                                 width: snappedWidth,
