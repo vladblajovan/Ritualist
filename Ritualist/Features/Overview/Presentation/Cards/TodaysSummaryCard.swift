@@ -155,6 +155,21 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             []
     }
 
+    // MARK: - Progress Calculation Helper
+
+    /// Calculates progress percentage using truncated integers to match text display
+    /// - Parameters:
+    ///   - current: Current progress value
+    ///   - target: Target/goal value
+    /// - Returns: Progress as a percentage (0.0 to 1.0)
+    private func calculateProgress(current: Double, target: Double) -> Double {
+        // Use truncated integers to match the text display (e.g., "4/5")
+        // This prevents visual mismatch where text shows "4/5" but circle shows 4.8/5.0 = 96%
+        let currentInt = Int(current)
+        let targetInt = Int(target)
+        return targetInt > 0 ? min(max(Double(currentInt) / Double(targetInt), 0.0), 1.0) : 0.0
+    }
+
     // Update habit progress animations when data changes
     private func updateHabitProgressAnimations() {
         guard let summary = summary else { return }
@@ -169,12 +184,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         for habit in summary.incompleteHabits where habit.kind == .numeric {
             let currentValue = getProgress(habit)
             let target = habit.dailyTarget ?? 1.0
-
-            // Use truncated integers to match the text display (e.g., "4/5")
-            // This prevents visual mismatch where text shows "4/5" but circle shows 4.8/5.0 = 96%
-            let currentInt = Int(currentValue)
-            let targetInt = Int(target)
-            let actualProgress = targetInt > 0 ? min(max(Double(currentInt) / Double(targetInt), 0.0), 1.0) : 0.0
+            let actualProgress = calculateProgress(current: currentValue, target: target)
 
             // If not tracked (new habit or coming from non-scheduled day), start from 0 and animate
             if habitAnimatedProgress[habit.id] == nil {
@@ -463,11 +473,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     if habit.kind == .numeric {
                         let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
-
-                        // Use truncated integers to match text display
-                        let currentInt = Int(currentValue)
-                        let targetInt = Int(target)
-                        let actualProgress = targetInt > 0 ? min(max(Double(currentInt) / Double(targetInt), 0.0), 1.0) : 0.0
+                        let actualProgress = calculateProgress(current: currentValue, target: target)
                         let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
 
                         Circle()
@@ -745,11 +751,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     if habit.kind == .numeric && !isCompleted {
                         let currentValue = getProgress(habit)
                         let target = habit.dailyTarget ?? 1.0
-
-                        // Use truncated integers to match text display
-                        let currentInt = Int(currentValue)
-                        let targetInt = Int(target)
-                        let actualProgress = targetInt > 0 ? min(max(Double(currentInt) / Double(targetInt), 0.0), 1.0) : 0.0
+                        let actualProgress = calculateProgress(current: currentValue, target: target)
                         let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
 
                         Circle()

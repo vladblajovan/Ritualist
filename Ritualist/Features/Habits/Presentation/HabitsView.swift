@@ -33,7 +33,19 @@ private struct HabitsContentView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
     @Binding var showingCategoryManagement: Bool
-    @State private var dragOffset = CGSize(width: 31, height: 0) // padding (16) + 15
+    @State private var paywallDelayTask: Task<Void, Never>?
+
+    // Constants
+    private let rightEdgeInset: CGFloat = 15
+
+    @State private var dragOffset: CGSize
+
+    init(vm: HabitsViewModel, showingCategoryManagement: Binding<Bool>) {
+        self._vm = Bindable(wrappedValue: vm)
+        self._showingCategoryManagement = showingCategoryManagement
+        // Initial position: right edge with breathing room (padding + rightEdgeInset = 16 + 15 = 31)
+        self._dragOffset = State(initialValue: CGSize(width: 16 + rightEdgeInset, height: 0))
+    }
 
     private var isEditMode: Bool {
         editMode?.wrappedValue.isEditing == true
@@ -124,15 +136,15 @@ private struct HabitsContentView: View {
                     onShowPaywall: {
                         // Dismiss Assistant and show paywall
                         vm.showingHabitAssistant = false
-                        Task {
+                        paywallDelayTask?.cancel()
+                        paywallDelayTask = Task {
                             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-                            await MainActor.run {
-                                vm.showPaywall()
-                            }
+                            vm.showPaywall()
                         }
                     }
                 )
                 .onDisappear {
+                    paywallDelayTask?.cancel()
                     vm.handleAssistantDismissal()
                 }
             }
@@ -601,6 +613,7 @@ private struct DraggableFloatingButton: View {
 
     private let buttonSize: CGFloat = 60
     private let padding: CGFloat = 16
+    private let rightEdgeInset: CGFloat = 15 // Visual breathing room when snapped to right edge
 
     var body: some View {
         ZStack {
@@ -668,7 +681,7 @@ private struct DraggableFloatingButton: View {
                         if snapToLeft {
                             snappedWidth = -(screenSize.width - buttonSize)
                         } else {
-                            snappedWidth = padding + 15
+                            snappedWidth = padding + rightEdgeInset
                         }
 
                         // Calculate vertical constraints
