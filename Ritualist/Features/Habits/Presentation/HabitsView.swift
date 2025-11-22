@@ -138,7 +138,7 @@ private struct HabitsContentView: View {
                         vm.showingHabitAssistant = false
                         paywallDelayTask?.cancel()
                         paywallDelayTask = Task {
-                            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                            try? await Task.sleep(for: .milliseconds(300))
                             vm.showPaywall()
                         }
                     }
