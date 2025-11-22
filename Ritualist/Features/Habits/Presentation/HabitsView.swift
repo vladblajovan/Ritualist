@@ -33,7 +33,7 @@ private struct HabitsContentView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
     @Binding var showingCategoryManagement: Bool
-    @State private var dragOffset = CGSize.zero
+    @State private var dragOffset = CGSize(width: 31, height: 0) // padding (16) + 15
 
     private var isEditMode: Bool {
         editMode?.wrappedValue.isEditing == true
@@ -666,11 +666,9 @@ private struct DraggableFloatingButton: View {
                         let snapToLeft = currentAbsoluteX < screenSize.width / 2
                         let snappedWidth: CGFloat
                         if snapToLeft {
-                            // Snap to left edge: need to move left by (screenWidth - padding - buttonSize - padding)
-                            snappedWidth = -(screenSize.width - padding - buttonSize - padding)
+                            snappedWidth = -(screenSize.width - buttonSize)
                         } else {
-                            // Snap to right edge (original position)
-                            snappedWidth = 0
+                            snappedWidth = padding + 15
                         }
 
                         // Calculate vertical constraints
