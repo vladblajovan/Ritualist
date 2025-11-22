@@ -188,14 +188,70 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Card Title
-            HStack(spacing: 8) {
-                Text("✨")
-                    .font(.title2)
-                Text("You are your rituals")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+            // Card Title and Progress Bar - grouped with smaller spacing
+            VStack(alignment: .leading, spacing: 12) {
+                // Card Title
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.title2)
+                        .foregroundStyle(
+                            .linearGradient(
+                                colors: progressGradientColors(for: summary?.completionPercentage ?? 0.0),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(
+                            color: showProgressGlow ? Color.green.opacity(0.6) : .clear,
+                            radius: showProgressGlow ? 8 : 0,
+                            x: 0,
+                            y: 0
+                        )
+                    Text("Ritualist")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(
+                            .linearGradient(
+                                colors: progressGradientColors(for: summary?.completionPercentage ?? 0.0),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(
+                            color: showProgressGlow ? Color.green.opacity(0.6) : .clear,
+                            radius: showProgressGlow ? 8 : 0,
+                            x: 0,
+                            y: 0
+                        )
+                }
+
+                if let summary = summary {
+                    // Main Progress Section - Full Width
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(CardDesign.secondaryBackground)
+                                .frame(height: 8)
+
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(
+                                    .linearGradient(
+                                        colors: progressGradientColors(for: animatedCompletionPercentage),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: geometry.size.width * animatedCompletionPercentage, height: 8)
+                                .shadow(
+                                    color: showProgressGlow ? Color.green.opacity(0.6) : .clear,
+                                    radius: showProgressGlow ? 8 : 0,
+                                    x: 0,
+                                    y: 0
+                                )
+                        }
+                    }
+                    .frame(height: 8)
+                }
             }
 
             // Card Header with Date Navigation
@@ -246,33 +302,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     .disabled(!canGoToNext)
                 }
             }
-            
-            if let summary = summary {
-                // Main Progress Section - Full Width
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(CardDesign.secondaryBackground)
-                            .frame(height: 8)
 
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(
-                                .linearGradient(
-                                    colors: progressGradientColors(for: animatedCompletionPercentage),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: geometry.size.width * animatedCompletionPercentage, height: 8)
-                            .shadow(
-                                color: showProgressGlow ? Color.green.opacity(0.6) : .clear,
-                                radius: showProgressGlow ? 8 : 0,
-                                x: 0,
-                                y: 0
-                            )
-                    }
-                }
-                .frame(height: 8)
+            if let summary = summary {
                 
                 // Enhanced Habits Section - show both completed and incomplete habits
                 if !summary.incompleteHabits.isEmpty || !summary.completedHabits.isEmpty {
@@ -384,22 +415,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     // MARK: - Progress Bar Helpers
 
     /// Calculate gradient colors based on completion percentage
-    /// - 0-50%: Blue dominant (ritualistBlue)
-    /// - 50-100%: Transitions to green
-    /// - 100%: Nice green gradient
+    /// Delegates to CircularProgressView.adaptiveProgressColors to maintain consistency
     private func progressGradientColors(for completion: Double) -> [Color] {
-        let percentage = min(max(completion, 0.0), 1.0)
-
-        if percentage < 0.5 {
-            // Low completion: Brand blue gradient
-            return [Color.ritualistCyan, Color.ritualistBlue]
-        } else if percentage < 1.0 {
-            // Mid to high completion: Blue to green transition
-            return [Color.ritualistCyan, Color.green]
-        } else {
-            // 100% completion: Vibrant green gradient
-            return [Color.green.opacity(0.8), Color.green]
-        }
+        return CircularProgressView.adaptiveProgressColors(for: completion)
     }
 
     @ViewBuilder

@@ -35,6 +35,17 @@ public struct CircularProgressView: View {
         self.strokeStyle = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
     }
 
+    /// Creates a circular progress view with adaptive gradient based on completion percentage
+    /// Matches MonthlyCalendarViewLogic color thresholds
+    public init(progress: Double, lineWidth: CGFloat = 8, showPercentage: Bool = false, useAdaptiveGradient: Bool) {
+        self.progress = progress
+        self.color = nil
+        self.gradient = useAdaptiveGradient ? Self.adaptiveProgressGradient(for: progress) : nil
+        self.lineWidth = lineWidth
+        self.showPercentage = showPercentage
+        self.strokeStyle = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+    }
+
     /// Creates a circular progress view with custom gradient
     public init(progress: Double, gradient: LinearGradient, lineWidth: CGFloat = 8, showPercentage: Bool = false) {
         self.progress = progress
@@ -91,6 +102,42 @@ public struct CircularProgressView: View {
 
     private var textColor: Color {
         color ?? .ritualistBlue
+    }
+
+    // MARK: - Static Helpers
+
+    /// Returns adaptive gradient colors based on completion percentage
+    /// Matches MonthlyCalendarViewLogic color thresholds:
+    /// - 0-50%: Red/Pink (low completion)
+    /// - 50-80%: Orange (medium completion)
+    /// - 80-100%: Green (high completion)
+    /// - 100%: Full green gradient (perfect completion)
+    public static func adaptiveProgressColors(for completion: Double) -> [Color] {
+        let percentage = min(max(completion, 0.0), 1.0)
+
+        if percentage < 0.5 {
+            // Low completion: Red/Pink gradient
+            return [CardDesign.progressRed.opacity(0.6), CardDesign.progressRed]
+        } else if percentage < 0.8 {
+            // Medium completion: Orange gradient - more saturated to avoid greenish appearance
+            let orangeStart = Color(red: 1.0, green: 0.5, blue: 0.0) // Pure orange
+            return [orangeStart.opacity(0.6), CardDesign.progressOrange]
+        } else if percentage < 1.0 {
+            // High completion: Green gradient
+            return [CardDesign.progressGreen.opacity(0.7), CardDesign.progressGreen]
+        } else {
+            // 100% completion: Vibrant green gradient
+            return [CardDesign.progressGreen.opacity(0.8), CardDesign.progressGreen]
+        }
+    }
+
+    /// Returns adaptive gradient based on completion percentage
+    public static func adaptiveProgressGradient(for completion: Double) -> LinearGradient {
+        return LinearGradient(
+            colors: adaptiveProgressColors(for: completion),
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 }
 
