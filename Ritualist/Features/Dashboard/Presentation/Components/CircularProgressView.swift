@@ -116,18 +116,17 @@ public struct CircularProgressView: View {
         let percentage = min(max(completion, 0.0), 1.0)
 
         if percentage < 0.5 {
-            // Low completion: Red/Pink gradient
-            return [CardDesign.progressRed.opacity(0.6), CardDesign.progressRed]
+            // Low completion: Cyan → Red gradient
+            return [Color.ritualistCyan, CardDesign.progressRed]
         } else if percentage < 0.8 {
-            // Medium completion: Orange gradient - more saturated to avoid greenish appearance
-            let orangeStart = Color(red: 1.0, green: 0.5, blue: 0.0) // Pure orange
-            return [orangeStart.opacity(0.6), CardDesign.progressOrange]
+            // Medium completion: Cyan → Orange gradient
+            return [Color.ritualistCyan, CardDesign.progressOrange]
         } else if percentage < 1.0 {
-            // High completion: Green gradient
-            return [CardDesign.progressGreen.opacity(0.7), CardDesign.progressGreen]
+            // High completion: Cyan → Green gradient
+            return [Color.ritualistCyan, CardDesign.progressGreen]
         } else {
-            // 100% completion: Vibrant green gradient
-            return [CardDesign.progressGreen.opacity(0.8), CardDesign.progressGreen]
+            // 100% completion: Cyan → Bright Green gradient
+            return [Color.ritualistCyan, CardDesign.progressGreen]
         }
     }
 
