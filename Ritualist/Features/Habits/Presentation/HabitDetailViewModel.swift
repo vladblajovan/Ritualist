@@ -376,6 +376,11 @@ public final class HabitDetailViewModel {
         return result
     }
 
+    public func openLocationSettings() async {
+        @Injected(\.locationPermissionService) var locationPermissionService
+        await locationPermissionService.openAppSettings()
+    }
+
     public func updateLocationConfiguration(_ config: LocationConfiguration?) async {
         locationConfiguration = config
 
@@ -391,14 +396,11 @@ public final class HabitDetailViewModel {
 
     public func toggleLocationEnabled(_ enabled: Bool) {
         guard enabled else {
-            // Disabling: just toggle the flag
-            if var config = locationConfiguration {
-                config.isEnabled = false
-                locationConfiguration = config
-                if let habitId = originalHabit?.id {
-                    Task {
-                        try await configureHabitLocation.execute(habitId: habitId, configuration: config)
-                    }
+            // Disabling: clear the configuration (don't preserve potentially stale location data)
+            locationConfiguration = nil
+            if let habitId = originalHabit?.id {
+                Task {
+                    try await configureHabitLocation.execute(habitId: habitId, configuration: nil)
                 }
             }
             return
@@ -423,12 +425,13 @@ public final class HabitDetailViewModel {
 
                 // Request permission if needed
                 if locationAuthStatus == .notDetermined {
-                    let result = await requestLocationPermission(requestAlways: false)
+                    // Request "Always" permission for background geofence monitoring
+                    let result = await requestLocationPermission(requestAlways: true)
 
                     // If permission granted, create default config and show map picker
                     switch result {
                     case .granted:
-                        // Create default configuration so toggle stays ON
+                        // Create default configuration (in-memory only, not saved yet)
                         await MainActor.run {
                             locationConfiguration = LocationConfiguration.create(
                                 from: CLLocationCoordinate2D(latitude: 0, longitude: 0), // Placeholder
@@ -440,10 +443,8 @@ public final class HabitDetailViewModel {
                             showMapPicker = true
                         }
 
-                        // Save placeholder config immediately so toggle persists even if user cancels map picker
-                        if let habitId = originalHabit?.id, let config = locationConfiguration {
-                            try? await configureHabitLocation.execute(habitId: habitId, configuration: config)
-                        }
+                        // Note: Config will be saved when user clicks "Done" on map picker
+                        // If user cancels, config is discarded and toggle reverts
                     case .denied, .failed:
                         // Permission denied - toggle stays off
                         break
@@ -461,10 +462,8 @@ public final class HabitDetailViewModel {
                         showMapPicker = true
                     }
 
-                    // Save placeholder config immediately so toggle persists even if user cancels map picker
-                    if let habitId = originalHabit?.id, let config = locationConfiguration {
-                        try? await configureHabitLocation.execute(habitId: habitId, configuration: config)
-                    }
+                    // Note: Config will be saved when user clicks "Done" on map picker
+                    // If user cancels, config is discarded and toggle reverts
                 }
                 // If permission is denied/restricted, user will see the permission status UI
             }

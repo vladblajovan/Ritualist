@@ -131,16 +131,24 @@ private struct TriggerTypeSection: View {
 
     var body: some View {
         Section {
-            Picker("Trigger", selection: $triggerType) {
-                ForEach([GeofenceTrigger.entry, .exit, .both], id: \.self) { trigger in
+            ForEach([GeofenceTrigger.entry, .exit, .both], id: \.self) { trigger in
+                Button {
+                    triggerType = trigger
+                } label: {
                     HStack {
                         Image(systemName: iconForTrigger(trigger))
                         Text(trigger.displayName)
+
+                        Spacer()
+
+                        if triggerType == trigger {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
                     }
-                    .tag(trigger)
                 }
+                .foregroundColor(.primary)
             }
-            .pickerStyle(.menu)
         } header: {
             Text("When to Notify")
         } footer: {
@@ -201,8 +209,13 @@ private struct FrequencySection: View {
                     HStack {
                         Text("Cooldown Period")
                         Spacer()
-                        Text("\(cooldownMinutes) min")
-                            .foregroundColor(.secondary)
+                        if cooldownMinutes == 0 {
+                            Text("No cooldown")
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("\(cooldownMinutes) min")
+                                .foregroundColor(.secondary)
+                        }
                     }
 
                     Slider(
@@ -210,12 +223,12 @@ private struct FrequencySection: View {
                             get: { Double(cooldownMinutes) },
                             set: { cooldownMinutes = Int($0) }
                         ),
-                        in: 5...120,
+                        in: 0...120,
                         step: 5
                     )
 
                     HStack {
-                        Text("5 min")
+                        Text("0 min")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
@@ -231,7 +244,11 @@ private struct FrequencySection: View {
             if isOncePerDay {
                 Text("You'll receive only one notification per day, even if you enter/exit multiple times.")
             } else {
-                Text("You'll receive a notification every time you trigger the geofence, with a \(cooldownMinutes)-minute minimum between notifications.")
+                if cooldownMinutes == 0 {
+                    Text("You'll receive a notification every time you trigger the geofence, with no cooldown period.")
+                } else {
+                    Text("You'll receive a notification every time you trigger the geofence, with a \(cooldownMinutes)-minute minimum between notifications.")
+                }
             }
         }
     }

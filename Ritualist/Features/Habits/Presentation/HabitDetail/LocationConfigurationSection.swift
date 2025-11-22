@@ -28,9 +28,9 @@ public struct LocationConfigurationSection: View {
 
             // Show configuration UI when enabled
             if let config = vm.locationConfiguration, config.isEnabled {
-                // Use AsyncMapSnapshot - loads asynchronously without blocking UI
+                // Use interactive Map instead of static snapshot
                 VStack(spacing: 0) {
-                    AsyncMapSnapshot(
+                    InteractiveMapPreview(
                         coordinate: config.coordinate,
                         radius: config.radius,
                         locationLabel: config.locationLabel
@@ -84,11 +84,6 @@ public struct LocationConfigurationSection: View {
             }
         } header: {
             Text("Location-Based")
-        } footer: {
-            if let config = vm.locationConfiguration, config.isEnabled {
-                Text("Alerts when \(config.triggerType.displayName.lowercased()) within \(Int(config.radius))m")
-                    .font(.caption)
-            }
         }
     }
 
@@ -129,7 +124,7 @@ private struct LocationPermissionStatus: View {
 
                 Button("Settings") {
                     Task {
-                        await vm.requestLocationPermission(requestAlways: false)
+                        await vm.openLocationSettings()
                     }
                 }
                 .font(.caption)
@@ -172,5 +167,112 @@ private struct RequestPermissionRow: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Interactive Map Preview
+
+private struct InteractiveMapPreview: View {
+    let coordinate: CLLocationCoordinate2D
+    let radius: Double
+    let locationLabel: String?
+    let onTap: () -> Void
+
+    @State private var position: MapCameraPosition
+
+    init(coordinate: CLLocationCoordinate2D, radius: Double, locationLabel: String?, onTap: @escaping () -> Void) {
+        self.coordinate = coordinate
+        self.radius = radius
+        self.locationLabel = locationLabel
+        self.onTap = onTap
+        // Calculate appropriate zoom level based on radius
+        // We want the radius circle to be visible, so set span to show ~3x the radius
+        let metersPerDegree = 111_000.0 // Approximate meters per degree of latitude
+        let radiusInDegrees = (radius * 3) / metersPerDegree // 3x multiplier for padding
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(radiusInDegrees, 0.002), // Minimum span for very small radii
+            longitudeDelta: max(radiusInDegrees, 0.002)
+        )
+        // Initialize position with the coordinate
+        _position = State(initialValue: .region(MKCoordinateRegion(
+            center: coordinate,
+            span: span
+        )))
+    }
+
+    var body: some View {
+        Map(position: $position, interactionModes: [], selection: .constant(nil)) {
+            // Pin marker
+            Annotation("", coordinate: coordinate) {
+                ZStack {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 30, height: 30)
+
+                    Image(systemName: "mappin.circle.fill")
+                        .foregroundColor(.white)
+                        .font(.title2)
+                }
+            }
+
+            // Radius circle
+            MapCircle(center: coordinate, radius: radius)
+                .foregroundStyle(Color.blue.opacity(0.2))
+                .stroke(Color.blue, lineWidth: 1)
+        }
+        .frame(height: 200)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+        )
+        .overlay(alignment: .topTrailing) {
+            // Location name overlay
+            if let label = locationLabel {
+                Text(label)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color.black.opacity(0.6))
+                    )
+                    .padding(.top, 12)
+                    .padding(.trailing, 12)
+                    .allowsHitTesting(false)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap()
+        }
+        .onAppear {
+            updatePosition()
+        }
+        .onChange(of: coordinate.latitude) { _, _ in
+            updatePosition()
+        }
+        .onChange(of: coordinate.longitude) { _, _ in
+            updatePosition()
+        }
+        .onChange(of: radius) { _, _ in
+            updatePosition()
+        }
+    }
+
+    private func updatePosition() {
+        // Calculate appropriate zoom level based on radius
+        let metersPerDegree = 111_000.0 // Approximate meters per degree of latitude
+        let radiusInDegrees = (radius * 3) / metersPerDegree // 3x multiplier for padding
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(radiusInDegrees, 0.002), // Minimum span for very small radii
+            longitudeDelta: max(radiusInDegrees, 0.002)
+        )
+        position = .region(MKCoordinateRegion(
+            center: coordinate,
+            span: span
+        ))
     }
 }
