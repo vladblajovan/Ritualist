@@ -46,20 +46,18 @@ public struct CategorySection: View {
                 .padding(.vertical, Spacing.small)
             } else if let originalHabit = vm.originalHabit, originalHabit.suggestionId != nil {
                 // Show read-only category for habits from suggestions
-                if vm.isLoadingCategories {
-                    HStack {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Loading category...")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, Spacing.medium)
-                } else {
-                    // Try to get category from selectedCategory first, then look it up from categories
-                    let category = vm.selectedCategory ?? vm.categories.first { $0.id == originalHabit.categoryId }
-
-                    if let category = category {
+                // Only show if habit has a categoryId (some old habits might not have one)
+                if let categoryId = originalHabit.categoryId {
+                    if vm.isLoadingCategories {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Loading category...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, Spacing.medium)
+                    } else if let category = vm.selectedCategory ?? vm.categories.first(where: { $0.id == categoryId }) {
                         HStack(spacing: Spacing.medium) {
                             Text(category.emoji)
                                 .font(.title)
