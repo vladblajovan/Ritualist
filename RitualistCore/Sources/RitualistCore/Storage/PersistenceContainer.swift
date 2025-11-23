@@ -20,10 +20,10 @@ public final class PersistenceContainer {
     /// Initialize persistence container with app group support
     /// Enables data sharing between main app and widget extension
     ///
-    /// Uses versioned schema (SchemaV9) with migration plan to safely handle schema changes.
+    /// Uses versioned schema (SchemaV10) with migration plan to safely handle schema changes.
     /// All datasources use Active* type aliases that point to current schema version.
     public init() throws {
-        Self.logger.info("🔍 Initializing PersistenceContainer with versioned schema (V9)")
+        Self.logger.info("🔍 Initializing PersistenceContainer with versioned schema (V10)")
 
         // Get the current schema version for migration tracking
         let currentSchemaVersion = RitualistMigrationPlan.currentSchemaVersion
@@ -72,18 +72,18 @@ public final class PersistenceContainer {
         let migrationStartTime = Date()
 
         do {
-            Self.logger.info("📋 Creating Schema from SchemaV9")
-            Self.logger.debug("   SchemaV9 models: \(SchemaV9.models.map { String(describing: $0) })")
+            Self.logger.info("📋 Creating Schema from SchemaV10")
+            Self.logger.debug("   SchemaV10 models: \(SchemaV10.models.map { String(describing: $0) })")
 
-            let schema = Schema(versionedSchema: SchemaV9.self)
-            Self.logger.debug("   Schema version: \(SchemaV9.versionIdentifier)")
+            let schema = Schema(versionedSchema: SchemaV10.self)
+            Self.logger.debug("   Schema version: \(SchemaV10.versionIdentifier)")
 
             Self.logger.info("🚀 Initializing ModelContainer with schema and migration plan")
-            Self.logger.info("   Migration plan will handle V2 → V3 → V4 → V5 → V6 → V7 → V8 → V9 upgrades automatically")
+            Self.logger.info("   Migration plan will handle V2 → V3 → V4 → V5 → V6 → V7 → V8 → V9 → V10 upgrades automatically")
 
             // Use versioned schema with migration plan
             // This enables safe schema evolution without data loss
-            // Migrations: V2 → V3 (adds isPinned) → V4 (replaces with notes) → V5 (adds lastCompletedDate) → V6 (adds archivedDate) → V7 (adds location support) → V8 (removes subscription fields) → V9 (three-timezone model)
+            // Migrations: V2 → V3 (adds isPinned) → V4 (replaces with notes) → V5 (adds lastCompletedDate) → V6 (adds archivedDate) → V7 (adds location support) → V8 (removes subscription fields) → V9 (three-timezone model) → V10 (CloudKit compatibility)
             // All datasources use Active* type aliases pointing to current schema
             container = try ModelContainer(
                 for: schema,

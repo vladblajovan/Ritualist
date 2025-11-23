@@ -45,7 +45,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             SchemaV6.self,  // Added archivedDate property to HabitModel
             SchemaV7.self,  // Added location-aware habit support (locationConfigData, lastGeofenceTriggerDate)
             SchemaV8.self,  // Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
-            SchemaV9.self   // Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
+            SchemaV9.self,  // Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
+            SchemaV10.self  // CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values)
         ]
     }
 
@@ -72,6 +73,7 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// - V6 → V7: Added location configuration (locationConfigData, lastGeofenceTriggerDate) (lightweight)
     /// - V7 → V8: Removed subscription fields from UserProfileModel (lightweight)
     /// - V8 → V9: Three-Timezone Model implementation (custom/heavyweight)
+    /// - V9 → V10: CloudKit compatibility (removed .unique constraints, optional relationships) (lightweight)
     ///
     /// ## Example Future Migration:
     /// ```swift
@@ -92,7 +94,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             migrateV5toV6,
             migrateV6toV7,
             migrateV7toV8,
-            migrateV8toV9
+            migrateV8toV9,
+            migrateV9toV10
         ]
     }
 
@@ -246,6 +249,32 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             try context.save()
             print("✅ [Migration] V8 → V9: Successfully migrated \(profiles.count) user profile(s)")
         }
+    )
+
+    /// V9 → V10: CloudKit Compatibility
+    ///
+    /// This is a LIGHTWEIGHT migration because:
+    /// - Removed @Attribute(.unique) from all ID fields (metadata-only change)
+    /// - Made relationship arrays optional (HabitModel.logs, HabitCategoryModel.habits)
+    /// - Added default values to PersonalityAnalysisModel fields
+    /// - No data transformation needed - all changes are schema-level only
+    /// - SwiftData automatically handles relationship cardinality changes
+    /// - CloudKit can now sync all models without errors
+    ///
+    /// Changes:
+    /// - HabitModel: logs: [HabitLogModel] = [] → logs: [HabitLogModel]?
+    /// - HabitCategoryModel: habits: [HabitModel] = [] → habits: [HabitModel]?
+    /// - All Models: Removed @Attribute(.unique) from id fields
+    /// - PersonalityAnalysisModel: Added default values to all non-optional fields
+    ///
+    /// Impact:
+    /// - ✅ Enables full CloudKit sync for all models
+    /// - ✅ No business logic changes (relationships never accessed directly)
+    /// - ✅ Cascade delete behavior preserved
+    /// - ✅ Zero data loss
+    static let migrateV9toV10 = MigrationStage.lightweight(
+        fromVersion: SchemaV9.self,
+        toVersion: SchemaV10.self
     )
 
     // MARK: - Future Migration Stages (Examples)
