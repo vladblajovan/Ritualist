@@ -44,35 +44,33 @@ public struct CategorySection: View {
                     }
                 }
                 .padding(.vertical, Spacing.small)
-            } else if let originalHabit = vm.originalHabit, originalHabit.suggestionId != nil, let selectedCategory = vm.selectedCategory {
+            } else if let originalHabit = vm.originalHabit, originalHabit.suggestionId != nil {
                 // Show read-only category for habits from suggestions
-                HStack(spacing: Spacing.medium) {
-                    Text(selectedCategory.emoji)
-                        .font(.title)
-
-                    VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                // Only show if habit has a categoryId (some old habits might not have one)
+                if let categoryId = originalHabit.categoryId {
+                    if vm.isLoadingCategories {
                         HStack {
-                            Text(selectedCategory.displayName)
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Loading category...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, Spacing.medium)
+                    } else if let category = vm.selectedCategory ?? vm.categories.first(where: { $0.id == categoryId }) {
+                        HStack(spacing: Spacing.medium) {
+                            Text(category.emoji)
+                                .font(.title)
+
+                            Text(category.displayName)
                                 .font(.body)
                                 .fontWeight(.medium)
 
                             Spacer()
-
-                            Text(String(localized: "fromSuggestion"))
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, Spacing.small)
-                                .padding(.vertical, 2)
-                                .background(AppColors.systemGray6, in: Capsule())
                         }
-
-                        Text("Category cannot be changed for suggested habits")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        .padding(.vertical, Spacing.small)
                     }
                 }
-                .padding(.vertical, Spacing.small)
             }
 
             // Error state

@@ -34,8 +34,11 @@ extension Container {
     
     // MARK: - Habit Management Operations
     
+    @MainActor
     var toggleHabitActiveStatus: Factory<ToggleHabitActiveStatus> {
-        self { ToggleHabitActiveStatus(repo: self.habitRepository()) }
+        self { @MainActor in
+            ToggleHabitActiveStatus(repo: self.habitRepository(), locationMonitoringService: self.locationMonitoringService())
+        }
     }
     
     var reorderHabits: Factory<ReorderHabits> {

@@ -59,13 +59,21 @@ public final class DeleteHabit: DeleteHabitUseCase {
 
 public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
     private let repo: HabitRepository
-    public init(repo: HabitRepository) { self.repo = repo }
+    private let locationMonitoringService: LocationMonitoringService?
+
+    public init(repo: HabitRepository, locationMonitoringService: LocationMonitoringService? = nil) {
+        self.repo = repo
+        self.locationMonitoringService = locationMonitoringService
+    }
+
     public func execute(id: UUID) async throws -> Habit {
         let allHabits = try await repo.fetchAllHabits()
         guard let habit = allHabits.first(where: { $0.id == id }) else {
             throw HabitError.habitNotFound(id: id)
         }
-        
+
+        let newActiveStatus = !habit.isActive
+
         let updatedHabit = Habit(
             id: habit.id,
             name: habit.name,
@@ -78,13 +86,27 @@ public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
             reminders: habit.reminders,
             startDate: habit.startDate,
             endDate: habit.endDate,
-            isActive: !habit.isActive,
+            isActive: newActiveStatus,
             displayOrder: habit.displayOrder,
             categoryId: habit.categoryId,
             suggestionId: habit.suggestionId
         )
-        
+
         try await repo.update(updatedHabit)
+
+        // Handle location monitoring based on active status
+        if let locationService = locationMonitoringService,
+           let locationConfig = habit.locationConfiguration,
+           locationConfig.isEnabled {
+            if newActiveStatus {
+                // Reactivating habit - restore location monitoring
+                try await locationService.startMonitoring(habitId: id, configuration: locationConfig)
+            } else {
+                // Deactivating habit - stop location monitoring (but keep config)
+                await locationService.stopMonitoring(habitId: id)
+            }
+        }
+
         return updatedHabit
     }
 }

@@ -17,20 +17,15 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
         let categories = try modelContext.fetch(descriptor)
         return categories.map { $0.toEntity() }
     }
-    
+
     public func getAllCategories() async throws -> [HabitCategory] {
-        let storedCategories = try await getStoredCategories()
-        let allCategories = predefinedCategories + storedCategories
-        return allCategories.sorted { $0.order < $1.order }
+        // After seeding, all categories (predefined + custom) are in the database
+        // Just fetch from database to avoid duplicates
+        return try await getStoredCategories().sorted { $0.order < $1.order }
     }
     
     public func getCategory(by id: String) async throws -> HabitCategory? {
-        // Check predefined categories first (in-memory, fast)
-        if let predefined = predefinedCategories.first(where: { $0.id == id }) {
-            return predefined
-        }
-
-        // Then check database with targeted query
+        // After seeding, all categories are in the database - fetch from there
         let descriptor = FetchDescriptor<ActiveHabitCategoryModel>(
             predicate: #Predicate { $0.id == id }
         )
@@ -38,25 +33,27 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
     }
     
     public func getActiveCategories() async throws -> [HabitCategory] {
-        // Get active predefined categories (in-memory filter)
-        let activePredefined = predefinedCategories.filter { $0.isActive }
-
-        // Get active custom categories (database filter)
+        // After seeding, all categories are in the database - fetch active ones from there
         let descriptor = FetchDescriptor<ActiveHabitCategoryModel>(
             predicate: #Predicate { $0.isActive == true }
         )
-        let activeStored = try modelContext.fetch(descriptor).map { $0.toEntity() }
-
-        // Combine and sort
-        return (activePredefined + activeStored).sorted { $0.order < $1.order }
+        return try modelContext.fetch(descriptor).map { $0.toEntity() }.sorted { $0.order < $1.order }
     }
     
     public func getPredefinedCategories() async throws -> [HabitCategory] {
-        return predefinedCategories.filter { $0.isActive }
+        // After seeding, predefined categories are in the database
+        let descriptor = FetchDescriptor<ActiveHabitCategoryModel>(
+            predicate: #Predicate { $0.isPredefined == true && $0.isActive == true }
+        )
+        return try modelContext.fetch(descriptor).map { $0.toEntity() }
     }
-    
+
     public func getCustomCategories() async throws -> [HabitCategory] {
-        return try await getStoredCategories().filter { $0.isActive }
+        // Custom categories are those created by user (not predefined)
+        let descriptor = FetchDescriptor<ActiveHabitCategoryModel>(
+            predicate: #Predicate { $0.isPredefined == false && $0.isActive == true }
+        )
+        return try modelContext.fetch(descriptor).map { $0.toEntity() }
     }
     
     public func createCustomCategory(_ category: HabitCategory) async throws {
@@ -100,12 +97,7 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
     }
     
     public func categoryExists(id: String) async throws -> Bool {
-        // Check predefined categories first (in-memory, fast)
-        if predefinedCategories.contains(where: { $0.id == id }) {
-            return true
-        }
-
-        // Then check database with targeted existence query
+        // Only check database - predefined categories need to be persisted too
         let descriptor = FetchDescriptor<ActiveHabitCategoryModel>(
             predicate: #Predicate { $0.id == id }
         )
@@ -115,12 +107,7 @@ public actor CategoryLocalDataSource: CategoryLocalDataSourceProtocol {
     public func categoryExists(name: String) async throws -> Bool {
         let lowercasedName = name.lowercased()
 
-        // Check predefined categories first (in-memory)
-        if predefinedCategories.contains(where: { $0.name.lowercased() == lowercasedName }) {
-            return true
-        }
-
-        // Then check database with optimized query
+        // After seeding, all categories are in the database - check there
         // Note: SwiftData doesn't support case-insensitive predicates directly,
         // so we fetch just the names and compare in memory
         var descriptor = FetchDescriptor<ActiveHabitCategoryModel>()

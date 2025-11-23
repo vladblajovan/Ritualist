@@ -31,7 +31,17 @@ extension Container {
     var validateCategoryName: Factory<ValidateCategoryName> {
         self { ValidateCategoryName(repo: self.categoryRepository()) }
     }
-    
+
+    var seedPredefinedCategories: Factory<SeedPredefinedCategoriesUseCase> {
+        self {
+            SeedPredefinedCategories(
+                categoryRepository: self.categoryRepository(),
+                categoryDefinitionsService: CategoryDefinitionsService(),
+                habitRepository: self.habitRepository()
+            )
+        }
+    }
+
     // MARK: - Habit-Category Relations
     
     var getHabitsByCategory: Factory<GetHabitsByCategory> {
