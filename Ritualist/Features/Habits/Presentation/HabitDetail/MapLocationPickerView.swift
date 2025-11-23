@@ -10,6 +10,16 @@ import MapKit
 import RitualistCore
 
 public struct MapLocationPickerView: View {
+    // MARK: - Constants
+
+    private enum MapConstants {
+        static let defaultSpanDelta: Double = 0.01
+        static let minimumSpanDelta: Double = 0.002
+        static let minimumZoomDelta: Double = 0.001
+        static let zoomMultiplier: Double = 2.0
+        static let paddingMultiplier: CGFloat = 3.0
+    }
+
     @Bindable var vm: HabitDetailViewModel
     @Environment(\.dismiss) var dismiss
 
@@ -17,7 +27,10 @@ public struct MapLocationPickerView: View {
     @State private var selectedCoordinate: CLLocationCoordinate2D?
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var currentSpan: MKCoordinateSpan = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+    @State private var currentSpan: MKCoordinateSpan = MKCoordinateSpan(
+        latitudeDelta: MapConstants.defaultSpanDelta,
+        longitudeDelta: MapConstants.defaultSpanDelta
+    )
 
     public var body: some View {
         NavigationStack {
@@ -107,18 +120,18 @@ public struct MapLocationPickerView: View {
                     }
                 }
             }
-            .navigationTitle("Select Location")
+            .navigationTitle(Strings.Location.selectLocation)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(Strings.Button.cancel) {
                         handleCancel()
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button(Strings.Button.done) {
                         Task {
                             await saveLocation()
                             dismiss()
@@ -165,7 +178,10 @@ public struct MapLocationPickerView: View {
                 selectedCoordinate = config.coordinate
                 position = .region(MKCoordinateRegion(
                     center: config.coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    span: MKCoordinateSpan(
+                        latitudeDelta: MapConstants.defaultSpanDelta,
+                        longitudeDelta: MapConstants.defaultSpanDelta
+                    )
                 ))
             } else {
                 // Placeholder config - try to center on user location
@@ -185,7 +201,10 @@ public struct MapLocationPickerView: View {
                 selectedCoordinate = location.coordinate
                 position = .region(MKCoordinateRegion(
                     center: location.coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    span: MKCoordinateSpan(
+                        latitudeDelta: MapConstants.defaultSpanDelta,
+                        longitudeDelta: MapConstants.defaultSpanDelta
+                    )
                 ))
             }
         }
@@ -227,9 +246,9 @@ public struct MapLocationPickerView: View {
                 .foregroundColor(.blue)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Tap on the map")
+                Text(Strings.Location.tapOnMap)
                     .font(.headline)
-                Text("Select the center of your location reminder")
+                Text(Strings.Location.selectCenterInstruction)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -249,7 +268,7 @@ public struct MapLocationPickerView: View {
         } label: {
             HStack {
                 Image(systemName: "gear")
-                Text("Configure Location Details")
+                Text(Strings.Location.configureLocationDetails)
             }
             .padding()
             .frame(maxWidth: .infinity)
@@ -261,8 +280,8 @@ public struct MapLocationPickerView: View {
 
     private func zoomIn() {
         let newSpan = MKCoordinateSpan(
-            latitudeDelta: max(currentSpan.latitudeDelta / 2, 0.001),
-            longitudeDelta: max(currentSpan.longitudeDelta / 2, 0.001)
+            latitudeDelta: max(currentSpan.latitudeDelta / MapConstants.zoomMultiplier, MapConstants.minimumZoomDelta),
+            longitudeDelta: max(currentSpan.longitudeDelta / MapConstants.zoomMultiplier, MapConstants.minimumZoomDelta)
         )
         currentSpan = newSpan
 
@@ -273,8 +292,8 @@ public struct MapLocationPickerView: View {
 
     private func zoomOut() {
         let newSpan = MKCoordinateSpan(
-            latitudeDelta: min(currentSpan.latitudeDelta * 2, 180),
-            longitudeDelta: min(currentSpan.longitudeDelta * 2, 180)
+            latitudeDelta: min(currentSpan.latitudeDelta * MapConstants.zoomMultiplier, 180),
+            longitudeDelta: min(currentSpan.longitudeDelta * MapConstants.zoomMultiplier, 180)
         )
         currentSpan = newSpan
 
@@ -338,7 +357,7 @@ private struct SearchBarOverlay: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray)
 
-                TextField("Search for a location", text: $searchText)
+                TextField(Strings.Location.searchPlaceholder, text: $searchText)
                     .textFieldStyle(.plain)
                     .onSubmit {
                         if !searchText.isEmpty {

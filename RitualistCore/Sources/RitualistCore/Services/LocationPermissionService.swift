@@ -50,7 +50,7 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
     // MARK: - Properties
 
     private let locationManager: CLLocationManager
-    private var permissionContinuation: CheckedContinuation<CLAuthorizationStatus, Never>?
+    private var permissionContinuations: [UUID: CheckedContinuation<CLAuthorizationStatus, Never>] = [:]
 
     // MARK: - Initialization
 
@@ -79,10 +79,14 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
         }
 
         // Request permission and wait for delegate callback
+        let requestId = UUID()
         let result = await withCheckedContinuation { continuation in
-            self.permissionContinuation = continuation
+            self.permissionContinuations[requestId] = continuation
             self.locationManager.requestWhenInUseAuthorization()
         }
+
+        // Clean up the continuation
+        permissionContinuations.removeValue(forKey: requestId)
 
         // Convert result
         let status = convertAuthorizationStatus(result)
@@ -124,10 +128,14 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
         }
 
         // Now request "Always" permission and wait for delegate callback
+        let requestId = UUID()
         let result = await withCheckedContinuation { continuation in
-            self.permissionContinuation = continuation
+            self.permissionContinuations[requestId] = continuation
             self.locationManager.requestAlwaysAuthorization()
         }
+
+        // Clean up the continuation
+        permissionContinuations.removeValue(forKey: requestId)
 
         // Convert result
         let status = convertAuthorizationStatus(result)
@@ -200,10 +208,10 @@ extension DefaultLocationPermissionService: CLLocationManagerDelegate {
     }
 
     private func handleAuthorizationChange(_ status: CLAuthorizationStatus) {
-        // Resume continuation if waiting for permission
-        if let continuation = permissionContinuation {
+        // Resume all waiting continuations
+        for (_, continuation) in permissionContinuations {
             continuation.resume(returning: status)
-            permissionContinuation = nil
         }
+        permissionContinuations.removeAll()
     }
 }

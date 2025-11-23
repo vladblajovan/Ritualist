@@ -36,8 +36,10 @@ extension Container {
         self {
             SeedPredefinedCategories(
                 categoryRepository: self.categoryRepository(),
-                categoryDefinitionsService: CategoryDefinitionsService(),
-                habitRepository: self.habitRepository()
+                categoryDefinitionsService: self.categoryDefinitionsService(),
+                habitRepository: self.habitRepository(),
+                habitSuggestionsService: self.habitSuggestionsService(),
+                logger: self.debugLogger()
             )
         }
     }

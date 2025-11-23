@@ -8,7 +8,16 @@
 import SwiftUI
 import RitualistCore
 
+// MARK: - Constants
+
+private enum CooldownConstants {
+    static let minimumCooldown: Int = 5
+    static let maximumCooldown: Int = 120
+    static let cooldownStep: Int = 5
+}
+
 public struct GeofenceConfigurationSheet: View {
+
     @Bindable var vm: HabitDetailViewModel
     @Environment(\.dismiss) var dismiss
 
@@ -34,7 +43,10 @@ public struct GeofenceConfigurationSheet: View {
         _locationLabel = State(initialValue: config.locationLabel ?? "")
 
         if case .everyEntry(let minutes) = config.frequency {
-            _cooldownMinutes = State(initialValue: minutes)
+            // Enforce minimum cooldown
+            _cooldownMinutes = State(initialValue: max(minutes, CooldownConstants.minimumCooldown))
+        } else {
+            _cooldownMinutes = State(initialValue: CooldownConstants.minimumCooldown)
         }
     }
 
@@ -46,17 +58,17 @@ public struct GeofenceConfigurationSheet: View {
                 TriggerTypeSection(triggerType: $triggerType)
                 FrequencySection(frequency: $frequency, cooldownMinutes: $cooldownMinutes)
             }
-            .navigationTitle("Location Details")
+            .navigationTitle(Strings.Location.locationDetails)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(Strings.Button.cancel) {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(Strings.Button.save) {
                         saveConfiguration()
                         dismiss()
                     }
@@ -94,7 +106,7 @@ private struct RadiusSection: View {
         Section {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Radius")
+                    Text(Strings.Form.unitPlaceholder)
                     Spacer()
                     Text("\(Int(radius))m")
                         .foregroundColor(.secondary)
@@ -117,9 +129,9 @@ private struct RadiusSection: View {
                 }
             }
         } header: {
-            Text("Detection Area")
+            Text(Strings.Location.detectionArea)
         } footer: {
-            Text("The distance from the location where notifications will trigger.")
+            Text(Strings.Location.detectionAreaFooter)
         }
     }
 }
@@ -150,7 +162,7 @@ private struct TriggerTypeSection: View {
                 .foregroundColor(.primary)
             }
         } header: {
-            Text("When to Notify")
+            Text(Strings.Location.whenToNotify)
         } footer: {
             Text(triggerDescription)
         }
@@ -159,11 +171,11 @@ private struct TriggerTypeSection: View {
     private var triggerDescription: String {
         switch triggerType {
         case .entry:
-            return "Notify when you arrive at the location."
+            return Strings.Location.whenToNotifyEntry
         case .exit:
-            return "Notify when you leave the location."
+            return Strings.Location.whenToNotifyExit
         case .both:
-            return "Notify when you arrive and when you leave."
+            return Strings.Location.whenToNotifyBoth
         }
     }
 
@@ -199,7 +211,7 @@ private struct FrequencySection: View {
 
     var body: some View {
         Section {
-            Toggle("Once Per Day", isOn: $isOncePerDay)
+            Toggle(Strings.Location.oncePerDay, isOn: $isOncePerDay)
                 .onChange(of: isOncePerDay) { _, newValue in
                     frequency = newValue ? .oncePerDay : .everyEntry(cooldownMinutes: cooldownMinutes)
                 }
@@ -207,15 +219,10 @@ private struct FrequencySection: View {
             if !isOncePerDay {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("Cooldown Period")
+                        Text(Strings.Location.cooldownPeriod)
                         Spacer()
-                        if cooldownMinutes == 0 {
-                            Text("No cooldown")
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("\(cooldownMinutes) min")
-                                .foregroundColor(.secondary)
-                        }
+                        Text(Strings.Location.cooldownMinutes(cooldownMinutes))
+                            .foregroundColor(.secondary)
                     }
 
                     Slider(
@@ -223,32 +230,28 @@ private struct FrequencySection: View {
                             get: { Double(cooldownMinutes) },
                             set: { cooldownMinutes = Int($0) }
                         ),
-                        in: 0...120,
-                        step: 5
+                        in: Double(CooldownConstants.minimumCooldown)...Double(CooldownConstants.maximumCooldown),
+                        step: Double(CooldownConstants.cooldownStep)
                     )
 
                     HStack {
-                        Text("0 min")
+                        Text("\(CooldownConstants.minimumCooldown) min")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text("120 min")
+                        Text("\(CooldownConstants.maximumCooldown) min")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
             }
         } header: {
-            Text("Notification Frequency")
+            Text(Strings.Location.notificationFrequency)
         } footer: {
             if isOncePerDay {
-                Text("You'll receive only one notification per day, even if you enter/exit multiple times.")
+                Text(Strings.Location.frequencyOncePerDayFooter)
             } else {
-                if cooldownMinutes == 0 {
-                    Text("You'll receive a notification every time you trigger the geofence, with no cooldown period.")
-                } else {
-                    Text("You'll receive a notification every time you trigger the geofence, with a \(cooldownMinutes)-minute minimum between notifications.")
-                }
+                Text(Strings.Location.frequencyCooldownFooter(cooldownMinutes))
             }
         }
     }
@@ -261,11 +264,11 @@ private struct LocationLabelSection: View {
 
     var body: some View {
         Section {
-            TextField("Optional", text: $locationLabel)
+            TextField(Strings.Location.locationNameOptional, text: $locationLabel)
         } header: {
-            Text("Location Name")
+            Text(Strings.Location.locationName)
         } footer: {
-            Text("Give this location a name (e.g., 'Home', 'Gym', 'Office')")
+            Text(Strings.Location.locationNameFooter)
         }
     }
 }
