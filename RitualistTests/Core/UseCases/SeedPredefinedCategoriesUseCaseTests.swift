@@ -382,4 +382,115 @@ struct SeedPredefinedCategoriesUseCaseTests {
             #expect(error.localizedDescription.contains("Fetch failed"))
         }
     }
+
+    // MARK: - G. Integration Tests (Seeding → DataSource)
+
+    @Test("Seeded categories are queryable via CategoryLocalDataSource")
+    func seededCategoriesAreQueryableViaDataSource() async throws {
+        let container = try TestModelContainer.create()
+        let userDefaults = MockUserDefaults()
+
+        let useCase = createUseCase(container: container, userDefaults: userDefaults)
+
+        // Execute seeding
+        try await useCase.execute()
+
+        // Query via data source (not repository)
+        let dataSource = CategoryLocalDataSource(modelContainer: container)
+        let categories = try await dataSource.getAllCategories()
+
+        // Verify all 6 categories are queryable
+        #expect(categories.count == 6, "All 6 seeded categories should be queryable")
+
+        // Verify specific category is queryable
+        let health = try await dataSource.getCategory(by: "health")
+        #expect(health != nil, "Health category should be queryable")
+        #expect(health?.displayName == "Health", "Health category should have correct display name")
+    }
+
+    @Test("Seeded categories have correct isPredefined flag")
+    func seededCategoriesHaveCorrectPredefinedFlag() async throws {
+        let container = try TestModelContainer.create()
+        let userDefaults = MockUserDefaults()
+
+        let useCase = createUseCase(container: container, userDefaults: userDefaults)
+
+        // Execute seeding
+        try await useCase.execute()
+
+        // Query predefined categories via data source
+        let dataSource = CategoryLocalDataSource(modelContainer: container)
+        let predefined = try await dataSource.getPredefinedCategories()
+
+        // Verify all are marked as predefined
+        #expect(predefined.count == 6, "Should return 6 predefined categories")
+        #expect(predefined.allSatisfy { $0.isPredefined }, "All seeded categories should be predefined")
+    }
+
+    @Test("Seeded categories are active by default")
+    func seededCategoriesAreActiveByDefault() async throws {
+        let container = try TestModelContainer.create()
+        let userDefaults = MockUserDefaults()
+
+        let useCase = createUseCase(container: container, userDefaults: userDefaults)
+
+        // Execute seeding
+        try await useCase.execute()
+
+        // Query active categories via data source
+        let dataSource = CategoryLocalDataSource(modelContainer: container)
+        let active = try await dataSource.getActiveCategories()
+
+        // Verify all 6 are active
+        #expect(active.count == 6, "All 6 seeded categories should be active")
+        #expect(active.allSatisfy { $0.isActive }, "All seeded categories should have isActive=true")
+    }
+
+    @Test("CategoryExists checks work after seeding")
+    func categoryExistsWorksAfterSeeding() async throws {
+        let container = try TestModelContainer.create()
+        let userDefaults = MockUserDefaults()
+
+        let useCase = createUseCase(container: container, userDefaults: userDefaults)
+
+        // Execute seeding
+        try await useCase.execute()
+
+        // Check existence via repository
+        let categoryDataSource = CategoryLocalDataSource(modelContainer: container)
+        let repository = CategoryRepositoryImpl(local: categoryDataSource)
+
+        let healthExists = try await repository.categoryExists(id: "health")
+        let wellnessExists = try await repository.categoryExists(id: "wellness")
+        let fakeExists = try await repository.categoryExists(id: "fake")
+
+        #expect(healthExists == true, "Health should exist after seeding")
+        #expect(wellnessExists == true, "Wellness should exist after seeding")
+        #expect(fakeExists == false, "Non-existent category should return false")
+    }
+
+    @Test("First launch seeding integrates with CategoryRepository")
+    func firstLaunchSeedingIntegratesWithRepository() async throws {
+        let container = try TestModelContainer.create()
+        let userDefaults = MockUserDefaults()
+
+        // Verify no categories initially
+        let dataSource = CategoryLocalDataSource(modelContainer: container)
+        let repository = CategoryRepositoryImpl(local: dataSource)
+        let initialCategories = try await repository.getAllCategories()
+        #expect(initialCategories.count == 0, "Should have no categories before seeding")
+
+        // Run seeding
+        let useCase = createUseCase(container: container, userDefaults: userDefaults)
+        try await useCase.execute()
+
+        // Verify categories are now available via repository
+        let afterSeeding = try await repository.getAllCategories()
+        #expect(afterSeeding.count == 6, "Should have 6 categories after seeding")
+
+        // Verify repository methods work
+        let health = try await repository.getCategory(by: "health")
+        #expect(health != nil, "Repository should be able to fetch individual categories")
+    }
 }
+
