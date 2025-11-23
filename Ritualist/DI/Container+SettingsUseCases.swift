@@ -50,17 +50,10 @@ extension Container {
 
     var checkiCloudStatus: Factory<CheckiCloudStatusUseCase> {
         self {
-            // ⚠️ TEMPORARY: Using disabled implementation while CloudKit entitlements are off
-            // This prevents crashes when trying to access CKContainer without entitlements
-            //
-            // TO RE-ENABLE: Uncomment the DefaultCheckiCloudStatusUseCase below when
-            // CloudKit entitlements are restored (see ICLOUD-INVESTIGATION-SUMMARY.md)
-
-            DisabledCheckiCloudStatusUseCase()
-
-            // DefaultCheckiCloudStatusUseCase(
-            //     syncErrorHandler: CloudSyncErrorHandler(errorHandler: self.errorHandler())
-            // )
+            // ✅ CloudKit ENABLED - Using real implementation with error handler
+            DefaultCheckiCloudStatusUseCase(
+                syncErrorHandler: CloudSyncErrorHandler(errorHandler: self.errorHandler())
+            )
         }
     }
 

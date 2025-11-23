@@ -67,22 +67,12 @@ jobs:
       with:
         xcode-version: '16.4'
     
-    - name: Cache SwiftPM Dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          .build
-          ~/Library/Caches/org.swift.swiftpm
-        key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.swift') }}-${{ hashFiles('**/Package.resolved') }}
-        restore-keys: |
-          ${{ runner.os }}-swiftpm-
-    
     - name: Cache Xcode DerivedData
       uses: actions/cache@v4
       with:
         path: |
           ~/Library/Developer/Xcode/DerivedData
-        key: ${{ runner.os }}-xcode-16.4-deriveddata-${{ hashFiles('Ritualist.xcodeproj/project.pbxproj') }}
+        key: ${{ runner.os }}-xcode-16.4-deriveddata-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-xcode-16.4-deriveddata-
     
