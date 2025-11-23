@@ -65,10 +65,8 @@ public final class PersistenceContainer {
         let configuration = ModelConfiguration(
             url: databaseURL,
             allowsSave: true,
-            // ⚠️ CloudKit DISABLED - Requires paid Apple Developer Program ($99/year)
-            // TO RE-ENABLE: Change .none to .private("iCloud.com.vladblajovan.Ritualist")
-            // See ICLOUD-INVESTIGATION-SUMMARY.md for complete guide
-            cloudKitDatabase: .none
+            // ✅ CloudKit ENABLED - Syncs to iCloud private database
+            cloudKitDatabase: .private("iCloud.com.vladblajovan.Ritualist")
         )
 
         let migrationStartTime = Date()
