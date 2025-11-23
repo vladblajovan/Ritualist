@@ -102,3 +102,126 @@ public actor FailingProfileRepository: ProfileRepository {
         self.profileToReturn = profile
     }
 }
+
+// MARK: - Failing Category Repository (Added for PR #73 Tests)
+
+/// Test implementation that throws errors for CategoryRepository operations
+/// Used to verify error handling in SeedPredefinedCategoriesUseCase
+public actor FailingCategoryRepository: CategoryRepository {
+    public var shouldFailCategoryExists: Bool = false
+    public var shouldFailUpdateCategory: Bool = false
+    public var shouldFailGetAllCategories: Bool = false
+    public var shouldFailGetCategory: Bool = false
+    public var shouldFailDeleteCategory: Bool = false
+    public var shouldFailCreateCustomCategory: Bool = false
+
+    public var categoriesToReturn: [HabitCategory] = []
+
+    public init() {}
+
+    // MARK: - Protocol Implementation
+
+    public func getAllCategories() async throws -> [HabitCategory] {
+        if shouldFailGetAllCategories {
+            throw NSError(domain: "FailingCategoryRepository", code: 1, userInfo: [NSLocalizedDescriptionKey: "Get all categories failed"])
+        }
+        return categoriesToReturn
+    }
+
+    public func getCategory(by id: String) async throws -> HabitCategory? {
+        if shouldFailGetCategory {
+            throw NSError(domain: "FailingCategoryRepository", code: 2, userInfo: [NSLocalizedDescriptionKey: "Get category failed"])
+        }
+        return categoriesToReturn.first { $0.id == id }
+    }
+
+    public func getActiveCategories() async throws -> [HabitCategory] {
+        if shouldFailGetAllCategories {
+            throw NSError(domain: "FailingCategoryRepository", code: 3, userInfo: [NSLocalizedDescriptionKey: "Get active categories failed"])
+        }
+        return categoriesToReturn.filter { $0.isActive }
+    }
+
+    public func getPredefinedCategories() async throws -> [HabitCategory] {
+        if shouldFailGetAllCategories {
+            throw NSError(domain: "FailingCategoryRepository", code: 4, userInfo: [NSLocalizedDescriptionKey: "Get predefined categories failed"])
+        }
+        return categoriesToReturn.filter { $0.isPredefined }
+    }
+
+    public func getCustomCategories() async throws -> [HabitCategory] {
+        if shouldFailGetAllCategories {
+            throw NSError(domain: "FailingCategoryRepository", code: 5, userInfo: [NSLocalizedDescriptionKey: "Get custom categories failed"])
+        }
+        return categoriesToReturn.filter { !$0.isPredefined }
+    }
+
+    public func createCustomCategory(_ category: HabitCategory) async throws {
+        if shouldFailCreateCustomCategory {
+            throw NSError(domain: "FailingCategoryRepository", code: 6, userInfo: [NSLocalizedDescriptionKey: "Create custom category failed"])
+        }
+        categoriesToReturn.append(category)
+    }
+
+    public func updateCategory(_ category: HabitCategory) async throws {
+        if shouldFailUpdateCategory {
+            throw NSError(domain: "FailingCategoryRepository", code: 7, userInfo: [NSLocalizedDescriptionKey: "Update category failed"])
+        }
+        if let index = categoriesToReturn.firstIndex(where: { $0.id == category.id }) {
+            categoriesToReturn[index] = category
+        } else {
+            categoriesToReturn.append(category)
+        }
+    }
+
+    public func deleteCategory(id: String) async throws {
+        if shouldFailDeleteCategory {
+            throw NSError(domain: "FailingCategoryRepository", code: 8, userInfo: [NSLocalizedDescriptionKey: "Delete category failed"])
+        }
+        categoriesToReturn.removeAll { $0.id == id }
+    }
+
+    public func categoryExists(id: String) async throws -> Bool {
+        if shouldFailCategoryExists {
+            throw NSError(domain: "FailingCategoryRepository", code: 9, userInfo: [NSLocalizedDescriptionKey: "Category exists (id) check failed"])
+        }
+        return categoriesToReturn.contains { $0.id == id }
+    }
+
+    public func categoryExists(name: String) async throws -> Bool {
+        if shouldFailCategoryExists {
+            throw NSError(domain: "FailingCategoryRepository", code: 10, userInfo: [NSLocalizedDescriptionKey: "Category exists (name) check failed"])
+        }
+        return categoriesToReturn.contains { $0.name == name }
+    }
+
+    // MARK: - Configuration Methods
+
+    public func setShouldFailCategoryExists(_ value: Bool) {
+        self.shouldFailCategoryExists = value
+    }
+
+    public func setShouldFailUpdateCategory(_ value: Bool) {
+        self.shouldFailUpdateCategory = value
+    }
+
+    public func setShouldFailGetAllCategories(_ value: Bool) {
+        self.shouldFailGetAllCategories = value
+    }
+
+    public func setShouldFailGetCategory(_ value: Bool) {
+        self.shouldFailGetCategory = value
+    }
+
+    public func setShouldFailCreateCustomCategory(_ value: Bool) {
+        self.shouldFailCreateCustomCategory = value
+    }
+
+    public func setShouldFailDeleteCategory(_ value: Bool) {
+        self.shouldFailDeleteCategory = value
+    }
+
+    public func setCategoriesToReturn(_ categories: [HabitCategory]) {
+        self.categoriesToReturn = categories
+    }
+}

@@ -38,7 +38,7 @@ public protocol LocationPermissionService {
     func getAuthorizationStatus() async -> LocationAuthorizationStatus
 
     /// Check if location services are enabled on the device
-    func areLocationServicesEnabled() -> Bool
+    func areLocationServicesEnabled() async -> Bool
 
     /// Open app settings for user to manually grant permission
     func openAppSettings() async
@@ -50,7 +50,7 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
     // MARK: - Properties
 
     private let locationManager: CLLocationManager
-    private var permissionContinuation: CheckedContinuation<CLAuthorizationStatus, Never>?
+    private var permissionContinuations: [UUID: CheckedContinuation<CLAuthorizationStatus, Never>] = [:]
 
     // MARK: - Initialization
 
@@ -63,13 +63,8 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
     // MARK: - LocationPermissionService Implementation
 
     public func requestWhenInUsePermission() async -> LocationPermissionResult {
-        // Check if location services are enabled
-        guard CLLocationManager.locationServicesEnabled() else {
-            return .failed(.locationServicesDisabled)
-        }
-
-        // Check current status
-        let currentStatus = locationManager.authorizationStatus
+        // Check current status using iOS 14+ static method
+        let currentStatus = CLLocationManager.authorizationStatus()
 
         // If already determined, return current status
         switch currentStatus {
@@ -83,13 +78,15 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
             return .failed(.unknown("Unknown authorization status"))
         }
 
-        // Request permission
+        // Request permission and wait for delegate callback
+        let requestId = UUID()
         let result = await withCheckedContinuation { continuation in
-            self.permissionContinuation = continuation
-            Task { @MainActor in
-                self.locationManager.requestWhenInUseAuthorization()
-            }
+            self.permissionContinuations[requestId] = continuation
+            self.locationManager.requestWhenInUseAuthorization()
         }
+
+        // Clean up the continuation
+        permissionContinuations.removeValue(forKey: requestId)
 
         // Convert result
         let status = convertAuthorizationStatus(result)
@@ -104,13 +101,8 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
     }
 
     public func requestAlwaysPermission() async -> LocationPermissionResult {
-        // Check if location services are enabled
-        guard CLLocationManager.locationServicesEnabled() else {
-            return .failed(.locationServicesDisabled)
-        }
-
-        // Check current status
-        let currentStatus = locationManager.authorizationStatus
+        // Check current status using iOS 14+ static method
+        let currentStatus = CLLocationManager.authorizationStatus()
 
         // If already authorized always, return success
         if currentStatus == .authorizedAlways {
@@ -135,13 +127,15 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
             }
         }
 
-        // Now request "Always" permission
+        // Now request "Always" permission and wait for delegate callback
+        let requestId = UUID()
         let result = await withCheckedContinuation { continuation in
-            self.permissionContinuation = continuation
-            Task { @MainActor in
-                self.locationManager.requestAlwaysAuthorization()
-            }
+            self.permissionContinuations[requestId] = continuation
+            self.locationManager.requestAlwaysAuthorization()
         }
+
+        // Clean up the continuation
+        permissionContinuations.removeValue(forKey: requestId)
 
         // Convert result
         let status = convertAuthorizationStatus(result)
@@ -159,11 +153,15 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
     }
 
     public func getAuthorizationStatus() async -> LocationAuthorizationStatus {
-        return convertAuthorizationStatus(locationManager.authorizationStatus)
+        let status = CLLocationManager.authorizationStatus()
+        return convertAuthorizationStatus(status)
     }
 
-    public func areLocationServicesEnabled() -> Bool {
-        return CLLocationManager.locationServicesEnabled()
+    public func areLocationServicesEnabled() async -> Bool {
+        // Check if authorization status indicates location services are available
+        // If services are disabled system-wide, status will be .denied or .restricted
+        let status = CLLocationManager.authorizationStatus()
+        return status != .restricted
     }
 
     public func openAppSettings() async {
@@ -210,10 +208,10 @@ extension DefaultLocationPermissionService: CLLocationManagerDelegate {
     }
 
     private func handleAuthorizationChange(_ status: CLAuthorizationStatus) {
-        // Resume continuation if waiting for permission
-        if let continuation = permissionContinuation {
+        // Resume all waiting continuations
+        for (_, continuation) in permissionContinuations {
             continuation.resume(returning: status)
-            permissionContinuation = nil
         }
+        permissionContinuations.removeAll()
     }
 }

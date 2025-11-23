@@ -334,6 +334,44 @@ public enum Strings {
         public static let firstVisitTitle = String(localized: "habits_assistant.first_visit.title")
         public static let firstVisitDescription = String(localized: "habits_assistant.first_visit.description")
     }
+
+    // MARK: - Location
+    public enum Location {
+        // Map Location Picker
+        public static let selectLocation = String(localized: "location.select_location")
+        public static let searchPlaceholder = String(localized: "location.search_placeholder")
+        public static let tapOnMap = String(localized: "location.tap_on_map")
+        public static let selectCenterInstruction = String(localized: "location.select_center_instruction")
+        public static let configureLocationDetails = String(localized: "location.configure_location_details")
+
+        // Geofence Configuration
+        public static let locationDetails = String(localized: "location.location_details")
+        public static let locationName = String(localized: "location.location_name")
+        public static let locationNameOptional = String(localized: "location.location_name_optional")
+        public static let locationNameFooter = String(localized: "location.location_name_footer")
+        public static let detectionArea = String(localized: "location.detection_area")
+        public static let detectionAreaFooter = String(localized: "location.detection_area_footer")
+        public static let whenToNotify = String(localized: "location.when_to_notify")
+        public static let whenToNotifyFooter = String(localized: "location.when_to_notify_footer")
+        public static let whenToNotifyEntry = String(localized: "location.when_to_notify_entry")
+        public static let whenToNotifyExit = String(localized: "location.when_to_notify_exit")
+        public static let whenToNotifyBoth = String(localized: "location.when_to_notify_both")
+
+        // Notification Frequency
+        public static let notificationFrequency = String(localized: "location.notification_frequency")
+        public static let oncePerDay = String(localized: "location.once_per_day")
+        public static let cooldownPeriod = String(localized: "location.cooldown_period")
+        public static let frequencyOncePerDayFooter = String(localized: "location.frequency_once_per_day_footer")
+
+        // Cooldown strings with parameter
+        public static func cooldownMinutes(_ minutes: Int) -> String {
+            String(format: String(localized: "location.cooldown_minutes"), minutes)
+        }
+
+        public static func frequencyCooldownFooter(_ minutes: Int) -> String {
+            String(format: String(localized: "location.frequency_cooldown_footer"), minutes)
+        }
+    }
 }
 
 // MARK: - SwiftUI Extensions

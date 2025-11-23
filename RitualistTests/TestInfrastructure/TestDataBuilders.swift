@@ -472,3 +472,98 @@ extension UserProfile {
         )
     }
 }
+
+// MARK: - Category Builder
+
+enum CategoryBuilder {
+
+    /// Create a habit category with sensible defaults
+    static func category(
+        id: String = UUID().uuidString,
+        name: String = "test-category",
+        displayName: String = "Test Category",
+        emoji: String = "🧪",
+        order: Int = 0,
+        isActive: Bool = true,
+        isPredefined: Bool = false,
+        personalityWeights: [String: Double]? = nil
+    ) -> HabitCategory {
+        return HabitCategory(
+            id: id,
+            name: name,
+            displayName: displayName,
+            emoji: emoji,
+            order: order,
+            isActive: isActive,
+            isPredefined: isPredefined,
+            personalityWeights: personalityWeights
+        )
+    }
+
+    /// Create a predefined category matching those from CategoryDefinitionsService
+    static func predefined(
+        id: String,
+        name: String,
+        displayName: String,
+        emoji: String,
+        order: Int,
+        personalityWeights: [String: Double]
+    ) -> HabitCategory {
+        return HabitCategory(
+            id: id,
+            name: name,
+            displayName: displayName,
+            emoji: emoji,
+            order: order,
+            isActive: true,
+            isPredefined: true,
+            personalityWeights: personalityWeights
+        )
+    }
+
+    /// Create multiple test categories
+    static func multipleCategories(count: Int, baseName: String = "Category") -> [HabitCategory] {
+        return (0..<count).map { index in
+            category(
+                id: "test-category-\(index)",
+                name: "\(baseName.lowercased())-\(index)",
+                displayName: "\(baseName) \(index + 1)",
+                emoji: "🏷️",
+                order: index
+            )
+        }
+    }
+}
+
+// MARK: - Mock UserDefaults
+
+/// In-memory UserDefaults for testing
+/// Isolates tests from actual UserDefaults and provides clean state per test
+class MockUserDefaults: UserDefaults {
+    private var storage: [String: Any] = [:]
+
+    override func bool(forKey defaultName: String) -> Bool {
+        return storage[defaultName] as? Bool ?? false
+    }
+
+    override func set(_ value: Bool, forKey defaultName: String) {
+        storage[defaultName] = value
+    }
+
+    override func object(forKey defaultName: String) -> Any? {
+        return storage[defaultName]
+    }
+
+    override func set(_ value: Any?, forKey defaultName: String) {
+        storage[defaultName] = value
+    }
+
+    override func removeObject(forKey defaultName: String) {
+        storage.removeValue(forKey: defaultName)
+    }
+
+    /// Reset all stored values (useful between tests)
+    func reset() {
+        storage.removeAll()
+    }
+}

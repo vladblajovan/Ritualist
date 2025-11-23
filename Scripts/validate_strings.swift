@@ -86,6 +86,12 @@ class StringValidator {
         // Onboarding and habits assistant strings are descriptive text, not form fields
         case _ where key.hasPrefix("onboarding.") || key.hasPrefix("habits_assistant."):
             return .validationMessage
+        // Location footers, instructions, and trigger descriptions are descriptive text
+        case _ where key.hasPrefix("location.") && (lowercaseKey.contains("footer") ||
+                                                     lowercaseKey.contains("instruction") ||
+                                                     lowercaseKey.contains("description") ||
+                                                     lowercaseKey.contains("when_to_notify")):
+            return .validationMessage
         // Recognize message/warning/error patterns as validation strings
         case _ where lowercaseKey.contains("message") ||
                      lowercaseKey.contains("warning") ||

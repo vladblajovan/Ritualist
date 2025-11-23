@@ -19,13 +19,15 @@ import RitualistCore
     @Injected(\.dailyNotificationScheduler) private var dailyNotificationScheduler
     @Injected(\.restoreGeofenceMonitoring) private var restoreGeofenceMonitoring
     @Injected(\.timezoneService) private var timezoneService
+    @Injected(\.seedPredefinedCategories) private var seedPredefinedCategories
     @Injected(\.debugLogger) private var logger
-    
+
     var body: some Scene {
         WindowGroup {
             RootAppView()
                 .modelContainer(persistenceContainer.container)
                 .task { @MainActor in
+                    await seedCategories()
                     await detectTimezoneChanges()
                     await setupNotifications()
                     await scheduleInitialNotifications()
@@ -51,10 +53,25 @@ import RitualistCore
         fatalError("Fallback container should never be used - PersistenceContainer must be properly initialized via DI")
     }
     
+    private func seedCategories() async {
+        // Seed predefined categories into database on app launch
+        // This ensures category relationships work for habits from suggestions
+        do {
+            try await seedPredefinedCategories.execute()
+        } catch {
+            logger.log(
+                "⚠️ Failed to seed predefined categories",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
+        }
+    }
+
     private func setupNotifications() async {
         // Setup notification categories on app launch
         await notificationService.setupNotificationCategories()
-        
+
         // Set up notification delegate - handled by LocalNotificationService
         // Removed: UNUserNotificationCenter.current().delegate = appDelegate
     }
