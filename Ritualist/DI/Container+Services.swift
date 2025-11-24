@@ -262,19 +262,14 @@ extension Container {
 
     var secureSubscriptionService: Factory<SecureSubscriptionService> {
         self {
-            // ⚠️ TEMPORARY: Using MockSecureSubscriptionService
-            // StoreKit entitlements require Apple Developer Program subscription ($99/year)
-            //
-            // TO RE-ENABLE StoreKit:
-            // 1. Purchase Apple Developer Program membership
-            // 2. Create IAP products in App Store Connect (see StoreKitConstants.swift)
-            // 3. Uncomment StoreKitSubscriptionService below
-            // 4. Follow docs/STOREKIT-SETUP-GUIDE.md for complete setup
-
+            // TEMPORARY: Using mocks until IAP products are created in App Store Connect
+            // TODO: After IAP products are approved, replace with:
+            // #if ALL_FEATURES_ENABLED
+            //     return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
+            // #else
+            //     return StoreKitSubscriptionService(errorHandler: self.errorHandler())
+            // #endif
             return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
-
-            // Production StoreKit implementation (ready to enable):
-            // return StoreKitSubscriptionService(errorHandler: self.errorHandler())
         }
         .singleton
     }
@@ -301,20 +296,11 @@ extension Container {
         .singleton
     }
     
-    // MARK: - Legacy Paywall Service (Deprecated)
+    // MARK: - Paywall Service
 
-    @available(*, deprecated, message: "Use paywallUIService instead")
     var paywallService: Factory<PaywallService> {
         self {
-            // ⚠️ TEMPORARY: Using MockPaywallService for all builds
-            // StoreKit entitlements require Apple Developer Program subscription ($99/year)
-            //
-            // TO RE-ENABLE StoreKit:
-            // 1. Purchase Apple Developer Program membership
-            // 2. Create IAP products in App Store Connect (see StoreKitConstants.swift)
-            // 3. Uncomment the #if/#else branches below
-            // 4. Follow docs/STOREKIT-SETUP-GUIDE.md for complete setup
-
+            // TEMPORARY: Using mocks until IAP products are created in App Store Connect
             let mockPaywall = MockPaywallService(
                 subscriptionService: self.secureSubscriptionService(),
                 testingScenario: .randomResults
@@ -322,21 +308,23 @@ extension Container {
             mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
             return mockPaywall
 
-            // #if DEBUG
-            // let mockPaywall = MockPaywallService(
-            //     subscriptionService: self.secureSubscriptionService(),
-            //     testingScenario: .randomResults
-            // )
-            // mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
-            // return mockPaywall
-            // #else
-            // // Production StoreKit implementation (ready to enable)
-            // return MainActor.assumeIsolated {
-            //     StoreKitPaywallService(
+            // TODO: After IAP products are approved, replace with:
+            // #if ALL_FEATURES_ENABLED
+            //     // Keep mocks for AllFeatures scheme (bypass paywall)
+            //     let mockPaywall = MockPaywallService(
             //         subscriptionService: self.secureSubscriptionService(),
-            //         logger: self.debugLogger()
+            //         testingScenario: .randomResults
             //     )
-            // }
+            //     mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
+            //     return mockPaywall
+            // #else
+            //     // Use production StoreKit for Subscription scheme
+            //     return MainActor.assumeIsolated {
+            //         StoreKitPaywallService(
+            //             subscriptionService: self.secureSubscriptionService(),
+            //             logger: self.debugLogger()
+            //         )
+            //     }
             // #endif
         }
         .singleton

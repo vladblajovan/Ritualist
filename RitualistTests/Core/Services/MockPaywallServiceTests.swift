@@ -253,7 +253,7 @@ struct MockPaywallServiceTests {
         let (service, storage, subscriptionService) = await createService()
 
         // Make user a premium user (existing subscriber)
-        try await subscriptionService.mockPurchase(StoreKitProductID.monthly)
+        try await subscriptionService.registerPurchase(StoreKitProductID.monthly)
         #expect(subscriptionService.isPremiumUser() == true, "User should be premium")
 
         // Get a new-subscribers-only code

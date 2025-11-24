@@ -84,9 +84,9 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         return Array(cachedValidPurchases)
     }
 
-    public func mockPurchase(_ productId: String) async throws {
-        // In production, this is called after a successful purchase
-        // to immediately update the cache without waiting for refresh
+    public func registerPurchase(_ productId: String) async throws {
+        // Called after a successful purchase to immediately update the cache
+        // without waiting for StoreKit refresh
         cachedValidPurchases.insert(productId)
         lastCacheUpdate = Date()
     }
@@ -103,21 +103,23 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         await refreshCacheIfNeeded()
 
         // Check for lifetime purchase first (highest priority)
-        if cachedValidPurchases.contains("com.ritualist.lifetime") ||
-           cachedValidPurchases.contains(StoreKitProductID.lifetime) {
+        if cachedValidPurchases.contains(StoreKitProductID.lifetime) {
             return .lifetime
         }
 
         // Check for annual subscription
-        if cachedValidPurchases.contains("com.ritualist.annual") ||
-           cachedValidPurchases.contains(StoreKitProductID.annual) {
+        if cachedValidPurchases.contains(StoreKitProductID.annual) {
             return .annual
         }
 
         // Check for monthly subscription
-        if cachedValidPurchases.contains("com.ritualist.monthly") ||
-           cachedValidPurchases.contains(StoreKitProductID.monthly) {
+        if cachedValidPurchases.contains(StoreKitProductID.monthly) {
             return .monthly
+        }
+
+        // Check for weekly subscription
+        if cachedValidPurchases.contains(StoreKitProductID.weekly) {
+            return .weekly
         }
 
         // Default to free if no purchases

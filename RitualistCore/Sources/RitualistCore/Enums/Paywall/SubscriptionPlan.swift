@@ -30,7 +30,7 @@ public enum SubscriptionPlan: String, Codable, CaseIterable {
         case .weekly: return "$2.99"
         case .monthly: return "$9.99"
         case .annual: return "$49.99"
-        case .lifetime: return "$100.00"
+        case .lifetime: return "$99.99"
         }
     }
 

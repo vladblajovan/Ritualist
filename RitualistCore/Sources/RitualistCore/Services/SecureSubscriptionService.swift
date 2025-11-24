@@ -23,8 +23,10 @@ public protocol SecureSubscriptionService {
     /// Get all currently valid product IDs
     func getValidPurchases() -> [String]
     
-    /// Mark a product as purchased (for mock implementation)
-    func mockPurchase(_ productId: String) async throws
+    /// Register a purchase after successful transaction
+    /// In production: Updates cache immediately after StoreKit purchase
+    /// In testing: Simulates a purchase for mock implementation
+    func registerPurchase(_ productId: String) async throws
     
     /// Clear all purchases (for mock implementation and testing)
     func clearPurchases() async throws

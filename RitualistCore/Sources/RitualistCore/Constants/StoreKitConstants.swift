@@ -19,6 +19,13 @@ public enum StoreKitProductID {
 
     // MARK: - Subscription Products
 
+    /// Weekly subscription - $2.99/week
+    ///
+    /// Provides access to all premium features with weekly billing.
+    /// Ideal for users wanting to try premium with minimal commitment.
+    /// Auto-renews until cancelled by user.
+    public static let weekly = "com.vladblajovan.ritualist.weekly"
+
     /// Monthly subscription - $9.99/month
     ///
     /// Provides access to all premium features with monthly billing.
@@ -35,7 +42,7 @@ public enum StoreKitProductID {
 
     // MARK: - Non-Consumable Products
 
-    /// Lifetime purchase - $100 one-time
+    /// Lifetime purchase - $99.99 one-time
     ///
     /// One-time purchase providing permanent access to all premium features.
     /// Never expires, no recurring charges.
@@ -44,10 +51,11 @@ public enum StoreKitProductID {
 
     // MARK: - Product Collections
 
-    /// All subscription product IDs (monthly and annual)
+    /// All subscription product IDs (weekly, monthly and annual)
     ///
     /// Use this for loading subscription offerings from StoreKit.
     public static let subscriptionProducts: [String] = [
+        weekly,
         monthly,
         annual
     ]
@@ -97,6 +105,8 @@ public enum StoreKitProductID {
     /// - Returns: The corresponding `SubscriptionPlan`, or `.free` if unknown
     public static func subscriptionPlan(for productID: String) -> SubscriptionPlan {
         switch productID {
+        case weekly:
+            return .weekly
         case monthly:
             return .monthly
         case annual:
