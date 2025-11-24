@@ -50,7 +50,7 @@ The `Ritualist.storekit` file already contains:
 **Products:**
 - Monthly: $9.99/month
 - Annual: $49.99/year (with 7-day free trial)
-- Lifetime: $100.00 one-time
+- Lifetime: $99.99 one-time
 
 **Offer Codes (5 codes):**
 - `RITUALIST2025` - 3-month free trial (Annual, new users only)

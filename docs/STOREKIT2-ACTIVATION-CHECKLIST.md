@@ -86,7 +86,7 @@
 
 **Configure Annual Product**:
 - [ ] **Display Name** (English): `Annual Premium`
-- [ ] **Description**: `Save 54% with an annual subscription. Includes 7-day free trial.`
+- [ ] **Description**: `Save 58% with an annual subscription. Includes 7-day free trial.`
 - [ ] **Subscription Duration**: `1 Year`
 - [ ] **Free Trial**:
   - [ ] Enable Introductory Offer
@@ -97,7 +97,7 @@
   - [ ] Base Price: `$49.99 USD`
 - [ ] **App Store Promotion** (Optional):
   - [ ] Promotional Image: Upload 1024x1024 image
-  - [ ] Promotional Text: `Best Value! Get 7 days free, then save 54% with annual billing.`
+  - [ ] Promotional Text: `Best Value! Get 7 days free, then save 58% with annual billing.`
 - [ ] **Review Information**:
   - [ ] Screenshot: Upload app screenshot showing annual plan
   - [ ] Review Notes: `Annual subscription with 7-day free trial`
@@ -286,7 +286,7 @@ private var paywallService: Factory<PaywallService> {
 - [ ] Verify **3 products load** with correct details:
   - [ ] **Monthly Premium** - $9.99/month
   - [ ] **Annual Premium** - $49.99/year (shows "7-day trial" badge)
-  - [ ] **Lifetime Premium** - $100.00 (one-time)
+  - [ ] **Lifetime Premium** - $99.99 (one-time)
 - [ ] Check console logs for StoreKit errors (should be none)
 
 ### Step 2.5.4: Test Monthly Purchase

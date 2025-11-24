@@ -144,8 +144,8 @@ public final class MockPaywallService: PaywallService {
             id: StoreKitProductID.lifetime,
             name: "Ritualist Pro Lifetime",
             description: "One-time purchase, lifetime access",
-            price: "$100.00",
-            localizedPrice: "$100.00 once",
+            price: "$99.99",
+            localizedPrice: "$99.99 once",
             subscriptionPlan: .lifetime,
             duration: .monthly,
             features: [

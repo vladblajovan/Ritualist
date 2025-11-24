@@ -42,7 +42,7 @@ public enum StoreKitProductID {
 
     // MARK: - Non-Consumable Products
 
-    /// Lifetime purchase - $100 one-time
+    /// Lifetime purchase - $99.99 one-time
     ///
     /// One-time purchase providing permanent access to all premium features.
     /// Never expires, no recurring charges.
