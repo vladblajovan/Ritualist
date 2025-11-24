@@ -122,7 +122,7 @@ public final class StoreKitPaywallService: PaywallService {
                 let transaction = try checkVerified(verification)
 
                 // Update subscription service with new purchase
-                try await subscriptionService.mockPurchase(product.id)
+                try await subscriptionService.registerPurchase(product.id)
 
                 // Finish the transaction (required by StoreKit)
                 await transaction.finish()
@@ -175,7 +175,7 @@ public final class StoreKitPaywallService: PaywallService {
                     restoredProducts.append(transaction.productID)
 
                     // Update subscription service
-                    try? await subscriptionService.mockPurchase(transaction.productID)
+                    try? await subscriptionService.registerPurchase(transaction.productID)
                 }
             }
 
@@ -431,7 +431,7 @@ public final class StoreKitPaywallService: PaywallService {
         )
 
         // Update subscription service with the purchase
-        try? await subscriptionService.mockPurchase(transaction.productID)
+        try? await subscriptionService.registerPurchase(transaction.productID)
 
         // Update state on main actor
         await MainActor.run {
@@ -454,7 +454,7 @@ public final class StoreKitPaywallService: PaywallService {
         )
 
         // Update subscription service
-        try? await subscriptionService.mockPurchase(transaction.productID)
+        try? await subscriptionService.registerPurchase(transaction.productID)
     }
 
     /// Verifies a transaction using StoreKit's built-in verification

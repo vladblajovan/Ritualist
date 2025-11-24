@@ -84,9 +84,9 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         return Array(cachedValidPurchases)
     }
 
-    public func mockPurchase(_ productId: String) async throws {
-        // In production, this is called after a successful purchase
-        // to immediately update the cache without waiting for refresh
+    public func registerPurchase(_ productId: String) async throws {
+        // Called after a successful purchase to immediately update the cache
+        // without waiting for StoreKit refresh
         cachedValidPurchases.insert(productId)
         lastCacheUpdate = Date()
     }

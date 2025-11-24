@@ -54,7 +54,7 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
         Array(validatedPurchases)
     }
     
-    public func mockPurchase(_ productId: String) async throws {
+    public func registerPurchase(_ productId: String) async throws {
         validatedPurchases.insert(productId)
         saveMockPurchases()
     }

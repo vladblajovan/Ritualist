@@ -229,7 +229,7 @@ public final class MockPaywallService: PaywallService {
             // Use secure subscription service to validate purchase
             // Note: In production, discounted price would be sent to StoreKit
             // For mock, we just grant the subscription regardless of discount
-            try await subscriptionService.mockPurchase(product.id)
+            try await subscriptionService.registerPurchase(product.id)
 
             // Clear the discount after successful purchase
             if activeDiscount != nil {
@@ -304,7 +304,7 @@ public final class MockPaywallService: PaywallService {
     /// Simulate purchasing a specific product (for testing)
     public func simulatePurchase(productId: String) {
         Task {
-            try await subscriptionService.mockPurchase(productId)
+            try await subscriptionService.registerPurchase(productId)
         }
     }
     
@@ -406,11 +406,11 @@ public final class MockPaywallService: PaywallService {
         switch offerCode.offerType {
         case .freeTrial:
             // Free trial codes grant immediate subscription access
-            try await subscriptionService.mockPurchase(offerCode.productId)
+            try await subscriptionService.registerPurchase(offerCode.productId)
 
         case .upgrade:
             // Upgrade codes grant immediate subscription access to a higher tier
-            try await subscriptionService.mockPurchase(offerCode.productId)
+            try await subscriptionService.registerPurchase(offerCode.productId)
 
         case .discount:
             // Discount codes store the discount for later application during purchase
