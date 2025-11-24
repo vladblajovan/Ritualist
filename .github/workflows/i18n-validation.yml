@@ -66,16 +66,11 @@ jobs:
       uses: maxim-lobanov/setup-xcode@v1
       with:
         xcode-version: '16.4'
-    
-    - name: Cache Xcode DerivedData
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/Library/Developer/Xcode/DerivedData
-        key: ${{ runner.os }}-xcode-16.4-deriveddata-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-xcode-16.4-deriveddata-
-    
+
+    # Note: DerivedData cache removed due to module cache corruption issues
+    # The cache was causing mtime mismatches in Swift module files (.pcm)
+    # Clean builds are more reliable than cached builds with corruption
+
     - name: Build for Testing (with timing)
       run: |
         echo "⏱️ Starting build-for-testing at $(date)"
@@ -85,8 +80,7 @@ jobs:
           -project Ritualist.xcodeproj \
           -scheme Ritualist-AllFeatures \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
-          -configuration Debug-AllFeatures \
-          -derivedDataPath ~/Library/Developer/Xcode/DerivedData
+          -configuration Debug-AllFeatures
 
         BUILD_END=$(date +%s)
         BUILD_TIME=$((BUILD_END - BUILD_START))
@@ -110,7 +104,6 @@ jobs:
           -destination 'platform=iOS Simulator,name=iPhone 16' \
           -only-testing:RitualistTests \
           -resultBundlePath TestResults.xcresult \
-          -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
           -enableCodeCoverage YES
 
         TEST_END=$(date +%s)
