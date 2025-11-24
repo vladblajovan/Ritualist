@@ -262,8 +262,13 @@ extension Container {
 
     var secureSubscriptionService: Factory<SecureSubscriptionService> {
         self {
+            #if ALL_FEATURES_ENABLED
+            // AllFeatures scheme: Bypass StoreKit entirely for faster local testing
+            return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
+            #else
             // Production StoreKit2 implementation (ACTIVATED)
             return StoreKitSubscriptionService(errorHandler: self.errorHandler())
+            #endif
         }
         .singleton
     }
@@ -295,6 +300,15 @@ extension Container {
     @available(*, deprecated, message: "Use paywallUIService instead")
     var paywallService: Factory<PaywallService> {
         self {
+            #if ALL_FEATURES_ENABLED
+            // AllFeatures scheme: Bypass StoreKit entirely for faster local testing
+            let mockPaywall = MockPaywallService(
+                subscriptionService: self.secureSubscriptionService(),
+                testingScenario: .randomResults
+            )
+            mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
+            return mockPaywall
+            #else
             // Production StoreKit2 implementation (ACTIVATED)
             return MainActor.assumeIsolated {
                 StoreKitPaywallService(
@@ -302,6 +316,7 @@ extension Container {
                     logger: self.debugLogger()
                 )
             }
+            #endif
         }
         .singleton
     }

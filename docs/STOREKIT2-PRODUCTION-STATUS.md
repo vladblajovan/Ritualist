@@ -187,19 +187,21 @@ let mockPaywall = MockPaywallService(
 
 **Product IDs** (Defined in `StoreKitConstants.swift`)
 ```swift
+public static let weekly = "com.vladblajovan.ritualist.weekly"
 public static let monthly = "com.vladblajovan.ritualist.monthly"
 public static let annual = "com.vladblajovan.ritualist.annual"
 public static let lifetime = "com.vladblajovan.ritualist.lifetime"
 ```
 
 **Pricing** (Configured in `Ritualist.storekit`)
+- Weekly: $2.99/week
 - Monthly: $9.99/month
 - Annual: $49.99/year (7-day free trial)
 - Lifetime: $99.99 (one-time purchase)
 
 **StoreKit Configuration** ✅
 - File: `Configuration/Ritualist.storekit`
-- 3 subscription products configured
+- 4 subscription products configured (Weekly, Monthly, Annual, Lifetime)
 - 5 offer codes configured for testing
 - Subscription groups set up
 - Test scenarios enabled

@@ -28,7 +28,31 @@
 - [ ] Reference Name: `ritualist_premium_group`
 - [ ] Click **Create**
 
-### Step 1.2: Create Monthly Subscription
+### Step 1.2: Create Weekly Subscription
+
+- [ ] In Subscription Group, click **+ Auto-Renewable Subscription**
+- [ ] **Product ID**: `com.vladblajovan.ritualist.weekly`
+- [ ] **Reference Name**: `Weekly Subscription`
+- [ ] **Subscription Group**: `Ritualist Premium`
+- [ ] Click **Create**
+
+**Configure Weekly Product**:
+- [ ] **Display Name** (English): `Weekly Premium`
+- [ ] **Description**: `Try premium features with a flexible weekly subscription. Cancel anytime.`
+- [ ] **Subscription Duration**: `1 Week`
+- [ ] **Subscription Prices**:
+  - [ ] Select all regions
+  - [ ] Base Price: `$2.99 USD`
+- [ ] **App Store Promotion** (Optional):
+  - [ ] Promotional Image: Upload 1024x1024 image
+  - [ ] Promotional Text: `Perfect for trying premium with minimal commitment!`
+- [ ] **Review Information**:
+  - [ ] Screenshot: Upload app screenshot showing paywall
+  - [ ] Review Notes: `Weekly subscription for premium features`
+- [ ] Click **Save**
+- [ ] Click **Submit for Review**
+
+### Step 1.3: Create Monthly Subscription
 
 - [ ] In Subscription Group, click **+ Auto-Renewable Subscription**
 - [ ] **Product ID**: `com.vladblajovan.ritualist.monthly`
@@ -52,7 +76,7 @@
 - [ ] Click **Save**
 - [ ] Click **Submit for Review**
 
-### Step 1.3: Create Annual Subscription (with 7-day trial)
+### Step 1.4: Create Annual Subscription (with 7-day trial)
 
 - [ ] In Subscription Group, click **+ Auto-Renewable Subscription**
 - [ ] **Product ID**: `com.vladblajovan.ritualist.annual`
@@ -80,7 +104,7 @@
 - [ ] Click **Save**
 - [ ] Click **Submit for Review**
 
-### Step 1.4: Create Lifetime Purchase
+### Step 1.5: Create Lifetime Purchase
 
 - [ ] Navigate to **Features** → **In-App Purchases**
 - [ ] Click **+ Non-Consumable**
@@ -103,7 +127,7 @@
 - [ ] Click **Save**
 - [ ] Click **Submit for Review**
 
-### Step 1.5: Create Sandbox Test Account
+### Step 1.6: Create Sandbox Test Account
 
 - [ ] Navigate to **Users and Access** → **Sandbox Testers**
 - [ ] Click **+ Sandbox Tester**
@@ -116,11 +140,11 @@
 
 **Important**: Do NOT verify the email! Sandbox accounts must remain unverified.
 
-### Step 1.6: Wait for Approval (1-2 days)
+### Step 1.7: Wait for Approval (1-2 days)
 
 - [ ] Monitor App Store Connect for approval status
 - [ ] Check for rejection emails (usually rare for IAP)
-- [ ] Once approved, all 3 products will show **"Ready to Submit"** status
+- [ ] Once approved, all 4 products will show **"Ready to Submit"** status
 
 ---
 

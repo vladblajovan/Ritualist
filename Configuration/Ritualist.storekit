@@ -82,6 +82,31 @@
 
           ],
           "codeOffers" : [
+
+          ],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6736572806",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Weekly subscription with all premium features. Perfect for trying premium with minimal commitment.",
+              "displayName" : "Ritualist Pro Weekly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.vladblajovan.ritualist.weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "Ritualist Pro Weekly",
+          "subscriptionGroupID" : "21542332",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
             {
               "eligibility" : [
                 "new"
@@ -111,7 +136,7 @@
           ],
           "displayPrice" : "9.99",
           "familyShareable" : false,
-          "groupNumber" : 1,
+          "groupNumber" : 2,
           "internalID" : "6736572803",
           "introductoryOffer" : null,
           "localizations" : [
@@ -173,7 +198,7 @@
           ],
           "displayPrice" : "49.99",
           "familyShareable" : false,
-          "groupNumber" : 2,
+          "groupNumber" : 3,
           "internalID" : "6736572804",
           "introductoryOffer" : {
             "internalID" : "6736572805",
