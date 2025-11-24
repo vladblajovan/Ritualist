@@ -211,34 +211,14 @@ extension Container {
     
     var userBusinessService: Factory<UserBusinessService> {
         self {
-            // ⚠️ TEMPORARY: Using MockUserBusinessService for both DEBUG and Release
-            // CloudKit entitlements are currently disabled (requires paid Apple Developer Program)
-            //
-            // TO RE-ENABLE iCloud sync:
-            // 1. Uncomment CloudKit entitlements in Ritualist.entitlements
-            // 2. Uncomment the #else branch below to use ICloudUserBusinessService in production
-            // 3. Follow CLOUDKIT-SETUP-GUIDE.md for complete setup
-            //
-            // See ICLOUD-INVESTIGATION-SUMMARY.md for details
-
-            return MockUserBusinessService(
-                loadProfile: self.loadProfile(),
-                saveProfile: self.saveProfile(),
-                errorHandler: self.errorHandler()
+            // ✅ CloudKit enabled for both DEBUG and RELEASE
+            // CloudKit SDK automatically selects environment based on build configuration:
+            // - DEBUG builds → Development environment (testing)
+            // - RELEASE builds → Production environment (live users)
+            return ICloudUserBusinessService(
+                errorHandler: self.errorHandler(),
+                userActionTracker: self.userActionTracker()
             )
-
-            // #if DEBUG
-            // return MockUserBusinessService(
-            //     loadProfile: self.loadProfile(),
-            //     saveProfile: self.saveProfile(),
-            //     errorHandler: self.errorHandler()
-            // )
-            // #else
-            // return ICloudUserBusinessService(
-            //     errorHandler: self.errorHandler(),
-            //     userActionTracker: self.userActionTracker()
-            // )
-            // #endif
         }
         .singleton
     }
