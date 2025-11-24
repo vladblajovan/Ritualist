@@ -262,19 +262,8 @@ extension Container {
 
     var secureSubscriptionService: Factory<SecureSubscriptionService> {
         self {
-            // ⚠️ TEMPORARY: Using MockSecureSubscriptionService
-            // StoreKit entitlements require Apple Developer Program subscription ($99/year)
-            //
-            // TO RE-ENABLE StoreKit:
-            // 1. Purchase Apple Developer Program membership
-            // 2. Create IAP products in App Store Connect (see StoreKitConstants.swift)
-            // 3. Uncomment StoreKitSubscriptionService below
-            // 4. Follow docs/STOREKIT-SETUP-GUIDE.md for complete setup
-
-            return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
-
-            // Production StoreKit implementation (ready to enable):
-            // return StoreKitSubscriptionService(errorHandler: self.errorHandler())
+            // Production StoreKit2 implementation (ACTIVATED)
+            return StoreKitSubscriptionService(errorHandler: self.errorHandler())
         }
         .singleton
     }
@@ -306,38 +295,13 @@ extension Container {
     @available(*, deprecated, message: "Use paywallUIService instead")
     var paywallService: Factory<PaywallService> {
         self {
-            // ⚠️ TEMPORARY: Using MockPaywallService for all builds
-            // StoreKit entitlements require Apple Developer Program subscription ($99/year)
-            //
-            // TO RE-ENABLE StoreKit:
-            // 1. Purchase Apple Developer Program membership
-            // 2. Create IAP products in App Store Connect (see StoreKitConstants.swift)
-            // 3. Uncomment the #if/#else branches below
-            // 4. Follow docs/STOREKIT-SETUP-GUIDE.md for complete setup
-
-            let mockPaywall = MockPaywallService(
-                subscriptionService: self.secureSubscriptionService(),
-                testingScenario: .randomResults
-            )
-            mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
-            return mockPaywall
-
-            // #if DEBUG
-            // let mockPaywall = MockPaywallService(
-            //     subscriptionService: self.secureSubscriptionService(),
-            //     testingScenario: .randomResults
-            // )
-            // mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
-            // return mockPaywall
-            // #else
-            // // Production StoreKit implementation (ready to enable)
-            // return MainActor.assumeIsolated {
-            //     StoreKitPaywallService(
-            //         subscriptionService: self.secureSubscriptionService(),
-            //         logger: self.debugLogger()
-            //     )
-            // }
-            // #endif
+            // Production StoreKit2 implementation (ACTIVATED)
+            return MainActor.assumeIsolated {
+                StoreKitPaywallService(
+                    subscriptionService: self.secureSubscriptionService(),
+                    logger: self.debugLogger()
+                )
+            }
         }
         .singleton
     }
