@@ -266,8 +266,12 @@ extension Container {
             // AllFeatures scheme: Bypass StoreKit entirely for faster local testing
             return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
             #else
-            // Production StoreKit2 implementation (ACTIVATED)
-            return StoreKitSubscriptionService(errorHandler: self.errorHandler())
+            // TEMPORARY: Using mocks until IAP products are created in App Store Connect
+            // TODO: Uncomment production service after creating IAP products
+            return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
+
+            // Production StoreKit2 implementation (ready to activate):
+            // return StoreKitSubscriptionService(errorHandler: self.errorHandler())
             #endif
         }
         .singleton
@@ -300,23 +304,31 @@ extension Container {
     @available(*, deprecated, message: "Use paywallUIService instead")
     var paywallService: Factory<PaywallService> {
         self {
-            #if ALL_FEATURES_ENABLED
-            // AllFeatures scheme: Bypass StoreKit entirely for faster local testing
+            // TEMPORARY: Using mocks until IAP products are created in App Store Connect
+            // TODO: Uncomment production service after creating IAP products
             let mockPaywall = MockPaywallService(
                 subscriptionService: self.secureSubscriptionService(),
                 testingScenario: .randomResults
             )
             mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
             return mockPaywall
-            #else
-            // Production StoreKit2 implementation (ACTIVATED)
-            return MainActor.assumeIsolated {
-                StoreKitPaywallService(
-                    subscriptionService: self.secureSubscriptionService(),
-                    logger: self.debugLogger()
-                )
-            }
-            #endif
+
+            // Production StoreKit2 implementation (ready to activate):
+            // #if ALL_FEATURES_ENABLED
+            // let mockPaywall = MockPaywallService(
+            //     subscriptionService: self.secureSubscriptionService(),
+            //     testingScenario: .randomResults
+            // )
+            // mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
+            // return mockPaywall
+            // #else
+            // return MainActor.assumeIsolated {
+            //     StoreKitPaywallService(
+            //         subscriptionService: self.secureSubscriptionService(),
+            //         logger: self.debugLogger()
+            //     )
+            // }
+            // #endif
         }
         .singleton
     }
