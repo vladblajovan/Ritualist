@@ -218,6 +218,174 @@ private var paywallService: Factory<PaywallService> {
 
 ---
 
+## Phase 2.5: Local Testing with StoreKit Configuration (15-20 minutes)
+
+**Purpose**: Test the real StoreKit 2 implementation locally in Simulator BEFORE uploading to TestFlight. This catches issues early without needing App Store Connect products or sandbox accounts.
+
+### Step 2.5.1: Configure Xcode Scheme for Local Testing
+
+- [ ] **Product** → **Scheme** → **Edit Scheme** (or ⌘<)
+- [ ] Select **Run** in left sidebar
+- [ ] Go to **Options** tab
+- [ ] **StoreKit Configuration** dropdown → Select `Ritualist.storekit`
+- [ ] Click **Close**
+
+### Step 2.5.2: Temporarily Enable Production Services for Debug
+
+**File**: `Ritualist/DI/Container+Services.swift`
+
+For local testing, temporarily modify the PaywallService to use StoreKit in Debug:
+
+```swift
+// TEMPORARY: For local .storekit testing, remove #if DEBUG
+private var paywallService: Factory<PaywallService> {
+    Factory(self) {
+        return MainActor.assumeIsolated {
+            StoreKitPaywallService(
+                subscriptionService: self.secureSubscriptionService(),
+                logger: self.debugLogger()
+            )
+        }
+    }
+    .singleton
+}
+```
+
+**⚠️ REMEMBER**: Restore `#if DEBUG` conditionals before committing!
+
+### Step 2.5.3: Test Product Loading
+
+- [ ] Run app in **Simulator** (⌘R)
+- [ ] Navigate to paywall:
+  - Create 6 habits in Assistant
+  - Paywall appears automatically
+- [ ] Verify **3 products load** with correct details:
+  - [ ] **Monthly Premium** - $9.99/month
+  - [ ] **Annual Premium** - $49.99/year (shows "7-day trial" badge)
+  - [ ] **Lifetime Premium** - $100.00 (one-time)
+- [ ] Check console logs for StoreKit errors (should be none)
+
+### Step 2.5.4: Test Monthly Purchase
+
+- [ ] Tap **Monthly** product card
+- [ ] Native iOS purchase confirmation appears
+- [ ] Tap **Subscribe** (or **Buy**)
+- [ ] **Xcode Console**: Watch for transaction logs
+- [ ] Purchase succeeds (no sandbox login needed!)
+- [ ] Navigate to **Settings** → **Subscription Management**
+- [ ] Verify subscription status:
+  - [ ] Shows "Monthly Premium"
+  - [ ] Shows renewal date (1 month from today)
+  - [ ] "Manage Subscription" button enabled
+
+### Step 2.5.5: Test Premium Feature Unlocking
+
+- [ ] Return to **Assistant**
+- [ ] Create 7th habit (should succeed without paywall)
+- [ ] Create 8th, 9th, 10th habit
+- [ ] Verify habits banner does NOT show "X/5 habits"
+- [ ] Premium features confirmed working ✅
+
+### Step 2.5.6: Test Restore Purchases
+
+- [ ] **Debug Menu** → **Clear All Purchases**
+- [ ] App returns to free tier
+- [ ] Navigate back to paywall
+- [ ] Tap **Restore Purchases** button
+- [ ] Restoration succeeds (~1-2 seconds)
+- [ ] Settings shows subscription restored
+- [ ] Premium features re-enabled
+
+### Step 2.5.7: Test Annual Subscription (Optional)
+
+- [ ] Clear purchases again
+- [ ] Purchase **Annual** plan
+- [ ] Verify:
+  - [ ] Purchase completes
+  - [ ] Settings shows "Annual Premium"
+  - [ ] "7-day trial" mentioned (even though local testing doesn't enforce trial duration)
+  - [ ] Premium features enabled
+
+### Step 2.5.8: Test Lifetime Purchase (Optional)
+
+- [ ] Clear purchases again
+- [ ] Purchase **Lifetime** plan
+- [ ] Verify:
+  - [ ] Purchase completes
+  - [ ] Settings shows "Lifetime Premium"
+  - [ ] No renewal date shown
+  - [ ] Premium features enabled forever
+
+### Step 2.5.9: Test Offer Code Redemption (Optional)
+
+**Note**: The `.storekit` file includes 5 pre-configured test offer codes.
+
+- [ ] Navigate to paywall
+- [ ] Scroll to **"Have an offer code?"** section
+- [ ] Tap **"Redeem Code"**
+- [ ] Enter test code: `TESTANNUAL`
+- [ ] Native redemption sheet appears
+- [ ] Tap **Redeem**
+- [ ] Success! Settings shows Annual subscription with extended trial
+
+**Other Test Codes** (from `Ritualist.storekit`):
+- `WELCOME50` - Monthly 50% off (3 months)
+- `TESTMONTHLY` - Monthly free trial (1 month)
+- `RITUALIST2025` - Annual free trial (3 months)
+- `ANNUAL30` - Annual 30% off (1 year)
+
+### Step 2.5.10: Restore Debug Conditionals
+
+**IMPORTANT**: Before committing, restore the original code:
+
+```swift
+// RESTORE THIS:
+private var paywallService: Factory<PaywallService> {
+    Factory(self) {
+        #if DEBUG
+        let mockPaywall = MockPaywallService(
+            subscriptionService: self.secureSubscriptionService(),
+            testingScenario: .randomResults
+        )
+        return mockPaywall
+        #else
+        return MainActor.assumeIsolated {
+            StoreKitPaywallService(
+                subscriptionService: self.secureSubscriptionService(),
+                logger: self.debugLogger()
+            )
+        }
+        #endif
+    }
+    .singleton
+}
+```
+
+- [ ] Restore `#if DEBUG` conditionals in `Container+Services.swift`
+- [ ] Clean build folder (⇧⌘K)
+- [ ] Build to verify mock services work in Debug again
+
+### Step 2.5.11: Verify Local Testing Success
+
+**Local testing is successful when**:
+- [x] All 3 products load correctly
+- [x] Purchases complete without errors
+- [x] Settings updates immediately after purchase
+- [x] Premium features unlock (unlimited habits)
+- [x] Restore purchases works
+- [x] Offer codes redeem successfully (optional)
+- [x] Zero crashes or StoreKit errors in console
+- [x] Ready to proceed to TestFlight testing
+
+**Benefits of Local Testing**:
+- ✅ Fast iteration (no upload/download)
+- ✅ Tests real StoreKit 2 code path
+- ✅ Catches issues before TestFlight
+- ✅ No Apple Developer costs
+- ✅ No network dependency
+
+---
+
 ## Phase 3: Build and Upload (10-15 minutes)
 
 ### Step 3.1: Create Archive
@@ -518,10 +686,11 @@ private var paywallService: Factory<PaywallService> {
 | App Store Connect Setup | 30-45 min | Apple Developer account |
 | IAP Approval Wait | 1-2 days | Apple review process |
 | Code Activation | 5-10 min | - |
+| **Local StoreKit Testing** | **15-20 min** | **Xcode + Simulator** |
 | Build & Upload | 10-15 min | - |
 | TestFlight Testing | 15-30 min | Build processing |
 | Offer Codes (Optional) | 15-30 min | IAP products approved |
-| **TOTAL (Active Work)** | **1-2 hours** | - |
+| **TOTAL (Active Work)** | **1.5-2.5 hours** | - |
 | **TOTAL (Including Wait)** | **1-3 days** | Apple approval |
 
 ---
