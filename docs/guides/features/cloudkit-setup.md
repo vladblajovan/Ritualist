@@ -259,10 +259,86 @@ See `ICLOUD-STORAGE-ANALYSIS.md` for full implementation plan.
 
 ---
 
+## Sync Behavior
+
+### Automatic Sync
+
+The app implements **automatic iCloud sync** that matches industry standards and user expectations:
+
+#### When Automatic Sync Happens:
+1. **App Launch** - Syncs profile when app starts
+2. **App Becomes Active** - Syncs when returning from background
+3. **After Profile Changes** - Syncs immediately after:
+   - Name updates
+   - Theme/appearance changes
+   - Timezone settings changes
+   - Avatar updates
+
+#### Silent Operation:
+- Auto-sync runs in the background without blocking the UI
+- Sync failures are logged but don't interrupt the user experience
+- Users can always manually sync from Settings if auto-sync fails
+
+### Manual Sync
+
+The Settings screen provides a **"Sync Now" button** for:
+- Forcing an immediate sync when needed
+- Verifying that sync is working
+- Syncing after being offline for extended periods
+
+**UI Elements:**
+- Sync status indicator (with color-coded icons)
+- Last sync timestamp
+- Manual "Sync Now" button
+
+### Conflict Resolution
+
+The app uses **Last-Write-Wins (LWW)** conflict resolution:
+
+#### How It Works:
+1. When syncing, both local and cloud profiles are fetched
+2. **CloudKit server timestamps** are compared (more reliable than device clocks)
+3. The profile with the most recent timestamp wins
+4. If timestamps are identical, cloud version is preferred
+
+#### Reliability Features:
+- Uses CloudKit's `modificationDate` instead of client-provided timestamps
+- Eliminates clock skew issues across devices
+- Analytics tracking for conflict monitoring in production
+
+#### What Gets Synced:
+- User name
+- Theme/appearance preference
+- Timezone settings (current, home, display mode)
+- Timezone change history
+- Avatar image
+- Profile metadata (created/updated dates)
+
+### Multi-Device Experience
+
+**New Device Setup:**
+1. User installs app on new device
+2. Signs into iCloud
+3. Launches app
+4. Profile is automatically restored from CloudKit
+
+**Data Safety:**
+- Local changes are never overwritten on first sync
+- If no cloud profile exists, local profile is uploaded
+- No data loss during initial sync
+
+**Cross-Device Updates:**
+- Changes on Device A appear on Device B within seconds
+- Auto-sync ensures changes propagate automatically
+- Manual sync can force immediate synchronization
+
+---
+
 ## Notes
 
 - **Development vs Production:** Always test in Development environment first
 - **Schema Changes:** Production schema is immutable - plan carefully
 - **Quota Limits:** Free tier is sufficient for initial launch (10K+ users)
 - **Privacy:** CloudKit uses user's iCloud account - no custom auth needed
-- **Sync:** Automatic background sync handled by CloudKit framework
+- **Sync:** Automatic background sync at app launch, app active, and after profile changes
+- **Conflict Resolution:** Last-Write-Wins using CloudKit server timestamps

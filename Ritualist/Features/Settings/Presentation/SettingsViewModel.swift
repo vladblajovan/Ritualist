@@ -162,19 +162,22 @@ public final class SettingsViewModel {
     public func save() async -> Bool {
         isSaving = true
         error = nil
-        
+
         do {
             try await saveProfile.execute(profile)
-            
+
             // Track profile update
             userActionTracker.track(.profileUpdated(field: "general_settings"))
-            
+
             // Send notification after successful save
             // try? await notificationService.sendImmediate(
             //     title: "Settings Saved",
             //     body: "Your preferences have been updated successfully."
             // )
-            
+
+            // Auto-sync with iCloud after profile changes
+            try? await syncWithiCloud.execute()
+
             isSaving = false
             return true
         } catch {
@@ -251,21 +254,24 @@ public final class SettingsViewModel {
     public func updateUserName(_ name: String) async {
         isUpdatingUser = true
         error = nil
-        
+
         // Update both the local profile state and via UserService
         profile.name = name
         profile.updatedAt = Date()
-        
+
         do {
             try await saveProfile.execute(profile)
-            
+
             // Track user name update
             userActionTracker.track(.profileUpdated(field: "name"))
+
+            // Auto-sync with iCloud after profile changes
+            try? await syncWithiCloud.execute()
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "user_name_update", additionalProperties: ["name": name])
         }
-        
+
         isUpdatingUser = false
     }
     
@@ -290,12 +296,24 @@ public final class SettingsViewModel {
     public func updateAppearance(_ appearance: Int) async {
         // Update the profile appearance setting
         profile.appearance = appearance
+        profile.updatedAt = Date()
 
         // Apply the appearance change to the appearance manager
         appearanceManager.updateFromProfile(profile)
 
-        // Track appearance change
-        userActionTracker.track(.profileUpdated(field: "appearance"))
+        // Save the profile changes
+        do {
+            try await saveProfile.execute(profile)
+
+            // Track appearance change
+            userActionTracker.track(.profileUpdated(field: "appearance"))
+
+            // Auto-sync with iCloud after profile changes
+            try? await syncWithiCloud.execute()
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "appearance_update", additionalProperties: ["appearance": String(appearance)])
+        }
     }
 
     // MARK: - iCloud Sync Methods

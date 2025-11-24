@@ -20,6 +20,7 @@ import RitualistCore
     @Injected(\.restoreGeofenceMonitoring) private var restoreGeofenceMonitoring
     @Injected(\.timezoneService) private var timezoneService
     @Injected(\.seedPredefinedCategories) private var seedPredefinedCategories
+    @Injected(\.syncWithiCloud) private var syncWithiCloud
     @Injected(\.debugLogger) private var logger
 
     var body: some Scene {
@@ -32,12 +33,14 @@ import RitualistCore
                     await setupNotifications()
                     await scheduleInitialNotifications()
                     await restoreGeofences()
+                    await syncWithCloudIfAvailable()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     // Re-schedule notifications when app becomes active (handles day changes while backgrounded)
                     Task {
                         await detectTimezoneChanges()
                         await rescheduleNotificationsIfNeeded()
+                        await syncWithCloudIfAvailable()
                     }
                 }
                 .onOpenURL { url in
@@ -339,6 +342,38 @@ import RitualistCore
     private func handleOverviewDeepLink() {
         Task { @MainActor in
             navigationService.navigateToOverview(shouldRefresh: true)
+        }
+    }
+
+    /// Sync with iCloud on app launch/resume (silent background sync)
+    /// This method performs automatic synchronization with iCloud at key lifecycle points:
+    /// - App launch: Ensures latest profile is loaded from cloud
+    /// - App becomes active: Syncs changes made on other devices while this app was backgrounded
+    ///
+    /// Failures are handled gracefully and logged but do not block app functionality.
+    /// Users can always manually sync from Settings if automatic sync fails.
+    private func syncWithCloudIfAvailable() async {
+        do {
+            logger.log(
+                "☁️ Auto-syncing with iCloud",
+                level: .info,
+                category: .system
+            )
+            try await syncWithiCloud.execute()
+            logger.log(
+                "✅ Auto-sync completed successfully",
+                level: .info,
+                category: .system
+            )
+        } catch {
+            // Silent failure - don't block app launch or disrupt user experience
+            // User can manually sync from Settings if needed
+            logger.log(
+                "⚠️ Auto-sync failed (non-critical)",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
         }
     }
 }

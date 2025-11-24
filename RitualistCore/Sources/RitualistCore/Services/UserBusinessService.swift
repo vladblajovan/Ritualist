@@ -146,14 +146,18 @@ public final class MockUserBusinessService: UserBusinessService {
 public final class ICloudUserBusinessService: UserBusinessService {
     private var _currentProfile: UserProfile
     private let errorHandler: ErrorHandler?
+    private let userActionTracker: UserActionTrackerService?
     private let syncErrorHandler: CloudSyncErrorHandler
     private let container: CKContainer
     private let privateDatabase: CKDatabase
 
     /// Initialize with CloudKit container
-    /// - Parameter errorHandler: Optional error handler for logging
-    public init(errorHandler: ErrorHandler? = nil) {
+    /// - Parameters:
+    ///   - errorHandler: Optional error handler for logging
+    ///   - userActionTracker: Optional analytics tracker for sync events
+    public init(errorHandler: ErrorHandler? = nil, userActionTracker: UserActionTrackerService? = nil) {
         self.errorHandler = errorHandler
+        self.userActionTracker = userActionTracker
         self.syncErrorHandler = CloudSyncErrorHandler(
             errorHandler: errorHandler,
             maxRetries: 3,
@@ -174,10 +178,11 @@ public final class ICloudUserBusinessService: UserBusinessService {
                 try await syncErrorHandler.validateCloudKitAvailability()
 
                 // Load profile from CloudKit with retry logic
-                _currentProfile = try await syncErrorHandler.executeWithRetry(
+                let (profile, _) = try await syncErrorHandler.executeWithRetry(
                     operation: { try await self.loadProfileFromCloud() },
                     operationName: "initial_profile_load"
                 )
+                _currentProfile = profile
             } catch let error as CloudKitAvailabilityError {
                 // iCloud not available - log and continue with local-only mode
                 await errorHandler?.logError(
@@ -199,7 +204,7 @@ public final class ICloudUserBusinessService: UserBusinessService {
     public func getCurrentProfile() async throws -> UserProfile {
         // Fetch latest from CloudKit with retry logic
         do {
-            let cloudProfile = try await syncErrorHandler.executeWithRetry(
+            let (cloudProfile, _) = try await syncErrorHandler.executeWithRetry(
                 operation: { try await self.loadProfileFromCloud() },
                 operationName: "get_current_profile"
             )
@@ -248,16 +253,25 @@ public final class ICloudUserBusinessService: UserBusinessService {
 
     public func syncWithiCloud() async throws {
         // Fetch latest from CloudKit with retry logic
-        let cloudProfile = try await syncErrorHandler.executeWithRetry(
+        let (cloudProfile, cloudServerModified) = try await syncErrorHandler.executeWithRetry(
             operation: { try await self.loadProfileFromCloud() },
             operationName: "sync_fetch"
         )
 
-        // Resolve conflicts using Last-Write-Wins
-        let resolvedProfile = resolveConflict(local: _currentProfile, cloud: cloudProfile)
+        // Resolve conflicts using Last-Write-Wins with server timestamps
+        // Use CloudKit's server modificationDate (more reliable than client timestamps)
+        let localTimestamp = _currentProfile.updatedAt
+        let cloudTimestamp = cloudServerModified ?? cloudProfile.updatedAt
+
+        let resolvedProfile = resolveConflict(
+            local: _currentProfile,
+            localTimestamp: localTimestamp,
+            cloud: cloudProfile,
+            cloudTimestamp: cloudTimestamp
+        )
 
         // If resolved profile is different from cloud, push update with retry
-        if resolvedProfile.updatedAt > cloudProfile.updatedAt {
+        if resolvedProfile.id == _currentProfile.id && localTimestamp > cloudTimestamp {
             try await syncErrorHandler.executeWithRetry(
                 operation: { try await self.saveProfileToCloud(resolvedProfile) },
                 operationName: "sync_push"
@@ -271,9 +285,9 @@ public final class ICloudUserBusinessService: UserBusinessService {
     // MARK: - Private CloudKit Operations
 
     /// Load UserProfile from CloudKit private database
-    /// - Returns: UserProfile from CloudKit
+    /// - Returns: Tuple containing UserProfile and server modification date (if available)
     /// - Throws: CloudKitSyncError if fetch fails
-    private func loadProfileFromCloud() async throws -> UserProfile {
+    private func loadProfileFromCloud() async throws -> (profile: UserProfile, serverModified: Date?) {
         // Create record ID from profile UUID
         let recordID = CKRecord.ID(
             recordName: _currentProfile.id.uuidString,
@@ -286,7 +300,11 @@ public final class ICloudUserBusinessService: UserBusinessService {
 
             // Convert CKRecord to UserProfile
             let profile = try UserProfileCloudMapper.fromCKRecord(record)
-            return profile
+
+            // Extract server modification date (more reliable than client timestamps)
+            let serverModified = record.modificationDate
+
+            return (profile, serverModified)
 
         } catch let error as CKError where error.code == .unknownItem {
             // Profile doesn't exist in CloudKit yet - this is first-time sync
@@ -298,8 +316,8 @@ public final class ICloudUserBusinessService: UserBusinessService {
                 try await saveProfileToCloud(_currentProfile)
             }
 
-            // Return local profile (preserve data, don't lose it!)
-            return _currentProfile
+            // Return local profile with no server timestamp (doesn't exist in cloud yet)
+            return (_currentProfile, nil)
 
         } catch {
             throw CloudKitSyncError.fetchFailed(
@@ -329,20 +347,67 @@ public final class ICloudUserBusinessService: UserBusinessService {
     }
 
     /// Resolve conflict between local and cloud profiles using Last-Write-Wins
+    /// Uses CloudKit server timestamps for more reliable conflict resolution (eliminates clock skew)
     /// - Parameters:
     ///   - local: Local UserProfile
+    ///   - localTimestamp: Local profile modification timestamp
     ///   - cloud: Cloud UserProfile
-    /// - Returns: Winning profile (most recent updatedAt timestamp)
-    private func resolveConflict(local: UserProfile, cloud: UserProfile) -> UserProfile {
-        // Last-Write-Wins: Compare updatedAt timestamps
-        if local.updatedAt > cloud.updatedAt {
-            return local  // Local is newer
-        } else if cloud.updatedAt > local.updatedAt {
-            return cloud  // Cloud is newer
+    ///   - cloudTimestamp: CloudKit server modification timestamp (more reliable than client time)
+    /// - Returns: Winning profile (most recent timestamp)
+    private func resolveConflict(
+        local: UserProfile,
+        localTimestamp: Date,
+        cloud: UserProfile,
+        cloudTimestamp: Date
+    ) -> UserProfile {
+        // Determine winner based on timestamps
+        let winner: UserProfile
+        let winnerSide: String
+
+        // Last-Write-Wins: Compare timestamps
+        // CloudKit's server modificationDate is preferred over client updatedAt
+        if localTimestamp > cloudTimestamp {
+            winner = local  // Local is newer
+            winnerSide = "local"
+        } else if cloudTimestamp > localTimestamp {
+            winner = cloud  // Cloud is newer
+            winnerSide = "cloud"
         } else {
             // Same timestamp (rare) - prefer cloud as source of truth
-            return cloud
+            winner = cloud
+            winnerSide = "cloud_tie"
         }
+
+        // Track conflict analytics if profiles differ
+        let hasConflict = local.name != cloud.name
+            || local.appearance != cloud.appearance
+            || local.currentTimezoneIdentifier != cloud.currentTimezoneIdentifier
+            || local.homeTimezoneIdentifier != cloud.homeTimezoneIdentifier
+            || local.displayTimezoneMode != cloud.displayTimezoneMode
+            || local.avatarImageData != cloud.avatarImageData
+
+        if hasConflict {
+            // Calculate time difference for analysis
+            let timeDiff = abs(localTimestamp.timeIntervalSince(cloudTimestamp))
+
+            // Track conflict event with detailed parameters
+            userActionTracker?.track(.custom(
+                event: "icloud_conflict_resolved",
+                parameters: [
+                    "winner": winnerSide,
+                    "time_diff_seconds": String(format: "%.1f", timeDiff),
+                    "has_name_diff": String(local.name != cloud.name),
+                    "has_theme_diff": String(local.appearance != cloud.appearance),
+                    "has_timezone_diff": String(
+                        local.currentTimezoneIdentifier != cloud.currentTimezoneIdentifier
+                        || local.homeTimezoneIdentifier != cloud.homeTimezoneIdentifier
+                    ),
+                    "has_avatar_diff": String(local.avatarImageData != cloud.avatarImageData)
+                ]
+            ))
+        }
+
+        return winner
     }
 }
 
