@@ -296,9 +296,8 @@ extension Container {
         .singleton
     }
     
-    // MARK: - Legacy Paywall Service (Deprecated)
+    // MARK: - Paywall Service
 
-    @available(*, deprecated, message: "Use paywallUIService instead")
     var paywallService: Factory<PaywallService> {
         self {
             // TEMPORARY: Using mocks until IAP products are created in App Store Connect
