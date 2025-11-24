@@ -67,9 +67,22 @@ jobs:
       with:
         xcode-version: '16.4'
 
-    # Note: DerivedData cache removed due to module cache corruption issues
-    # The cache was causing mtime mismatches in Swift module files (.pcm)
-    # Clean builds are more reliable than cached builds with corruption
+    - name: Cache Swift Package Manager
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/Library/Caches/org.swift.swiftpm
+          ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
+    - name: Clean Module Cache (Prevent Corruption)
+      run: |
+        echo "🧹 Cleaning Xcode module cache to prevent mtime mismatches..."
+        rm -rf ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+        rm -rf ~/Library/Caches/com.apple.dt.Xcode
+        echo "✅ Module cache cleaned"
 
     - name: Build for Testing (with timing)
       run: |
