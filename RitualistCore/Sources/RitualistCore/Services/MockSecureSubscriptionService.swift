@@ -66,28 +66,22 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
 
     public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
         // Check for lifetime purchase first (highest priority)
-        // Support both com.ritualist.* and com.vladblajovan.ritualist.* product IDs
-        if validatedPurchases.contains("com.ritualist.lifetime") ||
-           validatedPurchases.contains(StoreKitProductID.lifetime) {
+        if validatedPurchases.contains(StoreKitProductID.lifetime) {
             return .lifetime
         }
 
         // Check for annual subscription
-        if validatedPurchases.contains("com.ritualist.annual") ||
-           validatedPurchases.contains(StoreKitProductID.annual) {
+        if validatedPurchases.contains(StoreKitProductID.annual) {
             return .annual
         }
 
         // Check for monthly subscription
-        if validatedPurchases.contains("com.ritualist.monthly") ||
-           validatedPurchases.contains(StoreKitProductID.monthly) {
+        if validatedPurchases.contains(StoreKitProductID.monthly) {
             return .monthly
         }
 
         // Check for weekly subscription
-        if validatedPurchases.contains("ritualist_weekly") ||
-           validatedPurchases.contains("com.ritualist.weekly") ||
-           validatedPurchases.contains("com.vladblajovan.ritualist.weekly") {
+        if validatedPurchases.contains(StoreKitProductID.weekly) {
             return .weekly
         }
 
