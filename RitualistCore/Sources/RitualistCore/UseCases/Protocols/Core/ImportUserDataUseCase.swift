@@ -22,6 +22,7 @@ public enum ImportError: LocalizedError {
     case invalidJSON
     case incompatibleFormat
     case missingRequiredFields
+    case invalidProfileId
     case dataTooLarge(reason: String)
     case importFailed(underlying: Error)
 
@@ -33,6 +34,8 @@ public enum ImportError: LocalizedError {
             return "The file format is not compatible with this app version"
         case .missingRequiredFields:
             return "The file is missing required data fields"
+        case .invalidProfileId:
+            return "The file contains an invalid profile identifier"
         case .dataTooLarge(let reason):
             return "The import data is too large: \(reason)"
         case .importFailed(let error):
@@ -48,6 +51,8 @@ public enum ImportError: LocalizedError {
             return "This file may be from a different version of Ritualist or another app."
         case .missingRequiredFields:
             return "The export file is incomplete. Try exporting again."
+        case .invalidProfileId:
+            return "The file may be corrupted or from an incompatible source."
         case .dataTooLarge:
             return "The import file contains too much data. Contact support if this is unexpected."
         case .importFailed:

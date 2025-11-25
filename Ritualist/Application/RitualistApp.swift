@@ -26,6 +26,7 @@ import CoreData
     @Injected(\.updateLastSyncDate) private var updateLastSyncDate
     @Injected(\.checkiCloudStatus) private var checkiCloudStatus
     @Injected(\.debugLogger) private var logger
+    @Injected(\.userActionTracker) private var userActionTracker
 
     /// Track if initial launch tasks have completed to avoid duplicate work
     @State private var hasCompletedInitialLaunch = false
@@ -48,6 +49,13 @@ import CoreData
     /// 30 seconds provides a balance between responsiveness (user gets geofences within 30s of sync)
     /// and efficiency (bulk syncs are batched into a single restoration).
     private let geofenceRestorationThrottleInterval: TimeInterval = 30
+
+    /// Delay before reading data after NSPersistentStoreRemoteChange notification (in milliseconds).
+    ///
+    /// SwiftData/CloudKit fires NSPersistentStoreRemoteChange when the persistent store receives
+    /// remote changes, but the merge into the view context may still be in progress. This delay
+    /// ensures data is fully available before we attempt to read it.
+    private let remoteChangeMergeDelayMs: UInt64 = 500
 
     var body: some Scene {
         WindowGroup {
@@ -79,12 +87,11 @@ import CoreData
                     // habit data with location configs while app is backgrounded or suspended.
                     // Geofences are device-local, so we must re-register them after sync.
                     //
-                    // NOTE: We delay slightly to allow SwiftData to complete merging the remote
-                    // changes into the view context. NSPersistentStoreRemoteChange fires when
-                    // the persistent store receives changes, but the merge may still be in progress.
+                    // NOTE: We delay to allow SwiftData to complete merging the remote changes.
+                    // See remoteChangeMergeDelayMs documentation for rationale.
                     guard hasCompletedInitialLaunch else { return }
                     Task {
-                        try? await Task.sleep(for: .milliseconds(500))
+                        try? await Task.sleep(for: .milliseconds(remoteChangeMergeDelayMs))
                         await restoreGeofencesThrottled()
                     }
                 }
@@ -225,6 +232,7 @@ import CoreData
                 category: .system,
                 metadata: ["error": error.localizedDescription]
             )
+            userActionTracker.trackError(error, context: "geofence_restoration")
         }
     }
 
@@ -502,6 +510,7 @@ import CoreData
                 category: .system,
                 metadata: ["error": error.localizedDescription]
             )
+            userActionTracker.trackError(error, context: "icloud_auto_sync")
         }
     }
 }

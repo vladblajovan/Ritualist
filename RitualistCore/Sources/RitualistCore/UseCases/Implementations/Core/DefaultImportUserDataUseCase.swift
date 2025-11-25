@@ -56,6 +56,11 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             throw ImportError.missingRequiredFields
         }
 
+        // Validate profile ID format (must be valid UUID)
+        guard UUID(uuidString: importedData.syncMetadata.profileId) != nil else {
+            throw ImportError.invalidProfileId
+        }
+
         // Validate data size limits to prevent malicious imports
         try validateDataLimits(importedData)
 
