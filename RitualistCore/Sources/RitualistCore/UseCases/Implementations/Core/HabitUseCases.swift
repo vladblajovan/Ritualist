@@ -25,7 +25,8 @@ public final class CreateHabit: CreateHabitUseCase {
             isActive: habit.isActive,
             displayOrder: maxOrder + 1,
             categoryId: habit.categoryId,
-            suggestionId: habit.suggestionId
+            suggestionId: habit.suggestionId,
+            locationConfiguration: habit.locationConfiguration
         )
         
         try await repo.update(habitWithOrder)
@@ -89,7 +90,8 @@ public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
             isActive: newActiveStatus,
             displayOrder: habit.displayOrder,
             categoryId: habit.categoryId,
-            suggestionId: habit.suggestionId
+            suggestionId: habit.suggestionId,
+            locationConfiguration: habit.locationConfiguration
         )
 
         try await repo.update(updatedHabit)

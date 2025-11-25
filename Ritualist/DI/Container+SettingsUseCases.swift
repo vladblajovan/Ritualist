@@ -91,7 +91,8 @@ extension Container {
                 categoryRepository: self.categoryRepository(),
                 personalityRepository: self.personalityAnalysisRepository(),
                 logDataSource: self.logDataSource(),
-                updateLastSyncDate: self.updateLastSyncDate()
+                updateLastSyncDate: self.updateLastSyncDate(),
+                logger: self.debugLogger()
             )
         }
     }

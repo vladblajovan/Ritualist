@@ -73,10 +73,11 @@ public final class HabitDetailViewModel {
             loadHabitData(habit)
         }
         
-        // Load categories for both new and edit mode
+        // Load categories and check location status in parallel for faster startup
         Task {
-            await loadCategories()
-            await checkLocationAuthStatus()
+            async let categories: () = loadCategories()
+            async let location: () = checkLocationAuthStatus()
+            _ = await (categories, location)
         }
     }
     

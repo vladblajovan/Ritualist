@@ -28,11 +28,18 @@ import CoreData
     @Injected(\.debugLogger) private var logger
     @Injected(\.userActionTracker) private var userActionTracker
 
-    /// Track if initial launch tasks have completed to avoid duplicate work
+    /// Track if initial launch tasks have completed to avoid duplicate work.
+    ///
+    /// SYNCHRONIZATION: This flag prevents race conditions between `.task` and `.onReceive` handlers.
+    /// - `.task` runs `performInitialLaunchTasks()` which includes `restoreGeofences()`
+    /// - `.onReceive` handlers check this flag and return early if initial launch isn't complete
+    /// - After initial launch, `lastGeofenceRestorationUptime` throttle provides additional protection
+    /// This ensures geofence restoration never runs concurrently from multiple sources.
     @State private var hasCompletedInitialLaunch = false
 
-    /// Track last geofence restoration time to throttle rapid sync events
-    @State private var lastGeofenceRestorationTime: Date?
+    /// Track last geofence restoration time (using system uptime for clock-drift immunity)
+    /// Uses ProcessInfo.systemUptime which is monotonic and unaffected by user clock changes
+    @State private var lastGeofenceRestorationUptime: TimeInterval?
 
     /// App startup time for performance monitoring
     private let appStartTime = Date()
@@ -50,12 +57,6 @@ import CoreData
     /// and efficiency (bulk syncs are batched into a single restoration).
     private let geofenceRestorationThrottleInterval: TimeInterval = 30
 
-    /// Delay before reading data after NSPersistentStoreRemoteChange notification (in milliseconds).
-    ///
-    /// SwiftData/CloudKit fires NSPersistentStoreRemoteChange when the persistent store receives
-    /// remote changes, but the merge into the view context may still be in progress. This delay
-    /// ensures data is fully available before we attempt to read it.
-    private let remoteChangeMergeDelayMs: UInt64 = 500
 
     var body: some Scene {
         WindowGroup {
@@ -87,11 +88,12 @@ import CoreData
                     // habit data with location configs while app is backgrounded or suspended.
                     // Geofences are device-local, so we must re-register them after sync.
                     //
-                    // NOTE: We delay to allow SwiftData to complete merging the remote changes.
-                    // See remoteChangeMergeDelayMs documentation for rationale.
+                    // NOTE: SwiftUI's .onReceive automatically manages subscription lifecycle.
+                    // We delay to allow SwiftData to complete merging the remote changes.
+                    // See BusinessConstants.remoteChangeMergeDelay documentation for rationale.
                     guard hasCompletedInitialLaunch else { return }
                     Task {
-                        try? await Task.sleep(for: .milliseconds(remoteChangeMergeDelayMs))
+                        try? await Task.sleep(for: .seconds(BusinessConstants.remoteChangeMergeDelay))
                         await restoreGeofencesThrottled()
                     }
                 }
@@ -124,24 +126,27 @@ import CoreData
     private func logStartupContext() {
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
-        let deviceModel = UIDevice.current.model
-        let deviceName = UIDevice.current.name
-        let systemVersion = UIDevice.current.systemVersion
-        let systemName = UIDevice.current.systemName
+
+        // Base metadata for all builds
+        var metadata: [String: Any] = [
+            "version": appVersion,
+            "build": buildNumber,
+            "schema_version": RitualistMigrationPlan.currentSchemaVersion.description
+        ]
+
+        // Device details only in DEBUG (device_name can contain user's real name)
+        #if DEBUG
+        metadata["device_model"] = UIDevice.current.model
+        metadata["device_name"] = UIDevice.current.name
+        metadata["os"] = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
+        metadata["cloudkit_container"] = PersistenceContainer.cloudKitContainerIdentifier
+        #endif
 
         logger.log(
             "🚀 App starting",
             level: .info,
             category: .system,
-            metadata: [
-                "version": appVersion,
-                "build": buildNumber,
-                "device_model": deviceModel,
-                "device_name": deviceName,
-                "os": "\(systemName) \(systemVersion)",
-                "schema_version": RitualistMigrationPlan.currentSchemaVersion.description,
-                "cloudkit_container": PersistenceContainer.cloudKitContainerIdentifier
-            ]
+            metadata: metadata
         )
     }
     
@@ -224,7 +229,7 @@ import CoreData
                 category: .system
             )
             try await restoreGeofenceMonitoring.execute()
-            lastGeofenceRestorationTime = Date()
+            lastGeofenceRestorationUptime = ProcessInfo.processInfo.systemUptime
         } catch {
             logger.log(
                 "⚠️ Failed to restore geofence monitoring",
@@ -239,14 +244,15 @@ import CoreData
     /// Restore geofences with throttling to avoid excessive calls during rapid sync events
     /// CloudKit can fire multiple NSPersistentStoreRemoteChange notifications in quick succession
     private func restoreGeofencesThrottled() async {
-        // Check if we've restored recently
-        if let lastRestoration = lastGeofenceRestorationTime,
-           Date().timeIntervalSince(lastRestoration) < geofenceRestorationThrottleInterval {
+        // Check if we've restored recently (using monotonic system uptime, immune to clock changes)
+        let currentUptime = ProcessInfo.processInfo.systemUptime
+        if let lastUptime = lastGeofenceRestorationUptime,
+           (currentUptime - lastUptime) < geofenceRestorationThrottleInterval {
             logger.log(
                 "⏭️ Skipping geofence restoration (throttled)",
                 level: .debug,
                 category: .system,
-                metadata: ["lastRestoration": lastRestoration.ISO8601Format()]
+                metadata: ["secondsSinceLast": String(format: "%.1f", currentUptime - lastUptime)]
             )
             return
         }

@@ -27,9 +27,6 @@ public struct HabitFormView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .task {
-            await vm.loadCategories()
-            await vm.checkLocationAuthStatus()
-        }
+        // Note: Categories and location status are loaded in ViewModel init
     }
 }

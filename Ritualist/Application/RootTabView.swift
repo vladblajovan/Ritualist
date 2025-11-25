@@ -78,10 +78,10 @@ public struct RootTabView: View {
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
-                    // Show toast when iCloud syncs data from another device
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        showSyncToast = true
-                    }
+                    // DISABLED: iCloud sync toast - keeping infrastructure for future confirmation dialogs
+                    // To re-enable, uncomment the line below:
+                    // showSyncToast = true
+                    _ = () // Keep onReceive active for future use
                 }
             }
         }

@@ -145,15 +145,7 @@ public final class SettingsViewModel {
         error = nil
         do {
             profile = try await loadProfile.execute()
-            hasNotificationPermission = await checkNotificationStatus.execute()
-            locationAuthStatus = await getLocationAuthStatus.execute()
-            cachedPremiumStatus = await checkPremiumStatus.execute()
-            lastSyncDate = await getLastSyncDate.execute()
-            await refreshiCloudStatus()
-
-            // Cache subscription data from service (not database)
-            cachedSubscriptionPlan = await getCurrentSubscriptionPlan.execute()
-            cachedSubscriptionExpiryDate = await getSubscriptionExpiryDate.execute()
+            await loadStatusesInParallel()
             logger.logSubscription(
                 event: "Cached subscription from service",
                 plan: cachedSubscriptionPlan.rawValue,
@@ -165,16 +157,30 @@ public final class SettingsViewModel {
             self.error = error
             profile = UserProfile()
             userActionTracker.trackError(error, context: "settings_load")
-            hasNotificationPermission = await checkNotificationStatus.execute()
-            locationAuthStatus = await getLocationAuthStatus.execute()
-            cachedPremiumStatus = await checkPremiumStatus.execute()
-            lastSyncDate = await getLastSyncDate.execute()
-
-            // Cache subscription data from service even on error
-            cachedSubscriptionPlan = await getCurrentSubscriptionPlan.execute()
-            cachedSubscriptionExpiryDate = await getSubscriptionExpiryDate.execute()
+            await loadStatusesInParallel()
         }
         isLoading = false
+    }
+
+    /// Load all status checks in parallel for faster startup
+    private func loadStatusesInParallel() async {
+        async let notificationStatus = checkNotificationStatus.execute()
+        async let locationStatus = getLocationAuthStatus.execute()
+        async let premiumStatus = checkPremiumStatus.execute()
+        async let syncDate = getLastSyncDate.execute()
+        async let subscriptionPlan = getCurrentSubscriptionPlan.execute()
+        async let subscriptionExpiry = getSubscriptionExpiryDate.execute()
+
+        // Await all results (runs in parallel)
+        hasNotificationPermission = await notificationStatus
+        locationAuthStatus = await locationStatus
+        cachedPremiumStatus = await premiumStatus
+        lastSyncDate = await syncDate
+        cachedSubscriptionPlan = await subscriptionPlan
+        cachedSubscriptionExpiryDate = await subscriptionExpiry
+
+        // iCloud status has its own loading indicator, run after parallel batch
+        await refreshiCloudStatus()
     }
 
     public func save() async -> Bool {

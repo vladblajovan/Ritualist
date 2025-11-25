@@ -44,6 +44,9 @@ struct OnboardingPage1View: View {
                             .textFieldStyle(.plain)
                             .font(.title3)
                             .multilineTextAlignment(.center)
+                            .textContentType(.name)
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
                             .focused($isTextFieldFocused)
                             .onSubmit {
                                 isTextFieldFocused = false

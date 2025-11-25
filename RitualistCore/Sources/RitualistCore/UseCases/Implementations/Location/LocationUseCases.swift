@@ -369,11 +369,22 @@ public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUse
 
         logger.log("Found \(habitsWithLocation.count) habits with enabled location monitoring", level: .info, category: .location)
 
-        // Restore monitoring for each habit
+        // Restore monitoring for each habit (iOS limits to 20 geofences per app)
+        let iOSGeofenceLimit = 20
         var restoredCount = 0
         var failedCount = 0
 
         for habit in habitsWithLocation {
+            // Early exit if we've reached iOS geofence limit
+            if restoredCount >= iOSGeofenceLimit {
+                logger.log(
+                    "Reached iOS geofence limit (\(iOSGeofenceLimit)) - skipping remaining \(habitsWithLocation.count - restoredCount) habits",
+                    level: .warning,
+                    category: .location
+                )
+                break
+            }
+
             guard let configuration = habit.locationConfiguration else { continue }
 
             do {
@@ -383,6 +394,10 @@ public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUse
                 )
                 restoredCount += 1
                 logger.log("Restored geofence monitoring for habit: \(habit.name)", level: .debug, category: .location)
+            } catch LocationError.geofenceLimitReached {
+                // iOS rejected the geofence - stop trying to add more
+                logger.log("iOS geofence limit reached - stopping restoration", level: .warning, category: .location)
+                break
             } catch {
                 failedCount += 1
                 logger.log("Failed to restore monitoring for habit '\(habit.name)': \(error)", level: .error, category: .location)

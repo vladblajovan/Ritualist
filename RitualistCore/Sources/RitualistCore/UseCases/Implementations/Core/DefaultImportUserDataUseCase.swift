@@ -16,6 +16,7 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
     private let personalityRepository: PersonalityAnalysisRepositoryProtocol
     private let logDataSource: LogLocalDataSourceProtocol
     private let updateLastSyncDate: UpdateLastSyncDateUseCase
+    private let logger: DebugLogger
 
     public init(
         loadProfile: LoadProfileUseCase,
@@ -24,7 +25,8 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         categoryRepository: CategoryRepository,
         personalityRepository: PersonalityAnalysisRepositoryProtocol,
         logDataSource: LogLocalDataSourceProtocol,
-        updateLastSyncDate: UpdateLastSyncDateUseCase
+        updateLastSyncDate: UpdateLastSyncDateUseCase,
+        logger: DebugLogger
     ) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
@@ -33,6 +35,7 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         self.personalityRepository = personalityRepository
         self.logDataSource = logDataSource
         self.updateLastSyncDate = updateLastSyncDate
+        self.logger = logger
     }
 
     public func execute(jsonString: String) async throws {
@@ -47,7 +50,14 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         let importedData: ImportedUserData
         do {
             importedData = try decoder.decode(ImportedUserData.self, from: jsonData)
-        } catch {
+        } catch let decodingError {
+            // Log the underlying decode error for debugging before throwing user-friendly error
+            logger.log(
+                "Import JSON decode error",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["error": decodingError.localizedDescription]
+            )
             throw ImportError.invalidJSON
         }
 
@@ -112,9 +122,13 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             )
         }
 
-        // Import avatar if available
+        // Import avatar if available and valid
         if let avatarBase64 = avatar, let avatarData = Data(base64Encoded: avatarBase64) {
-            currentProfile.avatarImageData = avatarData
+            // Validate decoded data is actually an image before saving
+            if isValidImageData(avatarData) {
+                currentProfile.avatarImageData = avatarData
+            }
+            // Silently skip invalid avatar data - non-critical import failure
         }
 
         try await saveProfile.execute(currentProfile)
@@ -210,6 +224,34 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         case "dark": return 2
         default: return 0
         }
+    }
+
+    /// Validate that data represents a valid image by checking magic bytes
+    private func isValidImageData(_ data: Data) -> Bool {
+        guard data.count >= 8 else { return false }
+
+        let bytes = [UInt8](data.prefix(8))
+
+        // JPEG: FF D8 FF
+        if bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
+            return true
+        }
+
+        // PNG: 89 50 4E 47 0D 0A 1A 0A
+        if bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 &&
+           bytes[4] == 0x0D && bytes[5] == 0x0A && bytes[6] == 0x1A && bytes[7] == 0x0A {
+            return true
+        }
+
+        // HEIC/HEIF: Check for ftyp box with heic/mif1 brand (starts at byte 4)
+        if data.count >= 12 {
+            let ftypBytes = [UInt8](data[4..<8])
+            if ftypBytes == [0x66, 0x74, 0x79, 0x70] { // "ftyp"
+                return true
+            }
+        }
+
+        return false
     }
 }
 
