@@ -54,9 +54,11 @@ public final class DisabledCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
 
 public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
     private let syncErrorHandler: CloudSyncErrorHandler
+    private let logger: DebugLogger
 
-    public init(syncErrorHandler: CloudSyncErrorHandler) {
+    public init(syncErrorHandler: CloudSyncErrorHandler, logger: DebugLogger) {
         self.syncErrorHandler = syncErrorHandler
+        self.logger = logger
     }
 
     public func execute() async -> iCloudSyncStatus {
@@ -94,7 +96,13 @@ public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
                 return .unknown
             }
         } catch {
-            // Any other error - return unknown
+            // Log unexpected errors for debugging
+            logger.log(
+                "Unexpected iCloud status check error",
+                level: .warning,
+                category: .network,
+                metadata: ["error": error.localizedDescription]
+            )
             return .unknown
         }
     }

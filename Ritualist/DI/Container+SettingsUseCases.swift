@@ -52,7 +52,8 @@ extension Container {
         self {
             // ✅ CloudKit ENABLED - Using real implementation with error handler
             DefaultCheckiCloudStatusUseCase(
-                syncErrorHandler: CloudSyncErrorHandler(errorHandler: self.errorHandler())
+                syncErrorHandler: CloudSyncErrorHandler(errorHandler: self.errorHandler()),
+                logger: self.debugLogger()
             )
         }
     }
@@ -77,7 +78,8 @@ extension Container {
                 habitRepository: self.habitRepository(),
                 categoryRepository: self.categoryRepository(),
                 personalityRepository: self.personalityAnalysisRepository(),
-                logDataSource: self.logDataSource()
+                logDataSource: self.logDataSource(),
+                logger: self.debugLogger()
             )
         }
     }

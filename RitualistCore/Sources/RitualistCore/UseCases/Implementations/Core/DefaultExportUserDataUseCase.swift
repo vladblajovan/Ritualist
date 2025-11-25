@@ -14,6 +14,7 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
     private let categoryRepository: CategoryRepository
     private let personalityRepository: PersonalityAnalysisRepositoryProtocol
     private let logDataSource: LogLocalDataSourceProtocol
+    private let logger: DebugLogger
 
     public init(
         loadProfile: LoadProfileUseCase,
@@ -21,7 +22,8 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
         habitRepository: HabitRepository,
         categoryRepository: CategoryRepository,
         personalityRepository: PersonalityAnalysisRepositoryProtocol,
-        logDataSource: LogLocalDataSourceProtocol
+        logDataSource: LogLocalDataSourceProtocol,
+        logger: DebugLogger
     ) {
         self.loadProfile = loadProfile
         self.getLastSyncDate = getLastSyncDate
@@ -29,6 +31,7 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
         self.categoryRepository = categoryRepository
         self.personalityRepository = personalityRepository
         self.logDataSource = logDataSource
+        self.logger = logger
     }
 
     public func execute() async throws -> String {
@@ -39,8 +42,32 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
         // Fetch all user data
         let habits = try await habitRepository.fetchAllHabits()
         let categories = try await categoryRepository.getAllCategories()
-        let personalityProfile = try? await personalityRepository.getPersonalityProfile(for: profile.id)
-        let personalityHistory = try? await personalityRepository.getPersonalityHistory(for: profile.id)
+
+        // Fetch personality data (non-critical, log failures but continue export)
+        var personalityProfile: PersonalityProfile?
+        var personalityHistory: [PersonalityProfile] = []
+
+        do {
+            personalityProfile = try await personalityRepository.getPersonalityProfile(for: profile.id)
+        } catch {
+            logger.log(
+                "Failed to export personality profile (non-critical)",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
+        }
+
+        do {
+            personalityHistory = try await personalityRepository.getPersonalityHistory(for: profile.id)
+        } catch {
+            logger.log(
+                "Failed to export personality history (non-critical)",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
+        }
 
         // Fetch logs for all habits
         let habitIDs = habits.map { $0.id }

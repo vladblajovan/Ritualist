@@ -29,7 +29,7 @@ extension Container {
     }
     
     var getHabitCount: Factory<GetHabitCount> {
-        self { GetHabitCount(repo: self.habitRepository()) }
+        self { GetHabitCount(repo: self.habitRepository(), logger: self.debugLogger()) }
     }
     
     // MARK: - Habit Management Operations

@@ -247,13 +247,24 @@ public final class GetActiveHabits: GetActiveHabitsUseCase {
 
 public final class GetHabitCount: GetHabitCountUseCase {
     private let repo: HabitRepository
-    public init(repo: HabitRepository) { self.repo = repo }
-    
+    private let logger: DebugLogger
+
+    public init(repo: HabitRepository, logger: DebugLogger) {
+        self.repo = repo
+        self.logger = logger
+    }
+
     public func execute() async -> Int {
         do {
             let habits = try await repo.fetchAllHabits()
             return habits.count
         } catch {
+            logger.log(
+                "Failed to fetch habit count, returning 0",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
             return 0
         }
     }

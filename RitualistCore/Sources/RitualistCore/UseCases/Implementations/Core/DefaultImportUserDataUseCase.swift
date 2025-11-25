@@ -127,8 +127,14 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             // Validate decoded data is actually an image before saving
             if isValidImageData(avatarData) {
                 currentProfile.avatarImageData = avatarData
+            } else {
+                logger.log(
+                    "Avatar import skipped - invalid image data",
+                    level: .warning,
+                    category: .dataIntegrity,
+                    metadata: ["dataSize": avatarData.count]
+                )
             }
-            // Silently skip invalid avatar data - non-critical import failure
         }
 
         try await saveProfile.execute(currentProfile)

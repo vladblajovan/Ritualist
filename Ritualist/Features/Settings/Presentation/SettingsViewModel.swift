@@ -200,7 +200,16 @@ public final class SettingsViewModel {
             // )
 
             // Auto-sync with iCloud after profile changes
-            try? await syncWithiCloud.execute()
+            do {
+                try await syncWithiCloud.execute()
+            } catch {
+                logger.log(
+                    "Auto-sync after save failed (non-blocking)",
+                    level: .warning,
+                    category: .network,
+                    metadata: ["error": error.localizedDescription]
+                )
+            }
 
             isSaving = false
             return true
@@ -290,7 +299,16 @@ public final class SettingsViewModel {
             userActionTracker.track(.profileUpdated(field: "name"))
 
             // Auto-sync with iCloud after profile changes
-            try? await syncWithiCloud.execute()
+            do {
+                try await syncWithiCloud.execute()
+            } catch {
+                logger.log(
+                    "Auto-sync after name update failed (non-blocking)",
+                    level: .warning,
+                    category: .network,
+                    metadata: ["error": error.localizedDescription]
+                )
+            }
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "user_name_update", additionalProperties: ["name": name])
@@ -333,7 +351,16 @@ public final class SettingsViewModel {
             userActionTracker.track(.profileUpdated(field: "appearance"))
 
             // Auto-sync with iCloud after profile changes
-            try? await syncWithiCloud.execute()
+            do {
+                try await syncWithiCloud.execute()
+            } catch {
+                logger.log(
+                    "Auto-sync after appearance update failed (non-blocking)",
+                    level: .warning,
+                    category: .network,
+                    metadata: ["error": error.localizedDescription]
+                )
+            }
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "appearance_update", additionalProperties: ["appearance": String(appearance)])
