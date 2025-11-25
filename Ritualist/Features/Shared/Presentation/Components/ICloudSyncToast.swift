@@ -36,22 +36,21 @@ struct ICloudSyncToast: View {
         .opacity(isVisible ? 1 : 0)
         .offset(y: isVisible ? 0 : -20)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isVisible)
-        .onAppear {
+        .task {
             // Animate in
             withAnimation {
                 isVisible = true
             }
 
             // Auto-dismiss after 3 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                withAnimation {
-                    isVisible = false
-                }
-                // Call dismiss after animation completes
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    onDismiss()
-                }
+            try? await Task.sleep(for: .seconds(3))
+            withAnimation {
+                isVisible = false
             }
+
+            // Call dismiss after animation completes
+            try? await Task.sleep(for: .milliseconds(500))
+            onDismiss()
         }
     }
 }
