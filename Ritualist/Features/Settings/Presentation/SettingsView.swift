@@ -113,6 +113,12 @@ private struct SettingsFormView: View {
                         }
                     }
 
+                    // Social Media Section
+                    SocialMediaLinksView()
+
+                    // Legal Section (required for App Store with IAP)
+                    LegalLinksView()
+
                     // About Section
                     Section("About") {
                         // Version (always visible)
