@@ -56,6 +56,9 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             throw ImportError.missingRequiredFields
         }
 
+        // Validate data size limits to prevent malicious imports
+        try validateDataLimits(importedData)
+
         do {
             // Import profile data
             try await importProfile(importedData.profile, avatar: importedData.avatar)
@@ -129,20 +132,10 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
     }
 
     private func importHabits(_ habits: [Habit]) async throws {
-        // Get existing habits
-        let existingHabits = try await habitRepository.fetchAllHabits()
-        let existingIDs = Set(existingHabits.map { $0.id })
-
+        // HabitRepository.update() uses upsert semantics internally,
+        // so it will insert new habits or update existing ones
         for habit in habits {
-            if existingIDs.contains(habit.id) {
-                // Update existing habit
-                try await habitRepository.update(habit)
-            } else {
-                // Create new habit - need to insert it into SwiftData
-                // Since HabitRepository doesn't have an insert method, we'll use update
-                // which should insert if not exists
-                try await habitRepository.update(habit)
-            }
+            try await habitRepository.update(habit)
         }
     }
 
@@ -169,6 +162,37 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             if existing?.id != profile.id {
                 try await personalityRepository.savePersonalityProfile(profile)
             }
+        }
+    }
+
+    // MARK: - Validation
+
+    private func validateDataLimits(_ data: ImportedUserData) throws {
+        // Validate habits count
+        guard data.habits.count <= ImportValidationLimits.maxHabits else {
+            throw ImportError.dataTooLarge(reason: "Too many habits (\(data.habits.count) > \(ImportValidationLimits.maxHabits))")
+        }
+
+        // Validate habit logs count
+        guard data.habitLogs.count <= ImportValidationLimits.maxHabitLogs else {
+            throw ImportError.dataTooLarge(reason: "Too many habit logs (\(data.habitLogs.count) > \(ImportValidationLimits.maxHabitLogs))")
+        }
+
+        // Validate categories count
+        guard data.categories.count <= ImportValidationLimits.maxCategories else {
+            throw ImportError.dataTooLarge(reason: "Too many categories (\(data.categories.count) > \(ImportValidationLimits.maxCategories))")
+        }
+
+        // Validate avatar size
+        if let avatarBase64 = data.avatar {
+            guard avatarBase64.count <= ImportValidationLimits.maxAvatarBase64Length else {
+                throw ImportError.dataTooLarge(reason: "Avatar image too large")
+            }
+        }
+
+        // Validate profile name length
+        guard data.profile.name.count <= ImportValidationLimits.maxProfileNameLength else {
+            throw ImportError.dataTooLarge(reason: "Profile name too long")
         }
     }
 

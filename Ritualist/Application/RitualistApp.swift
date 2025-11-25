@@ -36,7 +36,17 @@ import CoreData
     /// App startup time for performance monitoring
     private let appStartTime = Date()
 
-    /// Minimum interval between geofence restorations (in seconds)
+    /// Minimum interval between geofence restorations (in seconds).
+    ///
+    /// CloudKit can fire multiple NSPersistentStoreRemoteChange notifications in quick succession
+    /// (observed: 16+ notifications within seconds during bulk sync). Without throttling, each
+    /// notification would trigger a full geofence restoration cycle, causing:
+    /// - Excessive iOS CLLocationManager region registration calls
+    /// - Database contention from concurrent reads
+    /// - Unnecessary CPU/battery usage
+    ///
+    /// 30 seconds provides a balance between responsiveness (user gets geofences within 30s of sync)
+    /// and efficiency (bulk syncs are batched into a single restoration).
     private let geofenceRestorationThrottleInterval: TimeInterval = 30
 
     var body: some Scene {
@@ -68,8 +78,13 @@ import CoreData
                     // This covers the scenario where user sets up new device and iCloud syncs
                     // habit data with location configs while app is backgrounded or suspended.
                     // Geofences are device-local, so we must re-register them after sync.
+                    //
+                    // NOTE: We delay slightly to allow SwiftData to complete merging the remote
+                    // changes into the view context. NSPersistentStoreRemoteChange fires when
+                    // the persistent store receives changes, but the merge may still be in progress.
                     guard hasCompletedInitialLaunch else { return }
                     Task {
+                        try? await Task.sleep(for: .milliseconds(500))
                         await restoreGeofencesThrottled()
                     }
                 }

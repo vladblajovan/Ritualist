@@ -19,6 +19,11 @@ extension Container {
             // so we must set the handler before returning the service.
             // If we use Task here, geofence events can fire before the handler is set
             // and those events would be silently dropped.
+            //
+            // Memory management notes:
+            // - [weak self] prevents retain cycle between Container and the closure
+            // - logger is captured strongly but it's a stateless utility without back-references
+            // - The service is a singleton, so the closure lives for the app lifetime anyway
             service.setEventHandler { [weak self] event in
                 guard let self = self else {
                     logger.log("Container deallocated, cannot handle geofence event", level: .warning, category: .location)
