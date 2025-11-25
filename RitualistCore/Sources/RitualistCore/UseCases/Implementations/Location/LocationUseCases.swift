@@ -134,6 +134,16 @@ public protocol HandleGeofenceEventUseCase {
     func execute(event: GeofenceEvent) async throws
 }
 
+/// Single source of truth for geofence event handling
+///
+/// ARCHITECTURE: This UseCase handles ALL business logic for geofence events:
+/// - Fetches authoritative configuration from database (not in-memory state)
+/// - Checks trigger type matching and frequency rules
+/// - Sends notifications
+/// - Updates trigger dates in database
+///
+/// The LocationMonitoringService is a thin pass-through that forwards events here.
+/// This ensures reliability even when app was killed and iOS relaunched it.
 public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
     private let habitRepository: HabitRepository
     private let notificationService: NotificationService
@@ -150,41 +160,107 @@ public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
     }
 
     public func execute(event: GeofenceEvent) async throws {
-        // Get habit
+        logger.log(
+            "🔔 Processing geofence event",
+            level: .info,
+            category: .location,
+            metadata: ["habitId": event.habitId.uuidString, "eventType": String(describing: event.eventType)]
+        )
+
+        // STEP 1: Fetch habit from database (source of truth)
         guard var habit = try await habitRepository.fetchHabit(by: event.habitId) else {
-            logger.log("Geofence event for missing habit: \(event.habitId)", level: .warning, category: .location)
+            logger.log(
+                "⚠️ Geofence event for missing habit",
+                level: .warning,
+                category: .location,
+                metadata: ["habitId": event.habitId.uuidString]
+            )
             return
         }
 
-        // Verify habit is active and has location configuration
+        // STEP 2: Verify habit is active and has enabled location configuration
         guard habit.isActive,
               var locationConfig = habit.locationConfiguration,
               locationConfig.isEnabled else {
-            logger.log("Geofence event for inactive/disabled habit: \(habit.name)", level: .warning, category: .location)
+            logger.log(
+                "⚠️ Geofence event for inactive/disabled habit",
+                level: .warning,
+                category: .location,
+                metadata: ["habitName": habit.name, "isActive": habit.isActive]
+            )
             return
         }
 
-        // Check if notification should be sent based on frequency
-        guard event.shouldTriggerNotification() else {
-            logger.log("Skipping geofence notification due to frequency rules: \(habit.name)", level: .debug, category: .location)
+        // STEP 3: Check if trigger type matches event type (using DATABASE config)
+        let triggerMatches: Bool
+        switch locationConfig.triggerType {
+        case .entry:
+            triggerMatches = event.eventType == .entry
+        case .exit:
+            triggerMatches = event.eventType == .exit
+        case .both:
+            triggerMatches = true
+        }
+
+        guard triggerMatches else {
+            logger.log(
+                "⏭️ Skipping - trigger type mismatch",
+                level: .debug,
+                category: .location,
+                metadata: [
+                    "habitName": habit.name,
+                    "configuredTrigger": String(describing: locationConfig.triggerType),
+                    "eventType": String(describing: event.eventType)
+                ]
+            )
             return
         }
 
-        // Send location-triggered notification
+        // STEP 4: Check frequency rules using DATABASE config (has authoritative trigger dates)
+        guard locationConfig.shouldTriggerNotification(for: event.eventType, now: event.timestamp) else {
+            logger.log(
+                "⏭️ Skipping - frequency rules (cooldown active)",
+                level: .debug,
+                category: .location,
+                metadata: ["habitName": habit.name]
+            )
+            return
+        }
+
+        // STEP 5: Send location-triggered notification
+        // Create event with database config for notification service
+        let enrichedEvent = GeofenceEvent(
+            habitId: event.habitId,
+            eventType: event.eventType,
+            timestamp: event.timestamp,
+            configuration: locationConfig,
+            detectedLocation: event.detectedLocation
+        )
+
         try await notificationService.sendLocationTriggeredNotification(
             for: habit.id,
             habitName: habit.name,
-            event: event
+            event: enrichedEvent
         )
 
-        // Update last trigger date in configuration
-        locationConfig.lastTriggerDate = event.timestamp
+        // STEP 6: Update appropriate trigger date based on event type
+        switch event.eventType {
+        case .entry:
+            locationConfig.lastEntryTriggerDate = event.timestamp
+        case .exit:
+            locationConfig.lastExitTriggerDate = event.timestamp
+        }
         habit.locationConfiguration = locationConfig
 
-        // Save updated habit
+        // STEP 7: Save updated habit to database
         try await habitRepository.update(habit)
 
-        logger.log("Geofence notification sent for habit: \(habit.name)", level: .info, category: .location)
+        logger.log(
+            "✅ Geofence notification sent",
+            level: .info,
+            category: .location,
+            metadata: ["habitName": habit.name, "eventType": String(describing: event.eventType)]
+        )
     }
 }
 

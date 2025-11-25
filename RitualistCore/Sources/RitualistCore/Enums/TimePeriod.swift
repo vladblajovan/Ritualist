@@ -42,17 +42,6 @@ public enum TimePeriod: CaseIterable {
         case .thisWeek:
             // Use actual calendar week respecting user's week start preference
             let startOfWeek = CalendarUtils.startOfWeekLocal(for: now)
-            #if DEBUG
-            let daysDifference = CalendarUtils.daysBetweenLocal(startOfWeek, now)
-            let calendar = Calendar.current
-            let locale = Locale.current
-            let timezone = TimeZone.current
-            print("🗓️ TimePeriod.thisWeek DEBUG:")
-            print("   Locale: \(locale.identifier)")
-            print("   Timezone: \(timezone.identifier)")
-            print("   Calendar firstWeekday: \(calendar.firstWeekday) (1=Sun, 2=Mon, ..., 7=Sat)")
-            print("   Start: \(startOfWeek), End: \(now), Days: \(daysDifference + 1)")
-            #endif
             return (start: startOfWeek, end: now)
             
         case .thisMonth:

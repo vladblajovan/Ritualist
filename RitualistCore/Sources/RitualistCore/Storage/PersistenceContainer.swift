@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-import os.log
 
 /// Core persistence container for Ritualist app
 /// Manages SwiftData ModelContainer with app group support for widget access
@@ -11,8 +10,11 @@ public final class PersistenceContainer {
     /// App Group identifier for shared container access
     private static let appGroupIdentifier = "group.com.vladblajovan.Ritualist"
 
-    /// Logger for migration and initialization events
-    private static let logger = Logger(subsystem: "com.vladblajovan.Ritualist", category: "Persistence")
+    /// CloudKit container identifier for iCloud sync
+    public static let cloudKitContainerIdentifier = "iCloud.com.vladblajovan.Ritualist"
+
+    /// Logger for migration and initialization events (uses shared DebugLogger for consistency)
+    private static let logger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "Persistence")
 
     /// UserDefaults key for last known schema version
     private static let lastSchemaVersionKey = "com.ritualist.lastSchemaVersion"
@@ -20,19 +22,18 @@ public final class PersistenceContainer {
     /// Initialize persistence container with app group support
     /// Enables data sharing between main app and widget extension
     ///
-    /// Uses versioned schema (SchemaV10) with migration plan to safely handle schema changes.
+    /// Uses versioned schema with migration plan to safely handle schema changes.
     /// All datasources use Active* type aliases that point to current schema version.
     public init() throws {
-        Self.logger.info("🔍 Initializing PersistenceContainer with versioned schema (V10)")
-
-        // Get the current schema version for migration tracking
+        // Get the current schema version for migration tracking and logging
         let currentSchemaVersion = RitualistMigrationPlan.currentSchemaVersion
         let currentVersionString = currentSchemaVersion.description
+        Self.logger.log("🔍 Initializing PersistenceContainer with versioned schema (V\(currentVersionString))", level: .info, category: .system)
 
         // Read last known schema version (nil on first launch)
         let lastVersionString = UserDefaults.standard.string(forKey: Self.lastSchemaVersionKey)
-        Self.logger.debug("🔍 Last known schema version: \(lastVersionString ?? "none (first launch)")")
-        Self.logger.debug("🔍 Current schema version: \(currentVersionString)")
+        Self.logger.log("🔍 Last known schema version: \(lastVersionString ?? "none (first launch)")", level: .debug, category: .system)
+        Self.logger.log("🔍 Current schema version: \(currentVersionString)", level: .debug, category: .system)
 
         // Notify UI if migration is about to start
         let migrationWillOccur = lastVersionString != nil && lastVersionString != currentVersionString
@@ -51,53 +52,52 @@ public final class PersistenceContainer {
             // Give UI time to render the migration modal (100ms)
             // Without this, the migration completes before the view appears
             Thread.sleep(forTimeInterval: 0.1)
-            Self.logger.debug("⏱️ Allowing UI time to show migration modal")
+            Self.logger.log("⏱️ Allowing UI time to show migration modal", level: .debug, category: .system)
         }
 
         // Get shared container URL for app group
         let sharedContainerURL = PersistenceContainer.getSharedContainerURL()
-        Self.logger.debug("📁 Using shared container URL: \(sharedContainerURL.path)")
+        Self.logger.log("📁 Using shared container URL: \(sharedContainerURL.path)", level: .debug, category: .system)
 
         // Configure ModelContainer with shared URL and migration options
         let databaseURL = sharedContainerURL.appendingPathComponent("Ritualist.sqlite")
-        Self.logger.debug("🗄️ Database file path: \(databaseURL.path)")
+        Self.logger.log("🗄️ Database file path: \(databaseURL.path)", level: .debug, category: .system)
 
         let configuration = ModelConfiguration(
             url: databaseURL,
             allowsSave: true,
             // ✅ CloudKit ENABLED - Syncs to iCloud private database
-            cloudKitDatabase: .private("iCloud.com.vladblajovan.Ritualist")
+            cloudKitDatabase: .private(Self.cloudKitContainerIdentifier)
         )
 
         let migrationStartTime = Date()
 
         do {
-            Self.logger.info("📋 Creating Schema from SchemaV10")
-            Self.logger.debug("   SchemaV10 models: \(SchemaV10.models.map { String(describing: $0) })")
+            Self.logger.log("📋 Creating Schema from SchemaV\(currentVersionString)", level: .info, category: .system)
+            Self.logger.log("   Models: \(SchemaV10.models.map { String(describing: $0) })", level: .debug, category: .system)
 
             let schema = Schema(versionedSchema: SchemaV10.self)
-            Self.logger.debug("   Schema version: \(SchemaV10.versionIdentifier)")
+            Self.logger.log("   Schema version: \(currentVersionString)", level: .debug, category: .system)
 
-            Self.logger.info("🚀 Initializing ModelContainer with schema and migration plan")
-            Self.logger.info("   Migration plan will handle V2 → V3 → V4 → V5 → V6 → V7 → V8 → V9 → V10 upgrades automatically")
+            Self.logger.log("🚀 Initializing ModelContainer with schema and migration plan", level: .info, category: .system)
 
             // Use versioned schema with migration plan
             // This enables safe schema evolution without data loss
-            // Migrations: V2 → V3 (adds isPinned) → V4 (replaces with notes) → V5 (adds lastCompletedDate) → V6 (adds archivedDate) → V7 (adds location support) → V8 (removes subscription fields) → V9 (three-timezone model) → V10 (CloudKit compatibility)
+            // See RitualistMigrationPlan.swift for migration stages
             // All datasources use Active* type aliases pointing to current schema
             container = try ModelContainer(
                 for: schema,
                 migrationPlan: RitualistMigrationPlan.self,
                 configurations: configuration
             )
-            Self.logger.info("✅ Successfully initialized ModelContainer with versioned schema (V9)")
+            Self.logger.log("✅ Successfully initialized ModelContainer with versioned schema (V\(currentVersionString))", level: .info, category: .system)
 
             // Calculate migration duration
             let migrationDuration = Date().timeIntervalSince(migrationStartTime)
 
             // Log migration if version changed
             if let lastVersion = lastVersionString, lastVersion != currentVersionString {
-                Self.logger.info("🔄 Schema migration detected: \(lastVersion) → \(currentVersionString)")
+                Self.logger.log("🔄 Schema migration detected: \(lastVersion) → \(currentVersionString)", level: .info, category: .system)
 
                 // Get description of what changed in this migration
                 let changeDescription = Self.getChangeDescription(from: lastVersion, to: currentVersionString)
@@ -115,9 +115,9 @@ public final class PersistenceContainer {
                 }
             } else if lastVersionString == nil {
                 // First launch - no migration, just set the version
-                Self.logger.info("🆕 First launch - setting initial schema version: \(currentVersionString)")
+                Self.logger.log("🆕 First launch - setting initial schema version: \(currentVersionString)", level: .info, category: .system)
             } else {
-                Self.logger.info("✨ No migration needed - schema version unchanged: \(currentVersionString)")
+                Self.logger.log("✨ No migration needed - schema version unchanged: \(currentVersionString)", level: .info, category: .system)
             }
 
             // Update last known schema version
@@ -126,8 +126,8 @@ public final class PersistenceContainer {
         } catch {
             let migrationDuration = Date().timeIntervalSince(migrationStartTime)
 
-            Self.logger.error("❌ Failed to initialize ModelContainer: \(error.localizedDescription)")
-            Self.logger.error("   Error details: \(String(describing: error))")
+            Self.logger.log("❌ Failed to initialize ModelContainer: \(error.localizedDescription)", level: .error, category: .system)
+            Self.logger.log("   Error details: \(String(describing: error))", level: .error, category: .system)
 
             // Log migration failure if there was a version change
             if let lastVersion = lastVersionString, lastVersion != currentVersionString {
@@ -150,16 +150,16 @@ public final class PersistenceContainer {
         // Create single ModelContext instance to prevent threading issues
         // This context is shared across all repositories for data consistency
         context = ModelContext(container)
-        Self.logger.debug("✅ ModelContext created successfully")
+        Self.logger.log("✅ ModelContext created successfully", level: .debug, category: .system)
 
         // Log database stats using active schema types (post-migration)
         do {
             let habitCount = try context.fetchCount(FetchDescriptor<ActiveHabitModel>())
             let logCount = try context.fetchCount(FetchDescriptor<ActiveHabitLogModel>())
             let categoryCount = try context.fetchCount(FetchDescriptor<ActiveHabitCategoryModel>())
-            Self.logger.info("📊 Database stats - Habits: \(habitCount), Logs: \(logCount), Categories: \(categoryCount)")
+            Self.logger.log("📊 Database stats - Habits: \(habitCount), Logs: \(logCount), Categories: \(categoryCount)", level: .info, category: .system)
         } catch {
-            Self.logger.warning("⚠️ Could not fetch database stats: \(error.localizedDescription)")
+            Self.logger.log("⚠️ Could not fetch database stats: \(error.localizedDescription)", level: .warning, category: .system)
         }
     }
     

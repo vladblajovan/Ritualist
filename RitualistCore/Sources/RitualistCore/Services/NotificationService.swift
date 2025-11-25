@@ -885,7 +885,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
 
         // Customize title and body based on event type
-        let locationLabel = event.configuration.locationLabel ?? "this location"
+        let locationLabel = event.configuration?.locationLabel ?? "this location"
         switch event.eventType {
         case .entry:
             content.title = "📍 You're near \(locationLabel)"
@@ -903,7 +903,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
             "habitId": habitID.uuidString,
             "habitName": habitName,
             "eventType": event.eventType.rawValue,
-            "locationLabel": event.configuration.locationLabel ?? "",
+            "locationLabel": event.configuration?.locationLabel ?? "",
             "isLocationTriggered": true
         ]
 
@@ -920,7 +920,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
                 "habit": habitName,
                 "habitId": habitID.uuidString,
                 "eventType": event.eventType.rawValue,
-                "location": event.configuration.locationLabel ?? "unknown"
+                "location": event.configuration?.locationLabel ?? "unknown"
             ]
         )
     }

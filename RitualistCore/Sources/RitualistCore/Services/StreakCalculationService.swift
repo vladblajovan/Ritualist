@@ -170,17 +170,6 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         var currentDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
         let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
 
-        logger.log(
-            "🔥 Calculating daily streak",
-            level: .debug,
-            category: .dataIntegrity,
-            metadata: [
-                "habit": habit.name,
-                "startDate": currentDate.ISO8601Format(),
-                "logsCount": logs.count
-            ]
-        )
-
         // For daily habits, check every day backwards
         while currentDate >= habitStartDate {
             let isCompleted = habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs, timezone: timezone)
@@ -188,29 +177,22 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
             if isCompleted {
                 streak += 1
             } else {
-                logger.log(
-                    "⛔ Streak broken",
-                    level: .debug,
-                    category: .dataIntegrity,
-                    metadata: [
-                        "habit": habit.name,
-                        "brokenAt": currentDate.ISO8601Format(),
-                        "streak": streak
-                    ]
-                )
                 break
             }
 
             currentDate = CalendarUtils.addDaysLocal(-1, to: currentDate, timezone: timezone)
-            // currentDate already updated above
         }
 
-        logger.log(
-            "🎯 Streak calculation complete",
-            level: .debug,
-            category: .dataIntegrity,
-            metadata: ["habit": habit.name, "finalStreak": streak]
-        )
+        // Only log noteworthy streaks (> 0) to reduce verbosity
+        if streak > 0 {
+            logger.log(
+                "🔥 Streak calculated",
+                level: .debug,
+                category: .dataIntegrity,
+                metadata: ["habit": habit.name, "streak": streak]
+            )
+        }
+
         return streak
     }
     
@@ -276,9 +258,16 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 logTimezone = tz
             } else {
                 // Invalid timezone identifier - log for monitoring and fall back to query timezone
-                #if DEBUG
-                print("⚠️ Invalid timezone identifier '\(log.timezone)' for log \(log.id). Falling back to \(timezone.identifier)")
-                #endif
+                logger.log(
+                    "Invalid timezone identifier for log, using fallback",
+                    level: .warning,
+                    category: .dataIntegrity,
+                    metadata: [
+                        "log_timezone": log.timezone,
+                        "log_id": log.id.uuidString,
+                        "fallback_timezone": timezone.identifier
+                    ]
+                )
                 logTimezone = timezone
             }
             return CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)

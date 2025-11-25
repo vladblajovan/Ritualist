@@ -20,6 +20,11 @@ public enum GeofenceEventType: String, Codable, Equatable {
 }
 
 /// Represents a geofence boundary crossing event
+///
+/// This is a thin data transfer object from the location monitoring service.
+/// The configuration is optional because the service should be a pass-through layer -
+/// all business logic (frequency checks, etc.) should use the authoritative
+/// configuration from the database via the UseCase layer.
 public struct GeofenceEvent {
     /// The habit ID associated with this geofence
     public let habitId: UUID
@@ -30,8 +35,9 @@ public struct GeofenceEvent {
     /// Timestamp when the event occurred
     public let timestamp: Date
 
-    /// The location configuration that triggered this event
-    public let configuration: LocationConfiguration
+    /// The location configuration (optional - UseCase fetches from database for authoritative data)
+    /// When nil, the event handler must fetch configuration from database
+    public let configuration: LocationConfiguration?
 
     /// Actual location where the event was detected (optional)
     public let detectedLocation: CLLocationCoordinate2D?
@@ -40,7 +46,7 @@ public struct GeofenceEvent {
         habitId: UUID,
         eventType: GeofenceEventType,
         timestamp: Date = Date(),
-        configuration: LocationConfiguration,
+        configuration: LocationConfiguration? = nil,
         detectedLocation: CLLocationCoordinate2D? = nil
     ) {
         self.habitId = habitId
@@ -50,8 +56,14 @@ public struct GeofenceEvent {
         self.detectedLocation = detectedLocation
     }
 
-    /// Check if this event should trigger a notification based on configuration
+    /// Check if this event should trigger a notification based on provided configuration
+    /// Returns true if no configuration provided (caller should fetch from database)
     public func shouldTriggerNotification() -> Bool {
+        guard let configuration = configuration else {
+            // No config provided - let the UseCase decide using database
+            return true
+        }
+
         // Check if the trigger type matches the event type
         let triggerMatches: Bool
         switch configuration.triggerType {
@@ -72,7 +84,7 @@ public struct GeofenceEvent {
     /// Human-readable description of the event
     public var description: String {
         let action = eventType == .entry ? "entered" : "exited"
-        let label = configuration.locationLabel ?? "location"
+        let label = configuration?.locationLabel ?? "location"
         return "User \(action) \(label)"
     }
 }

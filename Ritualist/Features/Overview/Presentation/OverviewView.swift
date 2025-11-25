@@ -197,11 +197,18 @@ public struct OverviewView: View {
             .onDisappear {
                 // RACE CONDITION FIX: Set view as not visible
                 vm.setViewVisible(false)
+                // Track that view has disappeared (for tab switch detection)
+                vm.markViewDisappeared()
             }
             .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
                 // When view becomes visible (tab switch), reload to pick up changes from other tabs
                 // This ensures habit schedule changes from Habits screen are reflected in Overview
-                if !wasVisible && isVisible {
+                //
+                // IMPORTANT: Skip on initial appear - the .task modifier handles initial load.
+                // Only reload when returning to this tab after visiting another tab.
+                // We use isReturningFromTabSwitch which tracks if onDisappear was ever called,
+                // correctly distinguishing initial appear from tab switch regardless of load success.
+                if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
                     Task {
                         Container.shared.debugLogger().log("Tab switch detected: Reloading overview data", level: .debug, category: .ui)
                         vm.invalidateCacheForTabSwitch()

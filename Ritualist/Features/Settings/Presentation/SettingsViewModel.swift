@@ -29,6 +29,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.subscriptionService) var subscriptionService
     @ObservationIgnored @Injected(\.paywallService) var paywallService
     @ObservationIgnored @Injected(\.debugLogger) var logger
+    @ObservationIgnored @Injected(\.restoreGeofenceMonitoring) var restoreGeofenceMonitoring
 
     #if DEBUG
     private let populateTestData: PopulateTestDataUseCase?
@@ -344,6 +345,11 @@ public final class SettingsViewModel {
             try await syncWithiCloud.execute()
             await updateLastSyncDate.execute(Date())
             lastSyncDate = Date()
+
+            // Restore geofences after sync to handle new device setup scenario:
+            // When user syncs on a new device, habit data with location configs arrives,
+            // but geofences are device-local and must be registered with iOS.
+            try await restoreGeofenceMonitoring.execute()
 
             // Track sync action
             userActionTracker.track(.custom(event: "icloud_manual_sync", parameters: [:]))

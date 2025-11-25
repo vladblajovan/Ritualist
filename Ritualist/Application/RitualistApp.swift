@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 import FactoryKit
 import RitualistCore
+import UIKit
+import CoreData
 
 @main struct RitualistApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -22,32 +24,103 @@ import RitualistCore
     @Injected(\.seedPredefinedCategories) private var seedPredefinedCategories
     @Injected(\.syncWithiCloud) private var syncWithiCloud
     @Injected(\.updateLastSyncDate) private var updateLastSyncDate
+    @Injected(\.checkiCloudStatus) private var checkiCloudStatus
     @Injected(\.debugLogger) private var logger
+
+    /// Track if initial launch tasks have completed to avoid duplicate work
+    @State private var hasCompletedInitialLaunch = false
+
+    /// Track last geofence restoration time to throttle rapid sync events
+    @State private var lastGeofenceRestorationTime: Date?
+
+    /// App startup time for performance monitoring
+    private let appStartTime = Date()
+
+    /// Minimum interval between geofence restorations (in seconds)
+    private let geofenceRestorationThrottleInterval: TimeInterval = 30
 
     var body: some Scene {
         WindowGroup {
             RootAppView()
                 .modelContainer(persistenceContainer.container)
                 .task { @MainActor in
-                    await seedCategories()
-                    await detectTimezoneChanges()
-                    await setupNotifications()
-                    await scheduleInitialNotifications()
-                    await restoreGeofences()
-                    await syncWithCloudIfAvailable()
+                    await performInitialLaunchTasks()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     // Re-schedule notifications when app becomes active (handles day changes while backgrounded)
+                    // Skip if this is the initial launch (already handled in task above)
+                    guard hasCompletedInitialLaunch else { return }
                     Task {
                         await detectTimezoneChanges()
                         await rescheduleNotificationsIfNeeded()
                         await syncWithCloudIfAvailable()
+                        // Restore geofences after iCloud sync to handle new device setup scenario:
+                        // When user sets up a new device, iCloud syncs habit data including location configs,
+                        // but geofences are device-local and must be re-registered with iOS.
+                        await restoreGeofences()
                     }
                 }
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
+                    // Handle background iCloud sync: iOS/CloudKit synced data to local store
+                    // This covers the scenario where user sets up new device and iCloud syncs
+                    // habit data with location configs while app is backgrounded or suspended.
+                    // Geofences are device-local, so we must re-register them after sync.
+                    guard hasCompletedInitialLaunch else { return }
+                    Task {
+                        await restoreGeofencesThrottled()
+                    }
+                }
         }
+    }
+
+    /// Perform all initial launch tasks and log startup metrics
+    private func performInitialLaunchTasks() async {
+        // Log startup context
+        logStartupContext()
+
+        await seedCategories()
+        await detectTimezoneChanges()
+        await setupNotifications()
+        await scheduleInitialNotifications()
+        await restoreGeofences()
+        await syncWithCloudIfAvailable()
+
+        // Mark initial launch as complete
+        hasCompletedInitialLaunch = true
+
+        // Log total startup time
+        let startupDuration = Date().timeIntervalSince(appStartTime)
+        logger.logPerformance(operation: "App startup", duration: startupDuration, metadata: [
+            "tasks_completed": "seed_categories, timezone_detection, notifications_setup, geofence_restore, icloud_sync"
+        ])
+    }
+
+    /// Log app startup context for debugging
+    private func logStartupContext() {
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+        let deviceModel = UIDevice.current.model
+        let deviceName = UIDevice.current.name
+        let systemVersion = UIDevice.current.systemVersion
+        let systemName = UIDevice.current.systemName
+
+        logger.log(
+            "🚀 App starting",
+            level: .info,
+            category: .system,
+            metadata: [
+                "version": appVersion,
+                "build": buildNumber,
+                "device_model": deviceModel,
+                "device_name": deviceName,
+                "os": "\(systemName) \(systemVersion)",
+                "schema_version": RitualistMigrationPlan.currentSchemaVersion.description,
+                "cloudkit_container": PersistenceContainer.cloudKitContainerIdentifier
+            ]
+        )
     }
     
     // Fallback container if dependency injection fails
@@ -124,11 +197,12 @@ import RitualistCore
     private func restoreGeofences() async {
         do {
             logger.log(
-                "🌍 Restoring geofence monitoring on app launch",
+                "🌍 Restoring geofence monitoring",
                 level: .info,
                 category: .system
             )
             try await restoreGeofenceMonitoring.execute()
+            lastGeofenceRestorationTime = Date()
         } catch {
             logger.log(
                 "⚠️ Failed to restore geofence monitoring",
@@ -137,6 +211,30 @@ import RitualistCore
                 metadata: ["error": error.localizedDescription]
             )
         }
+    }
+
+    /// Restore geofences with throttling to avoid excessive calls during rapid sync events
+    /// CloudKit can fire multiple NSPersistentStoreRemoteChange notifications in quick succession
+    private func restoreGeofencesThrottled() async {
+        // Check if we've restored recently
+        if let lastRestoration = lastGeofenceRestorationTime,
+           Date().timeIntervalSince(lastRestoration) < geofenceRestorationThrottleInterval {
+            logger.log(
+                "⏭️ Skipping geofence restoration (throttled)",
+                level: .debug,
+                category: .system,
+                metadata: ["lastRestoration": lastRestoration.ISO8601Format()]
+            )
+            return
+        }
+
+        logger.log(
+            "☁️ iCloud remote change detected - restoring geofences",
+            level: .info,
+            category: .system
+        )
+
+        await restoreGeofences()
     }
 
     /// Detect timezone changes on app launch/resume
@@ -365,10 +463,17 @@ import RitualistCore
             // Update last sync timestamp so Settings UI shows correct "Last Synced" time
             await updateLastSyncDate.execute(Date())
 
+            // Get iCloud status for logging
+            let iCloudStatus = await checkiCloudStatus.execute()
+
             logger.log(
                 "✅ Auto-sync completed successfully",
                 level: .info,
-                category: .system
+                category: .system,
+                metadata: [
+                    "icloud_status": iCloudStatus.displayMessage,
+                    "cloudkit_container": PersistenceContainer.cloudKitContainerIdentifier
+                ]
             )
         } catch {
             // Silent failure - don't block app launch or disrupt user experience
@@ -385,12 +490,39 @@ import RitualistCore
 
 // MARK: - App Delegate
 
-/// Minimal AppDelegate - all notification handling is done by LocalNotificationService
+/// AppDelegate handles app launch scenarios including location-based relaunches
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         // LocalNotificationService sets itself as the UNUserNotificationCenter delegate
         // All notification handling (habit + personality) is done there
-        true
+
+        // CRITICAL: Handle app launch due to geofence event
+        // When app is killed and user crosses a geofence boundary, iOS relaunches
+        // the app in the background. We must initialize the location service
+        // IMMEDIATELY so the CLLocationManager delegate is ready to receive
+        // pending location events before iOS delivers them.
+        if launchOptions?[.location] != nil {
+            let logger = Container.shared.debugLogger()
+            logger.log(
+                "🌍 App launched due to location event",
+                level: .info,
+                category: .location,
+                metadata: ["launch_reason": "geofence_event"]
+            )
+
+            // Force immediate initialization of location monitoring service
+            // This sets up the CLLocationManager delegate synchronously,
+            // ensuring we're ready to receive the pending geofence event
+            _ = Container.shared.locationMonitoringService()
+
+            logger.log(
+                "✅ Location service initialized for background geofence handling",
+                level: .info,
+                category: .location
+            )
+        }
+
+        return true
     }
 }
 
