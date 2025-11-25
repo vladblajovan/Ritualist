@@ -427,7 +427,7 @@ private struct HabitRowWithSplitZones: View {
                     if habit.locationConfiguration?.isEnabled == true {
                         Image(systemName: "location.fill")
                             .font(.system(size: 16))
-                            .foregroundColor(.blue)
+                            .foregroundColor(.purple)
                             .accessibilityLabel("Location-based reminders enabled")
                     }
 
@@ -464,7 +464,7 @@ private struct HabitIconInfoSheet: View {
 
                     HabitIconInfoRow(
                         icon: "location.fill",
-                        iconColor: .blue,
+                        iconColor: .purple,
                         title: "Location-Based Reminders",
                         description: "Habit has geofence reminders that trigger when arriving or leaving a location"
                     )

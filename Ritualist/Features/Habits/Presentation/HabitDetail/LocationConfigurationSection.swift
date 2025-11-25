@@ -21,7 +21,7 @@ public struct LocationConfigurationSection: View {
             )) {
                 HStack {
                     Image(systemName: "location.fill")
-                        .foregroundColor(.blue)
+                        .foregroundColor(.purple)
                     Text("Location Reminders")
                 }
             }
@@ -104,12 +104,16 @@ private struct LocationPermissionStatus: View {
     var body: some View {
         switch vm.locationAuthStatus {
         case .notDetermined:
-            RequestPermissionRow(vm: vm, message: "Location permission required")
+            RequestPermissionRow(
+                vm: vm,
+                message: "Grant 'Always' permission for background monitoring",
+                requestAlways: true
+            )
 
         case .authorizedWhenInUse:
             RequestPermissionRow(
                 vm: vm,
-                message: "Grant 'Always' permission for background monitoring",
+                message: "Upgrade to 'Always' for background monitoring",
                 requestAlways: true
             )
 
@@ -151,7 +155,7 @@ private struct RequestPermissionRow: View {
         } label: {
             HStack {
                 Image(systemName: "location.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.purple)
                 Text(message)
                     .font(.caption)
 
