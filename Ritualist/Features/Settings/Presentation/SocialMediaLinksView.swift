@@ -10,7 +10,7 @@ struct SocialMediaLinksView: View {
                 iconName: "camera.fill",
                 iconColor: .purple,
                 title: "Instagram",
-                url: "https://instagram.com/ritualist.app"
+                url: AppURL.instagram
             )
 
             // X (Twitter)
@@ -18,7 +18,7 @@ struct SocialMediaLinksView: View {
                 iconName: "bird.fill",
                 iconColor: .blue,
                 title: "X (Twitter)",
-                url: "https://x.com/ritualist_app"
+                url: AppURL.twitter
             )
 
             // TikTok
@@ -26,7 +26,7 @@ struct SocialMediaLinksView: View {
                 iconName: "music.note",
                 iconColor: .black,
                 title: "TikTok",
-                url: "https://tiktok.com/@ritualist.app"
+                url: AppURL.tiktok
             )
 
             // Website/App Link
@@ -34,7 +34,7 @@ struct SocialMediaLinksView: View {
                 iconName: "globe",
                 iconColor: .green,
                 title: "Visit Our Website",
-                url: "https://ritualist.app"
+                url: AppURL.website
             )
         }
     }
@@ -45,11 +45,11 @@ private struct SocialMediaButton: View {
     let iconName: String
     let iconColor: Color
     let title: String
-    let url: String
+    let url: URL?
 
     var body: some View {
         Button {
-            openURL(url)
+            openURL()
         } label: {
             HStack(spacing: Spacing.medium) {
                 Image(systemName: iconName)
@@ -69,8 +69,8 @@ private struct SocialMediaButton: View {
         }
     }
 
-    private func openURL(_ urlString: String) {
-        guard let url = URL(string: urlString) else { return }
+    private func openURL() {
+        guard let url else { return }
         UIApplication.shared.open(url)
     }
 }
