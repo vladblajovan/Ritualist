@@ -135,7 +135,8 @@ public final class ReorderHabits: ReorderHabitsUseCase {
                 isActive: habit.isActive,
                 displayOrder: index,
                 categoryId: habit.categoryId,
-                suggestionId: habit.suggestionId
+                suggestionId: habit.suggestionId,
+                locationConfiguration: habit.locationConfiguration
             )
             updatedHabits.append(updatedHabit)
         }
@@ -209,7 +210,8 @@ public final class OrphanHabitsFromCategory: OrphanHabitsFromCategoryUseCase {
                 isActive: habit.isActive,
                 displayOrder: habit.displayOrder,
                 categoryId: nil,  // Remove category association
-                suggestionId: habit.suggestionId
+                suggestionId: habit.suggestionId,
+                locationConfiguration: habit.locationConfiguration
             )
             
             try await repo.update(orphanedHabit)
