@@ -15,6 +15,7 @@ public struct RootTabView: View {
     @State private var existingHabits: [Habit] = []
     @State private var migrationService = MigrationStatusService.shared
     @State private var pendingPersonalitySheetAfterTabSwitch = false
+    @State private var showSyncToast = false
 
     public init() {}
 
@@ -65,6 +66,21 @@ public struct RootTabView: View {
                 .overlay {
                     if migrationService.isMigrating {
                         MigrationLoadingView(details: migrationService.migrationDetails)
+                    }
+                }
+                .overlay(alignment: .top) {
+                    if showSyncToast {
+                        ICloudSyncToast {
+                            showSyncToast = false
+                        }
+                        .padding(.top, 50)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+                    // Show toast when iCloud syncs data from another device
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        showSyncToast = true
                     }
                 }
             }

@@ -27,7 +27,7 @@ struct ICloudSyncSectionView: View {
             if let lastSync = vm.lastSyncDate {
                 HStack {
                     Label("Last Synced", systemImage: "clock")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.primary)
 
                     Spacer()
 

@@ -367,6 +367,11 @@ public enum Strings {
         public static let frequencyEveryHour = String(localized: "location.frequency_every_hour")
         public static let frequencyEvery2Hours = String(localized: "location.frequency_every_2_hours")
     }
+
+    // MARK: - iCloud Sync
+    public enum ICloudSync {
+        public static let syncedFromCloud = String(localized: "icloud.synced_from_cloud")
+    }
 }
 
 // MARK: - SwiftUI Extensions

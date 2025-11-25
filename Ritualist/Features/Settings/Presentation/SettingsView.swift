@@ -89,9 +89,6 @@ private struct SettingsFormView: View {
                     // Subscription Section
                     SubscriptionManagementSectionView(vm: vm)
 
-                    // Social Media Section
-                    SocialMediaLinksView()
-
                     // Permissions Section (Notifications + Location)
                     PermissionsSectionView(vm: vm)
 
@@ -115,6 +112,9 @@ private struct SettingsFormView: View {
                             }
                         }
                     }
+
+                    // Social Media Section
+                    SocialMediaLinksView()
 
                     // About Section
                     Section("About") {
@@ -183,6 +183,12 @@ private struct SettingsFormView: View {
                         await vm.refreshNotificationStatus()
                         await vm.refreshLocationStatus()
                         await vm.refreshPremiumStatus()
+                        await vm.refreshiCloudStatus()
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    // Refresh iCloud status when app becomes active (handles connectivity changes)
+                    Task {
                         await vm.refreshiCloudStatus()
                     }
                 }

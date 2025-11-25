@@ -234,6 +234,9 @@ import CoreData
             category: .system
         )
 
+        // Notify UI that iCloud synced data from another device
+        NotificationCenter.default.post(name: .iCloudDidSyncRemoteChanges, object: nil)
+
         await restoreGeofences()
     }
 
