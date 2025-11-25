@@ -108,8 +108,30 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         // Update profile with imported data
         currentProfile.name = profileData.name
         currentProfile.appearance = appearanceValue(from: profileData.appearance)
-        currentProfile.currentTimezoneIdentifier = profileData.currentTimezone
-        currentProfile.homeTimezoneIdentifier = profileData.homeTimezone
+
+        // Validate and set timezone identifiers (fall back to current if invalid)
+        if TimeZone(identifier: profileData.currentTimezone) != nil {
+            currentProfile.currentTimezoneIdentifier = profileData.currentTimezone
+        } else {
+            logger.log(
+                "Invalid currentTimezone identifier, keeping existing",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["invalidTimezone": profileData.currentTimezone]
+            )
+        }
+
+        if TimeZone(identifier: profileData.homeTimezone) != nil {
+            currentProfile.homeTimezoneIdentifier = profileData.homeTimezone
+        } else {
+            logger.log(
+                "Invalid homeTimezone identifier, keeping existing",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["invalidTimezone": profileData.homeTimezone]
+            )
+        }
+
         currentProfile.displayTimezoneMode = DisplayTimezoneMode.fromLegacyString(profileData.displayTimezoneMode)
 
         // Import timezone history
@@ -180,11 +202,13 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             try await personalityRepository.savePersonalityProfile(currentPersonality)
         }
 
-        // Import personality history
+        // Fetch existing history IDs once to avoid duplicates
+        let existingHistory = try await personalityRepository.getPersonalityHistory(for: currentProfile.id)
+        let existingIDs = Set(existingHistory.map { $0.id })
+
+        // Import personality history (skip duplicates)
         for profile in personalityData.analysisHistory {
-            // Only import if it doesn't already exist
-            let existing = try? await personalityRepository.getPersonalityProfile(for: currentProfile.id)
-            if existing?.id != profile.id {
+            if !existingIDs.contains(profile.id) {
                 try await personalityRepository.savePersonalityProfile(profile)
             }
         }

@@ -15,7 +15,6 @@ public struct RootTabView: View {
     @State private var existingHabits: [Habit] = []
     @State private var migrationService = MigrationStatusService.shared
     @State private var pendingPersonalitySheetAfterTabSwitch = false
-    @State private var showSyncToast = false
 
     public init() {}
 
@@ -68,21 +67,8 @@ public struct RootTabView: View {
                         MigrationLoadingView(details: migrationService.migrationDetails)
                     }
                 }
-                .overlay(alignment: .top) {
-                    if showSyncToast {
-                        ICloudSyncToast {
-                            showSyncToast = false
-                        }
-                        .padding(.top, 50)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
-                    // DISABLED: iCloud sync toast - keeping infrastructure for future confirmation dialogs
-                    // To re-enable, uncomment the line below:
-                    // showSyncToast = true
-                    _ = () // Keep onReceive active for future use
-                }
+                // NOTE: ICloudSyncToast component available for future use when sync confirmation dialogs are needed
+                // To enable: add @State showSyncToast, overlay with ICloudSyncToast, and onReceive for .iCloudDidSyncRemoteChanges
             }
         }
         .task {

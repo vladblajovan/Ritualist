@@ -369,7 +369,10 @@ public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUse
 
         logger.log("Found \(habitsWithLocation.count) habits with enabled location monitoring", level: .info, category: .location)
 
-        // Restore monitoring for each habit (iOS limits to 20 geofences per app)
+        // iOS limits apps to 20 simultaneous geofences.
+        // When more than 20 habits have location monitoring enabled, only the first 20
+        // (by database order, typically creation order) will have active geofences.
+        // Remaining habits retain their location config but won't trigger notifications.
         let iOSGeofenceLimit = 20
         var restoredCount = 0
         var failedCount = 0
