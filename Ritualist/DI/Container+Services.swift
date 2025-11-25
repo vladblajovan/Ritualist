@@ -207,21 +207,6 @@ extension Container {
         .singleton
     }
     
-    // MARK: - User Business Service (Deprecated)
-    // REMOVED: ICloudUserBusinessService - SwiftData automatically syncs all models to iCloud
-    // Keeping MockUserBusinessService for backward compatibility with tests only
-
-    var userBusinessService: Factory<UserBusinessService> {
-        self {
-            MockUserBusinessService(
-                loadProfile: self.loadProfile(),
-                saveProfile: self.saveProfile(),
-                errorHandler: self.errorHandler()
-            )
-        }
-        .singleton
-    }
-    
     // MARK: - Legacy User Service
     
     @available(*, deprecated, message: "Use userUIService instead")
