@@ -30,6 +30,6 @@ public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
         try modelContext.save()
 
         // Clear sync metadata from UserDefaults
-        UserDefaults.standard.removeObject(forKey: "com.ritualist.lastSyncDate")
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.lastSyncDate)
     }
 }

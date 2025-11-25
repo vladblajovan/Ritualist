@@ -40,12 +40,18 @@ private enum FrequencyPreset: CaseIterable, Identifiable {
         }
     }
 
+    /// Maps a NotificationFrequency to the closest FrequencyPreset.
+    ///
+    /// Note: Custom cooldown values (e.g., 45 minutes) are mapped to the nearest preset
+    /// (e.g., 60 minutes). This is intentional UX behavior - the preset picker doesn't
+    /// support arbitrary values. The actual cooldown stored in the habit is preserved;
+    /// this mapping only affects UI display in the preset selector.
     static func from(_ frequency: NotificationFrequency) -> FrequencyPreset {
         switch frequency {
         case .oncePerDay:
             return .oncePerDay
         case .everyEntry(let minutes):
-            // Map to closest preset
+            // Map to closest preset (rounds up to next threshold)
             if minutes <= 15 { return .every15Minutes }
             if minutes <= 30 { return .every30Minutes }
             if minutes <= 60 { return .everyHour }

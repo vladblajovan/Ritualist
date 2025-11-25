@@ -55,13 +55,7 @@ struct ICloudSyncToast: View {
     }
 }
 
-// MARK: - Notification Extension
-
-extension Notification.Name {
-    /// Posted when iCloud syncs data from another device
-    /// Used to trigger the sync toast in RootTabView
-    static let iCloudDidSyncRemoteChanges = Notification.Name("iCloudDidSyncRemoteChanges")
-}
+// Note: Notification.Name.iCloudDidSyncRemoteChanges is defined in RitualistCore/Constants/AppConstants.swift
 
 #Preview {
     ZStack {

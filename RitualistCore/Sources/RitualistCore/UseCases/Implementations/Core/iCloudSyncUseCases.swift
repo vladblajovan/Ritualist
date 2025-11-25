@@ -136,12 +136,10 @@ public protocol GetLastSyncDateUseCase {
 }
 
 public final class DefaultGetLastSyncDateUseCase: GetLastSyncDateUseCase {
-    private static let lastSyncDateKey = "com.ritualist.lastSyncDate"
-
     public init() {}
 
     public func execute() async -> Date? {
-        return UserDefaults.standard.object(forKey: Self.lastSyncDateKey) as? Date
+        return UserDefaults.standard.object(forKey: UserDefaultsKeys.lastSyncDate) as? Date
     }
 }
 
@@ -165,11 +163,9 @@ public protocol UpdateLastSyncDateUseCase {
 }
 
 public final class DefaultUpdateLastSyncDateUseCase: UpdateLastSyncDateUseCase {
-    private static let lastSyncDateKey = "com.ritualist.lastSyncDate"
-
     public init() {}
 
     public func execute(_ date: Date) async {
-        UserDefaults.standard.set(date, forKey: Self.lastSyncDateKey)
+        UserDefaults.standard.set(date, forKey: UserDefaultsKeys.lastSyncDate)
     }
 }

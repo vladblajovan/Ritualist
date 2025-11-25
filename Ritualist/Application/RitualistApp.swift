@@ -518,38 +518,49 @@ import CoreData
 // MARK: - App Delegate
 
 /// AppDelegate handles app launch scenarios including location-based relaunches
+/// UIApplicationDelegate methods run on the main thread, so we mark this @MainActor
+@MainActor
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         // LocalNotificationService sets itself as the UNUserNotificationCenter delegate
         // All notification handling (habit + personality) is done there
 
-        // CRITICAL: Handle app launch due to geofence event
-        // When app is killed and user crosses a geofence boundary, iOS relaunches
-        // the app in the background. We must initialize the location service
-        // IMMEDIATELY so the CLLocationManager delegate is ready to receive
-        // pending location events before iOS delivers them.
+        // Handle geofence-triggered app launch
         if launchOptions?[.location] != nil {
-            let logger = Container.shared.debugLogger()
-            logger.log(
-                "🌍 App launched due to location event",
-                level: .info,
-                category: .location,
-                metadata: ["launch_reason": "geofence_event"]
-            )
-
-            // Force immediate initialization of location monitoring service
-            // This sets up the CLLocationManager delegate synchronously,
-            // ensuring we're ready to receive the pending geofence event
-            _ = Container.shared.locationMonitoringService()
-
-            logger.log(
-                "✅ Location service initialized for background geofence handling",
-                level: .info,
-                category: .location
-            )
+            Container.shared.initializeForGeofenceLaunch()
         }
 
         return true
+    }
+}
+
+// MARK: - Container Launch Helpers
+
+extension Container {
+    /// Initialize services needed when app is launched due to a geofence event.
+    ///
+    /// CRITICAL: When the app is killed and user crosses a geofence boundary, iOS relaunches
+    /// the app in the background. We must initialize the location service IMMEDIATELY so the
+    /// CLLocationManager delegate is ready to receive pending location events before iOS delivers them.
+    @MainActor
+    func initializeForGeofenceLaunch() {
+        let logger = debugLogger()
+        logger.log(
+            "🌍 App launched due to location event",
+            level: .info,
+            category: .location,
+            metadata: ["launch_reason": "geofence_event"]
+        )
+
+        // Force immediate initialization of location monitoring service
+        // This sets up the CLLocationManager delegate synchronously
+        _ = locationMonitoringService()
+
+        logger.log(
+            "✅ Location service initialized for background geofence handling",
+            level: .info,
+            category: .location
+        )
     }
 }
 
