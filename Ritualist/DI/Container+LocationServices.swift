@@ -14,25 +14,24 @@ extension Container {
             let logger = self.debugLogger()
             let service = DefaultLocationMonitoringService(logger: logger)
 
-            // IMPORTANT: Set event handler synchronously to avoid race condition
-            // The setEventHandler method is async but just sets a property,
-            // so we need to ensure it's set before any geofence events fire
-            Task { @MainActor in
-                // Set event handler immediately to process geofence events
-                await service.setEventHandler { [weak self] event in
-                    guard let self = self else {
-                        logger.log("Container deallocated, cannot handle geofence event", level: .warning, category: .location)
-                        return
-                    }
-                    do {
-                        logger.log("Processing geofence event for habit: \(event.habitId)", level: .debug, category: .location)
-                        try await self.handleGeofenceEvent().execute(event: event)
-                    } catch {
-                        logger.log("Failed to handle geofence event: \(error)", level: .error, category: .location)
-                    }
+            // CRITICAL: Set event handler SYNCHRONOUSLY before returning the service.
+            // This prevents a race condition where geofence events could fire before
+            // the handler is registered. Since we're already on MainActor and
+            // setEventHandler just sets a property, we can call it directly.
+            // The closure itself is async and will be called later when events fire.
+            service.setEventHandler { [weak self] event in
+                guard let self = self else {
+                    logger.log("Container deallocated, cannot handle geofence event", level: .warning, category: .location)
+                    return
                 }
-                logger.log("Geofence event handler registered successfully", level: .info, category: .location)
+                do {
+                    logger.log("Processing geofence event for habit: \(event.habitId)", level: .debug, category: .location)
+                    try await self.handleGeofenceEvent().execute(event: event)
+                } catch {
+                    logger.log("Failed to handle geofence event: \(error)", level: .error, category: .location)
+                }
             }
+            logger.log("Geofence event handler registered successfully", level: .info, category: .location)
 
             return service
         }

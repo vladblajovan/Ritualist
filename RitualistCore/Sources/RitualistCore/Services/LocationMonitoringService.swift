@@ -319,39 +319,20 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
                 detectedLocation: location?.coordinate
             )
 
-            // Check if event should trigger notification
-            guard event.shouldTriggerNotification() else {
-                logger.log(
-                    "⏭️ Skipping notification - frequency rules",
-                    level: .debug,
-                    category: .location,
-                    metadata: ["habitId": habitId.uuidString]
-                )
-                return
-            }
-
             logger.log(
-                "🔔 Triggering geofence notification",
+                "🔔 Forwarding geofence event to handler",
                 level: .info,
                 category: .location,
                 metadata: ["habitId": habitId.uuidString, "eventType": String(describing: eventType)]
             )
 
-            // Call event handler (which will update the database with new trigger dates)
-            // The event handler (HandleGeofenceEventUseCase) will update the database
+            // Forward event to the use case handler which will:
+            // 1. Check frequency rules using authoritative database state
+            // 2. Send notification if appropriate
+            // 3. Update the database with new trigger dates
+            // NOTE: We intentionally do NOT check frequency here to avoid
+            // state drift between in-memory and database configurations.
             await eventHandler?(event)
-
-            // IMPORTANT: After the event handler updates the database, we need to sync
-            // our in-memory state. However, the event handler updates the database,
-            // so we update our in-memory state here to match.
-            var updatedConfig = configuration
-            switch eventType {
-            case .entry:
-                updatedConfig.lastEntryTriggerDate = Date()
-            case .exit:
-                updatedConfig.lastExitTriggerDate = Date()
-            }
-            await updateConfiguration(habitId: habitId, configuration: updatedConfig)
 
             logger.log(
                 "✅ Geofence event handled",
