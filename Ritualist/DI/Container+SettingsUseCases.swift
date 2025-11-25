@@ -45,7 +45,7 @@ extension Container {
     // MARK: - iCloud Sync Operations
 
     var syncWithiCloud: Factory<SyncWithiCloudUseCase> {
-        self { DefaultSyncWithiCloudUseCase(userBusinessService: self.userBusinessService()) }
+        self { DefaultSyncWithiCloudUseCase(checkiCloudStatus: self.checkiCloudStatus()) }
     }
 
     var checkiCloudStatus: Factory<CheckiCloudStatusUseCase> {
@@ -64,7 +64,38 @@ extension Container {
     var updateLastSyncDate: Factory<UpdateLastSyncDateUseCase> {
         self { DefaultUpdateLastSyncDateUseCase() }
     }
-    
+
+    var deleteiCloudData: Factory<DeleteiCloudDataUseCase> {
+        self { DefaultDeleteiCloudDataUseCase(modelContext: self.persistenceContainer().context) }
+    }
+
+    var exportUserData: Factory<ExportUserDataUseCase> {
+        self {
+            DefaultExportUserDataUseCase(
+                loadProfile: self.loadProfile(),
+                getLastSyncDate: self.getLastSyncDate(),
+                habitRepository: self.habitRepository(),
+                categoryRepository: self.categoryRepository(),
+                personalityRepository: self.personalityAnalysisRepository(),
+                logDataSource: self.logDataSource()
+            )
+        }
+    }
+
+    var importUserData: Factory<ImportUserDataUseCase> {
+        self {
+            DefaultImportUserDataUseCase(
+                loadProfile: self.loadProfile(),
+                saveProfile: self.saveProfile(),
+                habitRepository: self.habitRepository(),
+                categoryRepository: self.categoryRepository(),
+                personalityRepository: self.personalityAnalysisRepository(),
+                logDataSource: self.logDataSource(),
+                updateLastSyncDate: self.updateLastSyncDate()
+            )
+        }
+    }
+
     // MARK: - Development Operations
 
     var clearPurchases: Factory<ClearPurchases> {

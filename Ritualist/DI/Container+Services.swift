@@ -207,17 +207,16 @@ extension Container {
         .singleton
     }
     
-    // MARK: - User Business Service
-    
+    // MARK: - User Business Service (Deprecated)
+    // REMOVED: ICloudUserBusinessService - SwiftData automatically syncs all models to iCloud
+    // Keeping MockUserBusinessService for backward compatibility with tests only
+
     var userBusinessService: Factory<UserBusinessService> {
         self {
-            // ✅ CloudKit enabled for both DEBUG and RELEASE
-            // CloudKit SDK automatically selects environment based on build configuration:
-            // - DEBUG builds → Development environment (testing)
-            // - RELEASE builds → Production environment (live users)
-            return ICloudUserBusinessService(
-                errorHandler: self.errorHandler(),
-                userActionTracker: self.userActionTracker()
+            MockUserBusinessService(
+                loadProfile: self.loadProfile(),
+                saveProfile: self.saveProfile(),
+                errorHandler: self.errorHandler()
             )
         }
         .singleton

@@ -1,9 +1,9 @@
 🌍 Ritualist String Validation Report
 =====================================
-Generated: 2025-11-22 17:27:30 +0000
+Generated: 2025-11-24 10:44:44 +0000
 📊 Summary:
-   Total strings: 264
-   ✅ Valid: 264
+   Total strings: 284
+   ✅ Valid: 284
    ❌ Invalid: 0
    📈 Success rate: 100%
 
@@ -30,7 +30,7 @@ Generated: 2025-11-22 17:27:30 +0000
 ✅ buttonRetry: "Retry"
 ✅ buttonSave: "Save"
 
-📱 Form Field Strings (182/182 valid)
+📱 Form Field Strings (193/193 valid)
 --------------------------------------------------
 ✅ %@ %@: "%1$@ %2$@"
 ✅ %@ → %@: "%1$@ → %2$@"
@@ -45,7 +45,6 @@ Generated: 2025-11-22 17:27:30 +0000
 ✅ %lld/%lld habits (Free): "%1$lld/%2$lld habits (Free)"
 ✅ %lld/%lld used: "%1$lld/%2$lld used"
 ✅ ...: "…"
-✅ Alerts when %@ within %lldm: "Alert: %1$@ within %2$lldm"
 ✅ Back: "Back"
 ✅ Cancel: "Cancel"
 ✅ Category: "Category"
@@ -166,6 +165,18 @@ Generated: 2025-11-22 17:27:30 +0000
 ✅ loadingProcessingImage: "Processing image..."
 ✅ loadingSaving: "Saving..."
 ✅ loadingSettings: "Loading settings..."
+✅ location.configure_location_details: "Configure Location Details"
+✅ location.cooldown_minutes: "%d min"
+✅ location.cooldown_period: "Cooldown Period"
+✅ location.detection_area: "Detection Area"
+✅ location.location_details: "Location Details"
+✅ location.location_name: "Location Name"
+✅ location.location_name_optional: "Optional"
+✅ location.notification_frequency: "Notification Frequency"
+✅ location.once_per_day: "Once Per Day"
+✅ location.search_placeholder: "Search for a location"
+✅ location.select_location: "Select Location"
+✅ location.tap_on_map: "Tap on the map"
 ✅ manageCategories: "Manage Categories"
 ✅ motivationTips: "Motivation"
 ✅ newCategory: "New Category"
@@ -224,7 +235,7 @@ Generated: 2025-11-22 17:27:30 +0000
 ✅ navigationOverview: "Overview"
 ✅ navigationSettings: "Settings"
 
-📱 Validation Strings (59/59 valid)
+📱 Validation Strings (68/68 valid)
 --------------------------------------------------
 ✅ Error: "Error"
 ✅ This will remove the log entry for "%@" from %@. The habit itself will remain.: "This will remove the log entry for "%1$@..."
@@ -242,6 +253,15 @@ Generated: 2025-11-22 17:27:30 +0000
 ✅ habitSuggestionRestriction: "This habit was added from a suggestion a..."
 ✅ habits_assistant.first_visit.description: "Select habits that align with your goals..."
 ✅ habits_assistant.first_visit.title: "Welcome! Let's Build Your Habits"
+✅ location.detection_area_footer: "The distance from the location where not..."
+✅ location.frequency_cooldown_footer: "Notification sent on each trigger with %..."
+✅ location.frequency_once_per_day_footer: "You'll receive only one notification per..."
+✅ location.location_name_footer: "Give this location a name (e.g., 'Home',..."
+✅ location.select_center_instruction: "Select the center of your location remin..."
+✅ location.when_to_notify: "When to Notify"
+✅ location.when_to_notify_both: "Notify when you arrive and when you leav..."
+✅ location.when_to_notify_entry: "Notify when you arrive at the location."
+✅ location.when_to_notify_exit: "Notify when you leave the location."
 ✅ onboarding.customize_description: "Customize colors and emojis"
 ✅ onboarding.customize_title: "Make It Yours"
 ✅ onboarding.enable_notifications: "Enable Notifications"

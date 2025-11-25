@@ -21,6 +21,7 @@ import RitualistCore
     @Injected(\.timezoneService) private var timezoneService
     @Injected(\.seedPredefinedCategories) private var seedPredefinedCategories
     @Injected(\.syncWithiCloud) private var syncWithiCloud
+    @Injected(\.updateLastSyncDate) private var updateLastSyncDate
     @Injected(\.debugLogger) private var logger
 
     var body: some Scene {
@@ -360,6 +361,10 @@ import RitualistCore
                 category: .system
             )
             try await syncWithiCloud.execute()
+
+            // Update last sync timestamp so Settings UI shows correct "Last Synced" time
+            await updateLastSyncDate.execute(Date())
+
             logger.log(
                 "✅ Auto-sync completed successfully",
                 level: .info,

@@ -116,6 +116,9 @@ extension Container {
                 checkiCloudStatus: self.checkiCloudStatus(),
                 getLastSyncDate: self.getLastSyncDate(),
                 updateLastSyncDate: self.updateLastSyncDate(),
+                deleteiCloudData: self.deleteiCloudData(),
+                exportUserData: self.exportUserData(),
+                importUserData: self.importUserData(),
                 populateTestData: {
                     #if DEBUG
                     return self.populateTestData() as (any Any)?

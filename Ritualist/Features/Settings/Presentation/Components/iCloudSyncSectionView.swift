@@ -1,14 +1,16 @@
 import SwiftUI
 import RitualistCore
+import UniformTypeIdentifiers
 
 struct ICloudSyncSectionView: View {
     @Bindable var vm: SettingsViewModel
+    @State private var showingDeleteConfirmation = false
 
     var body: some View {
         Section {
             // iCloud Account Status
             HStack {
-                Label("iCloud Status", systemImage: "icloud")
+                Label("Status", systemImage: "icloud")
                     .foregroundStyle(.primary)
 
                 Spacer()
@@ -53,11 +55,44 @@ struct ICloudSyncSectionView: View {
                 }
             }
             .disabled(!vm.iCloudStatus.canSync || vm.isSyncing)
+            .opacity((!vm.iCloudStatus.canSync || vm.isSyncing) ? 0.5 : 1.0)
+
+            // Delete iCloud Data Button
+            Button(role: .destructive) {
+                showingDeleteConfirmation = true
+            } label: {
+                HStack {
+                    if vm.isDeletingCloudData {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Deleting...")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Label("Delete iCloud Data", systemImage: "trash")
+                    }
+                }
+            }
+            .disabled(!vm.iCloudStatus.canSync || vm.isDeletingCloudData || vm.isSyncing)
+            .opacity((!vm.iCloudStatus.canSync || vm.isDeletingCloudData || vm.isSyncing) ? 0.5 : 1.0)
 
         } header: {
             Text("iCloud Sync")
         } footer: {
             footerText
+        }
+        .confirmationDialog(
+            "Delete iCloud Data?",
+            isPresented: $showingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    await vm.deleteCloudData()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete your profile from iCloud. Your local data will remain on this device.")
         }
     }
 
@@ -115,13 +150,13 @@ struct ICloudSyncSectionView: View {
     private var footerText: some View {
         switch vm.iCloudStatus {
         case .available:
-            Text("Your profile syncs automatically across all your devices using iCloud.")
+            Text("Your data syncs automatically across all your devices using iCloud. Delete iCloud Data will permanently remove all your synced data from iCloud (local data remains on this device).")
         case .notSignedIn:
             Text("Sign in to iCloud in Settings to enable automatic sync across your devices.")
         case .restricted:
             Text("iCloud is restricted. Check Screen Time or parental controls in Settings.")
         case .temporarilyUnavailable:
-            Text("iCloud is temporarily unavailable. Your profile will sync when iCloud is accessible.")
+            Text("iCloud is temporarily unavailable. Your data will sync when iCloud is accessible.")
         case .unknown:
             Text("Checking iCloud status...")
         }
@@ -144,7 +179,10 @@ struct ICloudSyncSectionView: View {
             syncWithiCloud: MockSyncWithiCloud(),
             checkiCloudStatus: MockCheckiCloudStatus(),
             getLastSyncDate: MockGetLastSyncDate(),
-            updateLastSyncDate: MockUpdateLastSyncDate()
+            updateLastSyncDate: MockUpdateLastSyncDate(),
+            deleteiCloudData: MockDeleteiCloudData(),
+            exportUserData: MockExportUserData(),
+            importUserData: MockImportUserData()
         ))
     }
 }
@@ -216,3 +254,27 @@ private struct MockGetLastSyncDate: GetLastSyncDateUseCase {
 private struct MockUpdateLastSyncDate: UpdateLastSyncDateUseCase {
     func execute(_ date: Date) async {}
 }
+
+private struct MockDeleteiCloudData: DeleteiCloudDataUseCase {
+    func execute() async throws {}
+}
+
+private struct MockExportUserData: ExportUserDataUseCase {
+    func execute() async throws -> String {
+        return """
+        {
+          "exportedAt": "2025-11-24T00:00:00Z",
+          "profile": { "name": "Test User" },
+          "habits": [],
+          "categories": [],
+          "habitLogs": [],
+          "personalityData": { "currentProfile": null, "analysisHistory": [] }
+        }
+        """
+    }
+}
+
+private struct MockImportUserData: ImportUserDataUseCase {
+    func execute(jsonString: String) async throws {}
+}
+

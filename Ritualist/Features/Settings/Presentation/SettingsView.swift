@@ -98,6 +98,9 @@ private struct SettingsFormView: View {
                     // iCloud Sync Section
                     ICloudSyncSectionView(vm: vm)
 
+                    // Data Management Section (Export/Import)
+                    DataManagementSectionView(vm: vm)
+
                     // Advanced Section
                     Section("Advanced") {
                         NavigationLink {

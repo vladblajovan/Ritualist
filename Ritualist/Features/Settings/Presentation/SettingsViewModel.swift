@@ -3,6 +3,7 @@ import Observation
 import FactoryKit
 import RitualistCore
 
+// swiftlint:disable type_body_length
 @MainActor @Observable
 public final class SettingsViewModel {
     private let loadProfile: LoadProfileUseCase
@@ -19,6 +20,9 @@ public final class SettingsViewModel {
     private let checkiCloudStatus: CheckiCloudStatusUseCase
     private let getLastSyncDate: GetLastSyncDateUseCase
     private let updateLastSyncDate: UpdateLastSyncDateUseCase
+    private let deleteiCloudData: DeleteiCloudDataUseCase
+    private let exportUserData: ExportUserDataUseCase
+    private let importUserData: ImportUserDataUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
@@ -49,7 +53,14 @@ public final class SettingsViewModel {
     public private(set) var lastSyncDate: Date?
     public private(set) var iCloudStatus: iCloudSyncStatus = .unknown
     public private(set) var isCheckingCloudStatus = false
-    
+    public private(set) var isDeletingCloudData = false
+    public private(set) var isExportingData = false
+    public var exportedDataJSON: String?
+    public var exportedFileURL: URL?
+    public private(set) var isImportingData = false
+    public var showImportPicker = false
+    public var showExportPicker = false
+
     #if DEBUG
     public private(set) var isClearingDatabase = false
     public private(set) var databaseStats: DebugDatabaseStats?
@@ -102,6 +113,9 @@ public final class SettingsViewModel {
                 checkiCloudStatus: CheckiCloudStatusUseCase,
                 getLastSyncDate: GetLastSyncDateUseCase,
                 updateLastSyncDate: UpdateLastSyncDateUseCase,
+                deleteiCloudData: DeleteiCloudDataUseCase,
+                exportUserData: ExportUserDataUseCase,
+                importUserData: ImportUserDataUseCase,
                 populateTestData: (any Any)? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
@@ -117,6 +131,9 @@ public final class SettingsViewModel {
         self.checkiCloudStatus = checkiCloudStatus
         self.getLastSyncDate = getLastSyncDate
         self.updateLastSyncDate = updateLastSyncDate
+        self.deleteiCloudData = deleteiCloudData
+        self.exportUserData = exportUserData
+        self.importUserData = importUserData
         #if DEBUG
         self.populateTestData = populateTestData as? PopulateTestDataUseCase
         #endif
@@ -346,6 +363,71 @@ public final class SettingsViewModel {
         iCloudStatus = await checkiCloudStatus.execute()
 
         isCheckingCloudStatus = false
+    }
+
+    /// Delete iCloud data (GDPR compliance - Right to be forgotten)
+    /// Permanently deletes user's profile from CloudKit
+    /// Local data remains intact on device
+    public func deleteCloudData() async {
+        isDeletingCloudData = true
+        error = nil
+
+        do {
+            try await deleteiCloudData.execute()
+
+            // Clear last sync date since there's no cloud data anymore
+            lastSyncDate = nil
+
+            // Track deletion action
+            userActionTracker.track(.custom(event: "icloud_data_deleted_by_user", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "icloud_delete_data")
+        }
+
+        isDeletingCloudData = false
+    }
+
+    /// Export user data (GDPR compliance - Right to data portability)
+    /// Exports all user data as JSON string for sharing/backup
+    public func exportData() async {
+        isExportingData = true
+        error = nil
+
+        do {
+            let jsonString = try await exportUserData.execute()
+            exportedDataJSON = jsonString
+
+            // Track export action
+            userActionTracker.track(.custom(event: "user_data_exported", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "export_user_data")
+        }
+
+        isExportingData = false
+    }
+
+    /// Import user data (GDPR compliance - Right to data portability)
+    /// Imports all user data from JSON string, merging with existing data
+    public func importData(jsonString: String) async {
+        isImportingData = true
+        error = nil
+
+        do {
+            try await importUserData.execute(jsonString: jsonString)
+
+            // Reload profile after import
+            await load()
+
+            // Track import action
+            userActionTracker.track(.custom(event: "user_data_imported", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "import_user_data")
+        }
+
+        isImportingData = false
     }
 
     // MARK: - Debug Methods
