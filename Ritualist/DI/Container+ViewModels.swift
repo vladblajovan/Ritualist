@@ -115,7 +115,6 @@ extension Container {
                 syncWithiCloud: self.syncWithiCloud(),
                 checkiCloudStatus: self.checkiCloudStatus(),
                 getLastSyncDate: self.getLastSyncDate(),
-                updateLastSyncDate: self.updateLastSyncDate(),
                 deleteiCloudData: self.deleteiCloudData(),
                 exportUserData: self.exportUserData(),
                 importUserData: self.importUserData(),

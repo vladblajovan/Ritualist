@@ -302,7 +302,6 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
         syncWithiCloud: MockSyncWithiCloud(),
         checkiCloudStatus: MockCheckiCloudStatus(),
         getLastSyncDate: MockGetLastSyncDate(),
-        updateLastSyncDate: MockUpdateLastSyncDate(),
         deleteiCloudData: MockDeleteiCloudData(),
         exportUserData: MockExportUserData(),
         importUserData: MockImportUserData()
@@ -369,10 +368,6 @@ private struct MockGetLastSyncDate: GetLastSyncDateUseCase {
     func execute() async -> Date? {
         Date().addingTimeInterval(-3600)
     }
-}
-
-private struct MockUpdateLastSyncDate: UpdateLastSyncDateUseCase {
-    func execute(_ date: Date) async {}
 }
 
 private struct MockGetCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase {

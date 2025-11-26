@@ -37,26 +37,6 @@ struct ICloudSyncSectionView: View {
                 }
             }
 
-            // Sync Now Button
-            Button {
-                Task {
-                    await vm.syncNow()
-                }
-            } label: {
-                HStack {
-                    if vm.isSyncing {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Syncing...")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
-                    }
-                }
-            }
-            .disabled(!vm.iCloudStatus.canSync || vm.isSyncing)
-            .opacity((!vm.iCloudStatus.canSync || vm.isSyncing) ? 0.5 : 1.0)
-
             // Delete iCloud Data Button
             Button(role: .destructive) {
                 showingDeleteConfirmation = true
@@ -69,16 +49,15 @@ struct ICloudSyncSectionView: View {
                             .foregroundStyle(.secondary)
                     } else {
                         Label("Delete iCloud Data", systemImage: "trash")
+                            .foregroundStyle(.red)
                     }
                 }
             }
-            .disabled(!vm.iCloudStatus.canSync || vm.isDeletingCloudData || vm.isSyncing)
-            .opacity((!vm.iCloudStatus.canSync || vm.isDeletingCloudData || vm.isSyncing) ? 0.5 : 1.0)
+            .disabled(!vm.iCloudStatus.canSync || vm.isDeletingCloudData)
+            .opacity((!vm.iCloudStatus.canSync || vm.isDeletingCloudData) ? 0.5 : 1.0)
 
         } header: {
             Text("iCloud Sync")
-        } footer: {
-            footerText
         }
         .confirmationDialog(
             "Delete iCloud Data?",
@@ -144,23 +123,6 @@ struct ICloudSyncSectionView: View {
         }
     }
 
-    // MARK: - Footer Text
-
-    @ViewBuilder
-    private var footerText: some View {
-        switch vm.iCloudStatus {
-        case .available:
-            Text("Your data syncs automatically across all your devices using iCloud. Delete iCloud Data will permanently remove all your synced data from iCloud (local data remains on this device).")
-        case .notSignedIn:
-            Text("Sign in to iCloud in Settings to enable automatic sync across your devices.")
-        case .restricted:
-            Text("iCloud is restricted. Check Screen Time or parental controls in Settings.")
-        case .temporarilyUnavailable:
-            Text("iCloud is temporarily unavailable. Your data will sync when iCloud is accessible.")
-        case .unknown:
-            Text("Checking iCloud status...")
-        }
-    }
 }
 
 #Preview {
@@ -179,7 +141,6 @@ struct ICloudSyncSectionView: View {
             syncWithiCloud: MockSyncWithiCloud(),
             checkiCloudStatus: MockCheckiCloudStatus(),
             getLastSyncDate: MockGetLastSyncDate(),
-            updateLastSyncDate: MockUpdateLastSyncDate(),
             deleteiCloudData: MockDeleteiCloudData(),
             exportUserData: MockExportUserData(),
             importUserData: MockImportUserData()
@@ -249,10 +210,6 @@ private struct MockGetLastSyncDate: GetLastSyncDateUseCase {
     func execute() async -> Date? {
         Date().addingTimeInterval(-3600) // 1 hour ago
     }
-}
-
-private struct MockUpdateLastSyncDate: UpdateLastSyncDateUseCase {
-    func execute(_ date: Date) async {}
 }
 
 private struct MockDeleteiCloudData: DeleteiCloudDataUseCase {

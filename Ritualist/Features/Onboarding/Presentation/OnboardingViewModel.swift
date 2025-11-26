@@ -143,8 +143,8 @@ public final class OnboardingViewModel {
         // Track permission request
         userActionTracker.track(.onboardingLocationPermissionRequested)
 
-        // Request "When In Use" permission (requestAlways: false) for location-aware habits
-        _ = await requestLocationPermissions.execute(requestAlways: false)
+        // Request "Always" permission for background geofence monitoring
+        _ = await requestLocationPermissions.execute(requestAlways: true)
 
         // Check status after request
         let locationStatus = await getLocationAuthStatus.execute()
