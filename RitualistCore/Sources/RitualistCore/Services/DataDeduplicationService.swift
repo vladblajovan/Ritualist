@@ -428,12 +428,7 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                 }
 
                 // Quaternary: prefer oldest created (the original)
-                if profile1.createdAt != profile2.createdAt {
-                    return profile1.createdAt < profile2.createdAt
-                }
-
-                // Final tiebreaker: deterministic UUID comparison for stable sorting
-                return profile1.id.uuidString < profile2.id.uuidString
+                return profile1.createdAt < profile2.createdAt
             }
 
             // Keep the first (best) one, merge data from others, then delete duplicates
