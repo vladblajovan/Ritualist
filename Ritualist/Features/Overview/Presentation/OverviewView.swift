@@ -224,6 +224,18 @@ public struct OverviewView: View {
                     await vm.refresh()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+                // Auto-refresh when iCloud syncs new data from another device
+                // This ensures Overview shows the latest data without requiring tab switch
+                Task {
+                    Container.shared.debugLogger().log(
+                        "☁️ iCloud sync detected - refreshing Overview",
+                        level: .info,
+                        category: .system
+                    )
+                    await vm.refresh()
+                }
+            }
             .sheet(isPresented: $vm.showingNumericSheet) {
                 if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
                     NumericHabitLogSheetDirect(

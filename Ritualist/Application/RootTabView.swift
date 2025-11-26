@@ -15,6 +15,10 @@ public struct RootTabView: View {
     @State private var existingHabits: [Habit] = []
     @State private var migrationService = MigrationStatusService.shared
     @State private var pendingPersonalitySheetAfterTabSwitch = false
+    @State private var showSyncToast = false
+
+    /// UserDefaults key for tracking if we've shown the first iCloud sync toast
+    private static let hasShownFirstSyncToastKey = "hasShownFirstiCloudSyncToast"
 
     public init() {}
 
@@ -67,8 +71,21 @@ public struct RootTabView: View {
                         MigrationLoadingView(details: migrationService.migrationDetails)
                     }
                 }
-                // NOTE: ICloudSyncToast component available for future use when sync confirmation dialogs are needed
-                // To enable: add @State showSyncToast, overlay with ICloudSyncToast, and onReceive for .iCloudDidSyncRemoteChanges
+                .overlay(alignment: .top) {
+                    if showSyncToast {
+                        ICloudSyncToast(onDismiss: {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                showSyncToast = false
+                            }
+                        })
+                        .padding(.top, 50)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+                    // Show one-time toast when iCloud syncs data for the first time
+                    handleFirstiCloudSync()
+                }
             }
         }
         .task {
@@ -93,6 +110,8 @@ public struct RootTabView: View {
                 Task {
                     // Refresh habits after assistant dismissal
                     await loadCurrentHabits()
+                    // Check for iCloud sync toast now that all sheets are dismissed
+                    handleFirstiCloudSync()
                 }
             }
         }
@@ -185,6 +204,10 @@ public struct RootTabView: View {
     private func handlePostOnboarding() async {
         await loadCurrentHabits()
 
+        // NOTE: Don't call handleFirstiCloudSync() here - the assistant sheet will open next
+        // and the toast would appear behind it. Instead, we trigger the toast when the
+        // assistant sheet dismisses (see onDisappear handler).
+
         let currentHabitCount = existingHabits.count
         let canAddMoreHabits = checkHabitCreationLimit.execute(currentCount: currentHabitCount)
 
@@ -207,6 +230,89 @@ public struct RootTabView: View {
         } catch {
             Container.shared.debugLogger().log("Failed to load habits for post-onboarding check: \(error)", level: .error, category: .ui)
             existingHabits = []
+        }
+    }
+
+    /// Handle first iCloud sync - show toast only once per device lifetime
+    /// Uses retry logic because data may not be available immediately when notification fires
+    private func handleFirstiCloudSync(retryCount: Int = 0) {
+        // Check if we've already shown this toast (check BEFORE spawning async work)
+        guard !UserDefaults.standard.bool(forKey: Self.hasShownFirstSyncToastKey) else {
+            return
+        }
+
+        // Don't show toast during onboarding or while assistant sheet is open
+        // It would appear behind the fullScreenCover/sheet
+        guard !showOnboarding && !isCheckingOnboarding && !showingPostOnboardingAssistant else {
+            logger.log(
+                "☁️ iCloud sync detected but modal active - deferring toast",
+                level: .debug,
+                category: .system,
+                metadata: [
+                    "showOnboarding": showOnboarding,
+                    "isCheckingOnboarding": isCheckingOnboarding,
+                    "showingAssistant": showingPostOnboardingAssistant
+                ]
+            )
+            return
+        }
+
+        // Load habits to check if data actually synced
+        Task {
+            // Double-check flag inside Task to prevent race conditions from multiple notifications
+            guard !UserDefaults.standard.bool(forKey: Self.hasShownFirstSyncToastKey) else {
+                return
+            }
+
+            await loadCurrentHabits()
+
+            // Only show toast if we actually have habits from iCloud
+            guard !existingHabits.isEmpty else {
+                // Retry up to 3 times with increasing delays (1s, 2s, 3s)
+                // CloudKit data may take a moment to fully sync and become available
+                if retryCount < 3 {
+                    logger.log(
+                        "☁️ iCloud sync detected but no habits found yet - will retry",
+                        level: .debug,
+                        category: .system,
+                        metadata: ["retry_count": retryCount + 1]
+                    )
+                    try? await Task.sleep(for: .seconds(Double(retryCount + 1)))
+                    handleFirstiCloudSync(retryCount: retryCount + 1)
+                } else {
+                    logger.log(
+                        "☁️ iCloud sync detected but no habits found after retries - skipping toast",
+                        level: .debug,
+                        category: .system
+                    )
+                }
+                return
+            }
+
+            // Mark as shown IMMEDIATELY to prevent race conditions
+            UserDefaults.standard.set(true, forKey: Self.hasShownFirstSyncToastKey)
+
+            logger.log(
+                "☁️ First iCloud sync with data - showing welcome toast",
+                level: .info,
+                category: .system,
+                metadata: ["habits_count": existingHabits.count]
+            )
+
+            // Show the toast with animation
+            await MainActor.run {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    showSyncToast = true
+                }
+
+                // Auto-dismiss after 4 seconds
+                Task {
+                    try? await Task.sleep(for: .seconds(4))
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        showSyncToast = false
+                    }
+                }
+            }
         }
     }
 }

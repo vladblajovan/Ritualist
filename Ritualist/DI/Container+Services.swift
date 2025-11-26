@@ -33,6 +33,13 @@ extension Container {
         }
         .singleton
     }
+
+    var dataDeduplicationService: Factory<DataDeduplicationServiceProtocol> {
+        self {
+            DataDeduplicationService(modelContainer: self.persistenceContainer().container)
+        }
+        .singleton
+    }
     
     @MainActor
     var navigationService: Factory<NavigationService> {

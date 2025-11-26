@@ -70,6 +70,15 @@ extension Container {
         self { DefaultDeleteiCloudDataUseCase(modelContext: self.persistenceContainer().context) }
     }
 
+    var deduplicateData: Factory<DeduplicateDataUseCase> {
+        self {
+            DefaultDeduplicateDataUseCase(
+                deduplicationService: self.dataDeduplicationService(),
+                logger: self.debugLogger()
+            )
+        }
+    }
+
     var exportUserData: Factory<ExportUserDataUseCase> {
         self {
             DefaultExportUserDataUseCase(
@@ -94,6 +103,7 @@ extension Container {
                 personalityRepository: self.personalityAnalysisRepository(),
                 logDataSource: self.logDataSource(),
                 updateLastSyncDate: self.updateLastSyncDate(),
+                deduplicationService: self.dataDeduplicationService(),
                 logger: self.debugLogger()
             )
         }

@@ -28,6 +28,7 @@ import CoreData
     @Injected(\.checkiCloudStatus) private var checkiCloudStatus
     @Injected(\.debugLogger) private var logger
     @Injected(\.userActionTracker) private var userActionTracker
+    @Injected(\.deduplicateData) private var deduplicateData
 
     /// Track if initial launch tasks have completed to avoid duplicate work.
     ///
@@ -41,6 +42,13 @@ import CoreData
     /// Track last geofence restoration time (using system uptime for clock-drift immunity)
     /// Uses ProcessInfo.systemUptime which is monotonic and unaffected by user clock changes
     @State private var lastGeofenceRestorationUptime: TimeInterval?
+
+    /// Track last deduplication time (using system uptime for clock-drift immunity)
+    @State private var lastDeduplicationUptime: TimeInterval?
+
+    /// Track whether the last deduplication run had data to check
+    /// If false, we don't throttle because data may arrive later
+    @State private var lastDeduplicationHadData: Bool = false
 
     /// App startup time for performance monitoring
     private let appStartTime = Date()
@@ -58,6 +66,12 @@ import CoreData
     /// and efficiency (bulk syncs are batched into a single restoration).
     private let geofenceRestorationThrottleInterval: TimeInterval = 30
 
+    /// Minimum interval between deduplication runs (in seconds).
+    ///
+    /// CloudKit can fire multiple NSPersistentStoreRemoteChange notifications in quick succession.
+    /// Deduplication is idempotent (running it twice has no additional effect), but we throttle
+    /// to avoid unnecessary database reads during bulk sync operations.
+    private let deduplicationThrottleInterval: TimeInterval = 30
 
     var body: some Scene {
         WindowGroup {
@@ -108,6 +122,15 @@ import CoreData
                     guard hasCompletedInitialLaunch else { return }
                     Task {
                         try? await Task.sleep(for: .seconds(BusinessConstants.remoteChangeMergeDelay))
+
+                        // ALWAYS notify UI that iCloud synced data - this triggers auto-refresh in OverviewView
+                        // and the one-time toast in RootTabView. Do this outside throttle checks so UI
+                        // always gets notified even if geofences/dedup are throttled.
+                        NotificationCenter.default.post(name: .iCloudDidSyncRemoteChanges, object: nil)
+
+                        // Deduplicate any duplicates created by CloudKit sync before restoring geofences
+                        // Uses throttling to avoid excessive database operations during bulk sync
+                        await deduplicateSyncedDataThrottled()
                         await restoreGeofencesThrottled()
                     }
                 }
@@ -120,6 +143,7 @@ import CoreData
         logStartupContext()
 
         await seedCategories()
+        await deduplicateSyncedData()
         await detectTimezoneChanges()
         await setupNotifications()
         await scheduleInitialNotifications()
@@ -184,6 +208,72 @@ import CoreData
                 metadata: ["error": error.localizedDescription]
             )
         }
+    }
+
+    /// Deduplicate any duplicate records that may have been created during iCloud sync
+    /// CloudKit + SwiftData can create duplicates when @Attribute(.unique) is not available
+    private func deduplicateSyncedData() async {
+        do {
+            let result = try await deduplicateData.execute()
+            lastDeduplicationUptime = ProcessInfo.processInfo.systemUptime
+            lastDeduplicationHadData = result.hadDataToCheck
+
+            if result.hadDuplicates {
+                logger.log(
+                    "🔄 Cleaned up duplicate records from iCloud sync",
+                    level: .info,
+                    category: .system,
+                    metadata: [
+                        "habits_removed": result.habitsRemoved,
+                        "categories_removed": result.categoriesRemoved,
+                        "logs_removed": result.habitLogsRemoved,
+                        "total_items_checked": result.totalItemsChecked
+                    ]
+                )
+            } else if !result.hadDataToCheck {
+                logger.log(
+                    "🔄 Deduplication complete - no data in database yet (waiting for iCloud sync)",
+                    level: .debug,
+                    category: .system
+                )
+            }
+        } catch {
+            logger.log(
+                "⚠️ Failed to deduplicate synced data",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
+        }
+    }
+
+    /// Deduplicate with throttling to avoid excessive database operations during rapid sync events
+    /// CloudKit can fire multiple NSPersistentStoreRemoteChange notifications in quick succession
+    private func deduplicateSyncedDataThrottled() async {
+        // Check if we've deduplicated recently (using monotonic system uptime, immune to clock changes)
+        let currentUptime = ProcessInfo.processInfo.systemUptime
+        if let lastUptime = lastDeduplicationUptime,
+           (currentUptime - lastUptime) < deduplicationThrottleInterval {
+            // Only throttle if the previous run had data to check.
+            // If no data existed (fresh install waiting for iCloud), keep trying until data arrives.
+            if lastDeduplicationHadData {
+                logger.log(
+                    "⏭️ Skipping deduplication (throttled)",
+                    level: .debug,
+                    category: .system,
+                    metadata: ["secondsSinceLast": String(format: "%.1f", currentUptime - lastUptime)]
+                )
+                return
+            } else {
+                logger.log(
+                    "🔄 Running deduplication despite throttle (no data found in previous run)",
+                    level: .debug,
+                    category: .system
+                )
+            }
+        }
+
+        await deduplicateSyncedData()
     }
 
     private func setupNotifications() async {
@@ -307,8 +397,9 @@ import CoreData
             category: .system
         )
 
-        // Notify UI that iCloud synced data from another device
-        NotificationCenter.default.post(name: .iCloudDidSyncRemoteChanges, object: nil)
+        // NOTE: UI notification (.iCloudDidSyncRemoteChanges) is now posted earlier in the
+        // .NSPersistentStoreRemoteChange handler, BEFORE throttle checks. This ensures UI
+        // always gets notified even when geofences/dedup are throttled.
 
         await restoreGeofences()
     }

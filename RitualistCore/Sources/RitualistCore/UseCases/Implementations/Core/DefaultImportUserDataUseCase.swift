@@ -16,6 +16,7 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
     private let personalityRepository: PersonalityAnalysisRepositoryProtocol
     private let logDataSource: LogLocalDataSourceProtocol
     private let updateLastSyncDate: UpdateLastSyncDateUseCase
+    private let deduplicationService: DataDeduplicationServiceProtocol?
     private let logger: DebugLogger
 
     public init(
@@ -26,6 +27,7 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         personalityRepository: PersonalityAnalysisRepositoryProtocol,
         logDataSource: LogLocalDataSourceProtocol,
         updateLastSyncDate: UpdateLastSyncDateUseCase,
+        deduplicationService: DataDeduplicationServiceProtocol? = nil,
         logger: DebugLogger
     ) {
         self.loadProfile = loadProfile
@@ -35,6 +37,7 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         self.personalityRepository = personalityRepository
         self.logDataSource = logDataSource
         self.updateLastSyncDate = updateLastSyncDate
+        self.deduplicationService = deduplicationService
         self.logger = logger
     }
 
@@ -93,6 +96,24 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             // Update last sync date if available
             if let lastSynced = importedData.syncMetadata.lastSynced {
                 await updateLastSyncDate.execute(lastSynced)
+            }
+
+            // Deduplicate any duplicates that might have been created during import
+            // This is a safety net for data imported from other devices via CloudKit
+            if let deduplicationService = deduplicationService {
+                let result = try await deduplicationService.deduplicateAll()
+                if result.hadDuplicates {
+                    logger.log(
+                        "🔄 Cleaned up duplicates after import",
+                        level: .info,
+                        category: .dataIntegrity,
+                        metadata: [
+                            "habits": result.habitsRemoved,
+                            "categories": result.categoriesRemoved,
+                            "logs": result.habitLogsRemoved
+                        ]
+                    )
+                }
             }
 
             // NOTE: Notification rescheduling and geofence restoration are handled
