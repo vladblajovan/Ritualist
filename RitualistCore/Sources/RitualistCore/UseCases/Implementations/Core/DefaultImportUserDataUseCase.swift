@@ -95,6 +95,10 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
                 await updateLastSyncDate.execute(lastSynced)
             }
 
+            // NOTE: Notification rescheduling and geofence restoration are handled
+            // by the caller (SettingsViewModel) after import completes successfully.
+            // This avoids MainActor isolation issues with CLLocationManager.
+
         } catch {
             throw ImportError.importFailed(underlying: error)
         }

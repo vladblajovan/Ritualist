@@ -12,6 +12,7 @@ import RitualistCore
 import UIKit
 import CoreData
 
+// swiftlint:disable type_body_length
 @main struct RitualistApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @Injected(\.notificationService) private var notificationService
@@ -179,9 +180,25 @@ import CoreData
         // Set up notification delegate - handled by LocalNotificationService
         // Removed: UNUserNotificationCenter.current().delegate = appDelegate
     }
-    
+
     /// Schedule initial notifications on app launch
+    ///
+    /// IMPORTANT: Only schedules if notification authorization is granted.
+    /// iOS silently drops notifications when unauthorized, so we check first.
     private func scheduleInitialNotifications() async {
+        // Check authorization status first - scheduling without authorization silently fails
+        let isAuthorized = await notificationService.checkAuthorizationStatus()
+
+        guard isAuthorized else {
+            logger.log(
+                "⏭️ Skipping notification scheduling - not authorized",
+                level: .info,
+                category: .system,
+                metadata: ["reason": "authorization_not_granted"]
+            )
+            return
+        }
+
         do {
             logger.log(
                 "🚀 Scheduling initial notifications on app launch",
@@ -201,7 +218,21 @@ import CoreData
 
     /// Re-schedule notifications if needed (e.g., when app becomes active)
     /// This handles day changes and completion status updates while the app was backgrounded
+    ///
+    /// IMPORTANT: Only schedules if notification authorization is granted.
     private func rescheduleNotificationsIfNeeded() async {
+        // Check authorization status first - scheduling without authorization silently fails
+        let isAuthorized = await notificationService.checkAuthorizationStatus()
+
+        guard isAuthorized else {
+            logger.log(
+                "⏭️ Skipping notification re-scheduling - not authorized",
+                level: .debug,
+                category: .system
+            )
+            return
+        }
+
         do {
             logger.log(
                 "🔄 Re-scheduling notifications on app active",

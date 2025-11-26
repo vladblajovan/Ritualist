@@ -30,6 +30,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.paywallService) var paywallService
     @ObservationIgnored @Injected(\.debugLogger) var logger
     @ObservationIgnored @Injected(\.restoreGeofenceMonitoring) var restoreGeofenceMonitoring
+    @ObservationIgnored @Injected(\.dailyNotificationScheduler) var dailyNotificationScheduler
 
     #if DEBUG
     private let populateTestData: PopulateTestDataUseCase?
@@ -458,6 +459,24 @@ public final class SettingsViewModel {
 
             // Reload profile after import
             await load()
+
+            // CRITICAL: Reschedule notifications for imported habits
+            // Import happens after app launch, so initial scheduling missed the imported data
+            logger.log(
+                "📅 Rescheduling notifications after import",
+                level: .info,
+                category: .dataIntegrity
+            )
+            try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
+
+            // CRITICAL: Restore geofences for imported habits with location-based reminders
+            // Geofences are device-local and must be re-registered after import
+            logger.log(
+                "🌍 Restoring geofences after import",
+                level: .info,
+                category: .dataIntegrity
+            )
+            try await restoreGeofenceMonitoring.execute()
 
             // Track import action
             userActionTracker.track(.custom(event: "user_data_imported", parameters: [:]))
