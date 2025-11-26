@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import SwiftData
 
 public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
     private let loadProfile: LoadProfileUseCase
@@ -16,7 +17,7 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
     private let personalityRepository: PersonalityAnalysisRepositoryProtocol
     private let logDataSource: LogLocalDataSourceProtocol
     private let updateLastSyncDate: UpdateLastSyncDateUseCase
-    private let deduplicationService: DataDeduplicationServiceProtocol?
+    private let modelContext: ModelContext
     private let logger: DebugLogger
 
     public init(
@@ -27,7 +28,7 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         personalityRepository: PersonalityAnalysisRepositoryProtocol,
         logDataSource: LogLocalDataSourceProtocol,
         updateLastSyncDate: UpdateLastSyncDateUseCase,
-        deduplicationService: DataDeduplicationServiceProtocol? = nil,
+        modelContext: ModelContext,
         logger: DebugLogger
     ) {
         self.loadProfile = loadProfile
@@ -37,7 +38,7 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         self.personalityRepository = personalityRepository
         self.logDataSource = logDataSource
         self.updateLastSyncDate = updateLastSyncDate
-        self.deduplicationService = deduplicationService
+        self.modelContext = modelContext
         self.logger = logger
     }
 
@@ -77,8 +78,31 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         // Validate data size limits to prevent malicious imports
         try validateDataLimits(importedData)
 
+        // ============================================================
+        // VALIDATION PASSED - Safe to clear existing data
+        // ============================================================
+        // Clear existing habits, logs, categories, and personality data
+        // BEFORE importing to ensure we get exactly what's in the JSON.
+        // This prevents merge conflicts and ensures deterministic imports.
+        // NOTE: We keep UserProfile and OnboardingState - profile is updated,
+        // onboarding state should not reset (don't re-show onboarding).
+        // ============================================================
+
         do {
-            // Import profile data
+            logger.log(
+                "📥 Import validation passed, clearing existing data before import",
+                level: .info,
+                category: .dataIntegrity,
+                metadata: [
+                    "habits_to_import": importedData.habits.count,
+                    "logs_to_import": importedData.habitLogs.count,
+                    "categories_to_import": importedData.categories.count
+                ]
+            )
+
+            try await clearExistingData()
+
+            // Import profile data (updates existing profile, doesn't create new)
             try await importProfile(importedData.profile, avatar: importedData.avatar)
 
             // Import categories first (habits depend on them)
@@ -98,23 +122,16 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
                 await updateLastSyncDate.execute(lastSynced)
             }
 
-            // Deduplicate any duplicates that might have been created during import
-            // This is a safety net for data imported from other devices via CloudKit
-            if let deduplicationService = deduplicationService {
-                let result = try await deduplicationService.deduplicateAll()
-                if result.hadDuplicates {
-                    logger.log(
-                        "🔄 Cleaned up duplicates after import",
-                        level: .info,
-                        category: .dataIntegrity,
-                        metadata: [
-                            "habits": result.habitsRemoved,
-                            "categories": result.categoriesRemoved,
-                            "logs": result.habitLogsRemoved
-                        ]
-                    )
-                }
-            }
+            logger.log(
+                "✅ Import completed successfully",
+                level: .info,
+                category: .dataIntegrity,
+                metadata: [
+                    "habits_imported": importedData.habits.count,
+                    "logs_imported": importedData.habitLogs.count,
+                    "categories_imported": importedData.categories.count
+                ]
+            )
 
             // NOTE: Notification rescheduling and geofence restoration are handled
             // by the caller (SettingsViewModel) after import completes successfully.
@@ -122,6 +139,44 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
 
         } catch {
             throw ImportError.importFailed(underlying: error)
+        }
+    }
+
+    // MARK: - Clear Existing Data
+
+    /// Clears existing user data before import to ensure a clean slate.
+    /// This guarantees the imported data exactly matches the JSON file.
+    ///
+    /// Clears: Habits, HabitLogs, Categories, PersonalityAnalysis
+    /// Keeps: UserProfile (updated by import), OnboardingState (don't re-show onboarding)
+    private func clearExistingData() async throws {
+        try await MainActor.run {
+            // Order matters: delete children before parents to respect relationships
+
+            // 1. Delete all habit logs first (child of habits)
+            try modelContext.delete(model: ActiveHabitLogModel.self)
+
+            // 2. Delete personality analysis data
+            try modelContext.delete(model: ActivePersonalityAnalysisModel.self)
+
+            // 3. Delete habits (references categories)
+            try modelContext.delete(model: ActiveHabitModel.self)
+
+            // 4. Delete categories
+            try modelContext.delete(model: ActiveHabitCategoryModel.self)
+
+            // NOTE: Do NOT delete UserProfile or OnboardingState
+            // - UserProfile will be updated by importProfile()
+            // - OnboardingState should persist (don't re-show onboarding)
+
+            // Save deletions
+            try modelContext.save()
+
+            logger.log(
+                "🗑️ Cleared existing data before import",
+                level: .debug,
+                category: .dataIntegrity
+            )
         }
     }
 
@@ -188,54 +243,35 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
     }
 
     private func importCategories(_ categories: [HabitCategory]) async throws {
-        // Get existing categories
-        let existingCategories = try await categoryRepository.getAllCategories()
-        let existingIDs = Set(existingCategories.map { $0.id })
-
+        // Clean slate - just create all categories from the import
         for category in categories {
-            if existingIDs.contains(category.id) {
-                // Update existing category
-                try await categoryRepository.updateCategory(category)
-            } else {
-                // Create new category
-                try await categoryRepository.createCustomCategory(category)
-            }
+            try await categoryRepository.createCustomCategory(category)
         }
     }
 
     private func importHabits(_ habits: [Habit]) async throws {
-        // HabitRepository.update() uses upsert semantics internally,
-        // so it will insert new habits or update existing ones
+        // Clean slate - insert all habits from the import
         for habit in habits {
             try await habitRepository.update(habit)
         }
     }
 
     private func importHabitLogs(_ logs: [HabitLog]) async throws {
-        // Import all logs (upsert will handle duplicates)
+        // Clean slate - insert all logs from the import
         for log in logs {
             try await logDataSource.upsert(log)
         }
     }
 
     private func importPersonalityData(_ personalityData: ImportPersonalityData) async throws {
-        // Get current profile to use correct user ID
-        let currentProfile = try await loadProfile.execute()
-
         // Import current personality profile if available
         if let currentPersonality = personalityData.currentProfile {
             try await personalityRepository.savePersonalityProfile(currentPersonality)
         }
 
-        // Fetch existing history IDs once to avoid duplicates
-        let existingHistory = try await personalityRepository.getPersonalityHistory(for: currentProfile.id)
-        let existingIDs = Set(existingHistory.map { $0.id })
-
-        // Import personality history (skip duplicates)
+        // Clean slate - import all personality history
         for profile in personalityData.analysisHistory {
-            if !existingIDs.contains(profile.id) {
-                try await personalityRepository.savePersonalityProfile(profile)
-            }
+            try await personalityRepository.savePersonalityProfile(profile)
         }
     }
 

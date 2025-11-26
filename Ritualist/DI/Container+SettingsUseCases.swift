@@ -103,7 +103,7 @@ extension Container {
                 personalityRepository: self.personalityAnalysisRepository(),
                 logDataSource: self.logDataSource(),
                 updateLastSyncDate: self.updateLastSyncDate(),
-                deduplicationService: self.dataDeduplicationService(),
+                modelContext: self.persistenceContainer().context,
                 logger: self.debugLogger()
             )
         }
