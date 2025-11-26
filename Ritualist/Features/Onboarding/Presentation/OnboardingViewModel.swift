@@ -16,6 +16,7 @@ public final class OnboardingViewModel {
     private let getLocationAuthStatus: GetLocationAuthStatusUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.debugLogger) var logger
+    @ObservationIgnored @Injected(\.dailyNotificationScheduler) var dailyNotificationScheduler
 
     // Current state
     public var currentPage: Int = 0
@@ -118,6 +119,15 @@ public final class OnboardingViewModel {
             // Track permission result
             if granted {
                 userActionTracker.track(.onboardingNotificationPermissionGranted)
+
+                // CRITICAL: If permission was just granted, schedule notifications for any existing habits
+                // This handles the case where user created habits before granting notification permission
+                logger.log(
+                    "📅 Scheduling notifications after onboarding permission granted",
+                    level: .info,
+                    category: .notifications
+                )
+                try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
             } else {
                 userActionTracker.track(.onboardingNotificationPermissionDenied)
             }

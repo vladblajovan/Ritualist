@@ -229,11 +229,22 @@ public final class SettingsViewModel {
     public func requestNotifications() async {
         isRequestingNotifications = true
         error = nil
-        
+
         do {
             let granted = try await requestNotificationPermission.execute()
             hasNotificationPermission = granted
-            
+
+            // CRITICAL: If permission was just granted, schedule notifications for existing habits
+            // This handles the case where user had habits but denied notifications initially
+            if granted {
+                logger.log(
+                    "📅 Scheduling notifications after permission granted",
+                    level: .info,
+                    category: .notifications
+                )
+                try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
+            }
+
             // Track notification settings change
             userActionTracker.track(.notificationSettingsChanged(enabled: granted))
         } catch {
