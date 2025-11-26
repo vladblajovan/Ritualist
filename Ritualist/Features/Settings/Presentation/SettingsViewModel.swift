@@ -275,6 +275,16 @@ public final class SettingsViewModel {
             // Track location permission granted
             userActionTracker.track(.locationPermissionGranted(status: String(describing: status), context: "settings"))
             userActionTracker.track(.profileUpdated(field: "location_permission"))
+
+            // CRITICAL: If permission was just granted, restore geofences for existing habits
+            // This handles the case where user had location-based habits but denied permission initially
+            logger.log(
+                "🌍 Restoring geofences after location permission granted",
+                level: .info,
+                category: .location
+            )
+            try? await restoreGeofenceMonitoring.execute()
+
         case .denied:
             locationAuthStatus = .denied
             // Track location permission denied

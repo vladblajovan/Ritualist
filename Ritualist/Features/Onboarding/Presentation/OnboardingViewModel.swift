@@ -17,6 +17,7 @@ public final class OnboardingViewModel {
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.debugLogger) var logger
     @ObservationIgnored @Injected(\.dailyNotificationScheduler) var dailyNotificationScheduler
+    @ObservationIgnored @Injected(\.restoreGeofenceMonitoring) var restoreGeofenceMonitoring
 
     // Current state
     public var currentPage: Int = 0
@@ -152,6 +153,15 @@ public final class OnboardingViewModel {
         // Track permission result
         if hasGrantedLocation {
             userActionTracker.track(.onboardingLocationPermissionGranted(status: String(describing: locationStatus)))
+
+            // CRITICAL: If permission was just granted, restore geofences for any existing habits
+            // This handles the case where user created location-based habits before granting permission
+            logger.log(
+                "🌍 Restoring geofences after onboarding location permission granted",
+                level: .info,
+                category: .location
+            )
+            try? await restoreGeofenceMonitoring.execute()
         } else {
             userActionTracker.track(.onboardingLocationPermissionDenied)
         }
