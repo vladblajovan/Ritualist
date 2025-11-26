@@ -3,6 +3,7 @@ import Observation
 import FactoryKit
 import RitualistCore
 
+// swiftlint:disable type_body_length
 @MainActor @Observable
 public final class SettingsViewModel {
     private let loadProfile: LoadProfileUseCase
@@ -19,12 +20,17 @@ public final class SettingsViewModel {
     private let checkiCloudStatus: CheckiCloudStatusUseCase
     private let getLastSyncDate: GetLastSyncDateUseCase
     private let updateLastSyncDate: UpdateLastSyncDateUseCase
+    private let deleteiCloudData: DeleteiCloudDataUseCase
+    private let exportUserData: ExportUserDataUseCase
+    private let importUserData: ImportUserDataUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
     @ObservationIgnored @Injected(\.subscriptionService) var subscriptionService
     @ObservationIgnored @Injected(\.paywallService) var paywallService
     @ObservationIgnored @Injected(\.debugLogger) var logger
+    @ObservationIgnored @Injected(\.restoreGeofenceMonitoring) var restoreGeofenceMonitoring
+    @ObservationIgnored @Injected(\.dailyNotificationScheduler) var dailyNotificationScheduler
 
     #if DEBUG
     private let populateTestData: PopulateTestDataUseCase?
@@ -49,7 +55,14 @@ public final class SettingsViewModel {
     public private(set) var lastSyncDate: Date?
     public private(set) var iCloudStatus: iCloudSyncStatus = .unknown
     public private(set) var isCheckingCloudStatus = false
-    
+    public private(set) var isDeletingCloudData = false
+    public private(set) var isExportingData = false
+    public var exportedDataJSON: String?
+    public var exportedFileURL: URL?
+    public private(set) var isImportingData = false
+    public var showImportPicker = false
+    public var showExportPicker = false
+
     #if DEBUG
     public private(set) var isClearingDatabase = false
     public private(set) var databaseStats: DebugDatabaseStats?
@@ -102,6 +115,9 @@ public final class SettingsViewModel {
                 checkiCloudStatus: CheckiCloudStatusUseCase,
                 getLastSyncDate: GetLastSyncDateUseCase,
                 updateLastSyncDate: UpdateLastSyncDateUseCase,
+                deleteiCloudData: DeleteiCloudDataUseCase,
+                exportUserData: ExportUserDataUseCase,
+                importUserData: ImportUserDataUseCase,
                 populateTestData: (any Any)? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
@@ -117,6 +133,9 @@ public final class SettingsViewModel {
         self.checkiCloudStatus = checkiCloudStatus
         self.getLastSyncDate = getLastSyncDate
         self.updateLastSyncDate = updateLastSyncDate
+        self.deleteiCloudData = deleteiCloudData
+        self.exportUserData = exportUserData
+        self.importUserData = importUserData
         #if DEBUG
         self.populateTestData = populateTestData as? PopulateTestDataUseCase
         #endif
@@ -127,15 +146,7 @@ public final class SettingsViewModel {
         error = nil
         do {
             profile = try await loadProfile.execute()
-            hasNotificationPermission = await checkNotificationStatus.execute()
-            locationAuthStatus = await getLocationAuthStatus.execute()
-            cachedPremiumStatus = await checkPremiumStatus.execute()
-            lastSyncDate = await getLastSyncDate.execute()
-            await refreshiCloudStatus()
-
-            // Cache subscription data from service (not database)
-            cachedSubscriptionPlan = await getCurrentSubscriptionPlan.execute()
-            cachedSubscriptionExpiryDate = await getSubscriptionExpiryDate.execute()
+            await loadStatusesInParallel()
             logger.logSubscription(
                 event: "Cached subscription from service",
                 plan: cachedSubscriptionPlan.rawValue,
@@ -147,34 +158,60 @@ public final class SettingsViewModel {
             self.error = error
             profile = UserProfile()
             userActionTracker.trackError(error, context: "settings_load")
-            hasNotificationPermission = await checkNotificationStatus.execute()
-            locationAuthStatus = await getLocationAuthStatus.execute()
-            cachedPremiumStatus = await checkPremiumStatus.execute()
-            lastSyncDate = await getLastSyncDate.execute()
-
-            // Cache subscription data from service even on error
-            cachedSubscriptionPlan = await getCurrentSubscriptionPlan.execute()
-            cachedSubscriptionExpiryDate = await getSubscriptionExpiryDate.execute()
+            await loadStatusesInParallel()
         }
         isLoading = false
+    }
+
+    /// Load all status checks in parallel for faster startup
+    private func loadStatusesInParallel() async {
+        async let notificationStatus = checkNotificationStatus.execute()
+        async let locationStatus = getLocationAuthStatus.execute()
+        async let premiumStatus = checkPremiumStatus.execute()
+        async let syncDate = getLastSyncDate.execute()
+        async let subscriptionPlan = getCurrentSubscriptionPlan.execute()
+        async let subscriptionExpiry = getSubscriptionExpiryDate.execute()
+
+        // Await all results (runs in parallel)
+        hasNotificationPermission = await notificationStatus
+        locationAuthStatus = await locationStatus
+        cachedPremiumStatus = await premiumStatus
+        lastSyncDate = await syncDate
+        cachedSubscriptionPlan = await subscriptionPlan
+        cachedSubscriptionExpiryDate = await subscriptionExpiry
+
+        // iCloud status has its own loading indicator, run after parallel batch
+        await refreshiCloudStatus()
     }
 
     public func save() async -> Bool {
         isSaving = true
         error = nil
-        
+
         do {
             try await saveProfile.execute(profile)
-            
+
             // Track profile update
             userActionTracker.track(.profileUpdated(field: "general_settings"))
-            
+
             // Send notification after successful save
             // try? await notificationService.sendImmediate(
             //     title: "Settings Saved",
             //     body: "Your preferences have been updated successfully."
             // )
-            
+
+            // Auto-sync with iCloud after profile changes
+            do {
+                try await syncWithiCloud.execute()
+            } catch {
+                logger.log(
+                    "Auto-sync after save failed (non-blocking)",
+                    level: .warning,
+                    category: .network,
+                    metadata: ["error": error.localizedDescription]
+                )
+            }
+
             isSaving = false
             return true
         } catch {
@@ -192,11 +229,22 @@ public final class SettingsViewModel {
     public func requestNotifications() async {
         isRequestingNotifications = true
         error = nil
-        
+
         do {
             let granted = try await requestNotificationPermission.execute()
             hasNotificationPermission = granted
-            
+
+            // CRITICAL: If permission was just granted, schedule notifications for existing habits
+            // This handles the case where user had habits but denied notifications initially
+            if granted {
+                logger.log(
+                    "📅 Scheduling notifications after permission granted",
+                    level: .info,
+                    category: .notifications
+                )
+                try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
+            }
+
             // Track notification settings change
             userActionTracker.track(.notificationSettingsChanged(enabled: granted))
         } catch {
@@ -227,6 +275,16 @@ public final class SettingsViewModel {
             // Track location permission granted
             userActionTracker.track(.locationPermissionGranted(status: String(describing: status), context: "settings"))
             userActionTracker.track(.profileUpdated(field: "location_permission"))
+
+            // CRITICAL: If permission was just granted, restore geofences for existing habits
+            // This handles the case where user had location-based habits but denied permission initially
+            logger.log(
+                "🌍 Restoring geofences after location permission granted",
+                level: .info,
+                category: .location
+            )
+            try? await restoreGeofenceMonitoring.execute()
+
         case .denied:
             locationAuthStatus = .denied
             // Track location permission denied
@@ -251,21 +309,33 @@ public final class SettingsViewModel {
     public func updateUserName(_ name: String) async {
         isUpdatingUser = true
         error = nil
-        
+
         // Update both the local profile state and via UserService
         profile.name = name
         profile.updatedAt = Date()
-        
+
         do {
             try await saveProfile.execute(profile)
-            
+
             // Track user name update
             userActionTracker.track(.profileUpdated(field: "name"))
+
+            // Auto-sync with iCloud after profile changes
+            do {
+                try await syncWithiCloud.execute()
+            } catch {
+                logger.log(
+                    "Auto-sync after name update failed (non-blocking)",
+                    level: .warning,
+                    category: .network,
+                    metadata: ["error": error.localizedDescription]
+                )
+            }
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "user_name_update", additionalProperties: ["name": name])
         }
-        
+
         isUpdatingUser = false
     }
     
@@ -290,12 +360,33 @@ public final class SettingsViewModel {
     public func updateAppearance(_ appearance: Int) async {
         // Update the profile appearance setting
         profile.appearance = appearance
+        profile.updatedAt = Date()
 
         // Apply the appearance change to the appearance manager
         appearanceManager.updateFromProfile(profile)
 
-        // Track appearance change
-        userActionTracker.track(.profileUpdated(field: "appearance"))
+        // Save the profile changes
+        do {
+            try await saveProfile.execute(profile)
+
+            // Track appearance change
+            userActionTracker.track(.profileUpdated(field: "appearance"))
+
+            // Auto-sync with iCloud after profile changes
+            do {
+                try await syncWithiCloud.execute()
+            } catch {
+                logger.log(
+                    "Auto-sync after appearance update failed (non-blocking)",
+                    level: .warning,
+                    category: .network,
+                    metadata: ["error": error.localizedDescription]
+                )
+            }
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "appearance_update", additionalProperties: ["appearance": String(appearance)])
+        }
     }
 
     // MARK: - iCloud Sync Methods
@@ -309,6 +400,11 @@ public final class SettingsViewModel {
             try await syncWithiCloud.execute()
             await updateLastSyncDate.execute(Date())
             lastSyncDate = Date()
+
+            // Restore geofences after sync to handle new device setup scenario:
+            // When user syncs on a new device, habit data with location configs arrives,
+            // but geofences are device-local and must be registered with iOS.
+            try await restoreGeofenceMonitoring.execute()
 
             // Track sync action
             userActionTracker.track(.custom(event: "icloud_manual_sync", parameters: [:]))
@@ -328,6 +424,89 @@ public final class SettingsViewModel {
         iCloudStatus = await checkiCloudStatus.execute()
 
         isCheckingCloudStatus = false
+    }
+
+    /// Delete iCloud data (GDPR compliance - Right to be forgotten)
+    /// Permanently deletes user's profile from CloudKit
+    /// Local data remains intact on device
+    public func deleteCloudData() async {
+        isDeletingCloudData = true
+        error = nil
+
+        do {
+            try await deleteiCloudData.execute()
+
+            // Clear last sync date since there's no cloud data anymore
+            lastSyncDate = nil
+
+            // Track deletion action
+            userActionTracker.track(.custom(event: "icloud_data_deleted_by_user", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "icloud_delete_data")
+        }
+
+        isDeletingCloudData = false
+    }
+
+    /// Export user data (GDPR compliance - Right to data portability)
+    /// Exports all user data as JSON string for sharing/backup
+    public func exportData() async {
+        isExportingData = true
+        error = nil
+
+        do {
+            let jsonString = try await exportUserData.execute()
+            exportedDataJSON = jsonString
+
+            // Track export action
+            userActionTracker.track(.custom(event: "user_data_exported", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "export_user_data")
+        }
+
+        isExportingData = false
+    }
+
+    /// Import user data (GDPR compliance - Right to data portability)
+    /// Imports all user data from JSON string, merging with existing data
+    public func importData(jsonString: String) async {
+        isImportingData = true
+        error = nil
+
+        do {
+            try await importUserData.execute(jsonString: jsonString)
+
+            // Reload profile after import
+            await load()
+
+            // CRITICAL: Reschedule notifications for imported habits
+            // Import happens after app launch, so initial scheduling missed the imported data
+            logger.log(
+                "📅 Rescheduling notifications after import",
+                level: .info,
+                category: .dataIntegrity
+            )
+            try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
+
+            // CRITICAL: Restore geofences for imported habits with location-based reminders
+            // Geofences are device-local and must be re-registered after import
+            logger.log(
+                "🌍 Restoring geofences after import",
+                level: .info,
+                category: .dataIntegrity
+            )
+            try await restoreGeofenceMonitoring.execute()
+
+            // Track import action
+            userActionTracker.track(.custom(event: "user_data_imported", parameters: [:]))
+        } catch {
+            self.error = error
+            userActionTracker.trackError(error, context: "import_user_data")
+        }
+
+        isImportingData = false
     }
 
     // MARK: - Debug Methods

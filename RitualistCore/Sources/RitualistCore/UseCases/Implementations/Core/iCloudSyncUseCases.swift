@@ -15,14 +15,24 @@ public protocol SyncWithiCloudUseCase {
 }
 
 public final class DefaultSyncWithiCloudUseCase: SyncWithiCloudUseCase {
-    private let userBusinessService: UserBusinessService
+    private let checkiCloudStatus: CheckiCloudStatusUseCase
 
-    public init(userBusinessService: UserBusinessService) {
-        self.userBusinessService = userBusinessService
+    public init(checkiCloudStatus: CheckiCloudStatusUseCase) {
+        self.checkiCloudStatus = checkiCloudStatus
     }
 
     public func execute() async throws {
-        try await userBusinessService.syncWithiCloud()
+        // SwiftData automatically syncs all models to iCloud (see PersistenceContainer.swift:68-69)
+        // This method validates CloudKit availability before claiming sync succeeded
+
+        let status = await checkiCloudStatus.execute()
+
+        guard status == .available else {
+            throw iCloudSyncError.syncNotAvailable(status: status)
+        }
+
+        // If we reach here, iCloud is available and SwiftData will sync automatically
+        // Return success so the timestamp updates
     }
 }
 
@@ -44,9 +54,11 @@ public final class DisabledCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
 
 public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
     private let syncErrorHandler: CloudSyncErrorHandler
+    private let logger: DebugLogger
 
-    public init(syncErrorHandler: CloudSyncErrorHandler) {
+    public init(syncErrorHandler: CloudSyncErrorHandler, logger: DebugLogger) {
         self.syncErrorHandler = syncErrorHandler
+        self.logger = logger
     }
 
     public func execute() async -> iCloudSyncStatus {
@@ -78,13 +90,19 @@ public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
                 return .notSignedIn
             case .restricted:
                 return .restricted
-            case .temporarilyUnavailable:
+            case .temporarilyUnavailable, .networkUnavailable:
                 return .temporarilyUnavailable
             case .couldNotDetermine, .unknown:
                 return .unknown
             }
         } catch {
-            // Any other error - return unknown
+            // Log unexpected errors for debugging
+            logger.log(
+                "Unexpected iCloud status check error",
+                level: .warning,
+                category: .network,
+                metadata: ["error": error.localizedDescription]
+            )
             return .unknown
         }
     }
@@ -102,15 +120,15 @@ public enum iCloudSyncStatus: Equatable {
     public var displayMessage: String {
         switch self {
         case .available:
-            return "iCloud is available"
+            return "Enabled"
         case .notSignedIn:
-            return "Not signed in to iCloud"
+            return "Not signed in"
         case .restricted:
-            return "iCloud is restricted"
+            return "Restricted"
         case .temporarilyUnavailable:
-            return "iCloud temporarily unavailable"
+            return "Unavailable"
         case .unknown:
-            return "iCloud status unknown"
+            return "Unknown"
         }
     }
 
@@ -126,12 +144,23 @@ public protocol GetLastSyncDateUseCase {
 }
 
 public final class DefaultGetLastSyncDateUseCase: GetLastSyncDateUseCase {
-    private static let lastSyncDateKey = "com.ritualist.lastSyncDate"
-
     public init() {}
 
     public func execute() async -> Date? {
-        return UserDefaults.standard.object(forKey: Self.lastSyncDateKey) as? Date
+        return UserDefaults.standard.object(forKey: UserDefaultsKeys.lastSyncDate) as? Date
+    }
+}
+
+// MARK: - iCloud Sync Error
+
+public enum iCloudSyncError: LocalizedError {
+    case syncNotAvailable(status: iCloudSyncStatus)
+
+    public var errorDescription: String? {
+        switch self {
+        case .syncNotAvailable(let status):
+            return "iCloud sync not available: \(status.displayMessage)"
+        }
     }
 }
 
@@ -142,11 +171,9 @@ public protocol UpdateLastSyncDateUseCase {
 }
 
 public final class DefaultUpdateLastSyncDateUseCase: UpdateLastSyncDateUseCase {
-    private static let lastSyncDateKey = "com.ritualist.lastSyncDate"
-
     public init() {}
 
     public func execute(_ date: Date) async {
-        UserDefaults.standard.set(date, forKey: Self.lastSyncDateKey)
+        UserDefaults.standard.set(date, forKey: UserDefaultsKeys.lastSyncDate)
     }
 }

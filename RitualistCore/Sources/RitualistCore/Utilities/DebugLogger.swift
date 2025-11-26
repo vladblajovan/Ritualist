@@ -100,6 +100,12 @@ public final class DebugLogger {
         function: String = #function,
         line: Int = #line
     ) {
+        // In production builds, only log errors and critical messages
+        // This is important for App Store approval and performance
+        guard !isProductionBuild || level == .error || level == .critical else {
+            return
+        }
+
         let entry = LogEntry(
             timestamp: Date(),
             level: level,
@@ -107,18 +113,15 @@ public final class DebugLogger {
             message: message,
             metadata: metadata
         )
-        
-        // Add to buffer
-        addToBuffer(entry)
-        
-        // Console output for debug builds or critical logs
-        if !isProductionBuild || level == .critical || level == .error {
-            let emoji = emojiForLevel(level)
-            print("\(emoji) \(entry.formattedMessage)")
+
+        // Add to buffer (only in debug for memory efficiency)
+        if !isProductionBuild {
+            addToBuffer(entry)
         }
-        
-        // OS Log
-        os_log("%{public}@", log: osLog, type: level.osLogType, entry.formattedMessage)
+
+        // OS Log only - appears in Xcode console and Console.app
+        let emoji = emojiForLevel(level)
+        os_log("%{public}@", log: osLog, type: level.osLogType, "\(emoji) \(entry.formattedMessage)")
     }
     
     /// Convenience method for simple logging (maintains backward compatibility)

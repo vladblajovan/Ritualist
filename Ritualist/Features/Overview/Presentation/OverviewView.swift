@@ -197,11 +197,18 @@ public struct OverviewView: View {
             .onDisappear {
                 // RACE CONDITION FIX: Set view as not visible
                 vm.setViewVisible(false)
+                // Track that view has disappeared (for tab switch detection)
+                vm.markViewDisappeared()
             }
             .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
                 // When view becomes visible (tab switch), reload to pick up changes from other tabs
                 // This ensures habit schedule changes from Habits screen are reflected in Overview
-                if !wasVisible && isVisible {
+                //
+                // IMPORTANT: Skip on initial appear - the .task modifier handles initial load.
+                // Only reload when returning to this tab after visiting another tab.
+                // We use isReturningFromTabSwitch which tracks if onDisappear was ever called,
+                // correctly distinguishing initial appear from tab switch regardless of load success.
+                if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
                     Task {
                         Container.shared.debugLogger().log("Tab switch detected: Reloading overview data", level: .debug, category: .ui)
                         vm.invalidateCacheForTabSwitch()
@@ -214,6 +221,18 @@ public struct OverviewView: View {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                 // Refresh data when app comes to foreground (after background notification actions)
                 Task {
+                    await vm.refresh()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+                // Auto-refresh when iCloud syncs new data from another device
+                // This ensures Overview shows the latest data without requiring tab switch
+                Task {
+                    Container.shared.debugLogger().log(
+                        "☁️ iCloud sync detected - refreshing Overview",
+                        level: .info,
+                        category: .system
+                    )
                     await vm.refresh()
                 }
             }

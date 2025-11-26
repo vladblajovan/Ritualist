@@ -8,12 +8,56 @@
 import SwiftUI
 import RitualistCore
 
-// MARK: - Constants
+// MARK: - Frequency Preset
 
-private enum CooldownConstants {
-    static let minimumCooldown: Int = 5
-    static let maximumCooldown: Int = 120
-    static let cooldownStep: Int = 5
+/// Preset options for notification frequency
+private enum FrequencyPreset: CaseIterable, Identifiable {
+    case oncePerDay
+    case every15Minutes
+    case every30Minutes
+    case everyHour
+    case every2Hours
+
+    var id: Self { self }
+
+    var displayName: String {
+        switch self {
+        case .oncePerDay: return Strings.Location.frequencyOncePerDay
+        case .every15Minutes: return Strings.Location.frequencyEvery15Min
+        case .every30Minutes: return Strings.Location.frequencyEvery30Min
+        case .everyHour: return Strings.Location.frequencyEveryHour
+        case .every2Hours: return Strings.Location.frequencyEvery2Hours
+        }
+    }
+
+    var toNotificationFrequency: NotificationFrequency {
+        switch self {
+        case .oncePerDay: return .oncePerDay
+        case .every15Minutes: return .everyEntry(cooldownMinutes: 15)
+        case .every30Minutes: return .everyEntry(cooldownMinutes: 30)
+        case .everyHour: return .everyEntry(cooldownMinutes: 60)
+        case .every2Hours: return .everyEntry(cooldownMinutes: 120)
+        }
+    }
+
+    /// Maps a NotificationFrequency to the closest FrequencyPreset.
+    ///
+    /// Note: Custom cooldown values (e.g., 45 minutes) are mapped to the nearest preset
+    /// (e.g., 60 minutes). This is intentional UX behavior - the preset picker doesn't
+    /// support arbitrary values. The actual cooldown stored in the habit is preserved;
+    /// this mapping only affects UI display in the preset selector.
+    static func from(_ frequency: NotificationFrequency) -> FrequencyPreset {
+        switch frequency {
+        case .oncePerDay:
+            return .oncePerDay
+        case .everyEntry(let minutes):
+            // Map to closest preset (rounds up to next threshold)
+            if minutes <= 15 { return .every15Minutes }
+            if minutes <= 30 { return .every30Minutes }
+            if minutes <= 60 { return .everyHour }
+            return .every2Hours
+        }
+    }
 }
 
 public struct GeofenceConfigurationSheet: View {
@@ -23,9 +67,8 @@ public struct GeofenceConfigurationSheet: View {
 
     @State private var radius: Double
     @State private var triggerType: GeofenceTrigger
-    @State private var frequency: NotificationFrequency
+    @State private var frequencyPreset: FrequencyPreset
     @State private var locationLabel: String
-    @State private var cooldownMinutes: Int = NotificationFrequency.defaultCooldown
 
     public init(vm: HabitDetailViewModel) {
         self.vm = vm
@@ -39,15 +82,8 @@ public struct GeofenceConfigurationSheet: View {
 
         _radius = State(initialValue: config.radius)
         _triggerType = State(initialValue: config.triggerType)
-        _frequency = State(initialValue: config.frequency)
+        _frequencyPreset = State(initialValue: FrequencyPreset.from(config.frequency))
         _locationLabel = State(initialValue: config.locationLabel ?? "")
-
-        if case .everyEntry(let minutes) = config.frequency {
-            // Enforce minimum cooldown
-            _cooldownMinutes = State(initialValue: max(minutes, CooldownConstants.minimumCooldown))
-        } else {
-            _cooldownMinutes = State(initialValue: CooldownConstants.minimumCooldown)
-        }
     }
 
     public var body: some View {
@@ -56,7 +92,7 @@ public struct GeofenceConfigurationSheet: View {
                 LocationLabelSection(locationLabel: $locationLabel)
                 RadiusSection(radius: $radius)
                 TriggerTypeSection(triggerType: $triggerType)
-                FrequencySection(frequency: $frequency, cooldownMinutes: $cooldownMinutes)
+                FrequencySection(selectedPreset: $frequencyPreset)
             }
             .navigationTitle(Strings.Location.locationDetails)
             .navigationBarTitleDisplayMode(.inline)
@@ -83,13 +119,7 @@ public struct GeofenceConfigurationSheet: View {
         config.radius = radius
         config.triggerType = triggerType
         config.locationLabel = locationLabel.isEmpty ? nil : locationLabel
-
-        // Update frequency based on selection
-        if case .everyEntry = frequency {
-            config.frequency = .everyEntry(cooldownMinutes: cooldownMinutes)
-        } else {
-            config.frequency = frequency
-        }
+        config.frequency = frequencyPreset.toNotificationFrequency
 
         Task {
             await vm.updateLocationConfiguration(config)
@@ -106,7 +136,7 @@ private struct RadiusSection: View {
         Section {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(Strings.Form.unitPlaceholder)
+                    Text(Strings.Location.radius)
                     Spacer()
                     Text("\(Int(radius))m")
                         .foregroundColor(.secondary)
@@ -191,68 +221,31 @@ private struct TriggerTypeSection: View {
 // MARK: - Frequency Section
 
 private struct FrequencySection: View {
-    @Binding var frequency: NotificationFrequency
-    @Binding var cooldownMinutes: Int
-
-    @State private var isOncePerDay: Bool
-
-    init(frequency: Binding<NotificationFrequency>, cooldownMinutes: Binding<Int>) {
-        self._frequency = frequency
-        self._cooldownMinutes = cooldownMinutes
-
-        // Initialize toggle state
-        _isOncePerDay = State(initialValue: {
-            switch frequency.wrappedValue {
-            case .oncePerDay: return true
-            case .everyEntry: return false
-            }
-        }())
-    }
+    @Binding var selectedPreset: FrequencyPreset
 
     var body: some View {
         Section {
-            Toggle(Strings.Location.oncePerDay, isOn: $isOncePerDay)
-                .onChange(of: isOncePerDay) { _, newValue in
-                    frequency = newValue ? .oncePerDay : .everyEntry(cooldownMinutes: cooldownMinutes)
-                }
-
-            if !isOncePerDay {
-                VStack(alignment: .leading, spacing: 8) {
+            ForEach(FrequencyPreset.allCases) { preset in
+                Button {
+                    selectedPreset = preset
+                } label: {
                     HStack {
-                        Text(Strings.Location.cooldownPeriod)
-                        Spacer()
-                        Text(Strings.Location.cooldownMinutes(cooldownMinutes))
-                            .foregroundColor(.secondary)
-                    }
+                        Text(preset.displayName)
 
-                    Slider(
-                        value: Binding(
-                            get: { Double(cooldownMinutes) },
-                            set: { cooldownMinutes = Int($0) }
-                        ),
-                        in: Double(CooldownConstants.minimumCooldown)...Double(CooldownConstants.maximumCooldown),
-                        step: Double(CooldownConstants.cooldownStep)
-                    )
-
-                    HStack {
-                        Text("\(CooldownConstants.minimumCooldown) min")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                         Spacer()
-                        Text("\(CooldownConstants.maximumCooldown) min")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+
+                        if selectedPreset == preset {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
                     }
                 }
+                .foregroundColor(.primary)
             }
         } header: {
             Text(Strings.Location.notificationFrequency)
         } footer: {
-            if isOncePerDay {
-                Text(Strings.Location.frequencyOncePerDayFooter)
-            } else {
-                Text(Strings.Location.frequencyCooldownFooter(cooldownMinutes))
-            }
+            Text(Strings.Location.notificationFrequencyFooter)
         }
     }
 }

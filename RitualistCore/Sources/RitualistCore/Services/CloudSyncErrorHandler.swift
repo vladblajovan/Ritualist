@@ -7,6 +7,7 @@
 
 import Foundation
 import CloudKit
+import Network
 
 /// Handles CloudKit sync errors with intelligent retry logic and error classification
 public actor CloudSyncErrorHandler {
@@ -110,17 +111,73 @@ public actor CloudSyncErrorHandler {
         )
     }
 
-    /// Check if user is signed into iCloud
+    /// Check if user is signed into iCloud AND if CloudKit is actually reachable
     /// - Returns: Account status
     /// - Throws: CloudKitAvailabilityError if CloudKit is not configured or unavailable
     public func checkiCloudAccountStatus() async throws -> CKAccountStatus {
+        let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
+
+        // First check account status
+        let accountStatus: CKAccountStatus
         do {
-            let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
-            return try await container.accountStatus()
+            accountStatus = try await container.accountStatus()
         } catch {
             // If we can't access CloudKit container (e.g., entitlements not configured),
             // throw a specific error indicating CloudKit is unavailable
             throw CloudKitAvailabilityError.entitlementsNotConfigured(underlying: error)
+        }
+
+        // If account status is not available, return early
+        guard accountStatus == .available else {
+            return accountStatus
+        }
+
+        // Account is signed in - now check actual device network connectivity
+        let hasNetwork = await checkNetworkConnectivity()
+
+        if !hasNetwork {
+            // Device has no network connection - throw network unavailable error
+            throw CloudKitAvailabilityError.networkUnavailable
+        }
+
+        // Account signed in AND network available
+        return .available
+    }
+
+    /// Check if device has network connectivity
+    /// - Returns: true if network is available, false otherwise
+    private func checkNetworkConnectivity() async -> Bool {
+        return await withCheckedContinuation { continuation in
+            let monitor = NWPathMonitor()
+            let queue = DispatchQueue(label: "com.ritualist.networkmonitor")
+            var hasResumed = false
+            let lock = NSLock()
+
+            monitor.pathUpdateHandler = { path in
+                lock.lock()
+                defer { lock.unlock() }
+
+                guard !hasResumed else { return }
+                hasResumed = true
+
+                let isConnected = path.status == .satisfied
+                monitor.cancel()
+                continuation.resume(returning: isConnected)
+            }
+
+            monitor.start(queue: queue)
+
+            // Timeout after 2 seconds if no update
+            DispatchQueue.global().asyncAfter(deadline: .now() + 2.0) {
+                lock.lock()
+                defer { lock.unlock() }
+
+                guard !hasResumed else { return }
+                hasResumed = true
+
+                monitor.cancel()
+                continuation.resume(returning: false)
+            }
         }
     }
 
@@ -306,6 +363,7 @@ public enum CloudKitAvailabilityError: LocalizedError {
     case restricted
     case couldNotDetermine
     case temporarilyUnavailable
+    case networkUnavailable
     case unknown
     case entitlementsNotConfigured(underlying: Error)
 
@@ -319,6 +377,8 @@ public enum CloudKitAvailabilityError: LocalizedError {
             return "Could not determine iCloud account status. Try again."
         case .temporarilyUnavailable:
             return "iCloud is temporarily unavailable. Try again in a few moments."
+        case .networkUnavailable:
+            return "Network unavailable. iCloud sync requires internet connection."
         case .unknown:
             return "Unknown iCloud account status."
         case .entitlementsNotConfigured:
@@ -334,6 +394,8 @@ public enum CloudKitAvailabilityError: LocalizedError {
             return "Check Settings → Screen Time → Content & Privacy Restrictions."
         case .couldNotDetermine, .temporarilyUnavailable:
             return "Wait a moment and try again. Check network connection."
+        case .networkUnavailable:
+            return "Connect to WiFi or cellular data and try again."
         case .unknown:
             return "Restart the app and try again."
         case .entitlementsNotConfigured:

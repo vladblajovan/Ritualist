@@ -59,9 +59,6 @@ public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
         // Performance limit: Prevent infinite loops for extremely large date ranges
         let daysDifference = CalendarUtils.daysBetweenLocal(startDate, endDate, timezone: timezone)
         guard daysDifference >= 0 && daysDifference <= Self.maxDateRangeInDays else {
-            #if DEBUG
-            print("⚠️ Date range exceeds maximum allowed range of \(Self.maxDateRangeInDays) days. Actual: \(daysDifference) days")
-            #endif
             return 0
         }
 

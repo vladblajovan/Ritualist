@@ -203,7 +203,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
         toVersion: SchemaV9.self,
         willMigrate: nil,
         didMigrate: { context in
-            print("🔄 [Migration] V8 → V9: Three-Timezone Model Migration")
+            let migrationStartTime = Date()
+            MigrationLogger.shared.logMigrationStart(from: "8.0.0", to: "9.0.0", changeDescription: "Three-Timezone Model Migration")
 
             // During didMigrate, SwiftData has already transformed the schema structure
             // V8 fields (homeTimezone, displayTimezoneMode) are now V9 structure but with default values
@@ -247,7 +248,14 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             }
 
             try context.save()
-            print("✅ [Migration] V8 → V9: Successfully migrated \(profiles.count) user profile(s)")
+
+            let duration = Date().timeIntervalSince(migrationStartTime)
+            MigrationLogger.shared.logMigrationSuccess(
+                from: "8.0.0",
+                to: "9.0.0",
+                duration: duration,
+                changeDescription: "Migrated \(profiles.count) user profile(s) to Three-Timezone Model"
+            )
         }
     )
 

@@ -55,6 +55,25 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// Track if initial data has been loaded to prevent duplicate loads
     @ObservationIgnored private var hasLoadedInitialData = false
 
+    /// Public accessor for view to check if initial load has completed
+    public var hasInitialDataLoaded: Bool {
+        hasLoadedInitialData
+    }
+
+    /// Track if view has disappeared at least once (to distinguish initial appear from tab switch)
+    @ObservationIgnored private var viewHasDisappearedOnce = false
+
+    /// Mark that the view has disappeared (called from onDisappear)
+    public func markViewDisappeared() {
+        viewHasDisappearedOnce = true
+    }
+
+    /// Check if this is a tab switch (view returning after having left)
+    /// Returns false on initial appear, true on subsequent appears after disappearing
+    public var isReturningFromTabSwitch: Bool {
+        viewHasDisappearedOnce
+    }
+
     // MARK: - Computed Properties
     public var incompleteHabits: [Habit] {
         todaysSummary?.incompleteHabits ?? []

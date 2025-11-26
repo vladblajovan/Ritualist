@@ -69,7 +69,7 @@ public struct AvatarView: View {
                                     .fill(AppColors.brand)
                                     .frame(width: size * 0.3, height: size * 0.3)
                                 
-                                Image(systemName: "plus")
+                                Image(systemName: imageData != nil ? "pencil" : "plus")
                                     .font(.system(size: size * 0.15, weight: .medium))
                                     .foregroundColor(.white)
                             }

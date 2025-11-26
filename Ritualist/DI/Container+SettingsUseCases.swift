@@ -45,14 +45,15 @@ extension Container {
     // MARK: - iCloud Sync Operations
 
     var syncWithiCloud: Factory<SyncWithiCloudUseCase> {
-        self { DefaultSyncWithiCloudUseCase(userBusinessService: self.userBusinessService()) }
+        self { DefaultSyncWithiCloudUseCase(checkiCloudStatus: self.checkiCloudStatus()) }
     }
 
     var checkiCloudStatus: Factory<CheckiCloudStatusUseCase> {
         self {
             // ✅ CloudKit ENABLED - Using real implementation with error handler
             DefaultCheckiCloudStatusUseCase(
-                syncErrorHandler: CloudSyncErrorHandler(errorHandler: self.errorHandler())
+                syncErrorHandler: CloudSyncErrorHandler(errorHandler: self.errorHandler()),
+                logger: self.debugLogger()
             )
         }
     }
@@ -64,7 +65,50 @@ extension Container {
     var updateLastSyncDate: Factory<UpdateLastSyncDateUseCase> {
         self { DefaultUpdateLastSyncDateUseCase() }
     }
-    
+
+    var deleteiCloudData: Factory<DeleteiCloudDataUseCase> {
+        self { DefaultDeleteiCloudDataUseCase(modelContext: self.persistenceContainer().context) }
+    }
+
+    var deduplicateData: Factory<DeduplicateDataUseCase> {
+        self {
+            DefaultDeduplicateDataUseCase(
+                deduplicationService: self.dataDeduplicationService(),
+                logger: self.debugLogger()
+            )
+        }
+    }
+
+    var exportUserData: Factory<ExportUserDataUseCase> {
+        self {
+            DefaultExportUserDataUseCase(
+                loadProfile: self.loadProfile(),
+                getLastSyncDate: self.getLastSyncDate(),
+                habitRepository: self.habitRepository(),
+                categoryRepository: self.categoryRepository(),
+                personalityRepository: self.personalityAnalysisRepository(),
+                logDataSource: self.logDataSource(),
+                logger: self.debugLogger()
+            )
+        }
+    }
+
+    var importUserData: Factory<ImportUserDataUseCase> {
+        self {
+            DefaultImportUserDataUseCase(
+                loadProfile: self.loadProfile(),
+                saveProfile: self.saveProfile(),
+                habitRepository: self.habitRepository(),
+                categoryRepository: self.categoryRepository(),
+                personalityRepository: self.personalityAnalysisRepository(),
+                logDataSource: self.logDataSource(),
+                updateLastSyncDate: self.updateLastSyncDate(),
+                modelContext: self.persistenceContainer().context,
+                logger: self.debugLogger()
+            )
+        }
+    }
+
     // MARK: - Development Operations
 
     var clearPurchases: Factory<ClearPurchases> {

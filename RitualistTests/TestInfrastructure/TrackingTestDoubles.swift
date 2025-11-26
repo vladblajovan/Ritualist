@@ -55,7 +55,7 @@ public final class TestNotificationService: NotificationService {
     public func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws {}
     public func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws {}
     public func cancel(for habitID: UUID) async {}
-    public func sendImmediate(title: String, body: String) async throws {}
+    public func sendImmediate(title: String, body: String, habitId: UUID?) async throws {}
     public func setupNotificationCategories() async {}
     public func schedulePersonalityAnalysis(userId: UUID, at date: Date, frequency: AnalysisFrequency) async throws {}
     public func sendPersonalityAnalysisCompleted(userId: UUID, profile: PersonalityProfile) async throws {}

@@ -351,6 +351,7 @@ public enum Strings {
         public static let locationNameFooter = String(localized: "location.location_name_footer")
         public static let detectionArea = String(localized: "location.detection_area")
         public static let detectionAreaFooter = String(localized: "location.detection_area_footer")
+        public static let radius = String(localized: "location.radius")
         public static let whenToNotify = String(localized: "location.when_to_notify")
         public static let whenToNotifyFooter = String(localized: "location.when_to_notify_footer")
         public static let whenToNotifyEntry = String(localized: "location.when_to_notify_entry")
@@ -359,18 +360,17 @@ public enum Strings {
 
         // Notification Frequency
         public static let notificationFrequency = String(localized: "location.notification_frequency")
-        public static let oncePerDay = String(localized: "location.once_per_day")
-        public static let cooldownPeriod = String(localized: "location.cooldown_period")
-        public static let frequencyOncePerDayFooter = String(localized: "location.frequency_once_per_day_footer")
+        public static let notificationFrequencyFooter = String(localized: "location.notification_frequency_footer")
+        public static let frequencyOncePerDay = String(localized: "location.frequency_once_per_day")
+        public static let frequencyEvery15Min = String(localized: "location.frequency_every_15_min")
+        public static let frequencyEvery30Min = String(localized: "location.frequency_every_30_min")
+        public static let frequencyEveryHour = String(localized: "location.frequency_every_hour")
+        public static let frequencyEvery2Hours = String(localized: "location.frequency_every_2_hours")
+    }
 
-        // Cooldown strings with parameter
-        public static func cooldownMinutes(_ minutes: Int) -> String {
-            String(format: String(localized: "location.cooldown_minutes"), minutes)
-        }
-
-        public static func frequencyCooldownFooter(_ minutes: Int) -> String {
-            String(format: String(localized: "location.frequency_cooldown_footer"), minutes)
-        }
+    // MARK: - iCloud Sync
+    public enum ICloudSync {
+        public static let syncedFromCloud = String(localized: "icloud.synced_from_cloud")
     }
 }
 

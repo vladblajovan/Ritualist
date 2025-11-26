@@ -86,7 +86,18 @@ public struct BusinessConstants {
     
     /// Background notification delay (20 minutes)
     public static let backgroundNotificationDelay: TimeInterval = 20 * 60
-    
+
+    /// Delay before reading data after NSPersistentStoreRemoteChange notification (in seconds).
+    ///
+    /// SwiftData/CloudKit fires NSPersistentStoreRemoteChange when the persistent store receives
+    /// remote changes, but the merge into the view context happens asynchronously afterward.
+    /// Unfortunately, SwiftData doesn't provide a "merge complete" notification, so we use a
+    /// brief delay to ensure data is fully available before reading.
+    ///
+    /// This is a standard iOS pattern - 500ms provides reliable merge completion on most devices
+    /// while keeping the UI responsive.
+    public static let remoteChangeMergeDelay: TimeInterval = 0.5
+
     // MARK: - Time Intervals
 
     /// Time interval for 1 day in seconds

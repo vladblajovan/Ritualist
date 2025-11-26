@@ -33,11 +33,20 @@ private struct SettingsFormView: View {
     #if DEBUG
     @State private var showingDebugMenu = false
     #endif
-    
+
     // Local form state
     @State private var name = ""
     @State private var appearance = 0
     @State private var displayTimezoneMode = "original"
+
+    // Toast state
+    @State private var activeToast: SettingsToast?
+
+    private enum SettingsToast {
+        case avatarUpdated
+        case avatarRemoved
+        case nameUpdated
+    }
 
     // Version information
     private var appVersion: String {
@@ -89,14 +98,14 @@ private struct SettingsFormView: View {
                     // Subscription Section
                     SubscriptionManagementSectionView(vm: vm)
 
-                    // Social Media Section
-                    SocialMediaLinksView()
-
                     // Permissions Section (Notifications + Location)
                     PermissionsSectionView(vm: vm)
 
                     // iCloud Sync Section
                     ICloudSyncSectionView(vm: vm)
+
+                    // Data Management Section (Export/Import)
+                    DataManagementSectionView(vm: vm)
 
                     // Advanced Section
                     Section("Advanced") {
@@ -112,6 +121,9 @@ private struct SettingsFormView: View {
                             }
                         }
                     }
+
+                    // Social Media Section
+                    SocialMediaLinksView()
 
                     // About Section
                     Section("About") {
@@ -144,9 +156,15 @@ private struct SettingsFormView: View {
                         currentImageData: vm.profile.avatarImageData,
                         selectedImageData: $selectedImageData
                     ) { newImageData in
+                        let isRemoving = newImageData == nil && vm.profile.avatarImageData != nil
                         vm.profile.avatarImageData = newImageData
                         Task {
-                            _ = await vm.save()
+                            let success = await vm.save()
+                            if success {
+                                await MainActor.run {
+                                    activeToast = isRemoving ? .avatarRemoved : .avatarUpdated
+                                }
+                            }
                         }
                         selectedImageData = nil
                     } onDismiss: {
@@ -174,12 +192,17 @@ private struct SettingsFormView: View {
                 }
                 #endif
                 .onAppear {
-                    // Initialize local state and refresh all statuses
+                    // Initialize local state
                     updateLocalState()
+                    // Run all refresh operations in parallel for faster startup
+                    Task { await vm.refreshNotificationStatus() }
+                    Task { await vm.refreshLocationStatus() }
+                    Task { await vm.refreshPremiumStatus() }
+                    Task { await vm.refreshiCloudStatus() }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    // Refresh iCloud status when app becomes active (handles connectivity changes)
                     Task {
-                        await vm.refreshNotificationStatus()
-                        await vm.refreshLocationStatus()
-                        await vm.refreshPremiumStatus()
                         await vm.refreshiCloudStatus()
                     }
                 }
@@ -187,8 +210,40 @@ private struct SettingsFormView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
+        .overlay(alignment: .top) {
+            if let toast = activeToast {
+                toastView(for: toast)
+                    .padding(.top, 60)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: activeToast != nil)
     }
-    
+
+    @ViewBuilder
+    private func toastView(for toast: SettingsToast) -> some View {
+        switch toast {
+        case .avatarUpdated:
+            ToastView(
+                message: "Profile photo updated",
+                icon: "person.crop.circle.fill.badge.checkmark",
+                style: .success
+            ) { activeToast = nil }
+        case .avatarRemoved:
+            ToastView(
+                message: "Profile photo removed",
+                icon: "person.crop.circle.badge.minus",
+                style: .info
+            ) { activeToast = nil }
+        case .nameUpdated:
+            ToastView(
+                message: "Name updated",
+                icon: "person.fill.checkmark",
+                style: .success
+            ) { activeToast = nil }
+        }
+    }
+
     // MARK: - Computed Properties
     
     private var displayName: String {
@@ -205,7 +260,10 @@ private struct SettingsFormView: View {
         // Update both profile name and user service
         await vm.updateUserName(name)
         vm.profile.name = name
-        _ = await vm.save()
+        let success = await vm.save()
+        if success {
+            activeToast = .nameUpdated
+        }
     }
     
     private func appearanceName(_ appearance: Int) -> String {

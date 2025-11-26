@@ -33,6 +33,13 @@ extension Container {
         }
         .singleton
     }
+
+    var dataDeduplicationService: Factory<DataDeduplicationServiceProtocol> {
+        self {
+            DataDeduplicationService(modelContainer: self.persistenceContainer().container)
+        }
+        .singleton
+    }
     
     @MainActor
     var navigationService: Factory<NavigationService> {
@@ -203,39 +210,6 @@ extension Container {
             #else
             return RitualistCore.NoOpUserActionTrackerService()
             #endif
-        }
-        .singleton
-    }
-    
-    // MARK: - User Business Service
-    
-    var userBusinessService: Factory<UserBusinessService> {
-        self {
-            // ⚠️ TEMPORARY: Using MockUserBusinessService for both DEBUG and Release
-            // CloudKit entitlements are currently disabled (requires paid Apple Developer Program)
-            //
-            // TO RE-ENABLE iCloud sync:
-            // 1. Uncomment CloudKit entitlements in Ritualist.entitlements
-            // 2. Uncomment the #else branch below to use ICloudUserBusinessService in production
-            // 3. Follow CLOUDKIT-SETUP-GUIDE.md for complete setup
-            //
-            // See ICLOUD-INVESTIGATION-SUMMARY.md for details
-
-            return MockUserBusinessService(
-                loadProfile: self.loadProfile(),
-                saveProfile: self.saveProfile(),
-                errorHandler: self.errorHandler()
-            )
-
-            // #if DEBUG
-            // return MockUserBusinessService(
-            //     loadProfile: self.loadProfile(),
-            //     saveProfile: self.saveProfile(),
-            //     errorHandler: self.errorHandler()
-            // )
-            // #else
-            // return ICloudUserBusinessService(errorHandler: self.errorHandler())
-            // #endif
         }
         .singleton
     }

@@ -29,6 +29,9 @@ struct AccountSectionView: View {
                 VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                     TextField(Strings.Form.name, text: $name)
                         .textFieldStyle(.plain)
+                        .textContentType(.name)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
                         .focused($isNameFieldFocused)
                         .onSubmit {
                             isNameFieldFocused = false

@@ -28,7 +28,7 @@ public protocol NotificationService {
     func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws
     func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws
     func cancel(for habitID: UUID) async
-    func sendImmediate(title: String, body: String) async throws
+    func sendImmediate(title: String, body: String, habitId: UUID?) async throws
     func setupNotificationCategories() async
     
     // Personality Analysis Scheduler methods
@@ -213,11 +213,12 @@ public final class LocalNotificationService: NSObject, NotificationService {
         times: [ReminderTime]
     ) async throws {
         let center = UNUserNotificationCenter.current()
-        
+
         // Check if it's weekend for contextual messaging (local timezone)
         let calendar = CalendarUtils.currentLocalCalendar
-        let isWeekend = calendar.isDateInWeekend(Date())
-        
+        let today = Date()
+        let isWeekend = calendar.isDateInWeekend(today)
+
         for time in times {
             // Generate rich notification content
             let content = HabitReminderNotificationContentGenerator.generateContent(
@@ -228,18 +229,34 @@ public final class LocalNotificationService: NSObject, NotificationService {
                 currentStreak: currentStreak,
                 isWeekend: isWeekend
             )
-            
-            var date = DateComponents()
-            date.hour = time.hour
-            date.minute = time.minute
-            let trigger = UNCalendarNotificationTrigger(dateMatching: date, repeats: true)
-            
-            let id = "rich_\(habitID.uuidString)-\(time.hour)-\(time.minute)"
-            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-            
-            try await center.add(request)
+
+            // Create notification time for today only (non-repeating)
+            // This ensures notifications are cancelled when habit is completed
+            var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
+            dateComponents.hour = time.hour
+            dateComponents.minute = time.minute
+
+            // Only schedule if the time hasn't passed today
+            if let notificationDate = calendar.date(from: dateComponents),
+               notificationDate > Date() {
+                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+                let id = "rich_\(habitID.uuidString)-\(time.hour)-\(time.minute)"
+                let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+                try await center.add(request)
+
+                logger.log(
+                    "📅 Scheduled rich notification for today",
+                    level: .debug,
+                    category: .notifications,
+                    metadata: [
+                        "habit": habitName,
+                        "time": "\(time.hour):\(String(format: "%02d", time.minute))",
+                        "id": id
+                    ]
+                )
+            }
         }
-        
+
         // Track rich notification scheduling
         trackingService?.track(.notificationScheduled(
             habitId: habitID.uuidString,
@@ -270,10 +287,11 @@ public final class LocalNotificationService: NSObject, NotificationService {
             )
         }
         
-        // Check if it's weekend for contextual messaging (local timezone)  
+        // Check if it's weekend for contextual messaging (local timezone)
         let calendar = CalendarUtils.currentLocalCalendar
-        let isWeekend = calendar.isDateInWeekend(Date())
-        
+        let today = Date()
+        let isWeekend = calendar.isDateInWeekend(today)
+
         for time in times {
             // Generate personality-tailored notification content
             let content = PersonalityTailoredNotificationContentGenerator.generateTailoredContent(
@@ -285,18 +303,34 @@ public final class LocalNotificationService: NSObject, NotificationService {
                 currentStreak: currentStreak,
                 isWeekend: isWeekend
             )
-            
-            var date = DateComponents()
-            date.hour = time.hour
-            date.minute = time.minute
-            let trigger = UNCalendarNotificationTrigger(dateMatching: date, repeats: true)
-            
-            let id = "tailored_\(habitID.uuidString)-\(time.hour)-\(time.minute)"
-            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-            
-            try await center.add(request)
+
+            // Create notification time for today only (non-repeating)
+            // This ensures notifications are cancelled when habit is completed
+            var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
+            dateComponents.hour = time.hour
+            dateComponents.minute = time.minute
+
+            // Only schedule if the time hasn't passed today
+            if let notificationDate = calendar.date(from: dateComponents),
+               notificationDate > Date() {
+                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+                let id = "tailored_\(habitID.uuidString)-\(time.hour)-\(time.minute)"
+                let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+                try await center.add(request)
+
+                logger.log(
+                    "📅 Scheduled tailored notification for today",
+                    level: .debug,
+                    category: .notifications,
+                    metadata: [
+                        "habit": habitName,
+                        "time": "\(time.hour):\(String(format: "%02d", time.minute))",
+                        "id": id
+                    ]
+                )
+            }
         }
-        
+
         // Track personality-tailored notification scheduling
         trackingService?.track(.notificationScheduled(
             habitId: habitID.uuidString,
@@ -416,7 +450,7 @@ public final class LocalNotificationService: NSObject, NotificationService {
         }
     }
     
-    public func sendImmediate(title: String, body: String) async throws {
+    public func sendImmediate(title: String, body: String, habitId: UUID? = nil) async throws {
         let center = UNUserNotificationCenter.current()
 
         // Request permission if needed
@@ -435,9 +469,14 @@ public final class LocalNotificationService: NSObject, NotificationService {
         content.body = body
         content.sound = .default
 
+        // Include habitId in userInfo so completion status can be checked when notification fires
+        if let habitId = habitId {
+            content.userInfo = ["habitId": habitId.uuidString]
+        }
+
         // Trigger with 20 minutes delay for "remind me later" functionality
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 20.0 * 60.0, repeats: false)
-        let id = "snooze-\(UUID().uuidString)"
+        let id = habitId != nil ? "snooze-\(habitId!.uuidString)" : "snooze-\(UUID().uuidString)"
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
 
         try await center.add(request)
@@ -445,7 +484,7 @@ public final class LocalNotificationService: NSObject, NotificationService {
             "⏰ Snooze notification scheduled",
             level: .info,
             category: .notifications,
-            metadata: ["title": title, "body": body, "delay": "20min"]
+            metadata: ["title": title, "body": body, "delay": "20min", "habitId": habitId?.uuidString ?? "none"]
         )
     }
     
@@ -885,7 +924,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
 
         // Customize title and body based on event type
-        let locationLabel = event.configuration.locationLabel ?? "this location"
+        let locationLabel = event.configuration?.locationLabel ?? "this location"
         switch event.eventType {
         case .entry:
             content.title = "📍 You're near \(locationLabel)"
@@ -903,7 +942,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
             "habitId": habitID.uuidString,
             "habitName": habitName,
             "eventType": event.eventType.rawValue,
-            "locationLabel": event.configuration.locationLabel ?? "",
+            "locationLabel": event.configuration?.locationLabel ?? "",
             "isLocationTriggered": true
         ]
 
@@ -920,7 +959,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
                 "habit": habitName,
                 "habitId": habitID.uuidString,
                 "eventType": event.eventType.rawValue,
-                "location": event.configuration.locationLabel ?? "unknown"
+                "location": event.configuration?.locationLabel ?? "unknown"
             ]
         )
     }

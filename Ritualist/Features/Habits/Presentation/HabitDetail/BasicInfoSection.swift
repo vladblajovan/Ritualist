@@ -26,6 +26,7 @@ public struct BasicInfoSection: View {
                     Text(Strings.Form.name)
                     TextField(Strings.Form.habitName, text: $vm.name)
                         .textFieldStyle(.plain)
+                        .textInputAutocapitalization(.sentences)
                         .focused($focusedField, equals: .name)
                         .onSubmit {
                             // Move to next field based on habit type
@@ -87,6 +88,8 @@ public struct BasicInfoSection: View {
                         Text(Strings.Form.unit)
                         TextField(Strings.Form.unitPlaceholder, text: $vm.unitLabel)
                             .textFieldStyle(.plain)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
                             .focused($focusedField, equals: .unitLabel)
                             .onSubmit {
                                 focusedField = .dailyTarget

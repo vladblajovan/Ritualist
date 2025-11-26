@@ -9,7 +9,6 @@
 //
 
 import Foundation
-import os.log
 
 /// Manages SQLite database backups for migration safety
 ///
@@ -35,8 +34,8 @@ public final class BackupManager {
     /// Maximum number of backups to retain
     private let maxBackupCount = 3
 
-    /// Logger for backup operations
-    private let logger = Logger(subsystem: "com.vladblajovan.Ritualist", category: "BackupManager")
+    /// Logger for backup operations (uses DebugLogger for consistency)
+    private let logger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "BackupManager")
 
     /// UserDefaults key for pending restore
     private let pendingRestoreKey = "com.ritualist.pendingRestore"
@@ -56,16 +55,16 @@ public final class BackupManager {
     /// - Throws: PersistenceError.backupFailed if backup creation fails
     @discardableResult
     public func createBackup() throws -> URL {
-        logger.info("Creating database backup")
+        logger.log("Creating database backup", level: .info, category: .dataIntegrity)
 
         let databaseURL = getDatabaseURL()
         guard FileManager.default.fileExists(atPath: databaseURL.path) else {
-            logger.warning("No database file found at: \(databaseURL.path)")
+            logger.log("No database file found at: \(databaseURL.path)", level: .warning, category: .dataIntegrity)
             throw PersistenceError.backupFailed(BackupError.databaseNotFound)
         }
 
         let backupURL = generateBackupURL()
-        logger.debug("Backup destination: \(backupURL.path)")
+        logger.log("Backup destination: \(backupURL.path)", level: .debug, category: .dataIntegrity)
 
         do {
             // Copy database file to backup location
@@ -74,14 +73,14 @@ public final class BackupManager {
             // Also backup associated files (WAL, SHM)
             try backupAssociatedFiles(databaseURL: databaseURL, backupURL: backupURL)
 
-            logger.info("Successfully created backup at: \(backupURL.lastPathComponent)")
+            logger.log("Successfully created backup at: \(backupURL.lastPathComponent)", level: .info, category: .dataIntegrity)
 
             // Clean up old backups
             try cleanupOldBackups()
 
             return backupURL
         } catch {
-            logger.error("Failed to create backup: \(error.localizedDescription)")
+            logger.log("Failed to create backup: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
             throw PersistenceError.backupFailed(error)
         }
     }
@@ -90,15 +89,15 @@ public final class BackupManager {
     ///
     /// - Throws: PersistenceError.restoreFailed if restore fails
     public func restoreLatestBackup() throws {
-        logger.info("Restoring database from latest backup")
+        logger.log("Restoring database from latest backup", level: .info, category: .dataIntegrity)
 
         guard let latestBackup = try getLatestBackup() else {
-            logger.error("No backup available for restore")
+            logger.log("No backup available for restore", level: .error, category: .dataIntegrity)
             throw PersistenceError.restoreFailed(BackupError.noBackupAvailable)
         }
 
         try restore(from: latestBackup)
-        logger.info("Successfully restored database from: \(latestBackup.lastPathComponent)")
+        logger.log("Successfully restored database from: \(latestBackup.lastPathComponent)", level: .info, category: .dataIntegrity)
     }
 
     /// Restores the database from a specific backup file
@@ -106,7 +105,7 @@ public final class BackupManager {
     /// - Parameter backupURL: URL of the backup file to restore
     /// - Throws: PersistenceError.restoreFailed if restore fails
     public func restore(from backupURL: URL) throws {
-        logger.info("Restoring database from: \(backupURL.lastPathComponent)")
+        logger.log("Restoring database from: \(backupURL.lastPathComponent)", level: .info, category: .dataIntegrity)
 
         let databaseURL = getDatabaseURL()
 
@@ -114,7 +113,7 @@ public final class BackupManager {
             // Remove existing database
             if FileManager.default.fileExists(atPath: databaseURL.path) {
                 try FileManager.default.removeItem(at: databaseURL)
-                logger.debug("Removed existing database")
+                logger.log("Removed existing database", level: .debug, category: .dataIntegrity)
             }
 
             // Copy backup to database location
@@ -123,9 +122,9 @@ public final class BackupManager {
             // Also restore associated files (WAL, SHM)
             try restoreAssociatedFiles(backupURL: backupURL, databaseURL: databaseURL)
 
-            logger.info("Database restored successfully")
+            logger.log("Database restored successfully", level: .info, category: .dataIntegrity)
         } catch {
-            logger.error("Failed to restore database: \(error.localizedDescription)")
+            logger.log("Failed to restore database: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
             throw PersistenceError.restoreFailed(error)
         }
     }
@@ -138,7 +137,7 @@ public final class BackupManager {
         let backupDirectory = getBackupDirectory()
 
         guard FileManager.default.fileExists(atPath: backupDirectory.path) else {
-            logger.debug("No backup directory found")
+            logger.log("No backup directory found", level: .debug, category: .dataIntegrity)
             return []
         }
 
@@ -154,7 +153,7 @@ public final class BackupManager {
             return date1 > date2
         }
 
-        logger.debug("Found \(backupFiles.count) backup(s)")
+        logger.log("Found \(backupFiles.count) backup(s)", level: .debug, category: .dataIntegrity)
         return backupFiles
     }
 
@@ -162,17 +161,17 @@ public final class BackupManager {
     ///
     /// - Throws: Error if deletion fails
     public func deleteAllBackups() throws {
-        logger.info("Deleting all backups")
+        logger.log("Deleting all backups", level: .info, category: .dataIntegrity)
 
         let backupDirectory = getBackupDirectory()
 
         guard FileManager.default.fileExists(atPath: backupDirectory.path) else {
-            logger.debug("No backup directory to delete")
+            logger.log("No backup directory to delete", level: .debug, category: .dataIntegrity)
             return
         }
 
         try FileManager.default.removeItem(at: backupDirectory)
-        logger.info("All backups deleted")
+        logger.log("All backups deleted", level: .info, category: .dataIntegrity)
     }
 
     // MARK: - Pending Restore Management
@@ -183,7 +182,7 @@ public final class BackupManager {
     ///
     /// - Parameter backupURL: URL of the backup file to restore
     public func schedulePendingRestore(from backupURL: URL) {
-        logger.info("Scheduling pending restore from: \(backupURL.lastPathComponent)")
+        logger.log("Scheduling pending restore from: \(backupURL.lastPathComponent)", level: .info, category: .dataIntegrity)
         userDefaults.set(backupURL.path, forKey: pendingRestoreKey)
     }
 
@@ -204,13 +203,13 @@ public final class BackupManager {
             return  // No pending restore
         }
 
-        logger.info("Executing pending restore from: \(backupPath)")
+        logger.log("Executing pending restore from: \(backupPath)", level: .info, category: .dataIntegrity)
 
         let backupURL = URL(fileURLWithPath: backupPath)
 
         // Verify backup still exists
         guard FileManager.default.fileExists(atPath: backupURL.path) else {
-            logger.error("Pending restore backup not found: \(backupPath)")
+            logger.log("Pending restore backup not found: \(backupPath)", level: .error, category: .dataIntegrity)
             clearPendingRestore()
             throw PersistenceError.restoreFailed(BackupError.noBackupAvailable)
         }
@@ -221,13 +220,13 @@ public final class BackupManager {
         // Clear the pending restore flag
         clearPendingRestore()
 
-        logger.info("Pending restore completed successfully")
+        logger.log("Pending restore completed successfully", level: .info, category: .dataIntegrity)
     }
 
     /// Clears the pending restore flag
     public func clearPendingRestore() {
         userDefaults.removeObject(forKey: pendingRestoreKey)
-        logger.debug("Cleared pending restore flag")
+        logger.log("Cleared pending restore flag", level: .debug, category: .dataIntegrity)
     }
 
     // MARK: - Private Methods
@@ -243,16 +242,16 @@ public final class BackupManager {
         let backups = try listBackups()
 
         guard backups.count > self.maxBackupCount else {
-            logger.debug("Backup count (\(backups.count)) within limit (\(self.maxBackupCount))")
+            logger.log("Backup count (\(backups.count)) within limit (\(self.maxBackupCount))", level: .debug, category: .dataIntegrity)
             return
         }
 
         let backupsToDelete = backups.dropFirst(self.maxBackupCount)
-        logger.info("Cleaning up \(backupsToDelete.count) old backup(s)")
+        logger.log("Cleaning up \(backupsToDelete.count) old backup(s)", level: .info, category: .dataIntegrity)
 
         for backupURL in backupsToDelete {
             try FileManager.default.removeItem(at: backupURL)
-            logger.debug("Deleted old backup: \(backupURL.lastPathComponent)")
+            logger.log("Deleted old backup: \(backupURL.lastPathComponent)", level: .debug, category: .dataIntegrity)
         }
     }
 
@@ -305,13 +304,13 @@ public final class BackupManager {
         // Copy WAL file if exists
         if FileManager.default.fileExists(atPath: walURL.path) {
             try? FileManager.default.copyItem(at: walURL, to: backupWalURL)
-            logger.debug("Backed up WAL file")
+            logger.log("Backed up WAL file", level: .debug, category: .dataIntegrity)
         }
 
         // Copy SHM file if exists
         if FileManager.default.fileExists(atPath: shmURL.path) {
             try? FileManager.default.copyItem(at: shmURL, to: backupShmURL)
-            logger.debug("Backed up SHM file")
+            logger.log("Backed up SHM file", level: .debug, category: .dataIntegrity)
         }
     }
 
@@ -329,7 +328,7 @@ public final class BackupManager {
                 try FileManager.default.removeItem(at: walURL)
             }
             try? FileManager.default.copyItem(at: backupWalURL, to: walURL)
-            logger.debug("Restored WAL file")
+            logger.log("Restored WAL file", level: .debug, category: .dataIntegrity)
         }
 
         // Restore SHM file if exists
@@ -338,7 +337,7 @@ public final class BackupManager {
                 try FileManager.default.removeItem(at: shmURL)
             }
             try? FileManager.default.copyItem(at: backupShmURL, to: shmURL)
-            logger.debug("Restored SHM file")
+            logger.log("Restored SHM file", level: .debug, category: .dataIntegrity)
         }
     }
 }
