@@ -54,6 +54,7 @@ public final class DefaultDeduplicateDataUseCase: DeduplicateDataUseCase {
                     "habits": result.habitsRemoved,
                     "categories": result.categoriesRemoved,
                     "logs": result.habitLogsRemoved,
+                    "profiles": result.profilesRemoved,
                     "total": result.totalRemoved
                 ]
             )

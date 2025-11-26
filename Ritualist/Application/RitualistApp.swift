@@ -120,6 +120,10 @@ import CoreData
                     // We delay to allow SwiftData to complete merging the remote changes.
                     // See BusinessConstants.remoteChangeMergeDelay documentation for rationale.
                     guard hasCompletedInitialLaunch else { return }
+
+                    // Update last sync timestamp when real CloudKit sync occurs
+                    UserDefaults.standard.set(Date(), forKey: UserDefaultsKeys.lastSyncDate)
+
                     Task {
                         try? await Task.sleep(for: .seconds(BusinessConstants.remoteChangeMergeDelay))
 
@@ -227,6 +231,7 @@ import CoreData
                         "habits_removed": result.habitsRemoved,
                         "categories_removed": result.categoriesRemoved,
                         "logs_removed": result.habitLogsRemoved,
+                        "profiles_removed": result.profilesRemoved,
                         "total_items_checked": result.totalItemsChecked
                     ]
                 )

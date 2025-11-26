@@ -34,6 +34,9 @@ public protocol DataDeduplicationServiceProtocol: Sendable {
 
     /// Deduplicate habit logs only
     func deduplicateHabitLogs() async throws -> Int
+
+    /// Deduplicate user profiles only
+    func deduplicateProfiles() async throws -> Int
 }
 
 // MARK: - Result Type
@@ -43,12 +46,13 @@ public struct DeduplicationResult: Sendable {
     public let habitsRemoved: Int
     public let categoriesRemoved: Int
     public let habitLogsRemoved: Int
+    public let profilesRemoved: Int
     /// Total number of items that were in the database to check
     /// Used to determine if there was any data (0 = fresh install, data hasn't synced yet)
     public let totalItemsChecked: Int
 
     public var totalRemoved: Int {
-        habitsRemoved + categoriesRemoved + habitLogsRemoved
+        habitsRemoved + categoriesRemoved + habitLogsRemoved + profilesRemoved
     }
 
     public var hadDuplicates: Bool {
@@ -61,10 +65,11 @@ public struct DeduplicationResult: Sendable {
         totalItemsChecked > 0
     }
 
-    public init(habitsRemoved: Int, categoriesRemoved: Int, habitLogsRemoved: Int, totalItemsChecked: Int = 0) {
+    public init(habitsRemoved: Int, categoriesRemoved: Int, habitLogsRemoved: Int, profilesRemoved: Int = 0, totalItemsChecked: Int = 0) {
         self.habitsRemoved = habitsRemoved
         self.categoriesRemoved = categoriesRemoved
         self.habitLogsRemoved = habitLogsRemoved
+        self.profilesRemoved = profilesRemoved
         self.totalItemsChecked = totalItemsChecked
     }
 }
@@ -92,11 +97,13 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
         let habits = try await deduplicateHabits()
         let categories = try await deduplicateCategories()
         let logs = try await deduplicateHabitLogs()
+        let profiles = try await deduplicateProfiles()
 
         let result = DeduplicationResult(
             habitsRemoved: habits,
             categoriesRemoved: categories,
             habitLogsRemoved: logs,
+            profilesRemoved: profiles,
             totalItemsChecked: totalHabits
         )
 
@@ -109,6 +116,7 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                     "habits_removed": habits,
                     "categories_removed": categories,
                     "logs_removed": logs,
+                    "profiles_removed": profiles,
                     "total_habits_checked": totalHabits
                 ]
             )
@@ -370,6 +378,118 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
             return removedCount
         } catch {
             logger.log("Error deduplicating logs: \(error)", level: .error, category: .dataIntegrity)
+            throw error
+        }
+    }
+
+    public func deduplicateProfiles() async throws -> Int {
+        do {
+            // Fetch all user profiles
+            let descriptor = FetchDescriptor<ActiveUserProfileModel>()
+            let allProfiles = try modelContext.fetch(descriptor)
+
+            // UserProfile is a singleton model - there should only be ONE profile per user.
+            // If we have multiple profiles (e.g., from CloudKit sync creating duplicates
+            // with different UUIDs), we merge data and keep the best one.
+            guard allProfiles.count > 1 else {
+                return 0
+            }
+
+            logger.log(
+                "Found multiple user profiles - deduplicating",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["count": allProfiles.count]
+            )
+
+            // Sort profiles to determine which one to keep:
+            // 1. Prefer profiles with a name set
+            // 2. Prefer profiles with avatar data
+            // 3. Prefer most recently updated
+            // 4. Prefer oldest created (original profile)
+            let sorted = allProfiles.sorted { profile1, profile2 in
+                // Primary: prefer profile with name
+                let hasName1 = !profile1.name.isEmpty
+                let hasName2 = !profile2.name.isEmpty
+                if hasName1 != hasName2 {
+                    return hasName1
+                }
+
+                // Secondary: prefer profile with avatar
+                let hasAvatar1 = profile1.avatarImageData != nil
+                let hasAvatar2 = profile2.avatarImageData != nil
+                if hasAvatar1 != hasAvatar2 {
+                    return hasAvatar1
+                }
+
+                // Tertiary: prefer most recently updated
+                if profile1.updatedAt != profile2.updatedAt {
+                    return profile1.updatedAt > profile2.updatedAt
+                }
+
+                // Quaternary: prefer oldest created (the original)
+                if profile1.createdAt != profile2.createdAt {
+                    return profile1.createdAt < profile2.createdAt
+                }
+
+                // Final tiebreaker: deterministic UUID comparison for stable sorting
+                return profile1.id.uuidString < profile2.id.uuidString
+            }
+
+            // Keep the first (best) one, merge data from others, then delete duplicates
+            let toKeep = sorted[0]
+            let toDelete = sorted.dropFirst()
+
+            var removedCount = 0
+            for duplicate in toDelete {
+                // Merge data from duplicate into keeper to prevent data loss
+                // Only merge if keeper is missing the data
+                if toKeep.name.isEmpty && !duplicate.name.isEmpty {
+                    toKeep.name = duplicate.name
+                }
+
+                if toKeep.avatarImageData == nil && duplicate.avatarImageData != nil {
+                    toKeep.avatarImageData = duplicate.avatarImageData
+                }
+
+                // Keep the most recent updatedAt timestamp
+                if duplicate.updatedAt > toKeep.updatedAt {
+                    toKeep.updatedAt = duplicate.updatedAt
+                }
+
+                modelContext.delete(duplicate)
+                removedCount += 1
+            }
+
+            if removedCount > 0 {
+                try modelContext.save()
+            }
+
+            logger.log(
+                "Merged duplicate user profiles",
+                level: .info,
+                category: .dataIntegrity,
+                metadata: [
+                    "kept_id": toKeep.id,
+                    "has_name": !toKeep.name.isEmpty,
+                    "has_avatar": toKeep.avatarImageData != nil,
+                    "deleted": removedCount
+                ]
+            )
+
+            // Warn if merged profile has no name (edge case - all duplicates were empty)
+            if toKeep.name.isEmpty {
+                logger.log(
+                    "Merged profile has no name - user may need to set up profile",
+                    level: .warning,
+                    category: .dataIntegrity,
+                    metadata: ["profile_id": toKeep.id]
+                )
+            }
+
+            return removedCount
+        } catch {
+            logger.log("Error deduplicating profiles: \(error)", level: .error, category: .dataIntegrity)
             throw error
         }
     }

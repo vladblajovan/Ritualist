@@ -19,7 +19,6 @@ public final class SettingsViewModel {
     private let syncWithiCloud: SyncWithiCloudUseCase
     private let checkiCloudStatus: CheckiCloudStatusUseCase
     private let getLastSyncDate: GetLastSyncDateUseCase
-    private let updateLastSyncDate: UpdateLastSyncDateUseCase
     private let deleteiCloudData: DeleteiCloudDataUseCase
     private let exportUserData: ExportUserDataUseCase
     private let importUserData: ImportUserDataUseCase
@@ -51,7 +50,6 @@ public final class SettingsViewModel {
     public private(set) var isUpdatingUser = false
 
     // iCloud Sync state
-    public private(set) var isSyncing = false
     public private(set) var lastSyncDate: Date?
     public private(set) var iCloudStatus: iCloudSyncStatus = .unknown
     public private(set) var isCheckingCloudStatus = false
@@ -114,7 +112,6 @@ public final class SettingsViewModel {
                 syncWithiCloud: SyncWithiCloudUseCase,
                 checkiCloudStatus: CheckiCloudStatusUseCase,
                 getLastSyncDate: GetLastSyncDateUseCase,
-                updateLastSyncDate: UpdateLastSyncDateUseCase,
                 deleteiCloudData: DeleteiCloudDataUseCase,
                 exportUserData: ExportUserDataUseCase,
                 importUserData: ImportUserDataUseCase,
@@ -132,7 +129,6 @@ public final class SettingsViewModel {
         self.syncWithiCloud = syncWithiCloud
         self.checkiCloudStatus = checkiCloudStatus
         self.getLastSyncDate = getLastSyncDate
-        self.updateLastSyncDate = updateLastSyncDate
         self.deleteiCloudData = deleteiCloudData
         self.exportUserData = exportUserData
         self.importUserData = importUserData
@@ -390,31 +386,6 @@ public final class SettingsViewModel {
     }
 
     // MARK: - iCloud Sync Methods
-
-    /// Manually trigger iCloud sync
-    public func syncNow() async {
-        isSyncing = true
-        error = nil
-
-        do {
-            try await syncWithiCloud.execute()
-            await updateLastSyncDate.execute(Date())
-            lastSyncDate = Date()
-
-            // Restore geofences after sync to handle new device setup scenario:
-            // When user syncs on a new device, habit data with location configs arrives,
-            // but geofences are device-local and must be registered with iOS.
-            try await restoreGeofenceMonitoring.execute()
-
-            // Track sync action
-            userActionTracker.track(.custom(event: "icloud_manual_sync", parameters: [:]))
-        } catch {
-            self.error = error
-            userActionTracker.trackError(error, context: "icloud_manual_sync")
-        }
-
-        isSyncing = false
-    }
 
     /// Refresh iCloud account status
     public func refreshiCloudStatus() async {

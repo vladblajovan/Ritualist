@@ -143,7 +143,9 @@ public final class OnboardingViewModel {
         // Track permission request
         userActionTracker.track(.onboardingLocationPermissionRequested)
 
-        // Request "When In Use" permission (requestAlways: false) for location-aware habits
+        // Request "When In Use" permission during onboarding.
+        // If user later enables location-based habits, they'll be prompted to upgrade
+        // to "Always" permission in the habit detail screen (progressive permission flow).
         _ = await requestLocationPermissions.execute(requestAlways: false)
 
         // Check status after request
