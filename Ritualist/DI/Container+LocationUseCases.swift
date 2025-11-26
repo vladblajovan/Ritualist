@@ -43,6 +43,7 @@ extension Container {
             HandleGeofenceEventUseCaseImpl(
                 habitRepository: self.habitRepository(),
                 notificationService: self.notificationService(),
+                habitCompletionCheckService: self.habitCompletionCheckService(),
                 logger: self.debugLogger()
             )
         }

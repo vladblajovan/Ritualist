@@ -147,15 +147,18 @@ public protocol HandleGeofenceEventUseCase {
 public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
     private let habitRepository: HabitRepository
     private let notificationService: NotificationService
+    private let habitCompletionCheckService: HabitCompletionCheckService?
     private let logger: DebugLogger
 
     public init(
         habitRepository: HabitRepository,
         notificationService: NotificationService,
+        habitCompletionCheckService: HabitCompletionCheckService? = nil,
         logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.notificationService = notificationService
+        self.habitCompletionCheckService = habitCompletionCheckService
         self.logger = logger
     }
 
@@ -189,6 +192,21 @@ public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
                 metadata: ["habitName": habit.name, "isActive": habit.isActive]
             )
             return
+        }
+
+        // STEP 2.5: Check if habit is already completed today
+        // Skip notification if user already completed the habit
+        if let completionService = habitCompletionCheckService {
+            let shouldShow = await completionService.shouldShowNotification(habitId: event.habitId, date: event.timestamp)
+            guard shouldShow else {
+                logger.log(
+                    "⏭️ Skipping location notification - habit already completed today",
+                    level: .info,
+                    category: .location,
+                    metadata: ["habitName": habit.name, "habitId": event.habitId.uuidString]
+                )
+                return
+            }
         }
 
         // STEP 3: Check if trigger type matches event type (using DATABASE config)

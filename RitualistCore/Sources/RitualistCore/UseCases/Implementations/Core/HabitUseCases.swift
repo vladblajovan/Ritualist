@@ -51,20 +51,50 @@ public final class UpdateHabit: UpdateHabitUseCase {
 
 public final class DeleteHabit: DeleteHabitUseCase {
     private let repo: HabitRepository
-    public init(repo: HabitRepository) { self.repo = repo }
-    public func execute(id: UUID) async throws { 
+    private let cancelHabitReminders: CancelHabitRemindersUseCase?
+    private let locationMonitoringService: LocationMonitoringService?
+
+    public init(
+        repo: HabitRepository,
+        cancelHabitReminders: CancelHabitRemindersUseCase? = nil,
+        locationMonitoringService: LocationMonitoringService? = nil
+    ) {
+        self.repo = repo
+        self.cancelHabitReminders = cancelHabitReminders
+        self.locationMonitoringService = locationMonitoringService
+    }
+
+    public func execute(id: UUID) async throws {
+        // CRITICAL: Clean up notifications and geofences BEFORE deleting
+        // Otherwise we lose the habit data needed for proper cleanup
+
+        // Cancel all pending notifications for this habit
+        await cancelHabitReminders?.execute(habitId: id)
+
+        // Stop geofence monitoring if the habit had location-based reminders
+        await locationMonitoringService?.stopMonitoring(habitId: id)
+
         // SwiftData cascade delete will automatically remove associated logs
-        try await repo.delete(id: id) 
+        try await repo.delete(id: id)
     }
 }
 
 public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
     private let repo: HabitRepository
     private let locationMonitoringService: LocationMonitoringService?
+    private let cancelHabitReminders: CancelHabitRemindersUseCase?
+    private let scheduleHabitReminders: ScheduleHabitRemindersUseCase?
 
-    public init(repo: HabitRepository, locationMonitoringService: LocationMonitoringService? = nil) {
+    public init(
+        repo: HabitRepository,
+        locationMonitoringService: LocationMonitoringService? = nil,
+        cancelHabitReminders: CancelHabitRemindersUseCase? = nil,
+        scheduleHabitReminders: ScheduleHabitRemindersUseCase? = nil
+    ) {
         self.repo = repo
         self.locationMonitoringService = locationMonitoringService
+        self.cancelHabitReminders = cancelHabitReminders
+        self.scheduleHabitReminders = scheduleHabitReminders
     }
 
     public func execute(id: UUID) async throws -> Habit {
@@ -95,6 +125,17 @@ public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
         )
 
         try await repo.update(updatedHabit)
+
+        // Handle notifications based on active status
+        if newActiveStatus {
+            // Reactivating habit - reschedule notifications if habit has reminders
+            if !habit.reminders.isEmpty {
+                try? await scheduleHabitReminders?.execute(habit: updatedHabit)
+            }
+        } else {
+            // Deactivating habit - cancel all pending notifications
+            await cancelHabitReminders?.execute(habitId: id)
+        }
 
         // Handle location monitoring based on active status
         if let locationService = locationMonitoringService,

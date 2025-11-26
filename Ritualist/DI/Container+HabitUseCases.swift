@@ -16,8 +16,15 @@ extension Container {
         self { UpdateHabit(repo: self.habitRepository()) }
     }
     
+    @MainActor
     var deleteHabit: Factory<DeleteHabit> {
-        self { DeleteHabit(repo: self.habitRepository()) }
+        self { @MainActor in
+            DeleteHabit(
+                repo: self.habitRepository(),
+                cancelHabitReminders: self.cancelHabitReminders(),
+                locationMonitoringService: self.locationMonitoringService()
+            )
+        }
     }
     
     var getAllHabits: Factory<GetAllHabits> {
@@ -37,7 +44,12 @@ extension Container {
     @MainActor
     var toggleHabitActiveStatus: Factory<ToggleHabitActiveStatus> {
         self { @MainActor in
-            ToggleHabitActiveStatus(repo: self.habitRepository(), locationMonitoringService: self.locationMonitoringService())
+            ToggleHabitActiveStatus(
+                repo: self.habitRepository(),
+                locationMonitoringService: self.locationMonitoringService(),
+                cancelHabitReminders: self.cancelHabitReminders(),
+                scheduleHabitReminders: self.scheduleHabitReminders()
+            )
         }
     }
     
@@ -66,8 +78,9 @@ extension Container {
         }
     }
     
+    @MainActor
     var removeHabitFromSuggestionUseCase: Factory<RemoveHabitFromSuggestionUseCase> {
-        self {
+        self { @MainActor in
             RemoveHabitFromSuggestion(
                 deleteHabit: self.deleteHabit()
             )

@@ -425,7 +425,11 @@ extension HabitDetailViewModel {
             locationConfiguration = nil
             if let habitId = originalHabit?.id {
                 Task {
-                    try await configureHabitLocation.execute(habitId: habitId, configuration: nil)
+                    do {
+                        try await configureHabitLocation.execute(habitId: habitId, configuration: nil)
+                    } catch {
+                        self.error = error
+                    }
                 }
             }
             return
@@ -439,7 +443,14 @@ extension HabitDetailViewModel {
             locationConfiguration = config
             if let habitId = originalHabit?.id {
                 Task {
-                    try await configureHabitLocation.execute(habitId: habitId, configuration: config)
+                    do {
+                        try await configureHabitLocation.execute(habitId: habitId, configuration: config)
+                    } catch {
+                        // Display error to user (e.g., geofence limit reached)
+                        self.error = error
+                        // Revert the toggle since configuration failed
+                        self.locationConfiguration?.isEnabled = false
+                    }
                 }
             }
         } else {

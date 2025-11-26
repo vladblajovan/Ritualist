@@ -80,6 +80,19 @@ import CoreData
                         await restoreGeofences()
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                    // Handle significant time changes: midnight crossing, daylight saving, user clock changes
+                    // Our notifications are scheduled for "today" only, so midnight crossings require rescheduling
+                    guard hasCompletedInitialLaunch else { return }
+                    Task {
+                        logger.log(
+                            "⏰ Significant time change detected - rescheduling notifications",
+                            level: .info,
+                            category: .notifications
+                        )
+                        await rescheduleNotificationsIfNeeded()
+                    }
+                }
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
@@ -332,6 +345,16 @@ import CoreData
                 category: .system,
                 metadata: ["newTimezone": currentDeviceTimezone]
             )
+
+            // CRITICAL: Reschedule notifications when timezone changes
+            // Notifications are scheduled at local times, so they need to be rescheduled
+            // to fire at the correct local time in the new timezone
+            logger.log(
+                "📅 Rescheduling notifications after timezone change",
+                level: .info,
+                category: .notifications
+            )
+            try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
 
             // TODO Phase 3: Show travel notification to user
             // if let travelStatus = try await timezoneService.detectTravelStatus(), travelStatus.isTravel {
