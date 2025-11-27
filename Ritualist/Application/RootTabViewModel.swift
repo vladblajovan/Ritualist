@@ -20,7 +20,6 @@ public final class RootTabViewModel {
     // MARK: - State
     public var showOnboarding = false
     public var isCheckingOnboarding = true
-    public var onboardingFlowType: OnboardingFlowType = .newUser
 
     /// Flag indicating we need to show returning user welcome once data loads
     public var pendingReturningUserWelcome = false
@@ -98,7 +97,6 @@ public final class RootTabViewModel {
             level: .info,
             category: .ui
         )
-        onboardingFlowType = .newUser
         showOnboarding = true
         isCheckingOnboarding = false
     }
