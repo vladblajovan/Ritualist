@@ -384,29 +384,27 @@ extension HabitDetailViewModel {
         await locationPermissionService.openAppSettings()
     }
 
-    public func updateLocationConfiguration(_ config: LocationConfiguration?) async {
-        // If enabling location config, verify we have "Always" permission
-        if let config = config, config.isEnabled {
-            await checkLocationAuthStatus()
+    /// Called when map picker sheet is dismissed (via Done, Cancel, or swipe-down)
+    /// Clears placeholder config if user didn't select a real location
+    public func handleMapPickerDismiss() {
+        guard let config = locationConfiguration else { return }
 
-            // If we don't have "Always" permission, request upgrade
-            if !locationAuthStatus.canMonitorGeofences {
-                if locationAuthStatus == .authorizedWhenInUse || locationAuthStatus == .notDetermined {
-                    let result = await requestLocationPermission(requestAlways: true)
-                    if case .denied = result {
-                        // Can't enable without "Always" permission
-                        return
-                    }
-                    if case .failed = result {
-                        return
-                    }
-                } else {
-                    // Permission denied or restricted - can't enable
-                    return
-                }
-            }
+        // Check if this is still a placeholder (0,0 coordinates)
+        let isPlaceholder = config.coordinate.latitude == 0 && config.coordinate.longitude == 0
+
+        if isPlaceholder {
+            // User dismissed without selecting a location - clear the config
+            locationConfiguration = nil
+        } else {
+            // Force SwiftUI observation update by reassigning the config
+            // This ensures the toggle binding re-evaluates
+            locationConfiguration = config
         }
+    }
 
+    public func updateLocationConfiguration(_ config: LocationConfiguration?) async {
+        // Note: Permission checks are handled in toggleLocationEnabled before this is called.
+        // We don't re-check here to avoid race conditions with iOS permission status updates.
         locationConfiguration = config
 
         // If we have a saved habit, update it immediately
@@ -421,14 +419,26 @@ extension HabitDetailViewModel {
 
     public func toggleLocationEnabled(_ enabled: Bool) {
         guard enabled else {
-            // Disabling: clear the configuration (don't preserve potentially stale location data)
-            locationConfiguration = nil
-            if let habitId = originalHabit?.id {
-                Task {
-                    do {
-                        try await configureHabitLocation.execute(habitId: habitId, configuration: nil)
-                    } catch {
-                        self.error = error
+            // Disabling: set isEnabled to false instead of clearing entirely
+            // This prevents race conditions with iCloud sync that could re-trigger enable
+            if var config = locationConfiguration {
+                config.isEnabled = false
+                locationConfiguration = config
+                if let habitId = originalHabit?.id {
+                    Task {
+                        do {
+                            try await configureHabitLocation.execute(habitId: habitId, configuration: nil)
+                            // After successful save, clear the config entirely
+                            await MainActor.run {
+                                self.locationConfiguration = nil
+                            }
+                        } catch {
+                            self.error = error
+                            // Revert on error
+                            await MainActor.run {
+                                self.locationConfiguration?.isEnabled = true
+                            }
+                        }
                     }
                 }
             }
@@ -454,75 +464,62 @@ extension HabitDetailViewModel {
                 }
             }
         } else {
-            // First time enabling - request permissions and show map picker
+            // First time enabling - set optimistic state immediately to prevent toggle snap-back
+            // This placeholder will be cleared if permission is denied
+            locationConfiguration = LocationConfiguration.create(
+                from: CLLocationCoordinate2D(latitude: 0, longitude: 0), // Placeholder
+                radius: LocationConfiguration.defaultRadius,
+                triggerType: .entry,
+                frequency: .oncePerDay,
+                isEnabled: true
+            )
+
+            // Request permissions and show map picker async
             Task {
                 // Check current permission status
                 await checkLocationAuthStatus()
 
                 // Request permission if needed
                 if locationAuthStatus == .notDetermined {
-                    // Request "Always" permission for background geofence monitoring
                     let result = await requestLocationPermission(requestAlways: true)
 
-                    // If permission granted, create default config and show map picker
                     switch result {
                     case .granted:
-                        // Create default configuration (in-memory only, not saved yet)
+                        // Permission granted - show map picker
                         await MainActor.run {
-                            locationConfiguration = LocationConfiguration.create(
-                                from: CLLocationCoordinate2D(latitude: 0, longitude: 0), // Placeholder
-                                radius: LocationConfiguration.defaultRadius,
-                                triggerType: .entry,
-                                frequency: .oncePerDay,
-                                isEnabled: true
-                            )
                             showMapPicker = true
                         }
-
-                        // Note: Config will be saved when user clicks "Done" on map picker
-                        // If user cancels, config is discarded and toggle reverts
                     case .denied, .failed:
-                        // Permission denied - toggle stays off
-                        break
+                        // Permission denied - clear optimistic state
+                        await MainActor.run {
+                            locationConfiguration = nil
+                        }
                     }
                 } else if locationAuthStatus == .authorizedWhenInUse {
-                    // User has "When In Use" but geofences need "Always"
-                    // Request upgrade to "Always" permission
                     let result = await requestLocationPermission(requestAlways: true)
 
                     switch result {
                     case .granted:
                         await MainActor.run {
-                            locationConfiguration = LocationConfiguration.create(
-                                from: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                                radius: LocationConfiguration.defaultRadius,
-                                triggerType: .entry,
-                                frequency: .oncePerDay,
-                                isEnabled: true
-                            )
                             showMapPicker = true
                         }
                     case .denied, .failed:
-                        // User declined upgrade - can't use geofences
-                        break
+                        // User declined upgrade - clear optimistic state
+                        await MainActor.run {
+                            locationConfiguration = nil
+                        }
                     }
                 } else if locationAuthStatus.canMonitorGeofences {
-                    // "Always" permission already granted - create default config and show map picker
+                    // "Always" permission already granted - show map picker
                     await MainActor.run {
-                        locationConfiguration = LocationConfiguration.create(
-                            from: CLLocationCoordinate2D(latitude: 0, longitude: 0), // Placeholder
-                            radius: LocationConfiguration.defaultRadius,
-                            triggerType: .entry,
-                            frequency: .oncePerDay,
-                            isEnabled: true
-                        )
                         showMapPicker = true
                     }
-
-                    // Note: Config will be saved when user clicks "Done" on map picker
-                    // If user cancels, config is discarded and toggle reverts
+                } else {
+                    // Permission denied/restricted - clear optimistic state
+                    await MainActor.run {
+                        locationConfiguration = nil
+                    }
                 }
-                // If permission is denied/restricted, user will see the permission status UI
             }
         }
     }

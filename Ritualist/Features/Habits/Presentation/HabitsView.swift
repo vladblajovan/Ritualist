@@ -19,6 +19,10 @@ public struct HabitsRoot: View {
             await vm.load()
         }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+            // Don't refresh while editing - the sheet's ViewModel would be recreated
+            // with stale data, causing issues like location toggle snapping back
+            guard vm.selectedHabit == nil else { return }
+
             // Auto-refresh when iCloud syncs new data from another device
             Task {
                 logger.log(
