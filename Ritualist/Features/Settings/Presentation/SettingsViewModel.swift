@@ -397,6 +397,22 @@ public final class SettingsViewModel {
         isCheckingCloudStatus = false
     }
 
+    /// Force a fresh iCloud status check with logging for diagnostics
+    public func forceCloudStatusCheck() async {
+        logger.log(
+            "🔍 Force iCloud status check requested",
+            level: .info,
+            category: .system
+        )
+        await refreshiCloudStatus()
+        logger.log(
+            "✅ iCloud status check complete",
+            level: .info,
+            category: .system,
+            metadata: ["status": iCloudStatus.displayMessage]
+        )
+    }
+
     /// Delete iCloud data (GDPR compliance - Right to be forgotten)
     /// Permanently deletes user's profile from CloudKit
     /// Local data remains intact on device

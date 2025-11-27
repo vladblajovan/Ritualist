@@ -5,6 +5,7 @@ import RitualistCore
 public struct HabitsRoot: View {
     @Injected(\.habitsViewModel) var vm
     @Injected(\.categoryManagementViewModel) var categoryManagementVM
+    @Injected(\.debugLogger) private var logger
     @State private var showingCategoryManagement = false
 
     public init() {}
@@ -16,6 +17,17 @@ public struct HabitsRoot: View {
         )
         .task {
             await vm.load()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+            // Auto-refresh when iCloud syncs new data from another device
+            Task {
+                logger.log(
+                    "☁️ iCloud sync detected - refreshing Habits list",
+                    level: .info,
+                    category: .system
+                )
+                await vm.load()
+            }
         }
         .sheet(isPresented: $showingCategoryManagement, onDismiss: {
             Task {

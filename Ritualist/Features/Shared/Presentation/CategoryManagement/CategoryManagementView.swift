@@ -5,6 +5,7 @@ import RitualistCore
 public struct CategoryManagementView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var vm: CategoryManagementViewModel
+    @Injected(\.debugLogger) private var logger
     @State private var showingAddCategory = false
     @State private var selectedCategoryIds: Set<String> = []
     @State private var showingDeleteConfirmation = false
@@ -12,7 +13,7 @@ public struct CategoryManagementView: View {
     @State private var categoriesToDelete: Set<String> = []
     @State private var categoriesToDeactivate: Set<String> = []
     @Environment(\.editMode) private var editMode
-    
+
     public init(vm: CategoryManagementViewModel) {
         self.vm = vm
     }
@@ -100,6 +101,17 @@ public struct CategoryManagementView: View {
             }
             .task {
                 await vm.load()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+                // Auto-refresh when iCloud syncs new data from another device
+                Task {
+                    logger.log(
+                        "☁️ iCloud sync detected - refreshing Categories",
+                        level: .info,
+                        category: .system
+                    )
+                    await vm.load()
+                }
             }
         }
     }

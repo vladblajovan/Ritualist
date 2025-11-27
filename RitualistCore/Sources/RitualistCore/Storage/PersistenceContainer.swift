@@ -55,16 +55,14 @@ public final class PersistenceContainer {
             Self.logger.log("⏱️ Allowing UI time to show migration modal", level: .debug, category: .system)
         }
 
-        // Get shared container URL for app group
-        let sharedContainerURL = PersistenceContainer.getSharedContainerURL()
-        Self.logger.log("📁 Using shared container URL: \(sharedContainerURL.path)", level: .debug, category: .system)
-
-        // Configure ModelContainer with shared URL and migration options
-        let databaseURL = sharedContainerURL.appendingPathComponent("Ritualist.sqlite")
-        Self.logger.log("🗄️ Database file path: \(databaseURL.path)", level: .debug, category: .system)
+        // Use default SwiftData storage location for reliable CloudKit sync
+        // NOTE: Custom App Group URLs can cause CloudKit sync issues.
+        // If widget support is needed later, we may need a different approach
+        // (e.g., separate local store for widget, or NSPersistentCloudKitContainer directly)
+        Self.logger.log("📁 Using default SwiftData storage location for CloudKit sync", level: .debug, category: .system)
 
         let configuration = ModelConfiguration(
-            url: databaseURL,
+            // No custom URL - use default location for best CloudKit compatibility
             allowsSave: true,
             // ✅ CloudKit ENABLED - Syncs to iCloud private database
             cloudKitDatabase: .private(Self.cloudKitContainerIdentifier)
@@ -165,7 +163,8 @@ public final class PersistenceContainer {
     
     /// Get the shared container URL for app group
     /// Returns the shared directory where both app and widget can access data
-    private static func getSharedContainerURL() -> URL {
+    /// Used by BackupManager for backup storage location
+    public static func getSharedContainerURL() -> URL {
         guard let sharedContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
             fatalError("Failed to get shared container URL for app group: \(appGroupIdentifier)")
         }

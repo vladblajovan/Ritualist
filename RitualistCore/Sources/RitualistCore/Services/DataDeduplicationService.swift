@@ -172,15 +172,36 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                 let toDelete = sorted.dropFirst()
 
                 for duplicate in toDelete {
-                    // Move logs from duplicate to keeper if any
-                    if let logsToMove = duplicate.logs {
+                    // Move logs from duplicate to keeper
+                    // IMPORTANT: We must fetch logs by habitID (denormalized field) because
+                    // CloudKit syncs records independently and the SwiftData relationship
+                    // (duplicate.logs) might not be populated after sync.
+                    let duplicateId = duplicate.id
+                    let logsDescriptor = FetchDescriptor<ActiveHabitLogModel>(
+                        predicate: #Predicate { $0.habitID == duplicateId }
+                    )
+                    let logsToMove = try modelContext.fetch(logsDescriptor)
+
+                    if !logsToMove.isEmpty {
+                        logger.log(
+                            "Moving logs from duplicate habit",
+                            level: .info,
+                            category: .dataIntegrity,
+                            metadata: [
+                                "from_habit": duplicate.name,
+                                "from_id": duplicateId.uuidString,
+                                "to_id": toKeep.id.uuidString,
+                                "logs_count": logsToMove.count
+                            ]
+                        )
+
                         for log in logsToMove {
                             log.habit = toKeep
                             log.habitID = toKeep.id  // Update denormalized ID too
                         }
                     }
 
-                    // Delete the duplicate
+                    // Delete the duplicate habit
                     modelContext.delete(duplicate)
                     removedCount += 1
                 }

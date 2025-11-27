@@ -5,13 +5,26 @@ import RitualistCore
 
 public struct SettingsRoot: View {
     @Injected(\.settingsViewModel) var vm
-    
+    @Injected(\.debugLogger) private var logger
+
     public init() {}
-    
+
     public var body: some View {
         SettingsContentView(vm: vm)
             .task {
                 await vm.load()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+                // Auto-refresh when iCloud syncs new data from another device
+                // This updates profile name, avatar, appearance, and timezone settings
+                Task {
+                    logger.log(
+                        "☁️ iCloud sync detected - refreshing Settings",
+                        level: .info,
+                        category: .system
+                    )
+                    await vm.load()
+                }
             }
     }
 }
