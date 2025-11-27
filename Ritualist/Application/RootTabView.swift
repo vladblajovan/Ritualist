@@ -418,10 +418,14 @@ public struct RootTabView: View {
         await viewModel.checkOnboardingStatus()
 
         // Ensure launch screen shows for at least 1 second for smooth UX
-        let elapsed = Date().timeIntervalSince(startTime)
-        let minimumDisplayTime: TimeInterval = 1.0
-        if elapsed < minimumDisplayTime {
-            try? await Task.sleep(for: .seconds(minimumDisplayTime - elapsed))
+        // Skip delay during UI tests for faster test execution
+        let isUITesting = CommandLine.arguments.contains("--uitesting")
+        if !isUITesting {
+            let elapsed = Date().timeIntervalSince(startTime)
+            let minimumDisplayTime: TimeInterval = 1.0
+            if elapsed < minimumDisplayTime {
+                try? await Task.sleep(for: .seconds(minimumDisplayTime - elapsed))
+            }
         }
 
         showOnboarding = viewModel.showOnboarding

@@ -49,6 +49,18 @@ public final class RootTabViewModel {
     // MARK: - Public Methods
 
     public func checkOnboardingStatus() async {
+        // Skip onboarding entirely during UI tests
+        if CommandLine.arguments.contains("--uitesting") {
+            showOnboarding = false
+            isCheckingOnboarding = false
+            logger.log(
+                "UI testing mode - skipping onboarding",
+                level: .info,
+                category: .ui
+            )
+            return
+        }
+
         // First, synchronize iCloud key-value store to get latest flags
         iCloudKeyValueService.synchronize()
 
