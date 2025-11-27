@@ -44,7 +44,7 @@ public final class DefaultDetectiCloudDataUseCase: DetectiCloudDataUseCase {
         self.logger = logger
     }
 
-    public func execute(timeout: TimeInterval = 3.5) async -> OnboardingFlowType {
+    public func execute(timeout: TimeInterval = 2.0) async -> OnboardingFlowType {
         logger.log(
             "🔍 Starting iCloud data detection",
             level: .info,
@@ -52,12 +52,12 @@ public final class DefaultDetectiCloudDataUseCase: DetectiCloudDataUseCase {
             metadata: ["timeout": timeout]
         )
 
-        // 1. Check iCloud availability
+        // 1. Check iCloud availability - if not available, exit immediately
         let status = await checkiCloudStatus.execute()
 
         guard status == .available else {
             logger.log(
-                "☁️ iCloud not available - using new user flow",
+                "☁️ iCloud not available - using new user flow (instant)",
                 level: .info,
                 category: .system,
                 metadata: ["status": status.displayMessage]
@@ -80,56 +80,85 @@ public final class DefaultDetectiCloudDataUseCase: DetectiCloudDataUseCase {
             return .returningUser(summary: immediateSummary)
         }
 
-        // 3. Wait for NSPersistentStoreRemoteChange notification with timeout
+        // 3. Wait for NSPersistentStoreRemoteChange notification
         logger.log(
-            "⏳ Waiting for iCloud sync notification",
+            "⏳ Waiting for iCloud sync",
             level: .info,
             category: .system
         )
 
         let didReceiveRemoteChange = await waitForRemoteChangeNotification(timeout: timeout)
 
-        // 4. If we received remote change, wait for more data to sync
-        // iCloud sends multiple NSPersistentStoreRemoteChange notifications as data arrives
+        // 4. If we received a notification, check for data
+        // First notification is often just metadata - actual data arrives in subsequent ones
         if didReceiveRemoteChange {
             logger.log(
-                "📥 Remote change received, waiting for data sync to complete",
+                "📥 Remote change received, checking for data",
                 level: .info,
                 category: .system
             )
 
-            // Wait for additional remote changes and check for data after each
-            let finalSummary = await waitForDataWithRemoteChanges(timeout: 8.0)
-            if finalSummary.hasData {
+            // Brief pause to let CoreData process
+            try? await Task.sleep(for: .milliseconds(300))
+
+            var summary = await fetchDataSummary()
+            if summary.hasData {
                 logger.log(
                     "✅ iCloud data detected - using returning user flow",
                     level: .info,
                     category: .system,
                     metadata: [
-                        "habitsCount": finalSummary.habitsCount,
-                        "categoriesCount": finalSummary.categoriesCount,
-                        "hasProfile": finalSummary.hasProfile,
-                        "profileName": finalSummary.profileName ?? "nil"
+                        "habitsCount": summary.habitsCount,
+                        "categoriesCount": summary.categoriesCount,
+                        "hasProfile": summary.hasProfile,
+                        "profileName": summary.profileName ?? "nil"
                     ]
                 )
-                return .returningUser(summary: finalSummary)
+                return .returningUser(summary: summary)
+            }
+
+            // First notification was likely just metadata - wait for actual data
+            logger.log(
+                "📥 First notification had no data, waiting for more",
+                level: .info,
+                category: .system
+            )
+
+            // Wait for one more notification cycle (habits typically arrive 1-2s after first notification)
+            let receivedMore = await waitForRemoteChangeNotification(timeout: 2.5)
+            if receivedMore {
+                try? await Task.sleep(for: .milliseconds(300))
+                summary = await fetchDataSummary()
+                if summary.hasData {
+                    logger.log(
+                        "✅ iCloud data detected on second check - using returning user flow",
+                        level: .info,
+                        category: .system,
+                        metadata: [
+                            "habitsCount": summary.habitsCount,
+                            "categoriesCount": summary.categoriesCount,
+                            "hasProfile": summary.hasProfile,
+                            "profileName": summary.profileName ?? "nil"
+                        ]
+                    )
+                    return .returningUser(summary: summary)
+                }
             }
         }
 
-        // 5. Final check for data
+        // 5. Final check
         let finalSummary = await fetchDataSummary()
 
         if finalSummary.hasData {
             logger.log(
-                "✅ iCloud data detected - using returning user flow",
+                "✅ iCloud data detected on final check - using returning user flow",
                 level: .info,
                 category: .system,
                 metadata: [
                     "habitsCount": finalSummary.habitsCount,
                     "categoriesCount": finalSummary.categoriesCount,
                     "hasProfile": finalSummary.hasProfile,
-                    "profileName": finalSummary.profileName ?? "nil",
-                    "receivedNotification": didReceiveRemoteChange
+                    "profileName": finalSummary.profileName ?? "nil"
                 ]
             )
             return .returningUser(summary: finalSummary)
@@ -150,44 +179,6 @@ public final class DefaultDetectiCloudDataUseCase: DetectiCloudDataUseCase {
     /// Returns true if notification was received, false if timeout
     private func waitForRemoteChangeNotification(timeout: TimeInterval) async -> Bool {
         await waitForNotification(.NSPersistentStoreRemoteChange, timeout: timeout)
-    }
-
-    /// Waits for remote changes and checks for data after each notification
-    /// Returns data summary as soon as data is found, or empty summary on timeout
-    private func waitForDataWithRemoteChanges(timeout: TimeInterval) async -> SyncedDataSummary {
-        let startTime = Date()
-
-        while Date().timeIntervalSince(startTime) < timeout {
-            // Calculate remaining time
-            let elapsed = Date().timeIntervalSince(startTime)
-            let remaining = timeout - elapsed
-
-            guard remaining > 0 else { break }
-
-            // Wait for next remote change notification
-            let received = await waitForNotification(.NSPersistentStoreRemoteChange, timeout: remaining)
-
-            if received {
-                // Check for data after receiving notification
-                let summary = await fetchDataSummary()
-                if summary.hasData {
-                    logger.log(
-                        "📦 Data found after remote change",
-                        level: .info,
-                        category: .system,
-                        metadata: ["elapsed": elapsed]
-                    )
-                    return summary
-                }
-                // No data yet, continue waiting for more notifications
-            } else {
-                // Timeout expired
-                break
-            }
-        }
-
-        // Final check before giving up
-        return await fetchDataSummary()
     }
 
     /// Waits for context changes that contain habits or profiles (not just any change)
