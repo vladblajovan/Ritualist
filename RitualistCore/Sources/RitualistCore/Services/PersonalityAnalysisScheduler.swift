@@ -8,7 +8,8 @@
 import Foundation
 
 /// Service responsible for scheduling automatic personality analysis based on user preferences
-public final class PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol {
+/// Uses actor isolation to ensure thread-safe access to mutable state (scheduledUsers, lastAnalysisDates, etc.)
+public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol {
     
     // MARK: - Dependencies
 

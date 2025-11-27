@@ -8,5 +8,5 @@
 import Foundation
 
 public enum Pages: Hashable {
-    case overview, habits, dashboard, settings
+    case overview, habits, stats, settings
 }

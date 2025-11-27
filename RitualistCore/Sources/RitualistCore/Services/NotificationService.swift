@@ -815,6 +815,11 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
     // MARK: - Notification Response Handling
 
     private func handleNotificationResponse(_ response: UNNotificationResponse) async {
+        // Clear app badge when any notification is tapped
+        await MainActor.run {
+            UNUserNotificationCenter.current().setBadgeCount(0)
+        }
+
         let userInfo = response.notification.request.content.userInfo
 
         // Check if this is a personality analysis notification

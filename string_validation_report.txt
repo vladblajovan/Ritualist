@@ -1,9 +1,9 @@
 🌍 Ritualist String Validation Report
 =====================================
-Generated: 2025-11-25 15:29:31 +0000
+Generated: 2025-11-27 11:07:05 +0000
 📊 Summary:
-   Total strings: 291
-   ✅ Valid: 291
+   Total strings: 294
+   ✅ Valid: 294
    ❌ Invalid: 0
    📈 Success rate: 100%
 
@@ -30,7 +30,7 @@ Generated: 2025-11-25 15:29:31 +0000
 ✅ buttonRetry: "Retry"
 ✅ buttonSave: "Save"
 
-📱 Form Field Strings (199/199 valid)
+📱 Form Field Strings (202/202 valid)
 --------------------------------------------------
 ✅ %@ %@: "%1$@ %2$@"
 ✅ %@ → %@: "%1$@ → %2$@"
@@ -200,6 +200,9 @@ Generated: 2025-11-25 15:29:31 +0000
 ✅ overviewYourHabits: "Your Habits"
 ✅ paywall.pro_label: "PRO"
 ✅ paywall.unlock_advanced_stats: "Unlock Advanced Stats"
+✅ quickActionAddHabit: "Add Habit"
+✅ quickActionHabitsAssistant: "Habits Assistant"
+✅ quickActionStats: "Stats"
 ✅ settingsAppearance: "Appearance"
 ✅ settingsDark: "Dark"
 ✅ settingsEnable: "Enable"
@@ -234,12 +237,12 @@ Generated: 2025-11-25 15:29:31 +0000
 
 📱 Tab Bar Strings (6/6 valid)
 --------------------------------------------------
-✅ navigationDashboard: "Dashboard"
 ✅ navigationEditHabit: "Edit Habit"
 ✅ navigationHabits: "Habits"
 ✅ navigationNewHabit: "New Habit"
 ✅ navigationOverview: "Overview"
 ✅ navigationSettings: "Settings"
+✅ navigationStats: "Stats"
 
 📱 Validation Strings (69/69 valid)
 --------------------------------------------------

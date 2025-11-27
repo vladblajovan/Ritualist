@@ -10,6 +10,7 @@ import RitualistCore
 import FactoryKit
 import NaturalLanguage
 import os.log
+import UserNotifications
 
 #if DEBUG
 struct DebugMenuView: View { // swiftlint:disable:this type_body_length
@@ -153,6 +154,27 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     }
                 }
                 .disabled(vm.isClearingDatabase)
+            }
+
+            Section("Notifications") {
+                Button {
+                    Task {
+                        await clearAppBadge()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "app.badge")
+                            .foregroundColor(.red)
+
+                        Text("Clear App Badge")
+
+                        Spacer()
+                    }
+                }
+
+                Text("Removes any stuck badge count from the app icon.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Section("Onboarding Management") {
@@ -599,6 +621,22 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
             Section("Build Information") {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
+                        Text("App Version:")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                    }
+
+                    HStack {
+                        Text("Build Number:")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown")
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                    }
+
+                    HStack {
                         Text("Build Configuration:")
                         Spacer()
                         Text("Debug")
@@ -765,6 +803,16 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         } else {
             return .red         // High - approaching memory warning territory
         }
+    }
+
+    // MARK: - Notifications
+
+    /// Clears the app badge count
+    @MainActor
+    private func clearAppBadge() async {
+        try? await UNUserNotificationCenter.current().setBadgeCount(0)
+        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+            .info("Cleared app badge")
     }
 
     // MARK: - Migration Management

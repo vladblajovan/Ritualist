@@ -77,6 +77,7 @@ private struct HabitsContentView: View {
                                     )
                                 )
                         }
+                        .accessibilityIdentifier(AccessibilityID.Habits.addButton)
                         .accessibilityLabel("Add Habit")
                         .accessibilityHint("Create a new habit to track")
                     }

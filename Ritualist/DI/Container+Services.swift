@@ -358,11 +358,21 @@ extension Container {
         .singleton
     }
 
-    // MARK: - Deep Link Coordination
-    
+    // MARK: - Coordinators
+
     @MainActor
     var personalityDeepLinkCoordinator: Factory<PersonalityDeepLinkCoordinator> {
-        self { @MainActor in RitualistCore.PersonalityDeepLinkCoordinator.shared }
+        self { @MainActor in
+            PersonalityDeepLinkCoordinator(logger: self.debugLogger())
+        }
+        .singleton
+    }
+
+    @MainActor
+    var quickActionCoordinator: Factory<QuickActionCoordinator> {
+        self { @MainActor in
+            QuickActionCoordinator(logger: self.debugLogger())
+        }
         .singleton
     }
     
