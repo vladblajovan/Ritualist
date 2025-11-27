@@ -44,6 +44,12 @@ struct FPSOverlay: View {
             Spacer()
         }
         .allowsHitTesting(false) // Don't intercept touches
+        .onAppear {
+            fpsCounter.start()
+        }
+        .onDisappear {
+            fpsCounter.stop()
+        }
     }
 
     // MARK: - FPS Color Logic
@@ -77,22 +83,50 @@ final class FPSCounter: ObservableObject {
     private var measurementCount: Int = 0
     private var lastFrameTimestamp: CFTimeInterval = 0
     private let logger = Container.shared.debugLogger()
+    private var isRunning = false
 
     init() {
-        startDisplayLink()
-        logger.log("FPS MONITOR: Started - Target: 60 FPS | Acceptable: 30+ FPS | Poor: <30 FPS", level: .debug, category: .debug)
+        // Don't start automatically - wait for start() call
     }
 
     deinit {
         displayLink?.invalidate()
-        // Note: Cannot log final stats from deinit due to actor isolation
-        // Per-second logs and 10-second summaries provide comprehensive data
     }
 
-    private func startDisplayLink() {
+    func start() {
+        guard !isRunning else { return }
+        isRunning = true
+
+        // Reset stats for fresh measurement
+        fps = 60.0
+        minFPS = 60.0
+        maxFPS = 60.0
+        fpsHistory = []
+        frameDropCount = 0
+        measurementCount = 0
+        lastTimestamp = 0
+        lastFrameTimestamp = 0
+        frameCount = 0
+
         // Create display link that fires on every frame
         displayLink = CADisplayLink(target: self, selector: #selector(displayLinkFired(_:)))
         displayLink?.add(to: .main, forMode: .common)
+
+        logger.log("FPS MONITOR: Started - Target: 60 FPS | Acceptable: 30+ FPS | Poor: <30 FPS", level: .debug, category: .debug)
+    }
+
+    func stop() {
+        guard isRunning else { return }
+        isRunning = false
+
+        // Log final summary before stopping
+        if !fpsHistory.isEmpty {
+            let avgFPS = fpsHistory.reduce(0.0, +) / Double(fpsHistory.count)
+            logger.log("FPS MONITOR: Stopped - Final Avg: \(String(format: "%.1f", avgFPS)) FPS | Min: \(Int(minFPS)) | Max: \(Int(maxFPS)) | Drops: \(frameDropCount)", level: .info, category: .debug)
+        }
+
+        displayLink?.invalidate()
+        displayLink = nil
     }
 
     @objc private func displayLinkFired(_ displayLink: CADisplayLink) {

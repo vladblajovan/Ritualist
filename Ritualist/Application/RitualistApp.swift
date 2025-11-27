@@ -694,7 +694,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UIWindowSceneDelegate {
         }
 
         // Register Quick Actions (Home Screen Shortcuts)
-        QuickActionCoordinator.shared.registerQuickActions()
+        Container.shared.quickActionCoordinator().registerQuickActions()
 
         return true
     }
@@ -740,7 +740,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UIWindowSceneDelegate {
                 category: .system,
                 metadata: ["shortcutType": shortcutItem.type]
             )
-            QuickActionCoordinator.shared.handleShortcutItem(shortcutItem)
+            Container.shared.quickActionCoordinator().handleShortcutItem(shortcutItem)
         }
     }
 
@@ -756,9 +756,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UIWindowSceneDelegate {
             category: .system,
             metadata: ["shortcutType": shortcutItem.type]
         )
-        let handled = QuickActionCoordinator.shared.handleShortcutItem(shortcutItem)
-        // Process immediately since app is already running
-        QuickActionCoordinator.shared.processPendingAction()
+        let coordinator = Container.shared.quickActionCoordinator()
+        let handled = coordinator.handleShortcutItem(shortcutItem)
+        // Don't process here - let RootTabView handle it via onChange observers
+        // Processing here would set flags before SwiftUI observers are ready
         completionHandler(handled)
     }
 }

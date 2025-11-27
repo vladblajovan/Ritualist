@@ -752,6 +752,9 @@
     "Annual" : {
 
     },
+    "App Version:" : {
+
+    },
     "appName" : {
       "comment" : "The name of the habit tracking app. This is a proper noun and should remain consistent across languages or be adapted to local naming conventions.",
       "extractionState" : "manual",
@@ -834,6 +837,9 @@
 
     },
     "Build Information" : {
+
+    },
+    "Build Number:" : {
 
     },
     "Building Your Profile" : {
@@ -1067,6 +1073,9 @@
 
     },
     "Clear All Database Data" : {
+
+    },
+    "Clear App Badge" : {
 
     },
     "Clear Database?" : {
@@ -3918,6 +3927,9 @@
         }
       }
     },
+    "Notifications" : {
+
+    },
     "Notifications Enabled" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4944,6 +4956,9 @@
           }
         }
       }
+    },
+    "Removes any stuck badge count from the app icon." : {
+
     },
     "Removes duplicate migration entries, keeping only the latest for each version transition" : {
 

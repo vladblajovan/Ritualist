@@ -59,12 +59,16 @@ struct QuickActionTypeTests {
 @MainActor
 struct QuickActionCoordinatorTests {
 
+    /// Creates a fresh coordinator instance for each test (complete isolation)
+    private func makeCoordinator() -> QuickActionCoordinator {
+        QuickActionCoordinator()
+    }
+
     // MARK: - handleShortcutItem Tests
 
     @Test("handleShortcutItem returns true for addHabit action")
     func handleShortcutItemReturnsTrueForAddHabit() {
-        let coordinator = QuickActionCoordinator.shared
-        coordinator.pendingAction = nil
+        let coordinator = makeCoordinator()
 
         let shortcutItem = UIApplicationShortcutItem(
             type: QuickActionType.addHabit.rawValue,
@@ -75,15 +79,11 @@ struct QuickActionCoordinatorTests {
 
         #expect(result == true)
         #expect(coordinator.pendingAction == .addHabit)
-
-        // Cleanup
-        coordinator.pendingAction = nil
     }
 
     @Test("handleShortcutItem returns true for habitsAssistant action")
     func handleShortcutItemReturnsTrueForHabitsAssistant() {
-        let coordinator = QuickActionCoordinator.shared
-        coordinator.pendingAction = nil
+        let coordinator = makeCoordinator()
 
         let shortcutItem = UIApplicationShortcutItem(
             type: QuickActionType.habitsAssistant.rawValue,
@@ -94,15 +94,11 @@ struct QuickActionCoordinatorTests {
 
         #expect(result == true)
         #expect(coordinator.pendingAction == .habitsAssistant)
-
-        // Cleanup
-        coordinator.pendingAction = nil
     }
 
     @Test("handleShortcutItem returns true for stats action")
     func handleShortcutItemReturnsTrueForStats() {
-        let coordinator = QuickActionCoordinator.shared
-        coordinator.pendingAction = nil
+        let coordinator = makeCoordinator()
 
         let shortcutItem = UIApplicationShortcutItem(
             type: QuickActionType.stats.rawValue,
@@ -113,15 +109,11 @@ struct QuickActionCoordinatorTests {
 
         #expect(result == true)
         #expect(coordinator.pendingAction == .stats)
-
-        // Cleanup
-        coordinator.pendingAction = nil
     }
 
     @Test("handleShortcutItem returns false for unknown action type")
     func handleShortcutItemReturnsFalseForUnknownAction() {
-        let coordinator = QuickActionCoordinator.shared
-        coordinator.pendingAction = nil
+        let coordinator = makeCoordinator()
 
         let shortcutItem = UIApplicationShortcutItem(
             type: "com.ritualist.quickaction.unknown",
@@ -138,8 +130,7 @@ struct QuickActionCoordinatorTests {
 
     @Test("processPendingAction sets shouldShowAddHabit for addHabit action")
     func processPendingActionSetsAddHabitFlag() {
-        let coordinator = QuickActionCoordinator.shared
-        coordinator.resetTriggers()
+        let coordinator = makeCoordinator()
         coordinator.pendingAction = .addHabit
 
         coordinator.processPendingAction()
@@ -148,15 +139,11 @@ struct QuickActionCoordinatorTests {
         #expect(coordinator.shouldShowHabitsAssistant == false)
         #expect(coordinator.shouldNavigateToStats == false)
         #expect(coordinator.pendingAction == nil)
-
-        // Cleanup
-        coordinator.resetTriggers()
     }
 
     @Test("processPendingAction sets shouldShowHabitsAssistant for habitsAssistant action")
     func processPendingActionSetsHabitsAssistantFlag() {
-        let coordinator = QuickActionCoordinator.shared
-        coordinator.resetTriggers()
+        let coordinator = makeCoordinator()
         coordinator.pendingAction = .habitsAssistant
 
         coordinator.processPendingAction()
@@ -165,15 +152,11 @@ struct QuickActionCoordinatorTests {
         #expect(coordinator.shouldShowHabitsAssistant == true)
         #expect(coordinator.shouldNavigateToStats == false)
         #expect(coordinator.pendingAction == nil)
-
-        // Cleanup
-        coordinator.resetTriggers()
     }
 
     @Test("processPendingAction sets shouldNavigateToStats for stats action")
     func processPendingActionSetsStatsFlag() {
-        let coordinator = QuickActionCoordinator.shared
-        coordinator.resetTriggers()
+        let coordinator = makeCoordinator()
         coordinator.pendingAction = .stats
 
         coordinator.processPendingAction()
@@ -182,16 +165,11 @@ struct QuickActionCoordinatorTests {
         #expect(coordinator.shouldShowHabitsAssistant == false)
         #expect(coordinator.shouldNavigateToStats == true)
         #expect(coordinator.pendingAction == nil)
-
-        // Cleanup
-        coordinator.resetTriggers()
     }
 
     @Test("processPendingAction does nothing when no pending action")
     func processPendingActionDoesNothingWhenNoPendingAction() {
-        let coordinator = QuickActionCoordinator.shared
-        coordinator.resetTriggers()
-        coordinator.pendingAction = nil
+        let coordinator = makeCoordinator()
 
         coordinator.processPendingAction()
 
@@ -204,7 +182,7 @@ struct QuickActionCoordinatorTests {
 
     @Test("resetTriggers clears all flags")
     func resetTriggersClearsAllFlags() {
-        let coordinator = QuickActionCoordinator.shared
+        let coordinator = makeCoordinator()
         coordinator.shouldShowAddHabit = true
         coordinator.shouldShowHabitsAssistant = true
         coordinator.shouldNavigateToStats = true
@@ -220,9 +198,7 @@ struct QuickActionCoordinatorTests {
 
     @Test("Full flow: handle shortcut then process pending action")
     func fullFlowHandleAndProcess() {
-        let coordinator = QuickActionCoordinator.shared
-        coordinator.resetTriggers()
-        coordinator.pendingAction = nil
+        let coordinator = makeCoordinator()
 
         // Simulate shortcut item received
         let shortcutItem = UIApplicationShortcutItem(
@@ -243,5 +219,87 @@ struct QuickActionCoordinatorTests {
         // Reset (simulates what happens after sheet is shown)
         coordinator.resetTriggers()
         #expect(coordinator.shouldShowAddHabit == false)
+    }
+
+    // MARK: - Edge Case Tests
+
+    @Test("Handling new action overwrites pending action before processing")
+    func handlingNewActionOverwritesPendingAction() {
+        let coordinator = makeCoordinator()
+
+        // Handle first action
+        let firstItem = UIApplicationShortcutItem(
+            type: QuickActionType.addHabit.rawValue,
+            localizedTitle: "Add Habit"
+        )
+        coordinator.handleShortcutItem(firstItem)
+        #expect(coordinator.pendingAction == .addHabit)
+
+        // Handle second action before processing first
+        let secondItem = UIApplicationShortcutItem(
+            type: QuickActionType.stats.rawValue,
+            localizedTitle: "Stats"
+        )
+        coordinator.handleShortcutItem(secondItem)
+        #expect(coordinator.pendingAction == .stats)
+
+        // Process should only trigger stats
+        coordinator.processPendingAction()
+        #expect(coordinator.shouldShowAddHabit == false)
+        #expect(coordinator.shouldNavigateToStats == true)
+    }
+
+    @Test("Processing same action multiple times only triggers once")
+    func processingClearsActionImmediately() {
+        let coordinator = makeCoordinator()
+        coordinator.pendingAction = .habitsAssistant
+
+        // First process
+        coordinator.processPendingAction()
+        #expect(coordinator.shouldShowHabitsAssistant == true)
+
+        // Reset flags
+        coordinator.resetTriggers()
+
+        // Second process should do nothing (pendingAction was cleared)
+        coordinator.processPendingAction()
+        #expect(coordinator.shouldShowHabitsAssistant == false)
+    }
+
+    @Test("Handling same action type twice in a row works correctly")
+    func handlingSameActionTwice() {
+        let coordinator = makeCoordinator()
+
+        let shortcutItem = UIApplicationShortcutItem(
+            type: QuickActionType.addHabit.rawValue,
+            localizedTitle: "Add Habit"
+        )
+
+        // First time
+        coordinator.handleShortcutItem(shortcutItem)
+        coordinator.processPendingAction()
+        #expect(coordinator.shouldShowAddHabit == true)
+        coordinator.resetTriggers()
+
+        // Second time (same action)
+        coordinator.handleShortcutItem(shortcutItem)
+        coordinator.processPendingAction()
+        #expect(coordinator.shouldShowAddHabit == true)
+    }
+
+    // MARK: - Initial State Tests
+
+    @Test("New coordinator has nil pendingAction")
+    func newCoordinatorHasNilPendingAction() {
+        let coordinator = makeCoordinator()
+        #expect(coordinator.pendingAction == nil)
+    }
+
+    @Test("New coordinator has all flags set to false")
+    func newCoordinatorHasAllFlagsFalse() {
+        let coordinator = makeCoordinator()
+        #expect(coordinator.shouldShowAddHabit == false)
+        #expect(coordinator.shouldShowHabitsAssistant == false)
+        #expect(coordinator.shouldNavigateToStats == false)
     }
 }

@@ -42,10 +42,6 @@ public enum QuickActionType: String {
 @Observable
 public final class QuickActionCoordinator {
 
-    // MARK: - Singleton
-
-    public static let shared = QuickActionCoordinator()
-
     // MARK: - Dependencies
 
     private let logger: DebugLogger
@@ -62,7 +58,7 @@ public final class QuickActionCoordinator {
 
     // MARK: - Initialization
 
-    private init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "quickActions")) {
+    public init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "quickActions")) {
         self.logger = logger
     }
 

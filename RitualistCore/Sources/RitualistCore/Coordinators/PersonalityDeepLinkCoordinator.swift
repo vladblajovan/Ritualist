@@ -22,21 +22,19 @@ public final class PersonalityDeepLinkCoordinator {
     public var shouldShowPersonalityAnalysis = false
     public var pendingNotificationAction: PersonalityNotificationAction?
     public var shouldSwitchTab = true // Controls whether to switch to a specific tab before showing sheet
-    
+
     // MARK: - Types
-    
+
     public enum PersonalityNotificationAction {
         case openAnalysis(dominantTrait: PersonalityTrait?, confidence: ConfidenceLevel?)
         case openRequirements
         case checkAnalysis
         case directNavigation // For direct navigation without notification context
     }
-    
-    // MARK: - Singleton
 
-    public static let shared = PersonalityDeepLinkCoordinator()
+    // MARK: - Initialization
 
-    private init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "general")) {
+    public init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "general")) {
         self.logger = logger
     }
     
