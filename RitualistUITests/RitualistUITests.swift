@@ -40,7 +40,7 @@ class RitualistUITestCase: XCTestCase {
 
         if !exists {
             // Might be showing onboarding - check for that
-            let onboardingIndicator = app.staticTexts["Welcome"]
+            let onboardingIndicator = app.staticTexts[AccessibilityID.Labels.welcome]
             if onboardingIndicator.exists {
                 // Skip onboarding if shown (test-specific handling would go here)
                 XCTFail("Onboarding is showing - tests require completed onboarding")
@@ -65,14 +65,14 @@ class RitualistUITestCase: XCTestCase {
     /// Dismisses any presented sheet by tapping Cancel/Close or swiping down
     func dismissSheet() {
         // First try to find a Cancel or Close button
-        let cancelButton = app.buttons["Cancel"]
+        let cancelButton = app.buttons[AccessibilityID.Labels.cancel]
         if cancelButton.waitForExistence(timeout: 1) {
             cancelButton.tap()
             Thread.sleep(forTimeInterval: 0.5)
             return
         }
 
-        let closeButton = app.buttons["Close"]
+        let closeButton = app.buttons[AccessibilityID.Labels.close]
         if closeButton.waitForExistence(timeout: 1) {
             closeButton.tap()
             Thread.sleep(forTimeInterval: 0.5)
@@ -161,13 +161,13 @@ final class SettingsNavigationUITests: RitualistUITestCase {
     #if DEBUG
     func testDebugMenuExists() {
         // In debug builds, debug menu should be accessible
-        let debugMenuButton = app.buttons["Debug Menu"]
+        let debugMenuButton = app.buttons[AccessibilityID.Labels.debugMenu]
 
         if debugMenuButton.waitForExistence(timeout: 3) {
             debugMenuButton.tap()
 
             // Verify debug menu opens
-            let debugNavBar = app.navigationBars["Debug Menu"]
+            let debugNavBar = app.navigationBars[AccessibilityID.Labels.debugMenu]
             XCTAssertTrue(debugNavBar.waitForExistence(timeout: 5), "Debug menu should open")
         }
     }
@@ -190,15 +190,16 @@ final class HabitsTabUITests: RitualistUITestCase {
     }
 
     func testAddHabitButtonExists() {
-        // Look for add button (usually in navigation bar)
-        let addButton = app.navigationBars.buttons["Add"]
-
-        // The add button might have different identifiers
-        if !addButton.exists {
-            // Try finding by image
-            let plusButton = app.buttons.matching(identifier: "plus").firstMatch
-            XCTAssertTrue(plusButton.exists || addButton.exists, "Add habit button should exist")
+        // Try accessibility identifier first (most reliable)
+        let identifiedButton = app.buttons[AccessibilityID.Habits.addButton]
+        if identifiedButton.waitForExistence(timeout: 3) {
+            XCTAssertTrue(identifiedButton.exists, "Add habit button should exist")
+            return
         }
+
+        // Fall back to accessibility label
+        let labelButton = app.buttons[AccessibilityID.Labels.addHabit]
+        XCTAssertTrue(labelButton.exists, "Add habit button should exist")
     }
 }
 
@@ -210,7 +211,7 @@ final class SheetPresentationUITests: RitualistUITestCase {
         navigateToTab("Habits")
 
         // Find and tap add button
-        let addButton = app.navigationBars.buttons["Add"]
+        let addButton = app.navigationBars.buttons[AccessibilityID.Labels.add]
         guard addButton.waitForExistence(timeout: 5) else {
             // Try alternative identifiers
             return
@@ -220,7 +221,7 @@ final class SheetPresentationUITests: RitualistUITestCase {
 
         // Wait for sheet to appear
         // The sheet should have some identifiable content
-        let saveButton = app.buttons["Save"]
+        let saveButton = app.buttons[AccessibilityID.Labels.save]
         let sheetAppeared = saveButton.waitForExistence(timeout: 5)
 
         if sheetAppeared {
@@ -235,7 +236,7 @@ final class SheetPresentationUITests: RitualistUITestCase {
     func testSheetCanBeReopened() {
         navigateToTab("Habits")
 
-        let addButton = app.navigationBars.buttons["Add"]
+        let addButton = app.navigationBars.buttons[AccessibilityID.Labels.add]
         guard addButton.waitForExistence(timeout: 5) else {
             return
         }
@@ -243,7 +244,7 @@ final class SheetPresentationUITests: RitualistUITestCase {
         // Open sheet
         addButton.tap()
 
-        let saveButton = app.buttons["Save"]
+        let saveButton = app.buttons[AccessibilityID.Labels.save]
         guard saveButton.waitForExistence(timeout: 5) else {
             return
         }

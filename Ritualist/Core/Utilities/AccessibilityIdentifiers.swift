@@ -7,6 +7,13 @@
 //  Centralized accessibility identifiers for UI testing and VoiceOver support.
 //  Used by both the app (for setting identifiers) and UI tests (for finding elements).
 //
+//  IMPORTANT: This file has a mirror copy in RitualistUITests/AccessibilityIdentifiers.swift
+//  that must be kept in sync. The UI test target cannot import the app module directly,
+//  so both copies are necessary. When adding or modifying identifiers:
+//  1. Update this file first
+//  2. Update the UI tests copy with the same changes
+//  3. Run AccessibilityIdentifiersSyncTests to verify consistency
+//
 
 import Foundation
 
@@ -45,6 +52,7 @@ public enum AccessibilityID {
         public static let backButton = "navigation.back"
         public static let closeButton = "navigation.close"
         public static let doneButton = "navigation.done"
+        public static let cancelButton = "navigation.cancel"
     }
 
     // MARK: - Overview Tab

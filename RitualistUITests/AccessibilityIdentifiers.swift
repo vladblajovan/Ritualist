@@ -7,6 +7,15 @@
 //  Centralized accessibility identifiers for UI testing and VoiceOver support.
 //  These identifiers should match those set in the app's SwiftUI views.
 //
+//  IMPORTANT: This file is a mirror copy of Ritualist/Core/Utilities/AccessibilityIdentifiers.swift
+//  The UI test target cannot import the app module directly, so both copies are necessary.
+//  When adding or modifying identifiers:
+//  1. Update the app's copy first (Ritualist/Core/Utilities/AccessibilityIdentifiers.swift)
+//  2. Update this file with the same changes
+//  3. Run AccessibilityIdentifiersSyncTests to verify consistency
+//
+//  The Labels enum below is UI-test specific and not present in the app version.
+//
 
 import Foundation
 
@@ -30,6 +39,20 @@ enum AccessibilityID {
         static let backButton = "navigation.back"
         static let closeButton = "navigation.close"
         static let doneButton = "navigation.done"
+        static let cancelButton = "navigation.cancel"
+    }
+
+    // MARK: - UI Labels (for tests matching by label, not identifier)
+    // These are used when matching system buttons or text content
+    enum Labels {
+        static let welcome = "Welcome"
+        static let cancel = "Cancel"
+        static let close = "Close"
+        static let save = "Save"
+        static let done = "Done"
+        static let add = "Add"
+        static let addHabit = "Add Habit"
+        static let debugMenu = "Debug Menu"
     }
 
     // MARK: - Overview Tab

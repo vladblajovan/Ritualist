@@ -30,7 +30,7 @@ final class SheetFlowUITests: RitualistUITestCase {
 
         // Verify sheet opened (look for identifiable content)
         let sheetContent = app.otherElements[AccessibilityID.HabitDetail.sheet]
-        let saveButton = app.buttons["Save"]
+        let saveButton = app.buttons[AccessibilityID.Labels.save]
         let sheetOpened = sheetContent.waitForExistence(timeout: 5) || saveButton.waitForExistence(timeout: 5)
 
         guard sheetOpened else {
@@ -56,7 +56,7 @@ final class SheetFlowUITests: RitualistUITestCase {
         // First open
         button.tap()
 
-        let saveButton = app.buttons["Save"]
+        let saveButton = app.buttons[AccessibilityID.Labels.save]
         guard saveButton.waitForExistence(timeout: 5) else {
             throw XCTSkip("Sheet didn't open")
         }
@@ -86,7 +86,7 @@ final class SheetFlowUITests: RitualistUITestCase {
             throw XCTSkip("Add habit button not found")
         }
 
-        let saveButton = app.buttons["Save"]
+        let saveButton = app.buttons[AccessibilityID.Labels.save]
 
         // Cycle through open/close 3 times
         for cycle in 1...3 {
@@ -123,7 +123,7 @@ final class SheetFlowUITests: RitualistUITestCase {
         // Open and close sheet
         button.tap()
 
-        let saveButton = app.buttons["Save"]
+        let saveButton = app.buttons[AccessibilityID.Labels.save]
         guard saveButton.waitForExistence(timeout: 5) else {
             throw XCTSkip("Sheet didn't open")
         }
@@ -153,7 +153,7 @@ final class SheetFlowUITests: RitualistUITestCase {
 
     private func findAddHabitButton() -> XCUIElement? {
         // Try various ways to find the add button
-        let navBarAdd = app.navigationBars.buttons["Add"]
+        let navBarAdd = app.navigationBars.buttons[AccessibilityID.Labels.add]
         if navBarAdd.waitForExistence(timeout: 3) {
             return navBarAdd
         }
@@ -194,14 +194,14 @@ final class SettingsSheetUITests: RitualistUITestCase {
         var debugElement: XCUIElement?
 
         // Try finding as text first
-        let debugText = app.staticTexts["Debug Menu"]
+        let debugText = app.staticTexts[AccessibilityID.Labels.debugMenu]
         if debugText.waitForExistence(timeout: 3) {
             debugElement = debugText
         }
 
         // Try as button
         if debugElement == nil {
-            let debugButton = app.buttons["Debug Menu"]
+            let debugButton = app.buttons[AccessibilityID.Labels.debugMenu]
             if debugButton.waitForExistence(timeout: 2) {
                 debugElement = debugButton
             }
@@ -212,7 +212,7 @@ final class SettingsSheetUITests: RitualistUITestCase {
             app.swipeUp()
             Thread.sleep(forTimeInterval: 0.3)
 
-            let debugTextAfterScroll = app.staticTexts["Debug Menu"]
+            let debugTextAfterScroll = app.staticTexts[AccessibilityID.Labels.debugMenu]
             if debugTextAfterScroll.waitForExistence(timeout: 3) {
                 debugElement = debugTextAfterScroll
             }
@@ -225,11 +225,11 @@ final class SettingsSheetUITests: RitualistUITestCase {
         element.tap()
 
         // Verify debug menu opened
-        let debugNavBar = app.navigationBars["Debug Menu"]
+        let debugNavBar = app.navigationBars[AccessibilityID.Labels.debugMenu]
         XCTAssertTrue(debugNavBar.waitForExistence(timeout: 5), "Debug menu should open")
 
         // Find and tap Done button
-        let doneButton = app.buttons["Done"]
+        let doneButton = app.buttons[AccessibilityID.Labels.done]
         if doneButton.waitForExistence(timeout: 3) {
             doneButton.tap()
         } else {
@@ -246,11 +246,11 @@ final class SettingsSheetUITests: RitualistUITestCase {
     func testDebugMenuCanBeReopened() throws {
         // Find debug menu element (text or button)
         func findDebugMenu() -> XCUIElement? {
-            let debugText = app.staticTexts["Debug Menu"]
+            let debugText = app.staticTexts[AccessibilityID.Labels.debugMenu]
             if debugText.exists && debugText.isHittable {
                 return debugText
             }
-            let debugButton = app.buttons["Debug Menu"]
+            let debugButton = app.buttons[AccessibilityID.Labels.debugMenu]
             if debugButton.exists && debugButton.isHittable {
                 return debugButton
             }
@@ -272,13 +272,13 @@ final class SettingsSheetUITests: RitualistUITestCase {
         // First open/close cycle
         element.tap()
 
-        let debugNavBar = app.navigationBars["Debug Menu"]
+        let debugNavBar = app.navigationBars[AccessibilityID.Labels.debugMenu]
         guard debugNavBar.waitForExistence(timeout: 5) else {
             XCTFail("Debug menu didn't open first time")
             return
         }
 
-        let doneButton = app.buttons["Done"]
+        let doneButton = app.buttons[AccessibilityID.Labels.done]
         doneButton.tap()
 
         _ = debugNavBar.waitForNonExistence(timeout: 3)
@@ -327,7 +327,7 @@ final class RapidInteractionUITests: RitualistUITestCase {
             throw XCTSkip("Add habit button not found")
         }
 
-        let saveButton = app.buttons["Save"]
+        let saveButton = app.buttons[AccessibilityID.Labels.save]
 
         // Rapidly open/close
         for i in 1...5 {
@@ -352,7 +352,7 @@ final class RapidInteractionUITests: RitualistUITestCase {
 
     private func findAddHabitButton() -> XCUIElement? {
         // Try navigation bar button
-        let navBarAdd = app.navigationBars.buttons["Add"]
+        let navBarAdd = app.navigationBars.buttons[AccessibilityID.Labels.add]
         if navBarAdd.waitForExistence(timeout: 3) {
             return navBarAdd
         }

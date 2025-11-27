@@ -218,14 +218,12 @@ public struct RootTabView: View {
         }
         .sheet(isPresented: $showingPersonalityAnalysis, onDismiss: {
             // Check if we need to re-show the sheet (dismiss-then-reshow pattern)
+            // onDismiss is called after dismiss animation completes, so we can set state directly
             if pendingPersonalitySheetReshow {
                 pendingPersonalitySheetReshow = false
                 logger.logPersonalitySheet(state: "Re-showing personality sheet after dismiss")
-                // Re-show on next runloop to ensure dismiss animation completes
-                DispatchQueue.main.async {
-                    showingPersonalityAnalysis = true
-                    vm.personalityDeepLinkCoordinator.resetAnalysisState()
-                }
+                showingPersonalityAnalysis = true
+                vm.personalityDeepLinkCoordinator.resetAnalysisState()
             }
         }) {
             logger.logPersonalitySheet(state: "Sheet is being presented")
@@ -256,9 +254,10 @@ public struct RootTabView: View {
                 metadata: ["pendingAction": String(describing: quickActionCoordinator.pendingAction)]
             )
             // Process any pending Quick Action from cold start
-            // Use next runloop to ensure view is laid out
-            DispatchQueue.main.async {
-                logger.log("RootTabView: Processing pending Quick Action on next runloop", level: .debug, category: .ui)
+            // Yield to next runloop to ensure view is laid out before processing
+            Task { @MainActor in
+                await Task.yield()
+                logger.log("RootTabView: Processing pending Quick Action after yield", level: .debug, category: .ui)
                 quickActionCoordinator.processPendingAction()
             }
         }
@@ -356,18 +355,15 @@ public struct RootTabView: View {
                 await loadCurrentHabits()
             }
             // Check if we need to re-show this sheet or show a different one
+            // onDismiss is called after dismiss animation completes, so we can set state directly
             if pendingQuickActionAddHabitReshow {
                 pendingQuickActionAddHabitReshow = false
                 logger.log("Quick Action: Re-showing Add Habit sheet after dismiss", level: .info, category: .ui)
-                DispatchQueue.main.async {
-                    showingQuickActionAddHabit = true
-                }
+                showingQuickActionAddHabit = true
             } else if pendingQuickActionHabitsAssistantReshow {
                 pendingQuickActionHabitsAssistantReshow = false
                 logger.log("Quick Action: Showing Habits Assistant sheet after Add Habit dismiss", level: .info, category: .ui)
-                DispatchQueue.main.async {
-                    showingQuickActionHabitsAssistant = true
-                }
+                showingQuickActionHabitsAssistant = true
             }
         }) {
             let detailVM = HabitDetailViewModel(habit: nil)
@@ -379,18 +375,15 @@ public struct RootTabView: View {
                 await loadCurrentHabits()
             }
             // Check if we need to re-show this sheet or show a different one
+            // onDismiss is called after dismiss animation completes, so we can set state directly
             if pendingQuickActionHabitsAssistantReshow {
                 pendingQuickActionHabitsAssistantReshow = false
                 logger.log("Quick Action: Re-showing Habits Assistant sheet after dismiss", level: .info, category: .ui)
-                DispatchQueue.main.async {
-                    showingQuickActionHabitsAssistant = true
-                }
+                showingQuickActionHabitsAssistant = true
             } else if pendingQuickActionAddHabitReshow {
                 pendingQuickActionAddHabitReshow = false
                 logger.log("Quick Action: Showing Add Habit sheet after Habits Assistant dismiss", level: .info, category: .ui)
-                DispatchQueue.main.async {
-                    showingQuickActionAddHabit = true
-                }
+                showingQuickActionAddHabit = true
             }
         }) {
             HabitsAssistantSheet(

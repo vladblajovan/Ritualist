@@ -63,48 +63,42 @@ public final class PersonalityDeepLinkCoordinator {
         let notificationId = response.notification.request.identifier
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [notificationId])
 
-        // Force reset state to ensure SwiftUI detects changes
-        shouldShowPersonalityAnalysis = false
-        pendingNotificationAction = nil
+        // Set up navigation state - the view (RootTabView) handles dismiss-then-reshow
+        // via its pendingPersonalitySheetReshow pattern if the sheet is already showing
         shouldSwitchTab = true // Notifications should switch to Overview tab
 
-        // Use async dispatch with small delay to make the dismiss/reopen visually apparent
-        Task { @MainActor in
-            // Small delay to make the sheet dismiss visible
-            try? await Task.sleep(for: .milliseconds(200))
-            switch action {
-            case "open_analysis":
-                let dominantTrait = (userInfo["dominant_trait"] as? String).flatMap(PersonalityTrait.init(fromString:))
-                let confidence = (userInfo["confidence"] as? String).flatMap(ConfidenceLevel.init(fromString:))
+        switch action {
+        case "open_analysis":
+            let dominantTrait = (userInfo["dominant_trait"] as? String).flatMap(PersonalityTrait.init(fromString:))
+            let confidence = (userInfo["confidence"] as? String).flatMap(ConfidenceLevel.init(fromString:))
 
-                logger.logDeepLink(event: "Setting pendingNotificationAction", action: "openAnalysis")
+            logger.logDeepLink(event: "Setting pendingNotificationAction", action: "openAnalysis")
 
-                pendingNotificationAction = .openAnalysis(
-                    dominantTrait: dominantTrait,
-                    confidence: confidence
-                )
+            pendingNotificationAction = .openAnalysis(
+                dominantTrait: dominantTrait,
+                confidence: confidence
+            )
 
-                logger.logPersonality(event: "Triggering personality analysis sheet")
+            logger.logPersonality(event: "Triggering personality analysis sheet")
 
-                shouldShowPersonalityAnalysis = true
+            shouldShowPersonalityAnalysis = true
 
-            case "open_requirements":
-                logger.logDeepLink(event: "Setting pendingNotificationAction", action: "openRequirements")
+        case "open_requirements":
+            logger.logDeepLink(event: "Setting pendingNotificationAction", action: "openRequirements")
 
-                pendingNotificationAction = .openRequirements
-                shouldShowPersonalityAnalysis = true
+            pendingNotificationAction = .openRequirements
+            shouldShowPersonalityAnalysis = true
 
-            case "check_analysis":
-                logger.logDeepLink(event: "Setting pendingNotificationAction", action: "checkAnalysis")
+        case "check_analysis":
+            logger.logDeepLink(event: "Setting pendingNotificationAction", action: "checkAnalysis")
 
-                pendingNotificationAction = .checkAnalysis
-                shouldShowPersonalityAnalysis = true
+            pendingNotificationAction = .checkAnalysis
+            shouldShowPersonalityAnalysis = true
 
-            default:
-                #if DEBUG
-                logger.log("Unknown personality notification action: \(action)", level: .warning, category: .personality)
-                #endif
-            }
+        default:
+            #if DEBUG
+            logger.log("Unknown personality notification action: \(action)", level: .warning, category: .personality)
+            #endif
         }
     }
     
