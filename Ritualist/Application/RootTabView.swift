@@ -482,9 +482,10 @@ public struct RootTabView: View {
                     viewModel.showReturningUserWelcomeIfNeeded(habits: existingHabits, profile: profile)
                 }
             } else {
-                // Data not complete yet - retry up to 10 times with 2s delays (20s total)
-                // CloudKit profile may take longer to sync than habits
-                let maxRetries = 10
+                // Data not complete yet - retry up to 5 minutes (150 retries × 2s)
+                // This doesn't block the app - user can use it normally while we wait
+                // CloudKit profile/avatar may take longer to sync on slow networks
+                let maxRetries = 150
                 if retryCount < maxRetries {
                     logger.log(
                         "☁️ Returning user data incomplete - will retry",
