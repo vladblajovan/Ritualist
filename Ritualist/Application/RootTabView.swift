@@ -2,6 +2,7 @@ import SwiftUI
 import FactoryKit
 import RitualistCore
 
+// swiftlint:disable:next type_body_length
 public struct RootTabView: View {
     @Injected(\.rootTabViewModel) var viewModel
     @Injected(\.settingsViewModel) var settingsViewModel
@@ -16,6 +17,11 @@ public struct RootTabView: View {
     @State private var migrationService = MigrationStatusService.shared
     @State private var pendingPersonalitySheetAfterTabSwitch = false
     @State private var showSyncToast = false
+
+    // Quick Actions state
+    @State private var quickActionCoordinator = QuickActionCoordinator.shared
+    @State private var showingQuickActionAddHabit = false
+    @State private var showingQuickActionHabitsAssistant = false
 
     /// UserDefaults key for tracking if we've shown the first iCloud sync toast
     private static let hasShownFirstSyncToastKey = "hasShownFirstiCloudSyncToast"
@@ -45,7 +51,7 @@ public struct RootTabView: View {
                             }
                         }
 
-                        Tab(Strings.Navigation.dashboard, systemImage: "chart.bar.fill", value: Pages.dashboard) {
+                        Tab(Strings.Navigation.stats, systemImage: "chart.bar.fill", value: Pages.stats) {
                             NavigationStack {
                                 DashboardRoot()
                             }
@@ -190,6 +196,123 @@ public struct RootTabView: View {
             // Check for pending navigation when app enters foreground
             if vm.personalityDeepLinkCoordinator.processPendingNavigation() {
                 // Already handled by onChange above
+            }
+        }
+        // MARK: - Quick Actions Handling
+        .onAppear {
+            logger.log(
+                "RootTabView onAppear - checking for pending Quick Action",
+                level: .info,
+                category: .ui,
+                metadata: ["pendingAction": String(describing: quickActionCoordinator.pendingAction)]
+            )
+            // Process any pending Quick Action from cold start
+            // Small delay to ensure UI is ready
+            Task {
+                try? await Task.sleep(for: .milliseconds(300))
+                logger.log("RootTabView: Processing pending Quick Action after delay", level: .debug, category: .ui)
+                quickActionCoordinator.processPendingAction()
+            }
+        }
+        .onChange(of: quickActionCoordinator.shouldShowAddHabit) { oldValue, shouldShow in
+            logger.log(
+                "Quick Action onChange: shouldShowAddHabit",
+                level: .info,
+                category: .ui,
+                metadata: ["oldValue": oldValue, "newValue": shouldShow]
+            )
+            if shouldShow {
+                logger.log("Quick Action: Add Habit triggered - switching to habits tab", level: .info, category: .ui)
+
+                // Dismiss any other open quick action sheet first
+                let needsDismissal = showingQuickActionHabitsAssistant
+                if needsDismissal {
+                    showingQuickActionHabitsAssistant = false
+                }
+
+                vm.navigationService.selectedTab = .habits
+                // Delay to allow tab switch and sheet dismissal if needed
+                Task {
+                    try? await Task.sleep(for: .milliseconds(needsDismissal ? 400 : 100))
+                    logger.log("Quick Action: Showing Add Habit sheet", level: .info, category: .ui)
+                    showingQuickActionAddHabit = true
+                    quickActionCoordinator.resetTriggers()
+                }
+            }
+        }
+        .onChange(of: quickActionCoordinator.shouldShowHabitsAssistant) { oldValue, shouldShow in
+            logger.log(
+                "Quick Action onChange: shouldShowHabitsAssistant",
+                level: .info,
+                category: .ui,
+                metadata: ["oldValue": oldValue, "newValue": shouldShow]
+            )
+            if shouldShow {
+                logger.log("Quick Action: Habits Assistant triggered - switching to habits tab", level: .info, category: .ui)
+
+                // Dismiss any other open quick action sheet first
+                let needsDismissal = showingQuickActionAddHabit
+                if needsDismissal {
+                    showingQuickActionAddHabit = false
+                }
+
+                vm.navigationService.selectedTab = .habits
+                // Delay to allow tab switch and sheet dismissal if needed
+                Task {
+                    try? await Task.sleep(for: .milliseconds(needsDismissal ? 400 : 100))
+                    logger.log("Quick Action: Showing Habits Assistant sheet", level: .info, category: .ui)
+                    showingQuickActionHabitsAssistant = true
+                    quickActionCoordinator.resetTriggers()
+                }
+            }
+        }
+        .onChange(of: quickActionCoordinator.shouldNavigateToStats) { oldValue, shouldShow in
+            logger.log(
+                "Quick Action onChange: shouldNavigateToStats",
+                level: .info,
+                category: .ui,
+                metadata: ["oldValue": oldValue, "newValue": shouldShow]
+            )
+            if shouldShow {
+                logger.log("Quick Action: Stats triggered - switching to stats tab", level: .info, category: .ui)
+
+                // Dismiss any open quick action sheets first
+                let needsDismissal = showingQuickActionAddHabit || showingQuickActionHabitsAssistant
+                if showingQuickActionAddHabit {
+                    showingQuickActionAddHabit = false
+                }
+                if showingQuickActionHabitsAssistant {
+                    showingQuickActionHabitsAssistant = false
+                }
+
+                Task {
+                    if needsDismissal {
+                        try? await Task.sleep(for: .milliseconds(400))
+                    }
+                    vm.navigationService.selectedTab = .stats
+                    quickActionCoordinator.resetTriggers()
+                }
+            }
+        }
+        .sheet(isPresented: $showingQuickActionAddHabit) {
+            let detailVM = HabitDetailViewModel(habit: nil)
+            HabitDetailView(vm: detailVM)
+                .onDisappear {
+                    Task {
+                        await loadCurrentHabits()
+                    }
+                }
+        }
+        .sheet(isPresented: $showingQuickActionHabitsAssistant) {
+            HabitsAssistantSheet(
+                existingHabits: existingHabits,
+                isFirstVisit: false,
+                onShowPaywall: nil
+            )
+            .onDisappear {
+                Task {
+                    await loadCurrentHabits()
+                }
             }
         }
     }

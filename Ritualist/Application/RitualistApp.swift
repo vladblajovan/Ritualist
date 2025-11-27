@@ -674,10 +674,17 @@ import CoreData
 // MARK: - App Delegate
 
 /// AppDelegate handles app launch scenarios including location-based relaunches
+/// Also conforms to UIWindowSceneDelegate to handle Quick Actions in scene-based apps
 /// UIApplicationDelegate methods run on the main thread, so we mark this @MainActor
 @MainActor
-class AppDelegate: NSObject, UIApplicationDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UIWindowSceneDelegate {
+    private let logger = DebugLogger(subsystem: "com.ritualist.app", category: "appDelegate")
+
+    // MARK: - UIApplicationDelegate
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        logger.log("AppDelegate didFinishLaunchingWithOptions", level: .info, category: .system)
+
         // LocalNotificationService sets itself as the UNUserNotificationCenter delegate
         // All notification handling (habit + personality) is done there
 
@@ -686,7 +693,73 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             Container.shared.initializeForGeofenceLaunch()
         }
 
+        // Register Quick Actions (Home Screen Shortcuts)
+        QuickActionCoordinator.shared.registerQuickActions()
+
         return true
+    }
+
+    /// Configure scene to use this class as the scene delegate for Quick Action handling
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        logger.log(
+            "Configuring scene session",
+            level: .debug,
+            category: .system,
+            metadata: ["hasShortcutItem": options.shortcutItem != nil]
+        )
+
+        let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        config.delegateClass = AppDelegate.self
+        return config
+    }
+
+    // MARK: - UIWindowSceneDelegate (Quick Actions)
+
+    /// Called when scene connects - check for pending shortcut from cold start
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        logger.log(
+            "Scene willConnectTo",
+            level: .info,
+            category: .system,
+            metadata: ["hasShortcutItem": connectionOptions.shortcutItem != nil]
+        )
+
+        // Handle Quick Action if app was launched from one (cold start)
+        if let shortcutItem = connectionOptions.shortcutItem {
+            logger.log(
+                "App launched from Quick Action (cold start)",
+                level: .info,
+                category: .system,
+                metadata: ["shortcutType": shortcutItem.type]
+            )
+            QuickActionCoordinator.shared.handleShortcutItem(shortcutItem)
+        }
+    }
+
+    /// Handle Quick Action when app is already running (warm start)
+    func windowScene(
+        _ windowScene: UIWindowScene,
+        performActionFor shortcutItem: UIApplicationShortcutItem,
+        completionHandler: @escaping (Bool) -> Void
+    ) {
+        logger.log(
+            "Quick Action triggered (warm start via SceneDelegate)",
+            level: .info,
+            category: .system,
+            metadata: ["shortcutType": shortcutItem.type]
+        )
+        let handled = QuickActionCoordinator.shared.handleShortcutItem(shortcutItem)
+        // Process immediately since app is already running
+        QuickActionCoordinator.shared.processPendingAction()
+        completionHandler(handled)
     }
 }
 

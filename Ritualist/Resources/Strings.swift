@@ -14,7 +14,7 @@ public enum Strings {
     public enum Navigation {
         public static let overview = String(localized: "navigationOverview")
         public static let habits = String(localized: "navigationHabits")
-        public static let dashboard = String(localized: "navigationDashboard")
+        public static let stats = String(localized: "navigationStats")
         public static let settings = String(localized: "navigationSettings")
         public static let editHabit = String(localized: "navigationEditHabit")
         public static let newHabit = String(localized: "navigationNewHabit")

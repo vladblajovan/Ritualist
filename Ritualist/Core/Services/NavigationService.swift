@@ -33,10 +33,10 @@ public final class NavigationService {
         }
     }
     
-    public func navigateToDashboard() {
+    public func navigateToStats() {
         let previousTab = tabName(selectedTab)
-        selectedTab = .dashboard
-        
+        selectedTab = .stats
+
         if previousTab != tabName(selectedTab) {
             trackingService?.track(.tabSwitched(from: previousTab, to: tabName(selectedTab)))
         }
@@ -55,7 +55,7 @@ public final class NavigationService {
         switch tab {
         case .overview: return "overview"
         case .habits: return "habits"
-        case .dashboard: return "dashboard"
+        case .stats: return "stats"
         case .settings: return "settings"
         }
     }
