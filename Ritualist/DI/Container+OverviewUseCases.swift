@@ -55,7 +55,12 @@ extension Container {
     // MARK: - Profile Operations
     
     var loadProfile: Factory<LoadProfile> {
-        self { LoadProfile(repo: self.profileRepository()) }
+        self {
+            LoadProfile(
+                repo: self.profileRepository(),
+                iCloudKeyValueService: self.iCloudKeyValueService()
+            )
+        }
     }
     
     var getCurrentUserProfile: Factory<GetCurrentUserProfile> {

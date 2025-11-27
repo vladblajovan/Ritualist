@@ -24,10 +24,16 @@ public final class SaveOnboardingState: SaveOnboardingStateUseCase {
 public final class CompleteOnboarding: CompleteOnboardingUseCase {
     private let onboardingRepo: OnboardingRepository
     private let profileRepo: ProfileRepository
+    private let iCloudKeyValueService: iCloudKeyValueService?
 
-    public init(repo: OnboardingRepository, profileRepo: ProfileRepository) {
+    public init(
+        repo: OnboardingRepository,
+        profileRepo: ProfileRepository,
+        iCloudKeyValueService: iCloudKeyValueService? = nil
+    ) {
         self.onboardingRepo = repo
         self.profileRepo = profileRepo
+        self.iCloudKeyValueService = iCloudKeyValueService
     }
 
     public func execute(userName: String?, hasNotifications: Bool) async throws {
@@ -39,6 +45,14 @@ public final class CompleteOnboarding: CompleteOnboardingUseCase {
             hasGrantedNotifications: hasNotifications
         )
         try await onboardingRepo.saveOnboardingState(completedState)
+
+        // Set iCloud flag so other devices know onboarding was completed
+        // This syncs almost instantly via NSUbiquitousKeyValueStore
+        iCloudKeyValueService?.setOnboardingCompleted()
+
+        // Also set local device flag so THIS device knows onboarding is done
+        // This prevents showing returning user welcome on reinstall of same device
+        iCloudKeyValueService?.setOnboardingCompletedLocally()
 
         // Update user profile with the name if provided
         if let userName = userName, !userName.isEmpty {

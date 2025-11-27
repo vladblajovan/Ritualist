@@ -36,6 +36,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
     @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase
     @ObservationIgnored @Injected(\.saveOnboardingState) var saveOnboardingState
+    @ObservationIgnored @Injected(\.iCloudKeyValueService) var iCloudKeyValueService
     #endif
 
     public var profile = UserProfile()
@@ -539,6 +540,12 @@ public final class SettingsViewModel {
             )
 
             try await saveOnboardingState.execute(resetState)
+
+            // Also reset the iCloud onboarding flag
+            iCloudKeyValueService.resetOnboardingFlag()
+
+            // Reset the local device flag (so this device sees new user flow)
+            iCloudKeyValueService.resetLocalOnboardingFlag()
 
             // Track the debug action
             userActionTracker.track(.custom(event: "debug_onboarding_reset", parameters: [:]))

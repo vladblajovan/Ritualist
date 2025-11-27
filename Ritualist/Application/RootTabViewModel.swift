@@ -8,9 +8,8 @@ import RitualistCore
 public final class RootTabViewModel {
 
     // MARK: - Dependencies
-    private let getOnboardingState: GetOnboardingState
     private let loadProfile: LoadProfile
-    private let detectiCloudData: DetectiCloudDataUseCase
+    private let iCloudKeyValueService: iCloudKeyValueService
     private let logger: DebugLogger
 
     // MARK: - Services (exposed for view binding)
@@ -23,18 +22,25 @@ public final class RootTabViewModel {
     public var isCheckingOnboarding = true
     public var onboardingFlowType: OnboardingFlowType = .newUser
 
+    /// Flag indicating we need to show returning user welcome once data loads
+    public var pendingReturningUserWelcome = false
+
+    /// Flag to show returning user welcome after data loads (deferred onboarding)
+    public var showReturningUserWelcome = false
+
+    /// Synced data summary for returning user welcome screen
+    public var syncedDataSummary: SyncedDataSummary?
+
     public init(
-        getOnboardingState: GetOnboardingState,
         loadProfile: LoadProfile,
-        detectiCloudData: DetectiCloudDataUseCase,
+        iCloudKeyValueService: iCloudKeyValueService,
         appearanceManager: AppearanceManager,
         navigationService: NavigationService,
         personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator,
         logger: DebugLogger
     ) {
-        self.getOnboardingState = getOnboardingState
         self.loadProfile = loadProfile
-        self.detectiCloudData = detectiCloudData
+        self.iCloudKeyValueService = iCloudKeyValueService
         self.appearanceManager = appearanceManager
         self.navigationService = navigationService
         self.personalityDeepLinkCoordinator = personalityDeepLinkCoordinator
@@ -44,43 +50,112 @@ public final class RootTabViewModel {
     // MARK: - Public Methods
 
     public func checkOnboardingStatus() async {
-        do {
-            let state = try await getOnboardingState.execute()
+        // First, synchronize iCloud key-value store to get latest flags
+        iCloudKeyValueService.synchronize()
 
-            if state.isCompleted {
-                // Onboarding already completed - go directly to main app
-                showOnboarding = false
-                isCheckingOnboarding = false
-                logger.log(
-                    "Onboarding already completed - skipping",
-                    level: .info,
-                    category: .ui
-                )
-            } else {
-                // Onboarding not completed - detect iCloud data to determine flow
-                logger.log(
-                    "Onboarding not completed - detecting iCloud data",
-                    level: .info,
-                    category: .ui
-                )
-                onboardingFlowType = await detectiCloudData.execute()
-                showOnboarding = true
-                isCheckingOnboarding = false
+        // Step 1: Check LOCAL device flag (UserDefaults - not synced)
+        // This tells us if THIS device has completed onboarding
+        let localDeviceCompleted = iCloudKeyValueService.hasCompletedOnboardingLocally()
 
-                logger.log(
-                    "Onboarding flow determined",
-                    level: .info,
-                    category: .ui,
-                    metadata: ["flowType": String(describing: onboardingFlowType)]
-                )
-            }
-        } catch {
-            logger.log("Failed to check onboarding status: \(error)", level: .error, category: .ui)
-            // Default to new user flow on error
-            onboardingFlowType = .newUser
-            showOnboarding = true
+        if localDeviceCompleted {
+            // This device already went through onboarding - skip everything
+            showOnboarding = false
             isCheckingOnboarding = false
+            logger.log(
+                "Onboarding already completed on this device - skipping",
+                level: .info,
+                category: .ui
+            )
+            return
         }
+
+        // Step 2: Local device flag is false - check iCloud flag
+        // iCloud flag tells us if user completed onboarding on ANY device
+        let iCloudOnboardingCompleted = iCloudKeyValueService.hasCompletedOnboarding()
+
+        if iCloudOnboardingCompleted {
+            // Returning user! iCloud flag is set but local device flag is not
+            // This means user completed onboarding on another device
+            logger.log(
+                "iCloud onboarding flag set, local device flag not set - returning user detected",
+                level: .info,
+                category: .ui
+            )
+
+            // Don't show onboarding, let the app load normally
+            // We'll show the returning user welcome AFTER iCloud data fully syncs
+            showOnboarding = false
+            isCheckingOnboarding = false
+
+            // Set flag - RootTabView will show welcome once data is loaded
+            pendingReturningUserWelcome = true
+            return
+        }
+
+        // Step 3: Neither flag set - this is a new user
+        logger.log(
+            "No iCloud onboarding flag and no local flag - new user flow",
+            level: .info,
+            category: .ui
+        )
+        onboardingFlowType = .newUser
+        showOnboarding = true
+        isCheckingOnboarding = false
+    }
+
+    /// Called from RootTabView when iCloud data has finished loading
+    /// Shows the returning user welcome with actual synced data
+    public func showReturningUserWelcomeIfNeeded(habits: [Habit], profile: UserProfile?) {
+        guard pendingReturningUserWelcome else { return }
+
+        // Build summary from actual loaded data
+        let summary = SyncedDataSummary(
+            habitsCount: habits.count,
+            categoriesCount: 0, // Not needed for welcome screen
+            hasProfile: profile != nil && !(profile?.name.isEmpty ?? true),
+            profileName: profile?.name,
+            profileAvatar: profile?.avatarImageData
+        )
+
+        // Only show if we have COMPLETE data (habits AND profile with name)
+        // This ensures we wait for all iCloud data to sync before showing welcome
+        guard summary.habitsCount > 0 && summary.hasProfile else {
+            logger.log(
+                "Pending returning user welcome but incomplete data - waiting for more sync",
+                level: .debug,
+                category: .ui,
+                metadata: [
+                    "habitsCount": summary.habitsCount,
+                    "hasProfile": summary.hasProfile,
+                    "profileName": summary.profileName ?? "nil"
+                ]
+            )
+            return
+        }
+
+        pendingReturningUserWelcome = false
+        syncedDataSummary = summary
+        showReturningUserWelcome = true
+
+        logger.log(
+            "Showing returning user welcome with synced data",
+            level: .info,
+            category: .ui,
+            metadata: [
+                "habitsCount": summary.habitsCount,
+                "hasProfile": summary.hasProfile,
+                "profileName": summary.profileName ?? "nil"
+            ]
+        )
+    }
+
+    /// Called when returning user welcome is dismissed
+    public func dismissReturningUserWelcome() {
+        showReturningUserWelcome = false
+        syncedDataSummary = nil
+
+        // Mark this device as having completed onboarding (so we don't show welcome again)
+        iCloudKeyValueService.setOnboardingCompletedLocally()
     }
 
     public func loadUserAppearancePreference() async {
