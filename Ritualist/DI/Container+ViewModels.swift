@@ -14,6 +14,7 @@ extension Container {
             RootTabViewModel(
                 getOnboardingState: self.getOnboardingState(),
                 loadProfile: self.loadProfile(),
+                detectiCloudData: self.detectiCloudData(),
                 appearanceManager: self.appearanceManager(),
                 navigationService: self.navigationService(),
                 personalityDeepLinkCoordinator: self.personalityDeepLinkCoordinator(),

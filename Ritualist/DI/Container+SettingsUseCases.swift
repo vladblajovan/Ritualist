@@ -79,6 +79,18 @@ extension Container {
         }
     }
 
+    var detectiCloudData: Factory<DetectiCloudDataUseCase> {
+        self {
+            DefaultDetectiCloudDataUseCase(
+                checkiCloudStatus: self.checkiCloudStatus(),
+                habitRepository: self.habitRepository(),
+                categoryRepository: self.categoryRepository(),
+                profileRepository: self.profileRepository(),
+                logger: self.debugLogger()
+            )
+        }
+    }
+
     var exportUserData: Factory<ExportUserDataUseCase> {
         self {
             DefaultExportUserDataUseCase(

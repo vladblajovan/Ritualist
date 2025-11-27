@@ -37,9 +37,8 @@ public struct RootTabView: View {
         
         Group {
             if isCheckingOnboarding {
-                ProgressView("Loading...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemBackground))
+                // Show branded launch screen while detecting iCloud data
+                AppLaunchView()
             } else {
                 TabView(selection: $vm.navigationService.selectedTab) {
                     Tab(Strings.Navigation.overview, systemImage: "calendar", value: Pages.overview) {
@@ -111,9 +110,17 @@ public struct RootTabView: View {
                 await handlePostOnboarding()
             }
         }) {
-            OnboardingFlowView(onComplete: {
-                showOnboarding = false
-            })
+            // Show appropriate onboarding flow based on detected iCloud data
+            switch viewModel.onboardingFlowType {
+            case .newUser:
+                OnboardingFlowView(onComplete: {
+                    showOnboarding = false
+                })
+            case .returningUser(let summary):
+                ReturningUserOnboardingView(summary: summary, onComplete: {
+                    showOnboarding = false
+                })
+            }
         }
         .sheet(isPresented: $showingPostOnboardingAssistant) {
             HabitsAssistantSheet(
@@ -396,7 +403,17 @@ public struct RootTabView: View {
     }
     
     private func checkOnboardingStatus() async {
+        let startTime = Date()
+
         await viewModel.checkOnboardingStatus()
+
+        // Ensure launch screen shows for at least 1 second for smooth UX
+        let elapsed = Date().timeIntervalSince(startTime)
+        let minimumDisplayTime: TimeInterval = 1.0
+        if elapsed < minimumDisplayTime {
+            try? await Task.sleep(for: .seconds(minimumDisplayTime - elapsed))
+        }
+
         showOnboarding = viewModel.showOnboarding
         isCheckingOnboarding = viewModel.isCheckingOnboarding
     }
@@ -404,6 +421,13 @@ public struct RootTabView: View {
     /// Handle post-onboarding flow - open assistant if user can add more habits
     /// Called from fullScreenCover's onDismiss, so onboarding is already dismissed
     private func handlePostOnboarding() async {
+        // Skip assistant for returning users - they already have habits
+        guard case .newUser = viewModel.onboardingFlowType else {
+            // Returning user - just check for iCloud sync toast
+            handleFirstiCloudSync()
+            return
+        }
+
         await loadCurrentHabits()
 
         // NOTE: Don't call handleFirstiCloudSync() here - the assistant sheet will open next
