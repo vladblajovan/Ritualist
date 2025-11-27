@@ -14,11 +14,10 @@ import CoreData
 // MARK: - Protocol
 
 public protocol DetectiCloudDataUseCase {
-    /// Detects existing iCloud data with timeout.
-    /// Waits for NSPersistentStoreRemoteChange notification before checking.
-    /// - Parameter timeout: Maximum time to wait for iCloud sync (default 3.5 seconds)
+    /// Detects existing iCloud data using event-driven approach.
+    /// Waits for NSPersistentStoreRemoteChange notifications and checks for data after each.
     /// - Returns: OnboardingFlowType based on detected data
-    func execute(timeout: TimeInterval) async -> OnboardingFlowType
+    func execute() async -> OnboardingFlowType
 }
 
 // MARK: - Implementation
@@ -44,12 +43,16 @@ public final class DefaultDetectiCloudDataUseCase: DetectiCloudDataUseCase {
         self.logger = logger
     }
 
-    public func execute(timeout: TimeInterval = 2.0) async -> OnboardingFlowType {
+    public func execute() async -> OnboardingFlowType {
+        let maxWait: TimeInterval = 5.0
+        let idleTimeout: TimeInterval = 2.0
+        let startTime = Date()
+
         logger.log(
-            "🔍 Starting iCloud data detection",
+            "🔍 Starting iCloud data detection (event-driven)",
             level: .info,
             category: .system,
-            metadata: ["timeout": timeout]
+            metadata: ["maxWait": maxWait, "idleTimeout": idleTimeout]
         )
 
         // 1. Check iCloud availability - if not available, exit immediately
@@ -74,81 +77,83 @@ public final class DefaultDetectiCloudDataUseCase: DetectiCloudDataUseCase {
                 category: .system,
                 metadata: [
                     "habitsCount": immediateSummary.habitsCount,
-                    "hasProfile": immediateSummary.hasProfile
+                    "hasProfile": immediateSummary.hasProfile,
+                    "elapsed": String(format: "%.2fs", Date().timeIntervalSince(startTime))
                 ]
             )
             return .returningUser(summary: immediateSummary)
         }
 
-        // 3. Wait for NSPersistentStoreRemoteChange notification
+        // 3. Event-driven wait: keep listening while notifications arrive
         logger.log(
-            "⏳ Waiting for iCloud sync",
+            "⏳ Waiting for iCloud sync (event-driven)",
             level: .info,
             category: .system
         )
 
-        let didReceiveRemoteChange = await waitForRemoteChangeNotification(timeout: timeout)
+        var notificationCount = 0
 
-        // 4. If we received a notification, check for data
-        // First notification is often just metadata - actual data arrives in subsequent ones
-        if didReceiveRemoteChange {
-            logger.log(
-                "📥 Remote change received, checking for data",
-                level: .info,
-                category: .system
-            )
+        // Continue while we haven't exceeded max wait time
+        while Date().timeIntervalSince(startTime) < maxWait {
+            let remainingTime = maxWait - Date().timeIntervalSince(startTime)
+            let waitTime = min(idleTimeout, remainingTime)
 
-            // Brief pause to let CoreData process
-            try? await Task.sleep(for: .milliseconds(300))
+            // Wait for next notification (or timeout)
+            let receivedNotification = await waitForRemoteChangeNotification(timeout: waitTime)
 
-            var summary = await fetchDataSummary()
-            if summary.hasData {
+            if receivedNotification {
+                notificationCount += 1
                 logger.log(
-                    "✅ iCloud data detected - using returning user flow",
+                    "📥 Remote change #\(notificationCount) received, checking for data",
                     level: .info,
                     category: .system,
-                    metadata: [
-                        "habitsCount": summary.habitsCount,
-                        "categoriesCount": summary.categoriesCount,
-                        "hasProfile": summary.hasProfile,
-                        "profileName": summary.profileName ?? "nil"
-                    ]
+                    metadata: ["elapsed": String(format: "%.2fs", Date().timeIntervalSince(startTime))]
                 )
-                return .returningUser(summary: summary)
-            }
 
-            // First notification was likely just metadata - wait for actual data
-            logger.log(
-                "📥 First notification had no data, waiting for more",
-                level: .info,
-                category: .system
-            )
-
-            // Wait for one more notification cycle (habits typically arrive 1-2s after first notification)
-            let receivedMore = await waitForRemoteChangeNotification(timeout: 2.5)
-            if receivedMore {
+                // Brief pause to let CoreData process the notification
                 try? await Task.sleep(for: .milliseconds(300))
-                summary = await fetchDataSummary()
+
+                let summary = await fetchDataSummary()
                 if summary.hasData {
                     logger.log(
-                        "✅ iCloud data detected on second check - using returning user flow",
+                        "✅ iCloud data detected - using returning user flow",
                         level: .info,
                         category: .system,
                         metadata: [
                             "habitsCount": summary.habitsCount,
                             "categoriesCount": summary.categoriesCount,
                             "hasProfile": summary.hasProfile,
-                            "profileName": summary.profileName ?? "nil"
+                            "profileName": summary.profileName ?? "nil",
+                            "notificationsReceived": notificationCount,
+                            "elapsed": String(format: "%.2fs", Date().timeIntervalSince(startTime))
                         ]
                     )
                     return .returningUser(summary: summary)
                 }
+
+                // No data yet - continue waiting for more notifications
+                logger.log(
+                    "📥 Notification #\(notificationCount) had no user data, continuing to listen",
+                    level: .info,
+                    category: .system
+                )
+            } else {
+                // No notification received within idle timeout - likely no iCloud data
+                logger.log(
+                    "⏱️ No notification received for \(String(format: "%.1fs", waitTime)) - assuming no iCloud data",
+                    level: .info,
+                    category: .system,
+                    metadata: [
+                        "notificationsReceived": notificationCount,
+                        "elapsed": String(format: "%.2fs", Date().timeIntervalSince(startTime))
+                    ]
+                )
+                break
             }
         }
 
-        // 5. Final check
+        // Final check before giving up
         let finalSummary = await fetchDataSummary()
-
         if finalSummary.hasData {
             logger.log(
                 "✅ iCloud data detected on final check - using returning user flow",
@@ -158,7 +163,8 @@ public final class DefaultDetectiCloudDataUseCase: DetectiCloudDataUseCase {
                     "habitsCount": finalSummary.habitsCount,
                     "categoriesCount": finalSummary.categoriesCount,
                     "hasProfile": finalSummary.hasProfile,
-                    "profileName": finalSummary.profileName ?? "nil"
+                    "profileName": finalSummary.profileName ?? "nil",
+                    "elapsed": String(format: "%.2fs", Date().timeIntervalSince(startTime))
                 ]
             )
             return .returningUser(summary: finalSummary)
@@ -168,7 +174,10 @@ public final class DefaultDetectiCloudDataUseCase: DetectiCloudDataUseCase {
             "⏱️ No iCloud data found - using new user flow",
             level: .info,
             category: .system,
-            metadata: ["receivedNotification": didReceiveRemoteChange]
+            metadata: [
+                "notificationsReceived": notificationCount,
+                "elapsed": String(format: "%.2fs", Date().timeIntervalSince(startTime))
+            ]
         )
         return .newUser
     }

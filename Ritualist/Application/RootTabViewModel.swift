@@ -63,7 +63,7 @@ public final class RootTabViewModel {
                     level: .info,
                     category: .ui
                 )
-                onboardingFlowType = await detectiCloudData.execute(timeout: 3.5)
+                onboardingFlowType = await detectiCloudData.execute()
                 showOnboarding = true
                 isCheckingOnboarding = false
 
