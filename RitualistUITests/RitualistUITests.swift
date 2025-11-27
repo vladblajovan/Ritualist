@@ -63,19 +63,18 @@ class RitualistUITestCase: XCTestCase {
     }
 
     /// Dismisses any presented sheet by tapping Cancel/Close or swiping down
+    /// Note: Callers should use waitForNonExistence() on sheet content to confirm dismissal
     func dismissSheet() {
         // First try to find a Cancel or Close button
         let cancelButton = app.buttons[AccessibilityID.Labels.cancel]
         if cancelButton.waitForExistence(timeout: 1) {
             cancelButton.tap()
-            Thread.sleep(forTimeInterval: 0.5)
             return
         }
 
         let closeButton = app.buttons[AccessibilityID.Labels.close]
         if closeButton.waitForExistence(timeout: 1) {
             closeButton.tap()
-            Thread.sleep(forTimeInterval: 0.5)
             return
         }
 
@@ -84,9 +83,15 @@ class RitualistUITestCase: XCTestCase {
         let start = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
         let end = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95))
         start.press(forDuration: 0.05, thenDragTo: end)
+    }
 
-        // Wait for dismiss animation
-        Thread.sleep(forTimeInterval: 0.5)
+    /// Waits for a tab to be selected after tapping
+    func waitForTabSelected(_ tabName: String, timeout: TimeInterval = 3) -> Bool {
+        let tab = app.tabBars.buttons[tabName]
+        let predicate = NSPredicate(format: "isSelected == true")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: tab)
+        let result = XCTWaiter.wait(for: [expectation], timeout: timeout)
+        return result == .completed
     }
 
     /// Taps a button by accessibility identifier

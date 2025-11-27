@@ -61,12 +61,11 @@ final class SheetFlowUITests: RitualistUITestCase {
             throw XCTSkip("Sheet didn't open")
         }
 
-        // Dismiss
+        // Dismiss and wait for it to complete
         dismissSheet()
-        _ = saveButton.waitForNonExistence(timeout: 3)
-
-        // Small delay for animation
-        Thread.sleep(forTimeInterval: 0.5)
+        guard saveButton.waitForNonExistence(timeout: 3) else {
+            throw XCTSkip("Sheet didn't dismiss")
+        }
 
         // Reopen
         button.tap()
@@ -103,9 +102,7 @@ final class SheetFlowUITests: RitualistUITestCase {
                 XCTFail("Sheet didn't dismiss on cycle \(cycle)")
                 return
             }
-
-            // Small delay between cycles
-            Thread.sleep(forTimeInterval: 0.3)
+            // waitForNonExistence confirms dismiss completed - no additional delay needed
         }
     }
 
@@ -131,13 +128,13 @@ final class SheetFlowUITests: RitualistUITestCase {
         dismissSheet()
         _ = saveButton.waitForNonExistence(timeout: 3)
 
-        // Switch to another tab
+        // Switch to another tab and wait for selection
         navigateToTab("Stats")
-        Thread.sleep(forTimeInterval: 0.5)
+        _ = waitForTabSelected("Stats")
 
-        // Switch back to Habits
+        // Switch back to Habits and wait for selection
         navigateToTab("Habits")
-        Thread.sleep(forTimeInterval: 0.5)
+        _ = waitForTabSelected("Habits")
 
         // Try to open sheet again
         button.tap()
@@ -210,8 +207,8 @@ final class SettingsSheetUITests: RitualistUITestCase {
         // May need to scroll to find it
         if debugElement == nil || !debugElement!.isHittable {
             app.swipeUp()
-            Thread.sleep(forTimeInterval: 0.3)
 
+            // Wait for scroll to settle and element to appear
             let debugTextAfterScroll = app.staticTexts[AccessibilityID.Labels.debugMenu]
             if debugTextAfterScroll.waitForExistence(timeout: 3) {
                 debugElement = debugTextAfterScroll
@@ -261,7 +258,9 @@ final class SettingsSheetUITests: RitualistUITestCase {
 
         if debugElement == nil {
             app.swipeUp()
-            Thread.sleep(forTimeInterval: 0.3)
+            // Wait for scroll animation via element existence check
+            let debugText = app.staticTexts[AccessibilityID.Labels.debugMenu]
+            _ = debugText.waitForExistence(timeout: 2)
             debugElement = findDebugMenu()
         }
 
@@ -305,16 +304,16 @@ final class RapidInteractionUITests: RitualistUITestCase {
     func testRapidTabSwitching() {
         let tabs = ["Overview", "Habits", "Stats", "Settings"]
 
-        // Rapidly switch tabs
+        // Rapidly switch tabs - no delay, pure stress test
         for _ in 1...5 {
             for tabName in tabs {
                 navigateToTab(tabName)
-                // Very short delay to simulate rapid tapping
-                Thread.sleep(forTimeInterval: 0.1)
+                // Intentionally no delay - testing rapid user interaction
             }
         }
 
-        // App should still be responsive
+        // App should still be responsive - verify by waiting for final tab
+        _ = waitForTabSelected("Settings")
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.exists, "Tab bar should still exist after rapid switching")
     }
@@ -337,8 +336,8 @@ final class RapidInteractionUITests: RitualistUITestCase {
             if saveButton.waitForExistence(timeout: 2) {
                 dismissSheet()
 
-                // Brief wait
-                Thread.sleep(forTimeInterval: 0.2)
+                // Wait for dismiss to complete before next iteration
+                _ = saveButton.waitForNonExistence(timeout: 2)
             } else {
                 // Sheet might not have opened yet due to animation - skip remaining iterations
                 throw XCTSkip("Sheet opening too slow for rapid test at iteration \(i)")

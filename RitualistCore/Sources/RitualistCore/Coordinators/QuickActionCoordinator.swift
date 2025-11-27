@@ -99,12 +99,29 @@ public final class QuickActionCoordinator {
 
         UIApplication.shared.shortcutItems = [addHabitAction, habitsAssistantAction, statsAction]
 
-        logger.log(
-            "Quick Actions registered successfully",
-            level: .info,
-            category: .system,
-            metadata: ["count": 3]
-        )
+        // Validate registration succeeded
+        let registeredItems = UIApplication.shared.shortcutItems ?? []
+        let expectedCount = 3
+
+        if registeredItems.count == expectedCount {
+            logger.log(
+                "Quick Actions registered successfully",
+                level: .info,
+                category: .system,
+                metadata: ["count": registeredItems.count]
+            )
+        } else {
+            logger.log(
+                "Quick Actions registration may have failed",
+                level: .warning,
+                category: .system,
+                metadata: [
+                    "expected": expectedCount,
+                    "actual": registeredItems.count,
+                    "items": registeredItems.map { $0.type }
+                ]
+            )
+        }
     }
 
     /// Handle a Quick Action shortcut item
