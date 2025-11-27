@@ -132,10 +132,8 @@ public struct MapLocationPickerView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button(Strings.Button.done) {
-                        Task {
-                            await saveLocation()
-                            dismiss()
-                        }
+                        saveLocation()
+                        dismiss()
                     }
                     .disabled(selectedCoordinate == nil)
                 }
@@ -210,7 +208,7 @@ public struct MapLocationPickerView: View {
         }
     }
 
-    private func saveLocation() async {
+    private func saveLocation() {
         guard let coordinate = selectedCoordinate else { return }
 
         if var config = vm.locationConfiguration {
@@ -222,7 +220,7 @@ public struct MapLocationPickerView: View {
             if coordinatesChanged {
                 config.latitude = coordinate.latitude
                 config.longitude = coordinate.longitude
-                await vm.updateLocationConfiguration(config)
+                vm.updateLocationConfiguration(config)
             }
             // If coordinates haven't changed, no need to save (config already has latest changes from sheet)
         } else {
@@ -234,7 +232,7 @@ public struct MapLocationPickerView: View {
                 frequency: .oncePerDay,
                 isEnabled: true
             )
-            await vm.updateLocationConfiguration(newConfig)
+            vm.updateLocationConfiguration(newConfig)
         }
     }
 

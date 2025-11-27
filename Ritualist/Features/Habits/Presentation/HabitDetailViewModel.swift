@@ -130,6 +130,13 @@ public final class HabitDetailViewModel {
             // Schedule notifications for the habit
             try await scheduleHabitReminders.execute(habit: habit)
 
+            // Configure geofence monitoring for location-based reminders
+            // This starts/stops monitoring based on the location configuration
+            try await configureHabitLocation.execute(
+                habitId: habit.id,
+                configuration: locationConfiguration
+            )
+
             didMakeChanges = true
             isSaving = false
             return true
@@ -402,46 +409,17 @@ extension HabitDetailViewModel {
         }
     }
 
-    public func updateLocationConfiguration(_ config: LocationConfiguration?) async {
+    public func updateLocationConfiguration(_ config: LocationConfiguration?) {
         // Note: Permission checks are handled in toggleLocationEnabled before this is called.
-        // We don't re-check here to avoid race conditions with iOS permission status updates.
+        // Location config is saved when user taps Save on the habit edit sheet.
         locationConfiguration = config
-
-        // If we have a saved habit, update it immediately
-        if let habitId = originalHabit?.id {
-            do {
-                try await configureHabitLocation.execute(habitId: habitId, configuration: config)
-            } catch {
-                self.error = error
-            }
-        }
     }
 
     public func toggleLocationEnabled(_ enabled: Bool) {
         guard enabled else {
-            // Disabling: set isEnabled to false instead of clearing entirely
-            // This prevents race conditions with iCloud sync that could re-trigger enable
-            if var config = locationConfiguration {
-                config.isEnabled = false
-                locationConfiguration = config
-                if let habitId = originalHabit?.id {
-                    Task {
-                        do {
-                            try await configureHabitLocation.execute(habitId: habitId, configuration: nil)
-                            // After successful save, clear the config entirely
-                            await MainActor.run {
-                                self.locationConfiguration = nil
-                            }
-                        } catch {
-                            self.error = error
-                            // Revert on error
-                            await MainActor.run {
-                                self.locationConfiguration?.isEnabled = true
-                            }
-                        }
-                    }
-                }
-            }
+            // Disabling: clear the location configuration
+            // Changes are saved when user taps Save on the habit edit sheet
+            locationConfiguration = nil
             return
         }
 
@@ -451,18 +429,6 @@ extension HabitDetailViewModel {
             var config = locationConfiguration!
             config.isEnabled = true
             locationConfiguration = config
-            if let habitId = originalHabit?.id {
-                Task {
-                    do {
-                        try await configureHabitLocation.execute(habitId: habitId, configuration: config)
-                    } catch {
-                        // Display error to user (e.g., geofence limit reached)
-                        self.error = error
-                        // Revert the toggle since configuration failed
-                        self.locationConfiguration?.isEnabled = false
-                    }
-                }
-            }
         } else {
             // First time enabling - set optimistic state immediately to prevent toggle snap-back
             // This placeholder will be cleared if permission is denied
