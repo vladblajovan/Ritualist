@@ -2,6 +2,7 @@ import SwiftUI
 import Foundation
 import FactoryKit
 import RitualistCore
+import CloudKit
 
 @MainActor
 @Observable
@@ -61,6 +62,18 @@ public final class RootTabViewModel {
             return
         }
 
+        // Force onboarding for onboarding UI tests
+        if CommandLine.arguments.contains("--force-onboarding") {
+            showOnboarding = true
+            isCheckingOnboarding = false
+            logger.log(
+                "Force onboarding mode - showing onboarding",
+                level: .info,
+                category: .ui
+            )
+            return
+        }
+
         // First, synchronize iCloud key-value store to get latest flags
         iCloudKeyValueService.synchronize()
 
@@ -81,6 +94,25 @@ public final class RootTabViewModel {
         }
 
         // Step 2: Local device flag is false - check iCloud flag
+        // But ONLY if iCloud is actually available. Without an iCloud account,
+        // NSUbiquitousKeyValueStore may contain stale data from previous sessions.
+        let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
+        let accountStatus = try? await container.accountStatus()
+        let isICloudAvailable = accountStatus == .available
+
+        guard isICloudAvailable else {
+            // No iCloud account - treat as new user, show onboarding
+            logger.log(
+                "No iCloud account available - showing onboarding for new user",
+                level: .info,
+                category: .ui,
+                metadata: ["account_status": String(describing: accountStatus)]
+            )
+            showOnboarding = true
+            isCheckingOnboarding = false
+            return
+        }
+
         // iCloud flag tells us if user completed onboarding on ANY device
         let iCloudOnboardingCompleted = iCloudKeyValueService.hasCompletedOnboarding()
 

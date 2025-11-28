@@ -7,9 +7,23 @@
 //  Reusable animated glow effect for views.
 //  Creates a flowing, pulsing glow behind content.
 //
+//  Accessibility: Respects "Reduce Motion" setting (WCAG 2.3.3)
+//
 
 import SwiftUI
 import RitualistCore
+
+// MARK: - Reduce Motion Support
+
+/// Checks if reduce motion should be enabled, respecting both system settings and test overrides.
+private var shouldReduceMotion: Bool {
+    #if DEBUG
+    if CommandLine.arguments.contains("--reduce-motion") {
+        return true
+    }
+    #endif
+    return UIAccessibility.isReduceMotionEnabled
+}
 
 // MARK: - View Extension
 
@@ -43,55 +57,95 @@ private struct AnimatedGlowModifier: ViewModifier {
     let intensity: CGFloat
     let duration: Double
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var glowPhase: CGFloat = 0
+
+    /// Whether to show static glow (no animation)
+    private var isReduceMotionEnabled: Bool {
+        reduceMotion || shouldReduceMotion
+    }
 
     func body(content: Content) -> some View {
         content
             .background(
                 ZStack {
-                    // Primary animated glow layer
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    color.opacity(intensity),
-                                    color.opacity(intensity * 0.4),
-                                    color.opacity(0.0)
-                                ],
-                                center: .center,
-                                startRadius: glowSize * 0.3,
-                                endRadius: glowSize * 0.6
-                            )
-                        )
-                        .scaleEffect(1.0 + glowPhase * 0.3)
-                        .opacity(0.8 - glowPhase * 0.3)
-                        .blur(radius: glowSize * 0.125)
-
-                    // Secondary layer for depth
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    color.opacity(intensity * 0.8),
-                                    color.opacity(intensity * 0.2),
-                                    color.opacity(0.0)
-                                ],
-                                center: .center,
-                                startRadius: glowSize * 0.35,
-                                endRadius: glowSize * 0.7
-                            )
-                        )
-                        .scaleEffect(1.2 + (1 - glowPhase) * 0.2)
-                        .opacity(0.6 - (1 - glowPhase) * 0.2)
-                        .blur(radius: glowSize * 0.15)
+                    if isReduceMotionEnabled {
+                        // Static glow for reduce motion - single layer, no animation
+                        staticGlowLayer
+                    } else {
+                        // Animated glow layers
+                        animatedGlowLayers
+                    }
                 }
                 .frame(width: glowSize, height: glowSize)
             )
             .onAppear {
+                guard !isReduceMotionEnabled else { return }
                 withAnimation(.easeInOut(duration: duration).repeatForever(autoreverses: true)) {
                     glowPhase = 1
                 }
             }
+    }
+
+    // MARK: - Static Glow (Reduce Motion)
+
+    private var staticGlowLayer: some View {
+        Circle()
+            .fill(
+                RadialGradient(
+                    colors: [
+                        color.opacity(intensity * 0.7),
+                        color.opacity(intensity * 0.3),
+                        color.opacity(0.0)
+                    ],
+                    center: .center,
+                    startRadius: glowSize * 0.3,
+                    endRadius: glowSize * 0.65
+                )
+            )
+            .blur(radius: glowSize * 0.125)
+    }
+
+    // MARK: - Animated Glow
+
+    private var animatedGlowLayers: some View {
+        Group {
+            // Primary animated glow layer
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            color.opacity(intensity),
+                            color.opacity(intensity * 0.4),
+                            color.opacity(0.0)
+                        ],
+                        center: .center,
+                        startRadius: glowSize * 0.3,
+                        endRadius: glowSize * 0.6
+                    )
+                )
+                .scaleEffect(1.0 + glowPhase * 0.3)
+                .opacity(0.8 - glowPhase * 0.3)
+                .blur(radius: glowSize * 0.125)
+
+            // Secondary layer for depth
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            color.opacity(intensity * 0.8),
+                            color.opacity(intensity * 0.2),
+                            color.opacity(0.0)
+                        ],
+                        center: .center,
+                        startRadius: glowSize * 0.35,
+                        endRadius: glowSize * 0.7
+                    )
+                )
+                .scaleEffect(1.2 + (1 - glowPhase) * 0.2)
+                .opacity(0.6 - (1 - glowPhase) * 0.2)
+                .blur(radius: glowSize * 0.15)
+        }
     }
 }
 

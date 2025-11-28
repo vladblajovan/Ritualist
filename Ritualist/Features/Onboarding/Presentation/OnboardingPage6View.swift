@@ -16,19 +16,24 @@ struct OnboardingPage6View: View {
                         color: .blue,
                         isGranted: viewModel.hasGrantedNotifications
                     )
+                    .accessibilityLabel("Notifications")
+                    .accessibilityValue(viewModel.hasGrantedNotifications ? "Enabled" : "Not enabled")
 
                     PermissionIcon(
                         icon: "location.fill",
                         color: .green,
                         isGranted: viewModel.hasGrantedLocation
                     )
+                    .accessibilityLabel("Location")
+                    .accessibilityValue(viewModel.hasGrantedLocation ? "Enabled" : "Not enabled")
                 }
 
                 // Title and description
                 VStack(spacing: 8) {
                     Text(Strings.OnboardingPermissions.title)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text(Strings.OnboardingPermissions.subtitle)
                         .font(.subheadline)
@@ -102,13 +107,13 @@ private struct PermissionIcon: View {
                 .frame(width: 70, height: 70)
 
             Image(systemName: icon)
-                .font(.system(size: 30))
+                .font(.title)
                 .foregroundStyle(isGranted ? color : .secondary)
         }
         .overlay(alignment: .bottomTrailing) {
             if isGranted {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.title3)
                     .foregroundStyle(.green)
                     .background(Circle().fill(.white).padding(2))
             }
@@ -138,14 +143,14 @@ private struct PermissionCard: View {
                     .frame(width: 44, height: 44)
 
                 Image(systemName: icon)
-                    .font(.system(size: 20))
+                    .font(.title3)
                     .foregroundStyle(iconColor)
             }
 
             // Content
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.system(.body, design: .rounded, weight: .semibold))
 
                 if isGranted {
                     HStack(spacing: 4) {
@@ -184,5 +189,8 @@ private struct PermissionCard: View {
                 .fill(Color(.secondarySystemGroupedBackground))
         )
         .animation(.easeInOut, value: isGranted)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title). \(isGranted ? grantedText : description)")
+        .accessibilityHint(isGranted ? "" : "Double tap to enable \(title.lowercased())")
     }
 }

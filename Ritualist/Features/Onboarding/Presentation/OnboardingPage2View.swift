@@ -16,16 +16,19 @@ struct OnboardingPage2View: View {
                         .frame(width: 100, height: 100)
 
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 50))
+                        .font(.largeTitle)
+                        .imageScale(.large)
                         .foregroundStyle(.green)
                 }
                 .animatedGlow(color: .green, glowSize: 140, intensity: 0.4)
+                .accessibilityHidden(true)
 
                 // Title and description
                 VStack(spacing: 8) {
                     Text("Track Your Habits")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text(personalizedGreeting)
                         .font(.subheadline)
@@ -58,31 +61,6 @@ struct OnboardingPage2View: View {
                     )
                 }
                 .padding(.horizontal, 24)
-
-                // Info badge
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.brand)
-
-                    Text("Free: 5 habits")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text("•")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text("Pro: unlimited")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.secondarySystemGroupedBackground))
-                )
 
                 Spacer(minLength: 20)
             }

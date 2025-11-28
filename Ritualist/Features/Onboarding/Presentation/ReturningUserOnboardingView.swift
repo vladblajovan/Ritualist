@@ -43,6 +43,19 @@ struct ReturningUserOnboardingView: View {
             // Load initial permission state
             await viewModel.checkPermissions()
         }
+        .onChange(of: currentStep) { _, newStep in
+            announceStepChange(newStep)
+        }
+    }
+
+    /// Announces step change to VoiceOver users
+    private func announceStepChange(_ step: ReturningUserStep) {
+        guard UIAccessibility.isVoiceOverRunning else { return }
+        let stepTitle = switch step {
+        case .welcome: "Welcome Back"
+        case .permissions: "Set Up This Device"
+        }
+        UIAccessibility.post(notification: .screenChanged, argument: stepTitle)
     }
 
     private func finishOnboarding() async {
@@ -86,19 +99,24 @@ struct ReturningUserPermissionsView: View {
                     color: viewModel.hasGrantedNotifications ? .blue : .secondary,
                     isGranted: viewModel.hasGrantedNotifications
                 )
+                .accessibilityLabel("Notifications")
+                .accessibilityValue(viewModel.hasGrantedNotifications ? "Enabled" : "Not enabled")
 
                 PermissionIcon(
                     icon: viewModel.hasGrantedLocation ? "location.fill" : "location.slash.fill",
                     color: viewModel.hasGrantedLocation ? .green : .secondary,
                     isGranted: viewModel.hasGrantedLocation
                 )
+                .accessibilityLabel("Location")
+                .accessibilityValue(viewModel.hasGrantedLocation ? "Enabled" : "Not enabled")
             }
 
             // Title
             VStack(spacing: 8) {
                 Text("Set Up This Device")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(.title, design: .rounded, weight: .bold))
                     .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
 
                 Text("Enable permissions to get the most out of your habits")
                     .font(.subheadline)
@@ -150,6 +168,7 @@ struct ReturningUserPermissionsView: View {
                         .background(AppColors.brand)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
+                .accessibilityHint("Complete setup and start using Ritualist")
 
                 if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
                     Text("You can enable these later in Settings")
@@ -179,13 +198,13 @@ private struct PermissionIcon: View {
                 .frame(width: 70, height: 70)
 
             Image(systemName: icon)
-                .font(.system(size: 30))
+                .font(.title)
                 .foregroundStyle(color)
         }
         .overlay(alignment: .bottomTrailing) {
             if isGranted {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 20))
+                    .font(.title3)
                     .foregroundStyle(.green)
                     .background(Circle().fill(.white).padding(2))
             }
@@ -237,6 +256,10 @@ private struct PermissionCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.secondarySystemGroupedBackground))
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title). \(description)")
+        .accessibilityValue(isGranted ? "Enabled" : "Not enabled")
+        .accessibilityHint(isGranted ? "" : "Double tap to enable \(title.lowercased())")
     }
 }
 
