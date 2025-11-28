@@ -26,6 +26,7 @@ struct AppLaunchView: View {
                     .frame(width: 180, height: 180)
                     .clipShape(RoundedRectangle(cornerRadius: 40))
                     .animatedGlow(glowSize: 220)
+                    .accessibilityLabel("Ritualist app icon")
             }
 
             // App name
@@ -40,9 +41,12 @@ struct AppLaunchView: View {
                 .scaleEffect(1.5)
                 .tint(AppColors.brand)
                 .padding(.bottom, 60)
+                .accessibilityLabel("Loading")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Ritualist is loading")
     }
 }
 

@@ -21,12 +21,14 @@ struct OnboardingPage2View: View {
                         .foregroundStyle(.green)
                 }
                 .animatedGlow(color: .green, glowSize: 140, intensity: 0.4)
+                .accessibilityHidden(true)
 
                 // Title and description
                 VStack(spacing: 8) {
                     Text("Track Your Habits")
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text(personalizedGreeting)
                         .font(.subheadline)
@@ -59,31 +61,6 @@ struct OnboardingPage2View: View {
                     )
                 }
                 .padding(.horizontal, 24)
-
-                // Info badge
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.brand)
-
-                    Text("Free: 5 habits")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text("•")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text("Pro: unlimited")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.secondarySystemGroupedBackground))
-                )
 
                 Spacer(minLength: 20)
             }

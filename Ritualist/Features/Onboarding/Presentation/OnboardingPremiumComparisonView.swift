@@ -19,12 +19,14 @@ struct OnboardingPremiumComparisonView: View {
                         .foregroundStyle(.orange)
                 }
                 .animatedGlow(color: .orange, glowSize: 140, intensity: 0.4)
+                .accessibilityHidden(true)
 
                 // Title and description
                 VStack(spacing: 8) {
                     Text(Strings.OnboardingPremium.title)
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text(Strings.OnboardingPremium.subtitle)
                         .font(.subheadline)

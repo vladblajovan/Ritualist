@@ -26,6 +26,7 @@ struct OnboardingPage1View: View {
                             .frame(width: 120, height: 120)
                             .clipShape(RoundedRectangle(cornerRadius: 28))
                             .animatedGlow(glowSize: 160)
+                            .accessibilityLabel("Ritualist app icon")
                     }
 
                     // Welcome message
@@ -33,39 +34,76 @@ struct OnboardingPage1View: View {
                         Text("Welcome to Ritualist!")
                             .font(.system(.title, design: .rounded, weight: .bold))
                             .multilineTextAlignment(.center)
+                            .accessibilityAddTraits(.isHeader)
 
-                        Text("Let's start by getting to know you better.\nWhat should we call you?")
+                        Text("Let's start by getting to know you better.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
 
-                    // Name input
-                    VStack(spacing: 12) {
-                        TextField("Enter your name", text: $viewModel.userName)
-                            .font(.system(.title3, design: .rounded, weight: .medium))
+                    // User profile inputs
+                    VStack(spacing: 16) {
+                        // Name input
+                        TextField("What should we call you?", text: $viewModel.userName)
+                            .font(.system(.body, design: .rounded, weight: .medium))
+                            .foregroundStyle(AppColors.brand)
                             .multilineTextAlignment(.center)
                             .textContentType(.name)
                             .textInputAutocapitalization(.words)
                             .autocorrectionDisabled()
                             .focused($isTextFieldFocused)
-                            .padding(.vertical, 16)
-                            .padding(.horizontal, 24)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color(.secondarySystemGroupedBackground))
-                            )
                             .onSubmit {
                                 isTextFieldFocused = false
-                                if viewModel.canProceedFromCurrentPage {
-                                    viewModel.nextPage()
-                                }
                             }
+                            .accessibilityHint("Enter your name to personalize your experience")
+                            .modifier(GradientFieldStyle())
 
-                        if viewModel.userName.isEmpty {
-                            Text("You can change this later in settings")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        // Sex and Age Group selectors in a row
+                        HStack(spacing: 12) {
+                            // Sex picker
+                            Menu {
+                                ForEach(UserSex.allCases) { sex in
+                                    Button(sex.displayName) {
+                                        viewModel.userSex = sex
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(viewModel.userSex == .preferNotToSay ? "Sex" : viewModel.userSex.displayName)
+                                        .font(.system(.body, design: .rounded, weight: .medium))
+                                        .foregroundStyle(viewModel.userSex == .preferNotToSay ? .secondary : AppColors.brand)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .modifier(GradientFieldStyle())
+                            }
+                            .accessibilityLabel("Sex")
+                            .accessibilityValue(viewModel.userSex.displayName)
+
+                            // Age group picker
+                            Menu {
+                                ForEach(UserAgeGroup.allCases) { ageGroup in
+                                    Button(ageGroup.displayName) {
+                                        viewModel.userAgeGroup = ageGroup
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(viewModel.userAgeGroup == .preferNotToSay ? "Age" : viewModel.userAgeGroup.displayName)
+                                        .font(.system(.body, design: .rounded, weight: .medium))
+                                        .foregroundStyle(viewModel.userAgeGroup == .preferNotToSay ? .secondary : AppColors.brand)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .modifier(GradientFieldStyle())
+                            }
+                            .accessibilityLabel("Age group")
+                            .accessibilityValue(viewModel.userAgeGroup.displayName)
                         }
                     }
                     .padding(.horizontal, 24)
@@ -79,36 +117,40 @@ struct OnboardingPage1View: View {
             .onTapGesture {
                 isTextFieldFocused = false
             }
-
-            #if DEBUG
-            // Debug-only Skip button
-            Button(action: {
-                let logger = Container.shared.debugLogger()
-                logger.log("Skip onboarding initiated from debug button", level: .debug, category: .debug)
-                Task {
-                    let success = await viewModel.skipOnboarding()
-                    logger.log("Skip onboarding completed: \(success ? "success" : "failed")", level: success ? .info : .warning, category: .debug)
-                    if success {
-                        onComplete?()
-                    }
-                }
-            }) {
-                Text("Skip")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(AppColors.brand)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-            .padding(.top, 50)
-            .padding(.trailing, 20)
-            #endif
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isTextFieldFocused = true
             }
         }
+    }
+}
+
+// MARK: - Gradient Field Style
+
+private struct GradientFieldStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.vertical, 16)
+            .padding(.horizontal, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.secondarySystemGroupedBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                AppColors.brand.opacity(0.4),
+                                AppColors.brand.opacity(0.15),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
     }
 }

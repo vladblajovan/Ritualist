@@ -16,12 +16,16 @@ struct OnboardingPage6View: View {
                         color: .blue,
                         isGranted: viewModel.hasGrantedNotifications
                     )
+                    .accessibilityLabel("Notifications")
+                    .accessibilityValue(viewModel.hasGrantedNotifications ? "Enabled" : "Not enabled")
 
                     PermissionIcon(
                         icon: "location.fill",
                         color: .green,
                         isGranted: viewModel.hasGrantedLocation
                     )
+                    .accessibilityLabel("Location")
+                    .accessibilityValue(viewModel.hasGrantedLocation ? "Enabled" : "Not enabled")
                 }
 
                 // Title and description
@@ -29,6 +33,7 @@ struct OnboardingPage6View: View {
                     Text(Strings.OnboardingPermissions.title)
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text(Strings.OnboardingPermissions.subtitle)
                         .font(.subheadline)
@@ -184,5 +189,8 @@ private struct PermissionCard: View {
                 .fill(Color(.secondarySystemGroupedBackground))
         )
         .animation(.easeInOut, value: isGranted)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title). \(isGranted ? grantedText : description)")
+        .accessibilityHint(isGranted ? "" : "Double tap to enable \(title.lowercased())")
     }
 }

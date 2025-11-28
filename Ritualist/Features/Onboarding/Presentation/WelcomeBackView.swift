@@ -28,6 +28,7 @@ struct WelcomeBackView: View {
             VStack(spacing: 4) {
                 Text("Welcome back,")
                     .font(.system(.title, design: .rounded, weight: .bold))
+                    .accessibilityAddTraits(.isHeader)
 
                 if let name = summary.profileName, !name.isEmpty {
                     Text("\(name)!")
@@ -61,6 +62,7 @@ struct WelcomeBackView: View {
                         .background(AppColors.brand)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
+                .accessibilityHint("Continue to set up this device")
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)

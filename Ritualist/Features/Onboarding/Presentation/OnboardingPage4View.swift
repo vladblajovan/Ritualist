@@ -19,12 +19,14 @@ struct OnboardingPage4View: View {
                         .foregroundStyle(.orange)
                 }
                 .animatedGlow(color: .orange, glowSize: 140, intensity: 0.4)
+                .accessibilityHidden(true)
 
                 // Title and description
                 VStack(spacing: 8) {
                     Text("Learn & Improve")
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text("Get expert tips and insights to build better habits.")
                         .font(.subheadline)

@@ -19,12 +19,14 @@ struct OnboardingPage3View: View {
                         .foregroundStyle(.purple)
                 }
                 .animatedGlow(color: .purple, glowSize: 140, intensity: 0.4)
+                .accessibilityHidden(true)
 
                 // Title and description
                 VStack(spacing: 8) {
                     Text("Make It Yours")
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text("Customize your habits with colors, emojis, and flexible scheduling.")
                         .font(.subheadline)
