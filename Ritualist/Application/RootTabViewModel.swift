@@ -61,6 +61,18 @@ public final class RootTabViewModel {
             return
         }
 
+        // Force onboarding for onboarding UI tests
+        if CommandLine.arguments.contains("--force-onboarding") {
+            showOnboarding = true
+            isCheckingOnboarding = false
+            logger.log(
+                "Force onboarding mode - showing onboarding",
+                level: .info,
+                category: .ui
+            )
+            return
+        }
+
         // First, synchronize iCloud key-value store to get latest flags
         iCloudKeyValueService.synchronize()
 

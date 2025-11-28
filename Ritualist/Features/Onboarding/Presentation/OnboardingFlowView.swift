@@ -29,7 +29,7 @@ private struct OnboardingContentView: View {
         "Welcome",
         "Track Your Habits",
         "Make It Yours",
-        "Learn and Improve",
+        "Learn & Improve",
         "Free vs Pro",
         "Permissions"
     ]
@@ -130,7 +130,7 @@ private struct OnboardingNavigationView: View {
                     Text("Skip")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppColors.brand)
-                        .padding(.vertical, 10)
+                        .frame(minHeight: 44)
                         .padding(.horizontal, 20)
                         .background(Color(.systemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -139,6 +139,7 @@ private struct OnboardingNavigationView: View {
                                 .strokeBorder(AppColors.brand.opacity(0.3), lineWidth: 1.5)
                         )
                 }
+                .accessibilityIdentifier("onboarding.skip")
                 .accessibilityHint("Skip onboarding and use defaults")
             } else {
                 Button {
@@ -147,7 +148,7 @@ private struct OnboardingNavigationView: View {
                     Text("Back")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppColors.brand)
-                        .padding(.vertical, 10)
+                        .frame(minHeight: 44)
                         .padding(.horizontal, 20)
                         .background(Color(.systemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -156,6 +157,7 @@ private struct OnboardingNavigationView: View {
                                 .strokeBorder(AppColors.brand.opacity(0.3), lineWidth: 1.5)
                         )
                 }
+                .accessibilityIdentifier("onboarding.back")
                 .accessibilityHint("Go to the previous step")
             }
 
@@ -187,13 +189,14 @@ private struct OnboardingNavigationView: View {
                     }
                 }
                 .foregroundStyle(.white)
-                .padding(.vertical, 10)
+                .frame(minHeight: 44)
                 .padding(.horizontal, 24)
                 .background(AppColors.brand)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .opacity(viewModel.canProceedFromCurrentPage && !viewModel.isLoading ? 1 : 0.5)
             }
             .disabled(!viewModel.canProceedFromCurrentPage || viewModel.isLoading)
+            .accessibilityIdentifier("onboarding.continue")
             .accessibilityHint(viewModel.isLastPage ? "Complete setup and start using Ritualist" : "Go to the next step")
         }
     }
