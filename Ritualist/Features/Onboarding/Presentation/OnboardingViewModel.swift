@@ -5,7 +5,7 @@ import RitualistCore
 
 // MARK: - User Profile Enums
 
-public enum UserSex: String, CaseIterable, Identifiable {
+public enum UserGender: String, CaseIterable, Identifiable {
     case preferNotToSay = "prefer_not_to_say"
     case male = "male"
     case female = "female"
@@ -66,7 +66,7 @@ public final class OnboardingViewModel {
     // Current state
     public var currentPage: Int = 0
     public var userName: String = ""
-    public var userSex: UserSex = .preferNotToSay
+    public var userGender: UserGender = .preferNotToSay
     public var userAgeGroup: UserAgeGroup = .preferNotToSay
     public var hasGrantedNotifications: Bool = false
     public var hasGrantedLocation: Bool = false
@@ -218,13 +218,23 @@ public final class OnboardingViewModel {
     public func finishOnboarding() async -> Bool {
         isLoading = true
         do {
-            try await completeOnboarding.execute(userName: userName.isEmpty ? nil : userName, 
-                                               hasNotifications: hasGrantedNotifications)
+            // Convert enum values to raw strings for storage
+            // Only save if user selected something other than "prefer not to say"
+            let genderValue = userGender != .preferNotToSay ? userGender.rawValue : nil
+            let ageGroupValue = userAgeGroup != .preferNotToSay ? userAgeGroup.rawValue : nil
+
+            try await completeOnboarding.execute(
+                userName: userName.isEmpty ? nil : userName,
+                hasNotifications: hasGrantedNotifications,
+                hasLocation: hasGrantedLocation,
+                gender: genderValue,
+                ageGroup: ageGroupValue
+            )
             isCompleted = true
-            
+
             // Track onboarding completion
             userActionTracker.track(.onboardingCompleted)
-            
+
             isLoading = false
             return true
         } catch {
@@ -233,7 +243,7 @@ public final class OnboardingViewModel {
             return false
         }
     }
-    
+
     /// Skip onboarding entirely and use defaults
     public func skipOnboarding() async -> Bool {
         logger.log(
@@ -244,7 +254,13 @@ public final class OnboardingViewModel {
         isLoading = true
         do {
             // Complete onboarding without setting user data
-            try await completeOnboarding.execute(userName: "", hasNotifications: false)
+            try await completeOnboarding.execute(
+                userName: "",
+                hasNotifications: false,
+                hasLocation: false,
+                gender: nil,
+                ageGroup: nil
+            )
             isCompleted = true
 
             // Track as skipped

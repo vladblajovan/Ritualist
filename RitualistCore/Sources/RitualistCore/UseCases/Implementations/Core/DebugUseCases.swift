@@ -126,7 +126,13 @@ public final class PopulateTestData: PopulateTestDataUseCase {
 
         // Step 6: Complete onboarding with test user profile
         progressUpdate?("Setting up user profile...", 0.95)
-        try await completeOnboardingUseCase.execute(userName: "Test User", hasNotifications: false)
+        try await completeOnboardingUseCase.execute(
+            userName: "Test User",
+            hasNotifications: false,
+            hasLocation: false,
+            gender: nil,
+            ageGroup: nil
+        )
 
         progressUpdate?("\(scenario.rawValue) data complete!", 1.0)
     }

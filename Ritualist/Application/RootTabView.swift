@@ -41,9 +41,9 @@ public struct RootTabView: View {
         @Bindable var vm = viewModel
         
         Group {
-            if isCheckingOnboarding {
-                // Show branded launch screen while detecting iCloud data
-                AppLaunchView()
+            if isCheckingOnboarding || migrationService.isMigrating {
+                // Show branded launch screen while detecting iCloud data or during migration
+                AppLaunchView(migrationDetails: migrationService.migrationDetails)
             } else {
                 TabView(selection: $vm.navigationService.selectedTab) {
                     Tab(Strings.Navigation.overview, systemImage: "calendar", value: Pages.overview) {
@@ -83,11 +83,6 @@ public struct RootTabView: View {
                     }
                 }
                 #endif
-                .overlay {
-                    if migrationService.isMigrating {
-                        MigrationLoadingView(details: migrationService.migrationDetails)
-                    }
-                }
                 .overlay(alignment: .top) {
                     if showSyncToast {
                         ICloudSyncToast(onDismiss: {

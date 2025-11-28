@@ -72,9 +72,9 @@ public final class PersistenceContainer {
 
         do {
             Self.logger.log("📋 Creating Schema from SchemaV\(currentVersionString)", level: .info, category: .system)
-            Self.logger.log("   Models: \(SchemaV10.models.map { String(describing: $0) })", level: .debug, category: .system)
+            Self.logger.log("   Models: \(ActiveSchemaVersion.models.map { String(describing: $0) })", level: .debug, category: .system)
 
-            let schema = Schema(versionedSchema: SchemaV10.self)
+            let schema = Schema(versionedSchema: ActiveSchemaVersion.self)
             Self.logger.log("   Schema version: \(currentVersionString)", level: .debug, category: .system)
 
             Self.logger.log("🚀 Initializing ModelContainer with schema and migration plan", level: .info, category: .system)

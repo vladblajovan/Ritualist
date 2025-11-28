@@ -156,7 +156,9 @@ public final class RootTabViewModel {
             categoriesCount: 0, // Not needed for welcome screen
             hasProfile: profile != nil && !(profile?.name.isEmpty ?? true),
             profileName: profile?.name,
-            profileAvatar: profile?.avatarImageData
+            profileAvatar: profile?.avatarImageData,
+            profileGender: profile?.gender,
+            profileAgeGroup: profile?.ageGroup
         )
 
         // Only show if we have COMPLETE data (habits AND profile with name)

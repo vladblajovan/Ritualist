@@ -5,7 +5,7 @@
 //  Created by Claude on 28.11.2025.
 //
 //  Unit tests for OnboardingViewModel covering:
-//  - UserSex and UserAgeGroup enums
+//  - UserGender and UserAgeGroup enums
 //  - Page navigation logic
 //  - canProceedFromCurrentPage validation
 //  - Skip and finish onboarding flows (using mock repositories)
@@ -16,44 +16,44 @@ import Foundation
 @testable import Ritualist
 @testable import RitualistCore
 
-// MARK: - UserSex Enum Tests
+// MARK: - UserGender Enum Tests
 
 #if swift(>=6.1)
-@Suite("UserSex Enum Tests", .tags(.isolated, .fast))
+@Suite("UserGender Enum Tests", .tags(.isolated, .fast))
 #else
-@Suite("UserSex Enum Tests")
+@Suite("UserGender Enum Tests")
 #endif
-struct UserSexTests {
+struct UserGenderTests {
 
     @Test("All cases have correct raw values")
     func rawValues() {
-        #expect(UserSex.preferNotToSay.rawValue == "prefer_not_to_say")
-        #expect(UserSex.male.rawValue == "male")
-        #expect(UserSex.female.rawValue == "female")
-        #expect(UserSex.other.rawValue == "other")
+        #expect(UserGender.preferNotToSay.rawValue == "prefer_not_to_say")
+        #expect(UserGender.male.rawValue == "male")
+        #expect(UserGender.female.rawValue == "female")
+        #expect(UserGender.other.rawValue == "other")
     }
 
     @Test("All cases have correct display names")
     func displayNames() {
-        #expect(UserSex.preferNotToSay.displayName == "Prefer not to say")
-        #expect(UserSex.male.displayName == "Male")
-        #expect(UserSex.female.displayName == "Female")
-        #expect(UserSex.other.displayName == "Other")
+        #expect(UserGender.preferNotToSay.displayName == "Prefer not to say")
+        #expect(UserGender.male.displayName == "Male")
+        #expect(UserGender.female.displayName == "Female")
+        #expect(UserGender.other.displayName == "Other")
     }
 
     @Test("CaseIterable returns all 4 cases")
     func caseIterable() {
-        #expect(UserSex.allCases.count == 4)
-        #expect(UserSex.allCases.contains(.preferNotToSay))
-        #expect(UserSex.allCases.contains(.male))
-        #expect(UserSex.allCases.contains(.female))
-        #expect(UserSex.allCases.contains(.other))
+        #expect(UserGender.allCases.count == 4)
+        #expect(UserGender.allCases.contains(.preferNotToSay))
+        #expect(UserGender.allCases.contains(.male))
+        #expect(UserGender.allCases.contains(.female))
+        #expect(UserGender.allCases.contains(.other))
     }
 
     @Test("Identifiable id matches rawValue")
     func identifiable() {
-        for sex in UserSex.allCases {
-            #expect(sex.id == sex.rawValue)
+        for gender in UserGender.allCases {
+            #expect(gender.id == gender.rawValue)
         }
     }
 }
@@ -158,7 +158,7 @@ struct OnboardingViewModelTests {
 
         #expect(viewModel.currentPage == 0)
         #expect(viewModel.userName == "")
-        #expect(viewModel.userSex == .preferNotToSay)
+        #expect(viewModel.userGender == .preferNotToSay)
         #expect(viewModel.userAgeGroup == .preferNotToSay)
         #expect(viewModel.hasGrantedNotifications == false)
         #expect(viewModel.hasGrantedLocation == false)
@@ -357,18 +357,18 @@ struct OnboardingViewModelTests {
 
     // MARK: - User Profile State Tests
 
-    @Test("userSex can be changed")
+    @Test("userGender can be changed")
     @MainActor
-    func userSexCanBeChanged() {
+    func userGenderCanBeChanged() {
         let viewModel = createViewModel()
 
-        #expect(viewModel.userSex == .preferNotToSay)
+        #expect(viewModel.userGender == .preferNotToSay)
 
-        viewModel.userSex = .female
-        #expect(viewModel.userSex == .female)
+        viewModel.userGender = .female
+        #expect(viewModel.userGender == .female)
 
-        viewModel.userSex = .male
-        #expect(viewModel.userSex == .male)
+        viewModel.userGender = .male
+        #expect(viewModel.userGender == .male)
     }
 
     @Test("userAgeGroup can be changed")

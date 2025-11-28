@@ -51,6 +51,8 @@ private struct SettingsFormView: View {
     @State private var name = ""
     @State private var appearance = 0
     @State private var displayTimezoneMode = "original"
+    @State private var gender: UserGender = .preferNotToSay
+    @State private var ageGroup: UserAgeGroup = .preferNotToSay
 
     // Toast state
     @State private var activeToast: SettingsToast?
@@ -89,6 +91,8 @@ private struct SettingsFormView: View {
                         name: $name,
                         appearance: $appearance,
                         displayTimezoneMode: $displayTimezoneMode,
+                        gender: $gender,
+                        ageGroup: $ageGroup,
                         isNameFieldFocused: $isNameFieldFocused,
                         showingImagePicker: $showingImagePicker,
                         updateUserName: updateUserName
@@ -125,7 +129,8 @@ private struct SettingsFormView: View {
                         NavigationLink {
                             AdvancedSettingsView(
                                 vm: vm,
-                                displayTimezoneMode: $displayTimezoneMode
+                                displayTimezoneMode: $displayTimezoneMode,
+                                appearance: $appearance
                             )
                         } label: {
                             HStack {
@@ -267,6 +272,17 @@ private struct SettingsFormView: View {
         name = vm.profile.name
         appearance = vm.profile.appearance
         displayTimezoneMode = vm.profile.displayTimezoneMode.toLegacyString()
+        // Load gender/ageGroup from profile (converting from raw string values)
+        if let genderRaw = vm.profile.gender, let g = UserGender(rawValue: genderRaw) {
+            gender = g
+        } else {
+            gender = .preferNotToSay
+        }
+        if let ageRaw = vm.profile.ageGroup, let a = UserAgeGroup(rawValue: ageRaw) {
+            ageGroup = a
+        } else {
+            ageGroup = .preferNotToSay
+        }
     }
     
     private func updateUserName() async {

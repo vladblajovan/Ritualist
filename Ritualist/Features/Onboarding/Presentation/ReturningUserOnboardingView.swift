@@ -13,7 +13,7 @@ import FactoryKit
 import RitualistCore
 
 /// Onboarding flow for returning users with existing iCloud data.
-/// Only shows welcome back screen and permissions request.
+/// Shows welcome back screen, profile completion (if needed), then permissions request.
 struct ReturningUserOnboardingView: View {
     let summary: SyncedDataSummary
     let onComplete: () -> Void
@@ -26,6 +26,17 @@ struct ReturningUserOnboardingView: View {
             switch currentStep {
             case .welcome:
                 WelcomeBackView(summary: summary) {
+                    withAnimation {
+                        // Go to profile completion if needed, otherwise skip to permissions
+                        currentStep = summary.needsProfileCompletion ? .profileCompletion : .permissions
+                    }
+                }
+
+            case .profileCompletion:
+                ReturningUserProfileCompletionView(
+                    summary: summary,
+                    viewModel: viewModel
+                ) {
                     withAnimation {
                         currentStep = .permissions
                     }
@@ -42,6 +53,19 @@ struct ReturningUserOnboardingView: View {
         .task {
             // Load initial permission state
             await viewModel.checkPermissions()
+
+            // Pre-populate view model with existing profile data
+            if let name = summary.profileName, !name.isEmpty {
+                viewModel.userName = name
+            }
+            if let gender = summary.profileGender,
+               let userGender = UserGender(rawValue: gender) {
+                viewModel.userGender = userGender
+            }
+            if let ageGroup = summary.profileAgeGroup,
+               let userAgeGroup = UserAgeGroup(rawValue: ageGroup) {
+                viewModel.userAgeGroup = userAgeGroup
+            }
         }
         .onChange(of: currentStep) { _, newStep in
             announceStepChange(newStep)
@@ -53,19 +77,14 @@ struct ReturningUserOnboardingView: View {
         guard UIAccessibility.isVoiceOverRunning else { return }
         let stepTitle = switch step {
         case .welcome: "Welcome Back"
+        case .profileCompletion: "Complete Your Profile"
         case .permissions: "Set Up This Device"
         }
         UIAccessibility.post(notification: .screenChanged, argument: stepTitle)
     }
 
     private func finishOnboarding() async {
-        // Use the profile name from iCloud if available
-        let userName = summary.profileName ?? ""
-
-        // Update the view model with the synced name (if any)
-        viewModel.userName = userName
-
-        // Complete onboarding
+        // Complete onboarding with the (possibly updated) profile data
         let success = await viewModel.finishOnboarding()
         if success {
             onComplete()
@@ -77,6 +96,7 @@ struct ReturningUserOnboardingView: View {
 
 private enum ReturningUserStep {
     case welcome
+    case profileCompletion
     case permissions
 }
 
@@ -260,6 +280,189 @@ private struct PermissionCard: View {
         .accessibilityLabel("\(title). \(description)")
         .accessibilityValue(isGranted ? "Enabled" : "Not enabled")
         .accessibilityHint(isGranted ? "" : "Double tap to enable \(title.lowercased())")
+    }
+}
+
+// MARK: - Profile Completion View
+
+/// Profile completion view for returning users with missing data.
+/// Collects name, gender, and age group if not already set.
+struct ReturningUserProfileCompletionView: View {
+    let summary: SyncedDataSummary
+    @Bindable var viewModel: OnboardingViewModel
+    let onContinue: () -> Void
+
+    @FocusState private var isTextFieldFocused: Bool
+
+    /// Whether name input is needed
+    private var needsName: Bool {
+        summary.profileName == nil || summary.profileName!.isEmpty
+    }
+
+    /// Whether the continue button should be enabled
+    private var canContinue: Bool {
+        // If we need a name, make sure it's filled in
+        if needsName {
+            return !viewModel.userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        return true
+    }
+
+    var body: some View {
+        VStack(spacing: 32) {
+            Spacer()
+
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(AppColors.brand.opacity(0.15))
+                    .frame(width: 100, height: 100)
+
+                Image(systemName: "person.text.rectangle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(AppColors.brand)
+            }
+
+            // Title and subtitle
+            VStack(spacing: 8) {
+                Text("Complete Your Profile")
+                    .font(.system(.title, design: .rounded, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+
+                Text("Help us personalize your experience")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            // Profile inputs
+            VStack(spacing: 16) {
+                // Name input (only if missing)
+                if needsName {
+                    TextField("What should we call you?", text: $viewModel.userName)
+                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .foregroundStyle(AppColors.brand)
+                        .multilineTextAlignment(.center)
+                        .textContentType(.name)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                        .focused($isTextFieldFocused)
+                        .onSubmit {
+                            isTextFieldFocused = false
+                        }
+                        .accessibilityLabel("Name")
+                        .accessibilityHint("Enter your name to personalize your experience")
+                        .modifier(ProfileFieldStyle())
+                }
+
+                // Gender and Age Group selectors
+                HStack(spacing: 12) {
+                    // Gender picker
+                    Menu {
+                        ForEach(UserGender.allCases) { gender in
+                            Button(gender.displayName) {
+                                viewModel.userGender = gender
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(viewModel.userGender == .preferNotToSay ? "Gender" : viewModel.userGender.displayName)
+                                .font(.system(.body, design: .rounded, weight: .medium))
+                                .foregroundStyle(viewModel.userGender == .preferNotToSay ? .secondary : AppColors.brand)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .modifier(ProfileFieldStyle())
+                    }
+                    .accessibilityLabel("Gender")
+                    .accessibilityValue(viewModel.userGender.displayName)
+
+                    // Age group picker
+                    Menu {
+                        ForEach(UserAgeGroup.allCases) { ageGroup in
+                            Button(ageGroup.displayName) {
+                                viewModel.userAgeGroup = ageGroup
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(viewModel.userAgeGroup == .preferNotToSay ? "Age" : viewModel.userAgeGroup.displayName)
+                                .font(.system(.body, design: .rounded, weight: .medium))
+                                .foregroundStyle(viewModel.userAgeGroup == .preferNotToSay ? .secondary : AppColors.brand)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .modifier(ProfileFieldStyle())
+                    }
+                    .accessibilityLabel("Age group")
+                    .accessibilityValue(viewModel.userAgeGroup.displayName)
+                }
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
+
+            // Continue button
+            Button(action: onContinue) {
+                Text("Continue")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(canContinue ? AppColors.brand : AppColors.brand.opacity(0.5))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+            .disabled(!canContinue)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 32)
+            .accessibilityHint(canContinue ? "Continue to permissions setup" : "Enter your name to continue")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isTextFieldFocused = false
+        }
+        .onAppear {
+            if needsName {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isTextFieldFocused = true
+                }
+            }
+        }
+    }
+}
+
+/// Field style for profile inputs
+private struct ProfileFieldStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.vertical, 16)
+            .padding(.horizontal, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.secondarySystemGroupedBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                AppColors.brand.opacity(0.4),
+                                AppColors.brand.opacity(0.15),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
     }
 }
 

@@ -6,7 +6,7 @@ This guide explains how to create a new schema version and migration for the Rit
 
 The app uses **SwiftData's VersionedSchema and SchemaMigrationPlan** for database migrations. Each schema version is defined in a separate file (e.g., `SchemaV8.swift`) and migrations are lightweight (automatic) whenever possible.
 
-**Current Schema Version**: V8
+**Current Schema Version**: V11
 
 ## When to Create a New Schema
 
@@ -343,22 +343,48 @@ Always update both conversion methods when adding properties.
 
 Before committing a new schema:
 
+### Schema File
 - [ ] New schema file created (`SchemaVX.swift`)
 - [ ] Schema version incremented (`Schema.Version(X, 0, 0)`)
 - [ ] All models copied from previous schema
 - [ ] New properties added with proper types
 - [ ] Initializers updated with new parameters
-- [ ] Type aliases added for all models
-- [ ] Domain entity updated (`Habit.swift`, etc.)
-- [ ] `toEntity()` method updated
-- [ ] `fromEntity()` method updated
-- [ ] Schema added to `MigrationPlan.schemas`
-- [ ] Migration stage added to `MigrationPlan.stages`
-- [ ] Migration stage implementation added
-- [ ] Documentation comments updated
+- [ ] Type aliases added for all models (e.g., `HabitModelVX`)
+- [ ] `toEntity()` method updated for changed models
+- [ ] `fromEntity()` method updated for changed models
+
+### Domain Entity
+- [ ] Domain entity updated (`Habit.swift`, `UserProfile.swift`, etc.)
+- [ ] Entity initializer updated with new parameters
+
+### Migration Plan
+- [ ] Schema added to `MigrationPlan.schemas` array
+- [ ] Migration stage added to `MigrationPlan.stages` array
+- [ ] Migration stage implementation added (lightweight or custom)
+- [ ] Documentation comments updated in MigrationPlan
+
+### Active Schema (SINGLE SOURCE OF TRUTH)
+- [ ] `ActiveSchema.swift`: Update `ActiveSchemaVersion = SchemaVX`
+- [ ] (PersistenceContainer and all type aliases update automatically!)
+
+### DataSource Updates (if adding new fields)
+- [ ] DataSource `save()` methods updated to persist new fields
+- [ ] Example: `ProfileLocalDataSource.save()` for new UserProfile fields
+
+### Use Case Updates (if fields are set from user input)
+- [ ] Use case protocol updated with new parameters
+- [ ] Use case implementation updated to save new fields
+- [ ] Example: `CompleteOnboardingUseCase` for onboarding-collected fields
+
+### ViewModel Updates (if fields come from UI)
+- [ ] ViewModel updated to pass new fields to use cases
+- [ ] Example: `OnboardingViewModel.finishOnboarding()` passes gender/ageGroup
+
+### Testing
 - [ ] Build succeeds ✅
-- [ ] Tested with existing database
-- [ ] Migration modal displays correctly
+- [ ] Fresh install works (no migration)
+- [ ] Migration from previous version works
+- [ ] New fields are saved and loaded correctly
 - [ ] Data integrity verified
 
 ## Rollback Strategy
@@ -409,6 +435,6 @@ If you encounter issues:
 
 ---
 
-**Last Updated**: November 9, 2025
-**Current Schema Version**: V8
-**Total Migrations**: 6 (V2→V3, V3→V4, V4→V5, V5→V6, V6→V7, V7→V8)
+**Last Updated**: November 28, 2025
+**Current Schema Version**: V11
+**Total Migrations**: 9 (V2→V3, V3→V4, V4→V5, V5→V6, V6→V7, V7→V8, V8→V9, V9→V10, V10→V11)

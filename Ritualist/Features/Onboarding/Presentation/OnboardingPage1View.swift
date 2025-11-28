@@ -60,20 +60,20 @@ struct OnboardingPage1View: View {
                             .accessibilityHint("Enter your name to personalize your experience")
                             .modifier(GradientFieldStyle())
 
-                        // Sex and Age Group selectors in a row
+                        // Gender and Age Group selectors in a row
                         HStack(spacing: 12) {
-                            // Sex picker
+                            // Gender picker
                             Menu {
-                                ForEach(UserSex.allCases) { sex in
-                                    Button(sex.displayName) {
-                                        viewModel.userSex = sex
+                                ForEach(UserGender.allCases) { gender in
+                                    Button(gender.displayName) {
+                                        viewModel.userGender = gender
                                     }
                                 }
                             } label: {
                                 HStack {
-                                    Text(viewModel.userSex == .preferNotToSay ? "Sex" : viewModel.userSex.displayName)
+                                    Text(viewModel.userGender == .preferNotToSay ? "Gender" : viewModel.userGender.displayName)
                                         .font(.system(.body, design: .rounded, weight: .medium))
-                                        .foregroundStyle(viewModel.userSex == .preferNotToSay ? .secondary : AppColors.brand)
+                                        .foregroundStyle(viewModel.userGender == .preferNotToSay ? .secondary : AppColors.brand)
                                     Spacer()
                                     Image(systemName: "chevron.down")
                                         .font(.caption)
@@ -81,8 +81,8 @@ struct OnboardingPage1View: View {
                                 }
                                 .modifier(GradientFieldStyle())
                             }
-                            .accessibilityLabel("Sex")
-                            .accessibilityValue(viewModel.userSex.displayName)
+                            .accessibilityLabel("Gender")
+                            .accessibilityValue(viewModel.userGender.displayName)
 
                             // Age group picker
                             Menu {
