@@ -283,7 +283,7 @@ struct OnboardingViewModelTests {
 
     // MARK: - canProceedFromCurrentPage Tests
 
-    @Test("Page 0 requires non-empty userName")
+    @Test("Page 0 requires non-empty userName (whitespace rejected)")
     @MainActor
     func canProceedPage0RequiresName() {
         let viewModel = createViewModel()
@@ -292,10 +292,16 @@ struct OnboardingViewModelTests {
         viewModel.userName = ""
         #expect(viewModel.canProceedFromCurrentPage == false)
 
-        viewModel.userName = "   " // Whitespace only - but note userName is NOT trimmed until updateUserName is called
-        #expect(viewModel.canProceedFromCurrentPage == true) // Whitespace counts as non-empty for direct assignment
+        viewModel.userName = "   " // Whitespace only - should be rejected
+        #expect(viewModel.canProceedFromCurrentPage == false)
+
+        viewModel.userName = "\t\n" // Tabs and newlines only - should be rejected
+        #expect(viewModel.canProceedFromCurrentPage == false)
 
         viewModel.userName = "John"
+        #expect(viewModel.canProceedFromCurrentPage == true)
+
+        viewModel.userName = "  John  " // Leading/trailing whitespace OK if there's content
         #expect(viewModel.canProceedFromCurrentPage == true)
     }
 

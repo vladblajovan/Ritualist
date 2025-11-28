@@ -30,6 +30,8 @@ public struct RootTabView: View {
 
     /// UserDefaults key for tracking if we've shown the first iCloud sync toast
     private static let hasShownFirstSyncToastKey = "hasShownFirstiCloudSyncToast"
+    private static let maxSyncRetries = 150  // 5 minutes (150 × 2s)
+    private static let syncRetryIntervalSeconds: UInt64 = 2
 
     public init() {}
 
@@ -503,24 +505,23 @@ public struct RootTabView: View {
                     viewModel.showReturningUserWelcomeIfNeeded(habits: existingHabits, profile: profile)
                 }
             } else {
-                // Data not complete yet - retry up to 5 minutes (150 retries × 2s)
+                // Data not complete yet - retry up to 5 minutes
                 // This doesn't block the app - user can use it normally while we wait
                 // CloudKit profile/avatar may take longer to sync on slow networks
-                let maxRetries = 150
-                if retryCount < maxRetries {
+                if retryCount < Self.maxSyncRetries {
                     logger.log(
                         "☁️ Returning user data incomplete - will retry",
                         level: .debug,
                         category: .system,
                         metadata: [
                             "retry_count": retryCount + 1,
-                            "max_retries": maxRetries,
+                            "max_retries": Self.maxSyncRetries,
                             "habits_count": existingHabits.count,
                             "has_profile": profile != nil,
                             "profile_name": profile?.name ?? "nil"
                         ]
                     )
-                    try? await Task.sleep(for: .seconds(2))
+                    try? await Task.sleep(for: .seconds(Self.syncRetryIntervalSeconds))
                     await MainActor.run {
                         handleReturningUserWelcome(retryCount: retryCount + 1)
                     }
@@ -540,7 +541,9 @@ public struct RootTabView: View {
                     await MainActor.run {
                         // Mark as no longer pending so we don't keep trying
                         viewModel.pendingReturningUserWelcome = false
-                        // Show informative toast so user knows sync is ongoing
+                    }
+                    // Show informative toast after state update completes
+                    await MainActor.run {
                         withAnimation(.easeIn(duration: 0.3)) {
                             showStillSyncingToast = true
                         }

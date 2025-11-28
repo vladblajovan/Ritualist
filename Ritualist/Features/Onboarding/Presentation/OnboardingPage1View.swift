@@ -56,6 +56,7 @@ struct OnboardingPage1View: View {
                             .onSubmit {
                                 isTextFieldFocused = false
                             }
+                            .accessibilityLabel("Name")
                             .accessibilityHint("Enter your name to personalize your experience")
                             .modifier(GradientFieldStyle())
 

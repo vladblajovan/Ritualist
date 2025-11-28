@@ -272,8 +272,8 @@ public final class OnboardingViewModel {
     
     public var canProceedFromCurrentPage: Bool {
         switch currentPage {
-        case 0: // Name input page
-            return !userName.isEmpty
+        case 0: // Name input page - reject empty or whitespace-only names
+            return !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case 5: // Final page - can always proceed to complete
             return true
         default: // Information pages
