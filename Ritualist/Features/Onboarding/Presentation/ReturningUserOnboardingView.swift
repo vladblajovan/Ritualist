@@ -498,7 +498,9 @@ private struct ProfileFieldStyle: ViewModifier {
             categoriesCount: 2,
             hasProfile: true,
             profileName: "John",
-            profileAvatar: nil
+            profileAvatar: nil,
+            profileGender: nil,
+            profileAgeGroup: nil
         ),
         onComplete: {}
     )

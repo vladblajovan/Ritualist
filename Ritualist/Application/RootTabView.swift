@@ -587,7 +587,7 @@ public struct RootTabView: View {
             }
 
             // Check if iCloud is actually signed in - don't show toast if not
-            let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
+            let container = CKContainer(identifier: PersistenceContainer.cloudKitContainerIdentifier)
             do {
                 let accountStatus = try await container.accountStatus()
                 guard accountStatus == .available else {

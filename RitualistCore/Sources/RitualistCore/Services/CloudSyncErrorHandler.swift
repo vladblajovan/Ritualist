@@ -115,7 +115,7 @@ public actor CloudSyncErrorHandler {
     /// - Returns: Account status
     /// - Throws: CloudKitAvailabilityError if CloudKit is not configured or unavailable
     public func checkiCloudAccountStatus() async throws -> CKAccountStatus {
-        let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
+        let container = CKContainer(identifier: PersistenceContainer.cloudKitContainerIdentifier)
 
         // First check account status
         let accountStatus: CKAccountStatus

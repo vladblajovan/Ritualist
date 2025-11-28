@@ -30,8 +30,14 @@ public final class MigrationStatusService {
     /// Current migration details (from version → to version)
     public private(set) var migrationDetails: MigrationDetails?
 
+    /// Error from the last failed migration (if any)
+    public private(set) var migrationError: Error?
+
     /// Tracks the current migration instance to prevent race conditions
     private var currentMigrationId: UUID?
+
+    /// Logger for migration events
+    private let logger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "migration")
 
     // MARK: - Initialization
 
@@ -41,9 +47,16 @@ public final class MigrationStatusService {
 
     /// Called when migration starts
     public func startMigration(from fromVersion: String, to toVersion: String) {
+        logger.log(
+            "Migration starting",
+            level: .info,
+            category: .dataIntegrity,
+            metadata: ["fromVersion": fromVersion, "toVersion": toVersion]
+        )
         let migrationId = UUID()
         currentMigrationId = migrationId
         isMigrating = true
+        migrationError = nil  // Clear any previous error
         migrationDetails = MigrationDetails(
             fromVersion: fromVersion,
             toVersion: toVersion,
@@ -53,6 +66,15 @@ public final class MigrationStatusService {
 
     /// Called when migration completes successfully
     public func completeMigration() {
+        logger.log(
+            "Migration completed successfully",
+            level: .info,
+            category: .dataIntegrity,
+            metadata: [
+                "fromVersion": migrationDetails?.fromVersion ?? "unknown",
+                "toVersion": migrationDetails?.toVersion ?? "unknown"
+            ]
+        )
         // Capture the migration ID at the time of completion
         let completedMigrationId = currentMigrationId
 
@@ -81,6 +103,17 @@ public final class MigrationStatusService {
 
     /// Called when migration fails
     public func failMigration(error: Error) {
+        logger.log(
+            "Migration failed",
+            level: .error,
+            category: .dataIntegrity,
+            metadata: [
+                "error": error.localizedDescription,
+                "fromVersion": migrationDetails?.fromVersion ?? "unknown",
+                "toVersion": migrationDetails?.toVersion ?? "unknown"
+            ]
+        )
+        migrationError = error
         isMigrating = false
         migrationDetails = nil
     }
@@ -90,6 +123,7 @@ public final class MigrationStatusService {
         currentMigrationId = nil
         isMigrating = false
         migrationDetails = nil
+        migrationError = nil
     }
 }
 

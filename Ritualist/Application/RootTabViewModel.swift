@@ -81,7 +81,7 @@ public final class RootTabViewModel {
             // In unit tests, assume iCloud is available (use mock service)
             isICloudAvailable = true
         } else {
-            let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
+            let container = CKContainer(identifier: PersistenceContainer.cloudKitContainerIdentifier)
             let accountStatus: CKAccountStatus
             do {
                 accountStatus = try await container.accountStatus()
