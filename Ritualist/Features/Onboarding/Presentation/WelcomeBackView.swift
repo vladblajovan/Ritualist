@@ -100,6 +100,7 @@ struct WelcomeBackView: View {
                         .stroke(AppColors.brand, lineWidth: 3)
                 )
                 .animatedGlow(glowSize: 160)
+                .accessibilityLabel("Your profile photo")
         } else {
             ZStack {
                 Circle()
@@ -118,6 +119,7 @@ struct WelcomeBackView: View {
                     .foregroundStyle(.white)
             }
             .animatedGlow(glowSize: 160)
+            .accessibilityHidden(true)
         }
     }
 
@@ -153,6 +155,8 @@ struct WelcomeBackView: View {
                 .fill(Color(.secondarySystemGroupedBackground))
         )
         .padding(.horizontal, 24)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Synced data summary")
     }
 }
 
@@ -169,6 +173,7 @@ private struct SyncedItemRow: View {
                 .font(.title3)
                 .foregroundStyle(iconColor)
                 .frame(width: 28)
+                .accessibilityHidden(true)
 
             Text(text)
                 .font(.body)
@@ -176,6 +181,8 @@ private struct SyncedItemRow: View {
 
             Spacer()
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(text)
     }
 }
 

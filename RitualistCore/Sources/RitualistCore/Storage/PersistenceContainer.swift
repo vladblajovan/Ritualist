@@ -40,13 +40,21 @@ public final class PersistenceContainer {
         if migrationWillOccur, let lastVersion = lastVersionString {
             // Set migration state synchronously on main thread
             // This ensures the UI sees the state before migration starts
-            DispatchQueue.main.async {
-                Task { @MainActor in
+            // Use sync dispatch to ensure startMigration completes before proceeding
+            // This prevents race condition where completeMigration captures stale migration ID
+            let startMigrationBlock = {
+                MainActor.assumeIsolated {
                     MigrationStatusService.shared.startMigration(
                         from: lastVersion,
                         to: currentVersionString
                     )
                 }
+            }
+
+            if Thread.isMainThread {
+                startMigrationBlock()
+            } else {
+                DispatchQueue.main.sync(execute: startMigrationBlock)
             }
 
             // Give UI time to render the migration modal (100ms)

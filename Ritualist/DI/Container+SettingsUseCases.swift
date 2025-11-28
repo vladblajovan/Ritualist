@@ -67,7 +67,12 @@ extension Container {
     }
 
     var deleteiCloudData: Factory<DeleteiCloudDataUseCase> {
-        self { DefaultDeleteiCloudDataUseCase(modelContext: self.persistenceContainer().context) }
+        self {
+            DefaultDeleteiCloudDataUseCase(
+                modelContext: self.persistenceContainer().context,
+                iCloudKeyValueService: self.iCloudKeyValueService()
+            )
+        }
     }
 
     var deduplicateData: Factory<DeduplicateDataUseCase> {

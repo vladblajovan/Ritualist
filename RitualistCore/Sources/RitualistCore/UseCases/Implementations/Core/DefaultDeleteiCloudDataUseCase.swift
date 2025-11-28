@@ -10,9 +10,17 @@ import SwiftData
 
 public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
     private let modelContext: ModelContext
+    private let iCloudKeyValueService: iCloudKeyValueService
+    private let logger: DebugLogger
 
-    public init(modelContext: ModelContext) {
+    public init(
+        modelContext: ModelContext,
+        iCloudKeyValueService: iCloudKeyValueService,
+        logger: DebugLogger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "iCloudData")
+    ) {
         self.modelContext = modelContext
+        self.iCloudKeyValueService = iCloudKeyValueService
+        self.logger = logger
     }
 
     public func execute() async throws {
@@ -31,5 +39,11 @@ public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
 
         // Clear sync metadata from UserDefaults
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.lastSyncDate)
+
+        // Clear iCloud KV store onboarding flag so user sees onboarding on reinstall
+        logger.log("🗑️ Clearing iCloud KV onboarding flags", level: .info, category: .system)
+        iCloudKeyValueService.resetOnboardingFlag()
+        iCloudKeyValueService.resetLocalOnboardingFlag()
+        logger.log("✅ iCloud KV onboarding flags cleared", level: .info, category: .system)
     }
 }

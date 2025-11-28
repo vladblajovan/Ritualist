@@ -30,6 +30,9 @@ public final class MigrationStatusService {
     /// Current migration details (from version → to version)
     public private(set) var migrationDetails: MigrationDetails?
 
+    /// Tracks the current migration instance to prevent race conditions
+    private var currentMigrationId: UUID?
+
     // MARK: - Initialization
 
     private init() {}
@@ -38,6 +41,8 @@ public final class MigrationStatusService {
 
     /// Called when migration starts
     public func startMigration(from fromVersion: String, to toVersion: String) {
+        let migrationId = UUID()
+        currentMigrationId = migrationId
         isMigrating = true
         migrationDetails = MigrationDetails(
             fromVersion: fromVersion,
@@ -48,16 +53,25 @@ public final class MigrationStatusService {
 
     /// Called when migration completes successfully
     public func completeMigration() {
+        // Capture the migration ID at the time of completion
+        let completedMigrationId = currentMigrationId
+
         // Keep migration modal visible for 3 seconds
         // This ensures users see the "Preparing your experience" message
         Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
             await MainActor.run {
+                // Only update state if this is still the same migration
+                // (prevents race condition if a new migration started)
+                guard currentMigrationId == completedMigrationId else { return }
+
                 isMigrating = false
                 // Keep details for a short time to show completion message
                 Task {
                     try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                     await MainActor.run {
+                        // Check again before clearing details
+                        guard currentMigrationId == completedMigrationId else { return }
                         migrationDetails = nil
                     }
                 }
@@ -73,6 +87,7 @@ public final class MigrationStatusService {
 
     /// Reset migration state (useful for testing)
     public func reset() {
+        currentMigrationId = nil
         isMigrating = false
         migrationDetails = nil
     }

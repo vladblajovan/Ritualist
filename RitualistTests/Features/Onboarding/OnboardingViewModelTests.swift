@@ -158,8 +158,8 @@ struct OnboardingViewModelTests {
 
         #expect(viewModel.currentPage == 0)
         #expect(viewModel.userName == "")
-        #expect(viewModel.userGender == .preferNotToSay)
-        #expect(viewModel.userAgeGroup == .preferNotToSay)
+        #expect(viewModel.gender == .preferNotToSay)
+        #expect(viewModel.ageGroup == .preferNotToSay)
         #expect(viewModel.hasGrantedNotifications == false)
         #expect(viewModel.hasGrantedLocation == false)
         #expect(viewModel.isCompleted == false)
@@ -341,6 +341,49 @@ struct OnboardingViewModelTests {
         #expect(viewModel.userName == "Jane")
     }
 
+    // MARK: - Name Length Validation Tests
+
+    @Test("userName enforces maximum length")
+    @MainActor
+    func userNameEnforcesMaxLength() {
+        let viewModel = createViewModel()
+
+        // Set a name that exceeds the max length
+        let longName = String(repeating: "A", count: OnboardingViewModel.maxNameLength + 20)
+        viewModel.userName = longName
+
+        #expect(viewModel.userName.count == OnboardingViewModel.maxNameLength)
+        #expect(viewModel.userName == String(repeating: "A", count: OnboardingViewModel.maxNameLength))
+    }
+
+    @Test("userName allows names at max length")
+    @MainActor
+    func userNameAllowsMaxLength() {
+        let viewModel = createViewModel()
+
+        let exactName = String(repeating: "B", count: OnboardingViewModel.maxNameLength)
+        viewModel.userName = exactName
+
+        #expect(viewModel.userName.count == OnboardingViewModel.maxNameLength)
+        #expect(viewModel.userName == exactName)
+    }
+
+    @Test("userName allows names under max length")
+    @MainActor
+    func userNameAllowsUnderMaxLength() {
+        let viewModel = createViewModel()
+
+        viewModel.userName = "John Doe"
+
+        #expect(viewModel.userName == "John Doe")
+        #expect(viewModel.userName.count < OnboardingViewModel.maxNameLength)
+    }
+
+    @Test("maxNameLength constant is 50")
+    func maxNameLengthIs50() {
+        #expect(OnboardingViewModel.maxNameLength == 50)
+    }
+
     // MARK: - dismissError Tests
 
     @Test("dismissError clears errorMessage")
@@ -357,32 +400,32 @@ struct OnboardingViewModelTests {
 
     // MARK: - User Profile State Tests
 
-    @Test("userGender can be changed")
+    @Test("gender can be changed")
     @MainActor
-    func userGenderCanBeChanged() {
+    func genderCanBeChanged() {
         let viewModel = createViewModel()
 
-        #expect(viewModel.userGender == .preferNotToSay)
+        #expect(viewModel.gender == .preferNotToSay)
 
-        viewModel.userGender = .female
-        #expect(viewModel.userGender == .female)
+        viewModel.gender = .female
+        #expect(viewModel.gender == .female)
 
-        viewModel.userGender = .male
-        #expect(viewModel.userGender == .male)
+        viewModel.gender = .male
+        #expect(viewModel.gender == .male)
     }
 
-    @Test("userAgeGroup can be changed")
+    @Test("ageGroup can be changed")
     @MainActor
-    func userAgeGroupCanBeChanged() {
+    func ageGroupCanBeChanged() {
         let viewModel = createViewModel()
 
-        #expect(viewModel.userAgeGroup == .preferNotToSay)
+        #expect(viewModel.ageGroup == .preferNotToSay)
 
-        viewModel.userAgeGroup = .age25to34
-        #expect(viewModel.userAgeGroup == .age25to34)
+        viewModel.ageGroup = .age25to34
+        #expect(viewModel.ageGroup == .age25to34)
 
-        viewModel.userAgeGroup = .age55plus
-        #expect(viewModel.userAgeGroup == .age55plus)
+        viewModel.ageGroup = .age55plus
+        #expect(viewModel.ageGroup == .age55plus)
     }
 
     // MARK: - Skip Onboarding Tests
@@ -467,8 +510,8 @@ struct OnboardingViewModelTests {
         )
 
         viewModel.userName = "Test User"
-        viewModel.userGender = .female
-        viewModel.userAgeGroup = .age25to34
+        viewModel.gender = .female
+        viewModel.ageGroup = .age25to34
 
         let result = await viewModel.finishOnboarding()
 
@@ -478,9 +521,9 @@ struct OnboardingViewModelTests {
         #expect(mockProfileRepo.savedProfile?.ageGroup == "25_34")
     }
 
-    @Test("finishOnboarding saves nil for preferNotToSay values")
+    @Test("finishOnboarding saves preferNotToSay values (not nil)")
     @MainActor
-    func finishOnboardingSavesNilForPreferNotToSay() async {
+    func finishOnboardingSavesPreferNotToSay() async {
         let mockOnboardingRepo = MockOnboardingRepository()
         let mockProfileRepo = MockProfileRepositoryForOnboarding()
         let mockiCloudService = MockiCloudKeyValueServiceForOnboarding()
@@ -505,15 +548,16 @@ struct OnboardingViewModelTests {
 
         viewModel.userName = "Test User"
         // Leave defaults (preferNotToSay)
-        #expect(viewModel.userGender == .preferNotToSay)
-        #expect(viewModel.userAgeGroup == .preferNotToSay)
+        #expect(viewModel.gender == .preferNotToSay)
+        #expect(viewModel.ageGroup == .preferNotToSay)
 
         let result = await viewModel.finishOnboarding()
 
         #expect(result == true)
-        // ViewModel passes nil when preferNotToSay is selected (treated as "not set")
-        #expect(mockProfileRepo.savedProfile?.gender == nil)
-        #expect(mockProfileRepo.savedProfile?.ageGroup == nil)
+        // preferNotToSay is saved as actual value (not nil) to distinguish from "never asked"
+        // This prevents infinite prompt loops for returning users
+        #expect(mockProfileRepo.savedProfile?.gender == "prefer_not_to_say")
+        #expect(mockProfileRepo.savedProfile?.ageGroup == "prefer_not_to_say")
     }
 
     @Test("skipOnboarding saves nil for gender and ageGroup")

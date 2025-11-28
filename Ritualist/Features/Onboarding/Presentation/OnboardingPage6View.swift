@@ -5,88 +5,82 @@ struct OnboardingPage6View: View {
     @Bindable var viewModel: OnboardingViewModel
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                Spacer(minLength: 20)
+        VStack(spacing: 32) {
+            Spacer()
 
-                // Permission icons with animation
-                HStack(spacing: 24) {
-                    PermissionIcon(
-                        icon: "bell.fill",
-                        color: .blue,
-                        isGranted: viewModel.hasGrantedNotifications
-                    )
-                    .accessibilityLabel("Notifications")
-                    .accessibilityValue(viewModel.hasGrantedNotifications ? "Enabled" : "Not enabled")
+            // Permission icons with dynamic state
+            HStack(spacing: 24) {
+                PermissionIcon(
+                    icon: viewModel.hasGrantedNotifications ? "bell.fill" : "bell.slash.fill",
+                    color: viewModel.hasGrantedNotifications ? .blue : .secondary,
+                    isGranted: viewModel.hasGrantedNotifications
+                )
+                .accessibilityLabel("Notifications")
+                .accessibilityValue(viewModel.hasGrantedNotifications ? "Enabled" : "Not enabled")
 
-                    PermissionIcon(
-                        icon: "location.fill",
-                        color: .green,
-                        isGranted: viewModel.hasGrantedLocation
-                    )
-                    .accessibilityLabel("Location")
-                    .accessibilityValue(viewModel.hasGrantedLocation ? "Enabled" : "Not enabled")
-                }
-
-                // Title and description
-                VStack(spacing: 8) {
-                    Text(Strings.OnboardingPermissions.title)
-                        .font(.system(.title, design: .rounded, weight: .bold))
-                        .multilineTextAlignment(.center)
-                        .accessibilityAddTraits(.isHeader)
-
-                    Text(Strings.OnboardingPermissions.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 8)
-                }
-
-                // Permission cards
-                VStack(spacing: 12) {
-                    PermissionCard(
-                        icon: "bell.badge.fill",
-                        iconColor: .blue,
-                        title: "Notifications",
-                        description: "Get timely reminders for your habits",
-                        isGranted: viewModel.hasGrantedNotifications,
-                        grantedText: Strings.OnboardingPermissions.notificationsGranted,
-                        buttonText: Strings.OnboardingPermissions.enableNotifications
-                    ) {
-                        Task {
-                            await viewModel.requestNotificationPermission()
-                        }
-                    }
-
-                    PermissionCard(
-                        icon: "location.fill",
-                        iconColor: .green,
-                        title: "Location",
-                        description: "Get reminders when you arrive at places",
-                        isGranted: viewModel.hasGrantedLocation,
-                        grantedText: Strings.OnboardingPermissions.locationGranted,
-                        buttonText: Strings.OnboardingPermissions.enableLocation
-                    ) {
-                        Task {
-                            await viewModel.requestLocationPermission()
-                        }
-                    }
-                }
-                .padding(.horizontal, 24)
-
-                if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
-                    Text(Strings.OnboardingPermissions.skipForNow)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 48)
-                }
-
-                Spacer(minLength: 20)
+                PermissionIcon(
+                    icon: viewModel.hasGrantedLocation ? "location.fill" : "location.slash.fill",
+                    color: viewModel.hasGrantedLocation ? .green : .secondary,
+                    isGranted: viewModel.hasGrantedLocation
+                )
+                .accessibilityLabel("Location")
+                .accessibilityValue(viewModel.hasGrantedLocation ? "Enabled" : "Not enabled")
             }
-            .frame(maxWidth: .infinity)
+
+            // Title and description
+            VStack(spacing: 8) {
+                Text(Strings.OnboardingPermissions.title)
+                    .font(.system(.title, design: .rounded, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+
+                Text(Strings.OnboardingPermissions.subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+
+            // Permission cards
+            VStack(spacing: 16) {
+                PermissionCard(
+                    icon: "bell.fill",
+                    iconColor: .blue,
+                    title: "Notifications",
+                    description: "Get reminders for your habits at the right time",
+                    isGranted: viewModel.hasGrantedNotifications
+                ) {
+                    Task {
+                        await viewModel.requestNotificationPermission()
+                    }
+                }
+
+                PermissionCard(
+                    icon: "location.fill",
+                    iconColor: .green,
+                    title: "Location",
+                    description: "Enable location-based habit reminders",
+                    isGranted: viewModel.hasGrantedLocation
+                ) {
+                    Task {
+                        await viewModel.requestLocationPermission()
+                    }
+                }
+            }
             .padding(.horizontal, 24)
+
+            Spacer()
+
+            if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
+                Text(Strings.OnboardingPermissions.skipForNow)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 48)
+                    .padding(.bottom, 8)
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
             await viewModel.checkPermissions()
         }
@@ -130,67 +124,46 @@ private struct PermissionCard: View {
     let title: String
     let description: String
     let isGranted: Bool
-    let grantedText: String
-    let buttonText: String
     let action: () -> Void
 
     var body: some View {
         HStack(spacing: 16) {
-            // Icon
-            ZStack {
-                Circle()
-                    .fill(iconColor.opacity(0.15))
-                    .frame(width: 44, height: 44)
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(iconColor)
+                .frame(width: 32)
 
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(iconColor)
-            }
-
-            // Content
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(.body, design: .rounded, weight: .semibold))
+                    .font(.headline)
 
-                if isGranted {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                        Text(grantedText)
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-                } else {
-                    Text(description)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                Text(description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            // Button
-            if !isGranted {
-                Button(action: action) {
-                    Text("Enable")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(iconColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+            if isGranted {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.green)
+            } else {
+                Button("Enable") {
+                    action()
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.secondarySystemGroupedBackground))
         )
-        .animation(.easeInOut, value: isGranted)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title). \(isGranted ? grantedText : description)")
+        .accessibilityLabel("\(title). \(description)")
+        .accessibilityValue(isGranted ? "Enabled" : "Not enabled")
         .accessibilityHint(isGranted ? "" : "Double tap to enable \(title.lowercased())")
     }
 }

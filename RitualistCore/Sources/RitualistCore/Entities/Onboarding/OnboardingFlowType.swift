@@ -66,7 +66,7 @@ public struct SyncedDataSummary: Equatable {
 
     /// Whether profile data is incomplete (missing name, gender, or ageGroup)
     public var needsProfileCompletion: Bool {
-        let hasName = profileName != nil && !profileName!.isEmpty
+        let hasName = !(profileName?.isEmpty ?? true)
         let hasGender = profileGender != nil
         let hasAgeGroup = profileAgeGroup != nil
         return !hasName || !hasGender || !hasAgeGroup

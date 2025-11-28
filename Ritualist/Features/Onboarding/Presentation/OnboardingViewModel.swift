@@ -65,16 +65,25 @@ public final class OnboardingViewModel {
 
     // Current state
     public var currentPage: Int = 0
-    public var userName: String = ""
-    public var userGender: UserGender = .preferNotToSay
-    public var userAgeGroup: UserAgeGroup = .preferNotToSay
+    public var userName: String = "" {
+        didSet {
+            // Enforce maximum name length
+            if userName.count > Self.maxNameLength {
+                userName = String(userName.prefix(Self.maxNameLength))
+            }
+        }
+    }
+    public var gender: UserGender = .preferNotToSay
+    public var ageGroup: UserAgeGroup = .preferNotToSay
+
     public var hasGrantedNotifications: Bool = false
     public var hasGrantedLocation: Bool = false
     public var isCompleted: Bool = false
     public var isLoading: Bool = false
     public var errorMessage: String?
-    
+
     // Constants
+    public static let maxNameLength = 50
     public let totalPages = 6
     
     public init(getOnboardingState: GetOnboardingState,
@@ -107,6 +116,12 @@ public final class OnboardingViewModel {
                 userActionTracker.track(.onboardingPageViewed(page: currentPage, pageName: pageNameFor(currentPage)))
             }
         } catch {
+            logger.log(
+                "Failed to load onboarding state",
+                level: .error,
+                category: .userAction,
+                metadata: ["error": error.localizedDescription]
+            )
             errorMessage = "Failed to load onboarding state"
         }
         isLoading = false
@@ -179,9 +194,16 @@ public final class OnboardingViewModel {
                 userActionTracker.track(.onboardingNotificationPermissionDenied)
             }
         } catch {
+            logger.log(
+                "Failed to request notification permission",
+                level: .error,
+                category: .notifications,
+                metadata: ["error": error.localizedDescription]
+            )
             errorMessage = "Failed to request notification permission"
             hasGrantedNotifications = false
-            userActionTracker.track(.onboardingNotificationPermissionDenied)
+            // Track as failed (not denied) - these are different scenarios
+            userActionTracker.track(.onboardingNotificationPermissionFailed)
         }
     }
 
@@ -209,7 +231,17 @@ public final class OnboardingViewModel {
                 level: .info,
                 category: .location
             )
-            try? await restoreGeofenceMonitoring.execute()
+            do {
+                try await restoreGeofenceMonitoring.execute()
+            } catch {
+                logger.log(
+                    "Failed to restore geofences after onboarding location permission granted",
+                    level: .error,
+                    category: .location,
+                    metadata: ["error": error.localizedDescription]
+                )
+                userActionTracker.track(.onboardingLocationPermissionFailed)
+            }
         } else {
             userActionTracker.track(.onboardingLocationPermissionDenied)
         }
@@ -218,10 +250,11 @@ public final class OnboardingViewModel {
     public func finishOnboarding() async -> Bool {
         isLoading = true
         do {
-            // Convert enum values to raw strings for storage
-            // Only save if user selected something other than "prefer not to say"
-            let genderValue = userGender != .preferNotToSay ? userGender.rawValue : nil
-            let ageGroupValue = userAgeGroup != .preferNotToSay ? userAgeGroup.rawValue : nil
+            // Always save gender/ageGroup raw values (including prefer_not_to_say)
+            // This distinguishes "user declined" from "never asked" (nil)
+            // and prevents infinite prompt loops for returning users
+            let genderValue = gender.rawValue
+            let ageGroupValue = ageGroup.rawValue
 
             try await completeOnboarding.execute(
                 userName: userName.isEmpty ? nil : userName,
@@ -238,6 +271,17 @@ public final class OnboardingViewModel {
             isLoading = false
             return true
         } catch {
+            logger.log(
+                "Failed to complete onboarding",
+                level: .error,
+                category: .userAction,
+                metadata: [
+                    "error": error.localizedDescription,
+                    "userName": userName.isEmpty ? "empty" : "provided",
+                    "gender": gender.rawValue,
+                    "ageGroup": ageGroup.rawValue
+                ]
+            )
             errorMessage = "Failed to complete onboarding"
             isLoading = false
             return false

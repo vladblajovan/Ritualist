@@ -1,9 +1,9 @@
 🌍 Ritualist String Validation Report
 =====================================
-Generated: 2025-11-27 11:07:05 +0000
+Generated: 2025-11-28 16:10:29 +0000
 📊 Summary:
-   Total strings: 294
-   ✅ Valid: 294
+   Total strings: 296
+   ✅ Valid: 296
    ❌ Invalid: 0
    📈 Success rate: 100%
 
@@ -30,7 +30,7 @@ Generated: 2025-11-27 11:07:05 +0000
 ✅ buttonRetry: "Retry"
 ✅ buttonSave: "Save"
 
-📱 Form Field Strings (202/202 valid)
+📱 Form Field Strings (204/204 valid)
 --------------------------------------------------
 ✅ %@ %@: "%1$@ %2$@"
 ✅ %@ → %@: "%1$@ → %2$@"
@@ -75,6 +75,7 @@ Generated: 2025-11-27 11:07:05 +0000
 ✅ Retry: "Retry"
 ✅ Settings: "Settings"
 ✅ Stay on Track: "Stay on Track"
+✅ Step %lld of %lld: "Step %1$lld of %2$lld"
 ✅ Tip: %@. %@: "Tip: %1$@. %2$@"
 ✅ Track Your Habits: "Track Your Habits"
 ✅ Welcome to Ritualist!: "Welcome to Ritualist!"
@@ -157,6 +158,7 @@ Generated: 2025-11-27 11:07:05 +0000
 ✅ format.progress_percentage: "%@ complete"
 ✅ fromSuggestion: "From Suggestion"
 ✅ gettingStarted: "Getting Started"
+✅ icloud.still_syncing: "Still syncing from iCloud..."
 ✅ icloud.synced_from_cloud: "Changes synced from iCloud"
 ✅ loadingCalculatingStreaks: "Calculating streaks..."
 ✅ loadingCategories: "Loading categories..."

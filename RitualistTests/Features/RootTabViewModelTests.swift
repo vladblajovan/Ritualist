@@ -280,6 +280,43 @@ struct RootTabViewModelTests {
         #expect(mockiCloud.synchronizeCallCount == 1)
     }
 
+    // MARK: - Synced Data Summary Tests
+
+    @Test("Synced data summary is populated for returning user welcome")
+    @MainActor
+    func syncedDataSummaryPopulatedForReturningUser() async {
+        let (viewModel, _) = createViewModel(iCloudCompleted: true, localCompleted: false)
+
+        await viewModel.checkOnboardingStatus()
+
+        // Simulate data loading
+        let habits = [createTestHabit(), createTestHabit()]
+        let profile = createTestProfile(name: "Test User")
+
+        viewModel.showReturningUserWelcomeIfNeeded(habits: habits, profile: profile)
+
+        #expect(viewModel.syncedDataSummary != nil)
+        #expect(viewModel.syncedDataSummary?.habitsCount == 2)
+        #expect(viewModel.syncedDataSummary?.profileName == "Test User")
+    }
+
+    @Test("Synced data summary cleared on dismiss")
+    @MainActor
+    func syncedDataSummaryClearedOnDismiss() async {
+        let (viewModel, _) = createViewModel(iCloudCompleted: true, localCompleted: false)
+
+        await viewModel.checkOnboardingStatus()
+
+        let habits = [createTestHabit()]
+        let profile = createTestProfile(name: "Test User")
+
+        viewModel.showReturningUserWelcomeIfNeeded(habits: habits, profile: profile)
+        #expect(viewModel.syncedDataSummary != nil)
+
+        viewModel.dismissReturningUserWelcome()
+        #expect(viewModel.syncedDataSummary == nil)
+    }
+
     // MARK: - Helper Methods
 
     private func createTestHabit() -> Habit {

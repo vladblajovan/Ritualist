@@ -58,17 +58,27 @@ struct ReturningUserOnboardingView: View {
             if let name = summary.profileName, !name.isEmpty {
                 viewModel.userName = name
             }
-            if let gender = summary.profileGender,
-               let userGender = UserGender(rawValue: gender) {
-                viewModel.userGender = userGender
+            if let genderRaw = summary.profileGender,
+               let parsedGender = UserGender(rawValue: genderRaw) {
+                viewModel.gender = parsedGender
             }
-            if let ageGroup = summary.profileAgeGroup,
-               let userAgeGroup = UserAgeGroup(rawValue: ageGroup) {
-                viewModel.userAgeGroup = userAgeGroup
+            if let ageGroupRaw = summary.profileAgeGroup,
+               let parsedAgeGroup = UserAgeGroup(rawValue: ageGroupRaw) {
+                viewModel.ageGroup = parsedAgeGroup
             }
         }
         .onChange(of: currentStep) { _, newStep in
             announceStepChange(newStep)
+        }
+        .alert("Error", isPresented: .init(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.dismissError() } }
+        )) {
+            Button("OK") {
+                viewModel.dismissError()
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "An unexpected error occurred")
         }
     }
 
@@ -296,7 +306,7 @@ struct ReturningUserProfileCompletionView: View {
 
     /// Whether name input is needed
     private var needsName: Bool {
-        summary.profileName == nil || summary.profileName!.isEmpty
+        summary.profileName?.isEmpty ?? true
     }
 
     /// Whether the continue button should be enabled
@@ -340,20 +350,35 @@ struct ReturningUserProfileCompletionView: View {
             VStack(spacing: 16) {
                 // Name input (only if missing)
                 if needsName {
-                    TextField("What should we call you?", text: $viewModel.userName)
-                        .font(.system(.body, design: .rounded, weight: .medium))
-                        .foregroundStyle(AppColors.brand)
-                        .multilineTextAlignment(.center)
-                        .textContentType(.name)
-                        .textInputAutocapitalization(.words)
-                        .autocorrectionDisabled()
-                        .focused($isTextFieldFocused)
-                        .onSubmit {
-                            isTextFieldFocused = false
+                    VStack(alignment: .trailing, spacing: 4) {
+                        TextField("What should we call you?", text: $viewModel.userName)
+                            .font(.system(.body, design: .rounded, weight: .medium))
+                            .foregroundStyle(AppColors.brand)
+                            .multilineTextAlignment(.center)
+                            .textContentType(.name)
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
+                            .focused($isTextFieldFocused)
+                            .onSubmit {
+                                isTextFieldFocused = false
+                            }
+                            .accessibilityLabel("Name")
+                            .accessibilityHint("Enter your name to personalize your experience. Maximum \(OnboardingViewModel.maxNameLength) characters.")
+                            .modifier(ProfileFieldStyle())
+
+                        // Character count (only show when approaching limit)
+                        if viewModel.userName.count > OnboardingViewModel.maxNameLength - 10 {
+                            Text("\(viewModel.userName.count)/\(OnboardingViewModel.maxNameLength)")
+                                .font(.caption2)
+                                .foregroundStyle(
+                                    viewModel.userName.count >= OnboardingViewModel.maxNameLength
+                                        ? .red
+                                        : .secondary
+                                )
+                                .padding(.trailing, 8)
+                                .accessibilityLabel("\(viewModel.userName.count) of \(OnboardingViewModel.maxNameLength) characters used")
                         }
-                        .accessibilityLabel("Name")
-                        .accessibilityHint("Enter your name to personalize your experience")
-                        .modifier(ProfileFieldStyle())
+                    }
                 }
 
                 // Gender and Age Group selectors
@@ -362,14 +387,14 @@ struct ReturningUserProfileCompletionView: View {
                     Menu {
                         ForEach(UserGender.allCases) { gender in
                             Button(gender.displayName) {
-                                viewModel.userGender = gender
+                                viewModel.gender = gender
                             }
                         }
                     } label: {
                         HStack {
-                            Text(viewModel.userGender == .preferNotToSay ? "Gender" : viewModel.userGender.displayName)
+                            Text(viewModel.gender == .preferNotToSay ? "Gender" : viewModel.gender.displayName)
                                 .font(.system(.body, design: .rounded, weight: .medium))
-                                .foregroundStyle(viewModel.userGender == .preferNotToSay ? .secondary : AppColors.brand)
+                                .foregroundStyle(viewModel.gender == .preferNotToSay ? .secondary : AppColors.brand)
                             Spacer()
                             Image(systemName: "chevron.down")
                                 .font(.caption)
@@ -378,20 +403,20 @@ struct ReturningUserProfileCompletionView: View {
                         .modifier(ProfileFieldStyle())
                     }
                     .accessibilityLabel("Gender")
-                    .accessibilityValue(viewModel.userGender.displayName)
+                    .accessibilityValue(viewModel.gender.displayName)
 
                     // Age group picker
                     Menu {
                         ForEach(UserAgeGroup.allCases) { ageGroup in
                             Button(ageGroup.displayName) {
-                                viewModel.userAgeGroup = ageGroup
+                                viewModel.ageGroup = ageGroup
                             }
                         }
                     } label: {
                         HStack {
-                            Text(viewModel.userAgeGroup == .preferNotToSay ? "Age" : viewModel.userAgeGroup.displayName)
+                            Text(viewModel.ageGroup == .preferNotToSay ? "Age" : viewModel.ageGroup.displayName)
                                 .font(.system(.body, design: .rounded, weight: .medium))
-                                .foregroundStyle(viewModel.userAgeGroup == .preferNotToSay ? .secondary : AppColors.brand)
+                                .foregroundStyle(viewModel.ageGroup == .preferNotToSay ? .secondary : AppColors.brand)
                             Spacer()
                             Image(systemName: "chevron.down")
                                 .font(.caption)
@@ -400,7 +425,7 @@ struct ReturningUserProfileCompletionView: View {
                         .modifier(ProfileFieldStyle())
                     }
                     .accessibilityLabel("Age group")
-                    .accessibilityValue(viewModel.userAgeGroup.displayName)
+                    .accessibilityValue(viewModel.ageGroup.displayName)
                 }
             }
             .padding(.horizontal, 24)

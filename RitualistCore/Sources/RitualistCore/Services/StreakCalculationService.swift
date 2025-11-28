@@ -170,28 +170,72 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
         var currentDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
         let habitStartDate = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
 
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        dateFormatter.timeZone = timezone
+
+        // Also log in UTC for comparison
+        let utcFormatter = DateFormatter()
+        utcFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        utcFormatter.timeZone = TimeZone(identifier: "UTC")
+
+        logger.log(
+            "🔥 Starting streak calculation",
+            level: .debug,
+            category: .dataIntegrity,
+            metadata: [
+                "habit": habit.name,
+                "asOf_local": dateFormatter.string(from: date),
+                "startOfDay_local": dateFormatter.string(from: currentDate),
+                "habit_startDate_RAW_UTC": utcFormatter.string(from: habit.startDate),
+                "habit_startDate_RAW_local": dateFormatter.string(from: habit.startDate),
+                "habitStartDate_calculated": dateFormatter.string(from: habitStartDate),
+                "timezone": timezone.identifier,
+                "logsCount": logs.count
+            ]
+        )
+
         // For daily habits, check every day backwards
         while currentDate >= habitStartDate {
             let isCompleted = habitCompletionService.isCompleted(habit: habit, on: currentDate, logs: logs, timezone: timezone)
 
+            logger.log(
+                "🔥 Checking day",
+                level: .debug,
+                category: .dataIntegrity,
+                metadata: [
+                    "habit": habit.name,
+                    "date": dateFormatter.string(from: currentDate),
+                    "isCompleted": isCompleted,
+                    "currentStreak": streak
+                ]
+            )
+
             if isCompleted {
                 streak += 1
             } else {
+                logger.log(
+                    "🔥 Streak broken - day not completed",
+                    level: .debug,
+                    category: .dataIntegrity,
+                    metadata: [
+                        "habit": habit.name,
+                        "brokenAt": dateFormatter.string(from: currentDate),
+                        "finalStreak": streak
+                    ]
+                )
                 break
             }
 
             currentDate = CalendarUtils.addDaysLocal(-1, to: currentDate, timezone: timezone)
         }
 
-        // Only log noteworthy streaks (> 0) to reduce verbosity
-        if streak > 0 {
-            logger.log(
-                "🔥 Streak calculated",
-                level: .debug,
-                category: .dataIntegrity,
-                metadata: ["habit": habit.name, "streak": streak]
-            )
-        }
+        logger.log(
+            "🔥 Streak calculation complete",
+            level: .debug,
+            category: .dataIntegrity,
+            metadata: ["habit": habit.name, "streak": streak]
+        )
 
         return streak
     }
