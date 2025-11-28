@@ -36,6 +36,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
     @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase
     @ObservationIgnored @Injected(\.saveOnboardingState) var saveOnboardingState
+    @ObservationIgnored @Injected(\.iCloudKeyValueService) var iCloudKeyValueService
     #endif
 
     public var profile = UserProfile()
@@ -397,6 +398,22 @@ public final class SettingsViewModel {
         isCheckingCloudStatus = false
     }
 
+    /// Force a fresh iCloud status check with logging for diagnostics
+    public func forceCloudStatusCheck() async {
+        logger.log(
+            "🔍 Force iCloud status check requested",
+            level: .info,
+            category: .system
+        )
+        await refreshiCloudStatus()
+        logger.log(
+            "✅ iCloud status check complete",
+            level: .info,
+            category: .system,
+            metadata: ["status": iCloudStatus.displayMessage]
+        )
+    }
+
     /// Delete iCloud data (GDPR compliance - Right to be forgotten)
     /// Permanently deletes user's profile from CloudKit
     /// Local data remains intact on device
@@ -523,6 +540,12 @@ public final class SettingsViewModel {
             )
 
             try await saveOnboardingState.execute(resetState)
+
+            // Also reset the iCloud onboarding flag
+            iCloudKeyValueService.resetOnboardingFlag()
+
+            // Reset the local device flag (so this device sees new user flow)
+            iCloudKeyValueService.resetLocalOnboardingFlag()
 
             // Track the debug action
             userActionTracker.track(.custom(event: "debug_onboarding_reset", parameters: [:]))

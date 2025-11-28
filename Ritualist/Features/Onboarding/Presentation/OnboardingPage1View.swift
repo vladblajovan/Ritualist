@@ -11,72 +11,77 @@ struct OnboardingPage1View: View {
         self.viewModel = viewModel
         self.onComplete = onComplete
     }
-    
+
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .topTrailing) {
-                ScrollView {
-                    VStack(spacing: adaptiveSpacing(for: geometry.size.height)) {
-                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
-                    
-                    // Welcome icon
-                    Image(systemName: "hand.wave.fill")
-                        .font(.system(size: Typography.heroIcon))
-                        .foregroundColor(.accentColor)
-                    
-                    VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
-                        Text("Welcome to Ritualist!")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                        
-                        Text("Let's start by getting to know you better. What should we call you?")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, adaptivePadding(for: geometry.size.width))
+        ZStack(alignment: .topTrailing) {
+            ScrollView {
+                VStack(spacing: 32) {
+                    Spacer(minLength: 20)
+
+                    // App icon with animated glow
+                    if let uiImage = Bundle.main.appIcon {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 120, height: 120)
+                            .clipShape(RoundedRectangle(cornerRadius: 28))
+                            .animatedGlow(glowSize: 160)
                     }
-                    
-                    VStack(spacing: Spacing.small) {
+
+                    // Welcome message
+                    VStack(spacing: 8) {
+                        Text("Welcome to Ritualist!")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .multilineTextAlignment(.center)
+
+                        Text("Let's start by getting to know you better.\nWhat should we call you?")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    // Name input
+                    VStack(spacing: 12) {
                         TextField("Enter your name", text: $viewModel.userName)
-                            .textFieldStyle(.plain)
-                            .font(.title3)
+                            .font(.system(size: 20, weight: .medium, design: .rounded))
                             .multilineTextAlignment(.center)
                             .textContentType(.name)
                             .textInputAutocapitalization(.words)
                             .autocorrectionDisabled()
                             .focused($isTextFieldFocused)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color(.secondarySystemGroupedBackground))
+                            )
                             .onSubmit {
                                 isTextFieldFocused = false
                                 if viewModel.canProceedFromCurrentPage {
                                     viewModel.nextPage()
                                 }
                             }
-                            .padding(.horizontal, adaptivePadding(for: geometry.size.width) * 2)
-                        
+
                         if viewModel.userName.isEmpty {
-                            Text("Don't worry, you can change this later in settings")
+                            Text("You can change this later in settings")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .multilineTextAlignment(.center)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    
-                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
+                    .padding(.horizontal, 24)
+
+                    Spacer(minLength: 20)
                 }
-                .frame(minHeight: geometry.size.height)
-                .padding(.horizontal, adaptivePadding(for: geometry.size.width))
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
             }
             .contentShape(Rectangle())
             .onTapGesture {
                 isTextFieldFocused = false
             }
-            
+
             #if DEBUG
-            // Debug-only Skip button in top right corner
+            // Debug-only Skip button
             Button(action: {
                 let logger = Container.shared.debugLogger()
                 logger.log("Skip onboarding initiated from debug button", level: .debug, category: .debug)
@@ -89,38 +94,21 @@ struct OnboardingPage1View: View {
                 }
             }) {
                 Text("Skip")
-                    .font(.body)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.accentColor)
-                    .cornerRadius(6)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(AppColors.brand)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .padding(.top, 50) // Safe area consideration
+            .padding(.top, 50)
             .padding(.trailing, 20)
             #endif
-            }
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isTextFieldFocused = true
             }
-        }
-    }
-    
-    private func adaptiveSpacing(for height: CGFloat) -> CGFloat {
-        switch height {
-        case 0..<600: return 16  // Small screens - compact spacing
-        case 600..<750: return 24  // Medium screens
-        default: return Spacing.xxlarge  // Large screens - original spacing
-        }
-    }
-    
-    private func adaptivePadding(for width: CGFloat) -> CGFloat {
-        switch width {
-        case 0..<350: return 16  // Small screens
-        case 350..<400: return 20  // Medium screens  
-        default: return Spacing.extraLarge  // Large screens - original padding
         }
     }
 }

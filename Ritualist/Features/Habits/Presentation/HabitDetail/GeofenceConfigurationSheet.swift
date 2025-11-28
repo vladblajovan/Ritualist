@@ -121,9 +121,7 @@ public struct GeofenceConfigurationSheet: View {
         config.locationLabel = locationLabel.isEmpty ? nil : locationLabel
         config.frequency = frequencyPreset.toNotificationFrequency
 
-        Task {
-            await vm.updateLocationConfiguration(config)
-        }
+        vm.updateLocationConfiguration(config)
     }
 }
 

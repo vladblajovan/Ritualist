@@ -1,162 +1,123 @@
 import SwiftUI
+import RitualistCore
 
 struct OnboardingPremiumComparisonView: View {
-    // MARK: - Constants
-    private enum LayoutConstants {
-        // Spacing constants
-        static let smallSpacing: CGFloat = 16
-        static let mediumSpacing: CGFloat = 24
-        static let largeSpacing: CGFloat = 32
-
-        // Padding constants
-        static let smallPadding: CGFloat = 16
-        static let mediumPadding: CGFloat = 20
-        static let largePadding: CGFloat = 24
-
-        // Breakpoints
-        static let smallHeightBreakpoint: CGFloat = 600
-        static let mediumHeightBreakpoint: CGFloat = 750
-        static let smallWidthBreakpoint: CGFloat = 350
-        static let mediumWidthBreakpoint: CGFloat = 400
-    }
-
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                VStack(spacing: adaptiveSpacing(for: geometry.size.height)) {
-                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
+        ScrollView {
+            VStack(spacing: 24) {
+                Spacer(minLength: 20)
 
-                    // Sparkles icon
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 60))
-                        .foregroundColor(.orange)
+                // Icon with glow
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.15))
+                        .frame(width: 100, height: 100)
 
-                    VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
-                        Text(Strings.OnboardingPremium.title)
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(Strings.OnboardingPremium.subtitle)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, adaptivePadding(for: geometry.size.width))
-                    }
-
-                    // Free vs Pro comparison
-                    HStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
-                        // Free tier
-                        TierCard(
-                            title: Strings.OnboardingPremium.freeTier,
-                            features: [
-                                TierFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.fiveHabits, color: .green),
-                                TierFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.dailyTracking, color: .green),
-                                TierFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.basicNotifications, color: .green),
-                                TierFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.tipsInsights, color: .green)
-                            ],
-                            isPro: false,
-                            geometry: geometry
-                        )
-
-                        // Pro tier
-                        TierCard(
-                            title: Strings.OnboardingPremium.proTier,
-                            features: [
-                                TierFeature(icon: "infinity.circle.fill", text: Strings.OnboardingPremium.unlimitedHabits, color: .orange),
-                                TierFeature(icon: "chart.line.uptrend.xyaxis.circle.fill", text: Strings.OnboardingPremium.advancedAnalytics, color: .orange),
-                                TierFeature(icon: "bell.badge.circle.fill", text: Strings.OnboardingPremium.customReminders, color: .orange),
-                                TierFeature(icon: "square.and.arrow.up.circle.fill", text: Strings.OnboardingPremium.dataExport, color: .orange)
-                            ],
-                            isPro: true,
-                            geometry: geometry
-                        )
-                    }
-                    .padding(.horizontal, adaptivePadding(for: geometry.size.width))
-
-                    // Footer text
-                    Text(Strings.OnboardingPremium.footer)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, adaptiveSpacing(for: geometry.size.height) / 4)
-
-                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 50))
+                        .foregroundStyle(.orange)
                 }
-                .frame(minHeight: geometry.size.height)
-                .padding(.horizontal, adaptivePadding(for: geometry.size.width))
+                .animatedGlow(color: .orange, glowSize: 140, intensity: 0.4)
+
+                // Title and description
+                VStack(spacing: 8) {
+                    Text(Strings.OnboardingPremium.title)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+
+                    Text(Strings.OnboardingPremium.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                }
+
+                // Free vs Pro comparison
+                HStack(spacing: 12) {
+                    // Free tier
+                    PremiumTierCard(
+                        title: Strings.OnboardingPremium.freeTier,
+                        features: [
+                            PremiumFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.fiveHabits, color: .green),
+                            PremiumFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.dailyTracking, color: .green),
+                            PremiumFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.basicNotifications, color: .green),
+                            PremiumFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.tipsInsights, color: .green)
+                        ],
+                        isPro: false
+                    )
+
+                    // Pro tier
+                    PremiumTierCard(
+                        title: Strings.OnboardingPremium.proTier,
+                        features: [
+                            PremiumFeature(icon: "infinity.circle.fill", text: Strings.OnboardingPremium.unlimitedHabits, color: .orange),
+                            PremiumFeature(icon: "chart.line.uptrend.xyaxis.circle.fill", text: Strings.OnboardingPremium.advancedAnalytics, color: .orange),
+                            PremiumFeature(icon: "bell.badge.circle.fill", text: Strings.OnboardingPremium.customReminders, color: .orange),
+                            PremiumFeature(icon: "square.and.arrow.up.circle.fill", text: Strings.OnboardingPremium.dataExport, color: .orange)
+                        ],
+                        isPro: true
+                    )
+                }
+                .padding(.horizontal, 24)
+
+                // Footer text
+                Text(Strings.OnboardingPremium.footer)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+
+                Spacer(minLength: 20)
             }
-        }
-    }
-
-    private func adaptiveSpacing(for height: CGFloat) -> CGFloat {
-        switch height {
-        case 0..<LayoutConstants.smallHeightBreakpoint:
-            return LayoutConstants.smallSpacing  // Small screens - compact spacing
-        case LayoutConstants.smallHeightBreakpoint..<LayoutConstants.mediumHeightBreakpoint:
-            return LayoutConstants.mediumSpacing  // Medium screens
-        default:
-            return LayoutConstants.largeSpacing  // Large screens - original spacing
-        }
-    }
-
-    private func adaptivePadding(for width: CGFloat) -> CGFloat {
-        switch width {
-        case 0..<LayoutConstants.smallWidthBreakpoint:
-            return LayoutConstants.smallPadding  // Small screens
-        case LayoutConstants.smallWidthBreakpoint..<LayoutConstants.mediumWidthBreakpoint:
-            return LayoutConstants.mediumPadding  // Medium screens
-        default:
-            return LayoutConstants.largePadding  // Large screens - original padding
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
         }
     }
 }
 
-private struct TierFeature: Identifiable {
+// MARK: - Supporting Types
+
+private struct PremiumFeature: Identifiable {
     let id = UUID()
     let icon: String
     let text: String
     let color: Color
 }
 
-private struct TierCard: View {
+private struct PremiumTierCard: View {
     let title: String
-    let features: [TierFeature]
+    let features: [PremiumFeature]
     let isPro: Bool
-    let geometry: GeometryProxy
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header with icon
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 if isPro {
                     Image(systemName: "crown.fill")
-                        .font(.title3)
-                        .foregroundColor(.orange)
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
                 }
 
                 Text(title)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(isPro ? .orange : .primary)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(isPro ? .orange : .primary)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
             Divider()
 
             // Features list
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 ForEach(features) { feature in
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Image(systemName: feature.icon)
-                            .font(.caption)
-                            .foregroundColor(feature.color)
-                            .frame(width: 16)
+                            .font(.caption2)
+                            .foregroundStyle(feature.color)
+                            .frame(width: 14)
 
                         Text(feature.text)
-                            .font(.subheadline)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
                             .fixedSize(horizontal: false, vertical: true)
 
                         Spacer()
@@ -164,13 +125,13 @@ private struct TierCard: View {
                 }
             }
         }
-        .padding(16)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(isPro ? Color.orange.opacity(0.1) : Color(.systemGray6))
+            RoundedRectangle(cornerRadius: 14)
+                .fill(isPro ? Color.orange.opacity(0.08) : Color(.secondarySystemGroupedBackground))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(isPro ? Color.orange.opacity(0.3) : Color.clear, lineWidth: 2)
         )
     }

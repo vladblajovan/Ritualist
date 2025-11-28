@@ -199,12 +199,12 @@ public final class OnboardingViewModel {
         isLoading = true
         do {
             logger.log(
-                "🔧 Completing onboarding with debug user",
+                "🔧 Completing onboarding (skipped)",
                 level: .debug,
                 category: .debug
             )
-            // Complete onboarding with debug user name and no notifications
-            try await completeOnboarding.execute(userName: "Debug User", hasNotifications: false)
+            // Complete onboarding without setting a name
+            try await completeOnboarding.execute(userName: "", hasNotifications: false)
             isCompleted = true
 
             // Track as skipped for debug metrics

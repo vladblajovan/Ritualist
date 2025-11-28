@@ -1,11 +1,13 @@
 import SwiftUI
 import Charts
 import RitualistCore
+import FactoryKit
 
 // swiftlint:disable type_body_length
 public struct DashboardView: View {
     var vm: DashboardViewModel
-    
+    @Injected(\.debugLogger) private var logger
+
     public init(vm: DashboardViewModel) {
         self.vm = vm
     }
@@ -54,6 +56,17 @@ public struct DashboardView: View {
         .navigationBarTitleDisplayMode(.large)
         .task {
             await vm.loadData()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+            // Auto-refresh when iCloud syncs new data from another device
+            Task {
+                logger.log(
+                    "☁️ iCloud sync detected - refreshing Dashboard",
+                    level: .info,
+                    category: .system
+                )
+                await vm.refresh()
+            }
         }
         .background(Color(.systemGroupedBackground))
     }

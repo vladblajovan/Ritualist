@@ -7,6 +7,7 @@ public struct RootTabView: View {
     @Injected(\.rootTabViewModel) var viewModel
     @Injected(\.settingsViewModel) var settingsViewModel
     @Injected(\.loadHabitsData) var loadHabitsData
+    @Injected(\.loadProfile) var loadProfile
     @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
     @Injected(\.debugLogger) var logger
     @State private var showOnboarding = false
@@ -37,9 +38,8 @@ public struct RootTabView: View {
         
         Group {
             if isCheckingOnboarding {
-                ProgressView("Loading...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemBackground))
+                // Show branded launch screen while detecting iCloud data
+                AppLaunchView()
             } else {
                 TabView(selection: $vm.navigationService.selectedTab) {
                     Tab(Strings.Navigation.overview, systemImage: "calendar", value: Pages.overview) {
@@ -98,6 +98,8 @@ public struct RootTabView: View {
                 .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                     // Show one-time toast when iCloud syncs data for the first time
                     handleFirstiCloudSync()
+                    // Check if we need to show returning user welcome
+                    handleReturningUserWelcome()
                 }
             }
         }
@@ -111,9 +113,24 @@ public struct RootTabView: View {
                 await handlePostOnboarding()
             }
         }) {
+            // Show new user onboarding flow
             OnboardingFlowView(onComplete: {
                 showOnboarding = false
             })
+        }
+        // Returning user welcome - shown as sheet AFTER app loads and data syncs
+        .fullScreenCover(isPresented: Binding(
+            get: { viewModel.showReturningUserWelcome },
+            set: { if !$0 { viewModel.dismissReturningUserWelcome() } }
+        ), onDismiss: {
+            // Check for iCloud sync toast after welcome screen dismissed
+            handleFirstiCloudSync()
+        }) {
+            if let summary = viewModel.syncedDataSummary {
+                ReturningUserOnboardingView(summary: summary, onComplete: {
+                    viewModel.dismissReturningUserWelcome()
+                })
+            }
         }
         .sheet(isPresented: $showingPostOnboardingAssistant) {
             HabitsAssistantSheet(
@@ -396,13 +413,28 @@ public struct RootTabView: View {
     }
     
     private func checkOnboardingStatus() async {
+        let startTime = Date()
+
         await viewModel.checkOnboardingStatus()
+
+        // Ensure launch screen shows for at least 1 second for smooth UX
+        // Skip delay during UI tests for faster test execution
+        let isUITesting = CommandLine.arguments.contains("--uitesting")
+        if !isUITesting {
+            let elapsed = Date().timeIntervalSince(startTime)
+            let minimumDisplayTime: TimeInterval = 1.0
+            if elapsed < minimumDisplayTime {
+                try? await Task.sleep(for: .seconds(minimumDisplayTime - elapsed))
+            }
+        }
+
         showOnboarding = viewModel.showOnboarding
         isCheckingOnboarding = viewModel.isCheckingOnboarding
     }
 
     /// Handle post-onboarding flow - open assistant if user can add more habits
     /// Called from fullScreenCover's onDismiss, so onboarding is already dismissed
+    /// Note: This is only called for new user onboarding, not returning user welcome
     private func handlePostOnboarding() async {
         await loadCurrentHabits()
 
@@ -430,6 +462,70 @@ public struct RootTabView: View {
         } catch {
             Container.shared.debugLogger().log("Failed to load habits for post-onboarding check: \(error)", level: .error, category: .ui)
             existingHabits = []
+        }
+    }
+
+    /// Handle returning user welcome - show when iCloud data has loaded
+    /// Uses retry logic to wait for both habits AND profile to sync from CloudKit
+    private func handleReturningUserWelcome(retryCount: Int = 0) {
+        guard viewModel.pendingReturningUserWelcome else { return }
+
+        Task {
+            // Load actual data from repositories
+            await loadCurrentHabits()
+            let profile = try? await loadProfile.execute()
+
+            // Check if we have complete data (habits AND profile with name)
+            let hasCompleteData = !existingHabits.isEmpty
+                && profile != nil
+                && !(profile?.name.isEmpty ?? true)
+
+            if hasCompleteData {
+                // Show welcome with actual synced data
+                await MainActor.run {
+                    viewModel.showReturningUserWelcomeIfNeeded(habits: existingHabits, profile: profile)
+                }
+            } else {
+                // Data not complete yet - retry up to 5 minutes (150 retries × 2s)
+                // This doesn't block the app - user can use it normally while we wait
+                // CloudKit profile/avatar may take longer to sync on slow networks
+                let maxRetries = 150
+                if retryCount < maxRetries {
+                    logger.log(
+                        "☁️ Returning user data incomplete - will retry",
+                        level: .debug,
+                        category: .system,
+                        metadata: [
+                            "retry_count": retryCount + 1,
+                            "max_retries": maxRetries,
+                            "habits_count": existingHabits.count,
+                            "has_profile": profile != nil,
+                            "profile_name": profile?.name ?? "nil"
+                        ]
+                    )
+                    try? await Task.sleep(for: .seconds(2))
+                    await MainActor.run {
+                        handleReturningUserWelcome(retryCount: retryCount + 1)
+                    }
+                } else {
+                    // Gave up waiting - show welcome with whatever data we have
+                    // User can still use the app, just won't see the full welcome
+                    logger.log(
+                        "☁️ Returning user data still incomplete after retries - showing welcome anyway",
+                        level: .warning,
+                        category: .system,
+                        metadata: [
+                            "habits_count": existingHabits.count,
+                            "has_profile": profile != nil,
+                            "profile_name": profile?.name ?? "nil"
+                        ]
+                    )
+                    await MainActor.run {
+                        // Mark as no longer pending so we don't keep trying
+                        viewModel.pendingReturningUserWelcome = false
+                    }
+                }
+            }
         }
     }
 

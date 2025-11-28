@@ -1,202 +1,188 @@
 import SwiftUI
+import RitualistCore
 
 struct OnboardingPage6View: View {
     @Bindable var viewModel: OnboardingViewModel
 
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                VStack(spacing: adaptiveSpacing(for: geometry.size.height)) {
-                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
+        ScrollView {
+            VStack(spacing: 24) {
+                Spacer(minLength: 20)
 
-                    // Permission icons
-                    HStack(spacing: 20) {
-                        Image(systemName: viewModel.hasGrantedNotifications ? "bell.fill" : "bell.slash.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(viewModel.hasGrantedNotifications ? .blue : .secondary)
-                            .animation(.easeInOut, value: viewModel.hasGrantedNotifications)
+                // Permission icons with animation
+                HStack(spacing: 24) {
+                    PermissionIcon(
+                        icon: "bell.fill",
+                        color: .blue,
+                        isGranted: viewModel.hasGrantedNotifications
+                    )
 
-                        Image(systemName: viewModel.hasGrantedLocation ? "location.fill" : "location.slash.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(viewModel.hasGrantedLocation ? .green : .secondary)
-                            .animation(.easeInOut, value: viewModel.hasGrantedLocation)
-                    }
-
-                    VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
-                        Text(Strings.OnboardingPermissions.title)
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(Strings.OnboardingPermissions.subtitle)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, adaptivePadding(for: geometry.size.width))
-                    }
-                    
-                    VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
-                        NotificationBenefit(
-                            icon: "clock",
-                            title: "Timely Reminders",
-                            description: "Get notified at the perfect time for each habit"
-                        )
-
-                        NotificationBenefit(
-                            icon: "location.circle.fill",
-                            title: "Location-Aware Habits",
-                            description: "Get reminders when you arrive at specific places"
-                        )
-
-                        NotificationBenefit(
-                            icon: "checkmark.circle",
-                            title: "Stay Consistent",
-                            description: "Never forget to complete your daily routines"
-                        )
-
-                        NotificationBenefit(
-                            icon: "gear",
-                            title: "Fully Customizable",
-                            description: "Turn off or adjust permissions anytime"
-                        )
-
-                        // Permission buttons
-                        VStack(spacing: 12) {
-                            // Notification permission button
-                            if !viewModel.hasGrantedNotifications {
-                                Button {
-                                    Task {
-                                        await viewModel.requestNotificationPermission()
-                                    }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "bell.fill")
-                                        Text(Strings.OnboardingPermissions.enableNotifications)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.large)
-                            } else {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                    Text(Strings.OnboardingPermissions.notificationsGranted)
-                                        .fontWeight(.medium)
-                                }
-                                .foregroundColor(.green)
-                            }
-
-                            // Location permission button
-                            if !viewModel.hasGrantedLocation {
-                                Button {
-                                    Task {
-                                        await viewModel.requestLocationPermission()
-                                    }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "location.fill")
-                                        Text(Strings.OnboardingPermissions.enableLocation)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.large)
-                            } else {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                    Text(Strings.OnboardingPermissions.locationGranted)
-                                        .fontWeight(.medium)
-                                }
-                                .foregroundColor(.green)
-                            }
-                        }
-                        .padding(.top, 8)
-                    }
-                    .padding(.horizontal, adaptivePadding(for: geometry.size.width))
-
-                    if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
-                        Text(Strings.OnboardingPermissions.skipForNow)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, adaptivePadding(for: geometry.size.width) * 2)
-                    }
-                    
-                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
+                    PermissionIcon(
+                        icon: "location.fill",
+                        color: .green,
+                        isGranted: viewModel.hasGrantedLocation
+                    )
                 }
-                .frame(minHeight: geometry.size.height)
-                .padding(.horizontal, adaptivePadding(for: geometry.size.width))
+
+                // Title and description
+                VStack(spacing: 8) {
+                    Text(Strings.OnboardingPermissions.title)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+
+                    Text(Strings.OnboardingPermissions.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                }
+
+                // Permission cards
+                VStack(spacing: 12) {
+                    PermissionCard(
+                        icon: "bell.badge.fill",
+                        iconColor: .blue,
+                        title: "Notifications",
+                        description: "Get timely reminders for your habits",
+                        isGranted: viewModel.hasGrantedNotifications,
+                        grantedText: Strings.OnboardingPermissions.notificationsGranted,
+                        buttonText: Strings.OnboardingPermissions.enableNotifications
+                    ) {
+                        Task {
+                            await viewModel.requestNotificationPermission()
+                        }
+                    }
+
+                    PermissionCard(
+                        icon: "location.fill",
+                        iconColor: .green,
+                        title: "Location",
+                        description: "Get reminders when you arrive at places",
+                        isGranted: viewModel.hasGrantedLocation,
+                        grantedText: Strings.OnboardingPermissions.locationGranted,
+                        buttonText: Strings.OnboardingPermissions.enableLocation
+                    ) {
+                        Task {
+                            await viewModel.requestLocationPermission()
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+
+                if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
+                    Text(Strings.OnboardingPermissions.skipForNow)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 48)
+                }
+
+                Spacer(minLength: 20)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
         }
         .task {
-            // Check permissions when page loads (handles pre-granted permissions)
             await viewModel.checkPermissions()
-        }
-    }
-    
-    private func adaptiveSpacing(for height: CGFloat) -> CGFloat {
-        switch height {
-        case 0..<600: return 16  // Small screens - compact spacing
-        case 600..<750: return 24  // Medium screens
-        default: return 32  // Large screens - original spacing
-        }
-    }
-    
-    private func adaptivePadding(for width: CGFloat) -> CGFloat {
-        switch width {
-        case 0..<350: return 16  // Small screens
-        case 350..<400: return 20  // Medium screens  
-        default: return 24  // Large screens - original padding
         }
     }
 }
 
-private struct NotificationBenefit: View {
+// MARK: - Permission Icon
+
+private struct PermissionIcon: View {
     let icon: String
+    let color: Color
+    let isGranted: Bool
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(color.opacity(isGranted ? 0.15 : 0.08))
+                .frame(width: 70, height: 70)
+
+            Image(systemName: icon)
+                .font(.system(size: 30))
+                .foregroundStyle(isGranted ? color : .secondary)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if isGranted {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(.green)
+                    .background(Circle().fill(.white).padding(2))
+            }
+        }
+        .animation(.easeInOut, value: isGranted)
+    }
+}
+
+// MARK: - Permission Card
+
+private struct PermissionCard: View {
+    let icon: String
+    let iconColor: Color
     let title: String
     let description: String
-    
+    let isGranted: Bool
+    let grantedText: String
+    let buttonText: String
+    let action: () -> Void
+
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.blue)
-                .frame(width: 24)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                    .fontWeight(.medium)
-                    .fixedSize(horizontal: false, vertical: true)
-                
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .foregroundStyle(iconColor)
             }
-            
+
+            // Content
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+
+                if isGranted {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                        Text(grantedText)
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                } else {
+                    Text(description)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Spacer()
+
+            // Button
+            if !isGranted {
+                Button(action: action) {
+                    Text("Enable")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(iconColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
         }
-    }
-    
-    private func adaptiveSpacing(for height: CGFloat) -> CGFloat {
-        switch height {
-        case 0..<600: return 16  // Small screens - compact spacing
-        case 600..<750: return 24  // Medium screens
-        default: return 32  // Large screens - original spacing
-        }
-    }
-    
-    private func adaptivePadding(for width: CGFloat) -> CGFloat {
-        switch width {
-        case 0..<350: return 16  // Small screens
-        case 350..<400: return 20  // Medium screens  
-        default: return 24  // Large screens - original padding
-        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+        .animation(.easeInOut, value: isGranted)
     }
 }

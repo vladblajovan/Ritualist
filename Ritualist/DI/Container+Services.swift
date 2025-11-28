@@ -139,6 +139,11 @@ extension Container {
         self { WidgetRefreshService(logger: self.debugLogger()) }
             .singleton
     }
+
+    var iCloudKeyValueService: Factory<iCloudKeyValueService> {
+        self { DefaultiCloudKeyValueService(logger: self.debugLogger()) }
+            .singleton
+    }
     
     var scheduleAwareCompletionCalculator: Factory<ScheduleAwareCompletionCalculator> {
         self { DefaultScheduleAwareCompletionCalculator(habitCompletionService: self.habitCompletionService()) }

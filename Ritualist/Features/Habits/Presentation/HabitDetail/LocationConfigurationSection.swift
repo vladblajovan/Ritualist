@@ -68,7 +68,10 @@ public struct LocationConfigurationSection: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 8)
                 }
-                .sheet(isPresented: $vm.showMapPicker) {
+                .sheet(isPresented: $vm.showMapPicker, onDismiss: {
+                    // Handle swipe-to-dismiss: if user didn't save a location, clear placeholder
+                    vm.handleMapPickerDismiss()
+                }) {
                     MapLocationPickerView(vm: vm)
                 }
             } else if vm.locationConfiguration == nil || vm.locationConfiguration?.isEnabled == false {

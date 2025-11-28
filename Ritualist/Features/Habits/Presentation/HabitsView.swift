@@ -5,6 +5,7 @@ import RitualistCore
 public struct HabitsRoot: View {
     @Injected(\.habitsViewModel) var vm
     @Injected(\.categoryManagementViewModel) var categoryManagementVM
+    @Injected(\.debugLogger) private var logger
     @State private var showingCategoryManagement = false
 
     public init() {}
@@ -16,6 +17,21 @@ public struct HabitsRoot: View {
         )
         .task {
             await vm.load()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+            // Don't refresh while editing - the sheet's ViewModel would be recreated
+            // with stale data, causing issues like location toggle snapping back
+            guard vm.selectedHabit == nil else { return }
+
+            // Auto-refresh when iCloud syncs new data from another device
+            Task {
+                logger.log(
+                    "☁️ iCloud sync detected - refreshing Habits list",
+                    level: .info,
+                    category: .system
+                )
+                await vm.load()
+            }
         }
         .sheet(isPresented: $showingCategoryManagement, onDismiss: {
             Task {

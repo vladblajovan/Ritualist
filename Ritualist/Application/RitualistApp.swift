@@ -124,6 +124,20 @@ import CoreData
                     // Update last sync timestamp when real CloudKit sync occurs
                     UserDefaults.standard.set(Date(), forKey: UserDefaultsKeys.lastSyncDate)
 
+                    // Record remote change for diagnostics
+                    #if DEBUG
+                    Task { @MainActor in
+                        ICloudSyncDiagnostics.shared.recordRemoteChange()
+                    }
+                    #endif
+
+                    logger.log(
+                        "☁️ NSPersistentStoreRemoteChange received",
+                        level: .info,
+                        category: .system,
+                        metadata: ["timestamp": Date().ISO8601Format()]
+                    )
+
                     Task {
                         try? await Task.sleep(for: .seconds(BusinessConstants.remoteChangeMergeDelay))
 
@@ -221,6 +235,18 @@ import CoreData
             let result = try await deduplicateData.execute()
             lastDeduplicationUptime = ProcessInfo.processInfo.systemUptime
             lastDeduplicationHadData = result.hadDataToCheck
+
+            // Record for diagnostics
+            #if DEBUG
+            Task { @MainActor in
+                ICloudSyncDiagnostics.shared.recordDeduplication(
+                    habitsRemoved: result.habitsRemoved,
+                    categoriesRemoved: result.categoriesRemoved,
+                    logsRemoved: result.habitLogsRemoved,
+                    profilesRemoved: result.profilesRemoved
+                )
+            }
+            #endif
 
             if result.hadDuplicates {
                 logger.log(
@@ -696,7 +722,79 @@ class AppDelegate: NSObject, UIApplicationDelegate, UIWindowSceneDelegate {
         // Register Quick Actions (Home Screen Shortcuts)
         Container.shared.quickActionCoordinator().registerQuickActions()
 
+        // Register for remote notifications (required for CloudKit sync)
+        // CloudKit uses silent push notifications to notify devices of remote changes
+        application.registerForRemoteNotifications()
+
         return true
+    }
+
+    /// Called when the app successfully registers for remote notifications
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+        logger.log(
+            "✅ Registered for remote notifications",
+            level: .info,
+            category: .system,
+            metadata: ["tokenPrefix": String(tokenString.prefix(16)) + "..."]
+        )
+
+        #if DEBUG
+        ICloudSyncDiagnostics.shared.recordRemoteNotificationRegistration(success: true)
+        #endif
+    }
+
+    /// Called when remote notification registration fails
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        logger.log(
+            "❌ Failed to register for remote notifications",
+            level: .error,
+            category: .system,
+            metadata: ["error": error.localizedDescription]
+        )
+
+        #if DEBUG
+        ICloudSyncDiagnostics.shared.recordRemoteNotificationRegistration(success: false)
+        #endif
+    }
+
+    /// Handle silent push notifications from CloudKit
+    /// CloudKit sends these when data changes on another device to trigger sync
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        logger.log(
+            "☁️ Received remote notification (CloudKit sync trigger)",
+            level: .info,
+            category: .system,
+            metadata: ["userInfo": String(describing: userInfo)]
+        )
+
+        // CloudKit notifications contain "ck" key
+        if userInfo["ck"] != nil {
+            logger.log(
+                "☁️ CloudKit remote change notification received",
+                level: .info,
+                category: .system
+            )
+
+            #if DEBUG
+            ICloudSyncDiagnostics.shared.recordPushNotification()
+            #endif
+
+            // The NSPersistentStoreRemoteChange notification will fire automatically
+            // when the persistent store processes the incoming changes.
+            // We just need to give the system time to process.
+            //
+            // Note: The actual sync handling is done in RitualistApp's .onReceive handler
+            // for NSPersistentStoreRemoteChange - this method just acknowledges the push.
+
+            completionHandler(.newData)
+        } else {
+            completionHandler(.noData)
+        }
     }
 
     /// Configure scene to use this class as the scene delegate for Quick Action handling
