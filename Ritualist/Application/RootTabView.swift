@@ -1,6 +1,7 @@
 import SwiftUI
 import FactoryKit
 import RitualistCore
+import CloudKit
 
 // swiftlint:disable:next type_body_length
 public struct RootTabView: View {
@@ -555,7 +556,13 @@ public struct RootTabView: View {
 
     /// Handle first iCloud sync - show toast only once per device lifetime
     /// Uses retry logic because data may not be available immediately when notification fires
+    /// Note: Only shown in DEBUG builds - users don't need this, it's a developer sanity check
     private func handleFirstiCloudSync(retryCount: Int = 0) {
+        #if !DEBUG
+        // Skip in release builds - users don't need "your data synced" notifications
+        return
+        #endif
+
         // Check if we've already shown this toast (check BEFORE spawning async work)
         guard !UserDefaults.standard.bool(forKey: Self.hasShownFirstSyncToastKey) else {
             return
@@ -581,6 +588,29 @@ public struct RootTabView: View {
         Task {
             // Double-check flag inside Task to prevent race conditions from multiple notifications
             guard !UserDefaults.standard.bool(forKey: Self.hasShownFirstSyncToastKey) else {
+                return
+            }
+
+            // Check if iCloud is actually signed in - don't show toast if not
+            let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
+            do {
+                let accountStatus = try await container.accountStatus()
+                guard accountStatus == .available else {
+                    logger.log(
+                        "☁️ iCloud not signed in - skipping sync toast",
+                        level: .debug,
+                        category: .system,
+                        metadata: ["account_status": String(describing: accountStatus)]
+                    )
+                    return
+                }
+            } catch {
+                logger.log(
+                    "☁️ Failed to check iCloud account status - skipping sync toast",
+                    level: .debug,
+                    category: .system,
+                    metadata: ["error": error.localizedDescription]
+                )
                 return
             }
 
