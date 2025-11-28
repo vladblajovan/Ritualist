@@ -14,7 +14,8 @@ struct OnboardingPage4View: View {
                         .frame(width: 100, height: 100)
 
                     Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 50))
+                        .font(.largeTitle)
+                        .imageScale(.large)
                         .foregroundStyle(.orange)
                 }
                 .animatedGlow(color: .orange, glowSize: 140, intensity: 0.4)
@@ -22,7 +23,7 @@ struct OnboardingPage4View: View {
                 // Title and description
                 VStack(spacing: 8) {
                     Text("Learn & Improve")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
 
                     Text("Get expert tips and insights to build better habits.")

@@ -19,6 +19,7 @@ public struct RootTabView: View {
     @State private var migrationService = MigrationStatusService.shared
     @State private var pendingPersonalitySheetAfterTabSwitch = false
     @State private var showSyncToast = false
+    @State private var showStillSyncingToast = false
 
     // Quick Actions state
     @Injected(\.quickActionCoordinator) private var quickActionCoordinator
@@ -91,6 +92,22 @@ public struct RootTabView: View {
                                 showSyncToast = false
                             }
                         })
+                        .padding(.top, 50)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+
+                    if showStillSyncingToast {
+                        ToastView(
+                            message: Strings.ICloudSync.stillSyncing,
+                            icon: "icloud.and.arrow.down",
+                            style: .info,
+                            duration: 5.0,
+                            onDismiss: {
+                                withAnimation(.easeOut(duration: 0.3)) {
+                                    showStillSyncingToast = false
+                                }
+                            }
+                        )
                         .padding(.top, 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
@@ -508,10 +525,10 @@ public struct RootTabView: View {
                         handleReturningUserWelcome(retryCount: retryCount + 1)
                     }
                 } else {
-                    // Gave up waiting - show welcome with whatever data we have
-                    // User can still use the app, just won't see the full welcome
+                    // Gave up waiting - inform user that sync is still in progress
+                    // User can still use the app, data will appear when sync completes
                     logger.log(
-                        "☁️ Returning user data still incomplete after retries - showing welcome anyway",
+                        "☁️ Returning user data still incomplete after retries - showing info toast",
                         level: .warning,
                         category: .system,
                         metadata: [
@@ -523,6 +540,10 @@ public struct RootTabView: View {
                     await MainActor.run {
                         // Mark as no longer pending so we don't keep trying
                         viewModel.pendingReturningUserWelcome = false
+                        // Show informative toast so user knows sync is ongoing
+                        withAnimation(.easeIn(duration: 0.3)) {
+                            showStillSyncingToast = true
+                        }
                     }
                 }
             }

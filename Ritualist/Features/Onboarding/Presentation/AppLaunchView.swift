@@ -30,7 +30,7 @@ struct AppLaunchView: View {
 
             // App name
             Text("Ritualist")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .font(.system(.largeTitle, design: .rounded, weight: .bold))
                 .foregroundStyle(.primary)
 
             Spacer()

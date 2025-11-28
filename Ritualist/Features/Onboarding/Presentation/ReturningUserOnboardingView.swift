@@ -97,7 +97,7 @@ struct ReturningUserPermissionsView: View {
             // Title
             VStack(spacing: 8) {
                 Text("Set Up This Device")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(.title, design: .rounded, weight: .bold))
                     .multilineTextAlignment(.center)
 
                 Text("Enable permissions to get the most out of your habits")
@@ -179,13 +179,13 @@ private struct PermissionIcon: View {
                 .frame(width: 70, height: 70)
 
             Image(systemName: icon)
-                .font(.system(size: 30))
+                .font(.title)
                 .foregroundStyle(color)
         }
         .overlay(alignment: .bottomTrailing) {
             if isGranted {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 20))
+                    .font(.title3)
                     .foregroundStyle(.green)
                     .background(Circle().fill(.white).padding(2))
             }

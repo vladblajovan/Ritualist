@@ -14,7 +14,8 @@ struct OnboardingPremiumComparisonView: View {
                         .frame(width: 100, height: 100)
 
                     Image(systemName: "crown.fill")
-                        .font(.system(size: 50))
+                        .font(.largeTitle)
+                        .imageScale(.large)
                         .foregroundStyle(.orange)
                 }
                 .animatedGlow(color: .orange, glowSize: 140, intensity: 0.4)
@@ -22,7 +23,7 @@ struct OnboardingPremiumComparisonView: View {
                 // Title and description
                 VStack(spacing: 8) {
                     Text(Strings.OnboardingPremium.title)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
 
                     Text(Strings.OnboardingPremium.subtitle)
@@ -100,7 +101,7 @@ private struct PremiumTierCard: View {
                 }
 
                 Text(title)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .foregroundStyle(isPro ? .orange : .primary)
             }
 

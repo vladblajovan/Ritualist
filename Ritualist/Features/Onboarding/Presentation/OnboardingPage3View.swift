@@ -14,7 +14,8 @@ struct OnboardingPage3View: View {
                         .frame(width: 100, height: 100)
 
                     Image(systemName: "paintbrush.fill")
-                        .font(.system(size: 50))
+                        .font(.largeTitle)
+                        .imageScale(.large)
                         .foregroundStyle(.purple)
                 }
                 .animatedGlow(color: .purple, glowSize: 140, intensity: 0.4)
@@ -22,7 +23,7 @@ struct OnboardingPage3View: View {
                 // Title and description
                 VStack(spacing: 8) {
                     Text("Make It Yours")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
 
                     Text("Customize your habits with colors, emojis, and flexible scheduling.")

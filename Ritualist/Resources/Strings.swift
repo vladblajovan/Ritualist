@@ -371,6 +371,7 @@ public enum Strings {
     // MARK: - iCloud Sync
     public enum ICloudSync {
         public static let syncedFromCloud = String(localized: "icloud.synced_from_cloud")
+        public static let stillSyncing = String(localized: "icloud.still_syncing")
     }
 }
 

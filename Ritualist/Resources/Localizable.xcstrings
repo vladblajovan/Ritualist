@@ -3004,6 +3004,17 @@
         }
       }
     },
+    "icloud.still_syncing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still syncing from iCloud..."
+          }
+        }
+      }
+    },
     "Identifier:" : {
 
     },

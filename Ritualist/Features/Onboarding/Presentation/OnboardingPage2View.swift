@@ -16,7 +16,8 @@ struct OnboardingPage2View: View {
                         .frame(width: 100, height: 100)
 
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 50))
+                        .font(.largeTitle)
+                        .imageScale(.large)
                         .foregroundStyle(.green)
                 }
                 .animatedGlow(color: .green, glowSize: 140, intensity: 0.4)
@@ -24,7 +25,7 @@ struct OnboardingPage2View: View {
                 // Title and description
                 VStack(spacing: 8) {
                     Text("Track Your Habits")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
 
                     Text(personalizedGreeting)

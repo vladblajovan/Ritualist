@@ -31,7 +31,7 @@ struct OnboardingPage1View: View {
                     // Welcome message
                     VStack(spacing: 8) {
                         Text("Welcome to Ritualist!")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.system(.title, design: .rounded, weight: .bold))
                             .multilineTextAlignment(.center)
 
                         Text("Let's start by getting to know you better.\nWhat should we call you?")
@@ -43,7 +43,7 @@ struct OnboardingPage1View: View {
                     // Name input
                     VStack(spacing: 12) {
                         TextField("Enter your name", text: $viewModel.userName)
-                            .font(.system(size: 20, weight: .medium, design: .rounded))
+                            .font(.system(.title3, design: .rounded, weight: .medium))
                             .multilineTextAlignment(.center)
                             .textContentType(.name)
                             .textInputAutocapitalization(.words)

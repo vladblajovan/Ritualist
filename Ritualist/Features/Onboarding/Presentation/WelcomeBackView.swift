@@ -27,11 +27,11 @@ struct WelcomeBackView: View {
             // Welcome message
             VStack(spacing: 4) {
                 Text("Welcome back,")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(.title, design: .rounded, weight: .bold))
 
                 if let name = summary.profileName, !name.isEmpty {
                     Text("\(name)!")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(.title, design: .rounded, weight: .bold))
                 }
 
                 Text("Your data has been synced from iCloud")
@@ -111,7 +111,8 @@ struct WelcomeBackView: View {
                     .frame(width: 120, height: 120)
 
                 Image(systemName: "person.fill")
-                    .font(.system(size: 52))
+                    .font(.largeTitle)
+                    .imageScale(.large)
                     .foregroundStyle(.white)
             }
             .animatedGlow(glowSize: 160)
