@@ -274,9 +274,9 @@ final class OnboardingAccessibilityUITests: XCTestCase {
         XCTAssertTrue(tabBar.waitForExistence(timeout: 10), "Should navigate to main app after skip")
     }
 
-    // MARK: - Sex/Age Dropdown Tests
+    // MARK: - Gender/Age Dropdown Tests
 
-    func testSexDropdownExists() {
+    func testGenderDropdownExists() {
         app.launch()
 
         // Wait for onboarding
@@ -286,9 +286,9 @@ final class OnboardingAccessibilityUITests: XCTestCase {
             return
         }
 
-        // Sex dropdown should exist on first page
-        let sexDropdown = app.buttons["Sex"]
-        XCTAssertTrue(sexDropdown.waitForExistence(timeout: 5), "Sex dropdown should exist")
+        // Gender dropdown should exist on first page
+        let genderDropdown = app.buttons["Gender"]
+        XCTAssertTrue(genderDropdown.waitForExistence(timeout: 5), "Gender dropdown should exist")
     }
 
     func testAgeDropdownExists() {
@@ -306,7 +306,7 @@ final class OnboardingAccessibilityUITests: XCTestCase {
         XCTAssertTrue(ageDropdown.waitForExistence(timeout: 5), "Age group dropdown should exist")
     }
 
-    func testSexDropdownOpensMenu() {
+    func testGenderDropdownOpensMenu() {
         app.launch()
 
         // Wait for onboarding
@@ -316,13 +316,13 @@ final class OnboardingAccessibilityUITests: XCTestCase {
             return
         }
 
-        let sexDropdown = app.buttons["Sex"]
-        guard sexDropdown.waitForExistence(timeout: 5) else {
-            XCTFail("Sex dropdown should exist")
+        let genderDropdown = app.buttons["Gender"]
+        guard genderDropdown.waitForExistence(timeout: 5) else {
+            XCTFail("Gender dropdown should exist")
             return
         }
 
-        sexDropdown.tap()
+        genderDropdown.tap()
 
         // Check menu options appear
         let maleOption = app.buttons["Male"]
@@ -358,7 +358,7 @@ final class OnboardingAccessibilityUITests: XCTestCase {
         XCTAssertTrue(age55plusOption.exists, "55+ option should appear in menu")
     }
 
-    func testSexDropdownSelection() {
+    func testGenderDropdownSelection() {
         app.launch()
 
         let welcomeText = app.staticTexts["Welcome to Ritualist!"]
@@ -367,13 +367,13 @@ final class OnboardingAccessibilityUITests: XCTestCase {
             return
         }
 
-        let sexDropdown = app.buttons["Sex"]
-        guard sexDropdown.waitForExistence(timeout: 5) else {
-            XCTFail("Sex dropdown should exist")
+        let genderDropdown = app.buttons["Gender"]
+        guard genderDropdown.waitForExistence(timeout: 5) else {
+            XCTFail("Gender dropdown should exist")
             return
         }
 
-        sexDropdown.tap()
+        genderDropdown.tap()
 
         let femaleOption = app.buttons["Female"]
         guard femaleOption.waitForExistence(timeout: 3) else {
@@ -386,10 +386,144 @@ final class OnboardingAccessibilityUITests: XCTestCase {
         // Brief wait for menu to dismiss
         sleep(1)
 
-        // The menu should have dismissed - verify by checking we can tap the dropdown again
-        // (SwiftUI Menu keeps the same button, selection is reflected in the picker's state)
-        XCTAssertTrue(sexDropdown.exists, "Sex dropdown should still exist after selection")
-        XCTAssertTrue(sexDropdown.isHittable, "Sex dropdown should be tappable after menu dismisses")
+        // The accessibilityLabel stays "Gender" but accessibilityValue changes to "Female"
+        // Button is still found by its label "Gender"
+        XCTAssertTrue(genderDropdown.waitForExistence(timeout: 3), "Gender dropdown should still exist after selection")
+        XCTAssertTrue(genderDropdown.isHittable, "Gender dropdown should be tappable after menu dismisses")
+        XCTAssertEqual(genderDropdown.value as? String, "Female", "Gender dropdown value should be 'Female'")
+    }
+
+    func testAgeDropdownSelection() {
+        app.launch()
+
+        let welcomeText = app.staticTexts["Welcome to Ritualist!"]
+        guard welcomeText.waitForExistence(timeout: 10) else {
+            XCTFail("Onboarding should be visible")
+            return
+        }
+
+        let ageDropdown = app.buttons["Age group"]
+        guard ageDropdown.waitForExistence(timeout: 5) else {
+            XCTFail("Age group dropdown should exist")
+            return
+        }
+
+        ageDropdown.tap()
+
+        let age25to34Option = app.buttons["25-34"]
+        guard age25to34Option.waitForExistence(timeout: 3) else {
+            XCTFail("25-34 option should appear")
+            return
+        }
+
+        age25to34Option.tap()
+
+        // Brief wait for menu to dismiss
+        sleep(1)
+
+        // The accessibilityLabel stays "Age group" but accessibilityValue changes to "25-34"
+        XCTAssertTrue(ageDropdown.waitForExistence(timeout: 3), "Age dropdown should still exist after selection")
+        XCTAssertTrue(ageDropdown.isHittable, "Age dropdown should be tappable after menu dismisses")
+        XCTAssertEqual(ageDropdown.value as? String, "25-34", "Age dropdown value should be '25-34'")
+    }
+
+    func testGenderAndAgeSelectionsWorkTogether() {
+        app.launch()
+
+        let welcomeText = app.staticTexts["Welcome to Ritualist!"]
+        guard welcomeText.waitForExistence(timeout: 10) else {
+            XCTFail("Onboarding should be visible")
+            return
+        }
+
+        // Select Gender
+        let genderDropdown = app.buttons["Gender"]
+        guard genderDropdown.waitForExistence(timeout: 5) else {
+            XCTFail("Gender dropdown should exist")
+            return
+        }
+        genderDropdown.tap()
+
+        let maleOption = app.buttons["Male"]
+        guard maleOption.waitForExistence(timeout: 3) else {
+            XCTFail("Male option should appear")
+            return
+        }
+        maleOption.tap()
+        sleep(1)
+
+        // Select Age Group
+        let ageDropdown = app.buttons["Age group"]
+        guard ageDropdown.waitForExistence(timeout: 5) else {
+            XCTFail("Age dropdown should exist")
+            return
+        }
+        ageDropdown.tap()
+
+        let age35to44Option = app.buttons["35-44"]
+        guard age35to44Option.waitForExistence(timeout: 3) else {
+            XCTFail("35-44 option should appear")
+            return
+        }
+        age35to44Option.tap()
+        sleep(1)
+
+        // Verify both selections via accessibilityValue (labels stay constant)
+        XCTAssertEqual(genderDropdown.value as? String, "Male", "Gender dropdown value should be 'Male'")
+        XCTAssertEqual(ageDropdown.value as? String, "35-44", "Age dropdown value should be '35-44'")
+    }
+
+    func testCanCompleteOnboardingWithDemographics() {
+        app.launch()
+
+        let welcomeText = app.staticTexts["Welcome to Ritualist!"]
+        guard welcomeText.waitForExistence(timeout: 10) else {
+            XCTFail("Onboarding should be visible")
+            return
+        }
+
+        // Enter name
+        let nameField = app.textFields["What should we call you?"]
+        if nameField.waitForExistence(timeout: 5) {
+            nameField.tap()
+            nameField.typeText("Demo User")
+        }
+
+        // Select Gender
+        let genderDropdown = app.buttons["Gender"]
+        if genderDropdown.waitForExistence(timeout: 3) {
+            genderDropdown.tap()
+            let femaleOption = app.buttons["Female"]
+            if femaleOption.waitForExistence(timeout: 3) {
+                femaleOption.tap()
+            }
+        }
+        sleep(1)
+
+        // Select Age Group
+        let ageDropdown = app.buttons["Age group"]
+        if ageDropdown.waitForExistence(timeout: 3) {
+            ageDropdown.tap()
+            let age18to24Option = app.buttons["18-24"]
+            if age18to24Option.waitForExistence(timeout: 3) {
+                age18to24Option.tap()
+            }
+        }
+        sleep(1)
+
+        // Navigate through onboarding
+        let continueButton = app.buttons["Continue"]
+        XCTAssertTrue(continueButton.waitForExistence(timeout: 3), "Continue button should exist")
+
+        // Navigate to completion
+        for _ in 0..<5 {
+            continueButton.tap()
+            sleep(1)
+        }
+
+        // Final page should have Get Started
+        let getStartedButton = app.buttons["Get Started"]
+        XCTAssertTrue(getStartedButton.waitForExistence(timeout: 5), "Get Started button should exist on final page")
     }
 
     // MARK: - Name Input Accessibility Tests

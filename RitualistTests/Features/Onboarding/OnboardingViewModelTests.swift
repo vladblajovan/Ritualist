@@ -441,6 +441,114 @@ struct OnboardingViewModelTests {
         #expect(viewModel.errorMessage != nil)
     }
 
+    @Test("finishOnboarding saves gender and ageGroup to profile")
+    @MainActor
+    func finishOnboardingSavesGenderAgeGroup() async {
+        let mockOnboardingRepo = MockOnboardingRepository()
+        let mockProfileRepo = MockProfileRepositoryForOnboarding()
+        let mockiCloudService = MockiCloudKeyValueServiceForOnboarding()
+
+        let getOnboardingState = GetOnboardingState(repo: mockOnboardingRepo)
+        let saveOnboardingState = SaveOnboardingState(repo: mockOnboardingRepo)
+        let completeOnboarding = CompleteOnboarding(
+            repo: mockOnboardingRepo,
+            profileRepo: mockProfileRepo,
+            iCloudKeyValueService: mockiCloudService
+        )
+
+        let viewModel = OnboardingViewModel(
+            getOnboardingState: getOnboardingState,
+            saveOnboardingState: saveOnboardingState,
+            completeOnboarding: completeOnboarding,
+            requestNotificationPermission: MockRequestNotificationPermission(),
+            checkNotificationStatus: MockCheckNotificationStatus(),
+            requestLocationPermissions: MockRequestLocationPermissions(),
+            getLocationAuthStatus: MockGetLocationAuthStatus()
+        )
+
+        viewModel.userName = "Test User"
+        viewModel.userGender = .female
+        viewModel.userAgeGroup = .age25to34
+
+        let result = await viewModel.finishOnboarding()
+
+        #expect(result == true)
+        #expect(mockProfileRepo.savedProfile?.name == "Test User")
+        #expect(mockProfileRepo.savedProfile?.gender == "female")
+        #expect(mockProfileRepo.savedProfile?.ageGroup == "25_34")
+    }
+
+    @Test("finishOnboarding saves nil for preferNotToSay values")
+    @MainActor
+    func finishOnboardingSavesNilForPreferNotToSay() async {
+        let mockOnboardingRepo = MockOnboardingRepository()
+        let mockProfileRepo = MockProfileRepositoryForOnboarding()
+        let mockiCloudService = MockiCloudKeyValueServiceForOnboarding()
+
+        let getOnboardingState = GetOnboardingState(repo: mockOnboardingRepo)
+        let saveOnboardingState = SaveOnboardingState(repo: mockOnboardingRepo)
+        let completeOnboarding = CompleteOnboarding(
+            repo: mockOnboardingRepo,
+            profileRepo: mockProfileRepo,
+            iCloudKeyValueService: mockiCloudService
+        )
+
+        let viewModel = OnboardingViewModel(
+            getOnboardingState: getOnboardingState,
+            saveOnboardingState: saveOnboardingState,
+            completeOnboarding: completeOnboarding,
+            requestNotificationPermission: MockRequestNotificationPermission(),
+            checkNotificationStatus: MockCheckNotificationStatus(),
+            requestLocationPermissions: MockRequestLocationPermissions(),
+            getLocationAuthStatus: MockGetLocationAuthStatus()
+        )
+
+        viewModel.userName = "Test User"
+        // Leave defaults (preferNotToSay)
+        #expect(viewModel.userGender == .preferNotToSay)
+        #expect(viewModel.userAgeGroup == .preferNotToSay)
+
+        let result = await viewModel.finishOnboarding()
+
+        #expect(result == true)
+        // ViewModel passes nil when preferNotToSay is selected (treated as "not set")
+        #expect(mockProfileRepo.savedProfile?.gender == nil)
+        #expect(mockProfileRepo.savedProfile?.ageGroup == nil)
+    }
+
+    @Test("skipOnboarding saves nil for gender and ageGroup")
+    @MainActor
+    func skipOnboardingSavesNilGenderAgeGroup() async {
+        let mockOnboardingRepo = MockOnboardingRepository()
+        let mockProfileRepo = MockProfileRepositoryForOnboarding()
+        let mockiCloudService = MockiCloudKeyValueServiceForOnboarding()
+
+        let getOnboardingState = GetOnboardingState(repo: mockOnboardingRepo)
+        let saveOnboardingState = SaveOnboardingState(repo: mockOnboardingRepo)
+        let completeOnboarding = CompleteOnboarding(
+            repo: mockOnboardingRepo,
+            profileRepo: mockProfileRepo,
+            iCloudKeyValueService: mockiCloudService
+        )
+
+        let viewModel = OnboardingViewModel(
+            getOnboardingState: getOnboardingState,
+            saveOnboardingState: saveOnboardingState,
+            completeOnboarding: completeOnboarding,
+            requestNotificationPermission: MockRequestNotificationPermission(),
+            checkNotificationStatus: MockCheckNotificationStatus(),
+            requestLocationPermissions: MockRequestLocationPermissions(),
+            getLocationAuthStatus: MockGetLocationAuthStatus()
+        )
+
+        let result = await viewModel.skipOnboarding()
+
+        #expect(result == true)
+        // skipOnboarding passes nil for gender/ageGroup (user didn't set them)
+        #expect(mockProfileRepo.savedProfile?.gender == nil)
+        #expect(mockProfileRepo.savedProfile?.ageGroup == nil)
+    }
+
     // MARK: - Load Onboarding State Tests
 
     @Test("loadOnboardingState restores saved state")
@@ -485,6 +593,165 @@ struct OnboardingViewModelTests {
 
         #expect(viewModel.errorMessage != nil)
         #expect(viewModel.isLoading == false)
+    }
+}
+
+// MARK: - SyncedDataSummary Tests
+
+#if swift(>=6.1)
+@Suite("SyncedDataSummary Tests", .tags(.isolated, .fast))
+#else
+@Suite("SyncedDataSummary Tests")
+#endif
+struct SyncedDataSummaryTests {
+
+    @Test("needsProfileCompletion returns true when name is nil")
+    func needsCompletionWithNilName() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: nil,
+            profileAvatar: nil,
+            profileGender: "male",
+            profileAgeGroup: "25_34"
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns true when name is empty")
+    func needsCompletionWithEmptyName() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "",
+            profileAvatar: nil,
+            profileGender: "male",
+            profileAgeGroup: "25_34"
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns true when gender is nil")
+    func needsCompletionWithNilGender() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test User",
+            profileAvatar: nil,
+            profileGender: nil,
+            profileAgeGroup: "25_34"
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns true when ageGroup is nil")
+    func needsCompletionWithNilAgeGroup() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test User",
+            profileAvatar: nil,
+            profileGender: "female",
+            profileAgeGroup: nil
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns true when all profile fields are nil")
+    func needsCompletionWithAllNil() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: nil,
+            profileAvatar: nil,
+            profileGender: nil,
+            profileAgeGroup: nil
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns false when all fields present")
+    func noCompletionNeededWhenAllPresent() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test User",
+            profileAvatar: nil,
+            profileGender: "male",
+            profileAgeGroup: "25_34"
+        )
+
+        #expect(summary.needsProfileCompletion == false)
+    }
+
+    @Test("needsProfileCompletion with prefer_not_to_say values counts as present")
+    func preferNotToSayCountsAsPresent() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test User",
+            profileAvatar: nil,
+            profileGender: "prefer_not_to_say",
+            profileAgeGroup: "prefer_not_to_say"
+        )
+
+        #expect(summary.needsProfileCompletion == false)
+    }
+
+    @Test("empty summary needs profile completion")
+    func emptySummaryNeedsCompletion() {
+        #expect(SyncedDataSummary.empty.needsProfileCompletion == true)
+    }
+
+    @Test("hasData returns true when habitsCount > 0")
+    func hasDataWithHabits() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 0,
+            hasProfile: false,
+            profileName: nil,
+            profileAvatar: nil
+        )
+
+        #expect(summary.hasData == true)
+    }
+
+    @Test("hasData returns true when hasProfile is true")
+    func hasDataWithProfile() {
+        let summary = SyncedDataSummary(
+            habitsCount: 0,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test",
+            profileAvatar: nil
+        )
+
+        #expect(summary.hasData == true)
+    }
+
+    @Test("hasData returns false when no habits and no profile")
+    func hasDataReturnsFalse() {
+        let summary = SyncedDataSummary(
+            habitsCount: 0,
+            categoriesCount: 2,
+            hasProfile: false,
+            profileName: nil,
+            profileAvatar: nil
+        )
+
+        #expect(summary.hasData == false)
     }
 }
 
