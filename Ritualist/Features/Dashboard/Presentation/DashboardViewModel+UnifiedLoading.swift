@@ -85,8 +85,8 @@ extension DashboardViewModel {
                 let completedHabitsToday = dashboardData.completedHabits(for: startOfDay)
                 habitsWithCompletions.formUnion(completedHabitsToday)
             }
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
         
         let averageCompletionRate = totalPossibleCompletions > 0 ? Double(totalActualCompletions) / Double(totalPossibleCompletions) : 0.0
@@ -258,8 +258,8 @@ extension DashboardViewModel {
                     dayOfWeekStats[dayOfWeek]?.total += scheduledHabits.count
                 }
             }
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
 
         return (dayOfWeekStats, daysWithData)

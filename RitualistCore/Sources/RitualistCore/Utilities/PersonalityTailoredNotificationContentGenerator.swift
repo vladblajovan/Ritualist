@@ -65,12 +65,12 @@ public struct PersonalityTailoredNotificationContentGenerator {
     /// Check if user has a recent personality analysis (within 30 days)
     public static func hasRecentAnalysis(_ profile: PersonalityProfile?) -> Bool {
         guard let profile = profile else { return false }
-        
-        let daysSinceAnalysis = CalendarUtils.daysBetweenUTC(
+
+        let daysSinceAnalysis = CalendarUtils.daysBetweenLocal(
             profile.analysisMetadata.analysisDate,
             Date()
         )
-        
+
         return daysSinceAnalysis <= 30
     }
     

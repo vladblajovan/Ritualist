@@ -85,6 +85,11 @@ public final class HabitScheduleAnalyzer: HabitScheduleAnalyzerProtocol {
     }
     
     public func isHabitExpectedOnDate(habit: Habit, date: Date, timezone: TimeZone) -> Bool {
+        // First check if date is before habit's start date - habit isn't expected before it starts
+        let dateStart = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
+        let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
+        guard dateStart >= habitStartDay else { return false }
+
         let weekday = CalendarUtils.weekdayComponentLocal(from: date, timezone: timezone)
 
         switch habit.schedule {

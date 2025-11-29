@@ -198,7 +198,7 @@ public struct WidgetNavigationInfo {
         let today = calendar.startOfDay(for: now)
         let normalizedDate = calendar.startOfDay(for: selectedDate)
         let maxHistoryDays = 30
-        let earliestAllowed = CalendarUtils.addDays(-maxHistoryDays, to: today)
+        let earliestAllowed = CalendarUtils.addDaysLocal(-maxHistoryDays, to: today, timezone: .current)
 
         self.selectedDate = normalizedDate
         self.canGoBack = normalizedDate > earliestAllowed
@@ -220,7 +220,7 @@ public struct WidgetNavigationInfo {
         }
 
         // Yesterday
-        let yesterday = CalendarUtils.addDays(-1, to: referenceToday)
+        let yesterday = CalendarUtils.addDaysLocal(-1, to: referenceToday, timezone: .current)
         let isYesterday = calendar.isDate(normalizedDate, inSameDayAs: yesterday)
         if isYesterday {
             return "Yesterday"

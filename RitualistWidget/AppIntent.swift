@@ -137,7 +137,7 @@ struct CompleteHistoricalHabitIntent: AppIntent {
         // Validate date is within bounds (last 30 days)
         let calendar = CalendarUtils.currentLocalCalendar
         let today = calendar.startOfDay(for: Date())
-        let thirtyDaysAgo = CalendarUtils.addDays(-30, to: today)
+        let thirtyDaysAgo = CalendarUtils.addDaysLocal(-30, to: today, timezone: .current)
         
         guard validatedDate >= thirtyDaysAgo && validatedDate <= today else {
             print("[WIDGET-INTENT] Date out of bounds: \(targetDate)")

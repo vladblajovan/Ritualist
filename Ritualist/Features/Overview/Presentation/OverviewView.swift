@@ -67,10 +67,16 @@ public struct OverviewView: View {
                     getStreakStatus: { habit in
                         vm.getStreakStatusSync(for: habit)
                     },
+                    // Dismiss inspiration card when navigating away from today.
+                    // This prevents it from reappearing when returning to today.
                     onPreviousDay: {
+                        vm.hideInspiration()
                         vm.goToPreviousDay()
                     },
+                    // Dismiss inspiration card when navigating away from today.
+                    // This prevents it from reappearing when returning to today.
                     onNextDay: {
+                        vm.hideInspiration()
                         vm.goToNextDay()
                     },
                     onGoToToday: {

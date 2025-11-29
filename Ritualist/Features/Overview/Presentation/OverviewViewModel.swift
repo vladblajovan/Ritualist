@@ -98,7 +98,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     public var canGoToPreviousDay: Bool {
         let today = Date()
-        let thirtyDaysAgo = CalendarUtils.addDays(-30, to: today)
+        let thirtyDaysAgo = CalendarUtils.addDaysLocal(-30, to: today, timezone: .current)
         let viewingDayStart = CalendarUtils.startOfDayLocal(for: viewingDate)
         let boundaryStart = CalendarUtils.startOfDayLocal(for: thirtyDaysAgo)
         return viewingDayStart > boundaryStart
@@ -580,7 +580,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func goToPreviousDay() {
         guard canGoToPreviousDay else { return }
 
-        viewingDate = CalendarUtils.previousDay(from: viewingDate)
+        viewingDate = CalendarUtils.addDaysLocal(-1, to: viewingDate, timezone: .current)
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -601,7 +601,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func goToNextDay() {
         guard canGoToNextDay else { return }
 
-        viewingDate = CalendarUtils.nextDay(from: viewingDate)
+        viewingDate = CalendarUtils.addDaysLocal(1, to: viewingDate, timezone: .current)
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -689,7 +689,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     private func checkForComebackStory(currentCompletion: Double) async -> Bool {
         // Check if today's progress is significantly better than yesterday
-        let yesterday = CalendarUtils.previousDay(from: Date())
+        let yesterday = CalendarUtils.addDaysLocal(-1, to: Date(), timezone: .current)
         
         do {
             let yesterdayHabits = try await getActiveHabits.execute()
@@ -943,7 +943,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         // 2. Determine date range (past 30 days for monthly data)
         let today = Date()
-        let startDate = CalendarUtils.addDays(-30, to: today)
+        let startDate = CalendarUtils.addDaysLocal(-30, to: today, timezone: .current)
 
         // 3. Load logs ONCE for entire date range using batch operation
         let habitIds = habits.map(\.id)
@@ -1185,10 +1185,10 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// Extract monthly completion data from overview data
     private func extractMonthlyData(from data: OverviewData) -> [Date: Double] {
         var result: [Date: Double] = [:]
-        
+
         // Get dates from range, ensuring we use startOfDay for consistency
         for dayOffset in 0...30 {
-            let date = CalendarUtils.addDays(-dayOffset, to: Date())
+            let date = CalendarUtils.addDaysLocal(-dayOffset, to: Date(), timezone: .current)
             let startOfDay = CalendarUtils.startOfDayLocal(for: date)
             // Use HabitCompletionService for single source of truth completion rate
             let scheduledHabits = data.scheduledHabits(for: startOfDay)
@@ -1488,7 +1488,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         // Find best performing day
         if let bestDayIndex = dailyCompletions.enumerated().max(by: { $0.element < $1.element })?.offset {
             // Get the actual date for the best performing day
-            let bestDate = CalendarUtils.addDays(bestDayIndex, to: startOfWeek)
+            let bestDate = CalendarUtils.addDaysLocal(bestDayIndex, to: startOfWeek, timezone: .current)
             
             // Get the day name using the proper date
             let dayFormatter = DateFormatter()

@@ -200,20 +200,20 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     
     private func calculateNextAnalysisDate(from lastDate: Date, frequency: AnalysisFrequency) -> Date {
         let now = Date()
-        
+
         let nextDate: Date
         switch frequency {
         case .daily:
-            nextDate = CalendarUtils.addDays(1, to: lastDate)
+            nextDate = CalendarUtils.addDaysLocal(1, to: lastDate, timezone: .current)
         case .weekly:
-            nextDate = CalendarUtils.addWeeks(1, to: lastDate)
+            nextDate = CalendarUtils.addWeeksLocal(1, to: lastDate, timezone: .current)
         case .monthly:
-            nextDate = CalendarUtils.addMonths(1, to: lastDate)
+            nextDate = CalendarUtils.addMonthsLocal(1, to: lastDate, timezone: .current)
         case .manual:
             return Date.distantFuture // Never automatically schedule
         }
-        
-        // Ensure next date is in the future
+
+        // Ensure next date is in the future (addMinutes is timezone-agnostic)
         return max(nextDate, CalendarUtils.addMinutes(5, to: now))
     }
     

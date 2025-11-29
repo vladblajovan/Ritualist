@@ -373,7 +373,21 @@ public struct CalendarUtils {
     public static func addMonths(_ months: Int, to date: Date) -> Date {
         return utcCalendar.date(byAdding: .month, value: months, to: date) ?? date
     }
-    
+
+    /// Add weeks to date (timezone-aware version)
+    /// Adds weeks using the specified timezone's calendar to handle DST correctly
+    public static func addWeeksLocal(_ weeks: Int, to date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .weekOfYear, value: weeks, to: date) ?? date
+    }
+
+    /// Add months to date (timezone-aware version)
+    /// Adds months using the specified timezone's calendar to handle DST correctly
+    public static func addMonthsLocal(_ months: Int, to date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .month, value: months, to: date) ?? date
+    }
+
     /// Get next day (timezone-aware version)
     /// Adds 1 day using the specified timezone's calendar to handle DST correctly
     public static func nextDayLocal(from date: Date, timezone: TimeZone) -> Date {

@@ -48,7 +48,7 @@ final class WidgetHabitsViewModel {
             let logsByHabitId = try await getBatchLogs.execute(
                 for: habitIds,
                 since: targetDate,
-                until: CalendarUtils.addDays(1, to: targetDate)
+                until: CalendarUtils.addDaysLocal(1, to: targetDate, timezone: .current)
             )
             
             // 4. Process each habit with its progress and completion

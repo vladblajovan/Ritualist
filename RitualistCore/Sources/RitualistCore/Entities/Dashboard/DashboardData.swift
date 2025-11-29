@@ -117,8 +117,8 @@ public struct DashboardData {
                 date: startOfDay,
                 completionRate: completionRate
             ))
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
         
         return dataPoints.sorted { $0.date < $1.date }
@@ -232,8 +232,8 @@ public struct DashboardData {
                 totalCompleted: completedHabits.count,
                 totalExpected: expectedHabits.count
             )
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
         
         return dailyCompletions

@@ -148,7 +148,7 @@ public final class WidgetDateNavigationService: WidgetDateNavigationServiceProto
     }
     
     private var earliestAllowedDate: Date {
-        return CalendarUtils.addDays(-Self.maxHistoryDays, to: normalizedToday)
+        return CalendarUtils.addDaysLocal(-Self.maxHistoryDays, to: normalizedToday, timezone: .current)
     }
     
     private func isDateWithinBounds(_ date: Date) -> Bool {
