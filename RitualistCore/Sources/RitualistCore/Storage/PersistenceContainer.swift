@@ -11,9 +11,6 @@ public final class PersistenceContainer {
     /// App Group identifier for shared container access
     private static let appGroupIdentifier = "group.com.vladblajovan.Ritualist"
 
-    /// CloudKit container identifier for iCloud sync
-    public static let cloudKitContainerIdentifier = "iCloud.com.vladblajovan.Ritualist"
-
     /// Logger for migration and initialization events (uses shared DebugLogger for consistency)
     private static let logger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "Persistence")
 
@@ -74,7 +71,7 @@ public final class PersistenceContainer {
             // No custom URL - use default location for best CloudKit compatibility
             allowsSave: true,
             // ✅ CloudKit ENABLED - Syncs to iCloud private database
-            cloudKitDatabase: .private(Self.cloudKitContainerIdentifier)
+            cloudKitDatabase: .private(iCloudConstants.containerIdentifier)
         )
 
         let migrationStartTime = Date()
@@ -180,11 +177,15 @@ public final class PersistenceContainer {
         return sharedContainerURL
     }
 
-    /// Check if iCloud account is available
-    /// - Returns: `true` if user is signed into iCloud and account is available
-    /// - Note: Returns `false` on any error (network issues, not signed in, etc.)
+    /// Check if iCloud account is available and device has network connectivity
+    /// - Returns: `true` if device is online and user is signed into iCloud
+    /// - Note: Returns `false` if offline, not signed in, or on any error
     public static func isICloudAvailable() async -> Bool {
-        let container = CKContainer(identifier: cloudKitContainerIdentifier)
+        // Quick network check first (reads system state, nearly instant)
+        guard await NetworkUtilities.hasNetworkConnectivity() else { return false }
+
+        // Then check CloudKit account status
+        let container = CKContainer(identifier: iCloudConstants.containerIdentifier)
         do {
             let accountStatus = try await container.accountStatus()
             return accountStatus == .available

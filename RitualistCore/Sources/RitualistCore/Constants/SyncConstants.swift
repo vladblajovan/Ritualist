@@ -7,6 +7,14 @@
 
 import Foundation
 
+// MARK: - iCloud Configuration
+
+/// CloudKit and iCloud container identifiers.
+public enum iCloudConstants {
+    /// CloudKit container identifier for iCloud sync
+    public static let containerIdentifier = "iCloud.com.vladblajovan.Ritualist"
+}
+
 // MARK: - Sync Configuration
 
 /// Configuration constants for iCloud sync retry behavior.

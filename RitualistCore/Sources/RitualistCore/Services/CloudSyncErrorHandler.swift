@@ -7,7 +7,6 @@
 
 import Foundation
 import CloudKit
-import Network
 
 /// Handles CloudKit sync errors with intelligent retry logic and error classification
 public actor CloudSyncErrorHandler {
@@ -115,7 +114,7 @@ public actor CloudSyncErrorHandler {
     /// - Returns: Account status
     /// - Throws: CloudKitAvailabilityError if CloudKit is not configured or unavailable
     public func checkiCloudAccountStatus() async throws -> CKAccountStatus {
-        let container = CKContainer(identifier: PersistenceContainer.cloudKitContainerIdentifier)
+        let container = CKContainer(identifier: iCloudConstants.containerIdentifier)
 
         // First check account status
         let accountStatus: CKAccountStatus
@@ -133,7 +132,7 @@ public actor CloudSyncErrorHandler {
         }
 
         // Account is signed in - now check actual device network connectivity
-        let hasNetwork = await checkNetworkConnectivity()
+        let hasNetwork = await NetworkUtilities.hasNetworkConnectivity()
 
         if !hasNetwork {
             // Device has no network connection - throw network unavailable error
@@ -142,43 +141,6 @@ public actor CloudSyncErrorHandler {
 
         // Account signed in AND network available
         return .available
-    }
-
-    /// Check if device has network connectivity
-    /// - Returns: true if network is available, false otherwise
-    private func checkNetworkConnectivity() async -> Bool {
-        return await withCheckedContinuation { continuation in
-            let monitor = NWPathMonitor()
-            let queue = DispatchQueue(label: "com.ritualist.networkmonitor")
-            var hasResumed = false
-            let lock = NSLock()
-
-            monitor.pathUpdateHandler = { path in
-                lock.lock()
-                defer { lock.unlock() }
-
-                guard !hasResumed else { return }
-                hasResumed = true
-
-                let isConnected = path.status == .satisfied
-                monitor.cancel()
-                continuation.resume(returning: isConnected)
-            }
-
-            monitor.start(queue: queue)
-
-            // Timeout after 2 seconds if no update
-            DispatchQueue.global().asyncAfter(deadline: .now() + 2.0) {
-                lock.lock()
-                defer { lock.unlock() }
-
-                guard !hasResumed else { return }
-                hasResumed = true
-
-                monitor.cancel()
-                continuation.resume(returning: false)
-            }
-        }
     }
 
     /// Validate that CloudKit is available and user is signed in
