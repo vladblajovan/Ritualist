@@ -25,18 +25,38 @@ public final class CompleteOnboarding: CompleteOnboardingUseCase {
     private let onboardingRepo: OnboardingRepository
     private let profileRepo: ProfileRepository
     private let iCloudKeyValueService: iCloudKeyValueService?
+    private let logger: DebugLogger
 
     public init(
         repo: OnboardingRepository,
         profileRepo: ProfileRepository,
-        iCloudKeyValueService: iCloudKeyValueService? = nil
+        iCloudKeyValueService: iCloudKeyValueService? = nil,
+        logger: DebugLogger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "onboarding")
     ) {
         self.onboardingRepo = repo
         self.profileRepo = profileRepo
         self.iCloudKeyValueService = iCloudKeyValueService
+        self.logger = logger
     }
 
     public func execute(userName: String?, hasNotifications: Bool, hasLocation: Bool, gender: String?, ageGroup: String?) async throws {
+        // Validate demographic values are valid enum cases (defensive check)
+        if let gender = gender, UserGender(rawValue: gender) == nil {
+            logger.log(
+                "Invalid gender value passed to CompleteOnboarding",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["raw_value": gender]
+            )
+        }
+        if let ageGroup = ageGroup, UserAgeGroup(rawValue: ageGroup) == nil {
+            logger.log(
+                "Invalid ageGroup value passed to CompleteOnboarding",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["raw_value": ageGroup]
+            )
+        }
         // Note: hasLocation is passed for completeness but not persisted - location permissions are checked at runtime
         // Create completed onboarding state (business logic moved from repository)
         let completedState = OnboardingState(
