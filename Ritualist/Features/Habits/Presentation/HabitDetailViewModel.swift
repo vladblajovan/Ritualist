@@ -25,6 +25,7 @@ public final class HabitDetailViewModel {
     @ObservationIgnored @Injected(\.requestLocationPermissions) var requestLocationPermissions
     @ObservationIgnored @Injected(\.getLocationAuthStatus) var getLocationAuthStatus
     @ObservationIgnored @Injected(\.getEarliestLogDate) var getEarliestLogDate
+    @ObservationIgnored @Injected(\.debugLogger) var logger
 
     // Form state
     public var name = ""
@@ -94,6 +95,7 @@ public final class HabitDetailViewModel {
         (selectedSchedule != .daysOfWeek || !selectedDaysOfWeek.isEmpty) &&
         (isEditMode || selectedCategory != nil) &&  // Allow nil category when editing (during async loading)
         !isDuplicateHabit &&
+        !isLoadingEarliestLogDate &&  // Prevent save while validation data is loading
         isStartDateValid
     }
     
@@ -314,9 +316,11 @@ public final class HabitDetailViewModel {
             isDuplicateHabit = !isUnique
         } catch {
             // If validation fails, assume no duplicate to avoid blocking the user
+            // but log the error for debugging
+            logger.log("Failed to validate habit uniqueness for '\(name)': \(error.localizedDescription)", level: .error, category: .dataIntegrity)
             isDuplicateHabit = false
         }
-        
+
         isValidatingDuplicate = false
     }
 
@@ -330,6 +334,8 @@ public final class HabitDetailViewModel {
             earliestLogDate = try await getEarliestLogDate.execute(for: habitId)
         } catch {
             // If loading fails, allow any start date to avoid blocking the user
+            // but log the error for debugging
+            logger.log("Failed to load earliest log date for habit \(habitId): \(error.localizedDescription)", level: .error, category: .dataIntegrity)
             earliestLogDate = nil
         }
         isLoadingEarliestLogDate = false

@@ -25,12 +25,7 @@ public struct OverviewData {
     /// Get habits scheduled for a specific date
     /// Only includes habits that have started (date >= habit.startDate) and are scheduled for that day
     public func scheduledHabits(for date: Date) -> [Habit] {
-        let dateStart = CalendarUtils.startOfDayLocal(for: date)
-        return habits.filter { habit in
-            let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
-            // Only show habits on or after their start date AND scheduled for this day
-            return dateStart >= habitStartDay && habit.schedule.isActiveOn(date: date)
-        }
+        return habits.filter { $0.isScheduledOn(date: date) }
     }
     
     // REMOVED: completionRate(for:) and completionStatus(for:) methods

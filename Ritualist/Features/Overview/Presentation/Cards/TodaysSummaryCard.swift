@@ -141,11 +141,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         // from previous viewingDate. Only show habits that are actually scheduled for viewingDate
         // AND have started (date >= habit.startDate).
         let capturedDate = viewingDate
-        let capturedDateStart = CalendarUtils.startOfDayLocal(for: capturedDate)
-        let scheduledIncompleteHabits = summary.incompleteHabits.filter { habit in
-            let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
-            return capturedDateStart >= habitStartDay && habit.schedule.isActiveOn(date: capturedDate)
-        }
+        let scheduledIncompleteHabits = summary.incompleteHabits.filter { $0.isScheduledOn(date: capturedDate) }
 
         // Store the filtered count for display
         scheduledIncompleteCount = scheduledIncompleteHabits.count

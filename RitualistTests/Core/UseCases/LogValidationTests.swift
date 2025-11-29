@@ -97,7 +97,7 @@ struct LogValidationStartDateTests {
     func logDateManyDaysBeforeStartDateIsInvalid() async throws {
         // Arrange
         let startDate = TestDates.today
-        let logDate = CalendarUtils.addDaysLocal(-30, to: TestDates.today, timezone: .current)
+        let logDate = TestDates.daysAgo(30)
 
         // Act
         let logDay = CalendarUtils.startOfDayLocal(for: logDate)
@@ -130,8 +130,7 @@ struct LogValidationStartDateTests {
     func midnightBoundaryValidation() async throws {
         // Arrange: Log at 11:59 PM yesterday, start at midnight today
         let calendar = Calendar.current
-        let yesterday = CalendarUtils.addDaysLocal(-1, to: TestDates.today, timezone: .current)
-        let logDate = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: yesterday)!
+        let logDate = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: TestDates.yesterday)!
         let startDate = calendar.date(bySettingHour: 0, minute: 0, second: 0, of: TestDates.today)!
 
         // Act
@@ -178,7 +177,7 @@ struct GetEarliestLogDateTests {
     func returnsEarliestFromMultipleLogs() async throws {
         // Arrange
         let habitId = UUID()
-        let oldestDate = CalendarUtils.addDaysLocal(-10, to: TestDates.today, timezone: .current)
+        let oldestDate = TestDates.daysAgo(10)
         let logs = [
             HabitLogBuilder.binary(habitId: habitId, date: TestDates.today),
             HabitLogBuilder.binary(habitId: habitId, date: TestDates.yesterday),
@@ -215,5 +214,147 @@ struct GetEarliestLogDateTests {
         // Assert: Should be start of yesterday
         let expectedDate = CalendarUtils.startOfDayLocal(for: TestDates.yesterday)
         #expect(earliestDate == expectedDate, "Should return start of earliest day")
+    }
+}
+
+// MARK: - LogHabit Start Date Validation Integration Tests
+
+@Suite("LogHabit - Start Date Validation Integration")
+struct LogHabitStartDateIntegrationTests {
+
+    @Test("Logging before habit start date throws dateBeforeStartDate error")
+    func loggingBeforeStartDateThrows() async throws {
+        // Arrange
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: TestDates.today)
+        let habitRepo = MockHabitRepository(habits: [habit])
+        let logRepo = MockLogRepository()
+        let validateSchedule = MockValidateHabitScheduleUseCase(isValid: true)
+
+        let logUseCase = LogHabit(repo: logRepo, habitRepo: habitRepo, validateSchedule: validateSchedule)
+
+        // Log for yesterday (before start date)
+        let log = HabitLogBuilder.binary(habitId: habit.id, date: TestDates.yesterday)
+
+        // Act & Assert
+        do {
+            try await logUseCase.execute(log)
+            Issue.record("Should have thrown dateBeforeStartDate error")
+        } catch let error as HabitScheduleValidationError {
+            if case .dateBeforeStartDate(let name) = error {
+                #expect(name == habit.name, "Error should contain habit name")
+            } else {
+                Issue.record("Wrong error type: \(error)")
+            }
+        }
+    }
+
+    @Test("Logging on habit start date succeeds")
+    func loggingOnStartDateSucceeds() async throws {
+        // Arrange
+        let habitRepo = MockHabitRepository()
+        let logRepo = MockLogRepository()
+        let validateSchedule = MockValidateHabitScheduleUseCase(isValid: true)
+
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: TestDates.today)
+        habitRepo.habits = [habit]
+
+        let logUseCase = LogHabit(repo: logRepo, habitRepo: habitRepo, validateSchedule: validateSchedule)
+
+        // Log for today (same as start date)
+        let log = HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today)
+
+        // Act & Assert - should not throw
+        try await logUseCase.execute(log)
+        #expect(logRepo.upsertedLogs.count == 1, "Log should be saved")
+    }
+
+    @Test("Logging after habit start date succeeds")
+    func loggingAfterStartDateSucceeds() async throws {
+        // Arrange
+        let habitRepo = MockHabitRepository()
+        let logRepo = MockLogRepository()
+        let validateSchedule = MockValidateHabitScheduleUseCase(isValid: true)
+
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: TestDates.yesterday)
+        habitRepo.habits = [habit]
+
+        let logUseCase = LogHabit(repo: logRepo, habitRepo: habitRepo, validateSchedule: validateSchedule)
+
+        // Log for today (after start date)
+        let log = HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today)
+
+        // Act & Assert - should not throw
+        try await logUseCase.execute(log)
+        #expect(logRepo.upsertedLogs.count == 1, "Log should be saved")
+    }
+
+    @Test("Retroactive logging works when start date is backdated")
+    func retroactiveLoggingAfterBackdatingSucceeds() async throws {
+        // Arrange: User backdated habit start to 7 days ago
+        let habitRepo = MockHabitRepository()
+        let logRepo = MockLogRepository()
+        let validateSchedule = MockValidateHabitScheduleUseCase(isValid: true)
+
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: TestDates.daysAgo(7))
+        habitRepo.habits = [habit]
+
+        let logUseCase = LogHabit(repo: logRepo, habitRepo: habitRepo, validateSchedule: validateSchedule)
+
+        // Log for 5 days ago (within backdated range)
+        let log = HabitLogBuilder.binary(habitId: habit.id, date: TestDates.daysAgo(5))
+
+        // Act & Assert - should succeed
+        try await logUseCase.execute(log)
+        #expect(logRepo.upsertedLogs.count == 1, "Retroactive log should be saved")
+    }
+
+    @Test("Retroactive logging fails when log is before backdated start date")
+    func retroactiveLoggingFailsBeforeBackdatedStart() async throws {
+        // Arrange: User backdated habit start to 7 days ago
+        let habitRepo = MockHabitRepository()
+        let logRepo = MockLogRepository()
+        let validateSchedule = MockValidateHabitScheduleUseCase(isValid: true)
+
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: TestDates.daysAgo(7))
+        habitRepo.habits = [habit]
+
+        let logUseCase = LogHabit(repo: logRepo, habitRepo: habitRepo, validateSchedule: validateSchedule)
+
+        // Log for 10 days ago (before backdated start)
+        let log = HabitLogBuilder.binary(habitId: habit.id, date: TestDates.daysAgo(10))
+
+        // Act & Assert
+        do {
+            try await logUseCase.execute(log)
+            Issue.record("Should have thrown dateBeforeStartDate error")
+        } catch let error as HabitScheduleValidationError {
+            if case .dateBeforeStartDate = error {
+                // Expected error
+            } else {
+                Issue.record("Wrong error type: \(error)")
+            }
+        }
+    }
+
+    @Test("Multiple retroactive logs can be created within valid range")
+    func multipleRetroactiveLogsSucceed() async throws {
+        // Arrange
+        let habitRepo = MockHabitRepository()
+        let logRepo = MockLogRepository()
+        let validateSchedule = MockValidateHabitScheduleUseCase(isValid: true)
+
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: TestDates.daysAgo(5))
+        habitRepo.habits = [habit]
+
+        let logUseCase = LogHabit(repo: logRepo, habitRepo: habitRepo, validateSchedule: validateSchedule)
+
+        // Log for each day from start date to today (6 logs)
+        for dayOffset in 0...5 {
+            let log = HabitLogBuilder.binary(habitId: habit.id, date: TestDates.daysAgo(dayOffset))
+            try await logUseCase.execute(log)
+        }
+
+        // Assert
+        #expect(logRepo.upsertedLogs.count == 6, "All 6 retroactive logs should be saved")
     }
 }

@@ -300,9 +300,16 @@ extension DashboardViewModel {
     }
     
     /// Extract category breakdown from unified dashboard data
-    /// Uses pre-calculated data without additional queries
+    /// Uses PerformanceAnalysisService for consistent calculation logic
     func extractCategoryBreakdown(from dashboardData: DashboardData) -> [CategoryPerformanceViewModel] {
-        let domainResults = dashboardData.categoryPerformanceData()
+        let allLogs = dashboardData.habitLogs.values.flatMap { $0 }
+        let domainResults = performanceAnalysisService.aggregateCategoryPerformance(
+            habits: dashboardData.habits,
+            categories: dashboardData.categories,
+            logs: allLogs,
+            from: dashboardData.dateRange.lowerBound,
+            to: dashboardData.dateRange.upperBound
+        )
         return domainResults.map(CategoryPerformanceViewModel.init)
     }
     

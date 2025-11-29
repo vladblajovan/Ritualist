@@ -10,11 +10,12 @@
 
 import Foundation
 
-/// Centralized calendar utilities that handle timezone-aware date operations consistently
-/// Uses UTC for all business logic to ensure consistent behavior across timezones
+/// Centralized calendar utilities that handle timezone-aware date operations consistently.
+/// Uses LOCAL timezone methods for business logic to respect user's timezone context.
+/// UTC calendar is available for specific edge cases but LOCAL methods should be preferred.
 public struct CalendarUtils {
-    
-    /// UTC calendar for business logic - ensures consistent day boundaries regardless of user timezone
+
+    /// UTC calendar - available for specific edge cases requiring absolute time comparison
     public static let utcCalendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(abbreviation: "UTC")!

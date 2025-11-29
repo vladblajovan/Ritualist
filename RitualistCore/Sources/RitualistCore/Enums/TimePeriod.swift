@@ -50,16 +50,19 @@ public enum TimePeriod: CaseIterable {
             
         case .last6Months:
             let sixMonthsAgo = CalendarUtils.addMonths(-6, to: now)
-            return (start: sixMonthsAgo, end: now)
-            
+            let startOfDay = CalendarUtils.startOfDayLocal(for: sixMonthsAgo)
+            return (start: startOfDay, end: now)
+
         case .lastYear:
             let oneYearAgo = CalendarUtils.addYears(-1, to: now)
-            return (start: oneYearAgo, end: now)
-            
+            let startOfDay = CalendarUtils.startOfDayLocal(for: oneYearAgo)
+            return (start: startOfDay, end: now)
+
         case .allTime:
             // Use a date far in the past to capture all available data
             let allTimeStart = CalendarUtils.addYears(-10, to: now)
-            return (start: allTimeStart, end: now)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: allTimeStart)
+            return (start: startOfDay, end: now)
         }
     }
 }

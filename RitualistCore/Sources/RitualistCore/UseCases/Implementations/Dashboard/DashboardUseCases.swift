@@ -2,6 +2,8 @@ import Foundation
 
 // MARK: - Dashboard Analytics Use Case Implementations
 
+// TODO: Remove this class - it's dead code. Never called anywhere.
+// Dashboard uses PerformanceAnalysisService.aggregateCategoryPerformance() directly.
 public final class AggregateCategoryPerformanceUseCase: AggregateCategoryPerformanceUseCaseProtocol {
     private let getActiveHabitsUseCase: GetActiveHabitsUseCase
     private let getHabitLogsUseCase: GetHabitLogsForAnalyticsUseCase
@@ -108,17 +110,17 @@ public final class GenerateProgressChartDataUseCase: GenerateProgressChartDataUs
         var currentDate = startDate
         
         while currentDate <= endDate {
-            let dayEnd = CalendarUtils.addDays(1, to: currentDate)
-            
+            let dayEnd = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
+
             let dayStats = try await getHabitCompletionStatsUseCase.execute(
                 for: userId,
                 from: currentDate,
                 to: dayEnd
             )
-            
+
             completionStatsByDate[currentDate] = dayStats
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
         
         return performanceAnalysisService.generateProgressChartData(

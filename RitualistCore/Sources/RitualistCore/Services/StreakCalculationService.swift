@@ -384,6 +384,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     // MARK: - Helper Methods
 
     private func getCompliantDates(habit: Habit, logs: [HabitLog], timezone: TimeZone) -> [Date] {
+        let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
+
         return logs.compactMap { log in
             guard HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit) else { return nil }
             // Use the log's own timezone to determine which calendar day it represents
@@ -404,7 +406,12 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 )
                 logTimezone = timezone
             }
-            return CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)
+            let logDay = CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)
+
+            // Filter out logs before habit start date - they shouldn't count toward streaks
+            guard logDay >= habitStartDay else { return nil }
+
+            return logDay
         }
         .sorted()
     }
