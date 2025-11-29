@@ -57,6 +57,14 @@ public final class PersistenceContainer {
 
             // Give UI time to render the migration modal (100ms)
             // Without this, the migration completes before the view appears
+            //
+            // NOTE: Thread.sleep is used because init() is synchronous - can't use Task.sleep.
+            // Making init async would require:
+            //   1. Change to static func create() async throws -> PersistenceContainer
+            //   2. Update Factory DI registration to handle async initialization
+            //   3. Update all @Injected(\.persistenceContainer) sites
+            //   4. Await container creation in RitualistApp before showing UI
+            // Current approach works fine for 100ms delay during rare migrations.
             Thread.sleep(forTimeInterval: 0.1)
             Self.logger.log("⏱️ Allowing UI time to show migration modal", level: .debug, category: .system)
         }
