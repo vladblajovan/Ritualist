@@ -50,6 +50,7 @@ public struct MigrationLoadingView: View {
                         .foregroundStyle(AppColors.brand)
                 }
                 .padding(.bottom, Spacing.small)
+                .accessibilityHidden(true)
 
                 // Title
                 Text("Preparing Your Experience")
@@ -57,6 +58,7 @@ public struct MigrationLoadingView: View {
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
 
                 // Migration details (if available)
                 if let details = details {
@@ -65,6 +67,7 @@ public struct MigrationLoadingView: View {
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, Spacing.medium)
+                        .accessibilityLabel("Migration details: \(details.description)")
                 }
 
                 // Loading indicator
@@ -72,6 +75,7 @@ public struct MigrationLoadingView: View {
                     .scaleEffect(1.2)
                     .tint(AppColors.brand)
                     .padding(.top, Spacing.small)
+                    .accessibilityLabel("Loading")
 
                 // Helpful message
                 Text("This will only take a moment")
@@ -79,6 +83,8 @@ public struct MigrationLoadingView: View {
                     .foregroundColor(.secondary.opacity(0.7))
                     .padding(.top, Spacing.small)
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Database migration in progress. This will only take a moment.")
             .padding(Spacing.screenMargin)
             .background(
                 RoundedRectangle(cornerRadius: 20)

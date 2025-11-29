@@ -1,3 +1,4 @@
+import CloudKit
 import Foundation
 import SwiftData
 
@@ -9,9 +10,6 @@ public final class PersistenceContainer {
 
     /// App Group identifier for shared container access
     private static let appGroupIdentifier = "group.com.vladblajovan.Ritualist"
-
-    /// CloudKit container identifier for iCloud sync
-    public static let cloudKitContainerIdentifier = "iCloud.com.vladblajovan.Ritualist"
 
     /// Logger for migration and initialization events (uses shared DebugLogger for consistency)
     private static let logger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "Persistence")
@@ -40,8 +38,10 @@ public final class PersistenceContainer {
         if migrationWillOccur, let lastVersion = lastVersionString {
             // Set migration state synchronously on main thread
             // This ensures the UI sees the state before migration starts
-            DispatchQueue.main.async {
-                Task { @MainActor in
+            // Use sync dispatch to ensure startMigration completes before proceeding
+            // This prevents race condition where completeMigration captures stale migration ID
+            let startMigrationBlock = {
+                MainActor.assumeIsolated {
                     MigrationStatusService.shared.startMigration(
                         from: lastVersion,
                         to: currentVersionString
@@ -49,8 +49,22 @@ public final class PersistenceContainer {
                 }
             }
 
+            if Thread.isMainThread {
+                startMigrationBlock()
+            } else {
+                DispatchQueue.main.sync(execute: startMigrationBlock)
+            }
+
             // Give UI time to render the migration modal (100ms)
             // Without this, the migration completes before the view appears
+            //
+            // NOTE: Thread.sleep is used because init() is synchronous - can't use Task.sleep.
+            // Making init async would require:
+            //   1. Change to static func create() async throws -> PersistenceContainer
+            //   2. Update Factory DI registration to handle async initialization
+            //   3. Update all @Injected(\.persistenceContainer) sites
+            //   4. Await container creation in RitualistApp before showing UI
+            // Current approach works fine for 100ms delay during rare migrations.
             Thread.sleep(forTimeInterval: 0.1)
             Self.logger.log("⏱️ Allowing UI time to show migration modal", level: .debug, category: .system)
         }
@@ -65,16 +79,16 @@ public final class PersistenceContainer {
             // No custom URL - use default location for best CloudKit compatibility
             allowsSave: true,
             // ✅ CloudKit ENABLED - Syncs to iCloud private database
-            cloudKitDatabase: .private(Self.cloudKitContainerIdentifier)
+            cloudKitDatabase: .private(iCloudConstants.containerIdentifier)
         )
 
         let migrationStartTime = Date()
 
         do {
             Self.logger.log("📋 Creating Schema from SchemaV\(currentVersionString)", level: .info, category: .system)
-            Self.logger.log("   Models: \(SchemaV10.models.map { String(describing: $0) })", level: .debug, category: .system)
+            Self.logger.log("   Models: \(ActiveSchemaVersion.models.map { String(describing: $0) })", level: .debug, category: .system)
 
-            let schema = Schema(versionedSchema: SchemaV10.self)
+            let schema = Schema(versionedSchema: ActiveSchemaVersion.self)
             Self.logger.log("   Schema version: \(currentVersionString)", level: .debug, category: .system)
 
             Self.logger.log("🚀 Initializing ModelContainer with schema and migration plan", level: .info, category: .system)
@@ -169,6 +183,23 @@ public final class PersistenceContainer {
             fatalError("Failed to get shared container URL for app group: \(appGroupIdentifier)")
         }
         return sharedContainerURL
+    }
+
+    /// Check if iCloud account is available and device has network connectivity
+    /// - Returns: `true` if device is online and user is signed into iCloud
+    /// - Note: Returns `false` if offline, not signed in, or on any error
+    public static func isICloudAvailable() async -> Bool {
+        // Quick network check first (reads system state, nearly instant)
+        guard await NetworkUtilities.hasNetworkConnectivity() else { return false }
+
+        // Then check CloudKit account status
+        let container = CKContainer(identifier: iCloudConstants.containerIdentifier)
+        do {
+            let accountStatus = try await container.accountStatus()
+            return accountStatus == .available
+        } catch {
+            return false
+        }
     }
 
     /// Get description of what changed in a migration

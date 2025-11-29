@@ -5,7 +5,7 @@
 //  Created by Claude on 28.11.2025.
 //
 //  Unit tests for OnboardingViewModel covering:
-//  - UserSex and UserAgeGroup enums
+//  - UserGender and UserAgeGroup enums
 //  - Page navigation logic
 //  - canProceedFromCurrentPage validation
 //  - Skip and finish onboarding flows (using mock repositories)
@@ -16,44 +16,44 @@ import Foundation
 @testable import Ritualist
 @testable import RitualistCore
 
-// MARK: - UserSex Enum Tests
+// MARK: - UserGender Enum Tests
 
 #if swift(>=6.1)
-@Suite("UserSex Enum Tests", .tags(.isolated, .fast))
+@Suite("UserGender Enum Tests", .tags(.isolated, .fast))
 #else
-@Suite("UserSex Enum Tests")
+@Suite("UserGender Enum Tests")
 #endif
-struct UserSexTests {
+struct UserGenderTests {
 
     @Test("All cases have correct raw values")
     func rawValues() {
-        #expect(UserSex.preferNotToSay.rawValue == "prefer_not_to_say")
-        #expect(UserSex.male.rawValue == "male")
-        #expect(UserSex.female.rawValue == "female")
-        #expect(UserSex.other.rawValue == "other")
+        #expect(UserGender.preferNotToSay.rawValue == "prefer_not_to_say")
+        #expect(UserGender.male.rawValue == "male")
+        #expect(UserGender.female.rawValue == "female")
+        #expect(UserGender.other.rawValue == "other")
     }
 
     @Test("All cases have correct display names")
     func displayNames() {
-        #expect(UserSex.preferNotToSay.displayName == "Prefer not to say")
-        #expect(UserSex.male.displayName == "Male")
-        #expect(UserSex.female.displayName == "Female")
-        #expect(UserSex.other.displayName == "Other")
+        #expect(UserGender.preferNotToSay.displayName == "Prefer not to say")
+        #expect(UserGender.male.displayName == "Male")
+        #expect(UserGender.female.displayName == "Female")
+        #expect(UserGender.other.displayName == "Other")
     }
 
     @Test("CaseIterable returns all 4 cases")
     func caseIterable() {
-        #expect(UserSex.allCases.count == 4)
-        #expect(UserSex.allCases.contains(.preferNotToSay))
-        #expect(UserSex.allCases.contains(.male))
-        #expect(UserSex.allCases.contains(.female))
-        #expect(UserSex.allCases.contains(.other))
+        #expect(UserGender.allCases.count == 4)
+        #expect(UserGender.allCases.contains(.preferNotToSay))
+        #expect(UserGender.allCases.contains(.male))
+        #expect(UserGender.allCases.contains(.female))
+        #expect(UserGender.allCases.contains(.other))
     }
 
     @Test("Identifiable id matches rawValue")
     func identifiable() {
-        for sex in UserSex.allCases {
-            #expect(sex.id == sex.rawValue)
+        for gender in UserGender.allCases {
+            #expect(gender.id == gender.rawValue)
         }
     }
 }
@@ -158,8 +158,8 @@ struct OnboardingViewModelTests {
 
         #expect(viewModel.currentPage == 0)
         #expect(viewModel.userName == "")
-        #expect(viewModel.userSex == .preferNotToSay)
-        #expect(viewModel.userAgeGroup == .preferNotToSay)
+        #expect(viewModel.gender == .preferNotToSay)
+        #expect(viewModel.ageGroup == .preferNotToSay)
         #expect(viewModel.hasGrantedNotifications == false)
         #expect(viewModel.hasGrantedLocation == false)
         #expect(viewModel.isCompleted == false)
@@ -341,6 +341,49 @@ struct OnboardingViewModelTests {
         #expect(viewModel.userName == "Jane")
     }
 
+    // MARK: - Name Length Validation Tests
+
+    @Test("userName enforces maximum length")
+    @MainActor
+    func userNameEnforcesMaxLength() {
+        let viewModel = createViewModel()
+
+        // Set a name that exceeds the max length
+        let longName = String(repeating: "A", count: OnboardingViewModel.maxNameLength + 20)
+        viewModel.userName = longName
+
+        #expect(viewModel.userName.count == OnboardingViewModel.maxNameLength)
+        #expect(viewModel.userName == String(repeating: "A", count: OnboardingViewModel.maxNameLength))
+    }
+
+    @Test("userName allows names at max length")
+    @MainActor
+    func userNameAllowsMaxLength() {
+        let viewModel = createViewModel()
+
+        let exactName = String(repeating: "B", count: OnboardingViewModel.maxNameLength)
+        viewModel.userName = exactName
+
+        #expect(viewModel.userName.count == OnboardingViewModel.maxNameLength)
+        #expect(viewModel.userName == exactName)
+    }
+
+    @Test("userName allows names under max length")
+    @MainActor
+    func userNameAllowsUnderMaxLength() {
+        let viewModel = createViewModel()
+
+        viewModel.userName = "John Doe"
+
+        #expect(viewModel.userName == "John Doe")
+        #expect(viewModel.userName.count < OnboardingViewModel.maxNameLength)
+    }
+
+    @Test("maxNameLength constant is 50")
+    func maxNameLengthIs50() {
+        #expect(OnboardingViewModel.maxNameLength == 50)
+    }
+
     // MARK: - dismissError Tests
 
     @Test("dismissError clears errorMessage")
@@ -357,32 +400,32 @@ struct OnboardingViewModelTests {
 
     // MARK: - User Profile State Tests
 
-    @Test("userSex can be changed")
+    @Test("gender can be changed")
     @MainActor
-    func userSexCanBeChanged() {
+    func genderCanBeChanged() {
         let viewModel = createViewModel()
 
-        #expect(viewModel.userSex == .preferNotToSay)
+        #expect(viewModel.gender == .preferNotToSay)
 
-        viewModel.userSex = .female
-        #expect(viewModel.userSex == .female)
+        viewModel.gender = .female
+        #expect(viewModel.gender == .female)
 
-        viewModel.userSex = .male
-        #expect(viewModel.userSex == .male)
+        viewModel.gender = .male
+        #expect(viewModel.gender == .male)
     }
 
-    @Test("userAgeGroup can be changed")
+    @Test("ageGroup can be changed")
     @MainActor
-    func userAgeGroupCanBeChanged() {
+    func ageGroupCanBeChanged() {
         let viewModel = createViewModel()
 
-        #expect(viewModel.userAgeGroup == .preferNotToSay)
+        #expect(viewModel.ageGroup == .preferNotToSay)
 
-        viewModel.userAgeGroup = .age25to34
-        #expect(viewModel.userAgeGroup == .age25to34)
+        viewModel.ageGroup = .age25to34
+        #expect(viewModel.ageGroup == .age25to34)
 
-        viewModel.userAgeGroup = .age55plus
-        #expect(viewModel.userAgeGroup == .age55plus)
+        viewModel.ageGroup = .age55plus
+        #expect(viewModel.ageGroup == .age55plus)
     }
 
     // MARK: - Skip Onboarding Tests
@@ -441,6 +484,115 @@ struct OnboardingViewModelTests {
         #expect(viewModel.errorMessage != nil)
     }
 
+    @Test("finishOnboarding saves gender and ageGroup to profile")
+    @MainActor
+    func finishOnboardingSavesGenderAgeGroup() async {
+        let mockOnboardingRepo = MockOnboardingRepository()
+        let mockProfileRepo = MockProfileRepositoryForOnboarding()
+        let mockiCloudService = MockiCloudKeyValueServiceForOnboarding()
+
+        let getOnboardingState = GetOnboardingState(repo: mockOnboardingRepo)
+        let saveOnboardingState = SaveOnboardingState(repo: mockOnboardingRepo)
+        let completeOnboarding = CompleteOnboarding(
+            repo: mockOnboardingRepo,
+            profileRepo: mockProfileRepo,
+            iCloudKeyValueService: mockiCloudService
+        )
+
+        let viewModel = OnboardingViewModel(
+            getOnboardingState: getOnboardingState,
+            saveOnboardingState: saveOnboardingState,
+            completeOnboarding: completeOnboarding,
+            requestNotificationPermission: MockRequestNotificationPermission(),
+            checkNotificationStatus: MockCheckNotificationStatus(),
+            requestLocationPermissions: MockRequestLocationPermissions(),
+            getLocationAuthStatus: MockGetLocationAuthStatus()
+        )
+
+        viewModel.userName = "Test User"
+        viewModel.gender = .female
+        viewModel.ageGroup = .age25to34
+
+        let result = await viewModel.finishOnboarding()
+
+        #expect(result == true)
+        #expect(mockProfileRepo.savedProfile?.name == "Test User")
+        #expect(mockProfileRepo.savedProfile?.gender == "female")
+        #expect(mockProfileRepo.savedProfile?.ageGroup == "25_34")
+    }
+
+    @Test("finishOnboarding saves preferNotToSay values (not nil)")
+    @MainActor
+    func finishOnboardingSavesPreferNotToSay() async {
+        let mockOnboardingRepo = MockOnboardingRepository()
+        let mockProfileRepo = MockProfileRepositoryForOnboarding()
+        let mockiCloudService = MockiCloudKeyValueServiceForOnboarding()
+
+        let getOnboardingState = GetOnboardingState(repo: mockOnboardingRepo)
+        let saveOnboardingState = SaveOnboardingState(repo: mockOnboardingRepo)
+        let completeOnboarding = CompleteOnboarding(
+            repo: mockOnboardingRepo,
+            profileRepo: mockProfileRepo,
+            iCloudKeyValueService: mockiCloudService
+        )
+
+        let viewModel = OnboardingViewModel(
+            getOnboardingState: getOnboardingState,
+            saveOnboardingState: saveOnboardingState,
+            completeOnboarding: completeOnboarding,
+            requestNotificationPermission: MockRequestNotificationPermission(),
+            checkNotificationStatus: MockCheckNotificationStatus(),
+            requestLocationPermissions: MockRequestLocationPermissions(),
+            getLocationAuthStatus: MockGetLocationAuthStatus()
+        )
+
+        viewModel.userName = "Test User"
+        // Leave defaults (preferNotToSay)
+        #expect(viewModel.gender == .preferNotToSay)
+        #expect(viewModel.ageGroup == .preferNotToSay)
+
+        let result = await viewModel.finishOnboarding()
+
+        #expect(result == true)
+        // preferNotToSay is saved as actual value (not nil) to distinguish from "never asked"
+        // This prevents infinite prompt loops for returning users
+        #expect(mockProfileRepo.savedProfile?.gender == "prefer_not_to_say")
+        #expect(mockProfileRepo.savedProfile?.ageGroup == "prefer_not_to_say")
+    }
+
+    @Test("skipOnboarding saves nil for gender and ageGroup")
+    @MainActor
+    func skipOnboardingSavesNilGenderAgeGroup() async {
+        let mockOnboardingRepo = MockOnboardingRepository()
+        let mockProfileRepo = MockProfileRepositoryForOnboarding()
+        let mockiCloudService = MockiCloudKeyValueServiceForOnboarding()
+
+        let getOnboardingState = GetOnboardingState(repo: mockOnboardingRepo)
+        let saveOnboardingState = SaveOnboardingState(repo: mockOnboardingRepo)
+        let completeOnboarding = CompleteOnboarding(
+            repo: mockOnboardingRepo,
+            profileRepo: mockProfileRepo,
+            iCloudKeyValueService: mockiCloudService
+        )
+
+        let viewModel = OnboardingViewModel(
+            getOnboardingState: getOnboardingState,
+            saveOnboardingState: saveOnboardingState,
+            completeOnboarding: completeOnboarding,
+            requestNotificationPermission: MockRequestNotificationPermission(),
+            checkNotificationStatus: MockCheckNotificationStatus(),
+            requestLocationPermissions: MockRequestLocationPermissions(),
+            getLocationAuthStatus: MockGetLocationAuthStatus()
+        )
+
+        let result = await viewModel.skipOnboarding()
+
+        #expect(result == true)
+        // skipOnboarding passes nil for gender/ageGroup (user didn't set them)
+        #expect(mockProfileRepo.savedProfile?.gender == nil)
+        #expect(mockProfileRepo.savedProfile?.ageGroup == nil)
+    }
+
     // MARK: - Load Onboarding State Tests
 
     @Test("loadOnboardingState restores saved state")
@@ -485,6 +637,165 @@ struct OnboardingViewModelTests {
 
         #expect(viewModel.errorMessage != nil)
         #expect(viewModel.isLoading == false)
+    }
+}
+
+// MARK: - SyncedDataSummary Tests
+
+#if swift(>=6.1)
+@Suite("SyncedDataSummary Tests", .tags(.isolated, .fast))
+#else
+@Suite("SyncedDataSummary Tests")
+#endif
+struct SyncedDataSummaryTests {
+
+    @Test("needsProfileCompletion returns true when name is nil")
+    func needsCompletionWithNilName() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: nil,
+            profileAvatar: nil,
+            profileGender: "male",
+            profileAgeGroup: "25_34"
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns true when name is empty")
+    func needsCompletionWithEmptyName() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "",
+            profileAvatar: nil,
+            profileGender: "male",
+            profileAgeGroup: "25_34"
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns true when gender is nil")
+    func needsCompletionWithNilGender() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test User",
+            profileAvatar: nil,
+            profileGender: nil,
+            profileAgeGroup: "25_34"
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns true when ageGroup is nil")
+    func needsCompletionWithNilAgeGroup() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test User",
+            profileAvatar: nil,
+            profileGender: "female",
+            profileAgeGroup: nil
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns true when all profile fields are nil")
+    func needsCompletionWithAllNil() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: nil,
+            profileAvatar: nil,
+            profileGender: nil,
+            profileAgeGroup: nil
+        )
+
+        #expect(summary.needsProfileCompletion == true)
+    }
+
+    @Test("needsProfileCompletion returns false when all fields present")
+    func noCompletionNeededWhenAllPresent() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test User",
+            profileAvatar: nil,
+            profileGender: "male",
+            profileAgeGroup: "25_34"
+        )
+
+        #expect(summary.needsProfileCompletion == false)
+    }
+
+    @Test("needsProfileCompletion with prefer_not_to_say values counts as present")
+    func preferNotToSayCountsAsPresent() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test User",
+            profileAvatar: nil,
+            profileGender: "prefer_not_to_say",
+            profileAgeGroup: "prefer_not_to_say"
+        )
+
+        #expect(summary.needsProfileCompletion == false)
+    }
+
+    @Test("empty summary needs profile completion")
+    func emptySummaryNeedsCompletion() {
+        #expect(SyncedDataSummary.empty.needsProfileCompletion == true)
+    }
+
+    @Test("hasData returns true when habitsCount > 0")
+    func hasDataWithHabits() {
+        let summary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 0,
+            hasProfile: false,
+            profileName: nil,
+            profileAvatar: nil
+        )
+
+        #expect(summary.hasData == true)
+    }
+
+    @Test("hasData returns true when hasProfile is true")
+    func hasDataWithProfile() {
+        let summary = SyncedDataSummary(
+            habitsCount: 0,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: "Test",
+            profileAvatar: nil
+        )
+
+        #expect(summary.hasData == true)
+    }
+
+    @Test("hasData returns false when no habits and no profile")
+    func hasDataReturnsFalse() {
+        let summary = SyncedDataSummary(
+            habitsCount: 0,
+            categoriesCount: 2,
+            hasProfile: false,
+            profileName: nil,
+            profileAvatar: nil
+        )
+
+        #expect(summary.hasData == false)
     }
 }
 

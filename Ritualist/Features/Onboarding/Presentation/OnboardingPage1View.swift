@@ -45,35 +45,50 @@ struct OnboardingPage1View: View {
                     // User profile inputs
                     VStack(spacing: 16) {
                         // Name input
-                        TextField("What should we call you?", text: $viewModel.userName)
-                            .font(.system(.body, design: .rounded, weight: .medium))
-                            .foregroundStyle(AppColors.brand)
-                            .multilineTextAlignment(.center)
-                            .textContentType(.name)
-                            .textInputAutocapitalization(.words)
-                            .autocorrectionDisabled()
-                            .focused($isTextFieldFocused)
-                            .onSubmit {
-                                isTextFieldFocused = false
-                            }
-                            .accessibilityLabel("Name")
-                            .accessibilityHint("Enter your name to personalize your experience")
-                            .modifier(GradientFieldStyle())
+                        VStack(alignment: .trailing, spacing: 4) {
+                            TextField("What should we call you?", text: $viewModel.userName)
+                                .font(.system(.body, design: .rounded, weight: .medium))
+                                .foregroundStyle(AppColors.brand)
+                                .multilineTextAlignment(.center)
+                                .textContentType(.name)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled()
+                                .focused($isTextFieldFocused)
+                                .onSubmit {
+                                    isTextFieldFocused = false
+                                }
+                                .accessibilityLabel("Name")
+                                .accessibilityHint("Enter your name to personalize your experience. Maximum \(OnboardingViewModel.maxNameLength) characters.")
+                                .modifier(GradientFieldStyle())
 
-                        // Sex and Age Group selectors in a row
+                            // Character count (only show when approaching limit)
+                            if viewModel.userName.count > OnboardingViewModel.maxNameLength - 10 {
+                                Text("\(viewModel.userName.count)/\(OnboardingViewModel.maxNameLength)")
+                                    .font(.caption2)
+                                    .foregroundStyle(
+                                        viewModel.userName.count >= OnboardingViewModel.maxNameLength
+                                            ? .red
+                                            : .secondary
+                                    )
+                                    .padding(.trailing, 8)
+                                    .accessibilityLabel("\(viewModel.userName.count) of \(OnboardingViewModel.maxNameLength) characters used")
+                            }
+                        }
+
+                        // Gender and Age Group selectors in a row
                         HStack(spacing: 12) {
-                            // Sex picker
+                            // Gender picker
                             Menu {
-                                ForEach(UserSex.allCases) { sex in
-                                    Button(sex.displayName) {
-                                        viewModel.userSex = sex
+                                ForEach(UserGender.allCases) { gender in
+                                    Button(gender.displayName) {
+                                        viewModel.gender = gender
                                     }
                                 }
                             } label: {
                                 HStack {
-                                    Text(viewModel.userSex == .preferNotToSay ? "Sex" : viewModel.userSex.displayName)
+                                    Text(viewModel.gender == .preferNotToSay ? "Gender" : viewModel.gender.displayName)
                                         .font(.system(.body, design: .rounded, weight: .medium))
-                                        .foregroundStyle(viewModel.userSex == .preferNotToSay ? .secondary : AppColors.brand)
+                                        .foregroundStyle(viewModel.gender == .preferNotToSay ? .secondary : AppColors.brand)
                                     Spacer()
                                     Image(systemName: "chevron.down")
                                         .font(.caption)
@@ -81,21 +96,21 @@ struct OnboardingPage1View: View {
                                 }
                                 .modifier(GradientFieldStyle())
                             }
-                            .accessibilityLabel("Sex")
-                            .accessibilityValue(viewModel.userSex.displayName)
+                            .accessibilityLabel("Gender")
+                            .accessibilityValue(viewModel.gender.displayName)
 
                             // Age group picker
                             Menu {
                                 ForEach(UserAgeGroup.allCases) { ageGroup in
                                     Button(ageGroup.displayName) {
-                                        viewModel.userAgeGroup = ageGroup
+                                        viewModel.ageGroup = ageGroup
                                     }
                                 }
                             } label: {
                                 HStack {
-                                    Text(viewModel.userAgeGroup == .preferNotToSay ? "Age" : viewModel.userAgeGroup.displayName)
+                                    Text(viewModel.ageGroup == .preferNotToSay ? "Age" : viewModel.ageGroup.displayName)
                                         .font(.system(.body, design: .rounded, weight: .medium))
-                                        .foregroundStyle(viewModel.userAgeGroup == .preferNotToSay ? .secondary : AppColors.brand)
+                                        .foregroundStyle(viewModel.ageGroup == .preferNotToSay ? .secondary : AppColors.brand)
                                     Spacer()
                                     Image(systemName: "chevron.down")
                                         .font(.caption)
@@ -104,7 +119,7 @@ struct OnboardingPage1View: View {
                                 .modifier(GradientFieldStyle())
                             }
                             .accessibilityLabel("Age group")
-                            .accessibilityValue(viewModel.userAgeGroup.displayName)
+                            .accessibilityValue(viewModel.ageGroup.displayName)
                         }
                     }
                     .padding(.horizontal, 24)

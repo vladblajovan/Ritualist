@@ -20,9 +20,11 @@ public enum UserActionEvent {
     case onboardingNotificationPermissionRequested
     case onboardingNotificationPermissionGranted
     case onboardingNotificationPermissionDenied
+    case onboardingNotificationPermissionFailed
     case onboardingLocationPermissionRequested
     case onboardingLocationPermissionGranted(status: String)
     case onboardingLocationPermissionDenied
+    case onboardingLocationPermissionFailed
 
     // Habits Assistant
     case habitsAssistantOpened(source: HabitsAssistantSource)

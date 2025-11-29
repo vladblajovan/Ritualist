@@ -44,6 +44,10 @@ public actor ProfileLocalDataSource: ProfileLocalDataSourceProtocol {
                 existing.timezoneChangeHistoryData = historyData
             }
 
+            // V11 Demographics fields
+            existing.gender = profile.gender
+            existing.ageGroup = profile.ageGroup
+
             existing.updatedAt = profile.updatedAt
         } else {
             // Create new profile in this ModelContext

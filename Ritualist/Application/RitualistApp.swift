@@ -195,7 +195,7 @@ import CoreData
         metadata["device_model"] = UIDevice.current.model
         metadata["device_name"] = UIDevice.current.name
         metadata["os"] = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
-        metadata["cloudkit_container"] = PersistenceContainer.cloudKitContainerIdentifier
+        metadata["cloudkit_container"] = iCloudConstants.containerIdentifier
         #endif
 
         logger.log(
@@ -680,7 +680,7 @@ import CoreData
                 category: .system,
                 metadata: [
                     "icloud_status": iCloudStatus.displayMessage,
-                    "cloudkit_container": PersistenceContainer.cloudKitContainerIdentifier
+                    "cloudkit_container": iCloudConstants.containerIdentifier
                 ]
             )
         } catch {

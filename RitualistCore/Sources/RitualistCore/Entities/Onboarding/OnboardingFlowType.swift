@@ -35,23 +35,41 @@ public struct SyncedDataSummary: Equatable {
     /// User's avatar data from profile (if available)
     public let profileAvatar: Data?
 
+    /// User's gender from profile (if available)
+    public let profileGender: String?
+
+    /// User's age group from profile (if available)
+    public let profileAgeGroup: String?
+
     public init(
         habitsCount: Int,
         categoriesCount: Int,
         hasProfile: Bool,
         profileName: String?,
-        profileAvatar: Data?
+        profileAvatar: Data?,
+        profileGender: String? = nil,
+        profileAgeGroup: String? = nil
     ) {
         self.habitsCount = habitsCount
         self.categoriesCount = categoriesCount
         self.hasProfile = hasProfile
         self.profileName = profileName
         self.profileAvatar = profileAvatar
+        self.profileGender = profileGender
+        self.profileAgeGroup = profileAgeGroup
     }
 
     /// Whether any meaningful data was synced
     public var hasData: Bool {
         habitsCount > 0 || hasProfile
+    }
+
+    /// Whether profile data is incomplete (missing name, gender, or ageGroup)
+    public var needsProfileCompletion: Bool {
+        let hasName = !(profileName?.isEmpty ?? true)
+        let hasGender = profileGender != nil
+        let hasAgeGroup = profileAgeGroup != nil
+        return !hasName || !hasGender || !hasAgeGroup
     }
 
     /// Empty summary (no data found)
@@ -60,6 +78,8 @@ public struct SyncedDataSummary: Equatable {
         categoriesCount: 0,
         hasProfile: false,
         profileName: nil,
-        profileAvatar: nil
+        profileAvatar: nil,
+        profileGender: nil,
+        profileAgeGroup: nil
     )
 }

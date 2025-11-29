@@ -223,8 +223,8 @@ public protocol SaveOnboardingStateUseCase {
     func execute(_ state: OnboardingState) async throws 
 }
 
-public protocol CompleteOnboardingUseCase { 
-    func execute(userName: String?, hasNotifications: Bool) async throws 
+public protocol CompleteOnboardingUseCase {
+    func execute(userName: String?, hasNotifications: Bool, hasLocation: Bool, gender: String?, ageGroup: String?) async throws
 }
 
 // MARK: - Slogan Use Cases

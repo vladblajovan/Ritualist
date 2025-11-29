@@ -631,7 +631,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                         HStack {
                             Text("Container:")
                             Spacer()
-                            Text(PersistenceContainer.cloudKitContainerIdentifier)
+                            Text(iCloudConstants.containerIdentifier)
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundColor(.blue)

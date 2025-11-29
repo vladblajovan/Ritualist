@@ -50,29 +50,8 @@ public final class RootTabViewModel {
     // MARK: - Public Methods
 
     public func checkOnboardingStatus() async {
-        // Skip onboarding entirely during UI tests
-        if CommandLine.arguments.contains("--uitesting") {
-            showOnboarding = false
-            isCheckingOnboarding = false
-            logger.log(
-                "UI testing mode - skipping onboarding",
-                level: .info,
-                category: .ui
-            )
-            return
-        }
-
-        // Force onboarding for onboarding UI tests
-        if CommandLine.arguments.contains("--force-onboarding") {
-            showOnboarding = true
-            isCheckingOnboarding = false
-            logger.log(
-                "Force onboarding mode - showing onboarding",
-                level: .info,
-                category: .ui
-            )
-            return
-        }
+        // Handle UI testing launch arguments
+        if handleTestingLaunchArguments() { return }
 
         // First, synchronize iCloud key-value store to get latest flags
         iCloudKeyValueService.synchronize()
@@ -96,17 +75,36 @@ public final class RootTabViewModel {
         // Step 2: Local device flag is false - check iCloud flag
         // But ONLY if iCloud is actually available. Without an iCloud account,
         // NSUbiquitousKeyValueStore may contain stale data from previous sessions.
-        let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
-        let accountStatus = try? await container.accountStatus()
-        let isICloudAvailable = accountStatus == .available
+        // Skip real CloudKit check in unit tests (XCTest environment)
+        let isICloudAvailable: Bool
+        if NSClassFromString("XCTestCase") != nil {
+            // In unit tests, assume iCloud is available (use mock service)
+            isICloudAvailable = true
+        } else {
+            let container = CKContainer(identifier: iCloudConstants.containerIdentifier)
+            let accountStatus: CKAccountStatus
+            do {
+                accountStatus = try await container.accountStatus()
+            } catch {
+                logger.log(
+                    "Failed to check iCloud account status - defaulting to new user flow",
+                    level: .warning,
+                    category: .ui,
+                    metadata: ["error": error.localizedDescription]
+                )
+                showOnboarding = true
+                isCheckingOnboarding = false
+                return
+            }
+            isICloudAvailable = accountStatus == .available
+        }
 
         guard isICloudAvailable else {
             // No iCloud account - treat as new user, show onboarding
             logger.log(
                 "No iCloud account available - showing onboarding for new user",
                 level: .info,
-                category: .ui,
-                metadata: ["account_status": String(describing: accountStatus)]
+                category: .ui
             )
             showOnboarding = true
             isCheckingOnboarding = false
@@ -156,7 +154,9 @@ public final class RootTabViewModel {
             categoriesCount: 0, // Not needed for welcome screen
             hasProfile: profile != nil && !(profile?.name.isEmpty ?? true),
             profileName: profile?.name,
-            profileAvatar: profile?.avatarImageData
+            profileAvatar: profile?.avatarImageData,
+            profileGender: profile?.gender,
+            profileAgeGroup: profile?.ageGroup
         )
 
         // Only show if we have COMPLETE data (habits AND profile with name)
@@ -208,4 +208,89 @@ public final class RootTabViewModel {
             logger.log("Failed to load user appearance preference: \(error)", level: .error, category: .ui)
         }
     }
+
+    // MARK: - Private Methods
+
+    /// Handles UI testing launch arguments for onboarding flow control.
+    /// Returns true if a testing argument was handled (caller should return early).
+    private func handleTestingLaunchArguments() -> Bool {
+        #if DEBUG
+        // Skip onboarding entirely during UI tests
+        if CommandLine.arguments.contains("--uitesting") {
+            showOnboarding = false
+            isCheckingOnboarding = false
+            logger.log("UI testing mode - skipping onboarding", level: .info, category: .ui)
+            return true
+        }
+
+        // Force onboarding for onboarding UI tests
+        if CommandLine.arguments.contains("--force-onboarding") {
+            showOnboarding = true
+            isCheckingOnboarding = false
+            logger.log("Force onboarding mode - showing onboarding", level: .info, category: .ui)
+            return true
+        }
+
+        // Force returning user flow for UI tests (with incomplete profile)
+        if CommandLine.arguments.contains("--force-returning-user") {
+            configureReturningUserTest(
+                profileName: "Test User",
+                profileGender: nil,
+                profileAgeGroup: nil,
+                logMessage: "Force returning user mode - incomplete profile"
+            )
+            return true
+        }
+
+        // Force returning user flow with complete profile (skips profile completion)
+        if CommandLine.arguments.contains("--force-returning-user-complete") {
+            configureReturningUserTest(
+                profileName: "Test User",
+                profileGender: "male",
+                profileAgeGroup: "25_34",
+                logMessage: "Force returning user mode - complete profile"
+            )
+            return true
+        }
+
+        // Force returning user flow with no name (shows name input)
+        if CommandLine.arguments.contains("--force-returning-user-no-name") {
+            configureReturningUserTest(
+                profileName: nil,
+                profileGender: nil,
+                profileAgeGroup: nil,
+                logMessage: "Force returning user mode - no name"
+            )
+            return true
+        }
+
+        return false
+        #else
+        return false
+        #endif
+    }
+
+    #if DEBUG
+    /// Configures state for returning user UI tests.
+    private func configureReturningUserTest(
+        profileName: String?,
+        profileGender: String?,
+        profileAgeGroup: String?,
+        logMessage: String
+    ) {
+        showOnboarding = false
+        isCheckingOnboarding = false
+        syncedDataSummary = SyncedDataSummary(
+            habitsCount: 5,
+            categoriesCount: 2,
+            hasProfile: true,
+            profileName: profileName,
+            profileAvatar: nil,
+            profileGender: profileGender,
+            profileAgeGroup: profileAgeGroup
+        )
+        showReturningUserWelcome = true
+        logger.log(logMessage, level: .info, category: .ui)
+    }
+    #endif
 }

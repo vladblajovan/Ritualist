@@ -31,8 +31,6 @@ public struct RootTabView: View {
 
     /// UserDefaults key for tracking if we've shown the first iCloud sync toast
     private static let hasShownFirstSyncToastKey = "hasShownFirstiCloudSyncToast"
-    private static let maxSyncRetries = 150  // 5 minutes (150 × 2s)
-    private static let syncRetryIntervalSeconds: UInt64 = 2
 
     public init() {}
 
@@ -41,9 +39,9 @@ public struct RootTabView: View {
         @Bindable var vm = viewModel
         
         Group {
-            if isCheckingOnboarding {
-                // Show branded launch screen while detecting iCloud data
-                AppLaunchView()
+            if isCheckingOnboarding || migrationService.isMigrating {
+                // Show branded launch screen while detecting iCloud data or during migration
+                AppLaunchView(migrationDetails: migrationService.migrationDetails)
             } else {
                 TabView(selection: $vm.navigationService.selectedTab) {
                     Tab(Strings.Navigation.overview, systemImage: "calendar", value: Pages.overview) {
@@ -83,11 +81,6 @@ public struct RootTabView: View {
                     }
                 }
                 #endif
-                .overlay {
-                    if migrationService.isMigrating {
-                        MigrationLoadingView(details: migrationService.migrationDetails)
-                    }
-                }
                 .overlay(alignment: .top) {
                     if showSyncToast {
                         ICloudSyncToast(onDismiss: {
@@ -509,20 +502,20 @@ public struct RootTabView: View {
                 // Data not complete yet - retry up to 5 minutes
                 // This doesn't block the app - user can use it normally while we wait
                 // CloudKit profile/avatar may take longer to sync on slow networks
-                if retryCount < Self.maxSyncRetries {
+                if retryCount < SyncConstants.maxRetries {
                     logger.log(
                         "☁️ Returning user data incomplete - will retry",
                         level: .debug,
                         category: .system,
                         metadata: [
                             "retry_count": retryCount + 1,
-                            "max_retries": Self.maxSyncRetries,
+                            "max_retries": SyncConstants.maxRetries,
                             "habits_count": existingHabits.count,
                             "has_profile": profile != nil,
                             "profile_name": profile?.name ?? "nil"
                         ]
                     )
-                    try? await Task.sleep(for: .seconds(Self.syncRetryIntervalSeconds))
+                    try? await Task.sleep(for: .seconds(SyncConstants.retryIntervalSeconds))
                     await MainActor.run {
                         handleReturningUserWelcome(retryCount: retryCount + 1)
                     }
@@ -542,9 +535,7 @@ public struct RootTabView: View {
                     await MainActor.run {
                         // Mark as no longer pending so we don't keep trying
                         viewModel.pendingReturningUserWelcome = false
-                    }
-                    // Show informative toast after state update completes
-                    await MainActor.run {
+                        // Show informative toast after state update
                         withAnimation(.easeIn(duration: 0.3)) {
                             showStillSyncingToast = true
                         }
@@ -592,24 +583,11 @@ public struct RootTabView: View {
             }
 
             // Check if iCloud is actually signed in - don't show toast if not
-            let container = CKContainer(identifier: "iCloud.com.vladblajovan.Ritualist")
-            do {
-                let accountStatus = try await container.accountStatus()
-                guard accountStatus == .available else {
-                    logger.log(
-                        "☁️ iCloud not signed in - skipping sync toast",
-                        level: .debug,
-                        category: .system,
-                        metadata: ["account_status": String(describing: accountStatus)]
-                    )
-                    return
-                }
-            } catch {
+            guard await PersistenceContainer.isICloudAvailable() else {
                 logger.log(
-                    "☁️ Failed to check iCloud account status - skipping sync toast",
+                    "☁️ iCloud not available - skipping sync toast",
                     level: .debug,
-                    category: .system,
-                    metadata: ["error": error.localizedDescription]
+                    category: .system
                 )
                 return
             }

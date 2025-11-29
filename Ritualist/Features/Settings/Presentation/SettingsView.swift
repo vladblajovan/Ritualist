@@ -39,6 +39,7 @@ private struct SettingsContentView: View {
 
 private struct SettingsFormView: View {
     @Bindable var vm: SettingsViewModel
+    @Injected(\.debugLogger) private var logger
     @FocusState private var isNameFieldFocused: Bool
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
@@ -51,6 +52,8 @@ private struct SettingsFormView: View {
     @State private var name = ""
     @State private var appearance = 0
     @State private var displayTimezoneMode = "original"
+    @State private var gender: UserGender = .preferNotToSay
+    @State private var ageGroup: UserAgeGroup = .preferNotToSay
 
     // Toast state
     @State private var activeToast: SettingsToast?
@@ -89,6 +92,8 @@ private struct SettingsFormView: View {
                         name: $name,
                         appearance: $appearance,
                         displayTimezoneMode: $displayTimezoneMode,
+                        gender: $gender,
+                        ageGroup: $ageGroup,
                         isNameFieldFocused: $isNameFieldFocused,
                         showingImagePicker: $showingImagePicker,
                         updateUserName: updateUserName
@@ -125,7 +130,8 @@ private struct SettingsFormView: View {
                         NavigationLink {
                             AdvancedSettingsView(
                                 vm: vm,
-                                displayTimezoneMode: $displayTimezoneMode
+                                displayTimezoneMode: $displayTimezoneMode,
+                                appearance: $appearance
                             )
                         } label: {
                             HStack {
@@ -267,6 +273,37 @@ private struct SettingsFormView: View {
         name = vm.profile.name
         appearance = vm.profile.appearance
         displayTimezoneMode = vm.profile.displayTimezoneMode.toLegacyString()
+        // Load gender/ageGroup from profile (converting from raw string values)
+        if let genderRaw = vm.profile.gender {
+            if let g = UserGender(rawValue: genderRaw) {
+                gender = g
+            } else {
+                logger.log(
+                    "Failed to parse gender from profile",
+                    level: .warning,
+                    category: .dataIntegrity,
+                    metadata: ["raw_value": genderRaw]
+                )
+                gender = .preferNotToSay
+            }
+        } else {
+            gender = .preferNotToSay
+        }
+        if let ageRaw = vm.profile.ageGroup {
+            if let a = UserAgeGroup(rawValue: ageRaw) {
+                ageGroup = a
+            } else {
+                logger.log(
+                    "Failed to parse age group from profile",
+                    level: .warning,
+                    category: .dataIntegrity,
+                    metadata: ["raw_value": ageRaw]
+                )
+                ageGroup = .preferNotToSay
+            }
+        } else {
+            ageGroup = .preferNotToSay
+        }
     }
     
     private func updateUserName() async {
