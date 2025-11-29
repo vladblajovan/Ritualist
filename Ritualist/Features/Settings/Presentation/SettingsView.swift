@@ -39,6 +39,7 @@ private struct SettingsContentView: View {
 
 private struct SettingsFormView: View {
     @Bindable var vm: SettingsViewModel
+    @Injected(\.debugLogger) private var logger
     @FocusState private var isNameFieldFocused: Bool
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
@@ -273,13 +274,33 @@ private struct SettingsFormView: View {
         appearance = vm.profile.appearance
         displayTimezoneMode = vm.profile.displayTimezoneMode.toLegacyString()
         // Load gender/ageGroup from profile (converting from raw string values)
-        if let genderRaw = vm.profile.gender, let g = UserGender(rawValue: genderRaw) {
-            gender = g
+        if let genderRaw = vm.profile.gender {
+            if let g = UserGender(rawValue: genderRaw) {
+                gender = g
+            } else {
+                logger.log(
+                    "Failed to parse gender from profile",
+                    level: .warning,
+                    category: .dataIntegrity,
+                    metadata: ["raw_value": genderRaw]
+                )
+                gender = .preferNotToSay
+            }
         } else {
             gender = .preferNotToSay
         }
-        if let ageRaw = vm.profile.ageGroup, let a = UserAgeGroup(rawValue: ageRaw) {
-            ageGroup = a
+        if let ageRaw = vm.profile.ageGroup {
+            if let a = UserAgeGroup(rawValue: ageRaw) {
+                ageGroup = a
+            } else {
+                logger.log(
+                    "Failed to parse age group from profile",
+                    level: .warning,
+                    category: .dataIntegrity,
+                    metadata: ["raw_value": ageRaw]
+                )
+                ageGroup = .preferNotToSay
+            }
         } else {
             ageGroup = .preferNotToSay
         }

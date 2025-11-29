@@ -214,6 +214,7 @@ public final class RootTabViewModel {
     /// Handles UI testing launch arguments for onboarding flow control.
     /// Returns true if a testing argument was handled (caller should return early).
     private func handleTestingLaunchArguments() -> Bool {
+        #if DEBUG
         // Skip onboarding entirely during UI tests
         if CommandLine.arguments.contains("--uitesting") {
             showOnboarding = false
@@ -264,8 +265,12 @@ public final class RootTabViewModel {
         }
 
         return false
+        #else
+        return false
+        #endif
     }
 
+    #if DEBUG
     /// Configures state for returning user UI tests.
     private func configureReturningUserTest(
         profileName: String?,
@@ -287,4 +292,5 @@ public final class RootTabViewModel {
         showReturningUserWelcome = true
         logger.log(logMessage, level: .info, category: .ui)
     }
+    #endif
 }

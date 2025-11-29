@@ -19,6 +19,7 @@ struct ReturningUserOnboardingView: View {
     let onComplete: () -> Void
 
     @Injected(\.onboardingViewModel) private var viewModel
+    @Injected(\.debugLogger) private var logger
     @State private var currentStep: ReturningUserStep = .welcome
 
     var body: some View {
@@ -58,13 +59,29 @@ struct ReturningUserOnboardingView: View {
             if let name = summary.profileName, !name.isEmpty {
                 viewModel.userName = name
             }
-            if let genderRaw = summary.profileGender,
-               let parsedGender = UserGender(rawValue: genderRaw) {
-                viewModel.gender = parsedGender
+            if let genderRaw = summary.profileGender {
+                if let parsedGender = UserGender(rawValue: genderRaw) {
+                    viewModel.gender = parsedGender
+                } else {
+                    logger.log(
+                        "Failed to parse gender from iCloud data",
+                        level: .warning,
+                        category: .dataIntegrity,
+                        metadata: ["raw_value": genderRaw]
+                    )
+                }
             }
-            if let ageGroupRaw = summary.profileAgeGroup,
-               let parsedAgeGroup = UserAgeGroup(rawValue: ageGroupRaw) {
-                viewModel.ageGroup = parsedAgeGroup
+            if let ageGroupRaw = summary.profileAgeGroup {
+                if let parsedAgeGroup = UserAgeGroup(rawValue: ageGroupRaw) {
+                    viewModel.ageGroup = parsedAgeGroup
+                } else {
+                    logger.log(
+                        "Failed to parse age group from iCloud data",
+                        level: .warning,
+                        category: .dataIntegrity,
+                        metadata: ["raw_value": ageGroupRaw]
+                    )
+                }
             }
         }
         .onChange(of: currentStep) { _, newStep in
