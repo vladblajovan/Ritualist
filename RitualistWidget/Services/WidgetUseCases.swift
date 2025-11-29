@@ -91,8 +91,14 @@ final class WidgetLogHabit: LogHabitUseCase {
         guard habit.isActive else {
             throw HabitScheduleValidationError.habitUnavailable(habitName: habit.name)
         }
-        
-        
+
+        // Check if log date is before habit's start date
+        let logDay = CalendarUtils.startOfDayLocal(for: log.date)
+        let startDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
+        guard logDay >= startDay else {
+            throw HabitScheduleValidationError.dateBeforeStartDate(habitName: habit.name)
+        }
+
         // Validate schedule before logging
         let validationResult = try await validateSchedule.execute(habit: habit, date: log.date)
         

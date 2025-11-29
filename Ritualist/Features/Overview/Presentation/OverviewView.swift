@@ -64,6 +64,9 @@ public struct OverviewView: View {
                     getValidationMessage: { habit in
                         await vm.getScheduleValidationMessage(for: habit)
                     },
+                    getStreakStatus: { habit in
+                        vm.getStreakStatusSync(for: habit)
+                    },
                     onPreviousDay: {
                         vm.goToPreviousDay()
                     },

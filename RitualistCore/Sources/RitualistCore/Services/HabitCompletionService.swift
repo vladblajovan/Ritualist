@@ -109,6 +109,11 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
     }
 
     public func isScheduledDay(habit: Habit, date: Date, timezone: TimeZone) -> Bool {
+        // First check if date is before habit's start date - habit isn't scheduled before it starts
+        let dateStart = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
+        let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
+        guard dateStart >= habitStartDay else { return false }
+
         switch habit.schedule {
         case .daily:
             return true

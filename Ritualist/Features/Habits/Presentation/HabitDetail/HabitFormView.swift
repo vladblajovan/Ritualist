@@ -22,6 +22,7 @@ public struct HabitFormView: View {
             LocationConfigurationSection(vm: vm)
             AppearanceSection(vm: vm)
             if vm.isEditMode {
+                StartDateSection(vm: vm)
                 ActiveStatusSection(vm: vm)
                 DeleteSection(vm: vm)
             }

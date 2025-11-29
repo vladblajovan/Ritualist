@@ -16,6 +16,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let onDeleteHabitLog: (Habit) -> Void // New callback for deleting habit log
     let getScheduleStatus: (Habit) -> HabitScheduleStatus // New callback for schedule status
     let getValidationMessage: (Habit) async -> String? // New callback for validation message
+    let getStreakStatus: ((Habit) -> HabitStreakStatus)? // Callback for streak at risk indicator
     let onPreviousDay: () -> Void
     let onNextDay: () -> Void
     let onGoToToday: () -> Void
@@ -103,6 +104,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
          onDeleteHabitLog: @escaping (Habit) -> Void,
          getScheduleStatus: @escaping (Habit) -> HabitScheduleStatus,
          getValidationMessage: @escaping (Habit) async -> String?,
+         getStreakStatus: ((Habit) -> HabitStreakStatus)? = nil,
          onPreviousDay: @escaping () -> Void,
          onNextDay: @escaping () -> Void,
          onGoToToday: @escaping () -> Void) {
@@ -119,6 +121,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         self.onDeleteHabitLog = onDeleteHabitLog
         self.getScheduleStatus = getScheduleStatus
         self.getValidationMessage = getValidationMessage
+        self.getStreakStatus = getStreakStatus
         self.onPreviousDay = onPreviousDay
         self.onNextDay = onNextDay
         self.onGoToToday = onGoToToday
@@ -135,10 +138,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
         // BUGFIX: Capture viewingDate at start to ensure consistency during filter
         // Additional safety filter to prevent race condition where summary contains habits
-        // from previous viewingDate. Only show habits that are actually scheduled for viewingDate.
+        // from previous viewingDate. Only show habits that are actually scheduled for viewingDate
+        // AND have started (date >= habit.startDate).
         let capturedDate = viewingDate
+        let capturedDateStart = CalendarUtils.startOfDayLocal(for: capturedDate)
         let scheduledIncompleteHabits = summary.incompleteHabits.filter { habit in
-            habit.schedule.isActiveOn(date: capturedDate)
+            let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
+            return capturedDateStart >= habitStartDay && habit.schedule.isActiveOn(date: capturedDate)
         }
 
         // Store the filtered count for display
@@ -786,6 +792,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         .lineLimit(1)
 
                     if !isCompleted {
+                        // First line: habit-specific status (progress or schedule)
                         if habit.kind == .numeric {
                             let currentValue = getProgress(habit)
                             let target = habit.dailyTarget ?? 1.0
@@ -798,6 +805,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                             Text(scheduleStatus.displayText)
                                 .font(.caption)
                                 .foregroundColor(scheduleStatus.color)
+                        }
+
+                        // Second line: streak at risk indicator (for ALL habit types)
+                        if let streakStatus = getStreakStatus?(habit), streakStatus.isAtRisk {
+                            Text("🔥 \(streakStatus.atRisk) day streak - log today!")
+                                .font(.caption)
+                                .foregroundColor(.orange)
                         }
                     }
                 }

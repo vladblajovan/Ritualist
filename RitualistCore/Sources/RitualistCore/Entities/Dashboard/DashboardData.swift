@@ -76,8 +76,13 @@ public struct DashboardData {
     }
     
     /// Get habits scheduled for a specific date
+    /// Only includes habits that have started (date >= habit.startDate) and are scheduled for that day
     public func scheduledHabits(for date: Date) -> [Habit] {
-        return habits.filter { $0.schedule.isActiveOn(date: date) }
+        let dateStart = CalendarUtils.startOfDayLocal(for: date)
+        return habits.filter { habit in
+            let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
+            return dateStart >= habitStartDay && habit.schedule.isActiveOn(date: date)
+        }
     }
     
     /// Get streak data for a specific habit using proper UseCase
@@ -196,8 +201,11 @@ public struct DashboardData {
         while currentDate <= dateRange.upperBound {
             let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate)
 
-            // Get habits scheduled for this date
-            let scheduledHabits = habits.filter { $0.schedule.isActiveOn(date: startOfDay) }
+            // Get habits scheduled for this date (must have started AND be scheduled)
+            let scheduledHabits = habits.filter { habit in
+                let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
+                return startOfDay >= habitStartDay && habit.schedule.isActiveOn(date: startOfDay)
+            }
             let expectedHabits = Set(scheduledHabits.map(\.id))
             
             // Find completed habits for this date

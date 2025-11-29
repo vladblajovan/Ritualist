@@ -104,8 +104,12 @@ public protocol DeleteLogUseCase {
     func execute(id: UUID) async throws 
 }
 
-public protocol GetLogForDateUseCase { 
-    func execute(habitID: UUID, date: Date) async throws -> HabitLog? 
+public protocol GetLogForDateUseCase {
+    func execute(habitID: UUID, date: Date) async throws -> HabitLog?
+}
+
+public protocol GetEarliestLogDateUseCase {
+    func execute(for habitID: UUID) async throws -> Date?
 }
 
 public protocol ToggleHabitLogUseCase {
@@ -330,6 +334,10 @@ public protocol CheckWeeklyTargetUseCase {
 
 public protocol CalculateCurrentStreakUseCase {
     func execute(habit: Habit, logs: [HabitLog], asOf: Date) -> Int
+}
+
+public protocol GetStreakStatusUseCase {
+    func execute(habit: Habit, logs: [HabitLog], asOf: Date) -> HabitStreakStatus
 }
 
 // MARK: - Widget Use Cases

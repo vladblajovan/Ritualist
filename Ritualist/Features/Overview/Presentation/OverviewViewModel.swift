@@ -154,6 +154,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     @ObservationIgnored @Injected(\.getCurrentSlogan) private var getCurrentSlogan
     @ObservationIgnored @Injected(\.getCurrentUserProfile) private var getCurrentUserProfile
     @ObservationIgnored @Injected(\.calculateCurrentStreak) private var calculateCurrentStreakUseCase
+    @ObservationIgnored @Injected(\.getStreakStatus) private var getStreakStatusUseCase
     @ObservationIgnored @Injected(\.getPersonalityProfileUseCase) private var getPersonalityProfileUseCase
     @ObservationIgnored @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
     @ObservationIgnored @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
@@ -446,6 +447,17 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
         HabitScheduleStatus.forHabit(habit, date: viewingDate, isScheduledDay: isScheduledDay)
+    }
+
+    public func getStreakStatusSync(for habit: Habit) -> HabitStreakStatus {
+        // Use single source of truth from overviewData if available
+        guard let data = overviewData else {
+            // Return default status with no streak if data not loaded
+            return HabitStreakStatus(current: 0, atRisk: 0, isAtRisk: false, isTodayScheduled: false)
+        }
+
+        let logs = data.habitLogs[habit.id] ?? []
+        return getStreakStatusUseCase.execute(habit: habit, logs: logs, asOf: viewingDate)
     }
     
 //    public func getWeeklyProgress(for habit: Habit) -> (completed: Int, target: Int) {
@@ -1194,32 +1206,35 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         return result
     }
     
-    /// Extract active streaks from overview data
+    /// Extract active streaks from overview data (with grace period support)
     private func extractActiveStreaks(from data: OverviewData) -> [StreakInfo] {
         var streaks: [StreakInfo] = []
         let today = Date()
-        
+
         for habit in data.habits {
             // Get logs for this habit from unified data
             let logs = data.habitLogs[habit.id] ?? []
-            
-            let currentStreak = calculateCurrentStreakUseCase.execute(habit: habit, logs: logs, asOf: today)
-            
-            if currentStreak >= 1 { // Show all active streaks (1+ days)
+
+            // Use getStreakStatus for grace period support
+            let streakStatus = getStreakStatusUseCase.execute(habit: habit, logs: logs, asOf: today)
+
+            // Show streak if either current > 0 OR at risk (grace period)
+            let displayStreak = streakStatus.displayStreak
+            if displayStreak >= 1 {
                 let streakInfo = StreakInfo(
                     id: habit.id.uuidString,
                     habitName: habit.name,
                     emoji: habit.emoji ?? "📊",
-                    currentStreak: currentStreak,
-                    isActive: true
+                    currentStreak: displayStreak,
+                    isActive: !streakStatus.isAtRisk // Active if not at risk
                 )
                 streaks.append(streakInfo)
             }
         }
-        
+
         // Sort by streak length (longest first)
         let sortedStreaks = streaks.sorted { $0.currentStreak > $1.currentStreak }
-        
+
         return sortedStreaks
     }
     

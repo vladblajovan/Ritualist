@@ -736,3 +736,196 @@ struct StreakCalculationServiceErrorTests {
         #expect(breakDates.isEmpty, "Should have no break dates for habit that hasn't started")
     }
 }
+
+// MARK: - Start Date and Retroactive Logging Tests
+
+@Suite("StreakCalculationService - Start Date Validation")
+struct StreakCalculationServiceStartDateTests {
+
+    let completionService = DefaultHabitCompletionService()
+    let logger = DebugLogger()
+
+    var streakService: StreakCalculationService {
+        DefaultStreakCalculationService(
+            habitCompletionService: completionService,
+            logger: logger
+        )
+    }
+
+    @Test("Streak respects edited start date - logs before start date ignored")
+    func streakRespectsEditedStartDate() async throws {
+        // Arrange: Habit with start date 3 days ago, but logs exist for 5 days
+        let startDate = CalendarUtils.addDaysLocal(-3, to: TestDates.today, timezone: .current)
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: startDate)
+
+        // Create logs for 5 consecutive days (2 before start date)
+        let logs = [
+            HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today),
+            HabitLogBuilder.binary(habitId: habit.id, date: TestDates.yesterday),
+            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDaysLocal(-2, to: TestDates.today, timezone: .current)),
+            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDaysLocal(-3, to: TestDates.today, timezone: .current)),
+            // These logs are before start date and should be ignored
+            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDaysLocal(-4, to: TestDates.today, timezone: .current)),
+            HabitLogBuilder.binary(habitId: habit.id, date: CalendarUtils.addDaysLocal(-5, to: TestDates.today, timezone: .current))
+        ]
+
+        // Act
+        let streak = streakService.calculateCurrentStreak(
+            habit: habit,
+            logs: logs,
+            asOf: TestDates.today
+        )
+
+        // Assert: Should only count 4 days (from start date to today)
+        #expect(streak == 4, "Streak should be 4, ignoring logs before start date")
+    }
+
+    @Test("Longest streak bounded by start date")
+    func longestStreakBoundedByStartDate() async throws {
+        // Arrange: Habit started 5 days ago
+        let startDate = CalendarUtils.addDaysLocal(-5, to: TestDates.today, timezone: .current)
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: startDate)
+
+        // Logs for 10 consecutive days (5 before start date)
+        var logs: [HabitLog] = []
+        for dayOffset in 0...9 {
+            let date = CalendarUtils.addDaysLocal(-dayOffset, to: TestDates.today, timezone: .current)
+            logs.append(HabitLogBuilder.binary(habitId: habit.id, date: date))
+        }
+
+        // Act
+        let longestStreak = streakService.calculateLongestStreak(habit: habit, logs: logs)
+
+        // Assert: Should be 6 days (start date to today inclusive)
+        #expect(longestStreak == 6, "Longest streak should be bounded by start date")
+    }
+
+    @Test("Retroactive logging after editing start date creates valid streak")
+    func retroactiveLoggingCreatesValidStreak() async throws {
+        // Scenario: User edits start date to 7 days ago, then logs retroactively
+        let editedStartDate = CalendarUtils.addDaysLocal(-7, to: TestDates.today, timezone: .current)
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: editedStartDate)
+
+        // User logs for all 8 days (start date to today)
+        var logs: [HabitLog] = []
+        for dayOffset in 0...7 {
+            let date = CalendarUtils.addDaysLocal(-dayOffset, to: TestDates.today, timezone: .current)
+            logs.append(HabitLogBuilder.binary(habitId: habit.id, date: date))
+        }
+
+        // Act
+        let streak = streakService.calculateCurrentStreak(
+            habit: habit,
+            logs: logs,
+            asOf: TestDates.today
+        )
+
+        // Assert: Should be 8 days
+        #expect(streak == 8, "Retroactive logging should create valid 8-day streak")
+    }
+
+    @Test("Streak break dates ignores dates before start date")
+    func streakBreakDatesIgnoresPreStartDate() async throws {
+        // Arrange: Habit started 3 days ago
+        let startDate = CalendarUtils.addDaysLocal(-3, to: TestDates.today, timezone: .current)
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: startDate)
+
+        // Logs only for today and start date (missing yesterday and 2 days ago)
+        let logs = [
+            HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today),
+            HabitLogBuilder.binary(habitId: habit.id, date: startDate)
+        ]
+
+        // Act
+        let breakDates = streakService.getStreakBreakDates(
+            habit: habit,
+            logs: logs,
+            asOf: TestDates.today
+        )
+
+        // Assert: Should have 2 break dates (yesterday and 2 days ago), but NOT anything before start date
+        #expect(breakDates.count == 2, "Should have exactly 2 break dates within the start date range")
+
+        // Verify no break dates are before start date
+        let startDay = CalendarUtils.startOfDayLocal(for: startDate)
+        for breakDate in breakDates {
+            let breakDay = CalendarUtils.startOfDayLocal(for: breakDate)
+            #expect(breakDay >= startDay, "Break dates should not be before start date")
+        }
+    }
+
+    @Test("Current streak starts from edited start date when habit is new")
+    func currentStreakStartsFromEditedStartDate() async throws {
+        // Scenario: User creates habit today but backdates start to 2 days ago
+        let backdatedStart = CalendarUtils.addDaysLocal(-2, to: TestDates.today, timezone: .current)
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: backdatedStart)
+
+        // User logs for all 3 days retroactively
+        let logs = [
+            HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today),
+            HabitLogBuilder.binary(habitId: habit.id, date: TestDates.yesterday),
+            HabitLogBuilder.binary(habitId: habit.id, date: backdatedStart)
+        ]
+
+        // Act
+        let streak = streakService.calculateCurrentStreak(
+            habit: habit,
+            logs: logs,
+            asOf: TestDates.today
+        )
+
+        // Assert
+        #expect(streak == 3, "Streak should be 3 with backdated start date and retroactive logs")
+    }
+
+    @Test("Start date on same day as today counts that day")
+    func startDateTodayCountsToday() async throws {
+        // Arrange: Habit starts today
+        let habit = HabitBuilder.binary(schedule: .daily, startDate: TestDates.today)
+        let log = HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today)
+
+        // Act
+        let streak = streakService.calculateCurrentStreak(
+            habit: habit,
+            logs: [log],
+            asOf: TestDates.today
+        )
+
+        // Assert
+        #expect(streak == 1, "Streak should be 1 when habit starts and is logged today")
+    }
+
+    @Test("Partial week logging with backdated start date calculates correctly")
+    func partialWeekLoggingWithBackdatedStartDate() async throws {
+        // Scenario: Mon/Wed/Fri habit, user backdates to include previous week
+        let lastMonday = TimezoneTestHelpers.createDate(
+            year: 2025, month: 11, day: 3,  // Monday
+            hour: 12, minute: 0,
+            timezone: .current
+        )
+        let habit = HabitBuilder.binary(
+            schedule: .daysOfWeek([1, 3, 5]),  // Mon/Wed/Fri
+            startDate: lastMonday
+        )
+
+        // Log for Mon, Wed, Fri of that week
+        let wednesday = TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 5, hour: 12, minute: 0, timezone: .current)
+        let friday = TimezoneTestHelpers.createDate(year: 2025, month: 11, day: 7, hour: 12, minute: 0, timezone: .current)
+
+        let logs = [
+            HabitLogBuilder.binary(habitId: habit.id, date: lastMonday),
+            HabitLogBuilder.binary(habitId: habit.id, date: wednesday),
+            HabitLogBuilder.binary(habitId: habit.id, date: friday)
+        ]
+
+        // Act
+        let streak = streakService.calculateCurrentStreak(
+            habit: habit,
+            logs: logs,
+            asOf: friday
+        )
+
+        // Assert: Should be 3 (Mon + Wed + Fri)
+        #expect(streak == 3, "Backdated Mon/Wed/Fri habit should have 3-day streak")
+    }
+}
