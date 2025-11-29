@@ -1,3 +1,4 @@
+import CloudKit
 import Foundation
 import SwiftData
 
@@ -177,6 +178,19 @@ public final class PersistenceContainer {
             fatalError("Failed to get shared container URL for app group: \(appGroupIdentifier)")
         }
         return sharedContainerURL
+    }
+
+    /// Check if iCloud account is available
+    /// - Returns: `true` if user is signed into iCloud and account is available
+    /// - Note: Returns `false` on any error (network issues, not signed in, etc.)
+    public static func isICloudAvailable() async -> Bool {
+        let container = CKContainer(identifier: cloudKitContainerIdentifier)
+        do {
+            let accountStatus = try await container.accountStatus()
+            return accountStatus == .available
+        } catch {
+            return false
+        }
     }
 
     /// Get description of what changed in a migration
