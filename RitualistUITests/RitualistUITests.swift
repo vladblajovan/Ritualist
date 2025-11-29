@@ -18,7 +18,7 @@ class RitualistUITestCase: XCTestCase {
         app = XCUIApplication()
 
         // Set launch arguments for testing
-        app.launchArguments = ["--uitesting"]
+        app.launchArguments = [LaunchArgument.uiTesting.rawValue]
 
         app.launch()
 

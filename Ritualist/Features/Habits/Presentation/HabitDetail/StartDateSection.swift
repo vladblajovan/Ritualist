@@ -22,11 +22,13 @@ struct StartDateSection: View {
                 displayedComponents: .date
             )
             .datePickerStyle(.compact)
+            .accessibilityIdentifier("habitDetail.startDate.picker")
         } header: {
             Text("Start Date")
         } footer: {
             footerContent
         }
+        .accessibilityIdentifier("habitDetail.startDate.section")
     }
 
     @ViewBuilder

@@ -298,37 +298,36 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     
     private func saveSchedulerState() {
         let encoder = JSONEncoder()
-        
+
         if let scheduledData = try? encoder.encode(Array(scheduledUsers)) {
-            UserDefaults.standard.set(scheduledData, forKey: "personality_scheduler_users")
+            UserDefaults.standard.set(scheduledData, forKey: UserDefaultsKeys.personalitySchedulerUsers)
         }
-        
+
         if let datesData = try? encoder.encode(lastAnalysisDates) {
-            UserDefaults.standard.set(datesData, forKey: "personality_scheduler_dates")
+            UserDefaults.standard.set(datesData, forKey: UserDefaultsKeys.personalitySchedulerDates)
         }
-        
+
         if let hashData = try? encoder.encode(lastDataHashes) {
-            UserDefaults.standard.set(hashData, forKey: "personality_scheduler_hashes")
+            UserDefaults.standard.set(hashData, forKey: UserDefaultsKeys.personalitySchedulerHashes)
         }
     }
     
     private func loadSchedulerState() {
         let decoder = JSONDecoder()
-        
-        if let scheduledData = UserDefaults.standard.data(forKey: "personality_scheduler_users"),
+
+        if let scheduledData = UserDefaults.standard.data(forKey: UserDefaultsKeys.personalitySchedulerUsers),
            let scheduledArray = try? decoder.decode([UUID].self, from: scheduledData) {
             scheduledUsers = Set(scheduledArray)
         }
-        
-        if let datesData = UserDefaults.standard.data(forKey: "personality_scheduler_dates"),
+
+        if let datesData = UserDefaults.standard.data(forKey: UserDefaultsKeys.personalitySchedulerDates),
            let dates = try? decoder.decode([UUID: Date].self, from: datesData) {
             lastAnalysisDates = dates
         }
-        
-        if let hashData = UserDefaults.standard.data(forKey: "personality_scheduler_hashes"),
+
+        if let hashData = UserDefaults.standard.data(forKey: UserDefaultsKeys.personalitySchedulerHashes),
            let hashes = try? decoder.decode([UUID: String].self, from: hashData) {
             lastDataHashes = hashes
         }
-        
     }
 }

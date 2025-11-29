@@ -216,7 +216,7 @@ public final class RootTabViewModel {
     private func handleTestingLaunchArguments() -> Bool {
         #if DEBUG
         // Skip onboarding entirely during UI tests
-        if CommandLine.arguments.contains("--uitesting") {
+        if LaunchArgument.uiTesting.isActive {
             showOnboarding = false
             isCheckingOnboarding = false
             logger.log("UI testing mode - skipping onboarding", level: .info, category: .ui)
@@ -224,7 +224,7 @@ public final class RootTabViewModel {
         }
 
         // Force onboarding for onboarding UI tests
-        if CommandLine.arguments.contains("--force-onboarding") {
+        if LaunchArgument.forceOnboarding.isActive {
             showOnboarding = true
             isCheckingOnboarding = false
             logger.log("Force onboarding mode - showing onboarding", level: .info, category: .ui)
@@ -232,7 +232,7 @@ public final class RootTabViewModel {
         }
 
         // Force returning user flow for UI tests (with incomplete profile)
-        if CommandLine.arguments.contains("--force-returning-user") {
+        if LaunchArgument.forceReturningUser.isActive {
             configureReturningUserTest(
                 profileName: "Test User",
                 profileGender: nil,
@@ -243,7 +243,7 @@ public final class RootTabViewModel {
         }
 
         // Force returning user flow with complete profile (skips profile completion)
-        if CommandLine.arguments.contains("--force-returning-user-complete") {
+        if LaunchArgument.forceReturningUserComplete.isActive {
             configureReturningUserTest(
                 profileName: "Test User",
                 profileGender: "male",
@@ -254,7 +254,7 @@ public final class RootTabViewModel {
         }
 
         // Force returning user flow with no name (shows name input)
-        if CommandLine.arguments.contains("--force-returning-user-no-name") {
+        if LaunchArgument.forceReturningUserNoName.isActive {
             configureReturningUserTest(
                 profileName: nil,
                 profileGender: nil,

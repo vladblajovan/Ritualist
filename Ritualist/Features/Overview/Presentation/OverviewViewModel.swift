@@ -1518,15 +1518,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     private func resetDismissedTriggersIfNewDay() {
         let today = Date()
-        
+
         // Check if we've moved to a new day since last session
-        if let lastResetDate = UserDefaults.standard.object(forKey: "lastInspirationResetDate") as? Date {
+        if let lastResetDate = UserDefaults.standard.object(forKey: UserDefaultsKeys.lastInspirationResetDate) as? Date {
             if !CalendarUtils.areSameDayLocal(lastResetDate, today) {
                 dismissedTriggersToday.removeAll()
-                UserDefaults.standard.set(today, forKey: "lastInspirationResetDate")
+                UserDefaults.standard.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
             } else {
                 // Load dismissed triggers for today from UserDefaults
-                if let dismissedData = UserDefaults.standard.data(forKey: "dismissedTriggersToday"),
+                if let dismissedData = UserDefaults.standard.data(forKey: UserDefaultsKeys.dismissedTriggersToday),
                    let dismissedArray = try? JSONDecoder().decode([String].self, from: dismissedData) {
                     dismissedTriggersToday = Set(dismissedArray.compactMap { triggerString in
                         InspirationTrigger.allCases.first { "\($0)" == triggerString }
@@ -1535,14 +1535,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             }
         } else {
             // First time - set today as reset date
-            UserDefaults.standard.set(today, forKey: "lastInspirationResetDate")
+            UserDefaults.standard.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
         }
     }
     
     private func saveDismissedTriggers() {
         let dismissedArray = dismissedTriggersToday.map { "\($0)" }
         if let data = try? JSONEncoder().encode(dismissedArray) {
-            UserDefaults.standard.set(data, forKey: "dismissedTriggersToday")
+            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.dismissedTriggersToday)
         }
     }
     
