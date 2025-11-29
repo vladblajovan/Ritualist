@@ -93,7 +93,7 @@ enum TestDates {
 
         while currentDate < weekInterval.end {
             dates.append(currentDate)
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
 
         return dates
@@ -112,7 +112,7 @@ enum TestDates {
 
         while currentDate < monthInterval.end {
             dates.append(currentDate)
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
 
         return dates

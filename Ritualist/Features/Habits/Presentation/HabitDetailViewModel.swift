@@ -24,6 +24,8 @@ public final class HabitDetailViewModel {
     @ObservationIgnored @Injected(\.configureHabitLocation) var configureHabitLocation
     @ObservationIgnored @Injected(\.requestLocationPermissions) var requestLocationPermissions
     @ObservationIgnored @Injected(\.getLocationAuthStatus) var getLocationAuthStatus
+    @ObservationIgnored @Injected(\.getEarliestLogDate) var getEarliestLogDate
+    @ObservationIgnored @Injected(\.debugLogger) var logger
 
     // Form state
     public var name = ""
@@ -36,6 +38,7 @@ public final class HabitDetailViewModel {
     public var selectedColorHex = "#2DA9E3"
     public var reminders: [ReminderTime] = []
     public var isActive = true
+    public var startDate = Date()
     
     // Category state
     public var selectedCategory: HabitCategory?
@@ -46,6 +49,10 @@ public final class HabitDetailViewModel {
     // Validation state
     public private(set) var isDuplicateHabit = false
     public private(set) var isValidatingDuplicate = false
+
+    // Start date validation state (for edit mode)
+    public private(set) var earliestLogDate: Date?
+    public private(set) var isLoadingEarliestLogDate = false
 
     // Location state
     public var locationConfiguration: LocationConfiguration?
@@ -73,11 +80,12 @@ public final class HabitDetailViewModel {
             loadHabitData(habit)
         }
         
-        // Load categories and check location status in parallel for faster startup
+        // Load categories, location status, and earliest log date in parallel for faster startup
         Task {
             async let categories: () = loadCategories()
             async let location: () = checkLocationAuthStatus()
-            _ = await (categories, location)
+            async let earliestLog: () = loadEarliestLogDate()
+            _ = await (categories, location, earliestLog)
         }
     }
     
@@ -86,7 +94,9 @@ public final class HabitDetailViewModel {
         (selectedKind == .binary || (dailyTarget > 0 && !unitLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)) &&
         (selectedSchedule != .daysOfWeek || !selectedDaysOfWeek.isEmpty) &&
         (isEditMode || selectedCategory != nil) &&  // Allow nil category when editing (during async loading)
-        !isDuplicateHabit
+        !isDuplicateHabit &&
+        !isLoadingEarliestLogDate &&  // Prevent save while validation data is loading
+        isStartDateValid
     }
     
     // Individual validation properties for better UI feedback
@@ -108,6 +118,15 @@ public final class HabitDetailViewModel {
     
     public var isCategoryValid: Bool {
         selectedCategory != nil
+    }
+
+    /// Start date is valid if it's not after any existing logs.
+    /// If there are logs, start date must be on or before the earliest log date.
+    public var isStartDateValid: Bool {
+        guard let earliestLog = earliestLogDate else { return true }
+        let startDay = CalendarUtils.startOfDayLocal(for: startDate)
+        let earliestDay = CalendarUtils.startOfDayLocal(for: earliestLog)
+        return startDay <= earliestDay
     }
 
     public var didMakeChanges = false
@@ -297,12 +316,31 @@ public final class HabitDetailViewModel {
             isDuplicateHabit = !isUnique
         } catch {
             // If validation fails, assume no duplicate to avoid blocking the user
+            // but log the error for debugging
+            logger.log("Failed to validate habit uniqueness for '\(name)': \(error.localizedDescription)", level: .error, category: .dataIntegrity)
             isDuplicateHabit = false
         }
-        
+
         isValidatingDuplicate = false
     }
-    
+
+    /// Loads the earliest log date for the habit being edited.
+    /// Used to validate that start date is not set after existing logs.
+    public func loadEarliestLogDate() async {
+        guard isEditMode, let habitId = originalHabit?.id else { return }
+
+        isLoadingEarliestLogDate = true
+        do {
+            earliestLogDate = try await getEarliestLogDate.execute(for: habitId)
+        } catch {
+            // If loading fails, allow any start date to avoid blocking the user
+            // but log the error for debugging
+            logger.log("Failed to load earliest log date for habit \(habitId): \(error.localizedDescription)", level: .error, category: .dataIntegrity)
+            earliestLogDate = nil
+        }
+        isLoadingEarliestLogDate = false
+    }
+
     private func loadHabitData(_ habit: Habit) {
         name = habit.name
         selectedKind = habit.kind
@@ -312,6 +350,7 @@ public final class HabitDetailViewModel {
         selectedColorHex = habit.colorHex
         reminders = habit.reminders
         isActive = habit.isActive
+        startDate = habit.startDate
         locationConfiguration = habit.locationConfiguration
 
         // Parse schedule
@@ -356,7 +395,7 @@ public final class HabitDetailViewModel {
             dailyTarget: selectedKind == .numeric ? dailyTarget : nil,
             schedule: schedule,
             reminders: reminders,
-            startDate: originalHabit?.startDate ?? Date(),
+            startDate: startDate,
             endDate: originalHabit?.endDate,
             isActive: isActive,
             categoryId: finalCategoryId,

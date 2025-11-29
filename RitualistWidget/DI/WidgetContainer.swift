@@ -15,7 +15,14 @@ import WidgetKit
 // Using the exact same architecture as the main app
 
 extension Container {
-    
+
+    // MARK: - Widget Logger
+
+    var widgetLogger: Factory<DebugLogger> {
+        self { DebugLogger(subsystem: WidgetConstants.loggerSubsystem, category: "general") }
+            .singleton
+    }
+
     // MARK: - Shared Persistence Container (same as main app)
     var persistenceContainer: Factory<RitualistCore.PersistenceContainer> {
         self { 

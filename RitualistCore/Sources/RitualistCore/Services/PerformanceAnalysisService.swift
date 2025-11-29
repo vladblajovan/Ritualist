@@ -192,14 +192,14 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                 }
             }
 
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: timezone)
         }
-        
+
         // Calculate day of week performance results using proper week ordering
         let dayOfWeekResults = dayPerformance.map { weekday, performance in
             let dayName = DateFormatter().weekdaySymbols[weekday - 1]
             let completionRate = performance.total > 0 ? Double(performance.completed) / Double(performance.total) : 0.0
-            let averageCompleted = performance.total > 0 ? performance.completed / getDayCount(weekday: weekday, from: startDate, to: endDate) : 0
+            let averageCompleted = performance.total > 0 ? performance.completed / getDayCount(weekday: weekday, from: startDate, to: endDate, timezone: timezone) : 0
             
             return DayOfWeekPerformanceResult(
                 dayName: dayName,
@@ -313,7 +313,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                 tempStreak = 0
             }
 
-            currentDate = CalendarUtils.addDays(-1, to: currentDate)
+            currentDate = CalendarUtils.addDaysLocal(-1, to: currentDate, timezone: timezone)
         }
 
         // End of period - check if we have a final streak to save
@@ -348,13 +348,12 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     }
     
     public func aggregateCategoryPerformance(
-        habits: [Habit], 
-        categories: [HabitCategory], 
-        logs: [HabitLog], 
-        from startDate: Date, 
+        habits: [Habit],
+        categories: [HabitCategory],
+        logs: [HabitLog],
+        from startDate: Date,
         to endDate: Date
     ) -> [CategoryPerformanceResult] {
-        
         // Group habits by category
         let habitsByCategory = Dictionary(grouping: habits) { habit in
             if let categoryId = habit.categoryId, categories.contains(where: { $0.id == categoryId }) {
@@ -406,54 +405,63 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     
     // MARK: - Private Helpers
     
-    private func getDayCount(weekday: Int, from startDate: Date, to endDate: Date) -> Int {
+    private func getDayCount(weekday: Int, from startDate: Date, to endDate: Date, timezone: TimeZone) -> Int {
         var count = 0
         var currentDate = startDate
 
         while currentDate <= endDate {
-            if CalendarUtils.weekdayComponentLocal(from: currentDate) == weekday {
+            if CalendarUtils.weekdayComponentLocal(from: currentDate, timezone: timezone) == weekday {
                 count += 1
             }
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: timezone)
         }
-        
+
         return max(count, 1) // Avoid division by zero
     }
     
     private func calculateCategoryCompletionRate(
-        habits: [Habit], 
-        logs: [HabitLog], 
-        from startDate: Date, 
+        habits: [Habit],
+        logs: [HabitLog],
+        from startDate: Date,
         to endDate: Date
     ) -> Double {
         guard !habits.isEmpty else { return 0.0 }
-        
+
         let categoryLogs = logs.filter { log in
             habits.contains { $0.id == log.habitID }
         }
-        
+
         var totalExpectedDays = 0
         var totalCompletedDays = 0
-        
+
         for habit in habits {
             let habitLogs = categoryLogs.filter { $0.habitID == habit.id }
+            let logsInRange = habitLogs.filter { log in
+                log.date >= startDate && log.date <= endDate
+            }
+
+            // For retroactive logging support: calculate expected days from the earliest relevant date
+            // This ensures that if user logs retroactively, we account for those periods in expected days
+            let earliestLogDate = logsInRange.map { $0.date }.min()
+            let effectiveStartDate = min(habit.startDate, earliestLogDate ?? habit.startDate)
+            let calculationStartDate = max(startDate, effectiveStartDate)
 
             let expectedDays = scheduleAnalyzer.calculateExpectedDays(
                 for: habit,
-                from: startDate,
+                from: calculationStartDate,
                 to: endDate,
                 timezone: .current
             )
 
             // Count only logs that meet completion criteria
-            let completedDays = habitLogs.filter { log in
+            let completedDays = logsInRange.filter { log in
                 HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit)
             }.count
 
             totalExpectedDays += expectedDays
             totalCompletedDays += completedDays
         }
-        
+
         return totalExpectedDays > 0 ? min(Double(totalCompletedDays) / Double(totalExpectedDays), 1.0) : 0.0
     }
 

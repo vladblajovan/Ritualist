@@ -82,6 +82,8 @@ enum AccessibilityID {
         static let saveButton = "habitDetail.save"
         static let cancelButton = "habitDetail.cancel"
         static let deleteButton = "habitDetail.delete"
+        static let startDateSection = "habitDetail.startDate.section"
+        static let startDatePicker = "habitDetail.startDate.picker"
     }
 
     // MARK: - Habits Assistant

@@ -240,7 +240,7 @@ struct MonthlyCalendarCard: View {
     let sampleData: [Date: Double] = {
         var data: [Date: Double] = [:]
         for index in 1...30 {
-            let date = CalendarUtils.addDays(-index, to: Date())
+            let date = CalendarUtils.addDaysLocal(-index, to: Date(), timezone: .current)
             data[CalendarUtils.startOfDayLocal(for: date)] = Double.random(in: 0...1)
         }
         return data

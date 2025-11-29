@@ -83,6 +83,8 @@ struct CompleteHabitIntent: AppIntent {
                 print("[WIDGET-INTENT] ❌ Habit not scheduled for today: \(habitName), reason: \(reason)")
             case .invalidSchedule(let habitName):
                 print("[WIDGET-INTENT] ❌ Invalid schedule for habit: \(habitName)")
+            case .dateBeforeStartDate(let habitName):
+                print("[WIDGET-INTENT] ❌ Date before start date for habit: \(habitName)")
             }
             
             print("[WIDGET-INTENT] 🔍 Full validation error details: \(error)")
@@ -135,7 +137,7 @@ struct CompleteHistoricalHabitIntent: AppIntent {
         // Validate date is within bounds (last 30 days)
         let calendar = CalendarUtils.currentLocalCalendar
         let today = calendar.startOfDay(for: Date())
-        let thirtyDaysAgo = CalendarUtils.addDays(-30, to: today)
+        let thirtyDaysAgo = CalendarUtils.addDaysLocal(-30, to: today, timezone: .current)
         
         guard validatedDate >= thirtyDaysAgo && validatedDate <= today else {
             print("[WIDGET-INTENT] Date out of bounds: \(targetDate)")
@@ -170,6 +172,8 @@ struct CompleteHistoricalHabitIntent: AppIntent {
                 print("[WIDGET-INTENT] Historical habit not scheduled: \(habitName) for date: \(targetDate), reason: \(reason)")
             case .invalidSchedule(let habitName):
                 print("[WIDGET-INTENT] Invalid schedule for historical habit: \(habitName) for date: \(targetDate)")
+            case .dateBeforeStartDate(let habitName):
+                print("[WIDGET-INTENT] Historical date before start date for habit: \(habitName) for date: \(targetDate)")
             }
             
             // All validation errors fail silently in widget context (iOS best practice)

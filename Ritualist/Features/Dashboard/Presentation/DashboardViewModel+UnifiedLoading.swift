@@ -85,8 +85,8 @@ extension DashboardViewModel {
                 let completedHabitsToday = dashboardData.completedHabits(for: startOfDay)
                 habitsWithCompletions.formUnion(completedHabitsToday)
             }
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
         
         let averageCompletionRate = totalPossibleCompletions > 0 ? Double(totalActualCompletions) / Double(totalPossibleCompletions) : 0.0
@@ -258,8 +258,8 @@ extension DashboardViewModel {
                     dayOfWeekStats[dayOfWeek]?.total += scheduledHabits.count
                 }
             }
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
 
         return (dayOfWeekStats, daysWithData)
@@ -300,9 +300,16 @@ extension DashboardViewModel {
     }
     
     /// Extract category breakdown from unified dashboard data
-    /// Uses pre-calculated data without additional queries
+    /// Uses PerformanceAnalysisService for consistent calculation logic
     func extractCategoryBreakdown(from dashboardData: DashboardData) -> [CategoryPerformanceViewModel] {
-        let domainResults = dashboardData.categoryPerformanceData()
+        let allLogs = dashboardData.habitLogs.values.flatMap { $0 }
+        let domainResults = performanceAnalysisService.aggregateCategoryPerformance(
+            habits: dashboardData.habits,
+            categories: dashboardData.categories,
+            logs: allLogs,
+            from: dashboardData.dateRange.lowerBound,
+            to: dashboardData.dateRange.upperBound
+        )
         return domainResults.map(CategoryPerformanceViewModel.init)
     }
     

@@ -85,6 +85,7 @@ extension Container {
         }
     }
 
+    // TODO: Remove this - dead code. Never injected or called anywhere.
     var aggregateCategoryPerformanceUseCase: Factory<AggregateCategoryPerformanceUseCaseProtocol> {
         self {
             AggregateCategoryPerformanceUseCase(

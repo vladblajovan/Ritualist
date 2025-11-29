@@ -51,3 +51,22 @@ public struct Habit: Identifiable, Codable, Hashable {
         self.priorityLevel = priorityLevel
     }
 }
+
+// MARK: - Schedule Convenience Methods
+
+public extension Habit {
+    /// Checks if this habit is scheduled on the given date.
+    /// A habit is scheduled if:
+    /// 1. The date is on or after the habit's start date
+    /// 2. The schedule pattern matches the date (daily or specific days of week)
+    ///
+    /// - Parameters:
+    ///   - date: The date to check
+    ///   - timezone: The timezone to use for date calculations (defaults to current)
+    /// - Returns: `true` if the habit is scheduled on this date
+    func isScheduledOn(date: Date, timezone: TimeZone = .current) -> Bool {
+        let dateStart = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
+        let habitStartDay = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
+        return dateStart >= habitStartDay && schedule.isActiveOn(date: date)
+    }
+}

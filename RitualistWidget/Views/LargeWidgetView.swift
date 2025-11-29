@@ -185,7 +185,7 @@ struct LargeWidgetView: View {
         HabitDisplayInfo(habit: habits[6], currentProgress: 0, isCompleted: false),   // Remaining
         HabitDisplayInfo(habit: habits[7], currentProgress: 3200, isCompleted: false) // Remaining
     ]
-    let selectedDate = CalendarUtils.addDays(-3, to: Date())
+    let selectedDate = CalendarUtils.addDaysLocal(-3, to: Date(), timezone: .current)
     let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
     let entry = RemainingHabitsEntry(
         date: Date(),

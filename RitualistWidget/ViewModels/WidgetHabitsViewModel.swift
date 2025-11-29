@@ -38,17 +38,16 @@ final class WidgetHabitsViewModel {
             // 1. Get active habits using main app's Use Case
             let allHabits = try await getActiveHabits.execute()
 
-            // 2. Filter to habits scheduled for target date
-            let scheduledHabits = allHabits.filter { habit in
-                habitCompletionService.isScheduledDay(habit: habit, date: targetDate)
-            }
+            // 2. Filter to habits scheduled for target date (and already started)
+            // Note: isScheduledDay already checks start date, but we use habit.isScheduledOn for consistency
+            let scheduledHabits = allHabits.filter { $0.isScheduledOn(date: targetDate) }
 
             // 3. Get batch logs for all scheduled habits using main app's Use Case
             let habitIds = scheduledHabits.map { $0.id }
             let logsByHabitId = try await getBatchLogs.execute(
                 for: habitIds,
                 since: targetDate,
-                until: CalendarUtils.addDays(1, to: targetDate)
+                until: CalendarUtils.addDaysLocal(1, to: targetDate, timezone: .current)
             )
             
             // 4. Process each habit with its progress and completion

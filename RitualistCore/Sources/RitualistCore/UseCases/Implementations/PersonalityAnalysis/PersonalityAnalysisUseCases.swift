@@ -30,7 +30,7 @@ public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
         
         // Get enhanced completion statistics with schedule-aware calculations
         let endDate = Date()
-        let startDate = CalendarUtils.addDays(-30, to: endDate)
+        let startDate = CalendarUtils.addDaysLocal(-30, to: endDate, timezone: .current)
         let completionStats = try await repository.getHabitCompletionStats(for: userId, from: startDate, to: endDate)
         
         // Calculate personality scores using Service as utility
@@ -527,7 +527,7 @@ public final class DefaultGetHabitAnalysisInputUseCase: GetHabitAnalysisInputUse
 
         // Get all habit logs for the last 30 days using batch optimization
         let endDate = Date()
-        let startDate = CalendarUtils.addDays(-30, to: endDate)
+        let startDate = CalendarUtils.addDaysLocal(-30, to: endDate, timezone: .current)
 
         // OPTIMIZATION: Use batch loading to avoid N+1 queries
         let habitIds = activeHabits.map(\.id)

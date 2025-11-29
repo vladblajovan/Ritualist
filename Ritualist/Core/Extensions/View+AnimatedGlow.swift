@@ -18,7 +18,7 @@ import RitualistCore
 /// Checks if reduce motion should be enabled, respecting both system settings and test overrides.
 private var shouldReduceMotion: Bool {
     #if DEBUG
-    if CommandLine.arguments.contains("--reduce-motion") {
+    if LaunchArgument.reduceMotion.isActive {
         return true
     }
     #endif

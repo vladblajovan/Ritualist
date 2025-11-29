@@ -4,29 +4,34 @@ import RitualistCore
 struct OnboardingPage2View: View {
     @Bindable var viewModel: OnboardingViewModel
 
+    // Scale icon container with Dynamic Type
+    @ScaledMetric(relativeTo: .largeTitle) private var iconContainerSize: CGFloat = 100
+    @ScaledMetric(relativeTo: .largeTitle) private var glowSize: CGFloat = 140
+
     var body: some View {
         ScrollView {
             VStack(spacing: 32) {
                 Spacer(minLength: 20)
 
-                // Icon with glow
+                // Icon with glow - scales with Dynamic Type
                 ZStack {
                     Circle()
                         .fill(Color.green.opacity(0.15))
-                        .frame(width: 100, height: 100)
+                        .frame(width: iconContainerSize, height: iconContainerSize)
 
                     Image(systemName: "checkmark.circle.fill")
                         .font(.largeTitle)
                         .imageScale(.large)
                         .foregroundStyle(.green)
                 }
-                .animatedGlow(color: .green, glowSize: 140, intensity: 0.4)
+                .animatedGlow(color: .green, glowSize: glowSize, intensity: 0.4)
                 .accessibilityHidden(true)
 
                 // Title and description
                 VStack(spacing: 8) {
                     Text("Track Your Habits")
-                        .font(.system(.title, design: .rounded, weight: .bold))
+                        .font(.title.weight(.bold))
+                        .fontDesign(.rounded)
                         .multilineTextAlignment(.center)
                         .accessibilityAddTraits(.isHeader)
 

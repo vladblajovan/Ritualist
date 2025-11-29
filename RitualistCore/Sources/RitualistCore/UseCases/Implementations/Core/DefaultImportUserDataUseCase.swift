@@ -111,8 +111,8 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             // Import habits
             try await importHabits(importedData.habits)
 
-            // Import habit logs
-            try await importHabitLogs(importedData.habitLogs)
+            // Import habit logs (with start date validation)
+            try await importHabitLogs(importedData.habitLogs, habits: importedData.habits)
 
             // Import personality data
             try await importPersonalityData(importedData.personalityData)
@@ -256,10 +256,37 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         }
     }
 
-    private func importHabitLogs(_ logs: [HabitLog]) async throws {
-        // Clean slate - insert all logs from the import
+    private func importHabitLogs(_ logs: [HabitLog], habits: [Habit]) async throws {
+        // Build habit lookup by ID for start date validation
+        let habitById = Dictionary(uniqueKeysWithValues: habits.map { ($0.id, $0) })
+
+        var skippedCount = 0
+
+        // Clean slate - insert all valid logs from the import
         for log in logs {
+            // Validate log date is not before habit's start date
+            if let habit = habitById[log.habitID] {
+                let logDay = CalendarUtils.startOfDayLocal(for: log.date)
+                let startDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
+
+                if logDay < startDay {
+                    // Skip logs that are before the habit's start date
+                    skippedCount += 1
+                    continue
+                }
+            }
+            // If habit not found, still import the log (orphan handling is separate)
+
             try await logDataSource.upsert(log)
+        }
+
+        if skippedCount > 0 {
+            logger.log(
+                "⚠️ Skipped logs during import - dates before habit start",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["skipped_logs": skippedCount]
+            )
         }
     }
 

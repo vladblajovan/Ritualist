@@ -291,9 +291,9 @@ struct HabitScheduleAnalyzerTests {
             to: CalendarUtils.addDays(3, to: TestDates.today)
         )
 
-        // Assert: Note - The analyzer doesn't filter by habit.startDate for retroactive logging support
-        // So it will count all days in the range
-        #expect(expectedDays == 4, "Expected days counts all days in range for retroactive logging support")
+        // Assert: Habit hasn't started yet, so no days are expected
+        // isHabitExpectedOnDate returns false for dates before habit.startDate
+        #expect(expectedDays == 0, "Expected days should be 0 for habit that hasn't started yet")
     }
 }
 
@@ -570,8 +570,8 @@ struct HabitScheduleAnalyzerErrorTests {
         // Act
         let isExpected = analyzer.isHabitExpectedOnDate(habit: habit, date: farPast)
 
-        // Assert: Should not crash
-        #expect(isExpected == true, "Should handle far past date without crashing")
+        // Assert: Should not crash and should return false (date is before habit start)
+        #expect(isExpected == false, "Should return false for date before habit start date")
     }
 
     @Test("calculateExpectedDays handles very long date range")
