@@ -69,7 +69,6 @@ public struct RootTabView: View {
                             .accessibilityIdentifier(AccessibilityID.Settings.root)
                         }
                 }
-                .tabBarMinimizeOnScroll()
                 .preferredColorScheme(vm.appearanceManager.colorScheme)
                 #if DEBUG
                 .overlay(alignment: .topTrailing) {
@@ -643,47 +642,6 @@ public struct RootTabView: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - iOS 26+ API Compatibility Extensions
-
-extension View {
-    /// Applies tab bar minimize behavior on scroll when available (iOS 26.0+)
-    ///
-    /// This modifier gracefully degrades on:
-    /// - Older iOS versions (< 26.0): No tab bar minimize behavior
-    /// - Older SDK/compiler (< Swift 6.2): API not available at compile time
-    ///
-    /// **Pattern for new iOS 26+ APIs:**
-    /// ```swift
-    /// extension View {
-    ///     func yourNewAPI() -> some View {
-    ///         #if compiler(>=6.2)              // Compile-time: Does SDK know this API?
-    ///         if #available(iOS 26.0, *) {     // Runtime: Does device support it?
-    ///             return self.newAPIMethod()
-    ///         } else {
-    ///             return self
-    ///         }
-    ///         #else
-    ///         return self
-    ///         #endif
-    ///     }
-    /// }
-    /// ```
-    ///
-    /// - Returns: View with minimize behavior on iOS 26.0+, unmodified view otherwise
-    @ViewBuilder
-    func tabBarMinimizeOnScroll() -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            self.tabBarMinimizeBehavior(.onScrollDown)
-        } else {
-            self
-        }
-        #else
-        self
-        #endif
     }
 }
 
