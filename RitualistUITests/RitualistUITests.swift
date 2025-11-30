@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import RitualistCore
 
 /// Base class for Ritualist UI tests
 /// Provides common setup, teardown, and helper methods

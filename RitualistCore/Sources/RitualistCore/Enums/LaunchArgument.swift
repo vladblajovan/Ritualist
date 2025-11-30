@@ -1,21 +1,18 @@
 //
-//  LaunchArguments.swift
-//  RitualistUITests
+//  LaunchArgument.swift
+//  RitualistCore
 //
-//  Mirror copy of Ritualist/Core/Utilities/LaunchArguments.swift
-//  The UI test target cannot import the app module directly.
-//
-//  IMPORTANT: Keep in sync with the app's LaunchArguments.swift.
-//  When adding or modifying arguments:
-//  1. Update the app's copy first (Ritualist/Core/Utilities/LaunchArguments.swift)
-//  2. Update this file with the same changes
+//  Centralized launch arguments for testing and debugging.
+//  Shared between the app and UI tests to ensure consistency.
 //
 
 import Foundation
 
 /// Centralized launch arguments used for testing and debugging.
-/// Usage: `app.launchArguments = [LaunchArgument.uiTesting.rawValue]`
-enum LaunchArgument: String, CaseIterable {
+///
+/// **App usage:** `if LaunchArgument.uiTesting.isActive { ... }`
+/// **UI test usage:** `app.launchArguments = [LaunchArgument.uiTesting.rawValue]`
+public enum LaunchArgument: String, CaseIterable {
 
     // MARK: - Testing
 
@@ -38,4 +35,12 @@ enum LaunchArgument: String, CaseIterable {
 
     /// Forces the returning user flow without a name set
     case forceReturningUserNoName = "--force-returning-user-no-name"
+
+    // MARK: - Convenience
+
+    /// Returns true if this launch argument is present in the command line.
+    /// Use this in the app to check if a specific argument was passed.
+    public var isActive: Bool {
+        CommandLine.arguments.contains(rawValue)
+    }
 }
