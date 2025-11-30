@@ -1340,6 +1340,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                     let newProfile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
                     personalityProfile = newProfile
                 } catch {
+                    // Log the error - analysis creation failures shouldn't crash the app
+                    logger.log("Failed to create personality analysis: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
                     // If analysis fails, we still show the card but with error state
                     personalityInsights = []
                     dominantPersonalityTrait = nil
@@ -1389,6 +1391,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 dominantPersonalityTrait = nil
             }
         } catch {
+            // Log the error for debugging - personality analysis failures shouldn't crash the app
+            logger.log("Failed to load personality insights: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
             // Even on error, show the card but with empty state
             personalityInsights = []
             dominantPersonalityTrait = nil

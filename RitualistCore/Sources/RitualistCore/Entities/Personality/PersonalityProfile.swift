@@ -275,15 +275,28 @@ public struct HabitAnalysisInput {
 }
 
 /// Habit completion statistics
+///
+/// **Invariants:**
+/// - `totalHabits >= 0`
+/// - `completedHabits >= 0`
+/// - `completedHabits <= totalHabits`
+/// - `completionRate` in range `0...1`
 public struct HabitCompletionStats: Codable {
     public let totalHabits: Int
-    public let completedHabits: Int  
+    public let completedHabits: Int
     public let completionRate: Double
-    
+
     public init(totalHabits: Int, completedHabits: Int, completionRate: Double) {
-        self.totalHabits = totalHabits
-        self.completedHabits = completedHabits
-        self.completionRate = completionRate
+        // Validate invariants in DEBUG to catch bugs early
+        assert(totalHabits >= 0, "totalHabits must be non-negative")
+        assert(completedHabits >= 0, "completedHabits must be non-negative")
+        assert(completedHabits <= totalHabits, "completedHabits cannot exceed totalHabits")
+        assert(completionRate >= 0 && completionRate <= 1, "completionRate must be between 0 and 1")
+
+        // Clamp to valid ranges in RELEASE to prevent crashes
+        self.totalHabits = max(0, totalHabits)
+        self.completedHabits = max(0, min(completedHabits, max(0, totalHabits)))
+        self.completionRate = max(0, min(1, completionRate))
     }
 }
 
