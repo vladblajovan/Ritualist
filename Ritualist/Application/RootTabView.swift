@@ -29,9 +29,6 @@ public struct RootTabView: View {
     @State private var showingQuickActionHabitsAssistant = false
     @State private var pendingQuickActionHabitsAssistantReshow = false // For dismiss-then-reshow pattern
 
-    /// UserDefaults key for tracking if we've shown the first iCloud sync toast
-    private static let hasShownFirstSyncToastKey = "hasShownFirstiCloudSyncToast"
-
     public init() {}
 
     @ViewBuilder
@@ -83,11 +80,16 @@ public struct RootTabView: View {
                 #endif
                 .overlay(alignment: .top) {
                     if showSyncToast {
-                        ICloudSyncToast(onDismiss: {
-                            withAnimation(.easeOut(duration: 0.3)) {
-                                showSyncToast = false
+                        ToastView(
+                            message: Strings.ICloudSync.syncedFromCloud,
+                            icon: "icloud.fill",
+                            style: .info,
+                            onDismiss: {
+                                withAnimation(.easeOut(duration: 0.3)) {
+                                    showSyncToast = false
+                                }
                             }
-                        })
+                        )
                         .padding(.top, 50)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
@@ -430,12 +432,11 @@ public struct RootTabView: View {
 
         await viewModel.checkOnboardingStatus()
 
-        // Ensure launch screen shows for at least 1 second for smooth UX
+        // Ensure launch screen shows for minimum time to avoid jarring flash
         // Skip delay during UI tests for faster test execution
-        let isUITesting = CommandLine.arguments.contains("--uitesting")
-        if !isUITesting {
+        if !LaunchArgument.uiTesting.isActive {
             let elapsed = Date().timeIntervalSince(startTime)
-            let minimumDisplayTime: TimeInterval = 1.0
+            let minimumDisplayTime: TimeInterval = 0.5
             if elapsed < minimumDisplayTime {
                 try? await Task.sleep(for: .seconds(minimumDisplayTime - elapsed))
             }
@@ -555,7 +556,7 @@ public struct RootTabView: View {
         #endif
 
         // Check if we've already shown this toast (check BEFORE spawning async work)
-        guard !UserDefaults.standard.bool(forKey: Self.hasShownFirstSyncToastKey) else {
+        guard !UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else {
             return
         }
 
@@ -578,7 +579,7 @@ public struct RootTabView: View {
         // Load habits to check if data actually synced
         Task {
             // Double-check flag inside Task to prevent race conditions from multiple notifications
-            guard !UserDefaults.standard.bool(forKey: Self.hasShownFirstSyncToastKey) else {
+            guard !UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else {
                 return
             }
 
@@ -618,7 +619,7 @@ public struct RootTabView: View {
             }
 
             // Mark as shown IMMEDIATELY to prevent race conditions
-            UserDefaults.standard.set(true, forKey: Self.hasShownFirstSyncToastKey)
+            UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasShownFirstSyncToast)
 
             logger.log(
                 "☁️ First iCloud sync with data - showing welcome toast",

@@ -107,7 +107,7 @@ public struct AddReminderSheet: View {
                 .labelsHidden()
                 .padding(.horizontal)
                 
-                Text("You'll receive a notification at this time with options to log your habit, snooze for 20 minutes, or dismiss.")
+                Text("You'll receive a notification at this time with options to log your habit, snooze for 20 minutes, or dismiss. Notifications are automatically skipped if the habit is already completed.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)

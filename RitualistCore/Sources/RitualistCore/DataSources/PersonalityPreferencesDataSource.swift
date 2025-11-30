@@ -25,9 +25,7 @@ public final class DefaultPersonalityPreferencesDataSource: PersonalityPreferenc
     }
 
     public func getPreferences(for userId: UUID) async throws -> PersonalityAnalysisPreferences? {
-        let key = "personality_preferences_main_user"
-
-        if let data = userDefaults.data(forKey: key),
+        if let data = userDefaults.data(forKey: UserDefaultsKeys.personalityPreferencesMainUser),
            let preferences = try? JSONDecoder().decode(PersonalityAnalysisPreferences.self, from: data) {
             return preferences
         }
@@ -36,11 +34,9 @@ public final class DefaultPersonalityPreferencesDataSource: PersonalityPreferenc
     }
 
     public func savePreferences(_ preferences: PersonalityAnalysisPreferences) async throws {
-        let key = "personality_preferences_main_user"
-
         do {
             let data = try JSONEncoder().encode(preferences)
-            userDefaults.set(data, forKey: key)
+            userDefaults.set(data, forKey: UserDefaultsKeys.personalityPreferencesMainUser)
         } catch {
             throw PersonalityAnalysisError.dataEncodingFailed(underlying: error)
         }

@@ -38,7 +38,7 @@ public final class BackupManager {
     private let logger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "BackupManager")
 
     /// UserDefaults key for pending restore
-    private let pendingRestoreKey = "com.ritualist.pendingRestore"
+    private let pendingRestoreKey = UserDefaultsKeys.pendingRestore
 
     /// UserDefaults for storing pending restore
     private let userDefaults = UserDefaults.standard

@@ -104,8 +104,21 @@ public protocol DeleteLogUseCase {
     func execute(id: UUID) async throws 
 }
 
-public protocol GetLogForDateUseCase { 
-    func execute(habitID: UUID, date: Date) async throws -> HabitLog? 
+public protocol GetLogForDateUseCase {
+    func execute(habitID: UUID, date: Date) async throws -> HabitLog?
+}
+
+/// Returns the earliest log date for a habit, used for start date validation.
+///
+/// This use case queries the log repository to find the oldest log entry for a given habit.
+/// It's primarily used to validate start date changes - when editing a habit's start date,
+/// the new start date cannot be after any existing logs (to avoid orphaning log entries).
+///
+/// - Parameter habitID: The unique identifier of the habit to query
+/// - Returns: The date of the earliest log entry, or `nil` if no logs exist for this habit
+/// - Throws: Repository errors if the database query fails
+public protocol GetEarliestLogDateUseCase {
+    func execute(for habitID: UUID) async throws -> Date?
 }
 
 public protocol ToggleHabitLogUseCase {
@@ -332,6 +345,26 @@ public protocol CalculateCurrentStreakUseCase {
     func execute(habit: Habit, logs: [HabitLog], asOf: Date) -> Int
 }
 
+/// Analyzes a habit's streak status including current streak, best streak, and whether the streak is at risk.
+///
+/// This use case provides comprehensive streak information for display in the UI, including:
+/// - Current streak count (consecutive days/completions)
+/// - Best historical streak
+/// - Whether the streak is "at risk" (habit not yet completed today but still within grace period)
+/// - Last completion date
+///
+/// The calculation respects the habit's schedule - only scheduled days count toward streaks.
+/// For example, a habit scheduled Mon/Wed/Fri won't break its streak on Tuesday.
+///
+/// - Parameters:
+///   - habit: The habit to analyze
+///   - logs: Pre-fetched logs for this habit (avoids N+1 queries when analyzing multiple habits)
+///   - asOf: The reference date for streak calculation (typically today)
+/// - Returns: A `HabitStreakStatus` containing current streak, best streak, and risk status
+public protocol GetStreakStatusUseCase {
+    func execute(habit: Habit, logs: [HabitLog], asOf: Date) -> HabitStreakStatus
+}
+
 // MARK: - Widget Use Cases
 
 public protocol RefreshWidgetUseCase {
@@ -347,10 +380,6 @@ public protocol GetHabitLogsForAnalyticsUseCase {
 
 public protocol GetHabitCompletionStatsUseCase {
     func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats
-}
-
-public protocol AggregateCategoryPerformanceUseCaseProtocol {
-    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [CategoryPerformanceResult]
 }
 
 public protocol AnalyzeWeeklyPatternsUseCaseProtocol {

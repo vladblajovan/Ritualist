@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import RitualistCore
 
 /// Base class for Ritualist UI tests
 /// Provides common setup, teardown, and helper methods
@@ -18,7 +19,7 @@ class RitualistUITestCase: XCTestCase {
         app = XCUIApplication()
 
         // Set launch arguments for testing
-        app.launchArguments = ["--uitesting"]
+        app.launchArguments = [LaunchArgument.uiTesting.rawValue]
 
         app.launch()
 

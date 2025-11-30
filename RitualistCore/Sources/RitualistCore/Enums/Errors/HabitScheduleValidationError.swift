@@ -11,15 +11,18 @@ import Foundation
 public enum HabitScheduleValidationError: Error, LocalizedError, Equatable {
     /// The habit is not scheduled to be logged on the specified date
     case notScheduledForDate(habitName: String, reason: String)
-    
+
     /// The habit schedule is invalid or corrupted
     case invalidSchedule(habitName: String)
-    
+
     /// Habit not found or is inactive
     case habitUnavailable(habitName: String)
-    
+
     /// User has already logged this habit today
     case alreadyLoggedToday(habitName: String)
+
+    /// Log date is before the habit's start date
+    case dateBeforeStartDate(habitName: String)
     
     // MARK: - LocalizedError Conformance
     
@@ -33,6 +36,8 @@ public enum HabitScheduleValidationError: Error, LocalizedError, Equatable {
             return "Cannot log '\(habitName)': Habit is not available for logging"
         case .alreadyLoggedToday(let habitName):
             return "'\(habitName)' already completed today"
+        case .dateBeforeStartDate(let habitName):
+            return "Cannot log '\(habitName)': Date is before habit start date"
         }
     }
     
@@ -46,6 +51,8 @@ public enum HabitScheduleValidationError: Error, LocalizedError, Equatable {
             return "The habit is either inactive or does not exist"
         case .alreadyLoggedToday:
             return "You have already completed this habit today"
+        case .dateBeforeStartDate:
+            return "This date is before when you started tracking this habit"
         }
     }
     
@@ -59,6 +66,8 @@ public enum HabitScheduleValidationError: Error, LocalizedError, Equatable {
             return "Ensure the habit exists and is active before attempting to log."
         case .alreadyLoggedToday:
             return "You can only complete this habit once per day. Try again tomorrow!"
+        case .dateBeforeStartDate:
+            return "To log retroactively, edit the habit and change its start date to an earlier date."
         }
     }
 }

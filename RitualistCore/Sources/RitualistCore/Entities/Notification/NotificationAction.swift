@@ -12,6 +12,7 @@ public enum NotificationAction: String, CaseIterable, Codable {
     case log = "LOG_HABIT"
     case remindLater = "SNOOZE_20MIN"
     case dismiss = "DISMISS"
+    case openApp = "com.apple.UNNotificationDefaultActionIdentifier" // Default tap on notification
     
     public func title(for habitKind: HabitKind?) -> String {
         switch self {
@@ -27,6 +28,8 @@ public enum NotificationAction: String, CaseIterable, Codable {
             return "Remind me in 20min"
         case .dismiss:
             return "Dismiss"
+        case .openApp:
+            return "Open App"
         }
     }
     
@@ -47,6 +50,8 @@ public enum NotificationAction: String, CaseIterable, Codable {
             }
         case .remindLater, .dismiss:
             return [] // Background execution
+        case .openApp:
+            return [.foreground] // Opens app in foreground
         }
     }
     
@@ -58,6 +63,8 @@ public enum NotificationAction: String, CaseIterable, Codable {
             return "clock.fill"
         case .dismiss:
             return "xmark.circle.fill"
+        case .openApp:
+            return "arrow.up.forward.app"
         }
     }
     

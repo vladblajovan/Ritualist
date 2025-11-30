@@ -84,15 +84,4 @@ extension Container {
             )
         }
     }
-
-    var aggregateCategoryPerformanceUseCase: Factory<AggregateCategoryPerformanceUseCaseProtocol> {
-        self {
-            AggregateCategoryPerformanceUseCase(
-                getActiveHabitsUseCase: self.getActiveHabits(),
-                getHabitLogsUseCase: self.getHabitLogsForAnalytics(),
-                performanceAnalysisService: self.performanceAnalysisService(),
-                categoryRepository: self.categoryRepository()
-            )
-        }
-    }
 }

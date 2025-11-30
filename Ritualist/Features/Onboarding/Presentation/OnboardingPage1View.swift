@@ -81,6 +81,7 @@ struct OnboardingPage1View: View {
                             Menu {
                                 ForEach(UserGender.allCases) { gender in
                                     Button(gender.displayName) {
+                                        isTextFieldFocused = false
                                         viewModel.gender = gender
                                     }
                                 }
@@ -103,6 +104,7 @@ struct OnboardingPage1View: View {
                             Menu {
                                 ForEach(UserAgeGroup.allCases) { ageGroup in
                                     Button(ageGroup.displayName) {
+                                        isTextFieldFocused = false
                                         viewModel.ageGroup = ageGroup
                                     }
                                 }

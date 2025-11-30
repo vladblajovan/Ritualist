@@ -196,6 +196,11 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
         case .dismiss:
             // Nothing to do - user dismissed the notification
             break
+
+        case .openApp:
+            // Default tap on notification - app opens in foreground
+            // Navigation to Overview is handled by the action handler in Container+Services
+            break
         }
     }
 }

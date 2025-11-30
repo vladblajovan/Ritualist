@@ -304,7 +304,7 @@ struct WidgetHabitChip: View {
     return WidgetHabitChip(
         habitDisplayInfo: habitDisplayInfo,
         isViewingToday: false,
-        selectedDate: CalendarUtils.addDays(-2, to: Date()),
+        selectedDate: CalendarUtils.addDaysLocal(-2, to: Date(), timezone: .current),
         widgetSize: .large
     )
     .padding()
@@ -326,7 +326,7 @@ struct WidgetHabitChip: View {
     return WidgetHabitChip(
         habitDisplayInfo: habitDisplayInfo,
         isViewingToday: false,
-        selectedDate: CalendarUtils.addDays(-2, to: Date()),
+        selectedDate: CalendarUtils.addDaysLocal(-2, to: Date(), timezone: .current),
         widgetSize: .large
     )
     .padding()
@@ -349,7 +349,7 @@ struct WidgetHabitChip: View {
     return WidgetHabitChip(
         habitDisplayInfo: habitDisplayInfo,
         isViewingToday: false,
-        selectedDate: CalendarUtils.addDays(-2, to: Date()),
+        selectedDate: CalendarUtils.addDaysLocal(-2, to: Date(), timezone: .current),
         widgetSize: .large
     )
     .padding()

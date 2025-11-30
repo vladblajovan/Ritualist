@@ -87,6 +87,10 @@ public struct LocationConfigurationSection: View {
             }
         } header: {
             Text("Location-Based")
+        } footer: {
+            if vm.locationConfiguration?.isEnabled == true {
+                Text("Notifications are automatically skipped if the habit is already completed.")
+            }
         }
     }
 

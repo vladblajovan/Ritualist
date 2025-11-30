@@ -14,9 +14,6 @@ public final class PersistenceContainer {
     /// Logger for migration and initialization events (uses shared DebugLogger for consistency)
     private static let logger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "Persistence")
 
-    /// UserDefaults key for last known schema version
-    private static let lastSchemaVersionKey = "com.ritualist.lastSchemaVersion"
-
     /// Initialize persistence container with app group support
     /// Enables data sharing between main app and widget extension
     ///
@@ -29,7 +26,7 @@ public final class PersistenceContainer {
         Self.logger.log("🔍 Initializing PersistenceContainer with versioned schema (V\(currentVersionString))", level: .info, category: .system)
 
         // Read last known schema version (nil on first launch)
-        let lastVersionString = UserDefaults.standard.string(forKey: Self.lastSchemaVersionKey)
+        let lastVersionString = UserDefaults.standard.string(forKey: UserDefaultsKeys.lastSchemaVersion)
         Self.logger.log("🔍 Last known schema version: \(lastVersionString ?? "none (first launch)")", level: .debug, category: .system)
         Self.logger.log("🔍 Current schema version: \(currentVersionString)", level: .debug, category: .system)
 
@@ -133,7 +130,7 @@ public final class PersistenceContainer {
             }
 
             // Update last known schema version
-            UserDefaults.standard.set(currentVersionString, forKey: Self.lastSchemaVersionKey)
+            UserDefaults.standard.set(currentVersionString, forKey: UserDefaultsKeys.lastSchemaVersion)
 
         } catch {
             let migrationDuration = Date().timeIntervalSince(migrationStartTime)

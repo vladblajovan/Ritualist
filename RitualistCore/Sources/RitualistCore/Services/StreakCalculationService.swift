@@ -7,6 +7,34 @@
 
 import Foundation
 
+/// Comprehensive streak calculation result including "at risk" state for UX.
+public struct HabitStreakStatus: Equatable, Sendable {
+    /// Current active streak count (0 if today not logged on a scheduled day)
+    public let current: Int
+
+    /// Streak count from yesterday (shows potential if today is logged)
+    /// This is the streak that would be lost if user doesn't log today.
+    public let atRisk: Int
+
+    /// Whether the streak is at risk (today is scheduled but not logged, and there's a streak to lose)
+    public let isAtRisk: Bool
+
+    /// Whether today is a scheduled day for this habit
+    public let isTodayScheduled: Bool
+
+    public init(current: Int, atRisk: Int, isAtRisk: Bool, isTodayScheduled: Bool) {
+        self.current = current
+        self.atRisk = atRisk
+        self.isAtRisk = isAtRisk
+        self.isTodayScheduled = isTodayScheduled
+    }
+
+    /// Display streak - shows atRisk streak when at risk, otherwise current
+    public var displayStreak: Int {
+        isAtRisk ? atRisk : current
+    }
+}
+
 /// Service responsible for calculating habit streaks with proper schedule awareness.
 /// Each schedule type has its own semantic meaning for what constitutes a streak.
 ///
@@ -47,6 +75,15 @@ public protocol StreakCalculationService {
     ///   - timezone: Timezone for date calculations
     /// - Returns: Next scheduled date, or nil if habit has no future schedule
     func getNextScheduledDate(habit: Habit, after date: Date, timezone: TimeZone) -> Date?
+
+    /// Get comprehensive streak information including "at risk" state
+    /// - Parameters:
+    ///   - habit: The habit to calculate streak for
+    ///   - logs: All logs for the habit
+    ///   - date: The date to calculate as of (typically today)
+    ///   - timezone: Timezone for date calculations
+    /// - Returns: HabitStreakStatus with current streak, at-risk streak, and status
+    func getStreakStatus(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> HabitStreakStatus
 }
 
 // MARK: - Backward Compatibility Extensions
@@ -70,6 +107,11 @@ extension StreakCalculationService {
     /// Backward compatible version using current timezone
     public func getNextScheduledDate(habit: Habit, after date: Date) -> Date? {
         return getNextScheduledDate(habit: habit, after: date, timezone: .current)
+    }
+
+    /// Backward compatible version using current timezone
+    public func getStreakStatus(habit: Habit, logs: [HabitLog], asOf date: Date) -> HabitStreakStatus {
+        return getStreakStatus(habit: habit, logs: logs, asOf: date, timezone: .current)
     }
 }
 
@@ -162,7 +204,55 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
 
         return nil
     }
-    
+
+    public func getStreakStatus(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> HabitStreakStatus {
+        let today = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
+        let yesterday = CalendarUtils.addDaysLocal(-1, to: today, timezone: timezone)
+
+        // Check if today is a scheduled day
+        let isTodayScheduled = habitCompletionService.isScheduledDay(habit: habit, date: today, timezone: timezone)
+
+        // Check if today is completed
+        let isTodayCompleted = habitCompletionService.isCompleted(habit: habit, on: today, logs: logs, timezone: timezone)
+
+        // Calculate current streak (strict - requires today to be completed if scheduled)
+        let currentStreak = calculateCurrentStreak(habit: habit, logs: logs, asOf: date, timezone: timezone)
+
+        // Calculate streak as of yesterday (for "at risk" display)
+        let yesterdayStreak = calculateCurrentStreak(habit: habit, logs: logs, asOf: yesterday, timezone: timezone)
+
+        // Determine if streak is at risk:
+        // - Today is a scheduled day
+        // - Today is NOT completed
+        // - There was a streak yesterday (something to lose)
+        let isAtRisk = isTodayScheduled && !isTodayCompleted && yesterdayStreak > 0
+
+        // The "at risk" value is yesterday's streak (what they would lose if they don't log today)
+        let atRiskValue = isAtRisk ? yesterdayStreak : 0
+
+        logger.log(
+            "🔥 Streak status calculated",
+            level: .debug,
+            category: .dataIntegrity,
+            metadata: [
+                "habit": habit.name,
+                "isTodayScheduled": isTodayScheduled,
+                "isTodayCompleted": isTodayCompleted,
+                "currentStreak": currentStreak,
+                "yesterdayStreak": yesterdayStreak,
+                "isAtRisk": isAtRisk,
+                "atRiskValue": atRiskValue
+            ]
+        )
+
+        return HabitStreakStatus(
+            current: currentStreak,
+            atRisk: atRiskValue,
+            isAtRisk: isAtRisk,
+            isTodayScheduled: isTodayScheduled
+        )
+    }
+
     // MARK: - Daily Schedule Algorithms
 
     private func calculateDailyCurrentStreak(habit: Habit, logs: [HabitLog], asOf date: Date, timezone: TimeZone) -> Int {
@@ -294,6 +384,8 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
     // MARK: - Helper Methods
 
     private func getCompliantDates(habit: Habit, logs: [HabitLog], timezone: TimeZone) -> [Date] {
+        let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate, timezone: timezone)
+
         return logs.compactMap { log in
             guard HabitLogCompletionValidator.isLogCompleted(log: log, habit: habit) else { return nil }
             // Use the log's own timezone to determine which calendar day it represents
@@ -314,7 +406,12 @@ public final class DefaultStreakCalculationService: StreakCalculationService {
                 )
                 logTimezone = timezone
             }
-            return CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)
+            let logDay = CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)
+
+            // Filter out logs before habit start date - they shouldn't count toward streaks
+            guard logDay >= habitStartDay else { return nil }
+
+            return logDay
         }
         .sorted()
     }

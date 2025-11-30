@@ -209,7 +209,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     }
 
                     // Show last known version from UserDefaults
-                    if let lastVersion = UserDefaults.standard.string(forKey: "com.ritualist.lastSchemaVersion") {
+                    if let lastVersion = UserDefaults.standard.string(forKey: UserDefaultsKeys.lastSchemaVersion) {
                         Text("Last Known: \(lastVersion)")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -1007,7 +1007,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         let previousVersion = getPreviousVersionNumber()
         let versionString = "\(previousVersion).0.0"
 
-        UserDefaults.standard.set(versionString, forKey: "com.ritualist.lastSchemaVersion")
+        UserDefaults.standard.set(versionString, forKey: UserDefaultsKeys.lastSchemaVersion)
 
         Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
             .info("Set schema version to \(versionString) - restart app to see migration modal")
@@ -1041,9 +1041,8 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         // Re-save unique migrations using the standard save method
         // This ensures proper encoding and persistence
         let encoder = JSONEncoder()
-        if let data = try? encoder.encode(Array(uniqueMigrations.values)),
-           let key = "com.ritualist.migration.history" as String? {
-            UserDefaults.standard.set(data, forKey: key)
+        if let data = try? encoder.encode(Array(uniqueMigrations.values)) {
+            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.migrationHistory)
         }
 
         // Reload stats to update UI

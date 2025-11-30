@@ -5,7 +5,7 @@ import FactoryKit
 
 // swiftlint:disable type_body_length
 public struct DashboardView: View {
-    var vm: DashboardViewModel
+    @Bindable var vm: DashboardViewModel
     @Injected(\.debugLogger) private var logger
 
     public init(vm: DashboardViewModel) {
@@ -21,7 +21,7 @@ public struct DashboardView: View {
                 // Main Stats Cards
                 if vm.isLoading {
                     loadingView
-                } else if let stats = vm.completionStats {
+                } else if vm.hasHabits {
                     // Weekly Patterns (moved to top)
                     if let weeklyPatterns = vm.weeklyPatterns {
                         weeklyPatternsSection(patterns: weeklyPatterns)
@@ -52,7 +52,7 @@ public struct DashboardView: View {
         .refreshable {
             await vm.refresh()
         }
-        .navigationTitle("Dashboard")
+        .navigationTitle(Strings.Navigation.stats)
         .navigationBarTitleDisplayMode(.large)
         .task {
             await vm.loadData()
@@ -75,27 +75,14 @@ public struct DashboardView: View {
     
     @ViewBuilder
     private var timePeriodSelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(TimePeriod.allCases, id: \.self) { period in
-                    Button(action: { vm.selectedTimePeriod = period }) {
-                        Text(period.displayName)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(vm.selectedTimePeriod == period ? .white : .primary)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 25)
-                                    .fill(vm.selectedTimePeriod == period ? AppColors.brand : Color(.secondarySystemBackground))
-                            )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
+        Picker(Strings.Dashboard.timePeriodPicker, selection: $vm.selectedTimePeriod) {
+            ForEach(TimePeriod.allCases, id: \.self) { period in
+                Text(period.shortDisplayName)
+                    .tag(period)
+                    .accessibilityLabel(period.accessibilityLabel)
             }
-            .padding(.leading, 20)
-            .padding(.trailing, 20)
         }
-        .padding(.leading, -20)
+        .pickerStyle(.segmented)
         .padding(.top, 10)
     }
     

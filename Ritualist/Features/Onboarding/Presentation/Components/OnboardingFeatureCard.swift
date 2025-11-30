@@ -15,13 +15,15 @@ struct OnboardingFeatureCard: View {
     let title: String
     let description: String
 
+    @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 44
+
     var body: some View {
         HStack(spacing: 16) {
-            // Icon circle
+            // Icon circle - scales with Dynamic Type
             ZStack {
                 Circle()
                     .fill(iconColor.opacity(0.15))
-                    .frame(width: 44, height: 44)
+                    .frame(width: iconSize, height: iconSize)
 
                 Image(systemName: icon)
                     .font(.title3)
@@ -31,7 +33,8 @@ struct OnboardingFeatureCard: View {
             // Text content
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(.body, design: .rounded, weight: .semibold))
+                    .font(.body.weight(.semibold))
+                    .fontDesign(.rounded)
 
                 Text(description)
                     .font(.subheadline)

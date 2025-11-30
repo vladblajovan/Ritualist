@@ -295,6 +295,7 @@ private struct HabitsListView: View {
                                 vm.selectHabit(habit)
                             }
                             .tag(habit.id)
+                            .accessibilityIdentifier("habit.row.\(habit.id.uuidString)")
                             .swipeActions(edge: .leading) {
                                 if editMode?.wrappedValue != .active {
                                     Button {

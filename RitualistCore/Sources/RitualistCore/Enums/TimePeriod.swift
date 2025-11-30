@@ -28,6 +28,28 @@ public enum TimePeriod: CaseIterable {
         case .allTime: return "All Time"
         }
     }
+
+    /// Short display name for compact UI (segmented controls, tabs)
+    public var shortDisplayName: String {
+        switch self {
+        case .thisWeek: return "7D"
+        case .thisMonth: return "1M"
+        case .last6Months: return "6M"
+        case .lastYear: return "1Y"
+        case .allTime: return "All"
+        }
+    }
+
+    /// Accessibility label for VoiceOver (expands abbreviations)
+    public var accessibilityLabel: String {
+        switch self {
+        case .thisWeek: return "Last 7 days"
+        case .thisMonth: return "Last month"
+        case .last6Months: return "Last 6 months"
+        case .lastYear: return "Last year"
+        case .allTime: return "All time"
+        }
+    }
     
     /// Calculated date range for the time period
     /// 
@@ -50,16 +72,19 @@ public enum TimePeriod: CaseIterable {
             
         case .last6Months:
             let sixMonthsAgo = CalendarUtils.addMonths(-6, to: now)
-            return (start: sixMonthsAgo, end: now)
-            
+            let startOfDay = CalendarUtils.startOfDayLocal(for: sixMonthsAgo)
+            return (start: startOfDay, end: now)
+
         case .lastYear:
             let oneYearAgo = CalendarUtils.addYears(-1, to: now)
-            return (start: oneYearAgo, end: now)
-            
+            let startOfDay = CalendarUtils.startOfDayLocal(for: oneYearAgo)
+            return (start: startOfDay, end: now)
+
         case .allTime:
             // Use a date far in the past to capture all available data
             let allTimeStart = CalendarUtils.addYears(-10, to: now)
-            return (start: allTimeStart, end: now)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: allTimeStart)
+            return (start: startOfDay, end: now)
         }
     }
 }

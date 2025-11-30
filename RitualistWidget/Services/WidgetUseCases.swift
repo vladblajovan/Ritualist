@@ -20,9 +20,16 @@ final class WidgetValidateHabitSchedule: ValidateHabitScheduleUseCase {
     }
     
     func execute(habit: Habit, date: Date) async throws -> HabitScheduleValidationResult {
+        // Check if habit has started yet
+        let habitStartDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
+        let targetDay = CalendarUtils.startOfDayLocal(for: date)
+        guard targetDay >= habitStartDay else {
+            return .invalid(reason: "This habit hasn't started yet")
+        }
+
         // Use HabitCompletionService to check if the habit is scheduled for this date
         let isScheduled = habitCompletionService.isScheduledDay(habit: habit, date: date)
-        
+
         if isScheduled {
             return .valid()
         } else {
@@ -91,8 +98,14 @@ final class WidgetLogHabit: LogHabitUseCase {
         guard habit.isActive else {
             throw HabitScheduleValidationError.habitUnavailable(habitName: habit.name)
         }
-        
-        
+
+        // Check if log date is before habit's start date
+        let logDay = CalendarUtils.startOfDayLocal(for: log.date)
+        let startDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
+        guard logDay >= startDay else {
+            throw HabitScheduleValidationError.dateBeforeStartDate(habitName: habit.name)
+        }
+
         // Validate schedule before logging
         let validationResult = try await validateSchedule.execute(habit: habit, date: log.date)
         

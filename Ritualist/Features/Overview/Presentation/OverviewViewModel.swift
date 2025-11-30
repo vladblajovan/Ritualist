@@ -98,7 +98,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     public var canGoToPreviousDay: Bool {
         let today = Date()
-        let thirtyDaysAgo = CalendarUtils.addDays(-30, to: today)
+        let thirtyDaysAgo = CalendarUtils.addDaysLocal(-30, to: today, timezone: .current)
         let viewingDayStart = CalendarUtils.startOfDayLocal(for: viewingDate)
         let boundaryStart = CalendarUtils.startOfDayLocal(for: thirtyDaysAgo)
         return viewingDayStart > boundaryStart
@@ -154,6 +154,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     @ObservationIgnored @Injected(\.getCurrentSlogan) private var getCurrentSlogan
     @ObservationIgnored @Injected(\.getCurrentUserProfile) private var getCurrentUserProfile
     @ObservationIgnored @Injected(\.calculateCurrentStreak) private var calculateCurrentStreakUseCase
+    @ObservationIgnored @Injected(\.getStreakStatus) private var getStreakStatusUseCase
     @ObservationIgnored @Injected(\.getPersonalityProfileUseCase) private var getPersonalityProfileUseCase
     @ObservationIgnored @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
     @ObservationIgnored @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
@@ -447,6 +448,17 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
         HabitScheduleStatus.forHabit(habit, date: viewingDate, isScheduledDay: isScheduledDay)
     }
+
+    public func getStreakStatusSync(for habit: Habit) -> HabitStreakStatus {
+        // Use single source of truth from overviewData if available
+        guard let data = overviewData else {
+            // Return default status with no streak if data not loaded
+            return HabitStreakStatus(current: 0, atRisk: 0, isAtRisk: false, isTodayScheduled: false)
+        }
+
+        let logs = data.habitLogs[habit.id] ?? []
+        return getStreakStatusUseCase.execute(habit: habit, logs: logs, asOf: viewingDate)
+    }
     
 //    public func getWeeklyProgress(for habit: Habit) -> (completed: Int, target: Int) {
 //        guard case .timesPerWeek = habit.schedule else {
@@ -568,7 +580,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func goToPreviousDay() {
         guard canGoToPreviousDay else { return }
 
-        viewingDate = CalendarUtils.previousDay(from: viewingDate)
+        viewingDate = CalendarUtils.addDaysLocal(-1, to: viewingDate, timezone: .current)
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -589,7 +601,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func goToNextDay() {
         guard canGoToNextDay else { return }
 
-        viewingDate = CalendarUtils.nextDay(from: viewingDate)
+        viewingDate = CalendarUtils.addDaysLocal(1, to: viewingDate, timezone: .current)
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -677,7 +689,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     private func checkForComebackStory(currentCompletion: Double) async -> Bool {
         // Check if today's progress is significantly better than yesterday
-        let yesterday = CalendarUtils.previousDay(from: Date())
+        let yesterday = CalendarUtils.addDaysLocal(-1, to: Date(), timezone: .current)
         
         do {
             let yesterdayHabits = try await getActiveHabits.execute()
@@ -931,7 +943,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         // 2. Determine date range (past 30 days for monthly data)
         let today = Date()
-        let startDate = CalendarUtils.addDays(-30, to: today)
+        let startDate = CalendarUtils.addDaysLocal(-30, to: today, timezone: .current)
 
         // 3. Load logs ONCE for entire date range using batch operation
         let habitIds = habits.map(\.id)
@@ -1173,10 +1185,10 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// Extract monthly completion data from overview data
     private func extractMonthlyData(from data: OverviewData) -> [Date: Double] {
         var result: [Date: Double] = [:]
-        
+
         // Get dates from range, ensuring we use startOfDay for consistency
         for dayOffset in 0...30 {
-            let date = CalendarUtils.addDays(-dayOffset, to: Date())
+            let date = CalendarUtils.addDaysLocal(-dayOffset, to: Date(), timezone: .current)
             let startOfDay = CalendarUtils.startOfDayLocal(for: date)
             // Use HabitCompletionService for single source of truth completion rate
             let scheduledHabits = data.scheduledHabits(for: startOfDay)
@@ -1194,32 +1206,35 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         return result
     }
     
-    /// Extract active streaks from overview data
+    /// Extract active streaks from overview data (with grace period support)
     private func extractActiveStreaks(from data: OverviewData) -> [StreakInfo] {
         var streaks: [StreakInfo] = []
         let today = Date()
-        
+
         for habit in data.habits {
             // Get logs for this habit from unified data
             let logs = data.habitLogs[habit.id] ?? []
-            
-            let currentStreak = calculateCurrentStreakUseCase.execute(habit: habit, logs: logs, asOf: today)
-            
-            if currentStreak >= 1 { // Show all active streaks (1+ days)
+
+            // Use getStreakStatus for grace period support
+            let streakStatus = getStreakStatusUseCase.execute(habit: habit, logs: logs, asOf: today)
+
+            // Show streak if either current > 0 OR at risk (grace period)
+            let displayStreak = streakStatus.displayStreak
+            if displayStreak >= 1 {
                 let streakInfo = StreakInfo(
                     id: habit.id.uuidString,
                     habitName: habit.name,
                     emoji: habit.emoji ?? "📊",
-                    currentStreak: currentStreak,
-                    isActive: true
+                    currentStreak: displayStreak,
+                    isActive: !streakStatus.isAtRisk // Active if not at risk
                 )
                 streaks.append(streakInfo)
             }
         }
-        
+
         // Sort by streak length (longest first)
         let sortedStreaks = streaks.sorted { $0.currentStreak > $1.currentStreak }
-        
+
         return sortedStreaks
     }
     
@@ -1325,6 +1340,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                     let newProfile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
                     personalityProfile = newProfile
                 } catch {
+                    // Log the error - analysis creation failures shouldn't crash the app
+                    logger.log("Failed to create personality analysis: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
                     // If analysis fails, we still show the card but with error state
                     personalityInsights = []
                     dominantPersonalityTrait = nil
@@ -1374,6 +1391,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 dominantPersonalityTrait = nil
             }
         } catch {
+            // Log the error for debugging - personality analysis failures shouldn't crash the app
+            logger.log("Failed to load personality insights: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
             // Even on error, show the card but with empty state
             personalityInsights = []
             dominantPersonalityTrait = nil
@@ -1473,7 +1492,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         // Find best performing day
         if let bestDayIndex = dailyCompletions.enumerated().max(by: { $0.element < $1.element })?.offset {
             // Get the actual date for the best performing day
-            let bestDate = CalendarUtils.addDays(bestDayIndex, to: startOfWeek)
+            let bestDate = CalendarUtils.addDaysLocal(bestDayIndex, to: startOfWeek, timezone: .current)
             
             // Get the day name using the proper date
             let dayFormatter = DateFormatter()
@@ -1503,15 +1522,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     private func resetDismissedTriggersIfNewDay() {
         let today = Date()
-        
+
         // Check if we've moved to a new day since last session
-        if let lastResetDate = UserDefaults.standard.object(forKey: "lastInspirationResetDate") as? Date {
+        if let lastResetDate = UserDefaults.standard.object(forKey: UserDefaultsKeys.lastInspirationResetDate) as? Date {
             if !CalendarUtils.areSameDayLocal(lastResetDate, today) {
                 dismissedTriggersToday.removeAll()
-                UserDefaults.standard.set(today, forKey: "lastInspirationResetDate")
+                UserDefaults.standard.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
             } else {
                 // Load dismissed triggers for today from UserDefaults
-                if let dismissedData = UserDefaults.standard.data(forKey: "dismissedTriggersToday"),
+                if let dismissedData = UserDefaults.standard.data(forKey: UserDefaultsKeys.dismissedTriggersToday),
                    let dismissedArray = try? JSONDecoder().decode([String].self, from: dismissedData) {
                     dismissedTriggersToday = Set(dismissedArray.compactMap { triggerString in
                         InspirationTrigger.allCases.first { "\($0)" == triggerString }
@@ -1520,14 +1539,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             }
         } else {
             // First time - set today as reset date
-            UserDefaults.standard.set(today, forKey: "lastInspirationResetDate")
+            UserDefaults.standard.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
         }
     }
     
     private func saveDismissedTriggers() {
         let dismissedArray = dismissedTriggersToday.map { "\($0)" }
         if let data = try? JSONEncoder().encode(dismissedArray) {
-            UserDefaults.standard.set(data, forKey: "dismissedTriggersToday")
+            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.dismissedTriggersToday)
         }
     }
     
