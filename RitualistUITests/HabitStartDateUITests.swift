@@ -277,7 +277,7 @@ final class HabitStartDateUITests: RitualistUITestCase {
         }
 
         // Find and fill the name field
-        let nameField = app.textFields.firstMatch
+        let nameField = app.textFields[AccessibilityID.HabitDetail.nameField]
         if nameField.waitForExistence(timeout: 3) {
             nameField.tap()
             // Clear any existing text first
@@ -286,6 +286,10 @@ final class HabitStartDateUITests: RitualistUITestCase {
                 nameField.typeText(deleteString)
             }
             nameField.typeText(Self.testHabitName)
+
+            // Dismiss keyboard before saving
+            app.keyboards.buttons["return"].tap()
+            sleep(1)
         }
 
         // Save the habit

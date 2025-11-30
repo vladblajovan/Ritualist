@@ -40,6 +40,7 @@ public struct BasicInfoSection: View {
                                 await vm.validateForDuplicates()
                             }
                         }
+                        .accessibilityIdentifier(AccessibilityID.HabitDetail.nameField)
                 }
                 
                 // Form validation feedback
