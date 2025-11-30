@@ -12,19 +12,22 @@ public enum ScheduleType: CaseIterable {
 
 @MainActor @Observable
 public final class HabitDetailViewModel {
+    // Testable dependencies (constructor injected)
+    private let getEarliestLogDate: GetEarliestLogDateUseCase
+    private let validateHabitUniqueness: ValidateHabitUniquenessUseCase
+    private let getActiveCategories: GetActiveCategoriesUseCase
+    private let getLocationAuthStatus: GetLocationAuthStatusUseCase
+
+    // Infrastructure dependencies (property injected - don't need mocking in tests)
     @ObservationIgnored @Injected(\.createHabit) var createHabit
     @ObservationIgnored @Injected(\.updateHabit) var updateHabit
     @ObservationIgnored @Injected(\.deleteHabit) var deleteHabit
     @ObservationIgnored @Injected(\.toggleHabitActiveStatus) var toggleHabitActiveStatus
-    @ObservationIgnored @Injected(\.getActiveCategories) var getActiveCategories
     @ObservationIgnored @Injected(\.createCustomCategory) var createCustomCategory
     @ObservationIgnored @Injected(\.validateCategoryName) var validateCategoryName
-    @ObservationIgnored @Injected(\.validateHabitUniqueness) var validateHabitUniqueness
     @ObservationIgnored @Injected(\.scheduleHabitReminders) var scheduleHabitReminders
     @ObservationIgnored @Injected(\.configureHabitLocation) var configureHabitLocation
     @ObservationIgnored @Injected(\.requestLocationPermissions) var requestLocationPermissions
-    @ObservationIgnored @Injected(\.getLocationAuthStatus) var getLocationAuthStatus
-    @ObservationIgnored @Injected(\.getEarliestLogDate) var getEarliestLogDate
     @ObservationIgnored @Injected(\.debugLogger) var logger
 
     // Form state
@@ -73,22 +76,50 @@ public final class HabitDetailViewModel {
     
     public let originalHabit: Habit?
     
-    public init(habit: Habit? = nil) {
+    /// Creates a HabitDetailViewModel for creating or editing a habit.
+    ///
+    /// - Parameters:
+    ///   - habit: The habit to edit, or nil to create a new habit
+    ///   - getEarliestLogDate: Use case for loading earliest log date (defaults to container)
+    ///   - validateHabitUniqueness: Use case for validating habit uniqueness (defaults to container)
+    ///   - getActiveCategories: Use case for loading categories (defaults to container)
+    ///   - getLocationAuthStatus: Use case for checking location auth (defaults to container)
+    public init(
+        habit: Habit? = nil,
+        getEarliestLogDate: GetEarliestLogDateUseCase? = nil,
+        validateHabitUniqueness: ValidateHabitUniquenessUseCase? = nil,
+        getActiveCategories: GetActiveCategoriesUseCase? = nil,
+        getLocationAuthStatus: GetLocationAuthStatusUseCase? = nil
+    ) {
+        // Use provided dependencies or fall back to container
+        self.getEarliestLogDate = getEarliestLogDate ?? Container.shared.getEarliestLogDate()
+        self.validateHabitUniqueness = validateHabitUniqueness ?? Container.shared.validateHabitUniqueness()
+        self.getActiveCategories = getActiveCategories ?? Container.shared.getActiveCategories()
+        self.getLocationAuthStatus = getLocationAuthStatus ?? Container.shared.getLocationAuthStatus()
+
         self.originalHabit = habit
         self.isEditMode = habit != nil
-        
+
         // Pre-populate form if editing
         if let habit = habit {
             loadHabitData(habit)
         }
-        
-        // Load categories, location status, and earliest log date in parallel for faster startup
+
+        // Load initial data asynchronously (fire-and-forget for production)
         Task {
-            async let categories: () = loadCategories()
-            async let location: () = checkLocationAuthStatus()
-            async let earliestLog: () = loadEarliestLogDate()
-            _ = await (categories, location, earliestLog)
+            await loadInitialData()
         }
+    }
+
+    /// Loads categories, location status, and earliest log date in parallel.
+    ///
+    /// Called automatically on init for production use.
+    /// Can be awaited directly in tests to avoid timing-based waits.
+    public func loadInitialData() async {
+        async let categories: () = loadCategories()
+        async let location: () = checkLocationAuthStatus()
+        async let earliestLog: () = loadEarliestLogDate()
+        _ = await (categories, location, earliestLog)
     }
     
     public var isFormValid: Bool {
