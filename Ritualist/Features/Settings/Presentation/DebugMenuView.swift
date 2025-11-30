@@ -1041,9 +1041,8 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         // Re-save unique migrations using the standard save method
         // This ensures proper encoding and persistence
         let encoder = JSONEncoder()
-        if let data = try? encoder.encode(Array(uniqueMigrations.values)),
-           let key = "com.ritualist.migration.history" as String? {
-            UserDefaults.standard.set(data, forKey: key)
+        if let data = try? encoder.encode(Array(uniqueMigrations.values)) {
+            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.migrationHistory)
         }
 
         // Reload stats to update UI

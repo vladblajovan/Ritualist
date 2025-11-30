@@ -30,21 +30,39 @@ public enum UserDefaultsKeys {
     // MARK: - Personality Analysis
 
     /// Key for storing scheduled user IDs for personality analysis
-    public static let personalitySchedulerUsers = "personality_scheduler_users"
+    public static let personalitySchedulerUsers = "com.ritualist.personalitySchedulerUsers"
 
     /// Key for storing scheduled dates for personality analysis
-    public static let personalitySchedulerDates = "personality_scheduler_dates"
+    public static let personalitySchedulerDates = "com.ritualist.personalitySchedulerDates"
 
     /// Key for storing data hashes for personality analysis change detection
-    public static let personalitySchedulerHashes = "personality_scheduler_hashes"
+    public static let personalitySchedulerHashes = "com.ritualist.personalitySchedulerHashes"
 
     // MARK: - Inspiration/Motivation
 
     /// Key for storing the last date inspiration triggers were reset
-    public static let lastInspirationResetDate = "lastInspirationResetDate"
+    public static let lastInspirationResetDate = "com.ritualist.lastInspirationResetDate"
 
     /// Key for storing dismissed triggers for the current day
-    public static let dismissedTriggersToday = "dismissedTriggersToday"
+    public static let dismissedTriggersToday = "com.ritualist.dismissedTriggersToday"
+
+    // MARK: - Widget
+
+    /// Key for storing the selected date in widget navigation
+    public static let widgetSelectedDate = "com.ritualist.widgetSelectedDate"
+
+    // MARK: - Migration & Backup
+
+    /// Key for storing migration history entries
+    public static let migrationHistory = "com.ritualist.migrationHistory"
+
+    /// Key for tracking pending restore operations
+    public static let pendingRestore = "com.ritualist.pendingRestore"
+
+    // MARK: - Personality Preferences
+
+    /// Key for storing personality preferences for the main user
+    public static let personalityPreferencesMainUser = "com.ritualist.personalityPreferencesMainUser"
 }
 
 // MARK: - Notification Names

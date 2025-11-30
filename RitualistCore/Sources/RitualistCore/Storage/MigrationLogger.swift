@@ -32,7 +32,7 @@ public final class MigrationLogger {
     private let logger = DebugLogger(subsystem: "com.ritualist.app", category: "migration")
 
     /// UserDefaults key for migration history
-    private let migrationHistoryKey = "com.ritualist.migration.history"
+    private let migrationHistoryKey = UserDefaultsKeys.migrationHistory
 
     /// Migration history storage
     private let userDefaults = UserDefaults.standard

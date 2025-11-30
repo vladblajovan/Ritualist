@@ -42,7 +42,7 @@ struct StartDateSection: View {
             .font(.caption)
             .foregroundStyle(.red)
         } else {
-            Text("Set an earlier date to log habits retroactively. Logs before this date won't be counted.")
+            Text("Set an earlier date to log habits retroactively. Logging before this date is not allowed.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

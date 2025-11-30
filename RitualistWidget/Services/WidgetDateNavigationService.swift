@@ -26,7 +26,7 @@ public final class WidgetDateNavigationService: WidgetDateNavigationServiceProto
 
     // MARK: - Constants
 
-    private static let selectedDateKey = "widget_selected_date"
+    private static let selectedDateKey = UserDefaultsKeys.widgetSelectedDate
     private static let maxHistoryDays = 30
 
     // MARK: - Properties

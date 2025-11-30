@@ -108,11 +108,11 @@ public protocol GetLogForDateUseCase {
     func execute(habitID: UUID, date: Date) async throws -> HabitLog?
 }
 
-/// Returns the earliest log date for a habit, used for retroactive logging validation.
+/// Returns the earliest log date for a habit, used for start date validation.
 ///
 /// This use case queries the log repository to find the oldest log entry for a given habit.
-/// It's primarily used to determine the valid date range for retroactive logging - users cannot
-/// log habits for dates before the habit's first log or start date.
+/// It's primarily used to validate start date changes - when editing a habit's start date,
+/// the new start date cannot be after any existing logs (to avoid orphaning log entries).
 ///
 /// - Parameter habitID: The unique identifier of the habit to query
 /// - Returns: The date of the earliest log entry, or `nil` if no logs exist for this habit
