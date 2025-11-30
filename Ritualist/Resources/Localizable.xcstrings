@@ -2115,13 +2115,30 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noch keine Gewohnheiten"
+            "value" : "Starte deine erste Gewohnheit"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No Habits Yet"
+            "value" : "Start your first habit"
+          }
+        }
+      }
+    },
+    "emptyNoHabitsScheduled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Gewohnheiten für diesen Tag geplant"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No habits scheduled for this day"
           }
         }
       }
@@ -2149,13 +2166,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippe auf die + Schaltfläche, um deine erste Gewohnheit zu erstellen"
+            "value" : "Tippe + oder nutze den Assistenten"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap + to create first habit"
+            "value" : "Tap + or use the assistant"
           }
         }
       }

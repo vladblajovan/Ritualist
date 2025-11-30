@@ -70,6 +70,7 @@ public enum Strings {
         public static let tapPlusToCreate = String(localized: "emptyTapPlusToCreate")
         public static let noHabitSelected = String(localized: "emptyNoHabitSelected")
         public static let tapHabitToView = String(localized: "emptyTapHabitToView")
+        public static let noHabitsScheduled = String(localized: "emptyNoHabitsScheduled")
     }
     
     // MARK: - Form Labels

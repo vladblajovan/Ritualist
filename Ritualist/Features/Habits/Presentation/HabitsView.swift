@@ -83,25 +83,20 @@ private struct HabitsContentView: View {
                             vm.handleCreateHabitTap()
                         } label: {
                             Image(systemName: "plus")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [.blue, .cyan],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
+                                .font(.body)
+                                .foregroundStyle(.primary)
                         }
                         .accessibilityIdentifier(AccessibilityID.Habits.addButton)
                         .accessibilityLabel("Add Habit")
                         .accessibilityHint("Create a new habit to track")
                     }
 
-                    // Secondary action: Edit mode
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
-                            .foregroundColor(.secondary)
+                    // Secondary action: Edit mode (only show when habits exist)
+                    if !vm.filteredHabits.isEmpty {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            EditButton()
+                                .foregroundStyle(.primary)
+                        }
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
@@ -199,21 +194,23 @@ private struct HabitsListView: View {
             } else if vm.filteredHabits.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Reusable category carousel with cogwheel
-                        CategoryCarouselWithManagement(
-                            categories: vm.displayCategories,
-                            selectedCategory: vm.selectedFilterCategory,
-                            onCategoryTap: { category in
-                                vm.selectFilterCategory(category)
-                            },
-                            onManageTap: {
-                                showingCategoryManagement = true
-                            },
-                            scrollToStartOnSelection: true,
-                            allowDeselection: true
-                        )
-                        .padding(.top, Spacing.small)
-                        .padding(.bottom, Spacing.medium)
+                        // Only show category carousel if habits exist but are filtered out
+                        if vm.selectedFilterCategory != nil {
+                            CategoryCarouselWithManagement(
+                                categories: vm.displayCategories,
+                                selectedCategory: vm.selectedFilterCategory,
+                                onCategoryTap: { category in
+                                    vm.selectFilterCategory(category)
+                                },
+                                onManageTap: {
+                                    showingCategoryManagement = true
+                                },
+                                scrollToStartOnSelection: true,
+                                allowDeselection: true
+                            )
+                            .padding(.top, Spacing.small)
+                            .padding(.bottom, Spacing.medium)
+                        }
 
                         VStack(spacing: Spacing.xlarge) {
                             if vm.selectedFilterCategory != nil {
@@ -223,11 +220,13 @@ private struct HabitsListView: View {
                                     description: Text("No habits found for the selected category. Try selecting a different category or create a new habit.")
                                 )
                             } else {
-                                ContentUnavailableView(
-                                    Strings.EmptyState.noHabitsYet,
-                                    systemImage: "plus.circle",
-                                    description: Text(Strings.EmptyState.tapPlusToCreate)
-                                )
+                                ContentUnavailableView {
+                                    Label(Strings.EmptyState.noHabitsYet, systemImage: "plus.circle")
+                                        .foregroundStyle(.secondary)
+                                } description: {
+                                    Text(Strings.EmptyState.tapPlusToCreate)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                         .padding(.top, Spacing.large)
