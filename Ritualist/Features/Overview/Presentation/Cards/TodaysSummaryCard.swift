@@ -318,10 +318,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             }
 
             if let summary = summary {
-                
+
                 // Enhanced Habits Section - show both completed and incomplete habits
                 if !summary.incompleteHabits.isEmpty || !summary.completedHabits.isEmpty {
                     habitsSection(summary: summary)
+                } else {
+                    // Empty state - no habits scheduled for this day
+                    noHabitsScheduledView
                 }
             } else {
                 // Loading State
@@ -546,6 +549,21 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             .fill(CardDesign.secondaryBackground)
             .frame(height: 8)
             .redacted(reason: .placeholder)
+    }
+
+    @ViewBuilder
+    private var noHabitsScheduledView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "calendar.badge.checkmark")
+                .font(.system(size: 36))
+                .foregroundStyle(.secondary.opacity(0.6))
+
+            Text(Strings.EmptyState.noHabitsScheduled)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
     }
 
     // MARK: - Enhanced Habits Section
