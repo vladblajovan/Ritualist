@@ -2132,13 +2132,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Gewohnheiten für diesen Tag geplant"
+            "value" : "Keine Gewohnheiten geplant"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No habits scheduled for this day"
+            "value" : "No habits scheduled"
           }
         }
       }

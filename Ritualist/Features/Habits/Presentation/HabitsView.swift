@@ -376,11 +376,7 @@ private struct HabitsListView: View {
                 Text("Are you sure you want to delete \"\(habit.name)\"? This action cannot be undone and all habit data will be lost.")
             }
         }
-        .confirmationDialog(
-            "Delete Habits",
-            isPresented: $showingBatchDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
+        .alert("Delete Habits", isPresented: $showingBatchDeleteConfirmation) {
             Button("Delete", role: .destructive) {
                 Task {
                     logger.log(
@@ -396,11 +392,7 @@ private struct HabitsListView: View {
         } message: {
             Text(batchDeleteConfirmationMessage)
         }
-        .confirmationDialog(
-            "Deactivate Habits", 
-            isPresented: $showingDeactivateConfirmation,
-            titleVisibility: .visible
-        ) {
+        .alert("Deactivate Habits", isPresented: $showingDeactivateConfirmation) {
             Button("Deactivate", role: .destructive) {
                 Task {
                     logger.log(
