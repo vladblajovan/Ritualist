@@ -6,17 +6,35 @@ import RitualistCore
 public struct SettingsRoot: View {
     @Injected(\.settingsViewModel) var vm
     @Injected(\.debugLogger) private var logger
+    @Injected(\.toastService) private var toastService
 
     public init() {}
 
     public var body: some View {
-        SettingsContentView(vm: vm)
+        SettingsContentView(vm: vm, toastService: toastService)
             .task {
                 await vm.load()
             }
             .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                 // Auto-refresh when iCloud syncs new data from another device
                 // This updates profile name, avatar, appearance, and timezone settings
+                // Skip reload if a toast is showing to avoid interrupting the toast animation
+                guard toastService.currentToast == nil else {
+                    logger.log(
+                        "☁️ iCloud sync detected - deferring Settings refresh (toast active)",
+                        level: .debug,
+                        category: .system
+                    )
+                    // Schedule refresh after toast dismisses (toast duration is ~3-4 seconds)
+                    Task {
+                        try? await Task.sleep(for: .seconds(4))
+                        // Only refresh if toast has actually dismissed
+                        if toastService.currentToast == nil {
+                            await vm.load()
+                        }
+                    }
+                    return
+                }
                 Task {
                     logger.log(
                         "☁️ iCloud sync detected - refreshing Settings",
@@ -31,14 +49,16 @@ public struct SettingsRoot: View {
 
 private struct SettingsContentView: View {
     @Bindable var vm: SettingsViewModel
-    
+    let toastService: ToastService
+
     var body: some View {
-        SettingsFormView(vm: vm)
+        SettingsFormView(vm: vm, toastService: toastService)
     }
 }
 
 private struct SettingsFormView: View {
     @Bindable var vm: SettingsViewModel
+    let toastService: ToastService
     @Injected(\.debugLogger) private var logger
     @FocusState private var isNameFieldFocused: Bool
     @State private var showingImagePicker = false
@@ -54,18 +74,6 @@ private struct SettingsFormView: View {
     @State private var displayTimezoneMode = "original"
     @State private var gender: UserGender = .preferNotToSay
     @State private var ageGroup: UserAgeGroup = .preferNotToSay
-
-    // Toast state
-    @State private var activeToast: SettingsToast?
-
-    private enum SettingsToast {
-        case avatarUpdated
-        case avatarRemoved
-        case nameUpdated
-        case deleteSuccess
-        case deleteSyncDelayed
-        case deleteFailed
-    }
 
     // Version information
     private var appVersion: String {
@@ -92,6 +100,7 @@ private struct SettingsFormView: View {
                     // Account Section
                     AccountSectionView(
                         vm: vm,
+                        toastService: toastService,
                         name: $name,
                         appearance: $appearance,
                         displayTimezoneMode: $displayTimezoneMode,
@@ -129,11 +138,11 @@ private struct SettingsFormView: View {
                     DataManagementSectionView(vm: vm) { result in
                         switch result {
                         case .success:
-                            activeToast = .deleteSuccess
+                            toastService.success(Strings.DataManagement.deleteSuccessMessage)
                         case .successButCloudSyncMayBeDelayed:
-                            activeToast = .deleteSyncDelayed
+                            toastService.warning(Strings.DataManagement.deleteSyncDelayedMessage, icon: "exclamationmark.icloud.fill")
                         case .failed:
-                            activeToast = .deleteFailed
+                            toastService.error(Strings.DataManagement.deleteFailedMessage)
                         }
                     }
 
@@ -193,7 +202,11 @@ private struct SettingsFormView: View {
                             let success = await vm.save()
                             if success {
                                 await MainActor.run {
-                                    activeToast = isRemoving ? .avatarRemoved : .avatarUpdated
+                                    if isRemoving {
+                                        toastService.info(Strings.Avatar.photoRemoved, icon: "person.crop.circle.badge.minus")
+                                    } else {
+                                        toastService.success(Strings.Avatar.photoUpdated, icon: "person.crop.circle.fill.badge.checkmark")
+                                    }
                                 }
                             }
                         }
@@ -241,51 +254,6 @@ private struct SettingsFormView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
-        .toast(item: $activeToast) { toast in
-            toastView(for: toast)
-        }
-    }
-
-    @ViewBuilder
-    private func toastView(for toast: SettingsToast) -> some View {
-        switch toast {
-        case .avatarUpdated:
-            ToastView(
-                message: "Profile photo updated",
-                icon: "person.crop.circle.fill.badge.checkmark",
-                style: .success
-            ) { activeToast = nil }
-        case .avatarRemoved:
-            ToastView(
-                message: "Profile photo removed",
-                icon: "person.crop.circle.badge.minus",
-                style: .info
-            ) { activeToast = nil }
-        case .nameUpdated:
-            ToastView(
-                message: "Name updated",
-                icon: "person.fill.checkmark",
-                style: .success
-            ) { activeToast = nil }
-        case .deleteSuccess:
-            ToastView(
-                message: Strings.DataManagement.deleteSuccessMessage,
-                icon: "checkmark.circle.fill",
-                style: .success
-            ) { activeToast = nil }
-        case .deleteSyncDelayed:
-            ToastView(
-                message: Strings.DataManagement.deleteSyncDelayedMessage,
-                icon: "exclamationmark.icloud.fill",
-                style: .warning
-            ) { activeToast = nil }
-        case .deleteFailed:
-            ToastView(
-                message: Strings.DataManagement.deleteFailedMessage,
-                icon: "xmark.circle.fill",
-                style: .error
-            ) { activeToast = nil }
-        }
     }
 
     // MARK: - Computed Properties
@@ -337,7 +305,7 @@ private struct SettingsFormView: View {
         vm.profile.name = name
         let success = await vm.save()
         if success {
-            activeToast = .nameUpdated
+            toastService.success(Strings.Profile.nameUpdated, icon: "person.fill.checkmark")
         }
     }
     

@@ -37,6 +37,7 @@ struct ToastView: View {
     let onDismiss: () -> Void
 
     @State private var isVisible = false
+    @State private var isDismissed = false
 
     init(
         message: String,
@@ -62,8 +63,19 @@ struct ToastView: View {
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(.white)
+
+            Button {
+                dismissToast()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.8))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss")
         }
-        .padding(.horizontal, Spacing.medium)
+        .padding(.leading, Spacing.medium)
+        .padding(.trailing, Spacing.small)
         .padding(.vertical, Spacing.small)
         .background(
             Capsule()
@@ -79,14 +91,25 @@ struct ToastView: View {
                 isVisible = true
             }
 
-            // Auto-dismiss after duration
+            // Auto-dismiss after duration (unless manually dismissed)
             try? await Task.sleep(for: .seconds(duration))
-            withAnimation {
-                isVisible = false
+            if !isDismissed {
+                dismissToast()
             }
+        }
+    }
 
-            // Call dismiss after animation completes
-            try? await Task.sleep(for: .milliseconds(500))
+    private func dismissToast() {
+        guard !isDismissed else { return }
+        isDismissed = true
+
+        withAnimation {
+            isVisible = false
+        }
+
+        // Call dismiss after animation completes
+        Task {
+            try? await Task.sleep(for: .milliseconds(400))
             onDismiss()
         }
     }
@@ -121,7 +144,7 @@ extension ToastView {
 /// Configuration for toast presentation
 struct ToastConfiguration {
     var alignment: Alignment = .top
-    var padding: CGFloat = 60
+    var padding: CGFloat = 4
     var transition: AnyTransition = .move(edge: .top).combined(with: .opacity)
     var animation: Animation = .spring(response: 0.4, dampingFraction: 0.8)
 

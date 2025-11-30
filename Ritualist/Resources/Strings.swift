@@ -184,8 +184,17 @@ public enum Strings {
         public static let profilePhoto = String(localized: "avatar.profile_photo")
         public static let chooseFromPhotos = String(localized: "avatar.choose_from_photos")
         public static let removePhoto = String(localized: "avatar.remove_photo")
+        public static let photoUpdated = String(localized: "avatar.photo_updated")
+        public static let photoRemoved = String(localized: "avatar.photo_removed")
     }
-    
+
+    // MARK: - Profile
+    public enum Profile {
+        public static let nameUpdated = String(localized: "profile.name_updated")
+        public static let genderUpdated = String(localized: "profile.gender_updated")
+        public static let ageGroupUpdated = String(localized: "profile.age_group_updated")
+    }
+
     // MARK: - Notifications
     public enum Notification {
         public static let title = String(localized: "notification.title")

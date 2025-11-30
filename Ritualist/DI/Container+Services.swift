@@ -393,8 +393,16 @@ extension Container {
         .singleton
     }
     
+    // MARK: - Toast Service
+
+    @MainActor
+    var toastService: Factory<ToastService> {
+        self { @MainActor in ToastService() }
+            .singleton
+    }
+
     // MARK: - Debug Services
-    
+
     #if DEBUG
     var debugService: Factory<DebugServiceProtocol> {
         self { 

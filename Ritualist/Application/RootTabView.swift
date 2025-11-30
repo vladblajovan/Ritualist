@@ -11,6 +11,7 @@ public struct RootTabView: View {
     @Injected(\.loadProfile) var loadProfile
     @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
     @Injected(\.debugLogger) var logger
+    @Injected(\.toastService) var toastService
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var showingPersonalityAnalysis = false
@@ -81,7 +82,7 @@ public struct RootTabView: View {
                     }
                 }
                 #endif
-                .toast(item: $activeSyncToast, configuration: .init(padding: 50)) { toast in
+                .toast(item: $activeSyncToast) { toast in
                     syncToastView(for: toast)
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
@@ -399,6 +400,16 @@ public struct RootTabView: View {
             )
             .accessibilityIdentifier(AccessibilityID.HabitsAssistant.sheet)
         }
+        // MARK: - Centralized Toast Overlay
+        // This overlay is at the root level so toasts appear above all content including NavigationStacks
+        .overlay(alignment: .top) {
+            if let toast = toastService.currentToast {
+                toastView(for: toast)
+                    .padding(.top, 4)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: toastService.currentToast != nil)
     }
     
     private func checkOnboardingStatus() async {
@@ -626,6 +637,19 @@ public struct RootTabView: View {
                 style: .info,
                 duration: 5.0
             ) { activeSyncToast = nil }
+        }
+    }
+
+    // MARK: - Centralized Toast View
+
+    @ViewBuilder
+    private func toastView(for toast: ToastService.Toast) -> some View {
+        ToastView(
+            message: toast.message,
+            icon: toast.icon,
+            style: toast.style
+        ) {
+            toastService.dismiss()
         }
     }
 }
