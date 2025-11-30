@@ -359,21 +359,17 @@ private struct HabitsListView: View {
                     }
                 }
         }
-        .confirmationDialog(
-            "Delete Habit",
-            isPresented: $showingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            if let habit = habitToDelete {
-                Button("Delete", role: .destructive) {
+        .alert("Delete Habit", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                if let habit = habitToDelete {
                     Task {
                         await deleteHabit(habit)
                         habitToDelete = nil
                     }
                 }
-                Button("Cancel", role: .cancel) {
-                    habitToDelete = nil
-                }
+            }
+            Button("Cancel", role: .cancel) {
+                habitToDelete = nil
             }
         } message: {
             if let habit = habitToDelete {
