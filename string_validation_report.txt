@@ -1,11 +1,11 @@
 🌍 Ritualist String Validation Report
 =====================================
-Generated: 2025-11-28 16:10:29 +0000
+Generated: 2025-11-30 22:36:02 +0000
 📊 Summary:
-   Total strings: 296
-   ✅ Valid: 296
-   ❌ Invalid: 0
-   📈 Success rate: 100%
+   Total strings: 311
+   ✅ Valid: 310
+   ❌ Invalid: 1
+   📈 Success rate: 99%
 
 📱 Accessibility Strings (12/12 valid)
 --------------------------------------------------
@@ -30,7 +30,7 @@ Generated: 2025-11-28 16:10:29 +0000
 ✅ buttonRetry: "Retry"
 ✅ buttonSave: "Save"
 
-📱 Form Field Strings (204/204 valid)
+📱 Form Field Strings (213/214 valid)
 --------------------------------------------------
 ✅ %@ %@: "%1$@ %2$@"
 ✅ %@ → %@: "%1$@ → %2$@"
@@ -40,6 +40,7 @@ Generated: 2025-11-28 16:10:29 +0000
 ✅ %lld %@ - Completed: "%1$lld %2$@ - Completed"
 ✅ %lld (%@): "%1$lld (%2$@)"
 ✅ %lld of %lld %@: "%1$lld of %2$lld %3$@"
+✅ %lld of %lld characters used: "%1$lld of %2$lld chars"
 ✅ %lld/%lld: "%1$lld/%2$lld"
 ✅ %lld/%lld %@: "%1$lld/%2$lld %3$@"
 ✅ %lld/%lld habits (Free): "%1$lld/%2$lld habits (Free)"
@@ -103,9 +104,14 @@ Generated: 2025-11-28 16:10:29 +0000
 ✅ dashboardOverallCompletion: "Overall Completion"
 ✅ dashboardThisMonth: "This Month"
 ✅ dashboardThisWeek: "This Week"
+✅ dashboardTimePeriodPicker: "Time Period"
 ✅ dashboardTitle: "Analytics"
 ✅ dashboardTopPerformers: "Top Performers"
 ✅ dashboardTotalHabits: "Total Habits"
+✅ data_management.delete_all_data: "Delete All Data"
+✅ data_management.delete_title: "Delete All Data?"
+✅ data_management.footer_local_only: "Backup, restore, or delete local data."
+✅ data_management.footer_with_icloud: "Backup, restore, or delete all data."
 ✅ dayFri: "Fri"
 ✅ dayFriday: "Friday"
 ✅ dayMon: "Mon"
@@ -124,12 +130,14 @@ Generated: 2025-11-28 16:10:29 +0000
 ✅ deactivate: "Deactivate"
 ✅ dialogCannotUndo: "Cannot be undone"
 ✅ dialogDeleteHabit: "Delete Habit"
+✅ duplicateValidationFailed: "Name check failed. Retry."
 ✅ emptyCreateHabitsToStart: "Create habits to get started"
 ✅ emptyNoActiveHabits: "No Active Habits"
 ✅ emptyNoHabitSelected: "No Habit Selected"
-✅ emptyNoHabitsYet: "No Habits Yet"
+✅ emptyNoHabitsScheduled: "No habits scheduled"
+✅ emptyNoHabitsYet: "Start your first habit"
 ✅ emptyTapHabitToView: "Tap a habit to view calendar."
-✅ emptyTapPlusToCreate: "Tap + to create first habit"
+✅ emptyTapPlusToCreate: "Tap + or use the assistant"
 ✅ enterCategoryName: "Enter category name"
 ✅ failedLoadCategories: "Failed to load categories: %@"
 ✅ featuredLabel: "Featured"
@@ -158,8 +166,11 @@ Generated: 2025-11-28 16:10:29 +0000
 ✅ format.progress_percentage: "%@ complete"
 ✅ fromSuggestion: "From Suggestion"
 ✅ gettingStarted: "Getting Started"
+❌ icloud.setup_description: "Sign in to iCloud in Settings to sync yo..."
+    ⚠️  Exceeds form field limit (65/40)
+✅ icloud.setup_title: "iCloud Not Available"
 ✅ icloud.still_syncing: "Still syncing from iCloud..."
-✅ icloud.synced_from_cloud: "Changes synced from iCloud"
+✅ icloud.synced_from_cloud: "Synced with iCloud"
 ✅ loadingCalculatingStreaks: "Calculating streaks..."
 ✅ loadingCategories: "Loading categories..."
 ✅ loadingHabit: "Loading habit..."
@@ -246,12 +257,17 @@ Generated: 2025-11-28 16:10:29 +0000
 ✅ navigationSettings: "Settings"
 ✅ navigationStats: "Stats"
 
-📱 Validation Strings (69/69 valid)
+📱 Validation Strings (74/74 valid)
 --------------------------------------------------
 ✅ Error: "Error"
 ✅ This will remove the log entry for "%@" from %@. The habit itself will remain.: "This will remove the log entry for "%1$@..."
 ✅ alert.message.migration_restart_test: "Restart to test V%1$lld → V%2$@"
 ✅ dashboardStartTrackingMessage: "Start tracking habits to see your analyt..."
+✅ data_management.delete_failed_message: "Failed to delete data"
+✅ data_management.delete_message_local_only: "This will permanently delete all your ha..."
+✅ data_management.delete_message_with_icloud: "This permanently deletes all data from t..."
+✅ data_management.delete_success_message: "All data deleted"
+✅ data_management.delete_sync_delayed_message: "Data deleted. iCloud sync will complete ..."
 ✅ dialogDeleteHabitMessage: "Delete "%@"? Cannot be undone."
 ✅ duplicateHabitWarning: "A habit with this name and category alre..."
 ✅ errorFailedInitialize: "Failed to Initialize"
@@ -318,5 +334,8 @@ Generated: 2025-11-28 16:10:29 +0000
 ✅ validationTargetGreaterThanZero: "Target must be greater than 0"
 ✅ validationUnitRequired: "Unit label is required for numeric habit..."
 
-🎉 All strings passed validation!
-Your localization is ready for translation.
+🔧 Recommended Actions:
+• Review strings marked with ❌ 
+• Consider shortening text for better UX
+• Test UI layouts with longer translations
+• Update String Catalog comments for context

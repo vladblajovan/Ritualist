@@ -19,8 +19,12 @@ public struct RootTabView: View {
     @State private var existingHabits: [Habit] = []
     @State private var migrationService = MigrationStatusService.shared
     @State private var pendingPersonalitySheetAfterTabSwitch = false
-    @State private var showSyncToast = false
-    @State private var showStillSyncingToast = false
+    @State private var activeSyncToast: SyncToast?
+
+    private enum SyncToast: Equatable {
+        case synced
+        case stillSyncing
+    }
 
     // Quick Actions state
     @Injected(\.quickActionCoordinator) private var quickActionCoordinator
@@ -77,37 +81,8 @@ public struct RootTabView: View {
                     }
                 }
                 #endif
-                .overlay(alignment: .top) {
-                    if showSyncToast {
-                        ToastView(
-                            message: Strings.ICloudSync.syncedFromCloud,
-                            icon: "icloud.fill",
-                            style: .info,
-                            onDismiss: {
-                                withAnimation(.easeOut(duration: 0.3)) {
-                                    showSyncToast = false
-                                }
-                            }
-                        )
-                        .padding(.top, 50)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-
-                    if showStillSyncingToast {
-                        ToastView(
-                            message: Strings.ICloudSync.stillSyncing,
-                            icon: "icloud.and.arrow.down",
-                            style: .info,
-                            duration: 5.0,
-                            onDismiss: {
-                                withAnimation(.easeOut(duration: 0.3)) {
-                                    showStillSyncingToast = false
-                                }
-                            }
-                        )
-                        .padding(.top, 50)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    }
+                .toast(item: $activeSyncToast, configuration: .init(padding: 50)) { toast in
+                    syncToastView(for: toast)
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                     // Show one-time toast when iCloud syncs data for the first time
@@ -536,9 +511,7 @@ public struct RootTabView: View {
                         // Mark as no longer pending so we don't keep trying
                         viewModel.pendingReturningUserWelcome = false
                         // Show informative toast after state update
-                        withAnimation(.easeIn(duration: 0.3)) {
-                            showStillSyncingToast = true
-                        }
+                        activeSyncToast = .stillSyncing
                     }
                 }
             }
@@ -627,20 +600,32 @@ public struct RootTabView: View {
                 metadata: ["habits_count": existingHabits.count]
             )
 
-            // Show the toast with animation
+            // Show the toast (auto-dismisses via ToastView's internal timer)
             await MainActor.run {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    showSyncToast = true
-                }
-
-                // Auto-dismiss after 4 seconds
-                Task {
-                    try? await Task.sleep(for: .seconds(4))
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        showSyncToast = false
-                    }
-                }
+                activeSyncToast = .synced
             }
+        }
+    }
+
+    // MARK: - Sync Toast View
+
+    @ViewBuilder
+    private func syncToastView(for toast: SyncToast) -> some View {
+        switch toast {
+        case .synced:
+            ToastView(
+                message: Strings.ICloudSync.syncedFromCloud,
+                icon: "icloud.fill",
+                style: .info,
+                duration: 4.0
+            ) { activeSyncToast = nil }
+        case .stillSyncing:
+            ToastView(
+                message: Strings.ICloudSync.stillSyncing,
+                icon: "icloud.and.arrow.down",
+                style: .info,
+                duration: 5.0
+            ) { activeSyncToast = nil }
         }
     }
 }

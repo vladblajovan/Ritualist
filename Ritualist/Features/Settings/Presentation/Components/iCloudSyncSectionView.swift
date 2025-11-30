@@ -4,75 +4,81 @@ import UniformTypeIdentifiers
 
 struct ICloudSyncSectionView: View {
     @Bindable var vm: SettingsViewModel
-    @State private var showingDeleteConfirmation = false
 
     var body: some View {
         Section {
-            // iCloud Account Status
-            HStack {
-                Label("Status", systemImage: "icloud")
-                    .foregroundStyle(.primary)
+            if vm.iCloudStatus.canSync {
+                // MARK: - iCloud Available
 
-                Spacer()
-
-                if vm.isCheckingCloudStatus {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    statusIndicator
-                }
-            }
-
-            // Last Synced Timestamp
-            if let lastSync = vm.lastSyncDate {
+                // iCloud Account Status
                 HStack {
-                    Label("Last Synced", systemImage: "clock")
+                    Label("Status", systemImage: "icloud")
                         .foregroundStyle(.primary)
 
                     Spacer()
 
-                    Text(lastSync, format: .relative(presentation: .named))
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
-                }
-            }
-
-            // Delete iCloud Data Button
-            Button(role: .destructive) {
-                showingDeleteConfirmation = true
-            } label: {
-                HStack {
-                    if vm.isDeletingCloudData {
+                    if vm.isCheckingCloudStatus {
                         ProgressView()
                             .controlSize(.small)
-                        Text("Deleting...")
-                            .foregroundStyle(.secondary)
                     } else {
-                        Label("Delete iCloud Data", systemImage: "trash")
-                            .foregroundStyle(.red)
+                        statusIndicator
                     }
                 }
+
+                // Last Synced Timestamp - only show when iCloud is available
+                if let lastSync = vm.lastSyncDate {
+                    HStack {
+                        Label("Last Synced", systemImage: "clock")
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        Text(lastSync, format: .relative(presentation: .named))
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                    }
+                }
+            } else {
+                // MARK: - iCloud Not Available
+
+                iCloudSetupPrompt
             }
-            .disabled(!vm.iCloudStatus.canSync || vm.isDeletingCloudData)
-            .opacity((!vm.iCloudStatus.canSync || vm.isDeletingCloudData) ? 0.5 : 1.0)
 
         } header: {
             Text("iCloud Sync")
         }
-        .confirmationDialog(
-            "Delete iCloud Data?",
-            isPresented: $showingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                Task {
-                    await vm.deleteCloudData()
+    }
+
+    // MARK: - iCloud Setup Prompt
+
+    @ViewBuilder
+    private var iCloudSetupPrompt: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.icloud")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+
+            Text(Strings.ICloudSync.setupTitle)
+                .font(.headline)
+
+            Text(Strings.ICloudSync.setupDescription)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
                 }
+            } label: {
+                Text(Strings.Settings.openSettings)
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will permanently delete your profile from iCloud. Your local data will remain on this device.")
+            .buttonStyle(.borderedProminent)
+            .padding(.top, 4)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Status Indicator

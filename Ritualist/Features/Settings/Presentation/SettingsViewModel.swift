@@ -414,27 +414,49 @@ public final class SettingsViewModel {
         )
     }
 
-    /// Delete iCloud data (GDPR compliance - Right to be forgotten)
-    /// Permanently deletes user's profile from CloudKit
-    /// Local data remains intact on device
-    public func deleteCloudData() async {
+    /// Result of delete all data operation
+    public enum DeleteAllDataResult {
+        case success
+        case successButCloudSyncMayBeDelayed
+        case failed(Error)
+    }
+
+    /// Delete all data (GDPR compliance - Right to be forgotten)
+    /// Permanently deletes all habits, logs, and profile from device and iCloud (if configured)
+    /// - Returns: Result indicating success and whether cloud sync might be delayed
+    public func deleteAllData() async -> DeleteAllDataResult {
         isDeletingCloudData = true
         error = nil
+
+        // Check if we should warn about delayed iCloud sync
+        let isOnline = await NetworkUtilities.hasNetworkConnectivity()
+        let shouldWarnAboutSync = iCloudStatus.canSync && !isOnline
 
         do {
             try await deleteiCloudData.execute()
 
-            // Clear last sync date since there's no cloud data anymore
+            // Clear last sync date since there's no data anymore
             lastSyncDate = nil
 
             // Track deletion action
-            userActionTracker.track(.custom(event: "icloud_data_deleted_by_user", parameters: [:]))
+            let eventParams: [String: Any] = [
+                "icloud_configured": iCloudStatus.canSync,
+                "offline_warning": shouldWarnAboutSync
+            ]
+            userActionTracker.track(.custom(event: "all_data_deleted_by_user", parameters: eventParams))
+
+            isDeletingCloudData = false
+
+            if shouldWarnAboutSync {
+                return .successButCloudSyncMayBeDelayed
+            }
+            return .success
         } catch {
             self.error = error
-            userActionTracker.trackError(error, context: "icloud_delete_data")
+            userActionTracker.trackError(error, context: "delete_all_data")
+            isDeletingCloudData = false
+            return .failed(error)
         }
-
-        isDeletingCloudData = false
     }
 
     /// Export user data (GDPR compliance - Right to data portability)

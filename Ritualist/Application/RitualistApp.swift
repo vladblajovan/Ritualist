@@ -50,6 +50,12 @@ import CoreData
     /// If false, we don't throttle because data may arrive later
     @State private var lastDeduplicationHadData: Bool = false
 
+    /// Cached iCloud status to avoid repeated CloudKit API calls during bulk sync
+    @State private var cachedICloudStatus: iCloudSyncStatus?
+
+    /// Track when iCloud status was last checked (using system uptime for clock-drift immunity)
+    @State private var lastICloudStatusCheckUptime: TimeInterval?
+
     /// App startup time for performance monitoring
     private let appStartTime = Date()
 
@@ -72,6 +78,13 @@ import CoreData
     /// Deduplication is idempotent (running it twice has no additional effect), but we throttle
     /// to avoid unnecessary database reads during bulk sync operations.
     private let deduplicationThrottleInterval: TimeInterval = 30
+
+    /// Minimum interval between iCloud status checks (in seconds).
+    ///
+    /// CloudKit can fire multiple NSPersistentStoreRemoteChange notifications in quick succession.
+    /// Each notification handler needs to check iCloud status before updating lastSyncDate.
+    /// Caching the status avoids redundant CloudKit API calls during bulk sync.
+    private let iCloudStatusCacheInterval: TimeInterval = 10
 
     var body: some Scene {
         WindowGroup {
@@ -121,9 +134,6 @@ import CoreData
                     // See BusinessConstants.remoteChangeMergeDelay documentation for rationale.
                     guard hasCompletedInitialLaunch else { return }
 
-                    // Update last sync timestamp when real CloudKit sync occurs
-                    UserDefaults.standard.set(Date(), forKey: UserDefaultsKeys.lastSyncDate)
-
                     // Record remote change for diagnostics
                     #if DEBUG
                     Task { @MainActor in
@@ -139,6 +149,14 @@ import CoreData
                     )
 
                     Task {
+                        // Only update last sync timestamp if iCloud is actually available
+                        // This prevents stale "Last Synced" times when user isn't signed in
+                        // Uses cached status to avoid redundant CloudKit API calls during bulk sync
+                        let iCloudStatus = await getCachedICloudStatus()
+                        if iCloudStatus == .available {
+                            UserDefaults.standard.set(Date(), forKey: UserDefaultsKeys.lastSyncDate)
+                        }
+
                         try? await Task.sleep(for: .seconds(BusinessConstants.remoteChangeMergeDelay))
 
                         // ALWAYS notify UI that iCloud synced data - this triggers auto-refresh in OverviewView
@@ -433,6 +451,44 @@ import CoreData
         // always gets notified even when geofences/dedup are throttled.
 
         await restoreGeofences()
+    }
+
+    /// Get iCloud status with caching to avoid redundant CloudKit API calls during bulk sync
+    /// CloudKit can fire 16+ NSPersistentStoreRemoteChange notifications in quick succession.
+    /// Each handler needs to check iCloud status, but calling CloudKit repeatedly is wasteful.
+    /// This caches the status for a short duration (10 seconds) during bulk sync operations.
+    private func getCachedICloudStatus() async -> iCloudSyncStatus {
+        let currentUptime = ProcessInfo.processInfo.systemUptime
+
+        // Return cached status if it's still fresh
+        if let cachedStatus = cachedICloudStatus,
+           let lastCheckUptime = lastICloudStatusCheckUptime,
+           (currentUptime - lastCheckUptime) < iCloudStatusCacheInterval {
+            logger.log(
+                "☁️ Using cached iCloud status",
+                level: .debug,
+                category: .system,
+                metadata: [
+                    "status": cachedStatus.displayMessage,
+                    "cacheAge": String(format: "%.1fs", currentUptime - lastCheckUptime)
+                ]
+            )
+            return cachedStatus
+        }
+
+        // Fetch fresh status and cache it
+        let freshStatus = await checkiCloudStatus.execute()
+        cachedICloudStatus = freshStatus
+        lastICloudStatusCheckUptime = currentUptime
+
+        logger.log(
+            "☁️ Fetched fresh iCloud status",
+            level: .debug,
+            category: .system,
+            metadata: ["status": freshStatus.displayMessage]
+        )
+
+        return freshStatus
     }
 
     /// Detect timezone changes on app launch/resume

@@ -4,6 +4,26 @@ import UniformTypeIdentifiers
 
 struct DataManagementSectionView: View {
     @Bindable var vm: SettingsViewModel
+    let onDeleteResult: (SettingsViewModel.DeleteAllDataResult) -> Void
+    @State private var showingDeleteConfirmation = false
+
+    /// Dynamic footer text based on iCloud status
+    private var footerText: String {
+        if vm.iCloudStatus.canSync {
+            return Strings.DataManagement.footerWithICloud
+        } else {
+            return Strings.DataManagement.footerLocalOnly
+        }
+    }
+
+    /// Dynamic delete confirmation message based on iCloud status
+    private var deleteConfirmationMessage: String {
+        if vm.iCloudStatus.canSync {
+            return Strings.DataManagement.deleteMessageWithICloud
+        } else {
+            return Strings.DataManagement.deleteMessageLocalOnly
+        }
+    }
 
     var body: some View {
         Section {
@@ -53,10 +73,45 @@ struct DataManagementSectionView: View {
             .buttonStyle(.plain)
             .disabled(vm.isImportingData || vm.isExportingData)
 
+            // Delete All Data Button
+            Button(role: .destructive) {
+                showingDeleteConfirmation = true
+            } label: {
+                HStack {
+                    if vm.isDeletingCloudData {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Deleting...")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Label(Strings.DataManagement.deleteAllData, systemImage: "trash")
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .disabled(vm.isDeletingCloudData || vm.isExportingData || vm.isImportingData)
+            .opacity(vm.isDeletingCloudData ? 0.5 : 1.0)
+
         } header: {
             Text("Data Management")
         } footer: {
-            Text("Export your data to a JSON file for backup or transfer. Import data from a previously exported JSON file to restore your habits and progress.")
+            Text(footerText)
+        }
+        .alert(
+            Strings.DataManagement.deleteTitle,
+            isPresented: $showingDeleteConfirmation
+        ) {
+            Button(Strings.Button.delete, role: .destructive) {
+                Task {
+                    let result = await vm.deleteAllData()
+                    await MainActor.run {
+                        onDeleteResult(result)
+                    }
+                }
+            }
+            Button(Strings.Button.cancel, role: .cancel) {}
+        } message: {
+            Text(deleteConfirmationMessage)
         }
         .sheet(isPresented: $vm.showExportPicker) {
             if let jsonString = vm.exportedDataJSON {

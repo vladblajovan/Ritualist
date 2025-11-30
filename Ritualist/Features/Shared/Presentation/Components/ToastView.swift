@@ -116,6 +116,54 @@ extension ToastView {
     }
 }
 
+// MARK: - Toast View Modifier
+
+/// Configuration for toast presentation
+struct ToastConfiguration {
+    var alignment: Alignment = .top
+    var padding: CGFloat = 60
+    var transition: AnyTransition = .move(edge: .top).combined(with: .opacity)
+    var animation: Animation = .spring(response: 0.4, dampingFraction: 0.8)
+
+    static let `default` = ToastConfiguration()
+    static let bottom = ToastConfiguration(alignment: .bottom, padding: 100, transition: .move(edge: .bottom).combined(with: .opacity))
+}
+
+/// View modifier for presenting toasts with centralized animation and positioning
+struct ToastModifier<Item: Equatable, ToastContent: View>: ViewModifier {
+    @Binding var item: Item?
+    let configuration: ToastConfiguration
+    let content: (Item) -> ToastContent
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: configuration.alignment) {
+                if let item = item {
+                    self.content(item)
+                        .padding(.top, configuration.alignment == .top ? configuration.padding : 0)
+                        .padding(.bottom, configuration.alignment == .bottom ? configuration.padding : 0)
+                        .transition(configuration.transition)
+                }
+            }
+            .animation(configuration.animation, value: item != nil)
+    }
+}
+
+extension View {
+    /// Present a toast with centralized animation and positioning
+    /// - Parameters:
+    ///   - item: Binding to the optional toast item (nil = hidden)
+    ///   - configuration: Toast presentation configuration (default: top with spring animation)
+    ///   - content: View builder that creates the toast content from the item
+    func toast<Item: Equatable, Content: View>(
+        item: Binding<Item?>,
+        configuration: ToastConfiguration = .default,
+        @ViewBuilder content: @escaping (Item) -> Content
+    ) -> some View {
+        modifier(ToastModifier(item: item, configuration: configuration, content: content))
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Toast Styles") {

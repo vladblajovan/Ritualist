@@ -373,6 +373,21 @@ public enum Strings {
     public enum ICloudSync {
         public static let syncedFromCloud = String(localized: "icloud.synced_from_cloud")
         public static let stillSyncing = String(localized: "icloud.still_syncing")
+        public static let setupTitle = String(localized: "icloud.setup_title")
+        public static let setupDescription = String(localized: "icloud.setup_description")
+    }
+
+    // MARK: - Data Management
+    public enum DataManagement {
+        public static let deleteAllData = String(localized: "data_management.delete_all_data")
+        public static let deleteTitle = String(localized: "data_management.delete_title")
+        public static let deleteMessageWithICloud = String(localized: "data_management.delete_message_with_icloud")
+        public static let deleteMessageLocalOnly = String(localized: "data_management.delete_message_local_only")
+        public static let footerWithICloud = String(localized: "data_management.footer_with_icloud")
+        public static let footerLocalOnly = String(localized: "data_management.footer_local_only")
+        public static let deleteSuccessMessage = String(localized: "data_management.delete_success_message")
+        public static let deleteSyncDelayedMessage = String(localized: "data_management.delete_sync_delayed_message")
+        public static let deleteFailedMessage = String(localized: "data_management.delete_failed_message")
     }
 }
 

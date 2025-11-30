@@ -62,6 +62,9 @@ private struct SettingsFormView: View {
         case avatarUpdated
         case avatarRemoved
         case nameUpdated
+        case deleteSuccess
+        case deleteSyncDelayed
+        case deleteFailed
     }
 
     // Version information
@@ -122,8 +125,17 @@ private struct SettingsFormView: View {
                     // iCloud Sync Section
                     ICloudSyncSectionView(vm: vm)
 
-                    // Data Management Section (Export/Import)
-                    DataManagementSectionView(vm: vm)
+                    // Data Management Section (Export/Import/Delete)
+                    DataManagementSectionView(vm: vm) { result in
+                        switch result {
+                        case .success:
+                            activeToast = .deleteSuccess
+                        case .successButCloudSyncMayBeDelayed:
+                            activeToast = .deleteSyncDelayed
+                        case .failed:
+                            activeToast = .deleteFailed
+                        }
+                    }
 
                     // Advanced Section
                     Section("Advanced") {
@@ -229,14 +241,9 @@ private struct SettingsFormView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
-        .overlay(alignment: .top) {
-            if let toast = activeToast {
-                toastView(for: toast)
-                    .padding(.top, 60)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
+        .toast(item: $activeToast) { toast in
+            toastView(for: toast)
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: activeToast != nil)
     }
 
     @ViewBuilder
@@ -259,6 +266,24 @@ private struct SettingsFormView: View {
                 message: "Name updated",
                 icon: "person.fill.checkmark",
                 style: .success
+            ) { activeToast = nil }
+        case .deleteSuccess:
+            ToastView(
+                message: Strings.DataManagement.deleteSuccessMessage,
+                icon: "checkmark.circle.fill",
+                style: .success
+            ) { activeToast = nil }
+        case .deleteSyncDelayed:
+            ToastView(
+                message: Strings.DataManagement.deleteSyncDelayedMessage,
+                icon: "exclamationmark.icloud.fill",
+                style: .warning
+            ) { activeToast = nil }
+        case .deleteFailed:
+            ToastView(
+                message: Strings.DataManagement.deleteFailedMessage,
+                icon: "xmark.circle.fill",
+                style: .error
             ) { activeToast = nil }
         }
     }
