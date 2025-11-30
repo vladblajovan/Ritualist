@@ -49,10 +49,12 @@ public final class HabitDetailViewModel {
     // Validation state
     public private(set) var isDuplicateHabit = false
     public private(set) var isValidatingDuplicate = false
+    public private(set) var duplicateValidationFailed = false
 
     // Start date validation state (for edit mode)
     public private(set) var earliestLogDate: Date?
     public private(set) var isLoadingEarliestLogDate = false
+    public private(set) var earliestLogDateLoadFailed = false
 
     // Location state
     public var locationConfiguration: LocationConfiguration?
@@ -95,7 +97,9 @@ public final class HabitDetailViewModel {
         (selectedSchedule != .daysOfWeek || !selectedDaysOfWeek.isEmpty) &&
         (isEditMode || selectedCategory != nil) &&  // Allow nil category when editing (during async loading)
         !isDuplicateHabit &&
+        !duplicateValidationFailed &&  // Block save if duplicate validation failed
         !isLoadingEarliestLogDate &&  // Prevent save while validation data is loading
+        !earliestLogDateLoadFailed &&  // Block save if earliest log date load failed
         isStartDateValid
     }
     
@@ -305,7 +309,8 @@ public final class HabitDetailViewModel {
         }
         
         isValidatingDuplicate = true
-        
+        duplicateValidationFailed = false
+
         do {
             let categoryId = selectedCategory?.id
             let isUnique = try await validateHabitUniqueness.execute(
@@ -315,9 +320,9 @@ public final class HabitDetailViewModel {
             )
             isDuplicateHabit = !isUnique
         } catch {
-            // If validation fails, assume no duplicate to avoid blocking the user
-            // but log the error for debugging
+            // Block form submission when validation fails to prevent potential duplicates
             logger.log("Failed to validate habit uniqueness for '\(name)': \(error.localizedDescription)", level: .error, category: .dataIntegrity)
+            duplicateValidationFailed = true
             isDuplicateHabit = false
         }
 
@@ -330,12 +335,13 @@ public final class HabitDetailViewModel {
         guard isEditMode, let habitId = originalHabit?.id else { return }
 
         isLoadingEarliestLogDate = true
+        earliestLogDateLoadFailed = false
         do {
             earliestLogDate = try await getEarliestLogDate.execute(for: habitId)
         } catch {
-            // If loading fails, allow any start date to avoid blocking the user
-            // but log the error for debugging
+            // Block form submission when validation data fails to load
             logger.log("Failed to load earliest log date for habit \(habitId): \(error.localizedDescription)", level: .error, category: .dataIntegrity)
+            earliestLogDateLoadFailed = true
             earliestLogDate = nil
         }
         isLoadingEarliestLogDate = false

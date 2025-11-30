@@ -52,7 +52,18 @@ public struct BasicInfoSection: View {
                 }
                 
                 // Duplicate validation feedback
-                if vm.isDuplicateHabit {
+                if vm.duplicateValidationFailed {
+                    HStack(spacing: Spacing.xxsmall) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                        Text(String(localized: "duplicateValidationFailed"))
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                    .padding(.leading, 4)
+                    .transition(.opacity)
+                } else if vm.isDuplicateHabit {
                     HStack(spacing: Spacing.xxsmall) {
                         if vm.isValidatingDuplicate {
                             ProgressView()

@@ -382,13 +382,6 @@ public protocol GetHabitCompletionStatsUseCase {
     func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats
 }
 
-// TODO: Remove AggregateCategoryPerformanceUseCaseProtocol - it's dead code.
-// Dashboard uses PerformanceAnalysisService.aggregateCategoryPerformance() directly.
-// The protocol, implementation, and DI registration can all be deleted.
-public protocol AggregateCategoryPerformanceUseCaseProtocol {
-    func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [CategoryPerformanceResult]
-}
-
 public protocol AnalyzeWeeklyPatternsUseCaseProtocol {
     func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> WeeklyPatternsResult
 }

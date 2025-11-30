@@ -35,7 +35,6 @@ public final class DashboardViewModel {
     @ObservationIgnored @Injected(\.calculateDailyProgress) internal var calculateDailyProgress
     @ObservationIgnored @Injected(\.isScheduledDay) internal var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
-    @ObservationIgnored @Injected(\.performanceAnalysisService) internal var performanceAnalysisService
 
     internal let logger: DebugLogger
 

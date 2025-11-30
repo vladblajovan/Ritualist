@@ -150,10 +150,8 @@ public struct DashboardData {
         }.sorted { $0.completionRate > $1.completionRate }
     }
     
-    // TODO: Remove this method - replaced by PerformanceAnalysisService.aggregateCategoryPerformance()
-    // Dashboard now uses extractCategoryBreakdown() which calls the service directly.
-    // Keeping for now in case other code references it. Safe to delete once confirmed unused.
     /// Get category performance breakdown
+    /// Used by DashboardViewModel.extractCategoryBreakdown() for consistent calculation
     public func categoryPerformanceData() -> [CategoryPerformanceResult] {
         let habitsByCategory = Dictionary(grouping: habits) { $0.categoryId ?? "default" }
 

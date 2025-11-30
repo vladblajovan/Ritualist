@@ -33,7 +33,38 @@ struct StartDateSection: View {
 
     @ViewBuilder
     private var footerContent: some View {
-        if !vm.isStartDateValid {
+        if vm.earliestLogDateLoadFailed {
+            // Show error when loading validation data fails
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                    Text("Failed to load log history.")
+                }
+                .font(.caption)
+                .foregroundStyle(.red)
+
+                Button {
+                    Task {
+                        await vm.loadEarliestLogDate()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Retry")
+                    }
+                    .font(.caption)
+                }
+            }
+        } else if vm.isLoadingEarliestLogDate {
+            // Show loading state
+            HStack(spacing: 4) {
+                ProgressView()
+                    .scaleEffect(0.6)
+                Text("Loading log history...")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        } else if !vm.isStartDateValid {
             // Show error when start date is after existing logs
             HStack(spacing: 4) {
                 Image(systemName: "exclamationmark.triangle.fill")
