@@ -262,7 +262,6 @@ public enum Strings {
     // MARK: - Dashboard
     public enum Dashboard {
         public static let title = String(localized: "dashboardTitle")
-        public static let completionStats = String(localized: "dashboardCompletionStats")
         public static let totalHabits = String(localized: "dashboardTotalHabits")
         public static let completedHabits = String(localized: "dashboardCompletedHabits")
         public static let overallCompletion = String(localized: "dashboardOverallCompletion")
@@ -275,6 +274,7 @@ public enum Strings {
         public static let startTrackingMessage = String(localized: "dashboardStartTrackingMessage")
         
         // Time period selectors
+        public static let timePeriodPicker = String(localized: "dashboardTimePeriodPicker")
         public static let thisWeek = String(localized: "dashboardThisWeek")
         public static let thisMonth = String(localized: "dashboardThisMonth")
         public static let last6Months = String(localized: "dashboardLast6Months")

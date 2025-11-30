@@ -37,7 +37,7 @@ public protocol ScheduleAwareCompletionCalculator {
 }
 
 public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareCompletionCalculator {
-    
+
     private let habitCompletionService: HabitCompletionService
     
     public init(habitCompletionService: HabitCompletionService = DefaultHabitCompletionService()) {
@@ -111,7 +111,7 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
             totalCompletedEntries += completedDays
             
             // Consider a habit "completed" if it has >50% completion rate
-            if completionRate > 0.5 {
+            if completionRate > BusinessConstants.goodCompletionRate {
                 habitsWithGoodCompletion += 1
             }
         }

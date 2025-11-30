@@ -1038,15 +1038,10 @@ private struct ScheduleInfoRow: View {
 private struct StreakInfoRow: View {
     var body: some View {
         HStack(spacing: 16) {
-            HStack(spacing: 2) {
-                Text("🔥")
-                    .font(.title2)
-                Text("3")
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundColor(.orange)
-            }
-            .modifier(SheetPulseAnimationModifier())
-            .frame(width: 44)
+            Text("🔥")
+                .font(.title2)
+                .modifier(SheetPulseAnimationModifier())
+                .frame(width: 44)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Streak at Risk")

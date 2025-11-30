@@ -142,7 +142,10 @@ public struct BusinessConstants {
     
     /// Perfect completion rate threshold (100%)
     public static let perfectCompletionRate = 1.0
-    
+
+    /// Good completion rate threshold (50%) - habit considered "completed" for stats
+    public static let goodCompletionRate = 0.5
+
     /// Struggling completion rate threshold (60%)
     public static let strugglingCompletionRate = 0.6
     

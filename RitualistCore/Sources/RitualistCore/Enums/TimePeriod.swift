@@ -28,6 +28,28 @@ public enum TimePeriod: CaseIterable {
         case .allTime: return "All Time"
         }
     }
+
+    /// Short display name for compact UI (segmented controls, tabs)
+    public var shortDisplayName: String {
+        switch self {
+        case .thisWeek: return "7D"
+        case .thisMonth: return "1M"
+        case .last6Months: return "6M"
+        case .lastYear: return "1Y"
+        case .allTime: return "All"
+        }
+    }
+
+    /// Accessibility label for VoiceOver (expands abbreviations)
+    public var accessibilityLabel: String {
+        switch self {
+        case .thisWeek: return "Last 7 days"
+        case .thisMonth: return "Last month"
+        case .last6Months: return "Last 6 months"
+        case .lastYear: return "Last year"
+        case .allTime: return "All time"
+        }
+    }
     
     /// Calculated date range for the time period
     /// 

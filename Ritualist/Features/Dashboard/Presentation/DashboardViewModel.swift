@@ -7,7 +7,7 @@ import RitualistCore
 @MainActor
 @Observable
 public final class DashboardViewModel {
-    public var selectedTimePeriod: TimePeriod = .thisMonth {
+    public var selectedTimePeriod: TimePeriod = .thisWeek {
         didSet {
             if oldValue != selectedTimePeriod {
                 Task {
@@ -16,7 +16,7 @@ public final class DashboardViewModel {
             }
         }
     }
-    public var completionStats: HabitCompletionStats?
+    public var hasHabits = false
     public var habitPerformanceData: [HabitPerformanceViewModel]?
     public var progressChartData: [ChartDataPointViewModel]?
     public var weeklyPatterns: WeeklyPatternsViewModel?
@@ -371,7 +371,7 @@ public final class DashboardViewModel {
             
             // Extract all metrics from single source (no additional queries)
             if !dashboardData.habits.isEmpty {
-                self.completionStats = extractCompletionStats(from: dashboardData)
+                self.hasHabits = true
                 self.habitPerformanceData = extractHabitPerformanceData(from: dashboardData)
                 self.progressChartData = extractProgressChartData(from: dashboardData)
                 self.weeklyPatterns = extractWeeklyPatterns(from: dashboardData)
@@ -379,7 +379,7 @@ public final class DashboardViewModel {
                 self.categoryBreakdown = extractCategoryBreakdown(from: dashboardData)
             } else {
                 // No habits - set empty states
-                self.completionStats = nil
+                self.hasHabits = false
                 self.habitPerformanceData = []
                 self.progressChartData = []
                 self.weeklyPatterns = nil

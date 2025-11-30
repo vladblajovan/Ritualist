@@ -96,6 +96,13 @@ extension Container {
                         }
                     }
                 }
+
+                // Handle default tap on notification: navigate to Overview
+                if action == .openApp {
+                    await MainActor.run {
+                        self.navigationService().navigateToOverview(shouldRefresh: true)
+                    }
+                }
             }
             
             return service
