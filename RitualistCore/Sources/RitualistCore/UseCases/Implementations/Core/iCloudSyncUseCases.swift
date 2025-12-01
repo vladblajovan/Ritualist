@@ -56,12 +56,40 @@ public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
     private let syncErrorHandler: CloudSyncErrorHandler
     private let logger: DebugLogger
 
+    /// Timeout for iCloud status check (in seconds)
+    /// CloudKit can hang indefinitely on poor networks - this ensures we always return
+    private static let statusCheckTimeout: TimeInterval = 10
+
     public init(syncErrorHandler: CloudSyncErrorHandler, logger: DebugLogger) {
         self.syncErrorHandler = syncErrorHandler
         self.logger = logger
     }
 
     public func execute() async -> iCloudSyncStatus {
+        // Wrap CloudKit call with timeout to prevent indefinite hangs
+        // CloudKit doesn't respect Task cancellation, so we use the shared timeout utility
+        let logger = self.logger
+        let timeout = Self.statusCheckTimeout
+
+        return await withTimeout(
+            seconds: timeout,
+            operation: { [self] in
+                await performStatusCheck()
+            },
+            onTimeout: {
+                logger.log(
+                    "iCloud status check timed out",
+                    level: .warning,
+                    category: .network,
+                    metadata: ["timeout": "\(timeout)s"]
+                )
+                return .unknown
+            }
+        )
+    }
+
+    /// Performs the actual CloudKit status check without timeout
+    private func performStatusCheck() async -> iCloudSyncStatus {
         do {
             let accountStatus = try await syncErrorHandler.checkiCloudAccountStatus()
 
@@ -106,6 +134,7 @@ public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
             return .unknown
         }
     }
+
 }
 
 // MARK: - iCloud Sync Status

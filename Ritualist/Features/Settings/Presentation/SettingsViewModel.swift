@@ -389,14 +389,30 @@ public final class SettingsViewModel {
 
     // MARK: - iCloud Sync Methods
 
+    /// Track in-progress status check to prevent concurrent calls
+    private var statusCheckTask: Task<Void, Never>?
+
     /// Refresh iCloud account status
+    /// Timeout protection is handled by CheckiCloudStatusUseCase
     public func refreshiCloudStatus() async {
-        isCheckingCloudStatus = true
+        // Prevent concurrent status checks - reuse existing if in progress
+        if let existingTask = statusCheckTask {
+            await existingTask.value
+            return
+        }
 
-        // Note: checkiCloudStatus never throws - it returns .unknown for all error cases
-        iCloudStatus = await checkiCloudStatus.execute()
+        // Create and store the task before starting work
+        let task = Task { [weak self] in
+            guard let self else { return }
 
-        isCheckingCloudStatus = false
+            isCheckingCloudStatus = true
+            iCloudStatus = await checkiCloudStatus.execute()
+            isCheckingCloudStatus = false
+            statusCheckTask = nil
+        }
+
+        statusCheckTask = task
+        await task.value
     }
 
     /// Force a fresh iCloud status check with logging for diagnostics

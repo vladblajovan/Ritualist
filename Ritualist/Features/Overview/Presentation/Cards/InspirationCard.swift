@@ -104,6 +104,8 @@ struct InspirationCard: View {
                 .buttonStyle(PlainButtonStyle())
                 .padding(.trailing, 16)
                 .padding(.bottom, 16)
+                .accessibilityLabel("Dismiss inspiration card")
+                .accessibilityIdentifier(AccessibilityID.InspirationCarousel.cardDismissButton)
             }
             .background(
                 style.gradient

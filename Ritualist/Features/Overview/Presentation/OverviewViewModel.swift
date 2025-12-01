@@ -210,6 +210,10 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             return  // Don't load during migration - wait for completion
         }
 
+        // DAY CHANGE CHECK: Reset dismissed triggers if midnight passed while app was open
+        // This handles the case where user leaves app open overnight
+        resetDismissedTriggersIfNewDay()
+
         // MIGRATION CHECK: Detect completion and invalidate cache if needed
         if checkMigrationAndInvalidateCache() {
             logger.logStateTransition(
@@ -264,7 +268,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             self.smartInsights = extractSmartInsights(from: overviewData)
             
             // Load personality insights separately (non-blocking)
-            Task {
+            // Note: loadPersonalityInsights() handles errors internally with logging
+            Task { @MainActor in
                 await loadPersonalityInsights()
             }
             
@@ -272,8 +277,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             self.checkAndShowInspirationCard()
         } catch {
             self.error = error
+            logger.log(
+                "Failed to load overview data",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
         }
-        
+
         self.isLoading = false
     }
     
@@ -715,7 +726,13 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             // If today is 25%+ better than yesterday, it's a comeback story
             return currentCompletion > yesterdayCompletion + 0.25 && yesterdayCompletion < 0.6
         } catch {
-            // Ignore errors for comeback detection
+            // Log error but gracefully degrade - comeback detection is non-critical
+            logger.log(
+                "Comeback story detection failed - falling back to false",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
             return false
         }
     }
@@ -777,11 +794,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         showInspirationCard = false
         cachedInspirationMessage = nil
 
-        // Clear items after animation completes (no visual effect since carousel is hidden)
-        Task {
-            try? await Task.sleep(for: .milliseconds(350))
-            inspirationItems = []
-        }
+        // Clear items synchronously since carousel is already hidden
+        // Previous implementation used a delayed Task which could leak if called rapidly
+        inspirationItems = []
 
         logger.log(
             "Dismissed all inspiration items",
@@ -1165,12 +1180,13 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 : getCurrentSlogan.execute()
             sloganIndex += 1
 
-            let item = InspirationItem(
+            if let item = InspirationItem(
                 trigger: trigger,
                 message: message,
                 slogan: slogan
-            )
-            items.append(item)
+            ) {
+                items.append(item)
+            }
         }
 
         logger.log(
@@ -1796,11 +1812,21 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 UserDefaults.standard.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
             } else {
                 // Load dismissed triggers for today from UserDefaults
-                if let dismissedData = UserDefaults.standard.data(forKey: UserDefaultsKeys.dismissedTriggersToday),
-                   let dismissedArray = try? JSONDecoder().decode([String].self, from: dismissedData) {
-                    dismissedTriggersToday = Set(dismissedArray.compactMap { triggerString in
-                        InspirationTrigger.allCases.first { "\($0)" == triggerString }
-                    })
+                if let dismissedData = UserDefaults.standard.data(forKey: UserDefaultsKeys.dismissedTriggersToday) {
+                    do {
+                        let dismissedArray = try JSONDecoder().decode([String].self, from: dismissedData)
+                        dismissedTriggersToday = Set(dismissedArray.compactMap { triggerString in
+                            InspirationTrigger.allCases.first { "\($0)" == triggerString }
+                        })
+                    } catch {
+                        logger.log(
+                            "Failed to decode dismissed triggers - resetting to empty",
+                            level: .warning,
+                            category: .dataIntegrity,
+                            metadata: ["error": error.localizedDescription]
+                        )
+                        dismissedTriggersToday = []
+                    }
                 }
             }
         } else {
@@ -1811,8 +1837,16 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     private func saveDismissedTriggers() {
         let dismissedArray = dismissedTriggersToday.map { "\($0)" }
-        if let data = try? JSONEncoder().encode(dismissedArray) {
+        do {
+            let data = try JSONEncoder().encode(dismissedArray)
             UserDefaults.standard.set(data, forKey: UserDefaultsKeys.dismissedTriggersToday)
+        } catch {
+            logger.log(
+                "Failed to encode dismissed triggers",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
         }
     }
     

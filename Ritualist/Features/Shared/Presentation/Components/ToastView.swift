@@ -39,6 +39,7 @@ struct ToastView: View {
     @State private var isVisible = false
     @State private var dismissTask: Task<Void, Never>?
     @State private var dragOffset: CGFloat = 0
+    @State private var hasDismissed = false
 
     init(
         message: String,
@@ -74,6 +75,7 @@ struct ToastView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Dismiss")
+            .accessibilityIdentifier(AccessibilityID.Toast.dismissButton)
         }
         .padding(.leading, Spacing.medium)
         .padding(.trailing, Spacing.small)
@@ -83,10 +85,15 @@ struct ToastView: View {
                 .fill(style.color.gradient)
                 .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
         )
+        // Note: Entry/exit animations are handled by the container (RootTabView overlay)
+        // via .transition() and .animation(value: toasts). Only animate drag offset here
+        // to avoid conflicting double-animations that cause janky behavior.
         .opacity(isVisible ? 1 : 0)
         .offset(y: isVisible ? dragOffset : -20)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isVisible)
-        .animation(.interactiveSpring(), value: dragOffset)
+        .animation(SpringAnimation.interactive, value: dragOffset)
+        // Accessibility: Expose swipe gesture to VoiceOver users
+        .accessibilityHint("Swipe up to dismiss")
+        .accessibilityAction(.escape) { dismissToast() }
         .gesture(
             DragGesture()
                 .onChanged { value in
@@ -122,8 +129,14 @@ struct ToastView: View {
     }
 
     private func dismissToast() {
-        // Prevent multiple dismiss calls
-        guard dismissTask != nil else { return }
+        // Prevent multiple dismiss calls - use dedicated flag for thread-safe check
+        // The previous check (dismissTask != nil) had a race condition where multiple
+        // calls could pass the guard before dismissTask was set to nil
+        guard !hasDismissed else { return }
+        hasDismissed = true
+
+        // Haptic feedback for tactile confirmation of dismiss action
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         // Cancel auto-dismiss timer if still running
         dismissTask?.cancel()
@@ -134,8 +147,8 @@ struct ToastView: View {
         }
 
         // Call dismiss after animation completes
-        Task {
-            try? await Task.sleep(for: .milliseconds(400))
+        // Using DispatchQueue ensures single callback even if view is deallocated
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [onDismiss] in
             onDismiss()
         }
     }
@@ -172,7 +185,7 @@ struct ToastConfiguration {
     var alignment: Alignment = .top
     var padding: CGFloat = 4
     var transition: AnyTransition = .move(edge: .top).combined(with: .opacity)
-    var animation: Animation = .spring(response: 0.4, dampingFraction: 0.8)
+    var animation: Animation = SpringAnimation.interactive
 
     static let `default` = ToastConfiguration()
     static let bottom = ToastConfiguration(alignment: .bottom, padding: 100, transition: .move(edge: .bottom).combined(with: .opacity))

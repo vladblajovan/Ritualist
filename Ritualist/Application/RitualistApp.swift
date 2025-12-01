@@ -457,6 +457,11 @@ import CoreData
     /// CloudKit can fire 16+ NSPersistentStoreRemoteChange notifications in quick succession.
     /// Each handler needs to check iCloud status, but calling CloudKit repeatedly is wasteful.
     /// This caches the status for a short duration (10 seconds) during bulk sync operations.
+    ///
+    /// - Note: Must be @MainActor to safely access @State properties (cachedICloudStatus, lastICloudStatusCheckUptime)
+    ///   which are MainActor-isolated. Called from Task blocks in .onReceive handlers that may originate from
+    ///   background threads (NSPersistentStoreRemoteChange notifications).
+    @MainActor
     private func getCachedICloudStatus() async -> iCloudSyncStatus {
         let currentUptime = ProcessInfo.processInfo.systemUptime
 

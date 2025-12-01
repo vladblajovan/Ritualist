@@ -8,11 +8,22 @@ public struct InspirationItem: Identifiable, Equatable {
     public let message: String
     public let slogan: String
 
-    public init(id: UUID = UUID(), trigger: InspirationTrigger, message: String, slogan: String) {
+    /// Creates an inspiration item with validated content
+    /// Returns nil if message or slogan is empty after trimming whitespace
+    public init?(id: UUID = UUID(), trigger: InspirationTrigger, message: String, slogan: String) {
+        guard Self.isValid(message: message, slogan: slogan) else {
+            return nil
+        }
         self.id = id
         self.trigger = trigger
         self.message = message
         self.slogan = slogan
+    }
+
+    /// Validates that message and slogan are non-empty
+    public static func isValid(message: String, slogan: String) -> Bool {
+        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !slogan.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     public static func == (lhs: InspirationItem, rhs: InspirationItem) -> Bool {
@@ -45,7 +56,7 @@ struct InspirationCarouselView: View {
                             completionPercentage: completionPercentage,
                             shouldShow: true,
                             onDismiss: {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                withAnimation(SpringAnimation.interactive) {
                                     onDismiss(item)
                                 }
                             }
@@ -87,6 +98,10 @@ struct InspirationCarouselView: View {
                             .fill(.black.opacity(0.2))
                     )
                     .padding(.bottom, 12)
+                    // Accessibility: Group indicators and announce as single element
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Page \(currentIndex + 1) of \(items.count)")
+                    .accessibilityIdentifier(AccessibilityID.InspirationCarousel.pageIndicators)
                 }
             }
 
@@ -100,8 +115,10 @@ struct InspirationCarouselView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(AccessibilityID.InspirationCarousel.dismissAllButton)
             }
         }
+        .accessibilityIdentifier(AccessibilityID.InspirationCarousel.carousel)
     }
 
     // MARK: - Peek Hint Animation
@@ -132,7 +149,7 @@ struct InspirationCarouselView: View {
 
         // Bounce back to original position
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+            withAnimation(SpringAnimation.interactive) {
                 peekOffset = 0
             }
 
@@ -164,7 +181,7 @@ struct InspirationCarouselView: View {
                 message: "Halfway there! Keep the momentum going!",
                 slogan: "Midday momentum, unstoppable force."
             )
-        ],
+        ].compactMap { $0 },
         timeOfDay: .noon,
         completionPercentage: 0.75,
         onDismiss: { _ in },
@@ -182,7 +199,7 @@ struct InspirationCarouselView: View {
                 message: "Time to execute your daily plan with precision.",
                 slogan: "Your morning sets the entire tone."
             )
-        ],
+        ].compactMap { $0 },
         timeOfDay: .morning,
         completionPercentage: 0.0,
         onDismiss: { _ in },

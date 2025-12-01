@@ -395,10 +395,11 @@ public struct RootTabView: View {
         // Supports multiple stacked toasts with newest on top
         .overlay(alignment: .top) {
             VStack(spacing: 8) {
-                ForEach(Array(viewModel.toasts.enumerated()), id: \.element.id) { index, toast in
+                ForEach(Array(viewModel.toastItems.enumerated()), id: \.element.id) { index, toast in
                     toastView(for: toast)
-                        .scaleEffect(1.0 - (Double(index) * 0.05)) // Slightly smaller for older toasts
-                        .opacity(1.0 - (Double(index) * 0.15)) // Slightly faded for older toasts
+                        // Visual hierarchy: older toasts recede proportionally
+                        .scaleEffect(1.0 - (Double(index) * ToastVisualHierarchy.scaleReductionPerIndex))
+                        .opacity(1.0 - (Double(index) * ToastVisualHierarchy.opacityReductionPerIndex))
                         .transition(.asymmetric(
                             insertion: .move(edge: .top).combined(with: .opacity),
                             removal: .opacity
@@ -407,7 +408,7 @@ public struct RootTabView: View {
             }
             .padding(.top, 4)
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.toasts.map(\.id))
+        .animation(SpringAnimation.interactive, value: viewModel.toastItems.map(\.id))
     }
     
     private func checkOnboardingStatus() async {
@@ -619,11 +620,11 @@ public struct RootTabView: View {
     // MARK: - Centralized Toast View
 
     @ViewBuilder
-    private func toastView(for toast: ToastService.Toast) -> some View {
+    private func toastView(for toast: RootTabViewModel.ToastDisplayItem) -> some View {
         ToastView(
-            message: toast.type.message,
-            icon: toast.type.icon,
-            style: toast.type.style
+            message: toast.message,
+            icon: toast.icon,
+            style: toast.style
         ) {
             viewModel.dismissToast(toast.id)
         }

@@ -164,5 +164,16 @@ public enum AccessibilityID {
         public static let iCloudSync = "toast.iCloudSync"
         public static let success = "toast.success"
         public static let error = "toast.error"
+        public static let dismissButton = "toast.dismiss"
+    }
+
+    // MARK: - Inspiration Carousel
+
+    public enum InspirationCarousel {
+        public static let carousel = "inspiration.carousel"
+        public static let dismissAllButton = "inspiration.dismissAll"
+        public static let pageIndicators = "inspiration.pageIndicators"
+        public static func card(_ index: Int) -> String { "inspiration.card.\(index)" }
+        public static let cardDismissButton = "inspiration.card.dismiss"
     }
 }

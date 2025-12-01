@@ -334,7 +334,7 @@ public struct DashboardView: View {
                         Text("\(Int((category.completionRate * 100).rounded()))%")
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
                             .foregroundColor(.primary)
-                            .frame(width: 35, alignment: .trailing)
+                            .frame(minWidth: 44, alignment: .trailing)
                     }
                 }
                 .padding(.vertical, 2)

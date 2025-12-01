@@ -296,6 +296,18 @@ public final class RootTabViewModel {
     #endif
 }
 
+// MARK: - Toast Display Model
+
+extension RootTabViewModel {
+    /// View-friendly toast representation that doesn't expose internal ToastService types
+    public struct ToastDisplayItem: Identifiable {
+        public let id: UUID
+        public let message: String
+        public let icon: String
+        public let style: ToastStyle
+    }
+}
+
 // MARK: - Toast Helpers
 
 extension RootTabViewModel {
@@ -304,9 +316,16 @@ extension RootTabViewModel {
         toastService.hasActiveToasts
     }
 
-    /// Active toasts for display (exposed for View binding)
-    public var toasts: [ToastService.Toast] {
-        toastService.toasts
+    /// Active toasts for display (view-friendly representation)
+    public var toastItems: [ToastDisplayItem] {
+        toastService.toasts.map { toast in
+            ToastDisplayItem(
+                id: toast.id,
+                message: toast.type.message,
+                icon: toast.type.icon,
+                style: toast.type.style
+            )
+        }
     }
 
     /// Dismiss a specific toast by ID

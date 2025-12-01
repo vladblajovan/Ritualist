@@ -57,7 +57,7 @@ struct MotivationCardDemoView: View {
                 message: "Final push time! You're almost there.",
                 slogan: "Finish strong, tomorrow starts now."
             )
-        ]
+        ].compactMap { $0 }
     }
 
     var body: some View {

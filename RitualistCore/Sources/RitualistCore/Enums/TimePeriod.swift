@@ -21,7 +21,7 @@ public enum TimePeriod: CaseIterable {
     /// Human-readable display name for the time period
     public var displayName: String {
         switch self {
-        case .thisWeek: return "This Week"
+        case .thisWeek: return "Last 7 Days"
         case .thisMonth: return "This Month"
         case .last6Months: return "Last 6 Months"
         case .lastYear: return "Last Year"
@@ -62,9 +62,11 @@ public enum TimePeriod: CaseIterable {
 
         switch self {
         case .thisWeek:
-            // Use actual calendar week respecting user's week start preference
-            let startOfWeek = CalendarUtils.startOfWeekLocal(for: now)
-            return (start: startOfWeek, end: now)
+            // Rolling 7-day window (last 7 days including today)
+            // Matches the "7D" label and "Last 7 days" accessibility text
+            let sevenDaysAgo = CalendarUtils.addDaysLocal(-6, to: now, timezone: .current)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: sevenDaysAgo)
+            return (start: startOfDay, end: now)
             
         case .thisMonth:
             let startOfMonth = CalendarUtils.startOfMonthLocal(for: now)

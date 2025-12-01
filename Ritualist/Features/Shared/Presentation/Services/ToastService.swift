@@ -12,6 +12,10 @@ public final class ToastService {
     /// Maximum number of toasts visible at once
     public static let maxVisibleToasts = 3
 
+    /// Maximum time a toast can remain in the queue (seconds)
+    /// Safety net if onDismiss callback fails - prevents unbounded memory growth
+    private static let maxToastLifetime: TimeInterval = 10
+
     // MARK: - Toast Model
 
     public struct Toast: Equatable, Identifiable {
@@ -81,6 +85,9 @@ public final class ToastService {
     /// Show a toast notification (adds to stack)
     /// Deduplicates: won't add a toast if one with the same message already exists
     public func show(_ type: ToastType) {
+        // First, purge any stale toasts (safety net for failed onDismiss callbacks)
+        purgeExpiredToasts()
+
         // Prevent duplicate toasts with the same message
         guard !toasts.contains(where: { $0.type.message == type.message }) else {
             return
@@ -94,6 +101,15 @@ public final class ToastService {
         // Trim to max visible
         if toasts.count > Self.maxVisibleToasts {
             toasts = Array(toasts.prefix(Self.maxVisibleToasts))
+        }
+    }
+
+    /// Remove toasts that have exceeded their maximum lifetime
+    /// Safety net to prevent unbounded memory growth if onDismiss callbacks fail
+    private func purgeExpiredToasts() {
+        let now = Date()
+        toasts.removeAll { toast in
+            now.timeIntervalSince(toast.createdAt) > Self.maxToastLifetime
         }
     }
 
