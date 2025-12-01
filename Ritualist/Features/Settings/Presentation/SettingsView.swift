@@ -6,12 +6,11 @@ import RitualistCore
 public struct SettingsRoot: View {
     @Injected(\.settingsViewModel) var vm
     @Injected(\.debugLogger) private var logger
-    @Injected(\.toastService) private var toastService
 
     public init() {}
 
     public var body: some View {
-        SettingsContentView(vm: vm, toastService: toastService)
+        SettingsContentView(vm: vm)
             .task {
                 await vm.load()
             }
@@ -19,7 +18,7 @@ public struct SettingsRoot: View {
                 // Auto-refresh when iCloud syncs new data from another device
                 // This updates profile name, avatar, appearance, and timezone settings
                 // Skip reload if a toast is showing to avoid interrupting the toast animation
-                guard toastService.currentToast == nil else {
+                guard !vm.isToastActive else {
                     logger.log(
                         "☁️ iCloud sync detected - deferring Settings refresh (toast active)",
                         level: .debug,
@@ -29,7 +28,7 @@ public struct SettingsRoot: View {
                     Task {
                         try? await Task.sleep(for: .seconds(4))
                         // Only refresh if toast has actually dismissed
-                        if toastService.currentToast == nil {
+                        if !vm.isToastActive {
                             await vm.load()
                         }
                     }
@@ -49,16 +48,14 @@ public struct SettingsRoot: View {
 
 private struct SettingsContentView: View {
     @Bindable var vm: SettingsViewModel
-    let toastService: ToastService
 
     var body: some View {
-        SettingsFormView(vm: vm, toastService: toastService)
+        SettingsFormView(vm: vm)
     }
 }
 
 private struct SettingsFormView: View {
     @Bindable var vm: SettingsViewModel
-    let toastService: ToastService
     @Injected(\.debugLogger) private var logger
     @FocusState private var isNameFieldFocused: Bool
     @State private var showingImagePicker = false
@@ -100,7 +97,6 @@ private struct SettingsFormView: View {
                     // Account Section
                     AccountSectionView(
                         vm: vm,
-                        toastService: toastService,
                         name: $name,
                         appearance: $appearance,
                         displayTimezoneMode: $displayTimezoneMode,
@@ -136,14 +132,7 @@ private struct SettingsFormView: View {
 
                     // Data Management Section (Export/Import/Delete)
                     DataManagementSectionView(vm: vm) { result in
-                        switch result {
-                        case .success:
-                            toastService.success(Strings.DataManagement.deleteSuccessMessage)
-                        case .successButCloudSyncMayBeDelayed:
-                            toastService.warning(Strings.DataManagement.deleteSyncDelayedMessage, icon: "exclamationmark.icloud.fill")
-                        case .failed:
-                            toastService.error(Strings.DataManagement.deleteFailedMessage)
-                        }
+                        vm.showDeleteResultToast(result)
                     }
 
                     // Advanced Section
@@ -196,19 +185,8 @@ private struct SettingsFormView: View {
                         currentImageData: vm.profile.avatarImageData,
                         selectedImageData: $selectedImageData
                     ) { newImageData in
-                        let isRemoving = newImageData == nil && vm.profile.avatarImageData != nil
-                        vm.profile.avatarImageData = newImageData
                         Task {
-                            let success = await vm.save()
-                            if success {
-                                await MainActor.run {
-                                    if isRemoving {
-                                        toastService.info(Strings.Avatar.photoRemoved, icon: "person.crop.circle.badge.minus")
-                                    } else {
-                                        toastService.success(Strings.Avatar.photoUpdated, icon: "person.crop.circle.fill.badge.checkmark")
-                                    }
-                                }
-                            }
+                            await vm.updateAvatar(newImageData)
                         }
                         selectedImageData = nil
                     } onDismiss: {
@@ -250,6 +228,10 @@ private struct SettingsFormView: View {
                         await vm.refreshiCloudStatus()
                     }
                 }
+                .onChange(of: vm.profile) { _, _ in
+                    // Sync local state when profile changes (e.g., after delete all data)
+                    updateLocalState()
+                }
             }
         }
         .navigationTitle("Settings")
@@ -257,7 +239,7 @@ private struct SettingsFormView: View {
     }
 
     // MARK: - Computed Properties
-    
+
     private var displayName: String {
         vm.profile.name
     }
@@ -298,17 +280,11 @@ private struct SettingsFormView: View {
             ageGroup = .preferNotToSay
         }
     }
-    
+
     private func updateUserName() async {
-        // Update both profile name and user service
-        await vm.updateUserName(name)
-        vm.profile.name = name
-        let success = await vm.save()
-        if success {
-            toastService.success(Strings.Profile.nameUpdated, icon: "person.fill.checkmark")
-        }
+        await vm.updateName(name)
     }
-    
+
     private func appearanceName(_ appearance: Int) -> String {
         switch appearance {
         case 0: return "Follow System"

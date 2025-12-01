@@ -10,9 +10,16 @@ import Foundation
 public protocol SlogansServiceProtocol {
     /// Get a random slogan for the current time of day
     func getCurrentSlogan() -> String
-    
+
     /// Get a random slogan for a specific time of day
     func getSlogan(for timeOfDay: TimeOfDay) -> String
+
+    /// Get multiple unique slogans for a specific time of day
+    /// - Parameters:
+    ///   - count: Number of unique slogans to return
+    ///   - timeOfDay: The time of day to get slogans for
+    /// - Returns: Array of unique slogans (may be fewer than requested if not enough available)
+    func getUniqueSlogans(count: Int, for timeOfDay: TimeOfDay) -> [String]
 }
 
 // MARK: - Implementations
@@ -74,7 +81,13 @@ public final class SlogansService: SlogansServiceProtocol {
         let slogans = getSlogans(for: timeOfDay)
         return slogans.randomElement() ?? "Build your rituals, rule your life."
     }
-    
+
+    public func getUniqueSlogans(count: Int, for timeOfDay: TimeOfDay) -> [String] {
+        let allSlogans = getSlogans(for: timeOfDay)
+        let shuffled = allSlogans.shuffled()
+        return Array(shuffled.prefix(count))
+    }
+
     // MARK: - Private Methods
     
     private func getSlogans(for timeOfDay: TimeOfDay) -> [String] {
@@ -103,8 +116,13 @@ public final class MockSlogansService: SlogansServiceProtocol {
     public func getCurrentSlogan() -> String {
         fixedSlogan
     }
-    
+
     public func getSlogan(for timeOfDay: TimeOfDay) -> String {
         fixedSlogan
+    }
+
+    public func getUniqueSlogans(count: Int, for timeOfDay: TimeOfDay) -> [String] {
+        // For mock, return the same fixed slogan repeated (or unique versions for testing)
+        return (0..<count).map { "\(fixedSlogan) \($0 + 1)" }
     }
 }

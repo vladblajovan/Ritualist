@@ -21,12 +21,18 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public var selectedDate = Date()
     public var viewingDate = CalendarUtils.startOfDayLocal(for: Date()) // The date being viewed in Today's Progress card
     public var showInspirationCard: Bool = false
-    
+
+    /// Multiple inspiration items for carousel display, sorted by priority
+    public var inspirationItems: [InspirationItem] = []
+
     // Inspiration card tracking
     @ObservationIgnored private var lastShownInspirationTrigger: InspirationTrigger?
     @ObservationIgnored private var sessionStartTime = Date()
     @ObservationIgnored private var dismissedTriggersToday: Set<InspirationTrigger> = []
     @ObservationIgnored private var cachedInspirationMessage: String?
+
+    /// Tracks the last set of triggers shown in the carousel to prevent unnecessary rebuilds
+    @ObservationIgnored private var lastEvaluatedTriggerSet: Set<InspirationTrigger> = []
     
     public var isLoading: Bool = false
     public var error: Error?
@@ -658,7 +664,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     public func showInspiration() {
-        showInspirationCard = true
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            showInspirationCard = true
+        }
     }
     
     public func triggerMotivation() {
@@ -719,6 +727,68 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             saveDismissedTriggers()
         }
         showInspirationCard = false
+        inspirationItems = []
+    }
+
+    /// Dismiss a single inspiration item from the carousel
+    public func dismissInspirationItem(_ item: InspirationItem) {
+        // Mark the trigger as dismissed
+        dismissedTriggersToday.insert(item.trigger)
+        saveDismissedTriggers()
+
+        // Remove from items
+        inspirationItems.removeAll { $0.id == item.id }
+
+        // Update trigger cache to reflect dismissal
+        lastEvaluatedTriggerSet.remove(item.trigger)
+
+        // Update cached message if needed
+        if inspirationItems.isEmpty {
+            showInspirationCard = false
+            cachedInspirationMessage = nil
+            lastEvaluatedTriggerSet = []
+        } else {
+            cachedInspirationMessage = inspirationItems.first?.message
+        }
+
+        logger.log(
+            "Dismissed inspiration item",
+            level: .debug,
+            category: .ui,
+            metadata: [
+                "trigger": item.trigger.displayName,
+                "remaining_count": inspirationItems.count
+            ]
+        )
+    }
+
+    /// Dismiss all inspiration items in the carousel
+    public func dismissAllInspirationItems() {
+        // Mark all triggers as dismissed
+        for item in inspirationItems {
+            dismissedTriggersToday.insert(item.trigger)
+        }
+        saveDismissedTriggers()
+
+        // Clear trigger cache since all items are dismissed
+        lastEvaluatedTriggerSet = []
+
+        // Hide the carousel first (triggers slide-up animation on container)
+        showInspirationCard = false
+        cachedInspirationMessage = nil
+
+        // Clear items after animation completes (no visual effect since carousel is hidden)
+        Task {
+            try? await Task.sleep(for: .milliseconds(350))
+            inspirationItems = []
+        }
+
+        logger.log(
+            "Dismissed all inspiration items",
+            level: .debug,
+            category: .ui,
+            metadata: ["dismissed_count": dismissedTriggersToday.count]
+        )
     }
     
     private func checkAndShowInspirationCard() {
@@ -735,6 +805,17 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             return
         }
 
+        // Skip inspiration entirely if user has no habits at all (new user)
+        let totalHabitsCount = overviewData?.habits.count ?? 0
+        guard totalHabitsCount > 0 else {
+            logger.log(
+                "Skipping inspiration - user has no habits",
+                level: .debug,
+                category: .ui
+            )
+            return
+        }
+
         logger.log(
             "Evaluating inspiration triggers",
             level: .debug,
@@ -743,7 +824,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         )
 
         Task {
-            let triggers = await evaluateInspirationTriggers(summary: summary)
+            let triggers = await evaluateInspirationTriggers(summary: summary, totalHabitsCount: totalHabitsCount)
             logger.log(
                 "Evaluated inspiration triggers",
                 level: .debug,
@@ -754,14 +835,35 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 ]
             )
 
-            if let bestTrigger = selectBestTrigger(from: triggers) {
+            // Get all available triggers (filtered and sorted by priority)
+            let availableTriggers = selectAvailableTriggers(from: triggers)
+
+            if !availableTriggers.isEmpty {
+                // Check if triggers have actually changed to prevent unnecessary carousel rebuilds
+                let newTriggerSet = Set(availableTriggers)
+                if newTriggerSet == lastEvaluatedTriggerSet && showInspirationCard && !inspirationItems.isEmpty {
+                    logger.log(
+                        "Skipping carousel rebuild - triggers unchanged",
+                        level: .debug,
+                        category: .ui,
+                        metadata: ["trigger_count": availableTriggers.count]
+                    )
+                    return
+                }
+
                 logger.log(
-                    "Selected inspiration trigger",
+                    "Showing inspiration carousel",
                     level: .debug,
                     category: .ui,
-                    metadata: ["trigger": bestTrigger.displayName]
+                    metadata: [
+                        "trigger_count": availableTriggers.count,
+                        "triggers": availableTriggers.map { $0.displayName }.joined(separator: ", "),
+                        "triggers_changed": newTriggerSet != lastEvaluatedTriggerSet
+                    ]
                 )
-                showInspirationWithTrigger(bestTrigger)
+
+                lastEvaluatedTriggerSet = newTriggerSet
+                await showInspirationWithTriggers(availableTriggers)
             } else {
                 logger.log(
                     "No inspiration trigger selected",
@@ -769,70 +871,170 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                     category: .ui,
                     metadata: ["reason": "All triggers filtered or empty"]
                 )
+                // Clear the cached trigger set when no triggers available
+                lastEvaluatedTriggerSet = []
             }
         }
     }
     
-    private func evaluateInspirationTriggers(summary: TodaysSummary) async -> [InspirationTrigger] {
+    // MARK: - Trigger Evaluation System
+    //
+    // The inspiration trigger system uses category-based selection to show relevant,
+    // non-redundant messages. Each category allows at most ONE trigger to avoid
+    // showing multiple cards that say essentially the same thing.
+    //
+    // ## Categories (max 1 trigger per category):
+    //
+    // 1. **Progress** - Based on completion percentage (mutually exclusive):
+    //    - `perfectDay` (100%) - Highest priority, celebration
+    //    - `strongFinish` (75%+) - Almost there
+    //    - `halfwayPoint` (50%+) - Good progress
+    //    - `firstHabitComplete` (>0%, 1 habit) - Just getting started
+    //
+    // 2. **Time-of-Day** - Based on current time period (mutually exclusive):
+    //    - `morningMotivation` (morning, 0% done) - Start the day
+    //    - `strugglingMidDay` (noon, <40%) - Behind at midday
+    //    - `afternoonPush` (3-5 PM, <60%) - Afternoon encouragement
+    //    - `eveningReflection` (evening, 60%+) - End of day reflection
+    //
+    // 3. **Special Context** - Situational triggers (mutually exclusive):
+    //    - `weekendMotivation` (weekend) - Weekend dedication
+    //    - `comebackStory` (improved from yesterday) - Recovery celebration
+    //
+    // 4. **Edge Cases** (shown alone):
+    //    - `emptyDay` - No habits scheduled today
+    //
+    // ## Valid Combinations (1-3 cards):
+    // - Progress + Time + Special (e.g., `halfwayPoint` + `afternoonPush` + `comebackStory`)
+    // - Progress + Special (e.g., `strongFinish` + `weekendMotivation`)
+    // - Progress alone (e.g., `perfectDay` - celebration is enough)
+    // - Time alone (e.g., `morningMotivation` when no progress yet)
+    //
+    // ## Invalid Combinations (avoided by design):
+    // - Multiple progress triggers (e.g., `halfwayPoint` + `strongFinish`)
+    // - Multiple time triggers (e.g., `morningMotivation` + `afternoonPush`)
+    // - Multiple special triggers (e.g., `weekendMotivation` + `comebackStory`)
+    //
+    // ## Edge Case Triggers (shown alone):
+    // - `sessionStart` - User has no habits created yet (welcome/onboarding)
+    // - `emptyDay` - User has habits but none scheduled today
+
+    private func evaluateInspirationTriggers(summary: TodaysSummary, totalHabitsCount: Int) async -> [InspirationTrigger] {
         var triggers: [InspirationTrigger] = []
-        let timeOfDay = currentTimeOfDay
         let completionRate = summary.completionPercentage
         let now = Date()
         let hour = CalendarUtils.hourComponentLocal(from: now)
         let isWeekend = [1, 7].contains(CalendarUtils.weekdayComponentLocal(from: now))
 
-        // Session Start (first load of the day)
-        if CalendarUtils.areSameDayLocal(sessionStartTime, now) &&
-           CalendarUtils.daysBetweenLocal(sessionStartTime, now) == 0 {
-            triggers.append(.sessionStart)
+        // EDGE CASE: No habits created yet (brand new user)
+        // Shows sessionStart as welcome/onboarding message
+        if totalHabitsCount == 0 {
+            return [.sessionStart]
         }
-        
-        // Time-based triggers
-        switch timeOfDay {
-        case .morning:
-            if completionRate == 0.0 {
-                triggers.append(.morningMotivation)
-            }
-            if isWeekend {
-                triggers.append(.weekendMotivation)
-            }
-        case .noon:
-            if completionRate < 0.4 {
-                triggers.append(.strugglingMidDay)
-            }
-        case .evening:
-            if completionRate >= 0.6 {
-                triggers.append(.eveningReflection)
-            }
+
+        // EDGE CASE: Empty Day (no habits scheduled today but has habits on other days)
+        // Shows alone - other triggers don't make sense without scheduled habits
+        if summary.totalHabits == 0 {
+            return [.emptyDay]
         }
-        
-        // Afternoon push (3-5 PM)
-        if hour >= 15 && hour < 17 && completionRate < 0.6 {
-            triggers.append(.afternoonPush)
+
+        // CATEGORY 1: Progress-based (pick highest applicable, mutually exclusive)
+        let progressTrigger = evaluateProgressTrigger(
+            completionRate: completionRate,
+            completedCount: summary.completedHabitsCount
+        )
+        if let trigger = progressTrigger {
+            triggers.append(trigger)
         }
-        
-        // Progress-based triggers
-        if completionRate >= 1.0 {
-            triggers.append(.perfectDay)
-        } else if completionRate >= 0.75 {
-            triggers.append(.strongFinish)
-        } else if completionRate >= 0.5 {
-            triggers.append(.halfwayPoint)
-        } else if completionRate > 0.0 && summary.completedHabitsCount == 1 {
-            triggers.append(.firstHabitComplete)
+
+        // CATEGORY 2: Time-of-day (pick one based on current time, mutually exclusive)
+        let timeTrigger = evaluateTimeTrigger(
+            completionRate: completionRate,
+            hour: hour
+        )
+        if let trigger = timeTrigger {
+            triggers.append(trigger)
         }
-        
-        // Comeback story trigger (improved from yesterday)
-        if await checkForComebackStory(currentCompletion: completionRate) {
-            triggers.append(.comebackStory)
+
+        // CATEGORY 3: Special context (pick one if applicable, mutually exclusive)
+        let specialTrigger = await evaluateSpecialTrigger(
+            completionRate: completionRate,
+            isWeekend: isWeekend
+        )
+        if let trigger = specialTrigger {
+            triggers.append(trigger)
         }
-        
+
         return triggers
     }
-    
-    private func selectBestTrigger(from triggers: [InspirationTrigger]) -> InspirationTrigger? {
-        let now = Date()
 
+    /// Evaluates progress-based triggers (Category 1)
+    /// Returns at most ONE trigger based on completion percentage
+    /// Priority: perfectDay > strongFinish > halfwayPoint > firstHabitComplete
+    private func evaluateProgressTrigger(completionRate: Double, completedCount: Int) -> InspirationTrigger? {
+        if completionRate >= 1.0 {
+            return .perfectDay
+        } else if completionRate >= 0.75 {
+            return .strongFinish
+        } else if completionRate >= 0.5 {
+            return .halfwayPoint
+        } else if completionRate > 0.0 && completedCount == 1 {
+            return .firstHabitComplete
+        }
+        return nil
+    }
+
+    /// Evaluates time-of-day triggers (Category 2)
+    /// Returns at most ONE trigger based on current time and progress
+    /// Triggers are mutually exclusive by time period
+    private func evaluateTimeTrigger(completionRate: Double, hour: Int) -> InspirationTrigger? {
+        let timeOfDay = currentTimeOfDay
+
+        switch timeOfDay {
+        case .morning:
+            // Morning motivation only when no progress yet
+            if completionRate == 0.0 {
+                return .morningMotivation
+            }
+        case .noon:
+            // Struggling mid-day when significantly behind
+            if completionRate < 0.4 {
+                return .strugglingMidDay
+            }
+            // Afternoon push (3-5 PM) when moderately behind
+            // Note: This can fire during "noon" period if hour is 15-16
+            if hour >= 15 && hour < 17 && completionRate < 0.6 {
+                return .afternoonPush
+            }
+        case .evening:
+            // Evening reflection when good progress made
+            if completionRate >= 0.6 {
+                return .eveningReflection
+            }
+        }
+
+        return nil
+    }
+
+    /// Evaluates special context triggers (Category 3)
+    /// Returns at most ONE trigger based on situational context
+    /// Priority: comebackStory > weekendMotivation (comeback is more specific)
+    private func evaluateSpecialTrigger(completionRate: Double, isWeekend: Bool) async -> InspirationTrigger? {
+        // Comeback story takes priority (more specific achievement)
+        if await checkForComebackStory(currentCompletion: completionRate) {
+            return .comebackStory
+        }
+
+        // Weekend motivation as fallback special context
+        if isWeekend {
+            return .weekendMotivation
+        }
+
+        return nil
+    }
+    
+    /// Returns all available triggers sorted by priority (highest first), limited to BusinessConstants.maxInspirationCarouselItems
+    private func selectAvailableTriggers(from triggers: [InspirationTrigger]) -> [InspirationTrigger] {
         logger.log(
             "Filtering dismissed triggers",
             level: .debug,
@@ -842,8 +1044,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             ]
         )
 
-        // Filter out triggers that are on cooldown or dismissed today
-        let availableTriggers = triggers.filter { trigger in
+        // Filter out triggers that are dismissed today
+        let filteredTriggers = triggers.filter { trigger in
             // Skip if already dismissed today
             if dismissedTriggersToday.contains(trigger) {
                 logger.log(
@@ -857,34 +1059,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 )
                 return false
             }
-
-            // Check cooldown
-            if let lastTrigger = lastShownInspirationTrigger,
-               lastTrigger == trigger {
-                let lastShownTime = CalendarUtils.startOfDayLocal(for: now)
-                let cooldownEnd = CalendarUtils.addMinutes(trigger.cooldownMinutes, to: lastShownTime)
-                return now >= cooldownEnd
-            }
             return true
         }
-        
-        // Priority order (most impactful first)
-        let priorityOrder: [InspirationTrigger] = [
-            .perfectDay,           // Celebrate success immediately
-            .sessionStart,         // Welcome back
-            .firstHabitComplete,   // Build momentum
-            .strongFinish,         // Celebrate near-completion
-            .halfwayPoint,         // Acknowledge progress
-            .strugglingMidDay,     // Provide mid-day boost
-            .afternoonPush,        // Late-day motivation
-            .eveningReflection,    // End positively
-            .morningMotivation,    // Start the day right
-            .weekendMotivation,    // Weekend encouragement
-            .comebackStory         // Recovery motivation
-        ]
-        
-        // Return highest priority available trigger
-        return priorityOrder.first { availableTriggers.contains($0) }
+
+        // Sort by priority and limit to max items
+        let sorted = filteredTriggers.sorted { $0.priority > $1.priority }
+        return Array(sorted.prefix(BusinessConstants.maxInspirationCarouselItems))
     }
     
     private func showInspirationWithTrigger(_ trigger: InspirationTrigger) {
@@ -896,6 +1076,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 return 800   // Quick positive reinforcement
             case .sessionStart:
                 return 2000  // Let user settle in first
+            case .emptyDay:
+                return 1500  // Standard timing - gentle reminder
             default:
                 return 1500  // Standard timing
             }
@@ -925,10 +1107,92 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 metadata: ["trigger": trigger.displayName]
             )
             self.lastShownInspirationTrigger = trigger
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                self.showInspirationCard = true
+            }
+        }
+    }
+
+    /// Shows multiple inspiration cards in the carousel
+    private func showInspirationWithTriggers(_ triggers: [InspirationTrigger]) async {
+        guard !triggers.isEmpty else { return }
+
+        // Use delay based on the highest priority trigger
+        let primaryTrigger = triggers.first!
+        let delay: Int = {
+            switch primaryTrigger {
+            case .perfectDay:
+                return 1200
+            case .firstHabitComplete, .halfwayPoint, .strongFinish:
+                return 800
+            case .sessionStart:
+                return 2000
+            default:
+                return 1500
+            }
+        }()
+
+        try? await Task.sleep(for: .milliseconds(delay))
+
+        // Generate personalized messages for all triggers
+        var items: [InspirationItem] = []
+
+        // Get unique slogans for each card (one per trigger)
+        let uniqueSlogans = getCurrentSlogan.getUniqueSlogans(count: triggers.count, for: currentTimeOfDay)
+
+        // Track seen messages to prevent duplicates
+        var seenMessages: Set<String> = []
+        var sloganIndex = 0
+
+        for trigger in triggers {
+            let message = await getPersonalizedMessage(for: trigger)
+
+            // Skip if we already have this exact message (prevents duplicate cards)
+            guard !seenMessages.contains(message) else {
+                logger.log(
+                    "Skipping duplicate message",
+                    level: .debug,
+                    category: .ui,
+                    metadata: ["trigger": trigger.displayName, "message": message]
+                )
+                continue
+            }
+            seenMessages.insert(message)
+
+            // Use unique slogan for each card
+            let slogan = sloganIndex < uniqueSlogans.count
+                ? uniqueSlogans[sloganIndex]
+                : getCurrentSlogan.execute()
+            sloganIndex += 1
+
+            let item = InspirationItem(
+                trigger: trigger,
+                message: message,
+                slogan: slogan
+            )
+            items.append(item)
+        }
+
+        logger.log(
+            "Activating inspiration carousel",
+            level: .debug,
+            category: .ui,
+            metadata: [
+                "item_count": items.count,
+                "triggers": triggers.map { $0.displayName }.joined(separator: ", "),
+                "duplicates_filtered": triggers.count - items.count
+            ]
+        )
+
+        // Update state with animation for smooth entrance
+        self.inspirationItems = items
+        self.cachedInspirationMessage = items.first?.message
+        self.lastShownInspirationTrigger = primaryTrigger
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             self.showInspirationCard = true
         }
     }
-    
+
     public var currentInspirationMessage: String {
         // Use cached message if available, otherwise fallback to slogan
         cachedInspirationMessage ?? getCurrentSlogan.execute()
@@ -1526,7 +1790,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         // Check if we've moved to a new day since last session
         if let lastResetDate = UserDefaults.standard.object(forKey: UserDefaultsKeys.lastInspirationResetDate) as? Date {
             if !CalendarUtils.areSameDayLocal(lastResetDate, today) {
+                // New day - reset all inspiration state
                 dismissedTriggersToday.removeAll()
+                lastEvaluatedTriggerSet = []
                 UserDefaults.standard.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
             } else {
                 // Load dismissed triggers for today from UserDefaults

@@ -2,19 +2,41 @@ import SwiftUI
 import Observation
 
 /// Centralized toast service for showing notifications anywhere in the app
+/// Supports stacking multiple toasts with the latest on top
 /// Usage: toastService.show(.success("Saved!"))
 @MainActor @Observable
 public final class ToastService {
 
-    // MARK: - Toast Types
+    // MARK: - Constants
 
-    public enum Toast: Equatable {
+    /// Maximum number of toasts visible at once
+    public static let maxVisibleToasts = 3
+
+    // MARK: - Toast Model
+
+    public struct Toast: Equatable, Identifiable {
+        public let id: UUID
+        public let type: ToastType
+        public let createdAt: Date
+
+        public init(id: UUID = UUID(), type: ToastType, createdAt: Date = Date()) {
+            self.id = id
+            self.type = type
+            self.createdAt = createdAt
+        }
+
+        public static func == (lhs: Toast, rhs: Toast) -> Bool {
+            lhs.id == rhs.id
+        }
+    }
+
+    public enum ToastType: Equatable {
         case success(String, icon: String = "checkmark.circle.fill")
         case error(String, icon: String = "xmark.circle.fill")
         case warning(String, icon: String = "exclamationmark.triangle.fill")
         case info(String, icon: String = "info.circle.fill")
 
-        var message: String {
+        public var message: String {
             switch self {
             case .success(let msg, _), .error(let msg, _),
                  .warning(let msg, _), .info(let msg, _):
@@ -22,7 +44,7 @@ public final class ToastService {
             }
         }
 
-        var icon: String {
+        public var icon: String {
             switch self {
             case .success(_, let icon), .error(_, let icon),
                  .warning(_, let icon), .info(_, let icon):
@@ -30,7 +52,7 @@ public final class ToastService {
             }
         }
 
-        var style: ToastStyle {
+        public var style: ToastStyle {
             switch self {
             case .success: return .success
             case .error: return .error
@@ -42,7 +64,13 @@ public final class ToastService {
 
     // MARK: - State
 
-    public private(set) var currentToast: Toast?
+    /// Active toasts, ordered by creation time (newest first for display)
+    public private(set) var toasts: [Toast] = []
+
+    /// Convenience for checking if any toast is active
+    public var hasActiveToasts: Bool {
+        !toasts.isEmpty
+    }
 
     // MARK: - Init
 
@@ -50,14 +78,33 @@ public final class ToastService {
 
     // MARK: - Public API
 
-    /// Show a toast notification
-    public func show(_ toast: Toast) {
-        currentToast = toast
+    /// Show a toast notification (adds to stack)
+    /// Deduplicates: won't add a toast if one with the same message already exists
+    public func show(_ type: ToastType) {
+        // Prevent duplicate toasts with the same message
+        guard !toasts.contains(where: { $0.type.message == type.message }) else {
+            return
+        }
+
+        let toast = Toast(type: type)
+
+        // Insert at beginning (newest first)
+        toasts.insert(toast, at: 0)
+
+        // Trim to max visible
+        if toasts.count > Self.maxVisibleToasts {
+            toasts = Array(toasts.prefix(Self.maxVisibleToasts))
+        }
     }
 
-    /// Dismiss the current toast
-    public func dismiss() {
-        currentToast = nil
+    /// Dismiss a specific toast by ID
+    public func dismiss(_ id: UUID) {
+        toasts.removeAll { $0.id == id }
+    }
+
+    /// Dismiss all toasts
+    public func dismissAll() {
+        toasts.removeAll()
     }
 
     // MARK: - Convenience Methods

@@ -4,7 +4,6 @@ import RitualistCore
 /// Account section for Settings page including profile, appearance, and time display
 struct AccountSectionView: View {
     @Bindable var vm: SettingsViewModel
-    let toastService: ToastService
     @Binding var name: String
     @Binding var appearance: Int
     @Binding var displayTimezoneMode: String
@@ -66,11 +65,7 @@ struct AccountSectionView: View {
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: gender) { _, newValue in
                         Task {
-                            vm.profile.gender = newValue.rawValue
-                            let success = await vm.save()
-                            if success {
-                                toastService.success(Strings.Profile.genderUpdated, icon: "person.fill.checkmark")
-                            }
+                            await vm.updateGender(newValue)
                         }
                     }
                 } icon: {
@@ -91,11 +86,7 @@ struct AccountSectionView: View {
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: ageGroup) { _, newValue in
                         Task {
-                            vm.profile.ageGroup = newValue.rawValue
-                            let success = await vm.save()
-                            if success {
-                                toastService.success(Strings.Profile.ageGroupUpdated, icon: "number.circle.fill")
-                            }
+                            await vm.updateAgeGroup(newValue)
                         }
                     }
                 } icon: {

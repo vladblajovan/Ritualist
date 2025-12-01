@@ -242,8 +242,9 @@ public protocol CompleteOnboardingUseCase {
 
 // MARK: - Slogan Use Cases
 
-public protocol GetCurrentSloganUseCase { 
-    func execute() -> String 
+public protocol GetCurrentSloganUseCase {
+    func execute() -> String
+    func getUniqueSlogans(count: Int, for timeOfDay: TimeOfDay) -> [String]
 }
 
 

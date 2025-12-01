@@ -11,7 +11,6 @@ public struct RootTabView: View {
     @Injected(\.loadProfile) var loadProfile
     @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
     @Injected(\.debugLogger) var logger
-    @Injected(\.toastService) var toastService
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var showingPersonalityAnalysis = false
@@ -20,12 +19,6 @@ public struct RootTabView: View {
     @State private var existingHabits: [Habit] = []
     @State private var migrationService = MigrationStatusService.shared
     @State private var pendingPersonalitySheetAfterTabSwitch = false
-    @State private var activeSyncToast: SyncToast?
-
-    private enum SyncToast: Equatable {
-        case synced
-        case stillSyncing
-    }
 
     // Quick Actions state
     @Injected(\.quickActionCoordinator) private var quickActionCoordinator
@@ -82,9 +75,6 @@ public struct RootTabView: View {
                     }
                 }
                 #endif
-                .toast(item: $activeSyncToast) { toast in
-                    syncToastView(for: toast)
-                }
                 .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                     // Show one-time toast when iCloud syncs data for the first time
                     handleFirstiCloudSync()
@@ -402,14 +392,22 @@ public struct RootTabView: View {
         }
         // MARK: - Centralized Toast Overlay
         // This overlay is at the root level so toasts appear above all content including NavigationStacks
+        // Supports multiple stacked toasts with newest on top
         .overlay(alignment: .top) {
-            if let toast = toastService.currentToast {
-                toastView(for: toast)
-                    .padding(.top, 4)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+            VStack(spacing: 8) {
+                ForEach(Array(viewModel.toasts.enumerated()), id: \.element.id) { index, toast in
+                    toastView(for: toast)
+                        .scaleEffect(1.0 - (Double(index) * 0.05)) // Slightly smaller for older toasts
+                        .opacity(1.0 - (Double(index) * 0.15)) // Slightly faded for older toasts
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                }
             }
+            .padding(.top, 4)
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: toastService.currentToast != nil)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.toasts.map(\.id))
     }
     
     private func checkOnboardingStatus() async {
@@ -522,7 +520,7 @@ public struct RootTabView: View {
                         // Mark as no longer pending so we don't keep trying
                         viewModel.pendingReturningUserWelcome = false
                         // Show informative toast after state update
-                        activeSyncToast = .stillSyncing
+                        viewModel.showStillSyncingToast()
                     }
                 }
             }
@@ -613,30 +611,8 @@ public struct RootTabView: View {
 
             // Show the toast (auto-dismisses via ToastView's internal timer)
             await MainActor.run {
-                activeSyncToast = .synced
+                viewModel.showSyncedToast()
             }
-        }
-    }
-
-    // MARK: - Sync Toast View
-
-    @ViewBuilder
-    private func syncToastView(for toast: SyncToast) -> some View {
-        switch toast {
-        case .synced:
-            ToastView(
-                message: Strings.ICloudSync.syncedFromCloud,
-                icon: "icloud.fill",
-                style: .info,
-                duration: 4.0
-            ) { activeSyncToast = nil }
-        case .stillSyncing:
-            ToastView(
-                message: Strings.ICloudSync.stillSyncing,
-                icon: "icloud.and.arrow.down",
-                style: .info,
-                duration: 5.0
-            ) { activeSyncToast = nil }
         }
     }
 
@@ -645,11 +621,11 @@ public struct RootTabView: View {
     @ViewBuilder
     private func toastView(for toast: ToastService.Toast) -> some View {
         ToastView(
-            message: toast.message,
-            icon: toast.icon,
-            style: toast.style
+            message: toast.type.message,
+            icon: toast.type.icon,
+            style: toast.type.style
         ) {
-            toastService.dismiss()
+            viewModel.dismissToast(toast.id)
         }
     }
 }

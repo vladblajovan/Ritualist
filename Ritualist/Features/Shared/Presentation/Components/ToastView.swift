@@ -9,14 +9,14 @@ import SwiftUI
 import RitualistCore
 
 /// Toast style presets for common use cases
-enum ToastStyle {
+public enum ToastStyle {
     case info      // Blue - general information
     case success   // Green - successful actions
     case warning   // Orange - warnings
     case error     // Red - errors
     case custom(Color)
 
-    var color: Color {
+    public var color: Color {
         switch self {
         case .info: return .blue
         case .success: return .green
@@ -37,7 +37,8 @@ struct ToastView: View {
     let onDismiss: () -> Void
 
     @State private var isVisible = false
-    @State private var isDismissed = false
+    @State private var dismissTask: Task<Void, Never>?
+    @State private var dragOffset: CGFloat = 0
 
     init(
         message: String,
@@ -83,25 +84,50 @@ struct ToastView: View {
                 .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
         )
         .opacity(isVisible ? 1 : 0)
-        .offset(y: isVisible ? 0 : -20)
+        .offset(y: isVisible ? dragOffset : -20)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isVisible)
+        .animation(.interactiveSpring(), value: dragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    // Only allow upward drag (negative translation)
+                    if value.translation.height < 0 {
+                        dragOffset = value.translation.height
+                    }
+                }
+                .onEnded { value in
+                    // Dismiss if swiped up more than 30pt or with velocity
+                    if value.translation.height < -30 || value.predictedEndTranslation.height < -50 {
+                        dismissToast()
+                    } else {
+                        // Snap back
+                        dragOffset = 0
+                    }
+                }
+        )
         .task {
             // Animate in
             withAnimation {
                 isVisible = true
             }
 
-            // Auto-dismiss after duration (unless manually dismissed)
-            try? await Task.sleep(for: .seconds(duration))
-            if !isDismissed {
-                dismissToast()
+            // Auto-dismiss after duration (cancelled if manually dismissed)
+            dismissTask = Task {
+                try? await Task.sleep(for: .seconds(duration))
+                if !Task.isCancelled {
+                    dismissToast()
+                }
             }
         }
     }
 
     private func dismissToast() {
-        guard !isDismissed else { return }
-        isDismissed = true
+        // Prevent multiple dismiss calls
+        guard dismissTask != nil else { return }
+
+        // Cancel auto-dismiss timer if still running
+        dismissTask?.cancel()
+        dismissTask = nil
 
         withAnimation {
             isVisible = false

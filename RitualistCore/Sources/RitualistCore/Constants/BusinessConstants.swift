@@ -150,7 +150,10 @@ public struct BusinessConstants {
     public static let strugglingCompletionRate = 0.6
     
     // MARK: - Motivation & Engagement
-    
+
+    /// Maximum number of inspiration items to show in the carousel
+    public static let maxInspirationCarouselItems = 10
+
     /// Completion rate for "strong finish" motivation (100%)
     public static let strongFinishCompletionRate = 1.0
     

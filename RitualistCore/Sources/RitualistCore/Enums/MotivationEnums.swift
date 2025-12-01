@@ -25,11 +25,12 @@ public enum InspirationTrigger: CaseIterable, Hashable {
     case eveningReflection    // Evening with good progress (>60%)
     case weekendMotivation    // Weekend-specific encouragement
     case comebackStory        // Improved from yesterday
+    case emptyDay             // No habits scheduled for today (but user has habits on other days)
     
     /// Cooldown period in minutes before this trigger can fire again
     public var cooldownMinutes: Int {
         switch self {
-        case .sessionStart, .perfectDay:
+        case .sessionStart, .perfectDay, .emptyDay:
             return 0  // No cooldown
         case .firstHabitComplete, .halfwayPoint, .strongFinish:
             return 60 // 1 hour cooldown
@@ -54,6 +55,7 @@ public enum InspirationTrigger: CaseIterable, Hashable {
         case .eveningReflection: return "Evening Reflection"
         case .weekendMotivation: return "Weekend Motivation"
         case .comebackStory: return "Comeback Story"
+        case .emptyDay: return "Empty Day"
         }
     }
     
@@ -61,6 +63,7 @@ public enum InspirationTrigger: CaseIterable, Hashable {
     public var priority: Int {
         switch self {
         case .perfectDay: return 100
+        case .emptyDay: return 95  // High priority - takes precedence when no habits scheduled
         case .strongFinish: return 90
         case .comebackStory: return 80
         case .firstHabitComplete: return 70

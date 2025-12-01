@@ -14,17 +14,20 @@ public struct OverviewView: View {
             ScrollView {
                 LazyVStack(spacing: CardDesign.cardSpacing) {
                 // Always show core cards
-                // Inspiration card moved to top position
-                if vm.shouldShowInspirationCard {
-                    InspirationCard(
-                        message: vm.currentInspirationMessage,
-                        slogan: vm.currentSlogan,
+                // Inspiration carousel moved to top position
+                if vm.shouldShowInspirationCard && !vm.inspirationItems.isEmpty {
+                    InspirationCarouselView(
+                        items: vm.inspirationItems,
                         timeOfDay: vm.currentTimeOfDay,
                         completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
-                        shouldShow: vm.showInspirationCard,
-                        onDismiss: {
-                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                                vm.hideInspiration()
+                        onDismiss: { item in
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                vm.dismissInspirationItem(item)
+                            }
+                        },
+                        onDismissAll: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                vm.dismissAllInspirationItems()
                             }
                         }
                     )
@@ -67,16 +70,10 @@ public struct OverviewView: View {
                     getStreakStatus: { habit in
                         vm.getStreakStatusSync(for: habit)
                     },
-                    // Dismiss inspiration card when navigating away from today.
-                    // This prevents it from reappearing when returning to today.
                     onPreviousDay: {
-                        vm.hideInspiration()
                         vm.goToPreviousDay()
                     },
-                    // Dismiss inspiration card when navigating away from today.
-                    // This prevents it from reappearing when returning to today.
                     onNextDay: {
-                        vm.hideInspiration()
                         vm.goToNextDay()
                     },
                     onGoToToday: {

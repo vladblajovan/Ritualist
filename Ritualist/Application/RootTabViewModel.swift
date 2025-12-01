@@ -12,6 +12,7 @@ public final class RootTabViewModel {
     private let loadProfile: LoadProfile
     private let iCloudKeyValueService: iCloudKeyValueService
     private let logger: DebugLogger
+    @ObservationIgnored @Injected(\.toastService) private var toastService
 
     // MARK: - Services (exposed for view binding)
     public let appearanceManager: AppearanceManager
@@ -293,4 +294,33 @@ public final class RootTabViewModel {
         logger.log(logMessage, level: .info, category: .ui)
     }
     #endif
+}
+
+// MARK: - Toast Helpers
+
+extension RootTabViewModel {
+    /// Check if any toast is currently being displayed
+    public var isToastActive: Bool {
+        toastService.hasActiveToasts
+    }
+
+    /// Active toasts for display (exposed for View binding)
+    public var toasts: [ToastService.Toast] {
+        toastService.toasts
+    }
+
+    /// Dismiss a specific toast by ID
+    public func dismissToast(_ id: UUID) {
+        toastService.dismiss(id)
+    }
+
+    /// Show toast for successful iCloud sync (DEBUG only)
+    public func showSyncedToast() {
+        toastService.info(Strings.ICloudSync.syncedFromCloud, icon: "icloud.fill")
+    }
+
+    /// Show toast when sync is still in progress
+    public func showStillSyncingToast() {
+        toastService.info(Strings.ICloudSync.stillSyncing, icon: "icloud.and.arrow.down")
+    }
 }

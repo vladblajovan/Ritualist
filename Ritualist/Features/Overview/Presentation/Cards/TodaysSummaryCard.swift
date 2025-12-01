@@ -1059,7 +1059,7 @@ private struct StreakInfoRow: View {
             Text("🔥")
                 .font(.title2)
                 .modifier(SheetPulseAnimationModifier())
-                .frame(width: 44)
+                .frame(width: 32)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Streak at Risk")

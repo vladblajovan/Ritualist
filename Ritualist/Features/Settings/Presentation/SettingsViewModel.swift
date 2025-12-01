@@ -30,6 +30,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.debugLogger) var logger
     @ObservationIgnored @Injected(\.restoreGeofenceMonitoring) var restoreGeofenceMonitoring
     @ObservationIgnored @Injected(\.dailyNotificationScheduler) var dailyNotificationScheduler
+    @ObservationIgnored @Injected(\.toastService) var toastService
 
     #if DEBUG
     private let populateTestData: PopulateTestDataUseCase?
@@ -438,6 +439,9 @@ public final class SettingsViewModel {
             // Clear last sync date since there's no data anymore
             lastSyncDate = nil
 
+            // Reset profile to empty state for immediate UI feedback
+            profile = UserProfile()
+
             // Track deletion action
             let eventParams: [String: Any] = [
                 "icloud_configured": iCloudStatus.canSync,
@@ -674,5 +678,72 @@ extension SettingsViewModel {
                 "is_premium": cachedPremiumStatus
             ]
         )
+    }
+}
+
+// MARK: - Toast Helpers
+
+extension SettingsViewModel {
+    /// Check if any toast is currently being displayed
+    public var isToastActive: Bool {
+        toastService.hasActiveToasts
+    }
+}
+
+// MARK: - Profile Updates with Toast
+
+extension SettingsViewModel {
+    /// Update gender and show toast on success
+    public func updateGender(_ gender: UserGender) async {
+        profile.gender = gender.rawValue
+        let success = await save()
+        if success {
+            toastService.success(Strings.Profile.genderUpdated, icon: "person.fill.checkmark")
+        }
+    }
+
+    /// Update age group and show toast on success
+    public func updateAgeGroup(_ ageGroup: UserAgeGroup) async {
+        profile.ageGroup = ageGroup.rawValue
+        let success = await save()
+        if success {
+            toastService.success(Strings.Profile.ageGroupUpdated, icon: "number.circle.fill")
+        }
+    }
+
+    /// Update avatar and show toast on success
+    public func updateAvatar(_ imageData: Data?) async {
+        let isRemoving = imageData == nil && profile.avatarImageData != nil
+        profile.avatarImageData = imageData
+        let success = await save()
+        if success {
+            if isRemoving {
+                toastService.info(Strings.Avatar.photoRemoved, icon: "person.crop.circle.badge.minus")
+            } else {
+                toastService.success(Strings.Avatar.photoUpdated, icon: "person.crop.circle.fill.badge.checkmark")
+            }
+        }
+    }
+
+    /// Update name and show toast on success
+    public func updateName(_ name: String) async {
+        await updateUserName(name)
+        profile.name = name
+        let success = await save()
+        if success {
+            toastService.success(Strings.Profile.nameUpdated, icon: "person.fill.checkmark")
+        }
+    }
+
+    /// Show toast for delete result
+    public func showDeleteResultToast(_ result: DeleteAllDataResult) {
+        switch result {
+        case .success:
+            toastService.success(Strings.DataManagement.deleteSuccessMessage)
+        case .successButCloudSyncMayBeDelayed:
+            toastService.warning(Strings.DataManagement.deleteSyncDelayedMessage, icon: "exclamationmark.icloud.fill")
+        case .failed:
+            toastService.error(Strings.DataManagement.deleteFailedMessage)
+        }
     }
 }
