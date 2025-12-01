@@ -408,10 +408,6 @@ public struct DashboardView: View {
         VStack(spacing: 16) {
             // Schedule insights based on data
             VStack(alignment: .leading, spacing: 12) {
-                Text("Schedule Insights")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.primary)
-
                 // Best performing day (Fix #2: Use pre-calculated rate)
                 HStack {
                     Text("🌟")

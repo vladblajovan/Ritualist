@@ -22,7 +22,7 @@ public enum TimePeriod: CaseIterable {
     public var displayName: String {
         switch self {
         case .thisWeek: return "Last 7 Days"
-        case .thisMonth: return "This Month"
+        case .thisMonth: return "Last 30 Days"
         case .last6Months: return "Last 6 Months"
         case .lastYear: return "Last Year"
         case .allTime: return "All Time"
@@ -44,7 +44,7 @@ public enum TimePeriod: CaseIterable {
     public var accessibilityLabel: String {
         switch self {
         case .thisWeek: return "Last 7 days"
-        case .thisMonth: return "Last month"
+        case .thisMonth: return "Last 30 days"
         case .last6Months: return "Last 6 months"
         case .lastYear: return "Last year"
         case .allTime: return "All time"
@@ -69,8 +69,11 @@ public enum TimePeriod: CaseIterable {
             return (start: startOfDay, end: now)
             
         case .thisMonth:
-            let startOfMonth = CalendarUtils.startOfMonthLocal(for: now)
-            return (start: startOfMonth, end: now)
+            // Rolling 30-day window (last 30 days including today)
+            // Matches the "1M" label and consistent with 6M/1Y rolling behavior
+            let thirtyDaysAgo = CalendarUtils.addDaysLocal(-29, to: now, timezone: .current)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: thirtyDaysAgo)
+            return (start: startOfDay, end: now)
             
         case .last6Months:
             let sixMonthsAgo = CalendarUtils.addMonths(-6, to: now)
