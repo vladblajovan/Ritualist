@@ -212,20 +212,6 @@ public final class OnboardingViewModel {
             let genderValue = gender.rawValue
             let ageGroupValue = ageGroup.rawValue
 
-            // DEBUG: Log values being saved during onboarding
-            logger.log(
-                "🔍 [DEBUG] finishOnboarding - saving demographics",
-                level: .info,
-                category: .userAction,
-                metadata: [
-                    "userName": userName.isEmpty ? "nil" : userName,
-                    "gender_enum": String(describing: gender),
-                    "gender_rawValue": genderValue,
-                    "ageGroup_enum": String(describing: ageGroup),
-                    "ageGroup_rawValue": ageGroupValue
-                ]
-            )
-
             try await completeOnboarding.execute(
                 userName: userName.isEmpty ? nil : userName,
                 hasNotifications: hasGrantedNotifications,
@@ -237,12 +223,6 @@ public final class OnboardingViewModel {
 
             // Track onboarding completion
             userActionTracker.track(.onboardingCompleted)
-
-            logger.log(
-                "🔍 [DEBUG] finishOnboarding - completed successfully",
-                level: .info,
-                category: .userAction
-            )
 
             isLoading = false
             return true

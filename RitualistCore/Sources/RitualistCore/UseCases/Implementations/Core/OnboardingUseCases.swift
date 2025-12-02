@@ -102,26 +102,7 @@ public final class CompleteOnboarding: CompleteOnboardingUseCase {
         }
         profile.updatedAt = Date()
 
-        // DEBUG: Log profile values before save
-        logger.log(
-            "🔍 [DEBUG] CompleteOnboarding - profile before save",
-            level: .info,
-            category: .dataIntegrity,
-            metadata: [
-                "profile.id": profile.id.uuidString,
-                "profile.name": profile.name.isEmpty ? "empty" : profile.name,
-                "profile.gender": profile.gender ?? "nil",
-                "profile.ageGroup": profile.ageGroup ?? "nil"
-            ]
-        )
-
         try await profileRepo.saveProfile(profile)
-
-        logger.log(
-            "🔍 [DEBUG] CompleteOnboarding - profile saved successfully",
-            level: .info,
-            category: .dataIntegrity
-        )
 
         // No need to sync to UserService - it uses ProfileRepository as single source of truth
     }
