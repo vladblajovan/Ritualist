@@ -420,7 +420,7 @@ public struct RootTabView: View {
         // Skip delay during UI tests for faster test execution
         if !LaunchArgument.uiTesting.isActive {
             let elapsed = Date().timeIntervalSince(startTime)
-            let minimumDisplayTime: TimeInterval = 0.5
+            let minimumDisplayTime: TimeInterval = 0.25
             if elapsed < minimumDisplayTime {
                 try? await Task.sleep(for: .seconds(minimumDisplayTime - elapsed))
             }

@@ -18,6 +18,24 @@ public struct HabitsRoot: View {
         .task {
             await vm.load()
         }
+        .onAppear {
+            vm.setViewVisible(true)
+        }
+        .onDisappear {
+            vm.setViewVisible(false)
+            vm.markViewDisappeared()
+        }
+        .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
+            // When view becomes visible (tab switch), reload to pick up changes from other tabs
+            // Skip on initial appear - the .task modifier handles initial load.
+            if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+                Task {
+                    logger.log("Tab switch detected: Reloading habits data", level: .debug, category: .ui)
+                    vm.invalidateCacheForTabSwitch()
+                    await vm.refresh()
+                }
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
             // Don't refresh while editing - the sheet's ViewModel would be recreated
             // with stale data, causing issues like location toggle snapping back
@@ -30,12 +48,12 @@ public struct HabitsRoot: View {
                     level: .info,
                     category: .system
                 )
-                await vm.load()
+                await vm.refresh()
             }
         }
         .sheet(isPresented: $showingCategoryManagement, onDismiss: {
             Task {
-                await vm.load()
+                await vm.refresh()
             }
         }) {
             NavigationStack {
@@ -233,27 +251,15 @@ private struct HabitsListView: View {
                     }
                 }
                 .refreshable {
-                    await vm.load()
+                    await vm.refresh()
                 }
             } else {
                 // Unified scrolling: Everything inside List
                 List(selection: $selection) {
                     // Categories and banner section (scrolls with list)
                     Section {
-                        if vm.isLoadingCategories {
-                            HStack {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                Text("Loading categories...")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, Spacing.medium)
-                            .listRowInsets(EdgeInsets(top: 0, leading: Spacing.screenMargin, bottom: 0, trailing: Spacing.screenMargin))
-                        } else {
-                            // Reusable category carousel with cogwheel
-                            CategoryCarouselWithManagement(
+                        // Reusable category carousel with cogwheel
+                        CategoryCarouselWithManagement(
                                 categories: vm.displayCategories,
                                 selectedCategory: vm.selectedFilterCategory,
                                 onCategoryTap: { category in
@@ -267,7 +273,6 @@ private struct HabitsListView: View {
                             )
                             .padding(.vertical, Spacing.small)
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        }
 
                         // Over-limit banner (if user has more habits than free plan allows)
                         if vm.isOverFreeLimit {
@@ -325,7 +330,7 @@ private struct HabitsListView: View {
                     }
                 }
                 .refreshable {
-                    await vm.load()
+                    await vm.refresh()
                 }
                 .onChange(of: editMode?.wrappedValue) { oldValue, newValue in
                     if oldValue == .active && newValue != .active {
@@ -548,10 +553,11 @@ private struct HabitsListView: View {
     
     private func handleMove(from source: IndexSet, to destination: Int) async {
         guard vm.selectedFilterCategory == nil else { return }
-        
+
         var reorderedHabits = vm.filteredHabits
         reorderedHabits.move(fromOffsets: source, toOffset: destination)
-        
+
+        // Update displayOrder for each habit
         for (index, habit) in reorderedHabits.enumerated() {
             reorderedHabits[index] = Habit(
                 id: habit.id,
@@ -571,12 +577,9 @@ private struct HabitsListView: View {
                 suggestionId: habit.suggestionId
             )
         }
-        
-        for habit in reorderedHabits {
-            _ = await vm.update(habit)
-        }
-        
-        await vm.load()
+
+        // Use reorderHabits which sets isReordering (not isUpdating) to avoid overlay flash
+        _ = await vm.reorderHabits(reorderedHabits)
     }
 }
 

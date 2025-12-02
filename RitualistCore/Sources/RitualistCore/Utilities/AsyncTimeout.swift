@@ -72,6 +72,7 @@ public func withTimeout<T: Sendable>(
     operation: @escaping @Sendable () async -> T,
     onTimeout: @escaping @Sendable () -> T
 ) async -> T {
+    precondition(seconds > 0, "Timeout must be positive")
     let coordinator = FirstWinsCoordinator()
 
     return await withCheckedContinuation { continuation in
@@ -85,7 +86,12 @@ public func withTimeout<T: Sendable>(
 
         // Start timeout timer
         Task {
-            try? await Task.sleep(for: .seconds(seconds))
+            do {
+                try await Task.sleep(for: .seconds(seconds))
+            } catch {
+                // Task was cancelled (e.g., parent task cancelled) - don't trigger timeout
+                return
+            }
             if await coordinator.tryComplete() {
                 operationTask.cancel() // Request cancellation (may be ignored)
                 continuation.resume(returning: onTimeout())
@@ -107,6 +113,7 @@ public func withTimeout<T: Sendable>(
     operation: @escaping @Sendable () async throws -> T,
     onTimeout: @escaping @Sendable () -> T
 ) async throws -> T {
+    precondition(seconds > 0, "Timeout must be positive")
     let coordinator = FirstWinsCoordinator()
 
     return try await withCheckedThrowingContinuation { continuation in
@@ -126,7 +133,12 @@ public func withTimeout<T: Sendable>(
 
         // Start timeout timer
         Task {
-            try? await Task.sleep(for: .seconds(seconds))
+            do {
+                try await Task.sleep(for: .seconds(seconds))
+            } catch {
+                // Task was cancelled (e.g., parent task cancelled) - don't trigger timeout
+                return
+            }
             if await coordinator.tryComplete() {
                 operationTask.cancel() // Request cancellation (may be ignored)
                 continuation.resume(returning: onTimeout())

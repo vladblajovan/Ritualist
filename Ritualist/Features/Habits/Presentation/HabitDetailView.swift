@@ -52,17 +52,9 @@ public struct HabitDetailView: View {
                             await saveHabit()
                         }
                     } label: {
-                        HStack(spacing: Spacing.xsmall) {
-                            if vm.isSaving {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            }
-                            Text(vm.isSaving ? Strings.Loading.saving : Strings.Button.save)
-                        }
+                        Text(Strings.Button.save)
                     }
                     .disabled(vm.isSaving || !vm.isFormValid)
-                    .animation(.easeInOut(duration: 0.2), value: vm.isSaving)
                 }
             }
         }

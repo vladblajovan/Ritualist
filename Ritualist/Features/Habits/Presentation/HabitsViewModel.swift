@@ -32,6 +32,16 @@ public final class HabitsViewModel {
     public private(set) var isCreating = false
     public private(set) var isUpdating = false
     public private(set) var isDeleting = false
+    public private(set) var isReordering = false
+
+    /// Track if initial data has been loaded to prevent duplicate loads during startup
+    @ObservationIgnored private var hasLoadedInitialData = false
+
+    /// Track view visibility for tab switch detection
+    public var isViewVisible: Bool = false
+
+    /// Track if view has disappeared at least once (to distinguish initial appear from tab switch)
+    @ObservationIgnored private var viewHasDisappearedOnce = false
     
     // MARK: - Category Filtering State
     public var selectedFilterCategory: HabitCategory?
@@ -118,6 +128,43 @@ public final class HabitsViewModel {
     }
     
     public func load() async {
+        // Skip redundant loads after initial data is loaded
+        guard !hasLoadedInitialData else { return }
+        await performLoad()
+    }
+
+    /// Force reload habits data (for pull-to-refresh, iCloud sync, sheet dismissals, etc.)
+    public func refresh() async {
+        hasLoadedInitialData = false
+        await performLoad()
+    }
+
+    /// Invalidate cache when switching to this tab
+    /// Ensures fresh data is loaded after changes made in other tabs
+    public func invalidateCacheForTabSwitch() {
+        if hasLoadedInitialData {
+            hasLoadedInitialData = false
+        }
+    }
+
+    /// Mark that the view has disappeared (called from onDisappear)
+    public func markViewDisappeared() {
+        viewHasDisappearedOnce = true
+    }
+
+    /// Check if this is a tab switch (view returning after having left)
+    /// Returns false on initial appear, true on subsequent appears after disappearing
+    public var isReturningFromTabSwitch: Bool {
+        viewHasDisappearedOnce
+    }
+
+    /// Set view visibility state
+    public func setViewVisible(_ visible: Bool) {
+        isViewVisible = visible
+    }
+
+    /// Internal load implementation
+    private func performLoad() async {
         let startTime = Date()
         isLoading = true
         error = nil
@@ -136,6 +183,8 @@ public final class HabitsViewModel {
                 unit: "ms",
                 additionalProperties: ["habits_count": habitsData.totalHabitsCount, "categories_count": habitsData.categoriesCount]
             )
+
+            hasLoadedInitialData = true
         } catch {
             self.error = error
             habitsData = HabitsData(habits: [], categories: [])
@@ -151,7 +200,7 @@ public final class HabitsViewModel {
         
         do {
             _ = try await createHabit.execute(habit)
-            await load() // Refresh the list
+            await refresh() // Refresh the list
             isCreating = false
             
             // Track habit creation
@@ -176,7 +225,7 @@ public final class HabitsViewModel {
         
         do {
             try await updateHabit.execute(habit)
-            await load() // Refresh the list
+            await refresh() // Refresh the list
             isUpdating = false
             
             // Track habit update
@@ -203,7 +252,7 @@ public final class HabitsViewModel {
         
         do {
             try await deleteHabit.execute(id: id)
-            await load() // Refresh the list
+            await refresh() // Refresh the list
             isDeleting = false
             
             // Track habit deletion
@@ -232,7 +281,7 @@ public final class HabitsViewModel {
         
         do {
             _ = try await toggleHabitActiveStatus.execute(id: id)
-            await load() // Refresh the list
+            await refresh() // Refresh the list
             isUpdating = false
             
             // Track habit activation/deactivation
@@ -262,26 +311,26 @@ public final class HabitsViewModel {
     }
     
     public func reorderHabits(_ newOrder: [Habit]) async -> Bool {
-        isUpdating = true
+        isReordering = true
         error = nil
-        
+
         do {
             try await reorderHabits.execute(newOrder)
             // Update local state immediately for smooth UI
             habitsData = HabitsData(habits: newOrder, categories: habitsData.categories)
-            isUpdating = false
+            isReordering = false
             return true
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "habit_reorder", additionalProperties: ["habits_count": newOrder.count])
-            await load() // Reload on error to restore correct order
-            isUpdating = false
+            await refresh() // Reload on error to restore correct order
+            isReordering = false
             return false
         }
     }
     
     public func retry() async {
-        await load()
+        await refresh()
     }
     
     private func setupRefreshObservation() {
@@ -324,14 +373,14 @@ public final class HabitsViewModel {
     /// Handle when create habit sheet is dismissed - refresh data
     public func handleCreateHabitDismissal() {
         Task {
-            await load()
+            await refresh()
         }
     }
-    
+
     /// Handle when habit detail sheet is dismissed - refresh data
     public func handleHabitDetailDismissal() {
         Task {
-            await load()
+            await refresh()
         }
     }
     
@@ -450,7 +499,7 @@ public final class HabitsViewModel {
     /// Handle when assistant sheet is dismissed - refresh data
     public func handleAssistantDismissal() {
         Task {
-            await load()
+            await refresh()
         }
     }
     

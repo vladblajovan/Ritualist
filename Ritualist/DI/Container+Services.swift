@@ -396,7 +396,7 @@ extension Container {
     // MARK: - Toast Service
 
     @MainActor
-    var toastService: Factory<ToastService> {
+    var toastService: Factory<ToastServiceProtocol> {
         self { @MainActor in ToastService() }
             .singleton
     }

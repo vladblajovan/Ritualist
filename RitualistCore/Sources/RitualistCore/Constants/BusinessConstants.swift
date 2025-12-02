@@ -98,6 +98,14 @@ public struct BusinessConstants {
     /// while keeping the UI responsive.
     public static let remoteChangeMergeDelay: TimeInterval = 0.5
 
+    /// Debounce interval for UI refresh notifications (in seconds).
+    ///
+    /// When iCloud changes arrive (local saves, remote sync), we debounce the UI refresh notification.
+    /// This ensures that rapid changes (e.g., user editing multiple profile fields, bulk sync from another
+    /// device) result in ONE UI refresh after activity settles, rather than multiple refreshes causing flashing.
+    /// 3 seconds provides resilience against bulk syncs (observed: 16+ notifications over several seconds).
+    public static let uiRefreshDebounceInterval: TimeInterval = 3.0
+
     // MARK: - Time Intervals
 
     /// Time interval for 1 day in seconds
@@ -152,7 +160,7 @@ public struct BusinessConstants {
     // MARK: - Motivation & Engagement
 
     /// Maximum number of inspiration items to show in the carousel
-    public static let maxInspirationCarouselItems = 10
+    public static let maxInspirationCarouselItems = 3
 
     /// Completion rate for "strong finish" motivation (100%)
     public static let strongFinishCompletionRate = 1.0

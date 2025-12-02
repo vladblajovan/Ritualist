@@ -24,7 +24,16 @@ public final class DashboardViewModel {
     public var categoryBreakdown: [CategoryPerformanceViewModel]?
     public var isLoading = false
     public var error: Error?
-    
+
+    /// Track if initial data has been loaded to prevent duplicate loads during startup
+    @ObservationIgnored private var hasLoadedInitialData = false
+
+    /// Track view visibility for tab switch detection
+    public var isViewVisible: Bool = false
+
+    /// Track if view has disappeared at least once (to distinguish initial appear from tab switch)
+    @ObservationIgnored private var viewHasDisappearedOnce = false
+
     @ObservationIgnored @Injected(\.getActiveHabits) internal var getActiveHabits
     @ObservationIgnored @Injected(\.calculateStreakAnalysis) internal var calculateStreakAnalysis
     @ObservationIgnored @Injected(\.getBatchLogs) internal var getBatchLogs
@@ -358,17 +367,59 @@ public final class DashboardViewModel {
     }
     
     // MARK: - Public Methods
-    
+
     public func loadData() async {
+        // Skip redundant loads after initial data is loaded
+        guard !hasLoadedInitialData else {
+            logger.log("Dashboard load skipped - data already loaded", level: .debug, category: .ui)
+            return
+        }
+
+        await performLoad()
+    }
+
+    /// Force reload dashboard data (for pull-to-refresh, iCloud sync, etc.)
+    public func refresh() async {
+        hasLoadedInitialData = false
+        await performLoad()
+    }
+
+    /// Invalidate cache when switching to this tab
+    /// Ensures fresh data is loaded after changes made in other tabs
+    public func invalidateCacheForTabSwitch() {
+        if hasLoadedInitialData {
+            logger.log("Dashboard cache invalidated for tab switch", level: .debug, category: .ui)
+            hasLoadedInitialData = false
+        }
+    }
+
+    /// Mark that the view has disappeared (called from onDisappear)
+    public func markViewDisappeared() {
+        viewHasDisappearedOnce = true
+    }
+
+    /// Check if this is a tab switch (view returning after having left)
+    /// Returns false on initial appear, true on subsequent appears after disappearing
+    public var isReturningFromTabSwitch: Bool {
+        viewHasDisappearedOnce
+    }
+
+    /// Set view visibility state
+    public func setViewVisible(_ visible: Bool) {
+        isViewVisible = visible
+    }
+
+    /// Internal load implementation
+    private func performLoad() async {
         guard !isLoading else { return }
-        
+
         isLoading = true
         error = nil
-        
+
         do {
             // PHASE 2: Unified data loading - reduces queries from 471+ to 3
             let dashboardData = try await loadUnifiedDashboardData()
-            
+
             // Extract all metrics from single source (no additional queries)
             if !dashboardData.habits.isEmpty {
                 self.hasHabits = true
@@ -386,16 +437,14 @@ public final class DashboardViewModel {
                 self.streakAnalysis = nil
                 self.categoryBreakdown = []
             }
+
+            hasLoadedInitialData = true
         } catch {
             self.error = error
             logger.log("Failed to load dashboard data: \(error)", level: .error, category: .ui)
         }
-        
+
         self.isLoading = false
-    }
-    
-    public func refresh() async {
-        await loadData()
     }
     
     // MARK: - Habit Completion Methods

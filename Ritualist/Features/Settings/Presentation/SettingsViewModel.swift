@@ -74,7 +74,10 @@ public final class SettingsViewModel {
     public var showFPSOverlay = false
     public var showPerformanceStats = false
     #endif
-    
+
+    /// Track if initial data has been loaded to prevent duplicate loads during startup
+    @ObservationIgnored private var hasLoadedInitialData = false
+
     // Cache premium status to avoid async issues
     private var cachedPremiumStatus = false
 
@@ -140,11 +143,34 @@ public final class SettingsViewModel {
     }
     
     public func load() async {
+        // Skip redundant loads after initial data is loaded
+        // Use reload() for explicit refresh (pull-to-refresh, iCloud sync, etc.)
+        guard !hasLoadedInitialData else {
+            logger.log(
+                "Settings load skipped - data already loaded",
+                level: .debug,
+                category: .ui
+            )
+            return
+        }
+
+        await performLoad()
+    }
+
+    /// Force reload settings data (for pull-to-refresh, iCloud sync, etc.)
+    public func reload() async {
+        hasLoadedInitialData = false
+        await performLoad()
+    }
+
+    /// Internal load implementation
+    private func performLoad() async {
         isLoading = true
         error = nil
         do {
             profile = try await loadProfile.execute()
             await loadStatusesInParallel()
+            hasLoadedInitialData = true
             logger.logSubscription(
                 event: "Cached subscription from service",
                 plan: cachedSubscriptionPlan.rawValue,
@@ -208,6 +234,9 @@ public final class SettingsViewModel {
                     category: .network,
                     metadata: ["error": error.localizedDescription]
                 )
+                #if DEBUG
+                toastService.info(Strings.ICloudSync.syncDelayed, icon: "icloud.slash")
+                #endif
             }
 
             isSaving = false
@@ -281,7 +310,20 @@ public final class SettingsViewModel {
                 level: .info,
                 category: .location
             )
-            try? await restoreGeofenceMonitoring.execute()
+            do {
+                try await restoreGeofenceMonitoring.execute()
+            } catch {
+                logger.log(
+                    "Failed to restore geofences after permission granted",
+                    level: .error,
+                    category: .location,
+                    metadata: ["error": error.localizedDescription]
+                )
+                userActionTracker.trackError(error, context: "geofence_restore_after_permission")
+                #if DEBUG
+                toastService.warning(Strings.Location.geofenceRestoreFailed)
+                #endif
+            }
 
         case .denied:
             locationAuthStatus = .denied
@@ -328,6 +370,9 @@ public final class SettingsViewModel {
                     category: .network,
                     metadata: ["error": error.localizedDescription]
                 )
+                #if DEBUG
+                toastService.info(Strings.ICloudSync.syncDelayed, icon: "icloud.slash")
+                #endif
             }
         } catch {
             self.error = error
@@ -380,6 +425,9 @@ public final class SettingsViewModel {
                     category: .network,
                     metadata: ["error": error.localizedDescription]
                 )
+                #if DEBUG
+                toastService.info(Strings.ICloudSync.syncDelayed, icon: "icloud.slash")
+                #endif
             }
         } catch {
             self.error = error
@@ -390,7 +438,13 @@ public final class SettingsViewModel {
     // MARK: - iCloud Sync Methods
 
     /// Track in-progress status check to prevent concurrent calls
-    private var statusCheckTask: Task<Void, Never>?
+    /// Marked @ObservationIgnored since task state shouldn't trigger view updates
+    @ObservationIgnored private var statusCheckTask: Task<Void, Never>?
+
+    deinit {
+        // Cancel any in-progress status check to prevent work on deallocated instance
+        statusCheckTask?.cancel()
+    }
 
     /// Refresh iCloud account status
     /// Timeout protection is handled by CheckiCloudStatusUseCase
@@ -403,10 +457,17 @@ public final class SettingsViewModel {
 
         // Create and store the task before starting work
         let task = Task { [weak self] in
-            guard let self else { return }
+            guard let self, !Task.isCancelled else { return }
 
             isCheckingCloudStatus = true
             iCloudStatus = await checkiCloudStatus.execute()
+
+            // Check cancellation after async work completes
+            guard !Task.isCancelled else {
+                isCheckingCloudStatus = false
+                return
+            }
+
             isCheckingCloudStatus = false
             statusCheckTask = nil
         }
@@ -710,7 +771,9 @@ extension SettingsViewModel {
 
 extension SettingsViewModel {
     /// Update gender and show toast on success
+    /// Only saves and shows toast if value actually changed
     public func updateGender(_ gender: UserGender) async {
+        guard profile.gender != gender.rawValue else { return }
         profile.gender = gender.rawValue
         let success = await save()
         if success {
@@ -719,7 +782,9 @@ extension SettingsViewModel {
     }
 
     /// Update age group and show toast on success
+    /// Only saves and shows toast if value actually changed
     public func updateAgeGroup(_ ageGroup: UserAgeGroup) async {
+        guard profile.ageGroup != ageGroup.rawValue else { return }
         profile.ageGroup = ageGroup.rawValue
         let success = await save()
         if success {
@@ -728,7 +793,9 @@ extension SettingsViewModel {
     }
 
     /// Update avatar and show toast on success
+    /// Only saves and shows toast if value actually changed
     public func updateAvatar(_ imageData: Data?) async {
+        guard profile.avatarImageData != imageData else { return }
         let isRemoving = imageData == nil && profile.avatarImageData != nil
         profile.avatarImageData = imageData
         let success = await save()
@@ -742,7 +809,9 @@ extension SettingsViewModel {
     }
 
     /// Update name and show toast on success
+    /// Only saves and shows toast if value actually changed
     public func updateName(_ name: String) async {
+        guard profile.name != name else { return }
         await updateUserName(name)
         profile.name = name
         let success = await save()

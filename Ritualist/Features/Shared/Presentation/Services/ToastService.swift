@@ -1,11 +1,49 @@
 import SwiftUI
 import Observation
 
+// MARK: - Protocol
+
+/// Protocol for toast notification service, enabling testability via mocking
+@MainActor
+public protocol ToastServiceProtocol: AnyObject {
+    /// Active toasts, ordered by creation time (newest first)
+    var toasts: [ToastService.Toast] { get }
+
+    /// Convenience for checking if any toast is active
+    var hasActiveToasts: Bool { get }
+
+    /// Show a toast notification
+    func show(_ type: ToastService.ToastType)
+
+    /// Dismiss a specific toast by ID
+    func dismiss(_ id: UUID)
+
+    /// Dismiss all toasts
+    func dismissAll()
+
+    // Convenience methods
+    func success(_ message: String, icon: String)
+    func error(_ message: String, icon: String)
+    func warning(_ message: String, icon: String)
+    func info(_ message: String, icon: String)
+}
+
+// MARK: - Default Parameter Extensions
+
+public extension ToastServiceProtocol {
+    func success(_ message: String) { success(message, icon: "checkmark.circle.fill") }
+    func error(_ message: String) { error(message, icon: "xmark.circle.fill") }
+    func warning(_ message: String) { warning(message, icon: "exclamationmark.triangle.fill") }
+    func info(_ message: String) { info(message, icon: "info.circle.fill") }
+}
+
+// MARK: - Implementation
+
 /// Centralized toast service for showing notifications anywhere in the app
 /// Supports stacking multiple toasts with the latest on top
 /// Usage: toastService.show(.success("Saved!"))
 @MainActor @Observable
-public final class ToastService {
+public final class ToastService: ToastServiceProtocol {
 
     // MARK: - Constants
 

@@ -29,7 +29,7 @@ public struct SettingsRoot: View {
                         try? await Task.sleep(for: .seconds(4))
                         // Only refresh if toast has actually dismissed
                         if !vm.isToastActive {
-                            await vm.load()
+                            await vm.reload()
                         }
                     }
                     return
@@ -40,7 +40,7 @@ public struct SettingsRoot: View {
                         level: .info,
                         category: .system
                     )
-                    await vm.load()
+                    await vm.reload()
                 }
             }
     }
@@ -83,9 +83,7 @@ private struct SettingsFormView: View {
 
     var body: some View {
         Group {
-            if vm.isLoading {
-                ProgressView("Loading settings...")
-            } else if let error = vm.error {
+            if let error = vm.error {
                 ErrorView(
                     title: "Failed to Load Settings",
                     message: error.localizedDescription
@@ -176,7 +174,7 @@ private struct SettingsFormView: View {
                     }
                 }
                 .refreshable {
-                    await vm.load()
+                    await vm.reload()
                     updateLocalState()
                 }
                 .sheet(isPresented: $showingImagePicker) {
@@ -201,7 +199,7 @@ private struct SettingsFormView: View {
                             Task {
                                 try? await Task.sleep(nanoseconds: 100_000_000)
                                 await vm.refreshSubscriptionStatus()
-                                await vm.load()
+                                await vm.reload()
                             }
                         }
                 }

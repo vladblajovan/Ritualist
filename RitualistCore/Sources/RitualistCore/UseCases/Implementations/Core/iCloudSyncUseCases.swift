@@ -83,7 +83,7 @@ public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
                     category: .network,
                     metadata: ["timeout": "\(timeout)s"]
                 )
-                return .unknown
+                return .timeout
             }
         )
     }
@@ -111,9 +111,9 @@ public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
             // Handle CloudKit availability errors gracefully
             switch error {
             case .entitlementsNotConfigured:
-                // CloudKit entitlements not configured - return unknown status
+                // CloudKit entitlements not configured - return specific status
                 // This is expected when iCloud is disabled in entitlements
-                return .unknown
+                return .notConfigured
             case .notSignedIn:
                 return .notSignedIn
             case .restricted:
@@ -144,6 +144,11 @@ public enum iCloudSyncStatus: Equatable {
     case notSignedIn
     case restricted
     case temporarilyUnavailable
+    /// CloudKit status check timed out (likely poor network)
+    case timeout
+    /// CloudKit entitlements not configured in the app
+    case notConfigured
+    /// Could not determine status for unknown reason
     case unknown
 
     public var displayMessage: String {
@@ -155,7 +160,11 @@ public enum iCloudSyncStatus: Equatable {
         case .restricted:
             return "Restricted"
         case .temporarilyUnavailable:
-            return "Unavailable"
+            return "Temporarily unavailable"
+        case .timeout:
+            return "Connection timed out"
+        case .notConfigured:
+            return "Not configured"
         case .unknown:
             return "Unknown"
         }

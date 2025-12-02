@@ -19,9 +19,7 @@ public struct DashboardView: View {
                 timePeriodSelector
                 
                 // Main Stats Cards
-                if vm.isLoading {
-                    loadingView
-                } else if vm.hasHabits {
+                if vm.hasHabits {
                     // Weekly Patterns (moved to top)
                     if let weeklyPatterns = vm.weeklyPatterns {
                         weeklyPatternsSection(patterns: weeklyPatterns)
@@ -56,6 +54,24 @@ public struct DashboardView: View {
         .navigationBarTitleDisplayMode(.large)
         .task {
             await vm.loadData()
+        }
+        .onAppear {
+            vm.setViewVisible(true)
+        }
+        .onDisappear {
+            vm.setViewVisible(false)
+            vm.markViewDisappeared()
+        }
+        .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
+            // When view becomes visible (tab switch), reload to pick up changes from other tabs
+            // Skip on initial appear - the .task modifier handles initial load.
+            if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+                Task {
+                    logger.log("Tab switch detected: Reloading dashboard data", level: .debug, category: .ui)
+                    vm.invalidateCacheForTabSwitch()
+                    await vm.refresh()
+                }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
             // Auto-refresh when iCloud syncs new data from another device

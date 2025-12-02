@@ -1130,10 +1130,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     /// Shows multiple inspiration cards in the carousel
     private func showInspirationWithTriggers(_ triggers: [InspirationTrigger]) async {
-        guard !triggers.isEmpty else { return }
-
-        // Use delay based on the highest priority trigger
-        let primaryTrigger = triggers.first!
+        // Safe unwrap - defensive programming even though we check isEmpty
+        guard let primaryTrigger = triggers.first else { return }
         let delay: Int = {
             switch primaryTrigger {
             case .perfectDay:
@@ -1879,14 +1877,23 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         // Get user ID
         let userId = await getUserId()
 
-        // Check if personality analysis is enabled and available
-        guard let isEnabled = try? await isPersonalityAnalysisEnabledUseCase.execute(for: userId),
-              isEnabled else {
+        do {
+            // Check if personality analysis is enabled and available
+            let isEnabled = try await isPersonalityAnalysisEnabledUseCase.execute(for: userId)
+            guard isEnabled else { return nil }
+
+            // Get current personality profile
+            return try await getPersonalityProfileUseCase.execute(for: userId)
+        } catch {
+            // Log error but gracefully degrade to generic messages
+            logger.log(
+                "Failed to load personality profile for message generation",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription, "userId": userId]
+            )
             return nil
         }
-
-        // Get current personality profile
-        return try? await getPersonalityProfileUseCase.execute(for: userId)
     }
 
     private func analyzeRecentPattern() -> CompletionPattern {

@@ -1,9 +1,9 @@
 import Foundation
 
 /// Time period enumeration for analytics and dashboard functionality.
-/// 
+///
 /// Provides standardized time periods commonly used across analytics features,
-/// with sophisticated date range calculation logic that respects calendar boundaries.
+/// using rolling windows (e.g., "Last 7 Days", "Last 30 Days") for consistent date ranges.
 ///
 /// Usage:
 /// ```swift

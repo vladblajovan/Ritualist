@@ -51,16 +51,52 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
             : "units"
     }
     
-    private var isValidValue: Bool {
-        value >= 0 && value <= dailyTarget + 50
+    /// Maximum allowed value (10% over target, minimum 50 over)
+    private var maxAllowedValue: Double {
+        dailyTarget + max(50, dailyTarget * 0.1)
     }
-    
+
+    private var isValidValue: Bool {
+        value >= 0 && value <= maxAllowedValue
+    }
+
     private var canDecrement: Bool {
         value > 0
     }
-    
+
     private var canIncrement: Bool {
-        value < dailyTarget + 50
+        value < maxAllowedValue
+    }
+
+    /// Remaining amount to reach target
+    private var remaining: Double {
+        max(dailyTarget - value, 0)
+    }
+
+    /// Adaptive quick increment values based on remaining progress
+    /// Scales from small increments (close to target) to large (far from target)
+    /// Handles targets from single digits to 100,000+
+    private var quickIncrementAmounts: [Int] {
+        let rem = Int(remaining)
+
+        switch rem {
+        case ..<5:
+            return []  // No quick buttons when very close
+        case 5..<20:
+            return [2, 5]
+        case 20..<100:
+            return [5, 10]
+        case 100..<500:
+            return [10, 50]
+        case 500..<2000:
+            return [100, 500]
+        case 2000..<10000:
+            return [500, 1000]
+        case 10000..<50000:
+            return [1000, 5000]
+        default:
+            return [5000, 10000]
+        }
     }
     
     public var body: some View {
@@ -80,48 +116,10 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 .multilineTextAlignment(.center)
                         }
                         
-                        // Progress circle and status
+                        // Progress circle with +/- controls on sides
                         VStack(spacing: Spacing.medium) {
-                            ZStack {
-                                Circle()
-                                    .stroke(AppColors.brand.opacity(0.2), lineWidth: 8)
-                                    .frame(width: 120, height: 120)
-                                
-                                Circle()
-                                    .trim(from: 0, to: progressPercentage)
-                                    .stroke(
-                                        isCompleted ? .green : AppColors.brand,
-                                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                                    )
-                                    .frame(width: 120, height: 120)
-                                    .rotationEffect(.degrees(-90))
-                                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: progressPercentage)
-                                
-                                VStack(spacing: 2) {
-                                    Text("\(Int(value))")
-                                        .font(.system(size: 28, weight: .bold))
-                                        .foregroundColor(isCompleted ? .green : .primary)
-                                    Text("/ \(Int(dailyTarget))")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            
-                            Text("\(Int(value)) of \(Int(dailyTarget)) \(unitLabel)")
-                                .font(.headline)
-                                .foregroundColor(isCompleted ? .green : .primary)
-                            
-                            if isCompleted {
-                                Text("🎉 Target reached!")
-                                    .font(.subheadline)
-                                    .foregroundColor(.green)
-                                    .fontWeight(.medium)
-                            }
-                        }
-                        
-                        // Increment/decrement controls
-                        VStack(spacing: Spacing.large) {
-                            HStack(spacing: 24) {
+                            HStack(spacing: Spacing.xlarge) {
+                                // Minus button - orange to blue gradient
                                 Button {
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         value = max(0, value - 1)
@@ -129,10 +127,44 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 } label: {
                                     Image(systemName: "minus.circle.fill")
                                         .font(.system(size: 44))
-                                        .foregroundColor(canDecrement ? AppColors.brand : AppColors.brand.opacity(0.3))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [CardDesign.progressOrange, .ritualistCyan],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
+                                        .opacity(canDecrement ? 1.0 : 0.3)
                                 }
                                 .disabled(!canDecrement)
-                                
+
+                                // Progress circle
+                                ZStack {
+                                    CircularProgressView(
+                                        progress: progressPercentage,
+                                        lineWidth: 10,
+                                        showPercentage: false,
+                                        useAdaptiveGradient: true
+                                    )
+                                    .frame(width: 120, height: 120)
+
+                                    VStack(spacing: 2) {
+                                        Text("\(Int(value))")
+                                            .font(.system(size: 28, weight: .bold))
+                                            .foregroundStyle(
+                                                LinearGradient(
+                                                    colors: CircularProgressView.adaptiveProgressColors(for: progressPercentage),
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                            )
+                                        Text("/ \(Int(dailyTarget))")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+
+                                // Plus button - green to blue gradient
                                 Button {
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         value += 1
@@ -140,141 +172,67 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 } label: {
                                     Image(systemName: "plus.circle.fill")
                                         .font(.system(size: 44))
-                                        .foregroundColor(canIncrement ? AppColors.brand : AppColors.brand.opacity(0.3))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [CardDesign.progressGreen, .ritualistCyan],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
+                                        .opacity(canIncrement ? 1.0 : 0.3)
                                 }
                                 .disabled(!canIncrement)
                             }
-                            .padding(.horizontal, Spacing.xlarge)
-                            
-                            if dailyTarget >= 5 {
-                                HStack(spacing: Spacing.medium) {
-                                    quickIncrementButton(amount: 5)
-                                    if dailyTarget >= 10 {
-                                        quickIncrementButton(amount: 10)
-                                    }
+
+                            if isCompleted {
+                                Text("Target reached!")
+                                    .font(.subheadline)
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [CardDesign.progressGreen, CardDesign.progressGreen.opacity(0.8)],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .fontWeight(.medium)
+                            }
+                        }
+
+                        // Quick increment buttons
+                        if !quickIncrementAmounts.isEmpty {
+                            HStack(spacing: Spacing.medium) {
+                                ForEach(quickIncrementAmounts, id: \.self) { amount in
+                                    quickIncrementButton(amount: amount)
                                 }
                             }
                         }
+
+                        // Reset and Complete All buttons - bottom row
+                        HStack {
+                            // Reset button - bottom left (only show if value > 0)
+                            if value > 0 {
+                                resetButton()
+                            }
+
+                            Spacer()
+
+                            // Complete All button - bottom right (only show if not completed)
+                            if !isCompleted {
+                                completeButton()
+                            }
+                        }
+                        .padding(.top, Spacing.small)
                     }
                     .padding(.horizontal)
+                    .padding(.bottom, Spacing.large)
                 }
                 
-                // Fixed button area at bottom
-                VStack(spacing: Spacing.small) {
-                    if !isValidValue {
-                        Text("Value must be between 0 and \(Int(dailyTarget + 50))")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .padding(.horizontal, Spacing.large)
-                    }
-                    
-                    HStack(spacing: Spacing.medium) {
-                        if !isCompleted && value < dailyTarget {
-                            completeAllButton()
-                        }
-
-                        #if compiler(>=6.2)
-                        if #available(iOS 26.0, *) {
-                            Button {
-                                if isValidValue {
-                                    // Trigger glow effect
-                                    isGlowing = true
-
-                                    Task {
-                                        // Small delay for glow effect
-                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                                        await onSave(value)
-                                        await MainActor.run {
-                                            isGlowing = false
-                                            dismiss()
-                                        }
-                                    }
-                                }
-                            } label: {
-                                Text("Save")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, Spacing.medium)
-                            }
-                            .glassEffect(.regular.tint(.green), in: RoundedRectangle(cornerRadius: 25))
-                            .disabled(!isValidValue)
-                        } else {
-                            Button {
-                                if isValidValue {
-                                    // Trigger glow effect
-                                    isGlowing = true
-
-                                    Task {
-                                        // Small delay for glow effect
-                                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                                        await onSave(value)
-                                        await MainActor.run {
-                                            isGlowing = false
-                                            dismiss()
-                                        }
-                                    }
-                                }
-                            } label: {
-                                Text("Save")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, Spacing.medium)
-                                    .background(.green)
-                                    .cornerRadius(25)
-                            }
-                            .disabled(!isValidValue)
-                        }
-                        #else
-                        Button {
-                            if isValidValue {
-                                // Trigger glow effect
-                                isGlowing = true
-
-                                Task {
-                                    // Small delay for glow effect
-                                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                                    await onSave(value)
-                                    await MainActor.run {
-                                        isGlowing = false
-                                        dismiss()
-                                    }
-                                }
-                            }
-                        } label: {
-                            Text("Save")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, Spacing.medium)
-                                .background(.green)
-                                .cornerRadius(25)
-                        }
-                        .disabled(!isValidValue)
-                        #endif
-                    }
-                    .padding(.horizontal, Spacing.medium)
-                }
-                .padding(.bottom, Spacing.medium)
-                .background(.regularMaterial)
             }
             .navigationTitle("Log Progress")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        onCancel()
-                        dismiss()
-                    }
-                }
-            }
         }
-        .deviceAwareSheetSizing(
-            compactMultiplier: SizeMultiplier(min: 0.92, ideal: 0.95, max: 0.98),
-            regularMultiplier: SizeMultiplier(min: 0.67, ideal: 0.73, max: 0.87),
-            largeMultiplier: SizeMultiplier(min: 0.61, ideal: 0.67, max: 0.78)
-        )
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
         .overlay(
             Group {
                 if isLoading {
@@ -303,69 +261,79 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         .onChange(of: currentValue) { _, newValue in
             value = newValue
         }
+        .onChange(of: value) { oldValue, newValue in
+            // Auto-save when value changes (skip initial load)
+            guard !isLoading, oldValue != newValue else { return }
+            Task {
+                await onSave(newValue)
+            }
+        }
         .completionGlow(isGlowing: isGlowing)
     }
 
     @ViewBuilder
-    private func completeAllButton() -> some View {
-        let button = Button {
-            // Trigger glow effect
-            isGlowing = true
-
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                value = dailyTarget
-            }
-
-            Task {
-                // Small delay for glow effect
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                await onSave(dailyTarget)
-                await MainActor.run {
-                    isGlowing = false
-                    dismiss()
-                }
+    private func resetButton() -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                value = 0
             }
         } label: {
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                Text("Complete All")
-            }
-            .font(.headline)
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.medium)
+            Text("Reset")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, Spacing.large)
+                .frame(height: 44)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(12)
         }
-        .buttonStyle(.plain)
+    }
 
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            button.glassEffect(.regular.tint(AppColors.brand), in: RoundedRectangle(cornerRadius: 25))
-        } else {
-            button
-                .background(AppColors.brand)
-                .cornerRadius(25)
+    @ViewBuilder
+    private func completeButton() -> some View {
+        let adaptiveColor = CircularProgressView.adaptiveProgressColors(for: 1.0).last ?? CardDesign.progressGreen
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                value = dailyTarget
+            }
+        } label: {
+            Text("Complete All")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(adaptiveColor)
+                .padding(.horizontal, Spacing.large)
+                .frame(height: 44)
+                .background(adaptiveColor.opacity(0.1))
+                .cornerRadius(12)
         }
-        #else
-        button
-            .background(AppColors.brand)
-            .cornerRadius(25)
-        #endif
     }
 
     @ViewBuilder
     private func quickIncrementButton(amount: Int) -> some View {
         Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                value = min(value + Double(amount), dailyTarget + 10)
+                value = min(value + Double(amount), maxAllowedValue)
             }
         } label: {
-            Text("+\(amount)")
+            Text("+\(formatAmount(amount))")
                 .font(.headline)
                 .foregroundColor(AppColors.brand)
-                .frame(width: 60, height: 36)
+                .padding(.horizontal, Spacing.medium)
+                .frame(minWidth: 60)
+                .frame(height: 36)
                 .background(AppColors.brand.opacity(0.1))
                 .cornerRadius(8)
         }
+    }
+
+    /// Format large numbers with K suffix for readability
+    private func formatAmount(_ amount: Int) -> String {
+        if amount >= 1000 {
+            let thousands = Double(amount) / 1000.0
+            if thousands == Double(Int(thousands)) {
+                return "\(Int(thousands))K"
+            }
+            return String(format: "%.1fK", thousands)
+        }
+        return "\(amount)"
     }
     
     private func loadCurrentValue() {

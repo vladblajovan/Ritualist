@@ -376,6 +376,9 @@ public enum Strings {
         public static let frequencyEvery30Min = String(localized: "location.frequency_every_30_min")
         public static let frequencyEveryHour = String(localized: "location.frequency_every_hour")
         public static let frequencyEvery2Hours = String(localized: "location.frequency_every_2_hours")
+
+        // Error Messages
+        public static let geofenceRestoreFailed = String(localized: "location.geofence_restore_failed")
     }
 
     // MARK: - iCloud Sync
@@ -384,6 +387,7 @@ public enum Strings {
         public static let stillSyncing = String(localized: "icloud.still_syncing")
         public static let setupTitle = String(localized: "icloud.setup_title")
         public static let setupDescription = String(localized: "icloud.setup_description")
+        public static let syncDelayed = String(localized: "icloud.sync_delayed")
     }
 
     // MARK: - Data Management

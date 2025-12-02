@@ -78,6 +78,41 @@ public enum InspirationTrigger: CaseIterable, Hashable {
     }
 }
 
+// MARK: - Inspiration Item
+
+/// Model representing an inspiration item in the carousel
+/// Each item has a unique message and slogan based on its trigger type
+public struct InspirationItem: Identifiable, Equatable, Sendable {
+    public let id: UUID
+    public let trigger: InspirationTrigger
+    public let message: String
+    public let slogan: String
+
+    /// Creates an inspiration item with validated content
+    /// Returns nil if message or slogan is empty after trimming whitespace
+    public init?(id: UUID = UUID(), trigger: InspirationTrigger, message: String, slogan: String) {
+        guard Self.isValid(message: message, slogan: slogan) else {
+            return nil
+        }
+        self.id = id
+        self.trigger = trigger
+        self.message = message
+        self.slogan = slogan
+    }
+
+    /// Validates that message and slogan are non-empty
+    public static func isValid(message: String, slogan: String) -> Bool {
+        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !slogan.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Equality based on ID only - message/slogan changes don't change identity
+    /// This aligns with SwiftUI's identity-based diffing for carousel animations
+    public static func == (lhs: InspirationItem, rhs: InspirationItem) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
 // MARK: - Completion States
 
 /// Represents different states of habit completion progress

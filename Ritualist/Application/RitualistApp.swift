@@ -56,6 +56,10 @@ import CoreData
     /// Track when iCloud status was last checked (using system uptime for clock-drift immunity)
     @State private var lastICloudStatusCheckUptime: TimeInterval?
 
+    /// Debounce task for UI refresh notification
+    /// Cancels previous pending notification when new changes arrive, ensuring ONE refresh after activity settles
+    @State private var uiRefreshDebounceTask: Task<Void, Never>?
+
     /// App startup time for performance monitoring
     private let appStartTime = Date()
 
@@ -159,10 +163,9 @@ import CoreData
 
                         try? await Task.sleep(for: .seconds(BusinessConstants.remoteChangeMergeDelay))
 
-                        // ALWAYS notify UI that iCloud synced data - this triggers auto-refresh in OverviewView
-                        // and the one-time toast in RootTabView. Do this outside throttle checks so UI
-                        // always gets notified even if geofences/dedup are throttled.
-                        NotificationCenter.default.post(name: .iCloudDidSyncRemoteChanges, object: nil)
+                        // Debounce UI refresh notification to prevent rapid flashing when multiple changes arrive
+                        // (e.g., user editing profile fields, bulk sync from another device)
+                        await postUIRefreshNotificationDebounced()
 
                         // Deduplicate any duplicates created by CloudKit sync before restoring geofences
                         // Uses throttling to avoid excessive database operations during bulk sync
@@ -323,6 +326,36 @@ import CoreData
         }
 
         await deduplicateSyncedData()
+    }
+
+    /// Post UI refresh notification with debouncing to prevent rapid flashing
+    ///
+    /// When multiple iCloud changes arrive in quick succession (e.g., user editing profile fields,
+    /// bulk sync from another device), this ensures ONE UI refresh after activity settles.
+    /// Each call cancels any pending notification and starts a new timer.
+    @MainActor
+    private func postUIRefreshNotificationDebounced() {
+        // Cancel any pending notification
+        uiRefreshDebounceTask?.cancel()
+
+        // Start new debounce timer
+        uiRefreshDebounceTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(BusinessConstants.uiRefreshDebounceInterval))
+
+                // Only post if not cancelled
+                guard !Task.isCancelled else { return }
+
+                logger.log(
+                    "📢 Posting UI refresh notification (debounced)",
+                    level: .debug,
+                    category: .system
+                )
+                NotificationCenter.default.post(name: .iCloudDidSyncRemoteChanges, object: nil)
+            } catch {
+                // Task was cancelled - another change arrived, skip this notification
+            }
+        }
     }
 
     private func setupNotifications() async {

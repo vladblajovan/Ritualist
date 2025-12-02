@@ -108,6 +108,12 @@ struct ICloudSyncSectionView: View {
         case .temporarilyUnavailable:
             Image(systemName: "exclamationmark.circle.fill")
                 .foregroundStyle(.yellow)
+        case .timeout:
+            Image(systemName: "wifi.exclamationmark")
+                .foregroundStyle(.orange)
+        case .notConfigured:
+            Image(systemName: "gearshape.fill")
+                .foregroundStyle(.gray)
         case .unknown:
             Image(systemName: "questionmark.circle.fill")
                 .foregroundStyle(.gray)
@@ -124,6 +130,10 @@ struct ICloudSyncSectionView: View {
             return .red
         case .temporarilyUnavailable:
             return .yellow
+        case .timeout:
+            return .orange
+        case .notConfigured:
+            return .gray
         case .unknown:
             return .secondary
         }
