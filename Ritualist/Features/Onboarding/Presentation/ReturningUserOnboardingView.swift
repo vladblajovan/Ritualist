@@ -52,19 +52,6 @@ struct ReturningUserOnboardingView: View {
             }
         }
         .task {
-            // DEBUG: Log incoming summary values
-            logger.log(
-                "🔍 [DEBUG] ReturningUserOnboarding - summary values received",
-                level: .info,
-                category: .ui,
-                metadata: [
-                    "profileName": summary.profileName ?? "nil",
-                    "profileGender": summary.profileGender ?? "nil",
-                    "profileAgeGroup": summary.profileAgeGroup ?? "nil",
-                    "needsProfileCompletion": summary.needsProfileCompletion
-                ]
-            )
-
             // Load initial permission state
             await viewModel.checkPermissions()
 
@@ -96,18 +83,6 @@ struct ReturningUserOnboardingView: View {
                     )
                 }
             }
-
-            // DEBUG: Log values after pre-population
-            logger.log(
-                "🔍 [DEBUG] ReturningUserOnboarding - viewModel after pre-population",
-                level: .info,
-                category: .ui,
-                metadata: [
-                    "userName": viewModel.userName.isEmpty ? "empty" : viewModel.userName,
-                    "gender": String(describing: viewModel.gender),
-                    "ageGroup": String(describing: viewModel.ageGroup)
-                ]
-            )
         }
         .onChange(of: currentStep) { _, newStep in
             announceStepChange(newStep)

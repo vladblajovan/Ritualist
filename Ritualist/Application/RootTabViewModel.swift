@@ -198,20 +198,6 @@ public final class RootTabViewModel {
     public func showReturningUserWelcomeIfNeeded(habits: [Habit], profile: UserProfile?) {
         guard pendingReturningUserWelcome else { return }
 
-        // DEBUG: Log raw profile values from iCloud
-        logger.log(
-            "🔍 [DEBUG] showReturningUserWelcomeIfNeeded - raw profile from iCloud",
-            level: .info,
-            category: .ui,
-            metadata: [
-                "profile_exists": profile != nil,
-                "profile.name": profile?.name ?? "nil",
-                "profile.gender": profile?.gender ?? "nil",
-                "profile.ageGroup": profile?.ageGroup ?? "nil",
-                "habitsCount": habits.count
-            ]
-        )
-
         // Build summary from actual loaded data
         let summary = SyncedDataSummary(
             habitsCount: habits.count,

@@ -243,18 +243,6 @@ private struct SettingsFormView: View {
     }
 
     private func updateLocalState() {
-        // DEBUG: Log raw profile values before parsing
-        logger.log(
-            "🔍 [DEBUG] Settings updateLocalState - raw profile values",
-            level: .info,
-            category: .ui,
-            metadata: [
-                "profile.name": vm.profile.name.isEmpty ? "empty" : vm.profile.name,
-                "profile.gender": vm.profile.gender ?? "nil",
-                "profile.ageGroup": vm.profile.ageGroup ?? "nil"
-            ]
-        )
-
         name = vm.profile.name
         appearance = vm.profile.appearance
         displayTimezoneMode = vm.profile.displayTimezoneMode.toLegacyString()
@@ -289,17 +277,6 @@ private struct SettingsFormView: View {
         } else {
             ageGroup = .preferNotToSay
         }
-
-        // DEBUG: Log parsed values
-        logger.log(
-            "🔍 [DEBUG] Settings updateLocalState - parsed values",
-            level: .info,
-            category: .ui,
-            metadata: [
-                "gender": String(describing: gender),
-                "ageGroup": String(describing: ageGroup)
-            ]
-        )
     }
 
     private func updateUserName() async {
