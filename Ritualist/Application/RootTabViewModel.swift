@@ -136,8 +136,21 @@ public final class RootTabViewModel {
 
         // Step 3: Neither flag set - could be new user OR upgrade from old version
         // Before showing onboarding, check if user has existing data OR has run the app before
-        let existingProfile = try? await loadProfile.execute()
-        let hasExistingData = existingProfile != nil && !existingProfile!.name.isEmpty
+        let existingProfile: UserProfile?
+        do {
+            existingProfile = try await loadProfile.execute()
+        } catch {
+            // Log but don't block - treat as no existing data for migration purposes
+            // This could indicate database issues that warrant investigation
+            logger.log(
+                "Failed to load profile during upgrade migration check - treating as no data",
+                level: .warning,
+                category: .ui,
+                metadata: ["error": error.localizedDescription]
+            )
+            existingProfile = nil
+        }
+        let hasExistingData = !(existingProfile?.name.isEmpty ?? true)
 
         // Also check categorySeedingCompleted flag - this persists in UserDefaults across updates
         // If true, user has definitely run the app before (even if SwiftData is empty due to migration)
