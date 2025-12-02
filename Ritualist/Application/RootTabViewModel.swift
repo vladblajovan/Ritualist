@@ -229,8 +229,8 @@ public final class RootTabViewModel {
             return
         }
 
-        // Dismiss the syncing toast before showing welcome
-        dismissSyncingDataToast()
+        // Note: Syncing toast is dismissed when ReturningUserOnboardingView appears
+        // (via onAppear in RootTabView) to ensure seamless transition
 
         pendingReturningUserWelcome = false
         syncedDataSummary = summary

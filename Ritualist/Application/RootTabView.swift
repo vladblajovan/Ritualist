@@ -116,6 +116,10 @@ public struct RootTabView: View {
                 ReturningUserOnboardingView(summary: summary, onComplete: {
                     viewModel.dismissReturningUserWelcome()
                 })
+                .onAppear {
+                    // Dismiss syncing toast exactly when returning user welcome appears
+                    viewModel.dismissSyncingDataToast()
+                }
             }
         }
         .sheet(isPresented: $showingPostOnboardingAssistant) {
