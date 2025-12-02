@@ -647,7 +647,8 @@ public struct RootTabView: View {
         ToastView(
             message: toast.message,
             icon: toast.icon,
-            style: toast.style
+            style: toast.style,
+            isPersistent: toast.isPersistent
         ) {
             viewModel.dismissToast(toast.id)
         }

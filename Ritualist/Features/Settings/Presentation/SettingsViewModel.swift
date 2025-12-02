@@ -31,6 +31,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.restoreGeofenceMonitoring) var restoreGeofenceMonitoring
     @ObservationIgnored @Injected(\.dailyNotificationScheduler) var dailyNotificationScheduler
     @ObservationIgnored @Injected(\.toastService) var toastService
+    @ObservationIgnored @Injected(\.onboardingViewModel) var onboardingViewModel
 
     #if DEBUG
     private let populateTestData: PopulateTestDataUseCase?
@@ -526,6 +527,9 @@ public final class SettingsViewModel {
             ]
             userActionTracker.track(.custom(event: "all_data_deleted_by_user", parameters: eventParams))
 
+            // Reset onboarding view model to clear any cached state
+            onboardingViewModel.reset()
+
             isDeletingCloudData = false
 
             if shouldWarnAboutSync {
@@ -649,6 +653,9 @@ public final class SettingsViewModel {
 
             // Reset the local device flag (so this device sees new user flow)
             iCloudKeyValueService.resetLocalOnboardingFlag()
+
+            // Reset onboarding view model to clear any cached state
+            onboardingViewModel.reset()
 
             // Track the debug action
             userActionTracker.track(.custom(event: "debug_onboarding_reset", parameters: [:]))

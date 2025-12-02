@@ -29,6 +29,14 @@ import Foundation
 #endif
 struct RootTabViewModelTests {
 
+    // MARK: - Test Setup
+
+    /// Clears UserDefaults keys that would interfere with test isolation
+    /// RootTabViewModel reads categorySeedingCompleted from real UserDefaults
+    private func clearTestUserDefaults() {
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+    }
+
     // MARK: - Test Dependencies
 
     /// Create a test instance with configurable mock dependencies
@@ -37,6 +45,9 @@ struct RootTabViewModelTests {
         iCloudCompleted: Bool = false,
         localCompleted: Bool = false
     ) -> (RootTabViewModel, MockiCloudKeyValueServiceForViewModel) {
+        // Clear UserDefaults to ensure test isolation
+        clearTestUserDefaults()
+
         let mockiCloud = MockiCloudKeyValueServiceForViewModel()
         mockiCloud.iCloudOnboardingCompleted = iCloudCompleted
         mockiCloud.localOnboardingCompleted = localCompleted
@@ -323,9 +334,11 @@ struct RootTabViewModelTests {
         HabitBuilder.binary(name: "Test Habit")
     }
 
-    private func createTestProfile(name: String) -> UserProfile {
+    private func createTestProfile(name: String, gender: String? = "male", ageGroup: String? = "25_34") -> UserProfile {
         var profile = UserProfile()
         profile.name = name
+        profile.gender = gender
+        profile.ageGroup = ageGroup
         return profile
     }
 }

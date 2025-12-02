@@ -468,6 +468,15 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                     toKeep.avatarImageData = duplicate.avatarImageData
                 }
 
+                // V11: Merge demographics if keeper is missing them
+                if toKeep.gender == nil && duplicate.gender != nil {
+                    toKeep.gender = duplicate.gender
+                }
+
+                if toKeep.ageGroup == nil && duplicate.ageGroup != nil {
+                    toKeep.ageGroup = duplicate.ageGroup
+                }
+
                 // Keep the most recent updatedAt timestamp
                 if duplicate.updatedAt > toKeep.updatedAt {
                     toKeep.updatedAt = duplicate.updatedAt
@@ -489,6 +498,8 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                     "kept_id": toKeep.id,
                     "has_name": !toKeep.name.isEmpty,
                     "has_avatar": toKeep.avatarImageData != nil,
+                    "has_gender": toKeep.gender != nil,
+                    "has_ageGroup": toKeep.ageGroup != nil,
                     "deleted": removedCount
                 ]
             )

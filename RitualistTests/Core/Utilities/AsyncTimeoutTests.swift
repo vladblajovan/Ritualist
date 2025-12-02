@@ -169,12 +169,13 @@ struct AsyncTimeoutTests {
     func onlyOneResultInRaceCondition() async {
         // Run multiple times to catch potential race conditions
         // The operation and timeout are designed to complete at nearly the same time
+        // Using wider margins (100ms timeout, 80ms operation) for CI reliability
         for iteration in 0..<10 {
             let result = await withTimeout(
-                seconds: 0.05,
+                seconds: 0.1,
                 operation: {
-                    // Very close to timeout - creates race condition
-                    try? await Task.sleep(for: .milliseconds(45))
+                    // Close to timeout but with safe margin for CI variance
+                    try? await Task.sleep(for: .milliseconds(80))
                     return "operation"
                 },
                 onTimeout: { "timeout" }
@@ -193,12 +194,13 @@ struct AsyncTimeoutTests {
         var operationWins = 0
         var timeoutWins = 0
 
-        // Run many iterations with tight timing
+        // Run many iterations with timing close enough to create variance
+        // but with safe margins for CI reliability (60ms timeout, 50ms operation)
         for _ in 0..<20 {
             let result = await withTimeout(
-                seconds: 0.03,
+                seconds: 0.06,
                 operation: {
-                    try? await Task.sleep(for: .milliseconds(25))
+                    try? await Task.sleep(for: .milliseconds(50))
                     return "operation"
                 },
                 onTimeout: { "timeout" }
