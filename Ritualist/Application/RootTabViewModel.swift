@@ -134,7 +134,52 @@ public final class RootTabViewModel {
             return
         }
 
-        // Step 3: Neither flag set - this is a new user
+        // Step 3: Neither flag set - could be new user OR upgrade from old version
+        // Before showing onboarding, check if user has existing data OR has run the app before
+        let existingProfile: UserProfile?
+        do {
+            existingProfile = try await loadProfile.execute()
+        } catch {
+            // Log but don't block - treat as no existing data for migration purposes
+            // This could indicate database issues that warrant investigation
+            logger.log(
+                "Failed to load profile during upgrade migration check - treating as no data",
+                level: .warning,
+                category: .ui,
+                metadata: ["error": error.localizedDescription]
+            )
+            existingProfile = nil
+        }
+        let hasExistingData = !(existingProfile?.name.isEmpty ?? true)
+
+        // Also check categorySeedingCompleted flag - this persists in UserDefaults across updates
+        // If true, user has definitely run the app before (even if SwiftData is empty due to migration)
+        let hasRunAppBefore = UserDefaults.standard.bool(forKey: UserDefaultsKeys.categorySeedingCompleted)
+
+        if hasExistingData || hasRunAppBefore {
+            // MIGRATION: User has existing data OR has run app before, but flags were never set
+            // This happens when upgrading from a version that didn't set these flags (e.g., 0.2.1 → 0.3.0)
+            // Set both flags to mark onboarding as complete for this device and iCloud
+            logger.log(
+                "Migration: existing user detected but no onboarding flags - setting flags",
+                level: .info,
+                category: .ui,
+                metadata: [
+                    "hasExistingData": hasExistingData,
+                    "hasRunAppBefore": hasRunAppBefore,
+                    "profileName": existingProfile?.name ?? "none"
+                ]
+            )
+
+            iCloudKeyValueService.setOnboardingCompletedLocally()
+            iCloudKeyValueService.setOnboardingCompleted()
+
+            showOnboarding = false
+            isCheckingOnboarding = false
+            return
+        }
+
+        // No existing data - this is truly a new user
         logger.log(
             "No iCloud onboarding flag and no local flag - new user flow",
             level: .info,
