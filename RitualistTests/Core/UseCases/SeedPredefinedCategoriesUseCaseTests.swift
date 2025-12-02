@@ -92,7 +92,7 @@ struct SeedPredefinedCategoriesUseCaseTests {
         let userDefaults = MockUserDefaults()
 
         // Verify flag is initially false
-        #expect(userDefaults.bool(forKey: "com.ritualist.categories.seedingCompleted") == false)
+        #expect(userDefaults.bool(forKey: "UserDefaultsKeys.categorySeedingCompleted") == false)
 
         let useCase = createUseCase(container: container, userDefaults: userDefaults)
 
@@ -100,7 +100,7 @@ struct SeedPredefinedCategoriesUseCaseTests {
         try await useCase.execute()
 
         // Verify flag was set to true
-        #expect(userDefaults.bool(forKey: "com.ritualist.categories.seedingCompleted") == true)
+        #expect(userDefaults.bool(forKey: "UserDefaultsKeys.categorySeedingCompleted") == true)
     }
 
     // MARK: - B. Subsequent Launch Behavior Tests
@@ -111,7 +111,7 @@ struct SeedPredefinedCategoriesUseCaseTests {
         let userDefaults = MockUserDefaults()
 
         // Set the flag to simulate previous seeding
-        userDefaults.set(true, forKey: "com.ritualist.categories.seedingCompleted")
+        userDefaults.set(true, forKey: "UserDefaultsKeys.categorySeedingCompleted")
 
         let useCase = createUseCase(container: container, userDefaults: userDefaults)
 
@@ -165,7 +165,7 @@ struct SeedPredefinedCategoriesUseCaseTests {
         try await useCase.execute()
 
         // Verify flag is NOT set
-        #expect(userDefaults.bool(forKey: "com.ritualist.categories.seedingCompleted") == false)
+        #expect(userDefaults.bool(forKey: "UserDefaultsKeys.categorySeedingCompleted") == false)
     }
 
     // MARK: - D. Relationship Repair Tests
@@ -347,7 +347,7 @@ struct SeedPredefinedCategoriesUseCaseTests {
         try await useCase.execute()
 
         // Verify seeding was NOT marked as completed due to failures
-        #expect(userDefaults.bool(forKey: "com.ritualist.categories.seedingCompleted") == false)
+        #expect(userDefaults.bool(forKey: "UserDefaultsKeys.categorySeedingCompleted") == false)
     }
 
     @Test("Propagates habit repository errors correctly")

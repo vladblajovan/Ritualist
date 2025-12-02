@@ -63,6 +63,12 @@ public enum UserDefaultsKeys {
 
     /// Key for storing personality preferences for the main user
     public static let personalityPreferencesMainUser = "com.ritualist.personalityPreferencesMainUser"
+
+    // MARK: - Category Seeding
+
+    /// Key for tracking if predefined categories have been seeded
+    /// Must be cleared when user deletes all data to allow re-seeding on next launch
+    public static let categorySeedingCompleted = "com.ritualist.categories.seedingCompleted"
 }
 
 // MARK: - Notification Names

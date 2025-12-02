@@ -40,6 +40,11 @@ public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
         // Clear sync metadata from UserDefaults
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.lastSyncDate)
 
+        // Clear category seeding flag so categories are re-seeded on next launch
+        // Without this, deleting all data leaves the flag set, preventing category re-seeding
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+        logger.log("🗑️ Cleared category seeding flag", level: .info, category: .system)
+
         // Clear iCloud KV store onboarding flag so user sees onboarding on reinstall
         logger.log("🗑️ Clearing iCloud KV onboarding flags", level: .info, category: .system)
         iCloudKeyValueService.resetOnboardingFlag()
