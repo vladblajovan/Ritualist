@@ -48,7 +48,7 @@ public struct OverviewView: View {
                         }
                     },
                     onNumericHabitUpdate: { habit, newValue in
-                        await vm.updateNumericHabit(habit, value: newValue)
+                        try await vm.updateNumericHabit(habit, value: newValue)
                     },
                     getProgressSync: { habit in
                         vm.getProgressSync(for: habit)
@@ -105,9 +105,7 @@ public struct OverviewView: View {
                             vm.getProgressSync(for: habit)
                         },
                         onNumericHabitUpdate: { habit, newValue in
-                            Task {
-                                await vm.updateNumericHabit(habit, value: newValue)
-                            }
+                            try await vm.updateNumericHabit(habit, value: newValue)
                         },
                         onNumericHabitAction: { habit in
                             vm.showNumericSheet(for: habit)
@@ -248,7 +246,7 @@ public struct OverviewView: View {
                         habit: habit,
                         viewingDate: vm.viewingDate,
                         onSave: { newValue in
-                            await vm.updateNumericHabit(habit, value: newValue)
+                            try await vm.updateNumericHabit(habit, value: newValue)
                         },
                         onCancel: {
                             // Sheet dismisses automatically

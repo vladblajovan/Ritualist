@@ -57,6 +57,7 @@ public enum Strings {
         public static let failedLoadHabits = String(localized: "errorFailedLoadHabits")
         public static let failedLoadSettings = String(localized: "errorFailedLoadSettings")
         public static let failedLoadHabit = String(localized: "errorFailedLoadHabit")
+        public static let failedToSave = String(localized: "errorFailedToSave")
         public static let unableSetupOverview = String(localized: "errorUnableSetupOverview")
         public static let unableSetupHabits = String(localized: "errorUnableSetupHabits")
         public static let unableSetupSettings = String(localized: "errorUnableSetupSettings")

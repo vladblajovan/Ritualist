@@ -11,7 +11,7 @@ public final class DashboardViewModel {
         didSet {
             if oldValue != selectedTimePeriod {
                 Task {
-                    await loadData()
+                    await refresh()
                 }
             }
         }
@@ -455,16 +455,28 @@ public final class DashboardViewModel {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
             return isHabitCompleted.execute(habit: habit, on: date, logs: logs)
         } catch {
+            logger.log(
+                "Failed to check habit completion",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["habit_id": habit.id.uuidString, "error": error.localizedDescription]
+            )
             return false
         }
     }
-    
+
     /// Get progress for a habit on a specific date using CalculateDailyProgressUseCase
     public func getHabitProgress(_ habit: Habit, on date: Date) async -> Double {
         do {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
             return calculateDailyProgress.execute(habit: habit, logs: logs, for: date)
         } catch {
+            logger.log(
+                "Failed to get habit progress",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["habit_id": habit.id.uuidString, "error": error.localizedDescription]
+            )
             return 0.0
         }
     }

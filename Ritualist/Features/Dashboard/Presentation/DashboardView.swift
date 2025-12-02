@@ -91,8 +91,10 @@ public struct DashboardView: View {
     
     @ViewBuilder
     private var timePeriodSelector: some View {
+        // Note: .allTime excluded until performance optimization is complete
+        let availablePeriods = TimePeriod.allCases.filter { $0 != .allTime }
         Picker(Strings.Dashboard.timePeriodPicker, selection: $vm.selectedTimePeriod) {
-            ForEach(TimePeriod.allCases, id: \.self) { period in
+            ForEach(availablePeriods, id: \.self) { period in
                 Text(period.shortDisplayName)
                     .tag(period)
                     .accessibilityLabel(period.accessibilityLabel)

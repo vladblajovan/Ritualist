@@ -393,7 +393,7 @@ struct MotivationTriggersDocumentationView: View {
 
                         TriggerRow(
                             name: "Afternoon Push",
-                            condition: "3-5 PM with <60% completion",
+                            condition: "3-4:59 PM with <60% completion",
                             priority: "Medium",
                             cooldown: "2 hours",
                             color: .indigo

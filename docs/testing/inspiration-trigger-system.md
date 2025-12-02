@@ -31,7 +31,7 @@ Based on current time period and progress. Only ONE can fire.
 |---------|------|-----------|
 | `morningMotivation` | Morning | completionRate == 0% |
 | `strugglingMidDay` | Noon | completionRate < 40% |
-| `afternoonPush` | Noon (3-5 PM) | completionRate < 60% |
+| `afternoonPush` | Noon (3-4:59 PM) | completionRate < 60% |
 | `eveningReflection` | Evening | completionRate >= 60% |
 
 **Logic:** Switch on `timeOfDay`, check conditions within each case.

@@ -88,8 +88,11 @@ public func withTimeout<T: Sendable>(
         Task {
             do {
                 try await Task.sleep(for: .seconds(seconds))
-            } catch {
+            } catch is CancellationError {
                 // Task was cancelled (e.g., parent task cancelled) - don't trigger timeout
+                return
+            } catch {
+                // Unexpected error - skip timeout (shouldn't happen with Task.sleep)
                 return
             }
             if await coordinator.tryComplete() {
@@ -135,8 +138,11 @@ public func withTimeout<T: Sendable>(
         Task {
             do {
                 try await Task.sleep(for: .seconds(seconds))
-            } catch {
+            } catch is CancellationError {
                 // Task was cancelled (e.g., parent task cancelled) - don't trigger timeout
+                return
+            } catch {
+                // Unexpected error - skip timeout (shouldn't happen with Task.sleep)
                 return
             }
             if await coordinator.tryComplete() {

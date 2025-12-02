@@ -11,7 +11,7 @@ struct QuickActionsCard: View {
     let viewingDate: Date // Add viewing date from ViewModel
     let onHabitComplete: (Habit) -> Void
     let getProgressSync: (Habit) -> Double // Sync callback to get current progress from ViewModel
-    let onNumericHabitUpdate: (Habit, Double) -> Void // New callback for numeric habit updates
+    let onNumericHabitUpdate: (Habit, Double) async throws -> Void // Callback for numeric habit updates
     let onNumericHabitAction: ((Habit) -> Void)? // New callback for numeric habit sheet
     let onDeleteHabitLog: (Habit) -> Void // New callback for deleting habit log
     let getScheduleStatus: (Habit) -> HabitScheduleStatus // New callback for schedule status

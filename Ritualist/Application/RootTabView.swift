@@ -471,7 +471,18 @@ public struct RootTabView: View {
         Task {
             // Load actual data from repositories
             await loadCurrentHabits()
-            let profile = try? await loadProfile.execute()
+            let profile: UserProfile?
+            do {
+                profile = try await loadProfile.execute()
+            } catch {
+                logger.log(
+                    "Failed to load profile for returning user check",
+                    level: .warning,
+                    category: .system,
+                    metadata: ["error": error.localizedDescription]
+                )
+                profile = nil
+            }
 
             // Check if we have complete data (habits AND profile with name)
             let hasCompleteData = !existingHabits.isEmpty

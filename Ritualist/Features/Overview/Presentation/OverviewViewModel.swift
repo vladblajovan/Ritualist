@@ -330,7 +330,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             if habit.kind == .numeric {
                 // For numeric habits, set to daily target (this should primarily be used for binary habits)
                 // Most numeric habit interactions should go through updateNumericHabit instead
-                await updateNumericHabit(habit, value: habit.dailyTarget ?? 1.0)
+                try await updateNumericHabit(habit, value: habit.dailyTarget ?? 1.0)
             } else {
                 // Binary habit - just create a log with value 1.0 using LOCAL timestamp and timezone context
                 let log = HabitLog(
@@ -382,7 +382,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         }
     }
     
-    public func updateNumericHabit(_ habit: Habit, value: Double) async {
+    public func updateNumericHabit(_ habit: Habit, value: Double) async throws {
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
             await loadData()
@@ -442,9 +442,10 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 context: "Failed to update numeric habit",
                 metadata: ["habit_id": habit.id.uuidString]
             )
+            throw error
         }
     }
-    
+
     public func getProgressSync(for habit: Habit) -> Double {
         // Use single source of truth from overviewData if available
         guard let data = overviewData else {
@@ -909,7 +910,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     // 2. **Time-of-Day** - Based on current time period (mutually exclusive):
     //    - `morningMotivation` (morning, 0% done) - Start the day
     //    - `strugglingMidDay` (noon, <40%) - Behind at midday
-    //    - `afternoonPush` (3-5 PM, <60%) - Afternoon encouragement
+    //    - `afternoonPush` (3-4:59 PM, <60%) - Afternoon encouragement
     //    - `eveningReflection` (evening, 60%+) - End of day reflection
     //
     // 3. **Special Context** - Situational triggers (mutually exclusive):
@@ -1016,7 +1017,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             if completionRate < 0.4 {
                 return .strugglingMidDay
             }
-            // Afternoon push (3-5 PM) when moderately behind
+            // Afternoon push (3-4:59 PM) when moderately behind
             // Note: This can fire during "noon" period if hour is 15-16
             if hour >= 15 && hour < 17 && completionRate < 0.6 {
                 return .afternoonPush

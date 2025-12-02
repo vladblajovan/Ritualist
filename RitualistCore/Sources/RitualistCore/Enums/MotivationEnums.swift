@@ -19,7 +19,7 @@ public enum InspirationTrigger: CaseIterable, Hashable {
     case firstHabitComplete    // Just completed first habit
     case halfwayPoint         // Hit 50% completion
     case strugglingMidDay     // <40% completion at noon
-    case afternoonPush        // <60% completion in afternoon (3-5pm)
+    case afternoonPush        // <60% completion in afternoon (3-4:59pm)
     case strongFinish         // Hit 75%+ completion
     case perfectDay           // 100% completion
     case eveningReflection    // Evening with good progress (>60%)

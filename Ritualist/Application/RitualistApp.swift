@@ -173,6 +173,13 @@ import CoreData
                         await restoreGeofencesThrottled()
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name.NSUbiquityIdentityDidChange)) { _ in
+                    // Invalidate iCloud status cache when user signs in/out of iCloud
+                    Task { @MainActor in
+                        cachedICloudStatus = nil
+                        lastICloudStatusCheckUptime = nil
+                    }
+                }
         }
     }
 

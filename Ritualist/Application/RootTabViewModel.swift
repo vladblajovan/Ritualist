@@ -333,7 +333,7 @@ extension RootTabViewModel {
         toastService.dismiss(id)
     }
 
-    /// Show toast for successful iCloud sync (DEBUG only)
+    /// Show toast for successful iCloud sync
     public func showSyncedToast() {
         toastService.info(Strings.ICloudSync.syncedFromCloud, icon: "icloud.fill")
     }

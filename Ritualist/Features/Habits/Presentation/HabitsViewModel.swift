@@ -4,7 +4,7 @@ import FactoryKit
 import RitualistCore
 
 @MainActor @Observable
-public final class HabitsViewModel {
+public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     // MARK: - Factory Injected Dependencies
     @ObservationIgnored @Injected(\.loadHabitsData) var loadHabitsData
     @ObservationIgnored @Injected(\.createHabit) var createHabit
@@ -22,6 +22,7 @@ public final class HabitsViewModel {
     @ObservationIgnored @Injected(\.isScheduledDay) private var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     @ObservationIgnored @Injected(\.getSingleHabitLogs) private var getSingleHabitLogs
+    @ObservationIgnored @Injected(\.debugLogger) private var logger
     
     // MARK: - Shared ViewModels
     
@@ -399,10 +400,16 @@ public final class HabitsViewModel {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
             return isHabitCompleted.execute(habit: habit, on: today, logs: logs)
         } catch {
+            logger.log(
+                "Failed to check habit completion",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["habit_id": habit.id.uuidString, "error": error.localizedDescription]
+            )
             return false
         }
     }
-    
+
     /// Get current progress for a habit today using CalculateDailyProgressUseCase
     public func getCurrentProgress(for habit: Habit) async -> Double {
         do {
@@ -411,6 +418,12 @@ public final class HabitsViewModel {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
             return calculateDailyProgress.execute(habit: habit, logs: logs, for: today)
         } catch {
+            logger.log(
+                "Failed to get habit progress",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["habit_id": habit.id.uuidString, "error": error.localizedDescription]
+            )
             return 0.0
         }
     }

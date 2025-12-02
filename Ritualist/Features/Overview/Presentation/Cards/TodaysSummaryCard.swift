@@ -10,7 +10,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let canGoToNext: Bool
     let currentSlogan: String?
     let onQuickAction: (Habit) -> Void
-    let onNumericHabitUpdate: ((Habit, Double) async -> Void)?
+    let onNumericHabitUpdate: ((Habit, Double) async throws -> Void)?
     let getProgress: ((Habit) -> Double)
     let onNumericHabitAction: ((Habit) -> Void)? // New callback for numeric habit sheet
     let onDeleteHabitLog: (Habit) -> Void // New callback for deleting habit log
@@ -98,7 +98,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
          canGoToNext: Bool,
          currentSlogan: String? = nil,
          onQuickAction: @escaping (Habit) -> Void,
-         onNumericHabitUpdate: ((Habit, Double) async -> Void)? = nil,
+         onNumericHabitUpdate: ((Habit, Double) async throws -> Void)? = nil,
          getProgressSync: @escaping (Habit) -> Double,
          onNumericHabitAction: ((Habit) -> Void)? = nil,
          onDeleteHabitLog: @escaping (Habit) -> Void,

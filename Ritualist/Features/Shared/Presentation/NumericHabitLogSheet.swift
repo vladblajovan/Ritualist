@@ -2,27 +2,30 @@ import SwiftUI
 import RitualistCore
 import FactoryKit
 
-// Simple direct sheet - no fucking caches
+/// Direct sheet implementation without caching layer
 public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_body_length
     let habit: Habit
     let viewingDate: Date
-    let onSave: (Double) async -> Void
+    let onSave: (Double) async throws -> Void
     let onCancel: () -> Void
     let initialValue: Double?
 
     @Injected(\.getLogs) private var getLogs
+    @Injected(\.debugLogger) private var logger
+    @Injected(\.toastService) private var toastService
     @State private var currentValue: Double = 0.0
     @State private var isLoading = true
     @State private var isGlowing = false
     
     @State private var value: Double = 0.0
     @State private var extraMileText: String?
+    @State private var loadTask: Task<Void, Never>?
     @Environment(\.dismiss) private var dismiss
     
     public init(
         habit: Habit,
         viewingDate: Date,
-        onSave: @escaping (Double) async -> Void,
+        onSave: @escaping (Double) async throws -> Void,
         onCancel: @escaping () -> Void = {},
         initialValue: Double? = nil
     ) {
@@ -47,14 +50,17 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     }
     
     private var unitLabel: String {
-        habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false 
-            ? habit.unitLabel! 
-            : "units"
+        if let label = habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !label.isEmpty {
+            return label
+        }
+        return "units"
     }
     
-    /// Maximum allowed value (10% over target, minimum 50 over)
+    /// Maximum allowed value (10% over target, minimum 50 over, capped at 2x target)
     private var maxAllowedValue: Double {
-        dailyTarget + max(50, dailyTarget * 0.1)
+        let calculated = dailyTarget + max(50, dailyTarget * 0.1)
+        return min(calculated, dailyTarget * 2.0)
     }
 
     private var isValidValue: Bool {
@@ -293,6 +299,9 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 loadCurrentValue()
             }
         }
+        .onDisappear {
+            loadTask?.cancel()
+        }
         .onChange(of: currentValue) { _, newValue in
             value = newValue
         }
@@ -306,7 +315,19 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
             }
 
             Task {
-                await onSave(newValue)
+                do {
+                    try await onSave(newValue)
+                } catch {
+                    logger.log(
+                        "Failed to auto-save habit value",
+                        level: .error,
+                        category: .dataIntegrity,
+                        metadata: ["habit_id": habit.id.uuidString, "value": "\(newValue)", "error": error.localizedDescription]
+                    )
+                    #if DEBUG
+                    toastService.error(Strings.Error.failedToSave)
+                    #endif
+                }
             }
         }
         .completionGlow(isGlowing: isGlowing)
@@ -387,21 +408,22 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     }
     
     private func loadCurrentValue() {
-        Task {
+        loadTask = Task { @MainActor in
             do {
                 let logs = try await getLogs.execute(for: habit.id, since: nil, until: nil)
+
+                guard !Task.isCancelled else { return }
+
                 let targetDateLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, viewingDate) }
                 let totalValue = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
-                
-                await MainActor.run {
-                    currentValue = totalValue
-                    isLoading = false
-                }
+
+                guard !Task.isCancelled else { return }
+                currentValue = totalValue
+                isLoading = false
             } catch {
-                await MainActor.run {
-                    currentValue = 0.0
-                    isLoading = false
-                }
+                guard !Task.isCancelled else { return }
+                currentValue = 0.0
+                isLoading = false
             }
         }
     }
