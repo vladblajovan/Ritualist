@@ -20,6 +20,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     @State private var value: Double = 0.0
     @State private var extraMileText: String?
     @State private var loadTask: Task<Void, Never>?
+    @State private var saveTask: Task<Void, Never>?
     @Environment(\.dismiss) private var dismiss
     
     public init(
@@ -301,6 +302,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         }
         .onDisappear {
             loadTask?.cancel()
+            saveTask?.cancel()
         }
         .onChange(of: currentValue) { _, newValue in
             value = newValue
@@ -314,7 +316,13 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 extraMileText = Strings.NumericHabitLog.extraMilePhrases.randomElement()
             }
 
-            Task {
+            // Debounce saves to prevent excessive database writes during rapid changes
+            saveTask?.cancel()
+            saveTask = Task {
+                // Wait 300ms before saving - allows rapid clicks to coalesce
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+
                 do {
                     try await onSave(newValue)
                 } catch {

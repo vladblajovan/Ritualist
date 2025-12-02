@@ -160,6 +160,7 @@ public struct BusinessConstants {
     // MARK: - Motivation & Engagement
 
     /// Maximum number of inspiration items to show in the carousel
+    /// Limited to 3 to prevent overwhelming users with too many cards
     public static let maxInspirationCarouselItems = 3
 
     /// Completion rate for "strong finish" motivation (100%)
