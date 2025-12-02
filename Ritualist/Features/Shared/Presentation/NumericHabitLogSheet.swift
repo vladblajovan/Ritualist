@@ -16,6 +16,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     @State private var isGlowing = false
     
     @State private var value: Double = 0.0
+    @State private var extraMileText: String?
     @Environment(\.dismiss) private var dismiss
     
     public init(
@@ -73,11 +74,16 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         max(dailyTarget - value, 0)
     }
 
+    /// Remaining amount to reach max allowed value
+    private var remainingToMax: Double {
+        max(maxAllowedValue - value, 0)
+    }
+
     /// Adaptive quick increment values based on remaining progress
-    /// Scales from small increments (close to target) to large (far from target)
-    /// Handles targets from single digits to 100,000+
+    /// Before target: computed against remaining to target
+    /// After target: computed against remaining to max
     private var quickIncrementAmounts: [Int] {
-        let rem = Int(remaining)
+        let rem = Int(isCompleted ? remainingToMax : remaining)
 
         switch rem {
         case ..<5:
@@ -121,6 +127,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                             HStack(spacing: Spacing.xlarge) {
                                 // Minus button - orange to blue gradient
                                 Button {
+                                    HapticFeedbackService.shared.trigger(.light)
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         value = max(0, value - 1)
                                     }
@@ -166,6 +173,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
 
                                 // Plus button - green to blue gradient
                                 Button {
+                                    HapticFeedbackService.shared.trigger(.light)
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         value += 1
                                     }
@@ -184,30 +192,58 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 .disabled(!canIncrement)
                             }
 
-                            if isCompleted {
-                                Text("Target reached!")
-                                    .font(.subheadline)
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: [CardDesign.progressGreen, CardDesign.progressGreen.opacity(0.8)],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .fontWeight(.medium)
-                            }
-                        }
-
-                        // Quick increment buttons
-                        if !quickIncrementAmounts.isEmpty {
-                            HStack(spacing: Spacing.medium) {
-                                ForEach(quickIncrementAmounts, id: \.self) { amount in
-                                    quickIncrementButton(amount: amount)
+                            // Celebration text - fixed height to prevent layout jumps
+                            Group {
+                                if value == dailyTarget {
+                                    HStack(spacing: Spacing.small) {
+                                        Text("🏆")
+                                        Text(Strings.NumericHabitLog.wellDoneExtraMile)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(
+                                                LinearGradient(
+                                                    colors: [CardDesign.progressGreen, .ritualistCyan],
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                            )
+                                    }
+                                } else if value > dailyTarget, let text = extraMileText {
+                                    HStack(spacing: Spacing.small) {
+                                        Text("🎉")
+                                        Text(text)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(
+                                                LinearGradient(
+                                                    colors: [CardDesign.progressGreen, .ritualistCyan],
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                            )
+                                    }
+                                } else {
+                                    Color.clear
                                 }
                             }
+                            .frame(height: 24)
                         }
 
-                        // Reset and Complete All buttons - bottom row
+                        // Quick increment buttons - fixed height to prevent layout jumps
+                        Group {
+                            if !quickIncrementAmounts.isEmpty {
+                                HStack(spacing: Spacing.medium) {
+                                    ForEach(quickIncrementAmounts, id: \.self) { amount in
+                                        quickIncrementButton(amount: amount)
+                                    }
+                                }
+                            } else {
+                                Color.clear
+                            }
+                        }
+                        .frame(height: 36)
+
+                        // Reset and Complete All buttons
                         HStack {
                             // Reset button - bottom left (only show if value > 0)
                             if value > 0 {
@@ -216,22 +252,21 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
 
                             Spacer()
 
-                            // Complete All button - bottom right (only show if not completed)
-                            if !isCompleted {
-                                completeButton()
-                            }
+                            // Complete All button - disabled when target reached
+                            completeButton()
+                                .disabled(isCompleted)
+                                .opacity(isCompleted ? 0.4 : 1)
                         }
                         .padding(.top, Spacing.small)
                     }
                     .padding(.horizontal)
                     .padding(.bottom, Spacing.large)
                 }
-                
             }
-            .navigationTitle("Log Progress")
+            .navigationTitle(Strings.NumericHabitLog.title)
             .navigationBarTitleDisplayMode(.inline)
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.fraction(0.6)])
         .presentationDragIndicator(.visible)
         .overlay(
             Group {
@@ -264,6 +299,12 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         .onChange(of: value) { oldValue, newValue in
             // Auto-save when value changes (skip initial load)
             guard !isLoading, oldValue != newValue else { return }
+
+            // Set extra mile text when first exceeding target
+            if newValue > dailyTarget && extraMileText == nil {
+                extraMileText = Strings.NumericHabitLog.extraMilePhrases.randomElement()
+            }
+
             Task {
                 await onSave(newValue)
             }
@@ -274,11 +315,12 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     @ViewBuilder
     private func resetButton() -> some View {
         Button {
+            HapticFeedbackService.shared.trigger(.medium)
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 value = 0
             }
         } label: {
-            Text("Reset")
+            Text(Strings.NumericHabitLog.reset)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, Spacing.large)
@@ -292,11 +334,12 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     private func completeButton() -> some View {
         let adaptiveColor = CircularProgressView.adaptiveProgressColors(for: 1.0).last ?? CardDesign.progressGreen
         Button {
+            HapticFeedbackService.shared.trigger(.success)
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 value = dailyTarget
             }
         } label: {
-            Text("Complete All")
+            Text(Strings.NumericHabitLog.completeAll)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(adaptiveColor)
                 .padding(.horizontal, Spacing.large)
@@ -308,18 +351,25 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
 
     @ViewBuilder
     private func quickIncrementButton(amount: Int) -> some View {
+        let gradient = LinearGradient(
+            colors: [CardDesign.progressGreen, .ritualistCyan],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+
         Button {
+            HapticFeedbackService.shared.trigger(.light)
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 value = min(value + Double(amount), maxAllowedValue)
             }
         } label: {
             Text("+\(formatAmount(amount))")
                 .font(.headline)
-                .foregroundColor(AppColors.brand)
+                .foregroundStyle(gradient)
                 .padding(.horizontal, Spacing.medium)
                 .frame(minWidth: 60)
                 .frame(height: 36)
-                .background(AppColors.brand.opacity(0.1))
+                .background(gradient.opacity(0.15))
                 .cornerRadius(8)
         }
     }

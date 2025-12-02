@@ -402,6 +402,33 @@ public enum Strings {
         public static let deleteSyncDelayedMessage = String(localized: "data_management.delete_sync_delayed_message")
         public static let deleteFailedMessage = String(localized: "data_management.delete_failed_message")
     }
+
+    // MARK: - Numeric Habit Log
+    public enum NumericHabitLog {
+        public static let title = String(localized: "numericHabitLog.title")
+        public static let reset = String(localized: "numericHabitLog.reset")
+        public static let completeAll = String(localized: "numericHabitLog.completeAll")
+        public static let wellDoneExtraMile = String(localized: "numericHabitLog.wellDoneExtraMile")
+
+        // Extra mile phrases (randomly selected)
+        public static let extraMileOnFire = String(localized: "numericHabitLog.extraMile.onFire")
+        public static let extraMileCrushing = String(localized: "numericHabitLog.extraMile.crushing")
+        public static let extraMileAboveBeyond = String(localized: "numericHabitLog.extraMile.aboveBeyond")
+        public static let extraMileOverachiever = String(localized: "numericHabitLog.extraMile.overachiever")
+        public static let extraMileExtraEffort = String(localized: "numericHabitLog.extraMile.extraEffort")
+        public static let extraMileBeyondExpectations = String(localized: "numericHabitLog.extraMile.beyondExpectations")
+
+        public static var extraMilePhrases: [String] {
+            [
+                extraMileOnFire,
+                extraMileCrushing,
+                extraMileAboveBeyond,
+                extraMileOverachiever,
+                extraMileExtraEffort,
+                extraMileBeyondExpectations
+            ]
+        }
+    }
 }
 
 // MARK: - SwiftUI Extensions
