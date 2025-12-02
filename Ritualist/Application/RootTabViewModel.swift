@@ -29,6 +29,9 @@ public final class RootTabViewModel {
     /// Flag to show returning user welcome after data loads (deferred onboarding)
     public var showReturningUserWelcome = false
 
+    /// Flag to prevent syncing toast from being shown more than once per session
+    private var hasShownSyncingToast = false
+
     /// Synced data summary for returning user welcome screen
     public var syncedDataSummary: SyncedDataSummary?
 
@@ -130,6 +133,7 @@ public final class RootTabViewModel {
             isCheckingOnboarding = false
 
             // Set flag - RootTabView will show welcome once data is loaded
+            // The syncing toast will be shown by RootTabView once the launch screen is dismissed
             pendingReturningUserWelcome = true
             return
         }
@@ -205,9 +209,11 @@ public final class RootTabViewModel {
             profileAgeGroup: profile?.ageGroup
         )
 
-        // Only show if we have COMPLETE data (habits AND profile with name)
+        // Only show if we have COMPLETE data (habits AND full profile including gender/ageGroup)
         // This ensures we wait for all iCloud data to sync before showing welcome
-        guard summary.habitsCount > 0 && summary.hasProfile else {
+        // Without this check, returning users may be re-asked for gender/ageGroup if CloudKit
+        // syncs the profile name before syncing the demographic fields
+        guard summary.habitsCount > 0 && summary.hasProfile && !summary.needsProfileCompletion else {
             logger.log(
                 "Pending returning user welcome but incomplete data - waiting for more sync",
                 level: .debug,
@@ -215,11 +221,16 @@ public final class RootTabViewModel {
                 metadata: [
                     "habitsCount": summary.habitsCount,
                     "hasProfile": summary.hasProfile,
-                    "profileName": summary.profileName ?? "nil"
+                    "profileName": summary.profileName ?? "nil",
+                    "hasGender": summary.profileGender != nil,
+                    "hasAgeGroup": summary.profileAgeGroup != nil
                 ]
             )
             return
         }
+
+        // Dismiss the syncing toast before showing welcome
+        dismissSyncingDataToast()
 
         pendingReturningUserWelcome = false
         syncedDataSummary = summary
@@ -232,7 +243,9 @@ public final class RootTabViewModel {
             metadata: [
                 "habitsCount": summary.habitsCount,
                 "hasProfile": summary.hasProfile,
-                "profileName": summary.profileName ?? "nil"
+                "profileName": summary.profileName ?? "nil",
+                "hasGender": summary.profileGender != nil,
+                "hasAgeGroup": summary.profileAgeGroup != nil
             ]
         )
     }
@@ -386,5 +399,19 @@ extension RootTabViewModel {
     /// Show toast when sync is still in progress
     public func showStillSyncingToast() {
         toastService.info(Strings.ICloudSync.stillSyncing, icon: "icloud.and.arrow.down")
+    }
+
+    /// Show persistent toast while syncing data from iCloud for returning users
+    /// This toast stays visible until manually dismissed
+    /// Only shows once per session to prevent duplicate appearances
+    public func showSyncingDataToast() {
+        guard !hasShownSyncingToast else { return }
+        hasShownSyncingToast = true
+        toastService.infoPersistent(Strings.ICloudSync.syncingData, icon: "icloud.and.arrow.down")
+    }
+
+    /// Dismiss the syncing data toast (call when sync completes or returning user welcome shows)
+    public func dismissSyncingDataToast() {
+        toastService.dismiss(message: Strings.ICloudSync.syncingData)
     }
 }

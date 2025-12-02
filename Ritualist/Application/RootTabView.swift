@@ -87,6 +87,12 @@ public struct RootTabView: View {
             await checkOnboardingStatus()
             await viewModel.loadUserAppearancePreference()
         }
+        .onChange(of: isCheckingOnboarding) { _, newValue in
+            // Show syncing toast only after launch screen is dismissed
+            if !newValue && viewModel.pendingReturningUserWelcome {
+                viewModel.showSyncingDataToast()
+            }
+        }
         .fullScreenCover(isPresented: $showOnboarding, onDismiss: {
             // Handle post-onboarding after the fullScreenCover has actually dismissed
             Task {
@@ -529,6 +535,8 @@ public struct RootTabView: View {
                         ]
                     )
                     await MainActor.run {
+                        // Dismiss the syncing toast since we're giving up
+                        viewModel.dismissSyncingDataToast()
                         // Mark as no longer pending so we don't keep trying
                         viewModel.pendingReturningUserWelcome = false
                         // Show informative toast after state update

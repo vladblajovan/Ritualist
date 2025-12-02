@@ -386,6 +386,7 @@ public enum Strings {
     public enum ICloudSync {
         public static let syncedFromCloud = String(localized: "icloud.synced_from_cloud")
         public static let stillSyncing = String(localized: "icloud.still_syncing")
+        public static let syncingData = String(localized: "icloud.syncing_data")
         public static let setupTitle = String(localized: "icloud.setup_title")
         public static let setupDescription = String(localized: "icloud.setup_description")
         public static let syncDelayed = String(localized: "icloud.sync_delayed")
