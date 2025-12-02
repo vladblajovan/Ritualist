@@ -34,6 +34,7 @@ struct ToastView: View {
     let icon: String
     let style: ToastStyle
     let duration: TimeInterval
+    let isPersistent: Bool
     let onDismiss: () -> Void
 
     @State private var isVisible = false
@@ -46,12 +47,14 @@ struct ToastView: View {
         icon: String = "checkmark.circle.fill",
         style: ToastStyle = .info,
         duration: TimeInterval = 3.0,
+        isPersistent: Bool = false,
         onDismiss: @escaping () -> Void = {}
     ) {
         self.message = message
         self.icon = icon
         self.style = style
         self.duration = duration
+        self.isPersistent = isPersistent
         self.onDismiss = onDismiss
     }
 
@@ -119,6 +122,8 @@ struct ToastView: View {
             }
 
             // Auto-dismiss after duration (cancelled if manually dismissed)
+            // Persistent toasts skip auto-dismiss - they must be dismissed manually
+            guard !isPersistent else { return }
             dismissTask = Task {
                 try? await Task.sleep(for: .seconds(duration))
                 if !Task.isCancelled {

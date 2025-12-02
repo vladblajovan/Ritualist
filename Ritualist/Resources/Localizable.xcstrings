@@ -3272,6 +3272,17 @@
         }
       }
     },
+    "icloud.syncing_data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncing data from iCloud..."
+          }
+        }
+      }
+    },
     "icloud.sync_delayed" : {
       "extractionState" : "manual",
       "localizations" : {

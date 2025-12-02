@@ -143,6 +143,7 @@ extension Container {
                 getLocationAuthStatus: self.getLocationAuthStatus()
             )
         }
+        .singleton
     }
     
     // MARK: - Dashboard ViewModels
