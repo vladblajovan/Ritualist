@@ -152,7 +152,7 @@ import CoreData
                         metadata: ["timestamp": Date().ISO8601Format()]
                     )
 
-                    Task {
+                    Task { @MainActor in
                         // Only update last sync timestamp if iCloud is actually available
                         // This prevents stale "Last Synced" times when user isn't signed in
                         // Uses cached status to avoid redundant CloudKit API calls during bulk sync
