@@ -813,9 +813,9 @@ extension SettingsViewModel {
     public func updateName(_ name: String) async {
         guard profile.name != name else { return }
         await updateUserName(name)
-        profile.name = name
-        let success = await save()
-        if success {
+        // updateUserName() handles profile update, save, tracking, and iCloud sync
+        // Check error state to determine if save succeeded
+        if error == nil {
             toastService.success(Strings.Profile.nameUpdated, icon: "person.fill.checkmark")
         }
     }

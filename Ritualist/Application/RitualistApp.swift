@@ -152,6 +152,8 @@ import CoreData
                         metadata: ["timestamp": Date().ISO8601Format()]
                     )
 
+                    // @MainActor ensures thread-safe access to @State properties and
+                    // serializes all debounce/throttle operations despite background notification origin
                     Task { @MainActor in
                         // Only update last sync timestamp if iCloud is actually available
                         // This prevents stale "Last Synced" times when user isn't signed in
