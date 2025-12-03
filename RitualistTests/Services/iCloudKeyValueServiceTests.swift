@@ -227,6 +227,11 @@ public final class MockiCloudKeyValueService: iCloudKeyValueService {
         synchronizeCallCount += 1
     }
 
+    public func synchronizeAndWait(timeout: TimeInterval) async -> Bool {
+        synchronizeCallCount += 1
+        return true // Mock always succeeds immediately
+    }
+
     public func resetOnboardingFlag() {
         iCloudOnboardingCompleted = false
     }

@@ -494,10 +494,11 @@ public struct RootTabView: View {
                 profile = nil
             }
 
-            // Check if we have complete data (habits AND profile with name)
-            let hasCompleteData = !existingHabits.isEmpty
-                && profile != nil
-                && !(profile?.name.isEmpty ?? true)
+            // Check if we have complete data (profile with gender/ageGroup set)
+            // We don't require habits or name - user may have skipped those during onboarding
+            let hasCompleteData = profile != nil
+                && profile?.gender != nil
+                && profile?.ageGroup != nil
 
             if hasCompleteData {
                 // Show welcome with actual synced data
@@ -516,9 +517,9 @@ public struct RootTabView: View {
                         metadata: [
                             "retry_count": retryCount + 1,
                             "max_retries": SyncConstants.maxRetries,
-                            "habits_count": existingHabits.count,
                             "has_profile": profile != nil,
-                            "profile_name": profile?.name ?? "nil"
+                            "has_gender": profile?.gender != nil,
+                            "has_ageGroup": profile?.ageGroup != nil
                         ]
                     )
                     try? await Task.sleep(for: .seconds(SyncConstants.retryIntervalSeconds))
@@ -533,9 +534,9 @@ public struct RootTabView: View {
                         level: .warning,
                         category: .system,
                         metadata: [
-                            "habits_count": existingHabits.count,
                             "has_profile": profile != nil,
-                            "profile_name": profile?.name ?? "nil"
+                            "has_gender": profile?.gender != nil,
+                            "has_ageGroup": profile?.ageGroup != nil
                         ]
                     )
                     await MainActor.run {

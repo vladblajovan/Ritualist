@@ -164,42 +164,42 @@ struct RootTabViewModelTests {
         #expect(viewModel.syncedDataSummary?.hasProfile == true)
     }
 
-    @Test("Returning user welcome waits for incomplete data (no habits)")
+    @Test("Returning user welcome shows even without habits")
     @MainActor
-    func returningUserWelcomeWaitsForHabits() async {
+    func returningUserWelcomeShowsWithoutHabits() async {
         let (viewModel, _) = createViewModel(iCloudCompleted: true, localCompleted: false)
 
         await viewModel.checkOnboardingStatus()
         #expect(viewModel.pendingReturningUserWelcome == true)
 
-        // No habits yet
+        // No habits - user may have skipped adding them during onboarding
         let habits: [Habit] = []
         let profile = createTestProfile(name: "Test User")
 
         viewModel.showReturningUserWelcomeIfNeeded(habits: habits, profile: profile)
 
-        // Should still be pending - waiting for habits
-        #expect(viewModel.showReturningUserWelcome == false)
-        #expect(viewModel.pendingReturningUserWelcome == true)
+        // Should show welcome - habits are not required
+        #expect(viewModel.showReturningUserWelcome == true)
+        #expect(viewModel.pendingReturningUserWelcome == false)
     }
 
-    @Test("Returning user welcome waits for incomplete data (no profile name)")
+    @Test("Returning user welcome shows even without profile name")
     @MainActor
-    func returningUserWelcomeWaitsForProfileName() async {
+    func returningUserWelcomeShowsWithoutProfileName() async {
         let (viewModel, _) = createViewModel(iCloudCompleted: true, localCompleted: false)
 
         await viewModel.checkOnboardingStatus()
         #expect(viewModel.pendingReturningUserWelcome == true)
 
-        // Has habits but no profile name
+        // Has habits but no profile name - user may have skipped entering it
         let habits = [createTestHabit()]
         let profile = createTestProfile(name: "")
 
         viewModel.showReturningUserWelcomeIfNeeded(habits: habits, profile: profile)
 
-        // Should still be pending - waiting for profile name
-        #expect(viewModel.showReturningUserWelcome == false)
-        #expect(viewModel.pendingReturningUserWelcome == true)
+        // Should show welcome - name is not required (only gender/ageGroup)
+        #expect(viewModel.showReturningUserWelcome == true)
+        #expect(viewModel.pendingReturningUserWelcome == false)
     }
 
     @Test("Returning user welcome waits for nil profile")
@@ -216,6 +216,25 @@ struct RootTabViewModelTests {
         viewModel.showReturningUserWelcomeIfNeeded(habits: habits, profile: nil)
 
         // Should still be pending - waiting for profile
+        #expect(viewModel.showReturningUserWelcome == false)
+        #expect(viewModel.pendingReturningUserWelcome == true)
+    }
+
+    @Test("Returning user welcome waits for missing demographics")
+    @MainActor
+    func returningUserWelcomeWaitsForDemographics() async {
+        let (viewModel, _) = createViewModel(iCloudCompleted: true, localCompleted: false)
+
+        await viewModel.checkOnboardingStatus()
+        #expect(viewModel.pendingReturningUserWelcome == true)
+
+        // Profile exists but missing gender/ageGroup (not yet synced from iCloud)
+        let habits = [createTestHabit()]
+        let profile = createTestProfile(name: "Test User", gender: nil, ageGroup: nil)
+
+        viewModel.showReturningUserWelcomeIfNeeded(habits: habits, profile: profile)
+
+        // Should still be pending - waiting for demographics to sync
         #expect(viewModel.showReturningUserWelcome == false)
         #expect(viewModel.pendingReturningUserWelcome == true)
     }
@@ -361,6 +380,11 @@ final class MockiCloudKeyValueServiceForViewModel: iCloudKeyValueService {
 
     func synchronize() {
         synchronizeCallCount += 1
+    }
+
+    func synchronizeAndWait(timeout: TimeInterval) async -> Bool {
+        synchronizeCallCount += 1
+        return true // Mock always succeeds immediately
     }
 
     func resetOnboardingFlag() {

@@ -57,8 +57,14 @@ public final class RootTabViewModel {
         // Handle UI testing launch arguments
         if handleTestingLaunchArguments() { return }
 
-        // First, synchronize iCloud key-value store to get latest flags
-        iCloudKeyValueService.synchronize()
+        // IMPORTANT: Capture categorySeedingCompleted flag BEFORE any async operations
+        // This avoids race condition where seedCategories() runs in parallel and sets this flag
+        let hasRunAppBeforeCapture = UserDefaults.standard.bool(forKey: UserDefaultsKeys.categorySeedingCompleted)
+
+        // Synchronize iCloud KV store with short timeout (0.3s)
+        // This is enough for cached data; longer waits hurt new user experience
+        let syncCompleted = await iCloudKeyValueService.synchronizeAndWait(timeout: 0.3)
+        if !syncCompleted { logger.log("iCloud KV sync timed out", level: .debug, category: .ui) }
 
         // Step 1: Check LOCAL device flag (UserDefaults - not synced)
         // This tells us if THIS device has completed onboarding
@@ -156,11 +162,8 @@ public final class RootTabViewModel {
         }
         let hasExistingData = !(existingProfile?.name.isEmpty ?? true)
 
-        // Also check categorySeedingCompleted flag - this persists in UserDefaults across updates
-        // If true, user has definitely run the app before (even if SwiftData is empty due to migration)
-        let hasRunAppBefore = UserDefaults.standard.bool(forKey: UserDefaultsKeys.categorySeedingCompleted)
-
-        if hasExistingData || hasRunAppBefore {
+        // Use captured value from start of function to avoid race with category seeding
+        if hasExistingData || hasRunAppBeforeCapture {
             // MIGRATION: User has existing data OR has run app before, but flags were never set
             // This happens when upgrading from a version that didn't set these flags (e.g., 0.2.1 → 0.3.0)
             // Set both flags to mark onboarding as complete for this device and iCloud
@@ -170,7 +173,7 @@ public final class RootTabViewModel {
                 category: .ui,
                 metadata: [
                     "hasExistingData": hasExistingData,
-                    "hasRunAppBefore": hasRunAppBefore,
+                    "hasRunAppBefore": hasRunAppBeforeCapture,
                     "profileName": existingProfile?.name ?? "none"
                 ]
             )
@@ -202,20 +205,19 @@ public final class RootTabViewModel {
         let summary = SyncedDataSummary(
             habitsCount: habits.count,
             categoriesCount: 0, // Not needed for welcome screen
-            hasProfile: profile != nil && !(profile?.name.isEmpty ?? true),
+            hasProfile: profile != nil,
             profileName: profile?.name,
             profileAvatar: profile?.avatarImageData,
             profileGender: profile?.gender,
             profileAgeGroup: profile?.ageGroup
         )
 
-        // Only show if we have COMPLETE data (habits AND full profile including gender/ageGroup)
-        // This ensures we wait for all iCloud data to sync before showing welcome
-        // Without this check, returning users may be re-asked for gender/ageGroup if CloudKit
-        // syncs the profile name before syncing the demographic fields
-        guard summary.habitsCount > 0 && summary.hasProfile && !summary.needsProfileCompletion else {
+        // Show welcome once profile and demographics are synced
+        // We don't require habits - user may have skipped adding them during onboarding
+        // The welcome screen shows a generic "data synced" message instead of habit count
+        guard summary.hasProfile && !summary.needsProfileCompletion else {
             logger.log(
-                "Pending returning user welcome but incomplete data - waiting for more sync",
+                "Pending returning user welcome but profile/demographics not synced yet",
                 level: .debug,
                 category: .ui,
                 metadata: [

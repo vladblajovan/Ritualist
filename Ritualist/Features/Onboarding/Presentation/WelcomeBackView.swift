@@ -26,13 +26,16 @@ struct WelcomeBackView: View {
 
             // Welcome message
             VStack(spacing: 4) {
-                Text("Welcome back,")
-                    .font(.system(.title, design: .rounded, weight: .bold))
-                    .accessibilityAddTraits(.isHeader)
-
                 if let name = summary.profileName, !name.isEmpty {
+                    Text("Welcome back,")
+                        .font(.system(.title, design: .rounded, weight: .bold))
+                        .accessibilityAddTraits(.isHeader)
                     Text("\(name)!")
                         .font(.system(.title, design: .rounded, weight: .bold))
+                } else {
+                    Text("Welcome back!")
+                        .font(.system(.title, design: .rounded, weight: .bold))
+                        .accessibilityAddTraits(.isHeader)
                 }
 
                 Text("Your data has been synced from iCloud")
@@ -124,30 +127,19 @@ struct WelcomeBackView: View {
     }
 
     private var syncedDataCard: some View {
-        VStack(spacing: 16) {
-            if summary.habitsCount > 0 {
-                SyncedItemRow(
-                    icon: "checkmark.circle.fill",
-                    iconColor: .green,
-                    text: "\(summary.habitsCount) habit\(summary.habitsCount == 1 ? "" : "s") synced"
-                )
-            }
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.icloud.fill")
+                .font(.title2)
+                .foregroundStyle(.green)
+                .frame(width: 28)
+                .accessibilityHidden(true)
 
-            if summary.categoriesCount > 0 {
-                SyncedItemRow(
-                    icon: "folder.fill",
-                    iconColor: .blue,
-                    text: "\(summary.categoriesCount) custom categor\(summary.categoriesCount == 1 ? "y" : "ies") synced"
-                )
-            }
+            Text("Your data has been synced and the app is ready to use")
+                .font(.body)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
 
-            if summary.hasProfile {
-                SyncedItemRow(
-                    icon: "person.crop.circle.fill",
-                    iconColor: .purple,
-                    text: "Profile restored"
-                )
-            }
+            Spacer()
         }
         .padding(20)
         .background(
@@ -155,34 +147,8 @@ struct WelcomeBackView: View {
                 .fill(Color(.secondarySystemGroupedBackground))
         )
         .padding(.horizontal, 24)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Synced data summary")
-    }
-}
-
-// MARK: - Helper Views
-
-private struct SyncedItemRow: View {
-    let icon: String
-    let iconColor: Color
-    let text: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(iconColor)
-                .frame(width: 28)
-                .accessibilityHidden(true)
-
-            Text(text)
-                .font(.body)
-                .foregroundStyle(.primary)
-
-            Spacer()
-        }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(text)
+        .accessibilityLabel("Your data has been synced and the app is ready to use")
     }
 }
 

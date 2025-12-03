@@ -253,13 +253,15 @@ public final class OnboardingViewModel {
         )
         isLoading = true
         do {
-            // Complete onboarding without setting user data
+            // Complete onboarding with defaults - use preferNotToSay for demographics
+            // This ensures returning user detection always finds complete profile data
+            // Pass userName (may be empty) - returning user flow handles missing name gracefully
             try await completeOnboarding.execute(
-                userName: "",
+                userName: userName,
                 hasNotifications: false,
                 hasLocation: false,
-                gender: nil,
-                ageGroup: nil
+                gender: UserGender.preferNotToSay.rawValue,
+                ageGroup: UserAgeGroup.preferNotToSay.rawValue
             )
             isCompleted = true
 
