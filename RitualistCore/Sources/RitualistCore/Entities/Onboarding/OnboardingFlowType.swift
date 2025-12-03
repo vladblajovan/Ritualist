@@ -64,12 +64,12 @@ public struct SyncedDataSummary: Equatable {
         habitsCount > 0 || hasProfile
     }
 
-    /// Whether profile data is incomplete (missing name, gender, or ageGroup)
+    /// Whether profile demographics are incomplete (missing gender or ageGroup)
+    /// Note: Name is not required - user may have skipped it during onboarding
     public var needsProfileCompletion: Bool {
-        let hasName = !(profileName?.isEmpty ?? true)
         let hasGender = profileGender != nil
         let hasAgeGroup = profileAgeGroup != nil
-        return !hasName || !hasGender || !hasAgeGroup
+        return !hasGender || !hasAgeGroup
     }
 
     /// Empty summary (no data found)

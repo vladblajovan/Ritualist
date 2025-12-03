@@ -23,6 +23,10 @@ public protocol iCloudKeyValueService {
     /// Synchronize with iCloud (call on app launch)
     func synchronize()
 
+    /// Synchronize with iCloud and wait for completion (with timeout)
+    /// Returns true if sync completed, false if timed out
+    func synchronizeAndWait(timeout: TimeInterval) async -> Bool
+
     /// Reset onboarding flag (for testing/debug)
     func resetOnboardingFlag()
 
@@ -104,6 +108,54 @@ public final class DefaultiCloudKeyValueService: iCloudKeyValueService {
             level: .debug,
             category: .system
         )
+    }
+
+    public func synchronizeAndWait(timeout: TimeInterval) async -> Bool {
+        // Start sync
+        let syncStarted = store.synchronize()
+        guard syncStarted else {
+            logger.log("☁️ iCloud KV: Synchronize failed to start", level: .warning, category: .system)
+            return false
+        }
+
+        logger.log("☁️ iCloud KV: Waiting for sync (timeout: \(timeout)s)", level: .debug, category: .system)
+
+        // Use a single continuation that's guaranteed to be resumed by either notification or timeout
+        let result = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            var hasResumed = false
+            let lock = NSLock()
+            var observer: NSObjectProtocol?
+
+            // Helper to safely resume only once
+            func resumeOnce(with value: Bool) {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !hasResumed else { return }
+                hasResumed = true
+                if let obs = observer {
+                    NotificationCenter.default.removeObserver(obs)
+                }
+                continuation.resume(returning: value)
+            }
+
+            // Listen for notification
+            observer = NotificationCenter.default.addObserver(
+                forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+                object: self.store,
+                queue: .main
+            ) { _ in
+                resumeOnce(with: true)
+            }
+
+            // Start timeout timer
+            Task {
+                try? await Task.sleep(for: .seconds(timeout))
+                resumeOnce(with: false)
+            }
+        }
+
+        logger.log("☁️ iCloud KV: Sync wait completed, success = \(result)", level: .debug, category: .system)
+        return result
     }
 
     public func resetOnboardingFlag() {
