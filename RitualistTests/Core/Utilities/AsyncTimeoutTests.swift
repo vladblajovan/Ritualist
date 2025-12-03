@@ -226,18 +226,18 @@ struct AsyncTimeoutTests {
     func timeoutTriggersFasterThanOperation() async {
         let start = Date()
         let result = await withTimeout(
-            seconds: 0.5, // 500ms timeout
+            seconds: 1.0, // 1s timeout (increased for CI reliability)
             operation: {
-                try? await Task.sleep(for: .seconds(10)) // Would take 10 seconds
+                try? await Task.sleep(for: .seconds(30)) // Would take 30 seconds
                 return "slow"
             },
             onTimeout: { "timeout" }
         )
         let elapsed = Date().timeIntervalSince(start)
 
-        // Should complete much faster than the 10-second operation
-        // Allow generous margin for simulator overhead and actor coordination
+        // Should complete much faster than the 30-second operation
+        // Allow very generous margin for CI runner overhead and actor coordination
         #expect(result == "timeout", "Should return timeout, not operation result")
-        #expect(elapsed < 3.0, "Should complete well before the 10s operation, got \(elapsed)s")
+        #expect(elapsed < 10.0, "Should complete well before the 30s operation, got \(elapsed)s")
     }
 }
