@@ -560,9 +560,9 @@ struct OnboardingViewModelTests {
         #expect(mockProfileRepo.savedProfile?.ageGroup == "prefer_not_to_say")
     }
 
-    @Test("skipOnboarding saves nil for gender and ageGroup")
+    @Test("skipOnboarding saves prefer_not_to_say for gender and ageGroup")
     @MainActor
-    func skipOnboardingSavesNilGenderAgeGroup() async {
+    func skipOnboardingSavesPreferNotToSayGenderAgeGroup() async {
         let mockOnboardingRepo = MockOnboardingRepository()
         let mockProfileRepo = MockProfileRepositoryForOnboarding()
         let mockiCloudService = MockiCloudKeyValueServiceForOnboarding()
@@ -588,9 +588,10 @@ struct OnboardingViewModelTests {
         let result = await viewModel.skipOnboarding()
 
         #expect(result == true)
-        // skipOnboarding passes nil for gender/ageGroup (user didn't set them)
-        #expect(mockProfileRepo.savedProfile?.gender == nil)
-        #expect(mockProfileRepo.savedProfile?.ageGroup == nil)
+        // skipOnboarding passes prefer_not_to_say for gender/ageGroup to ensure
+        // returning user detection works even when user skips onboarding
+        #expect(mockProfileRepo.savedProfile?.gender == "prefer_not_to_say")
+        #expect(mockProfileRepo.savedProfile?.ageGroup == "prefer_not_to_say")
     }
 
     // MARK: - Load Onboarding State Tests
@@ -649,8 +650,10 @@ struct OnboardingViewModelTests {
 #endif
 struct SyncedDataSummaryTests {
 
-    @Test("needsProfileCompletion returns true when name is nil")
-    func needsCompletionWithNilName() {
+    @Test("needsProfileCompletion returns false when name is nil but demographics present")
+    func noCompletionNeededWithNilName() {
+        // Name is optional - user may have skipped entering it during onboarding
+        // Only gender and ageGroup are required for profile completion
         let summary = SyncedDataSummary(
             habitsCount: 5,
             categoriesCount: 2,
@@ -661,11 +664,13 @@ struct SyncedDataSummaryTests {
             profileAgeGroup: "25_34"
         )
 
-        #expect(summary.needsProfileCompletion == true)
+        #expect(summary.needsProfileCompletion == false)
     }
 
-    @Test("needsProfileCompletion returns true when name is empty")
-    func needsCompletionWithEmptyName() {
+    @Test("needsProfileCompletion returns false when name is empty but demographics present")
+    func noCompletionNeededWithEmptyName() {
+        // Name is optional - user may have skipped entering it during onboarding
+        // Only gender and ageGroup are required for profile completion
         let summary = SyncedDataSummary(
             habitsCount: 5,
             categoriesCount: 2,
@@ -676,7 +681,7 @@ struct SyncedDataSummaryTests {
             profileAgeGroup: "25_34"
         )
 
-        #expect(summary.needsProfileCompletion == true)
+        #expect(summary.needsProfileCompletion == false)
     }
 
     @Test("needsProfileCompletion returns true when gender is nil")
@@ -848,6 +853,7 @@ final class MockiCloudKeyValueServiceForOnboarding: iCloudKeyValueService {
     func hasCompletedOnboarding() -> Bool { iCloudOnboardingCompleted }
     func setOnboardingCompleted() { iCloudOnboardingCompleted = true }
     func synchronize() {}
+    func synchronizeAndWait(timeout: TimeInterval) async -> Bool { true }
     func resetOnboardingFlag() { iCloudOnboardingCompleted = false }
     func hasCompletedOnboardingLocally() -> Bool { localOnboardingCompleted }
     func setOnboardingCompletedLocally() { localOnboardingCompleted = true }
