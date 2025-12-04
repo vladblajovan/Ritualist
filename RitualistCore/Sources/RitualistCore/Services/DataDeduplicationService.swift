@@ -97,11 +97,28 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
         let logsDescriptor = FetchDescriptor<ActiveHabitLogModel>()
         let profilesDescriptor = FetchDescriptor<ActiveUserProfileModel>()
 
-        let totalHabits = (try? modelContext.fetchCount(habitsDescriptor)) ?? 0
-        let totalCategories = (try? modelContext.fetchCount(categoriesDescriptor)) ?? 0
-        let totalLogs = (try? modelContext.fetchCount(logsDescriptor)) ?? 0
-        let totalProfiles = (try? modelContext.fetchCount(profilesDescriptor)) ?? 0
-        let totalItems = totalHabits + totalCategories + totalLogs + totalProfiles
+        // Count entities - if any count fails, log warning but continue with 0
+        // This is defensive: fetchCount should not fail on valid descriptors,
+        // but if it does, we prefer to continue deduplication rather than abort
+        let totalItems: Int
+        do {
+            let totalHabits = try modelContext.fetchCount(habitsDescriptor)
+            let totalCategories = try modelContext.fetchCount(categoriesDescriptor)
+            let totalLogs = try modelContext.fetchCount(logsDescriptor)
+            let totalProfiles = try modelContext.fetchCount(profilesDescriptor)
+            totalItems = totalHabits + totalCategories + totalLogs + totalProfiles
+        } catch {
+            // Log the error but don't abort - deduplication itself may still succeed
+            logger.log(
+                "⚠️ Failed to count entities for deduplication metrics",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
+            // Use 0 as fallback - hadDataToCheck will be false, which is conservative
+            // (will cause continued dedup attempts rather than premature stop)
+            totalItems = 0
+        }
 
         let habits = try await deduplicateHabits()
         let categories = try await deduplicateCategories()
