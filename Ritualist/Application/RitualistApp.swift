@@ -11,6 +11,7 @@ import FactoryKit
 import RitualistCore
 import UIKit
 import CoreData
+import CloudKit
 
 // swiftlint:disable type_body_length
 @main struct RitualistApp: App {
@@ -318,15 +319,60 @@ import CoreData
                 )
             }
         } catch {
-            // Non-fatal - just log and continue
-            // Cleanup will be retried on next app launch
-            logger.log(
-                "⚠️ Failed to cleanup PersonalityAnalysis from CloudKit",
-                level: .warning,
-                category: .system,
-                metadata: ["error": error.localizedDescription]
-            )
+            // Distinguish between retryable and non-retryable errors
+            // to avoid making unnecessary CloudKit API calls forever
+            if case CloudKitCleanupError.partialFailure = error {
+                // Retryable - some records failed to delete, will retry next launch
+                logger.log(
+                    "⚠️ Partial CloudKit cleanup failure, will retry on next launch",
+                    level: .warning,
+                    category: .system,
+                    metadata: ["error": error.localizedDescription]
+                )
+            } else if let ckError = error as? CKError {
+                switch ckError.code {
+                case .networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited:
+                    // Retryable network/service errors
+                    logger.log(
+                        "⚠️ CloudKit cleanup failed due to network/service, will retry",
+                        level: .warning,
+                        category: .system,
+                        metadata: ["error_code": ckError.code.rawValue]
+                    )
+                case .notAuthenticated, .permissionFailure, .managedAccountRestricted:
+                    // Non-retryable auth/permission errors - mark as complete to stop trying
+                    // User either doesn't have iCloud or has restrictions that won't change
+                    markCloudKitCleanupComplete()
+                    logger.log(
+                        "❌ CloudKit cleanup skipped due to auth/permission, marking complete",
+                        level: .info,
+                        category: .system,
+                        metadata: ["error_code": ckError.code.rawValue]
+                    )
+                default:
+                    // Other CloudKit errors - log and retry
+                    logger.log(
+                        "⚠️ CloudKit cleanup failed, will retry on next launch",
+                        level: .warning,
+                        category: .system,
+                        metadata: ["error_code": ckError.code.rawValue, "error": ckError.localizedDescription]
+                    )
+                }
+            } else {
+                // Unknown error - log and retry
+                logger.log(
+                    "⚠️ Failed to cleanup PersonalityAnalysis from CloudKit",
+                    level: .warning,
+                    category: .system,
+                    metadata: ["error": error.localizedDescription]
+                )
+            }
         }
+    }
+
+    /// Mark CloudKit cleanup as complete (used when cleanup should not be retried)
+    private func markCloudKitCleanupComplete() {
+        UserDefaults.standard.set(true, forKey: "personalityAnalysisCloudKitCleanupCompleted")
     }
 
     /// Deduplicate any duplicate records that may have been created during iCloud sync
