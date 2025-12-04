@@ -40,6 +40,15 @@ extension Container {
         }
         .singleton
     }
+
+    /// One-time cleanup service to remove PersonalityAnalysis from CloudKit
+    /// REMOVAL NOTICE: This can be removed after all users have updated (2-3 releases)
+    var cloudKitCleanupService: Factory<CloudKitCleanupServiceProtocol> {
+        self {
+            CloudKitCleanupService(logger: self.debugLogger())
+        }
+        .singleton
+    }
     
     @MainActor
     var navigationService: Factory<NavigationService> {

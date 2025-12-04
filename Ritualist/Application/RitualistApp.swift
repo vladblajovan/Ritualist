@@ -29,6 +29,7 @@ import CoreData
     @Injected(\.debugLogger) private var logger
     @Injected(\.userActionTracker) private var userActionTracker
     @Injected(\.deduplicateData) private var deduplicateData
+    @Injected(\.cloudKitCleanupService) private var cloudKitCleanupService
 
     /// Track if initial launch tasks have completed to avoid duplicate work.
     ///
@@ -49,6 +50,11 @@ import CoreData
     /// Track whether the last deduplication run had data to check
     /// If false, we don't throttle because data may arrive later
     @State private var lastDeduplicationHadData: Bool = false
+
+    /// Track whether initial sync deduplication has completed
+    /// On first remote change, we run dedup immediately (not throttled) to catch duplicates
+    /// created when cloud data merges with local data
+    @State private var hasCompletedInitialSyncDedup: Bool = false
 
     /// Cached iCloud status to avoid repeated CloudKit API calls during bulk sync
     @State private var cachedICloudStatus: iCloudSyncStatus?
@@ -170,8 +176,23 @@ import CoreData
                         await postUIRefreshNotificationDebounced()
 
                         // Deduplicate any duplicates created by CloudKit sync before restoring geofences
-                        // Uses throttling to avoid excessive database operations during bulk sync
-                        await deduplicateSyncedDataThrottled()
+                        // During initial sync: run dedup on EVERY change (not throttled) until no duplicates found
+                        // This ensures we catch all duplicates as data arrives in batches
+                        // Once dedup finds zero duplicates, sync is effectively "complete" and we switch to throttling
+                        if !hasCompletedInitialSyncDedup {
+                            let result = await deduplicateSyncedDataAndGetResult()
+                            if !result.hadDuplicates && result.hadDataToCheck {
+                                // No duplicates found and we had data to check = sync settled
+                                hasCompletedInitialSyncDedup = true
+                                logger.log(
+                                    "✅ Initial sync deduplication complete - no duplicates found",
+                                    level: .info,
+                                    category: .system
+                                )
+                            }
+                        } else {
+                            await deduplicateSyncedDataThrottled()
+                        }
                         await restoreGeofencesThrottled()
                     }
                 }
@@ -191,7 +212,11 @@ import CoreData
         logStartupContext()
 
         await seedCategories()
-        await deduplicateSyncedData()
+        // NOTE: Deduplication is NOT run here on purpose.
+        // We wait for NSPersistentStoreRemoteChange notifications to indicate CloudKit sync activity.
+        // Dedup runs on each remote change until no duplicates are found, ensuring we catch all
+        // duplicates as data arrives in batches from iCloud. See remote change handler for details.
+        await cleanupPersonalityAnalysisFromCloudKit()
         await detectTimezoneChanges()
         await setupNotifications()
         await scheduleInitialNotifications()
@@ -258,9 +283,40 @@ import CoreData
         }
     }
 
+    /// One-time cleanup to remove PersonalityAnalysis records from CloudKit
+    /// This is needed after moving PersonalityAnalysisModel to local-only storage
+    /// REMOVAL NOTICE: This method can be removed after all users have updated (2-3 releases)
+    private func cleanupPersonalityAnalysisFromCloudKit() async {
+        do {
+            if let deletedCount = try await cloudKitCleanupService.cleanupPersonalityAnalysisFromCloudKit() {
+                logger.log(
+                    "🧹 CloudKit PersonalityAnalysis cleanup completed",
+                    level: .info,
+                    category: .system,
+                    metadata: ["records_deleted": deletedCount]
+                )
+            }
+        } catch {
+            // Non-fatal - just log and continue
+            // Cleanup will be retried on next app launch
+            logger.log(
+                "⚠️ Failed to cleanup PersonalityAnalysis from CloudKit",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
+        }
+    }
+
     /// Deduplicate any duplicate records that may have been created during iCloud sync
     /// CloudKit + SwiftData can create duplicates when @Attribute(.unique) is not available
     private func deduplicateSyncedData() async {
+        _ = await deduplicateSyncedDataAndGetResult()
+    }
+
+    /// Deduplicate and return the result for callers that need to check if duplicates were found
+    /// Used during initial sync to determine when sync has "settled" (no more duplicates arriving)
+    private func deduplicateSyncedDataAndGetResult() async -> DeduplicationResult {
         do {
             let result = try await deduplicateData.execute()
             lastDeduplicationUptime = ProcessInfo.processInfo.systemUptime
@@ -298,12 +354,22 @@ import CoreData
                     category: .system
                 )
             }
+
+            return result
         } catch {
             logger.log(
                 "⚠️ Failed to deduplicate synced data",
                 level: .warning,
                 category: .system,
                 metadata: ["error": error.localizedDescription]
+            )
+            // Return empty result on error - don't mark initial sync as complete
+            return DeduplicationResult(
+                habitsRemoved: 0,
+                categoriesRemoved: 0,
+                habitLogsRemoved: 0,
+                profilesRemoved: 0,
+                totalItemsChecked: 0
             )
         }
     }
