@@ -91,8 +91,34 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
 
         // First, count total items in database to determine if there's data to check
         // This is used by callers to decide whether to throttle subsequent runs
+        // Count ALL entity types to accurately reflect database state
         let habitsDescriptor = FetchDescriptor<ActiveHabitModel>()
-        let totalHabits = (try? modelContext.fetchCount(habitsDescriptor)) ?? 0
+        let categoriesDescriptor = FetchDescriptor<ActiveHabitCategoryModel>()
+        let logsDescriptor = FetchDescriptor<ActiveHabitLogModel>()
+        let profilesDescriptor = FetchDescriptor<ActiveUserProfileModel>()
+
+        // Count entities - if any count fails, log warning but continue with 0
+        // This is defensive: fetchCount should not fail on valid descriptors,
+        // but if it does, we prefer to continue deduplication rather than abort
+        let totalItems: Int
+        do {
+            let totalHabits = try modelContext.fetchCount(habitsDescriptor)
+            let totalCategories = try modelContext.fetchCount(categoriesDescriptor)
+            let totalLogs = try modelContext.fetchCount(logsDescriptor)
+            let totalProfiles = try modelContext.fetchCount(profilesDescriptor)
+            totalItems = totalHabits + totalCategories + totalLogs + totalProfiles
+        } catch {
+            // Log the error but don't abort - deduplication itself may still succeed
+            logger.log(
+                "⚠️ Failed to count entities for deduplication metrics",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
+            // Use 0 as fallback - hadDataToCheck will be false, which is conservative
+            // (will cause continued dedup attempts rather than premature stop)
+            totalItems = 0
+        }
 
         let habits = try await deduplicateHabits()
         let categories = try await deduplicateCategories()
@@ -104,7 +130,7 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
             categoriesRemoved: categories,
             habitLogsRemoved: logs,
             profilesRemoved: profiles,
-            totalItemsChecked: totalHabits
+            totalItemsChecked: totalItems
         )
 
         if result.hadDuplicates {
@@ -117,7 +143,7 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                     "categories_removed": categories,
                     "logs_removed": logs,
                     "profiles_removed": profiles,
-                    "total_habits_checked": totalHabits
+                    "total_items_checked": totalItems
                 ]
             )
         } else {
@@ -125,7 +151,7 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                 "Deduplication complete - no duplicates found",
                 level: .debug,
                 category: .dataIntegrity,
-                metadata: ["total_habits_checked": totalHabits]
+                metadata: ["total_items_checked": totalItems]
             )
         }
 

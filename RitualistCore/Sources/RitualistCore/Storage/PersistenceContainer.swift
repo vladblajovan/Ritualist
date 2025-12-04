@@ -37,19 +37,26 @@ public final class PersistenceContainer {
             // This ensures the UI sees the state before migration starts
             // Use sync dispatch to ensure startMigration completes before proceeding
             // This prevents race condition where completeMigration captures stale migration ID
-            let startMigrationBlock = {
+            //
+            // Note: MainActor.assumeIsolated is safe here because we guarantee main thread:
+            // - If already on main thread: call directly
+            // - If on background thread: DispatchQueue.main.sync ensures we're on main thread
+            if Thread.isMainThread {
                 MainActor.assumeIsolated {
                     MigrationStatusService.shared.startMigration(
                         from: lastVersion,
                         to: currentVersionString
                     )
                 }
-            }
-
-            if Thread.isMainThread {
-                startMigrationBlock()
             } else {
-                DispatchQueue.main.sync(execute: startMigrationBlock)
+                DispatchQueue.main.sync {
+                    MainActor.assumeIsolated {
+                        MigrationStatusService.shared.startMigration(
+                            from: lastVersion,
+                            to: currentVersionString
+                        )
+                    }
+                }
             }
 
             // Give UI time to render the migration modal (100ms)
@@ -66,18 +73,11 @@ public final class PersistenceContainer {
             Self.logger.log("⏱️ Allowing UI time to show migration modal", level: .debug, category: .system)
         }
 
-        // Use default SwiftData storage location for reliable CloudKit sync
-        // NOTE: Custom App Group URLs can cause CloudKit sync issues.
-        // If widget support is needed later, we may need a different approach
-        // (e.g., separate local store for widget, or NSPersistentCloudKitContainer directly)
-        Self.logger.log("📁 Using default SwiftData storage location for CloudKit sync", level: .debug, category: .system)
-
-        let configuration = ModelConfiguration(
-            // No custom URL - use default location for best CloudKit compatibility
-            allowsSave: true,
-            // ✅ CloudKit ENABLED - Syncs to iCloud private database
-            cloudKitDatabase: .private(iCloudConstants.containerIdentifier)
-        )
+        // Pre-create the Application Support directory in App Group container
+        // SwiftData stores Local.store here (verified: AppGroup/.../Library/Application Support/Local.store)
+        // The directory may not exist on first launch - creating it upfront prevents
+        // CoreData "Failed to stat path" error logs during container initialization
+        Self.ensureApplicationSupportDirectoryExists()
 
         let migrationStartTime = Date()
 
@@ -88,16 +88,19 @@ public final class PersistenceContainer {
             let schema = Schema(versionedSchema: ActiveSchemaVersion.self)
             Self.logger.log("   Schema version: \(currentVersionString)", level: .debug, category: .system)
 
-            Self.logger.log("🚀 Initializing ModelContainer with schema and migration plan", level: .info, category: .system)
+            Self.logger.log("🚀 Initializing ModelContainer with dual configurations (CloudKit + Local)", level: .info, category: .system)
+            Self.logger.log("   CloudKit entities: \(PersistenceConfiguration.cloudKitSyncedTypes.map { String(describing: $0) })", level: .debug, category: .system)
+            Self.logger.log("   Local-only entities: \(PersistenceConfiguration.localOnlyTypes.map { String(describing: $0) })", level: .debug, category: .system)
 
-            // Use versioned schema with migration plan
-            // This enables safe schema evolution without data loss
-            // See RitualistMigrationPlan.swift for migration stages
-            // All datasources use Active* type aliases pointing to current schema
+            // Use versioned schema with migration plan and dual configurations
+            // CloudKit config: synced entities (habits, logs, categories, user profile, onboarding)
+            // Local config: privacy-sensitive entities (personality analysis)
+            // See PersistenceConfiguration.swift for entity assignments
             container = try ModelContainer(
                 for: schema,
                 migrationPlan: RitualistMigrationPlan.self,
-                configurations: configuration
+                configurations: PersistenceConfiguration.cloudKitConfiguration,
+                               PersistenceConfiguration.localConfiguration
             )
             Self.logger.log("✅ Successfully initialized ModelContainer with versioned schema (V\(currentVersionString))", level: .info, category: .system)
 
@@ -180,6 +183,38 @@ public final class PersistenceContainer {
             fatalError("Failed to get shared container URL for app group: \(appGroupIdentifier)")
         }
         return sharedContainerURL
+    }
+
+    /// Pre-create the Application Support directory in the App Group container
+    /// SwiftData stores the Local.store database here, but the directory may not exist on first launch
+    /// Creating it upfront prevents CoreData "Failed to stat path" error logs during initialization
+    private static func ensureApplicationSupportDirectoryExists() {
+        let sharedContainerURL = getSharedContainerURL()
+        let applicationSupportURL = sharedContainerURL
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Application Support", isDirectory: true)
+
+        if !FileManager.default.fileExists(atPath: applicationSupportURL.path) {
+            do {
+                try FileManager.default.createDirectory(
+                    at: applicationSupportURL,
+                    withIntermediateDirectories: true,
+                    attributes: nil
+                )
+                logger.log(
+                    "📁 Created Application Support directory for local store",
+                    level: .debug,
+                    category: .system
+                )
+            } catch {
+                // Non-fatal - CoreData will recover and create it anyway
+                logger.log(
+                    "⚠️ Failed to pre-create Application Support directory: \(error.localizedDescription)",
+                    level: .warning,
+                    category: .system
+                )
+            }
+        }
     }
 
     /// Check if iCloud account is available and device has network connectivity

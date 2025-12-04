@@ -538,7 +538,171 @@ struct HabitLogDeduplicationTests {
     }
 }
 
-// MARK: - DeduplicateAll Tests
+// MARK: - DeduplicationResult Tests
+
+@Suite("DeduplicationResult - Properties")
+struct DeduplicationResultTests {
+
+    @Test("hadDuplicates returns true when any duplicates removed")
+    func hadDuplicatesReturnsTrueWhenDuplicatesRemoved() {
+        let result = DeduplicationResult(
+            habitsRemoved: 1,
+            categoriesRemoved: 0,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 5
+        )
+
+        #expect(result.hadDuplicates == true, "Should return true when habits removed")
+        #expect(result.totalRemoved == 1, "Total should be 1")
+    }
+
+    @Test("hadDuplicates returns false when no duplicates removed")
+    func hadDuplicatesReturnsFalseWhenNoDuplicates() {
+        let result = DeduplicationResult(
+            habitsRemoved: 0,
+            categoriesRemoved: 0,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 5
+        )
+
+        #expect(result.hadDuplicates == false, "Should return false when nothing removed")
+        #expect(result.totalRemoved == 0, "Total should be 0")
+    }
+
+    @Test("hadDataToCheck returns true when items checked")
+    func hadDataToCheckReturnsTrueWhenDataExists() {
+        let result = DeduplicationResult(
+            habitsRemoved: 0,
+            categoriesRemoved: 0,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 10
+        )
+
+        #expect(result.hadDataToCheck == true, "Should return true when items were checked")
+    }
+
+    @Test("hadDataToCheck returns false when no items checked")
+    func hadDataToCheckReturnsFalseWhenNoData() {
+        let result = DeduplicationResult(
+            habitsRemoved: 0,
+            categoriesRemoved: 0,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 0
+        )
+
+        #expect(result.hadDataToCheck == false, "Should return false when no items checked")
+    }
+
+    @Test("totalRemoved sums all removed counts")
+    func totalRemovedSumsAllCounts() {
+        let result = DeduplicationResult(
+            habitsRemoved: 2,
+            categoriesRemoved: 1,
+            habitLogsRemoved: 5,
+            profilesRemoved: 1,
+            totalItemsChecked: 20
+        )
+
+        #expect(result.totalRemoved == 9, "Total should sum all removed counts")
+    }
+}
+
+// MARK: - Initial Sync Completion Detection Tests
+
+@Suite("DeduplicationResult - Initial Sync Completion Detection")
+struct InitialSyncCompletionTests {
+
+    /// Tests the condition used to determine if initial sync has settled:
+    /// `!result.hadDuplicates && result.hadDataToCheck`
+
+    @Test("Sync settled when no duplicates and data exists")
+    func syncSettledWhenNoDuplicatesAndDataExists() {
+        let result = DeduplicationResult(
+            habitsRemoved: 0,
+            categoriesRemoved: 0,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 5
+        )
+
+        // This is the condition from RitualistApp
+        let syncSettled = !result.hadDuplicates && result.hadDataToCheck
+
+        #expect(syncSettled == true, "Sync should be considered settled when no duplicates found and data was checked")
+    }
+
+    @Test("Sync NOT settled when duplicates found")
+    func syncNotSettledWhenDuplicatesFound() {
+        let result = DeduplicationResult(
+            habitsRemoved: 1,
+            categoriesRemoved: 0,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 5
+        )
+
+        let syncSettled = !result.hadDuplicates && result.hadDataToCheck
+
+        #expect(syncSettled == false, "Sync should NOT be settled when duplicates were found (more data may arrive)")
+    }
+
+    @Test("Sync NOT settled when no data to check (fresh install)")
+    func syncNotSettledWhenNoData() {
+        let result = DeduplicationResult(
+            habitsRemoved: 0,
+            categoriesRemoved: 0,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 0
+        )
+
+        let syncSettled = !result.hadDuplicates && result.hadDataToCheck
+
+        #expect(syncSettled == false, "Sync should NOT be settled when no data exists yet (waiting for iCloud)")
+    }
+
+    @Test("Sync requires multiple passes when duplicates keep arriving")
+    func syncRequiresMultiplePassesWhenDuplicatesArrive() {
+        // Simulate multiple dedup passes during initial sync
+
+        // Pass 1: Duplicates found
+        let pass1 = DeduplicationResult(
+            habitsRemoved: 2,
+            categoriesRemoved: 0,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 6
+        )
+        let settled1 = !pass1.hadDuplicates && pass1.hadDataToCheck
+        #expect(settled1 == false, "Pass 1: Should NOT be settled (duplicates found)")
+
+        // Pass 2: More duplicates from another sync batch
+        let pass2 = DeduplicationResult(
+            habitsRemoved: 1,
+            categoriesRemoved: 1,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 4
+        )
+        let settled2 = !pass2.hadDuplicates && pass2.hadDataToCheck
+        #expect(settled2 == false, "Pass 2: Should NOT be settled (more duplicates found)")
+
+        // Pass 3: No more duplicates
+        let pass3 = DeduplicationResult(
+            habitsRemoved: 0,
+            categoriesRemoved: 0,
+            habitLogsRemoved: 0,
+            profilesRemoved: 0,
+            totalItemsChecked: 3
+        )
+        let settled3 = !pass3.hadDuplicates && pass3.hadDataToCheck
+        #expect(settled3 == true, "Pass 3: Should be settled (no duplicates, data exists)")
+    }
+}
 
 @Suite("DataDeduplicationService - DeduplicateAll")
 struct DeduplicateAllTests {
