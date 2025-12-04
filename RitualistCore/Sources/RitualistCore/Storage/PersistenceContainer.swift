@@ -73,15 +73,10 @@ public final class PersistenceContainer {
             Self.logger.log("⏱️ Allowing UI time to show migration modal", level: .debug, category: .system)
         }
 
-        // Use default SwiftData storage location for reliable CloudKit sync
-        // NOTE: Custom App Group URLs can cause CloudKit sync issues.
-        // If widget support is needed later, we may need a different approach
-        // (e.g., separate local store for widget, or NSPersistentCloudKitContainer directly)
-        Self.logger.log("📁 Using default SwiftData storage location for CloudKit sync", level: .debug, category: .system)
-
         // Pre-create the Application Support directory in App Group container
-        // SwiftData stores Local.store here, but the directory may not exist on first launch
-        // Creating it upfront prevents CoreData "Failed to stat path" error logs
+        // SwiftData stores Local.store here (verified: AppGroup/.../Library/Application Support/Local.store)
+        // The directory may not exist on first launch - creating it upfront prevents
+        // CoreData "Failed to stat path" error logs during container initialization
         Self.ensureApplicationSupportDirectoryExists()
 
         let migrationStartTime = Date()
