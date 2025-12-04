@@ -9,6 +9,16 @@
 //  when all TestFlight users have updated to a version that includes this cleanup.
 //  Tech debt tracked in: GitHub Issue #TBD
 //
+//  Migration Impact & Downgrade Behavior:
+//  - PersonalityAnalysis data is now stored locally only (not synced to CloudKit)
+//  - If user downgrades to an older version that expects CloudKit sync:
+//    - Old version will see empty personality data (local data exists but CloudKit is empty)
+//    - User would need to retake personality quiz on older version
+//  - If user upgrades again after downgrade:
+//    - Local data from this version is preserved (stored in Local.store)
+//    - CloudKit cleanup runs again if flag was not set
+//  - This is acceptable because personality analysis is easily regenerated
+//
 
 import Foundation
 import CloudKit

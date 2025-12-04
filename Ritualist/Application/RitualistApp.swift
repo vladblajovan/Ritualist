@@ -184,9 +184,17 @@ import CloudKit
                         // During initial sync: run dedup on EVERY change (not throttled) until no duplicates found
                         // This ensures we catch all duplicates as data arrives in batches
                         // Once dedup finds zero duplicates, sync is effectively "complete" and we switch to throttling
+                        //
+                        // Note on fresh installs with no CloudKit data:
+                        // - hasCompletedInitialSyncDedup stays false since no data arrives
+                        // - This is intentional: fresh users don't need dedup, and the flag only affects
+                        //   whether dedup is throttled (not whether it runs at all)
+                        // - Once user creates first habit, subsequent notifications will set hadDataToCheck=true
                         if !hasCompletedInitialSyncDedup {
                             // Guard against concurrent initial dedup operations
-                            // If another dedup is already running, skip this one (dedup is idempotent)
+                            // If another dedup is already running, skip this one
+                            // Note: Early return is safe - the running operation will reset isInitialDedupInProgress
+                            // when it completes, and dedup is idempotent so skipping is harmless
                             guard !isInitialDedupInProgress else {
                                 logger.log(
                                     "⏭️ Skipping initial dedup - another operation in progress",
