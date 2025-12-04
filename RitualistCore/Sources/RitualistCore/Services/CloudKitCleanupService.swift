@@ -5,8 +5,9 @@
 //  One-time cleanup service to remove PersonalityAnalysis records from CloudKit.
 //  This is needed after moving PersonalityAnalysisModel to local-only storage.
 //
-//  REMOVAL NOTICE: This file can be deleted after all TestFlight users have
-//  updated to a version that includes this cleanup (approximately 2-3 releases).
+//  REMOVAL NOTICE: This file can be deleted after v2.5.0 (target: March 2025)
+//  when all TestFlight users have updated to a version that includes this cleanup.
+//  Tech debt tracked in: GitHub Issue #TBD
 //
 
 import Foundation

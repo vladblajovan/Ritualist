@@ -236,7 +236,7 @@ import CloudKit
         // Dedup runs on each remote change until no duplicates are found, ensuring we catch all
         // duplicates as data arrives in batches from iCloud. See remote change handler for details.
 
-        // REMOVAL NOTICE: cleanupPersonalityAnalysisFromCloudKit() can be removed after 2-3 releases
+        // REMOVAL NOTICE: cleanupPersonalityAnalysisFromCloudKit() can be removed after v2.5.0 (March 2025)
         // once all TestFlight users have updated to a version that includes this cleanup.
         await cleanupPersonalityAnalysisFromCloudKit()
         await detectTimezoneChanges()
@@ -307,7 +307,7 @@ import CloudKit
 
     /// One-time cleanup to remove PersonalityAnalysis records from CloudKit
     /// This is needed after moving PersonalityAnalysisModel to local-only storage
-    /// REMOVAL NOTICE: This method can be removed after all users have updated (2-3 releases)
+    /// REMOVAL NOTICE: This method can be removed after v2.5.0 (target: March 2025)
     private func cleanupPersonalityAnalysisFromCloudKit() async {
         do {
             if let deletedCount = try await cloudKitCleanupService.cleanupPersonalityAnalysisFromCloudKit() {

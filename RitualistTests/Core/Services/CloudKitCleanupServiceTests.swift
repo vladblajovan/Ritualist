@@ -4,6 +4,15 @@
 //
 //  Tests for CloudKitCleanupService and PersistenceConfiguration.
 //
+//  Note on test coverage: These tests focus on flag behavior, error types, and
+//  configuration correctness. Actual CloudKit operations are NOT tested because:
+//  - CloudKit requires a real iCloud account and network connectivity
+//  - Integration tests would require CloudKit container access in CI
+//  - The cleanup is a one-time operation that's safe to test manually in TestFlight
+//
+//  The actual CloudKit deletion logic is straightforward and relies on Apple's SDK.
+//  Manual testing during TestFlight releases verifies the end-to-end flow.
+//
 
 import Testing
 import Foundation
