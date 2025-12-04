@@ -20,6 +20,19 @@ public protocol CloudKitCleanupServiceProtocol: Sendable {
     func cleanupPersonalityAnalysisFromCloudKit() async throws -> Int?
 }
 
+// MARK: - Errors
+
+public enum CloudKitCleanupError: LocalizedError {
+    case partialFailure(successCount: Int, failureCount: Int)
+
+    public var errorDescription: String? {
+        switch self {
+        case .partialFailure(let successCount, let failureCount):
+            return "CloudKit cleanup partially failed: \(successCount) deleted, \(failureCount) failed"
+        }
+    }
+}
+
 // MARK: - Implementation
 
 public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Sendable {
@@ -29,7 +42,14 @@ public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Senda
     /// UserDefaults key to track if cleanup has been performed
     private static let cleanupCompletedKey = "personalityAnalysisCloudKitCleanupCompleted"
 
-    /// CloudKit record type for PersonalityAnalysisModel (SwiftData prefixes with CD_)
+    /// CloudKit record type for PersonalityAnalysisModel
+    ///
+    /// SwiftData automatically prefixes CloudKit record types with "CD_" (Core Data).
+    /// This naming convention is internal to SwiftData's CloudKit integration and cannot
+    /// be customized. When querying CloudKit records created by SwiftData, you must use
+    /// this prefixed format: "CD_" + ModelTypeName.
+    ///
+    /// Reference: This is observable in CloudKit Dashboard when inspecting synced records.
     private static let recordType = "CD_PersonalityAnalysisModel"
 
     public init(logger: DebugLogger) {
@@ -63,6 +83,7 @@ public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Senda
         )
 
         var totalDeleted = 0
+        var totalFailed = 0
         var cursor: CKQueryOperation.Cursor?
 
         // Fetch and delete in batches (CloudKit has limits)
@@ -75,25 +96,42 @@ public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Senda
 
             if !records.isEmpty {
                 let recordIDs = records.map { $0.recordID }
-                try await deleteRecords(database: database, recordIDs: recordIDs)
-                totalDeleted += recordIDs.count
+                let failedCount = try await deleteRecords(database: database, recordIDs: recordIDs)
+                let successCount = recordIDs.count - failedCount
+                totalDeleted += successCount
+                totalFailed += failedCount
 
                 logger.log(
                     "Deleted batch of PersonalityAnalysis records from CloudKit",
                     level: .info,
                     category: .system,
-                    metadata: ["batch_count": recordIDs.count, "total_deleted": totalDeleted]
+                    metadata: [
+                        "batch_success": successCount,
+                        "batch_failed": failedCount,
+                        "total_deleted": totalDeleted
+                    ]
                 )
             }
 
             cursor = nextCursor
         } while cursor != nil
 
-        // Mark cleanup as completed
+        // Only mark cleanup as completed if ALL deletions succeeded
+        if totalFailed > 0 {
+            logger.log(
+                "PersonalityAnalysis CloudKit cleanup had failures, will retry on next launch",
+                level: .warning,
+                category: .system,
+                metadata: ["total_deleted": totalDeleted, "total_failed": totalFailed]
+            )
+            throw CloudKitCleanupError.partialFailure(successCount: totalDeleted, failureCount: totalFailed)
+        }
+
+        // All deletions succeeded - mark cleanup as completed
         UserDefaults.standard.set(true, forKey: Self.cleanupCompletedKey)
 
         logger.log(
-            "PersonalityAnalysis CloudKit cleanup completed",
+            "PersonalityAnalysis CloudKit cleanup completed successfully",
             level: .info,
             category: .system,
             metadata: ["total_deleted": totalDeleted]
@@ -109,26 +147,46 @@ public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Senda
         query: CKQuery,
         cursor: CKQueryOperation.Cursor?
     ) async throws -> ([CKRecord], CKQueryOperation.Cursor?) {
+        let (results, nextCursor): ([(CKRecord.ID, Result<CKRecord, Error>)], CKQueryOperation.Cursor?)
+
         if let cursor = cursor {
-            let (results, nextCursor) = try await database.records(continuingMatchFrom: cursor)
-            let records = results.compactMap { try? $0.1.get() }
-            return (records, nextCursor)
+            (results, nextCursor) = try await database.records(continuingMatchFrom: cursor)
         } else {
-            let (results, nextCursor) = try await database.records(matching: query)
-            let records = results.compactMap { try? $0.1.get() }
-            return (records, nextCursor)
+            (results, nextCursor) = try await database.records(matching: query)
         }
+
+        // Extract records, logging any fetch errors instead of silently discarding
+        var records: [CKRecord] = []
+        for (recordID, result) in results {
+            switch result {
+            case .success(let record):
+                records.append(record)
+            case .failure(let error):
+                logger.log(
+                    "Failed to fetch record during cleanup",
+                    level: .warning,
+                    category: .system,
+                    metadata: ["recordID": recordID.recordName, "error": error.localizedDescription]
+                )
+            }
+        }
+
+        return (records, nextCursor)
     }
 
-    private func deleteRecords(database: CKDatabase, recordIDs: [CKRecord.ID]) async throws {
+    /// Delete records from CloudKit and return the count of failures
+    /// - Returns: Number of records that failed to delete
+    private func deleteRecords(database: CKDatabase, recordIDs: [CKRecord.ID]) async throws -> Int {
         let (_, deleteResults) = try await database.modifyRecords(
             saving: [],
             deleting: recordIDs
         )
 
-        // Check for any deletion errors
+        // Count and log any deletion errors
+        var failureCount = 0
         for (recordID, result) in deleteResults {
             if case .failure(let error) = result {
+                failureCount += 1
                 logger.log(
                     "Failed to delete PersonalityAnalysis record from CloudKit",
                     level: .warning,
@@ -137,6 +195,8 @@ public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Senda
                 )
             }
         }
+
+        return failureCount
     }
 }
 

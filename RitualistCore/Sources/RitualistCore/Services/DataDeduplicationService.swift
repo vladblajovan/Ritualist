@@ -91,8 +91,17 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
 
         // First, count total items in database to determine if there's data to check
         // This is used by callers to decide whether to throttle subsequent runs
+        // Count ALL entity types to accurately reflect database state
         let habitsDescriptor = FetchDescriptor<ActiveHabitModel>()
+        let categoriesDescriptor = FetchDescriptor<ActiveHabitCategoryModel>()
+        let logsDescriptor = FetchDescriptor<ActiveHabitLogModel>()
+        let profilesDescriptor = FetchDescriptor<ActiveUserProfileModel>()
+
         let totalHabits = (try? modelContext.fetchCount(habitsDescriptor)) ?? 0
+        let totalCategories = (try? modelContext.fetchCount(categoriesDescriptor)) ?? 0
+        let totalLogs = (try? modelContext.fetchCount(logsDescriptor)) ?? 0
+        let totalProfiles = (try? modelContext.fetchCount(profilesDescriptor)) ?? 0
+        let totalItems = totalHabits + totalCategories + totalLogs + totalProfiles
 
         let habits = try await deduplicateHabits()
         let categories = try await deduplicateCategories()
@@ -104,7 +113,7 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
             categoriesRemoved: categories,
             habitLogsRemoved: logs,
             profilesRemoved: profiles,
-            totalItemsChecked: totalHabits
+            totalItemsChecked: totalItems
         )
 
         if result.hadDuplicates {
@@ -117,7 +126,7 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                     "categories_removed": categories,
                     "logs_removed": logs,
                     "profiles_removed": profiles,
-                    "total_habits_checked": totalHabits
+                    "total_items_checked": totalItems
                 ]
             )
         } else {
@@ -125,7 +134,7 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                 "Deduplication complete - no duplicates found",
                 level: .debug,
                 category: .dataIntegrity,
-                metadata: ["total_habits_checked": totalHabits]
+                metadata: ["total_items_checked": totalItems]
             )
         }
 

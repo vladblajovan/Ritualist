@@ -56,6 +56,10 @@ import CoreData
     /// created when cloud data merges with local data
     @State private var hasCompletedInitialSyncDedup: Bool = false
 
+    /// Guard against concurrent initial sync dedup operations
+    /// Prevents race condition when multiple remote change notifications fire rapidly
+    @State private var isInitialDedupInProgress: Bool = false
+
     /// Cached iCloud status to avoid repeated CloudKit API calls during bulk sync
     @State private var cachedICloudStatus: iCloudSyncStatus?
 
@@ -180,7 +184,21 @@ import CoreData
                         // This ensures we catch all duplicates as data arrives in batches
                         // Once dedup finds zero duplicates, sync is effectively "complete" and we switch to throttling
                         if !hasCompletedInitialSyncDedup {
+                            // Guard against concurrent initial dedup operations
+                            // If another dedup is already running, skip this one (dedup is idempotent)
+                            guard !isInitialDedupInProgress else {
+                                logger.log(
+                                    "⏭️ Skipping initial dedup - another operation in progress",
+                                    level: .debug,
+                                    category: .system
+                                )
+                                return
+                            }
+
+                            isInitialDedupInProgress = true
                             let result = await deduplicateSyncedDataAndGetResult()
+                            isInitialDedupInProgress = false
+
                             if !result.hadDuplicates && result.hadDataToCheck {
                                 // No duplicates found and we had data to check = sync settled
                                 hasCompletedInitialSyncDedup = true
@@ -216,6 +234,9 @@ import CoreData
         // We wait for NSPersistentStoreRemoteChange notifications to indicate CloudKit sync activity.
         // Dedup runs on each remote change until no duplicates are found, ensuring we catch all
         // duplicates as data arrives in batches from iCloud. See remote change handler for details.
+
+        // REMOVAL NOTICE: cleanupPersonalityAnalysisFromCloudKit() can be removed after 2-3 releases
+        // once all TestFlight users have updated to a version that includes this cleanup.
         await cleanupPersonalityAnalysisFromCloudKit()
         await detectTimezoneChanges()
         await setupNotifications()
