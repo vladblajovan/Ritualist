@@ -13,6 +13,16 @@
 //  The actual CloudKit deletion logic is straightforward and relies on Apple's SDK.
 //  Manual testing during TestFlight releases verifies the end-to-end flow.
 //
+//  Missing test coverage (acceptable trade-offs):
+//  - Error handling paths in RitualistApp.swift (lines 379-416):
+//    - CKError.networkUnavailable/networkFailure retries on next launch
+//    - CKError.notAuthenticated/permissionFailure marks cleanup complete
+//    These require mocking CKError scenarios which adds significant test complexity.
+//    The error handling is straightforward switch/case logic verified by code review.
+//  - UserDefaults dependency injection: Tests use .standard with manual cleanup.
+//    Could refactor CloudKitCleanupService to accept UserDefaults via init for better
+//    isolation, but adds complexity for minimal benefit. See test struct documentation.
+//
 
 import Testing
 import Foundation

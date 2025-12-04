@@ -59,7 +59,27 @@ import CloudKit
 
     /// Guard against concurrent initial sync dedup operations
     /// Prevents race condition when multiple remote change notifications fire rapidly
+    ///
+    /// THREAD SAFETY NOTE: This guard relies on SwiftUI's MainActor serialization.
+    /// All @State mutations and reads happen on the main thread because:
+    /// 1. The `Task { @MainActor in ... }` block in `.onReceive` forces main thread execution
+    /// 2. SwiftUI @State properties are MainActor-isolated by default
+    ///
+    /// Without MainActor: Two tasks could both read `isInitialDedupInProgress = false` before
+    /// either sets it to `true`, causing both to proceed. MainActor serializes these operations.
+    ///
+    /// If dedup logic moves off MainActor in future, consider:
+    /// - Using an actor for atomic state management
+    /// - Using `os_unfair_lock` for synchronization
     @State private var isInitialDedupInProgress: Bool = false
+
+    /// Counter for initial sync dedup attempts (for diagnostics and safety limit)
+    /// Prevents infinite dedup loops if duplicates keep appearing due to a bug
+    @State private var initialDedupAttemptCount: Int = 0
+
+    /// Maximum initial dedup attempts before switching to throttled mode
+    /// This prevents infinite CPU usage if something is continuously creating duplicates
+    private static let maxInitialDedupAttempts = 50
 
     /// Cached iCloud status to avoid repeated CloudKit API calls during bulk sync
     @State private var cachedICloudStatus: iCloudSyncStatus?
@@ -190,7 +210,7 @@ import CloudKit
                         // - This is intentional: fresh users don't need dedup, and the flag only affects
                         //   whether dedup is throttled (not whether it runs at all)
                         // - Once user creates first habit, subsequent notifications will set hadDataToCheck=true
-                        if !hasCompletedInitialSyncDedup {
+                        if !hasCompletedInitialSyncDedup && initialDedupAttemptCount < Self.maxInitialDedupAttempts {
                             // Guard against concurrent initial dedup operations
                             // If another dedup is already running, skip this one
                             // Note: Early return is safe - the running operation will reset isInitialDedupInProgress
@@ -205,8 +225,27 @@ import CloudKit
                             }
 
                             isInitialDedupInProgress = true
+                            initialDedupAttemptCount += 1
+
+                            let startTime = Date()
                             let result = await deduplicateSyncedDataAndGetResult()
+                            let duration = Date().timeIntervalSince(startTime)
+
                             isInitialDedupInProgress = false
+
+                            // Log duration for performance monitoring
+                            if duration > 0.5 {
+                                logger.log(
+                                    "⏱️ Initial dedup took longer than expected",
+                                    level: .warning,
+                                    category: .system,
+                                    metadata: [
+                                        "duration_ms": Int(duration * 1000),
+                                        "attempt": initialDedupAttemptCount,
+                                        "items_checked": result.totalItemsChecked
+                                    ]
+                                )
+                            }
 
                             if !result.hadDuplicates && result.hadDataToCheck {
                                 // No duplicates found and we had data to check = sync settled
@@ -214,7 +253,19 @@ import CloudKit
                                 logger.log(
                                     "✅ Initial sync deduplication complete - no duplicates found",
                                     level: .info,
-                                    category: .system
+                                    category: .system,
+                                    metadata: ["total_attempts": initialDedupAttemptCount]
+                                )
+                            }
+
+                            // Safety check: if we hit max attempts, switch to throttled mode
+                            if initialDedupAttemptCount >= Self.maxInitialDedupAttempts {
+                                hasCompletedInitialSyncDedup = true
+                                logger.log(
+                                    "⚠️ Initial dedup hit max attempts, switching to throttled mode",
+                                    level: .warning,
+                                    category: .system,
+                                    metadata: ["max_attempts": Self.maxInitialDedupAttempts]
                                 )
                             }
                         } else {
@@ -243,6 +294,13 @@ import CloudKit
         // We wait for NSPersistentStoreRemoteChange notifications to indicate CloudKit sync activity.
         // Dedup runs on each remote change until no duplicates are found, ensuring we catch all
         // duplicates as data arrives in batches from iCloud. See remote change handler for details.
+        //
+        // EDGE CASE: Offline users or users with iCloud disabled
+        // - If user is never online after update: duplicates would not be cleaned up
+        // - If CloudKit sync is disabled: no remote change notifications fire
+        // - ACCEPTABLE RISK: Duplicates can only be created BY CloudKit sync merging
+        //   remote data with local data. Without CloudKit sync, no duplicates are created.
+        // - When user goes online later, sync will trigger dedup as expected.
 
         // REMOVAL NOTICE: cleanupPersonalityAnalysisFromCloudKit() can be removed after v2.5.0 (March 2025)
         // once all TestFlight users have updated to a version that includes this cleanup.
@@ -383,12 +441,6 @@ import CloudKit
         UserDefaults.standard.set(true, forKey: "personalityAnalysisCloudKitCleanupCompleted")
     }
 
-    /// Deduplicate any duplicate records that may have been created during iCloud sync
-    /// CloudKit + SwiftData can create duplicates when @Attribute(.unique) is not available
-    private func deduplicateSyncedData() async {
-        _ = await deduplicateSyncedDataAndGetResult()
-    }
-
     /// Deduplicate and return the result for callers that need to check if duplicates were found
     /// Used during initial sync to determine when sync has "settled" (no more duplicates arriving)
     private func deduplicateSyncedDataAndGetResult() async -> DeduplicationResult {
@@ -475,7 +527,7 @@ import CloudKit
             }
         }
 
-        await deduplicateSyncedData()
+        _ = await deduplicateSyncedDataAndGetResult()
     }
 
     /// Post UI refresh notification with debouncing to prevent rapid flashing
