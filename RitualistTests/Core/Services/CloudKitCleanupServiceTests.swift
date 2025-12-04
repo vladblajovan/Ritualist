@@ -11,15 +11,26 @@ import Foundation
 
 // MARK: - CloudKit Cleanup UserDefaults Flag Tests
 
-@Suite("CloudKitCleanupService - Completion Flag Behavior")
+/// Tests for CloudKit cleanup flag behavior
+///
+/// Note: These tests use UserDefaults.standard because CloudKitCleanupService
+/// doesn't support dependency injection for UserDefaults. This is acceptable because:
+/// 1. Swift Testing runs tests serially by default
+/// 2. Each test resets the flag before and after execution
+/// 3. The tests are lightweight and don't persist state
+///
+/// If test isolation becomes an issue, CloudKitCleanupService could be refactored
+/// to accept a UserDefaults instance via init, but that adds complexity for minimal benefit.
+@Suite("CloudKitCleanupService - Completion Flag Behavior", .serialized)
 struct CloudKitCleanupCompletionFlagTests {
 
     /// UserDefaults key used by CloudKitCleanupService
     private static let cleanupCompletedKey = "personalityAnalysisCloudKitCleanupCompleted"
 
-    /// Reset the cleanup flag before each test
+    /// Reset the cleanup flag - called before and after tests that modify it
     private func resetCleanupFlag() {
         UserDefaults.standard.removeObject(forKey: Self.cleanupCompletedKey)
+        UserDefaults.standard.synchronize()
     }
 
     @Test("Cleanup skips when already completed")
