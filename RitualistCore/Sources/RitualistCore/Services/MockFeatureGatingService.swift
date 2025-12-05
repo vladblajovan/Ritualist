@@ -25,7 +25,9 @@ public final class MockFeatureGatingService: FeatureGatingService {
     public var hasCustomReminders: Bool { true }
     
     public var hasDataExport: Bool { true }
-    
+
+    public var hasICloudSync: Bool { true }
+
     public var hasPremiumThemes: Bool { true }
     
     public var hasPrioritySupport: Bool { true }

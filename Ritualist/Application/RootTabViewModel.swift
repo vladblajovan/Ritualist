@@ -124,24 +124,17 @@ public final class RootTabViewModel {
         // iCloud flag tells us if user completed onboarding on ANY device
         let iCloudOnboardingCompleted = iCloudKeyValueService.hasCompletedOnboarding()
 
-        if iCloudOnboardingCompleted {
-            // Returning user! iCloud flag is set but local device flag is not
-            // This means user completed onboarding on another device
-            logger.log(
-                "iCloud onboarding flag set, local device flag not set - returning user detected",
-                level: .info,
-                category: .ui
-            )
-
-            // Don't show onboarding, let the app load normally
-            // We'll show the returning user welcome AFTER iCloud data fully syncs
+        if iCloudOnboardingCompleted && isCloudKitSyncActive {
+            // Returning user with active sync - show welcome after data syncs
+            logger.log("Returning user detected - iCloud flag set, sync active", level: .info, category: .ui)
             showOnboarding = false
             isCheckingOnboarding = false
-
-            // Set flag - RootTabView will show welcome once data is loaded
-            // The syncing toast will be shown by RootTabView once the launch screen is dismissed
             pendingReturningUserWelcome = true
             return
+        } else if iCloudOnboardingCompleted {
+            // Free user or sync disabled - iCloud KV flag synced but data won't, treat as new user
+            logger.log("iCloud flag set but sync not active - treating as new user", level: .info, category: .ui)
+            // Fall through to new user check below
         }
 
         // Step 3: Neither flag set - could be new user OR upgrade from old version
@@ -372,6 +365,22 @@ extension RootTabViewModel {
 // MARK: - Toast Helpers
 
 extension RootTabViewModel {
+    // MARK: - CloudKit Sync Helpers
+
+    /// Check if CloudKit sync is currently active (premium + sync preference enabled)
+    ///
+    /// Used to gate features that only make sense when data is actually syncing:
+    /// - Returning user welcome flow
+    /// - "Syncing data from iCloud" toast
+    /// - Auto-sync on app launch
+    private var isCloudKitSyncActive: Bool {
+        let isPremium = MockSecureSubscriptionService.isPremiumFromCache()
+        let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
+        return isPremium && syncPreference
+    }
+
+    // MARK: - Toast Management
+
     /// Check if any toast is currently being displayed
     public var isToastActive: Bool {
         toastService.hasActiveToasts
@@ -408,8 +417,16 @@ extension RootTabViewModel {
     /// Show persistent toast while syncing data from iCloud for returning users
     /// This toast stays visible until manually dismissed
     /// Only shows once per session to prevent duplicate appearances
+    ///
+    /// Note: Only shows if CloudKit sync is actually active (premium user with sync enabled).
+    /// Free users have local-only storage, so showing "Syncing from iCloud" would be misleading.
     public func showSyncingDataToast() {
         guard !hasShownSyncingToast else { return }
+        guard isCloudKitSyncActive else {
+            logger.log("Skipping sync toast - CloudKit sync not active", level: .debug, category: .ui)
+            return
+        }
+
         hasShownSyncingToast = true
         toastService.infoPersistent(Strings.ICloudSync.syncingData, icon: "icloud.and.arrow.down")
     }

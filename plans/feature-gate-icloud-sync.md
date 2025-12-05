@@ -12,15 +12,15 @@ Add iCloud sync as a premium feature with a user-controlled toggle in Settings. 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         App Startup                              │
+│                         App Startup                             │
 ├─────────────────────────────────────────────────────────────────┤
 │  1. Read UserDefaults: iCloudSyncEnabled (default: true)        │
-│  2. Read UserDefaults: premium status cache (bypass DI)          │
-│  3. Determine sync mode:                                         │
-│     - Premium + Toggle ON  → CloudKit config                     │
-│     - Premium + Toggle OFF → Local-only config                   │
-│     - Free user           → Local-only config (forced)           │
-│  4. Initialize PersistenceContainer with appropriate config      │
+│  2. Read UserDefaults: premium status cache (bypass DI)         │
+│  3. Determine sync mode:                                        │
+│     - Premium + Toggle ON  → CloudKit config                    │
+│     - Premium + Toggle OFF → Local-only config                  │
+│     - Free user           → Local-only config (forced)          │
+│  4. Initialize PersistenceContainer with appropriate config     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -186,9 +186,13 @@ public final class ICloudSyncPreferenceService: ICloudSyncPreferenceServiceProto
 ### Step 6: Update PersistenceConfiguration
 **File:** `RitualistCore/Sources/RitualistCore/Storage/PersistenceConfiguration.swift`
 
+**NOTE:** This file now exists from the local-only PersonalityAnalysis PR. Update it to support dynamic sync toggling.
+
 Use single-store approach to prevent data orphaning:
 
 ```swift
+// Add new method to existing file:
+
 /// Get configuration for syncable entities based on whether sync is enabled
 /// Uses SAME store name regardless of sync setting to prevent data orphaning
 /// - Parameter syncEnabled: Whether CloudKit sync should be active
@@ -202,7 +206,7 @@ public static func syncableEntitiesConfiguration(syncEnabled: Bool) -> ModelConf
     )
 }
 
-/// Get all configurations for the container
+/// Get all configurations for the container based on sync preference
 public static func allConfigurations(syncEnabled: Bool) -> [ModelConfiguration] {
     [
         syncableEntitiesConfiguration(syncEnabled: syncEnabled),
@@ -210,6 +214,12 @@ public static func allConfigurations(syncEnabled: Bool) -> [ModelConfiguration] 
     ]
 }
 ```
+
+**Existing code to keep:**
+- `cloudKitSyncedTypes` - list of syncable entity types
+- `localOnlyTypes` - PersonalityAnalysis only
+- `localConfiguration` - unchanged, always local
+- `cloudKitConfiguration` - keep for reference, but use `syncableEntitiesConfiguration(syncEnabled:)` at runtime
 
 **Key Point:** By keeping the configuration NAME as "CloudKit" even when sync is disabled, we ensure the same store file is used. Only the `cloudKitDatabase` parameter changes, which controls whether sync happens - not where data is stored.
 
@@ -344,8 +354,8 @@ var iCloudSyncPreferenceService: Factory<ICloudSyncPreferenceServiceProtocol> {
 | `MockFeatureGatingService.swift` | Implement `hasICloudSync` |
 | `BuildConfigFeatureGatingService.swift` | Implement `hasICloudSync` |
 | `FeatureGatingConstants.swift` | Add blocked message |
-| `PersistenceConfiguration.swift` | Add `configurations(syncEnabled:)` and `localOnlyAllConfiguration` |
-| `PersistenceContainer.swift` | Check sync state at init |
+| `PersistenceConfiguration.swift` | Add `syncableEntitiesConfiguration(syncEnabled:)` and `allConfigurations(syncEnabled:)` methods (file already exists) |
+| `PersistenceContainer.swift` | Check sync state at init, add `checkPremiumStatusFromCache()` |
 | `iCloudSyncSectionView.swift` | Add toggle UI |
 | `SettingsViewModel.swift` | Add toggle state/methods |
 | `Container+Services.swift` | Register preference service |

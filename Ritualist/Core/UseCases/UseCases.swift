@@ -117,3 +117,7 @@ public typealias TestDataPopulationError = RitualistCore.TestDataPopulationError
 // Re-export Additional UseCases
 public typealias CalculateCurrentStreak = RitualistCore.CalculateCurrentStreak
 public typealias GetHabitsFromSuggestions = RitualistCore.GetHabitsFromSuggestions
+
+// Re-export iCloud Sync Preference UseCases
+public typealias GetICloudSyncPreference = RitualistCore.DefaultGetICloudSyncPreferenceUseCase
+public typealias SetICloudSyncPreference = RitualistCore.DefaultSetICloudSyncPreferenceUseCase

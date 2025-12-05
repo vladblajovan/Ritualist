@@ -23,6 +23,9 @@ public protocol FeatureGatingService {
     /// Whether data export is available
     var hasDataExport: Bool { get }
 
+    /// Whether iCloud sync is available (premium feature)
+    var hasICloudSync: Bool { get }
+
     /// Get a user-friendly message when a feature is blocked
     func getFeatureBlockedMessage(for feature: FeatureType) -> String
     

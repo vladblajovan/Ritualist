@@ -160,6 +160,11 @@ extension Container {
         self { DefaultiCloudKeyValueService(logger: self.debugLogger()) }
             .singleton
     }
+
+    var iCloudSyncPreferenceService: Factory<ICloudSyncPreferenceServiceProtocol> {
+        self { ICloudSyncPreferenceService.shared }
+            .singleton
+    }
     
     var scheduleAwareCompletionCalculator: Factory<ScheduleAwareCompletionCalculator> {
         self { DefaultScheduleAwareCompletionCalculator(habitCompletionService: self.habitCompletionService()) }

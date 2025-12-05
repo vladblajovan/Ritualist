@@ -215,7 +215,9 @@ struct SubscriptionManagementSectionView: View {
     // MARK: - Actions
 
     private func showPaywall() {
-        vm.showPaywall()
+        Task {
+            await vm.showPaywall()
+        }
     }
 
     private func openSubscriptionManagement() {
@@ -304,7 +306,9 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
         getLastSyncDate: MockGetLastSyncDate(),
         deleteiCloudData: MockDeleteiCloudData(),
         exportUserData: MockExportUserData(),
-        importUserData: MockImportUserData()
+        importUserData: MockImportUserData(),
+        getICloudSyncPreference: MockGetICloudSyncPreference(),
+        setICloudSyncPreference: MockSetICloudSyncPreference()
     )
 
     return vm
@@ -403,4 +407,12 @@ private struct MockExportUserData: ExportUserDataUseCase {
 
 private struct MockImportUserData: ImportUserDataUseCase {
     func execute(jsonString: String) async throws {}
+}
+
+private struct MockGetICloudSyncPreference: GetICloudSyncPreferenceUseCase {
+    func execute() -> Bool { true }
+}
+
+private struct MockSetICloudSyncPreference: SetICloudSyncPreferenceUseCase {
+    func execute(_ enabled: Bool) {}
 }

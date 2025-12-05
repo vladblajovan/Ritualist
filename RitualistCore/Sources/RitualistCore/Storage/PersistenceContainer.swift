@@ -19,7 +19,29 @@ public final class PersistenceContainer {
     ///
     /// Uses versioned schema with migration plan to safely handle schema changes.
     /// All datasources use Active* type aliases that point to current schema version.
+    ///
+    /// iCloud sync is conditionally enabled based on:
+    /// 1. Premium subscription status (read from UserDefaults cache to avoid DI circular dependency)
+    /// 2. User's sync preference toggle (can disable sync even if premium)
     public init() throws {
+        // Determine if sync should be active
+        // Read directly from UserDefaults to avoid DI circular dependency
+        // (PersistenceContainer is needed by DI, so we can't use DI here)
+        let isPremium = Self.checkPremiumStatusFromCache()
+        let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
+        let shouldSync = isPremium && syncPreference
+
+        Self.logger.log(
+            "☁️ iCloud sync state",
+            level: .info,
+            category: .system,
+            metadata: [
+                "is_premium": isPremium,
+                "user_sync_preference": syncPreference,
+                "sync_active": shouldSync
+            ]
+        )
+
         // Get the current schema version for migration tracking and logging
         let currentSchemaVersion = RitualistMigrationPlan.currentSchemaVersion
         let currentVersionString = currentSchemaVersion.description
@@ -94,13 +116,14 @@ public final class PersistenceContainer {
 
             // Use versioned schema with migration plan and dual configurations
             // CloudKit config: synced entities (habits, logs, categories, user profile, onboarding)
-            // Local config: privacy-sensitive entities (personality analysis)
+            //   - Sync enabled only if premium AND user preference is ON
+            // Local config: privacy-sensitive entities (personality analysis) - always local
             // See PersistenceConfiguration.swift for entity assignments
+            let configurations = PersistenceConfiguration.allConfigurations(syncEnabled: shouldSync)
             container = try ModelContainer(
                 for: schema,
                 migrationPlan: RitualistMigrationPlan.self,
-                configurations: PersistenceConfiguration.cloudKitConfiguration,
-                               PersistenceConfiguration.localConfiguration
+                configurations: configurations
             )
             Self.logger.log("✅ Successfully initialized ModelContainer with versioned schema (V\(currentVersionString))", level: .info, category: .system)
 
@@ -265,6 +288,36 @@ public final class PersistenceContainer {
             // For unknown migrations, provide a generic description
             return "Updated database schema from version \(fromVersion) to \(toVersion)."
         }
+    }
+
+    /// Check premium status from UserDefaults cache at startup.
+    ///
+    /// Delegates to `MockSecureSubscriptionService.isPremiumFromCache()` which is the
+    /// single source of truth for startup-time premium checks. See that method for
+    /// implementation details and StoreKit2 migration notes.
+    ///
+    /// This bypasses DI to avoid circular dependency:
+    /// - PersistenceContainer needs premium status to decide sync mode
+    /// - DI Container registration of SubscriptionService may depend on PersistenceContainer
+    private static func checkPremiumStatusFromCache() -> Bool {
+        // Defensive check: verify cache was set before PersistenceContainer init
+        // This check will be relevant when StoreKit2 is implemented and sets premiumStatusCache at startup
+        //
+        // Note: premiumStatusCache is not yet used - see MockSecureSubscriptionService.isPremiumFromCache()
+        // for current flow which uses allFeaturesEnabledCache and mockPurchases
+        let cacheWasSet = UserDefaults.standard.object(forKey: UserDefaultsKeys.premiumStatusCache) != nil
+        if !cacheWasSet {
+            logger.log(
+                "ℹ️ Premium status cache not set - using fallback checks",
+                level: .debug,
+                category: .system,
+                metadata: [
+                    "note": "Expected until StoreKit2 implementation. Currently using allFeaturesEnabledCache and mockPurchases."
+                ]
+            )
+        }
+
+        return MockSecureSubscriptionService.isPremiumFromCache()
     }
 }
 
