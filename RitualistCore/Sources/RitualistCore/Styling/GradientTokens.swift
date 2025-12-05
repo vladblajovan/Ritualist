@@ -47,6 +47,16 @@ public enum GradientTokens {
         endPoint: .trailing
     )
 
+    /// Disabled button gradient (gray tones)
+    ///
+    /// Design: Muted gray gradient for disabled state
+    /// Usage: PaywallView purchase button when disabled
+    public static let disabledButton = LinearGradient(
+        colors: [Color.gray.opacity(0.5), Color.gray.opacity(0.4)],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+
     // MARK: - Profile/Personality Gradients (Icon-Inspired)
 
     /// Profile icon gradient (cyan to blue - icon background)

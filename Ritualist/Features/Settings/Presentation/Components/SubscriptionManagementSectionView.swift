@@ -49,17 +49,7 @@ struct SubscriptionManagementSectionView: View {
             #if !ALL_FEATURES_ENABLED
             // Subscribe Button (for free users only)
             if vm.subscriptionPlan == .free {
-                Button {
-                    showPaywall()
-                } label: {
-                    HStack {
-                        Label("Subscribe to Pro", systemImage: "crown.fill")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                UpgradeBannerView(onUpgradeTap: showPaywall)
             }
 
             // Expiry Date Row (for time-limited subscriptions)
@@ -115,6 +105,11 @@ struct SubscriptionManagementSectionView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+            }
+
+            // Account setup issues (shown at the end, only when there are issues)
+            if vm.hasAccountSetupIssues {
+                AccountSetupBannerView(issues: vm.accountSetupIssues)
             }
             #endif
         } header: {

@@ -51,6 +51,84 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     /// Error handler for logging/analytics
     private let errorHandler: ErrorHandler?
 
+    // MARK: - Static Premium Check (Secure, for Startup)
+
+    /// Check premium status synchronously by querying StoreKit's Transaction.currentEntitlements.
+    ///
+    /// **SECURITY:** This method queries StoreKit directly - it cannot be bypassed by modifying
+    /// UserDefaults or any local storage. StoreKit receipts are cryptographically signed by Apple.
+    ///
+    /// **Offline Support:**
+    /// - StoreKit's `currentEntitlements` works offline using cached data
+    /// - If StoreKit times out (rare), falls back to Keychain cache with 3-day grace period
+    /// - This follows RevenueCat's industry-standard offline grace period
+    ///
+    /// **Usage:** Call this at app startup BEFORE initializing PersistenceContainer to determine
+    /// if iCloud sync should be enabled.
+    ///
+    /// **Performance:** Uses a 1.5-second timeout. StoreKit typically responds in <500ms after
+    /// the OS has loaded its receipt cache.
+    ///
+    /// - Returns: `true` if user has any valid (non-expired, non-revoked) subscription or purchase
+    ///
+    public static func isPremiumFromStoreKit() -> Bool {
+        // Use a semaphore to make the async StoreKit call synchronous
+        // This runs before UI is shown, so brief blocking is acceptable
+        let semaphore = DispatchSemaphore(value: 0)
+        var isPremium = false
+        var storeKitResponded = false
+
+        Task {
+            for await result in Transaction.currentEntitlements {
+                // Only count verified transactions
+                if case .verified(let transaction) = result {
+                    // Check not revoked
+                    if transaction.revocationDate == nil {
+                        // Check not expired (for subscriptions)
+                        if let expirationDate = transaction.expirationDate {
+                            if expirationDate > Date() {
+                                isPremium = true
+                                break
+                            }
+                        } else {
+                            // Non-consumable (lifetime) - no expiry
+                            isPremium = true
+                            break
+                        }
+                    }
+                }
+            }
+            storeKitResponded = true
+            semaphore.signal()
+        }
+
+        // 1.5 second timeout - StoreKit usually responds in <500ms
+        let timeout = DispatchTime.now() + .milliseconds(1500)
+        let waitResult = semaphore.wait(timeout: timeout)
+
+        if waitResult == .timedOut {
+            // StoreKit timed out - fall back to Keychain cache with 3-day grace period
+            // This handles offline scenarios (airplane mode, poor connectivity)
+            print("⚠️ StoreKit entitlement check timed out - checking Keychain cache")
+
+            let cachedPremium = SecurePremiumCache.shared.getCachedPremiumStatus()
+            if cachedPremium {
+                let cacheAge = SecurePremiumCache.shared.getCacheAge() ?? 0
+                let hoursOld = cacheAge / 3600
+                print("✅ Using cached premium status (cache is \(String(format: "%.1f", hoursOld)) hours old)")
+                return true
+            } else {
+                print("❌ No valid premium cache - defaulting to non-premium")
+                return false
+            }
+        }
+
+        // StoreKit responded - update Keychain cache for future offline scenarios
+        SecurePremiumCache.shared.updateCache(isPremium: isPremium)
+
+        return isPremium
+    }
+
     // MARK: - Initialization
 
     public init(errorHandler: ErrorHandler? = nil) {
@@ -89,6 +167,10 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         // without waiting for StoreKit refresh
         cachedValidPurchases.insert(productId)
         lastCacheUpdate = Date()
+
+        // Update Keychain cache immediately after purchase
+        // This ensures the user has offline access right away
+        SecurePremiumCache.shared.updateCache(isPremium: true)
     }
 
     public func clearPurchases() async throws {
@@ -96,6 +178,9 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         // This is for cache management only
         cachedValidPurchases.removeAll()
         lastCacheUpdate = .distantPast
+
+        // Clear Keychain cache as well
+        SecurePremiumCache.shared.clearCache()
     }
 
     public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
@@ -193,9 +278,14 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
             }
         }
 
-        // Update cache
+        // Update in-memory cache
         cachedValidPurchases = validPurchases
         lastCacheUpdate = Date()
+
+        // Update Keychain cache for offline scenarios (3-day grace period)
+        // This keeps the secure cache fresh whenever we successfully query StoreKit
+        let isPremium = !validPurchases.isEmpty
+        SecurePremiumCache.shared.updateCache(isPremium: isPremium)
     }
 
     /// Check if a transaction is currently valid

@@ -959,7 +959,11 @@ import CloudKit
     private func syncWithCloudIfAvailable() async {
         // Check if CloudKit sync is actually active
         // Free users have local-only storage, so auto-sync would be a no-op
-        let isPremium = MockSecureSubscriptionService.isPremiumFromCache()
+        //
+        // SECURITY: Use PersistenceContainer.premiumCheckProvider which is set up at app startup
+        // to use StoreKit-based checking (production) or mock checking (development builds).
+        // This ensures we never bypass the paywall by modifying UserDefaults.
+        let isPremium = PersistenceContainer.premiumCheckProvider?() ?? false
         let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
 
         guard isPremium && syncPreference else {

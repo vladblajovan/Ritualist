@@ -373,8 +373,12 @@ extension RootTabViewModel {
     /// - Returning user welcome flow
     /// - "Syncing data from iCloud" toast
     /// - Auto-sync on app launch
+    ///
+    /// SECURITY: Uses PersistenceContainer.premiumCheckProvider which is set up at app startup
+    /// to use StoreKit-based checking (production) or mock checking (development builds).
+    /// This ensures we never bypass the paywall by modifying UserDefaults.
     private var isCloudKitSyncActive: Bool {
-        let isPremium = MockSecureSubscriptionService.isPremiumFromCache()
+        let isPremium = PersistenceContainer.premiumCheckProvider?() ?? false
         let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
         return isPremium && syncPreference
     }

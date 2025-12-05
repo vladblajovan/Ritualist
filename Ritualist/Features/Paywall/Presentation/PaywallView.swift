@@ -24,7 +24,8 @@ public struct PaywallView: View {
     @State private var showingOfferCodeError = false
     @State private var offerCodeSuccessMessage: String?
     @State private var offerCodeErrorMessage: String?
-    
+    @State private var showingProductsUnavailableAlert = false
+
     public init(vm: PaywallViewModel) {
         self.vm = vm
     }
@@ -43,27 +44,9 @@ public struct PaywallView: View {
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if vm.hasError {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.largeTitle)
-                            .foregroundColor(.orange)
-                        Text("Unable to Load")
-                            .font(.headline)
-                        Text(vm.errorMessage ?? "An error occurred")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                        Button("Try Again") {
-                            Task {
-                                await vm.load()
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
+                } else if vm.hasProducts {
+                    // Only show content when products are available
+                    // If no products, the alert will show and dismiss
                     ScrollView {
                         VStack(spacing: 24) {
                             // Header
@@ -94,6 +77,11 @@ public struct PaywallView: View {
                         .padding(.horizontal, Spacing.xlarge)
                         .padding(.vertical, Spacing.large)
                     }
+                } else {
+                    // No products available - show minimal UI while alert displays
+                    // The alert will auto-dismiss the paywall
+                    Color.clear
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .navigationTitle("Ritualist Pro")
@@ -149,6 +137,31 @@ public struct PaywallView: View {
             }
         } message: {
             Text(offerCodeErrorMessage ?? "Unable to redeem offer code. Please try again.")
+        }
+        .alert("Unable to Load Subscriptions", isPresented: $showingProductsUnavailableAlert) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("We couldn't load subscription options. Please check your internet connection and try again later.")
+        }
+        .onChange(of: vm.isLoading) { wasLoading, isLoading in
+            // When loading completes (was loading, now not loading)
+            // and no products were loaded, show alert and dismiss
+            if wasLoading && !isLoading && !vm.hasProducts {
+                showingProductsUnavailableAlert = true
+            }
+        }
+        .task {
+            // Check on appear: if not loading and no products, show alert
+            // This catches the case where loading completed before view appeared
+            if !vm.isLoading && !vm.hasProducts {
+                // Small delay to let the view render first
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+                if !vm.hasProducts {
+                    showingProductsUnavailableAlert = true
+                }
+            }
         }
     }
     
@@ -313,13 +326,24 @@ public struct PaywallView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(GradientTokens.purchaseButton)
+                .background(vm.canPurchase ? GradientTokens.purchaseButton : GradientTokens.disabledButton)
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.xlarge))
             }
-            .disabled(vm.isPurchasing || vm.selectedProduct == nil)
-            
-            if let trialText = trialInfoText {
+            .disabled(!vm.canPurchase)
+
+            // Show helper text based on state
+            if !vm.hasProducts && !vm.isLoading {
+                Text("Unable to load products. Please check your connection and try again.")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                    .multilineTextAlignment(.center)
+            } else if vm.selectedProduct == nil && vm.hasProducts {
+                Text("Select a plan above to continue")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            } else if let trialText = trialInfoText {
                 Text(trialText)
                     .font(.caption)
                     .foregroundColor(.secondary)

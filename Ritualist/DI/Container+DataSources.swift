@@ -21,6 +21,25 @@ extension Container {
                 UserDefaults.standard.set(false, forKey: UserDefaultsKeys.allFeaturesEnabledCache)
                 #endif
 
+                // CRITICAL: Set up secure premium check provider BEFORE PersistenceContainer is created
+                // This ensures iCloud sync decision is based on StoreKit (secure) not UserDefaults (insecure)
+                //
+                // SECURITY: In production builds, we query StoreKit's Transaction.currentEntitlements
+                // which are cryptographically signed by Apple and cannot be forged.
+                // In development builds (ALL_FEATURES_ENABLED), we use the mock service.
+                #if ALL_FEATURES_ENABLED
+                // Development: Use mock for all-features testing
+                PersistenceContainer.premiumCheckProvider = {
+                    MockSecureSubscriptionService.isPremiumFromCache()
+                }
+                #else
+                // Production: Use secure StoreKit check
+                // This queries Transaction.currentEntitlements directly - cannot be bypassed
+                PersistenceContainer.premiumCheckProvider = {
+                    StoreKitSubscriptionService.isPremiumFromStoreKit()
+                }
+                #endif
+
                 // CRITICAL: Execute pending restore BEFORE creating ModelContainer
                 // This avoids SQLite integrity violations from replacing open database files
                 let backupManager = RitualistCore.BackupManager()

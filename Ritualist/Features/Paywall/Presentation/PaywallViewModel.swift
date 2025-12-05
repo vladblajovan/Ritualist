@@ -40,6 +40,17 @@ public final class PaywallViewModel {
         error?.localizedDescription ?? purchaseState.errorMessage
     }
 
+    /// Whether products are available for purchase
+    public var hasProducts: Bool {
+        !products.isEmpty
+    }
+
+    /// Whether the purchase button should be enabled
+    /// Requires: not currently purchasing, products loaded, and a product selected
+    public var canPurchase: Bool {
+        !isPurchasing && hasProducts && selectedProduct != nil
+    }
+
     // MARK: - Offer Code Properties
 
     /// Current state of offer code redemption from the paywall service

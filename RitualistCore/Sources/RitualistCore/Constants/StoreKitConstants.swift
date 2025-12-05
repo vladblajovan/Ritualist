@@ -67,10 +67,12 @@ public enum StoreKitProductID {
         lifetime
     ]
 
-    /// All product IDs (subscriptions + non-consumables)
+    /// All product IDs available for purchase
     ///
     /// Use this for loading all products from StoreKit in one request.
-    public static let allProducts: [String] = subscriptionProducts + nonConsumableProducts
+    /// Note: Currently only subscription products are available.
+    /// Lifetime was removed from App Store Connect offerings.
+    public static let allProducts: [String] = subscriptionProducts
 
     // MARK: - Subscription Group
 

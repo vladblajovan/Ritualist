@@ -81,15 +81,36 @@ public final class StoreKitPaywallService: PaywallService {
 
     public func loadProducts() async throws -> [RitualistCore.Product] {
         do {
+            // Log the product IDs we're requesting
+            let requestedIDs = StoreKitProductID.allProducts
+            logger.log(
+                "📦 Loading products from StoreKit - Requesting IDs: \(requestedIDs)",
+                level: .debug,
+                category: .subscription
+            )
+
             // Load products from App Store using product IDs from StoreKitConstants
-            storeProducts = try await StoreKit.Product.products(for: StoreKitProductID.allProducts)
+            storeProducts = try await StoreKit.Product.products(for: requestedIDs)
+
+            // Log what we received
+            logger.log(
+                "📦 StoreKit returned \(storeProducts.count) products: \(storeProducts.map { $0.id })",
+                level: .debug,
+                category: .subscription
+            )
 
             // Map StoreKit products to domain Product entities
             let products = storeProducts.compactMap { storeProduct -> RitualistCore.Product? in
                 mapStoreProduct(storeProduct)
             }
 
-            // Sort: Annual (popular) first, then monthly, then lifetime
+            logger.log(
+                "📦 Mapped to \(products.count) domain products",
+                level: .debug,
+                category: .subscription
+            )
+
+            // Sort: Annual (popular) first, then monthly, then weekly
             return products.sorted { product1, product2 in
                 if product1.isPopular { return true }
                 if product2.isPopular { return false }
@@ -97,7 +118,12 @@ public final class StoreKitPaywallService: PaywallService {
             }
 
         } catch {
-            // Handle StoreKit errors
+            // Handle StoreKit errors with detailed logging
+            logger.log(
+                "❌ StoreKit loadProducts failed: \(error.localizedDescription) - Error type: \(type(of: error))",
+                level: .error,
+                category: .subscription
+            )
             throw PaywallError.productsNotAvailable
         }
     }
@@ -296,6 +322,8 @@ public final class StoreKitPaywallService: PaywallService {
         let duration: ProductDuration
         if let subscription = storeProduct.subscription {
             switch subscription.subscriptionPeriod.unit {
+            case .week:
+                duration = .weekly
             case .month:
                 duration = .monthly
             case .year:
@@ -361,6 +389,11 @@ public final class StoreKitPaywallService: PaywallService {
                 "No recurring charges",
                 "Premium support forever",
                 "Exclusive lifetime features"
+            ]
+        } else if product.id == StoreKitProductID.weekly {
+            // Weekly - minimal features for trial-like experience
+            return baseFeatures + [
+                "Try premium risk-free"
             ]
         } else {
             // Monthly

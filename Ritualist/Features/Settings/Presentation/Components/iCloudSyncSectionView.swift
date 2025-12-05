@@ -10,7 +10,19 @@ struct ICloudSyncSectionView: View {
 
     var body: some View {
         Section {
-            if vm.isPremiumUser {
+            if vm.isLoading {
+                // MARK: - Loading State
+                HStack {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Loading...")
+                        .foregroundStyle(.secondary)
+                }
+            } else if !vm.iCloudStatus.canSync {
+                // MARK: - iCloud Not Available (any user)
+
+                iCloudSetupPrompt
+            } else if vm.isPremiumUser {
                 // MARK: - Premium User: Show Toggle
 
                 Toggle("Enable iCloud Sync", isOn: Binding(
@@ -32,22 +44,17 @@ struct ICloudSyncSectionView: View {
                 } else if vm.iCloudSyncEnabled {
                     syncStatusContent
                 }
-            } else if vm.iCloudStatus.canSync {
+            } else {
                 // MARK: - Free User with iCloud Available (local-only, no sync)
 
-                // Free users have local-only storage, so don't show sync status
-                // which would be misleading since their data is NOT syncing
-                Text("Your habits are stored locally on this device.")
-                    .foregroundStyle(.secondary)
-
-                // Upgrade prompt for free users
-                Text("Upgrade to Pro to sync your habits across all your devices.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                // MARK: - iCloud Not Available
-
-                iCloudSetupPrompt
+                UpgradeBannerView(
+                    subtitle: "Sync your habits across all your devices",
+                    onUpgradeTap: {
+                        Task {
+                            await vm.showPaywall()
+                        }
+                    }
+                )
             }
         } header: {
             Text("iCloud Sync")
@@ -105,32 +112,16 @@ struct ICloudSyncSectionView: View {
 
     @ViewBuilder
     private var iCloudSetupPrompt: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.icloud")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
+        HStack {
+            Label("iCloud Not Available", systemImage: "icloud.slash")
+                .foregroundStyle(.orange)
 
-            Text(Strings.ICloudSync.setupTitle)
-                .font(.headline)
-
-            Text(Strings.ICloudSync.setupDescription)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            } label: {
-                Text(Strings.Settings.openSettings)
-            }
-            .buttonStyle(.borderedProminent)
-            .padding(.top, 4)
+            Spacer()
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+
+        Text("Sign in to iCloud in Settings → Apple ID.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     // MARK: - Status Indicator
