@@ -145,30 +145,17 @@ if [ -f "$CHANGELOG" ]; then
     echo "⚠️  Please edit CHANGELOG.md to add release notes"
 fi
 
-# Create git commit (pre-commit hook will NOT run for version files since they're not Localizable.xcstrings)
-echo ""
-echo "Creating git commit..."
-git add "$VERSION_FILE" "$CORE_VERSION_FILE" "$PACKAGE_SWIFT" "$PROJECT_FILE" "$CHANGELOG"
-git commit -m "$(cat <<EOF
-chore: bump version to $NEW_VERSION
-
-- Updated VERSION files
-- Updated Package.swift version comment
-- Updated Xcode project MARKETING_VERSION
-- Added CHANGELOG entry for $NEW_VERSION
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-EOF
-)"
-
-echo "✓ Git commit created"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "✅ Version bumped to $NEW_VERSION"
+echo ""
 echo "📋 Next steps:"
 echo ""
 echo "1. Edit CHANGELOG.md to add release notes"
-echo "2. Amend the commit if needed: git commit --amend"
-echo "3. Push to main: git push"
+echo "2. Stage and commit when ready:"
+echo "   git add VERSION RitualistCore/VERSION RitualistCore/Package.swift"
+echo "   git add Ritualist.xcodeproj/project.pbxproj CHANGELOG.md"
+echo "   git commit -m \"chore: bump version to $NEW_VERSION\""
 echo ""
 echo "🏷️  Git tag v$NEW_VERSION will be created automatically"
 echo "   by GitHub Actions when pushed to main."
