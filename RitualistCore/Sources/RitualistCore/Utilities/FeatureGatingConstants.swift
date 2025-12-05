@@ -33,6 +33,8 @@ public enum FeatureGatingConstants {
             return Messages.customReminders
         case .dataExport:
             return Messages.dataExport
+        case .iCloudSync:
+            return Messages.iCloudSync
         }
     }
 
@@ -51,5 +53,8 @@ public enum FeatureGatingConstants {
 
         /// Message shown when user tries to export their data
         static let dataExport = "Export your habit data with Ritualist Pro. Download your progress as CSV files."
+
+        /// Message shown when user tries to access iCloud sync
+        static let iCloudSync = "iCloud sync keeps your habits in sync across all your devices. Upgrade to Pro to enable cloud sync."
     }
 }

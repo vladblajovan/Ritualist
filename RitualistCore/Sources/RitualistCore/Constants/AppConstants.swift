@@ -22,6 +22,11 @@ public enum UserDefaultsKeys {
     /// Key for tracking if we've shown the first iCloud sync toast
     public static let hasShownFirstSyncToast = "com.ritualist.hasShownFirstSyncToast"
 
+    /// Key for user's iCloud sync preference (premium feature)
+    /// Default: true (opt-out model - sync enabled by default for premium users)
+    /// Change takes effect on next app launch (requires restart)
+    public static let iCloudSyncEnabled = "com.ritualist.iCloudSyncEnabled"
+
     // MARK: - Schema Migration
 
     /// Key for storing the last schema version for migration tracking
@@ -69,6 +74,20 @@ public enum UserDefaultsKeys {
     /// Key for tracking if predefined categories have been seeded
     /// Must be cleared when user deletes all data to allow re-seeding on next launch
     public static let categorySeedingCompleted = "com.ritualist.categories.seedingCompleted"
+
+    // MARK: - Mock/Debug
+
+    /// Key for storing mock purchases (used by MockSecureSubscriptionService)
+    /// Also used by PersistenceContainer to determine premium status at startup
+    public static let mockPurchases = "secure_mock_purchases"
+
+    // MARK: - Build Configuration
+
+    /// Key for caching build configuration from main app target
+    /// Set by main app at launch BEFORE DI initialization
+    /// This bridges the compile-time ALL_FEATURES_ENABLED flag to RitualistCore (Swift Package)
+    /// which cannot see the flag directly due to Swift Package compilation isolation
+    public static let allFeaturesEnabledCache = "com.ritualist.allFeaturesEnabled"
 }
 
 // MARK: - Notification Names

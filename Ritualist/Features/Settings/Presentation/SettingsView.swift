@@ -14,26 +14,26 @@ public struct SettingsRoot: View {
             .task {
                 await vm.load()
             }
+            .onAppear {
+                vm.setViewVisible(true)
+            }
+            .onDisappear {
+                vm.setViewVisible(false)
+                vm.markViewDisappeared()
+            }
+            .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
+                // When view becomes visible (tab switch), reload to pick up changes from other tabs
+                // Skip on initial appear - the .task modifier handles initial load.
+                if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+                    Task {
+                        logger.log("Tab switch detected: Reloading settings data", level: .debug, category: .ui)
+                        await vm.reload()
+                    }
+                }
+            }
             .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                 // Auto-refresh when iCloud syncs new data from another device
                 // This updates profile name, avatar, appearance, and timezone settings
-                // Skip reload if a toast is showing to avoid interrupting the toast animation
-                guard !vm.isToastActive else {
-                    logger.log(
-                        "☁️ iCloud sync detected - deferring Settings refresh (toast active)",
-                        level: .debug,
-                        category: .system
-                    )
-                    // Schedule refresh after toast dismisses (toast duration is ~3-4 seconds)
-                    Task {
-                        try? await Task.sleep(for: .seconds(4))
-                        // Only refresh if toast has actually dismissed
-                        if !vm.isToastActive {
-                            await vm.reload()
-                        }
-                    }
-                    return
-                }
                 Task {
                     logger.log(
                         "☁️ iCloud sync detected - refreshing Settings",

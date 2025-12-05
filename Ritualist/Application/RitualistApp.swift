@@ -953,9 +953,25 @@ import CloudKit
     /// - App launch: Ensures latest profile is loaded from cloud
     /// - App becomes active: Syncs changes made on other devices while this app was backgrounded
     ///
+    /// Only runs if CloudKit sync is active (premium user with sync enabled).
     /// Failures are handled gracefully and logged but do not block app functionality.
     /// Users can always manually sync from Settings if automatic sync fails.
     private func syncWithCloudIfAvailable() async {
+        // Check if CloudKit sync is actually active
+        // Free users have local-only storage, so auto-sync would be a no-op
+        let isPremium = MockSecureSubscriptionService.isPremiumFromCache()
+        let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
+
+        guard isPremium && syncPreference else {
+            logger.log(
+                "⏭️ Skipping auto-sync - CloudKit sync not active",
+                level: .debug,
+                category: .system,
+                metadata: ["is_premium": isPremium, "sync_preference": syncPreference]
+            )
+            return
+        }
+
         do {
             logger.log(
                 "☁️ Auto-syncing with iCloud",
@@ -967,15 +983,16 @@ import CloudKit
             // Update last sync timestamp so Settings UI shows correct "Last Synced" time
             await updateLastSyncDate.execute(Date())
 
-            // Get iCloud status for logging
-            let iCloudStatus = await checkiCloudStatus.execute()
+            // Get iCloud account status for logging
+            // Note: This is the user's iCloud account status, not our app's sync configuration
+            let iCloudAccountStatus = await checkiCloudStatus.execute()
 
             logger.log(
                 "✅ Auto-sync completed successfully",
                 level: .info,
                 category: .system,
                 metadata: [
-                    "icloud_status": iCloudStatus.displayMessage,
+                    "icloud_account": iCloudAccountStatus.displayMessage,
                     "cloudkit_container": iCloudConstants.containerIdentifier
                 ]
             )

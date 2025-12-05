@@ -167,10 +167,10 @@ public final class OnboardingViewModel {
         // Track permission request
         userActionTracker.track(.onboardingLocationPermissionRequested)
 
-        // Request "When In Use" permission during onboarding.
-        // If user later enables location-based habits, they'll be prompted to upgrade
-        // to "Always" permission in the habit detail screen (progressive permission flow).
-        _ = await requestLocationPermissions.execute(requestAlways: false)
+        // Request "Always" permission during onboarding.
+        // This pre-authorizes location for habits synced from iCloud that may have
+        // location-based reminders. Also enables geofence monitoring for new habits.
+        _ = await requestLocationPermissions.execute(requestAlways: true)
 
         // Check status after request
         let locationStatus = await getLocationAuthStatus.execute()

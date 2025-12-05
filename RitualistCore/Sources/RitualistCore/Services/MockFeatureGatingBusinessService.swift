@@ -31,7 +31,11 @@ public final class MockFeatureGatingBusinessService: FeatureGatingBusinessServic
     public var hasDataExport: Bool {
         get async { true }
     }
-    
+
+    public var hasICloudSync: Bool {
+        get async { true }
+    }
+
     public var hasPremiumThemes: Bool {
         get async { true }
     }

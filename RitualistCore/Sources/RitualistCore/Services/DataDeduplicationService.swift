@@ -452,8 +452,9 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
             // Sort profiles to determine which one to keep:
             // 1. Prefer profiles with a name set
             // 2. Prefer profiles with avatar data
-            // 3. Prefer most recently updated
-            // 4. Prefer oldest created (original profile)
+            // 3. Prefer profiles with meaningful demographics (not "prefer_not_to_say")
+            // 4. Prefer most recently updated
+            // 5. Prefer oldest created (original profile)
             let sorted = allProfiles.sorted { profile1, profile2 in
                 // Primary: prefer profile with name
                 let hasName1 = !profile1.name.isEmpty
@@ -469,12 +470,20 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                     return hasAvatar1
                 }
 
-                // Tertiary: prefer most recently updated
+                // Tertiary: prefer profile with meaningful demographics
+                // "prefer_not_to_say" is valid but less informative than actual values
+                let hasMeaningfulGender1 = profile1.gender != nil && profile1.gender != "prefer_not_to_say"
+                let hasMeaningfulGender2 = profile2.gender != nil && profile2.gender != "prefer_not_to_say"
+                if hasMeaningfulGender1 != hasMeaningfulGender2 {
+                    return hasMeaningfulGender1
+                }
+
+                // Quaternary: prefer most recently updated
                 if profile1.updatedAt != profile2.updatedAt {
                     return profile1.updatedAt > profile2.updatedAt
                 }
 
-                // Quaternary: prefer oldest created (the original)
+                // Quinary: prefer oldest created (the original)
                 return profile1.createdAt < profile2.createdAt
             }
 
@@ -494,12 +503,17 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                     toKeep.avatarImageData = duplicate.avatarImageData
                 }
 
-                // V11: Merge demographics if keeper is missing them
-                if toKeep.gender == nil && duplicate.gender != nil {
+                // V11: Merge demographics if keeper is missing meaningful values
+                // Prefer actual values over "prefer_not_to_say"
+                let keeperHasMeaningfulGender = toKeep.gender != nil && toKeep.gender != "prefer_not_to_say"
+                let duplicateHasMeaningfulGender = duplicate.gender != nil && duplicate.gender != "prefer_not_to_say"
+                if !keeperHasMeaningfulGender && duplicateHasMeaningfulGender {
                     toKeep.gender = duplicate.gender
                 }
 
-                if toKeep.ageGroup == nil && duplicate.ageGroup != nil {
+                let keeperHasMeaningfulAgeGroup = toKeep.ageGroup != nil && toKeep.ageGroup != "prefer_not_to_say"
+                let duplicateHasMeaningfulAgeGroup = duplicate.ageGroup != nil && duplicate.ageGroup != "prefer_not_to_say"
+                if !keeperHasMeaningfulAgeGroup && duplicateHasMeaningfulAgeGroup {
                     toKeep.ageGroup = duplicate.ageGroup
                 }
 

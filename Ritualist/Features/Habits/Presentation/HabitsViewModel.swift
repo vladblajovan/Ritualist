@@ -57,6 +57,7 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     public var showingHabitAssistant = false
     public var shouldReopenAssistantAfterPaywall = false
     public var isHandlingPaywallDismissal = false
+    public var pendingPaywallAfterAssistantDismiss = false
     
     // MARK: - Paywall Protection
     
@@ -358,17 +359,17 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
             showingCreateHabit = true
         } else {
             // Show paywall for users who hit the limit
-            showPaywall()
+            Task {
+                await showPaywall()
+            }
         }
     }
     
     /// Show paywall
-    public func showPaywall() {
-        Task {
-            await paywallViewModel.load()
-            paywallViewModel.trackPaywallShown(source: "habits", trigger: "habit_limit")
-            paywallItem = PaywallItem(viewModel: paywallViewModel)
-        }
+    public func showPaywall() async {
+        await paywallViewModel.load()
+        paywallViewModel.trackPaywallShown(source: "habits", trigger: "habit_limit")
+        paywallItem = PaywallItem(viewModel: paywallViewModel)
     }
     
     /// Handle when create habit sheet is dismissed - refresh data
@@ -475,14 +476,12 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         showingHabitAssistant = true
     }
     
-    /// Show paywall from assistant (sets flag to reopen assistant after)
-    public func showPaywallFromAssistant() {
+    /// Dismiss assistant and show paywall (called from assistant's upgrade button)
+    /// Sets flag to show paywall after assistant dismissal completes
+    public func dismissAssistantAndShowPaywall() {
+        pendingPaywallAfterAssistantDismiss = true
         shouldReopenAssistantAfterPaywall = true
-        Task {
-            await paywallViewModel.load()
-            paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
-            paywallItem = PaywallItem(viewModel: paywallViewModel)
-        }
+        showingHabitAssistant = false
     }
     
     /// Handle paywall dismissal
@@ -509,10 +508,20 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         }
     }
     
-    /// Handle when assistant sheet is dismissed - refresh data
+    /// Handle when assistant sheet is dismissed - refresh data and show pending paywall
     public func handleAssistantDismissal() {
         Task {
             await refresh()
+        }
+
+        // Check if we need to show paywall after assistant dismissal
+        if pendingPaywallAfterAssistantDismiss {
+            pendingPaywallAfterAssistantDismiss = false
+            // Small delay to let the sheet dismissal animation complete
+            Task {
+                try? await Task.sleep(for: .milliseconds(350))
+                await showPaywall()
+            }
         }
     }
     

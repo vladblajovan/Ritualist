@@ -67,7 +67,6 @@ private struct HabitsContentView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
     @Binding var showingCategoryManagement: Bool
-    @State private var paywallDelayTask: Task<Void, Never>?
 
     // Constants
     private let rightEdgeInset: CGFloat = 15
@@ -164,17 +163,10 @@ private struct HabitsContentView: View {
                 HabitsAssistantSheet(
                     existingHabits: vm.items,
                     onShowPaywall: {
-                        // Dismiss Assistant and show paywall
-                        vm.showingHabitAssistant = false
-                        paywallDelayTask?.cancel()
-                        paywallDelayTask = Task {
-                            try? await Task.sleep(for: .milliseconds(300))
-                            vm.showPaywall()
-                        }
+                        vm.dismissAssistantAndShowPaywall()
                     }
                 )
                 .onDisappear {
-                    paywallDelayTask?.cancel()
                     vm.handleAssistantDismissal()
                 }
             }
@@ -280,7 +272,9 @@ private struct HabitsListView: View {
                                 currentCount: vm.habitsData.totalHabitsCount,
                                 maxCount: vm.freeMaxHabits,
                                 onUpgradeTap: {
-                                    vm.showPaywall()
+                                    Task {
+                                        await vm.showPaywall()
+                                    }
                                 }
                             )
                             .padding(.vertical, Spacing.small)

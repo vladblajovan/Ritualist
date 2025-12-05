@@ -22,6 +22,8 @@ public final class SettingsViewModel {
     private let deleteiCloudData: DeleteiCloudDataUseCase
     private let exportUserData: ExportUserDataUseCase
     private let importUserData: ImportUserDataUseCase
+    private let getICloudSyncPreference: GetICloudSyncPreferenceUseCase
+    private let setICloudSyncPreference: SetICloudSyncPreferenceUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
@@ -32,6 +34,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.dailyNotificationScheduler) var dailyNotificationScheduler
     @ObservationIgnored @Injected(\.toastService) var toastService
     @ObservationIgnored @Injected(\.onboardingViewModel) var onboardingViewModel
+    @ObservationIgnored @Injected(\.deduplicateData) var deduplicateData
 
     #if DEBUG
     private let populateTestData: PopulateTestDataUseCase?
@@ -79,6 +82,14 @@ public final class SettingsViewModel {
     /// Track if initial data has been loaded to prevent duplicate loads during startup
     @ObservationIgnored private var hasLoadedInitialData = false
 
+    // MARK: - View Visibility Tracking (for tab switch refresh)
+
+    /// Track view visibility for tab switch detection
+    public var isViewVisible: Bool = false
+
+    /// Track if view has disappeared at least once (to distinguish initial appear from tab switch)
+    @ObservationIgnored private var viewHasDisappearedOnce = false
+
     // Cache premium status to avoid async issues
     private var cachedPremiumStatus = false
 
@@ -105,6 +116,27 @@ public final class SettingsViewModel {
         cachedSubscriptionExpiryDate
     }
 
+    /// Whether iCloud sync is enabled (user preference)
+    /// Only premium users can toggle this; free users always have sync enabled by default
+    public var iCloudSyncEnabled: Bool {
+        getICloudSyncPreference.execute()
+    }
+
+    /// Set iCloud sync preference (requires app restart to take effect)
+    public func setICloudSyncEnabled(_ enabled: Bool) {
+        setICloudSyncPreference.execute(enabled)
+        userActionTracker.track(.custom(
+            event: "icloud_sync_toggled",
+            parameters: ["enabled": enabled]
+        ))
+        logger.log(
+            "☁️ iCloud sync preference changed",
+            level: .info,
+            category: .system,
+            metadata: ["enabled": enabled, "requires_restart": true]
+        )
+    }
+
     public init(loadProfile: LoadProfileUseCase,
                 saveProfile: SaveProfileUseCase,
                 requestNotificationPermission: RequestNotificationPermissionUseCase,
@@ -121,6 +153,8 @@ public final class SettingsViewModel {
                 deleteiCloudData: DeleteiCloudDataUseCase,
                 exportUserData: ExportUserDataUseCase,
                 importUserData: ImportUserDataUseCase,
+                getICloudSyncPreference: GetICloudSyncPreferenceUseCase,
+                setICloudSyncPreference: SetICloudSyncPreferenceUseCase,
                 populateTestData: (any Any)? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
@@ -138,6 +172,8 @@ public final class SettingsViewModel {
         self.deleteiCloudData = deleteiCloudData
         self.exportUserData = exportUserData
         self.importUserData = importUserData
+        self.getICloudSyncPreference = getICloudSyncPreference
+        self.setICloudSyncPreference = setICloudSyncPreference
         #if DEBUG
         self.populateTestData = populateTestData as? PopulateTestDataUseCase
         #endif
@@ -164,11 +200,41 @@ public final class SettingsViewModel {
         await performLoad()
     }
 
+    // MARK: - View Visibility Methods
+
+    /// Mark that view has disappeared (for tab switch detection)
+    public func markViewDisappeared() {
+        viewHasDisappearedOnce = true
+    }
+
+    /// Check if this is a tab switch (view returning after having left)
+    /// Returns false on initial appear, true on subsequent appears after disappearing
+    public var isReturningFromTabSwitch: Bool {
+        viewHasDisappearedOnce
+    }
+
+    /// Set view visibility state
+    public func setViewVisible(_ visible: Bool) {
+        isViewVisible = visible
+    }
+
     /// Internal load implementation
     private func performLoad() async {
         isLoading = true
         error = nil
         do {
+            // Run deduplication before loading profile to ensure we get the correct one
+            // This handles cases where CloudKit sync created duplicate profiles
+            let dedupResult = try await deduplicateData.execute()
+            if dedupResult.profilesRemoved > 0 {
+                logger.log(
+                    "⚙️ Settings: Cleaned up duplicate profiles before load",
+                    level: .info,
+                    category: .dataIntegrity,
+                    metadata: ["profiles_removed": dedupResult.profilesRemoved]
+                )
+            }
+
             profile = try await loadProfile.execute()
             await loadStatusesInParallel()
             hasLoadedInitialData = true
@@ -739,12 +805,10 @@ extension SettingsViewModel {
 
 extension SettingsViewModel {
     /// Show paywall for subscription management
-    public func showPaywall() {
-        Task {
-            await paywallViewModel.load()
-            paywallViewModel.trackPaywallShown(source: "settings", trigger: "subscribe_button")
-            paywallItem = PaywallItem(viewModel: paywallViewModel)
-        }
+    public func showPaywall() async {
+        await paywallViewModel.load()
+        paywallViewModel.trackPaywallShown(source: "settings", trigger: "subscribe_button")
+        paywallItem = PaywallItem(viewModel: paywallViewModel)
     }
 
     /// Refresh subscription status from service after purchase
