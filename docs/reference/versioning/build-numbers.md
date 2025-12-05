@@ -1,166 +1,167 @@
-# Automated Build Number Setup
+# Build Numbers
 
 ## Overview
 
-The build number is automatically calculated from git commit count using `Scripts/set-build-number.sh`. To enable automatic updates on every build, add it as an Xcode build phase.
+Build numbers are managed via a **monotonically increasing `BUILD_NUMBER` file** and updated automatically by a git pre-commit hook. This ensures build numbers never decrease, even when working on parallel branches.
 
-**Current Build Number:** Matches git commit count (currently 148)
+**Current Build Number:** Check `BUILD_NUMBER` file (currently 216)
 
-## Quick Setup (30 seconds)
+## Why Not Git Commit Count?
 
-### Add Build Phase in Xcode
+The previous approach (`git rev-list --count HEAD`) had a critical flaw with parallel branches:
 
-1. **Open Xcode** and select the Ritualist project
+```
+Branch A: 200 base + 5 commits = 205
+Branch B: 200 base + 3 commits = 203
+If B merges first, then A merges → build numbers could DECREASE
+```
 
-2. **Select the Ritualist target** (not RitualistWidgetExtension)
-
-3. **Go to Build Phases tab**
-
-4. **Click the (+) button** → "New Run Script Phase"
-
-5. **Rename the phase:**
-   - Double-click "Run Script" → rename to "Auto Build Number"
-
-6. **Drag it to the top** (before "Compile Sources")
-   - This ensures build number updates before compilation
-
-7. **Add the script:**
-   ```bash
-   # Auto-set build number from git commits
-   ${SOURCE_ROOT}/Scripts/set-build-number.sh
-   ```
-
-8. **Configure settings:**
-   - ✅ Check "Based on dependency analysis" (optional, for speed)
-   - Shell: `/bin/sh` (default)
-
-9. **Build the project** (⌘+B)
-   - You should see: "🔢 Auto Build Number: XXX" in build log
-
-### Verify It Works
-
-1. **Check current build:**
-   ```bash
-   # Should show 148 (or current commit count)
-   git rev-list --count HEAD
-   ```
-
-2. **Make a test commit:**
-   ```bash
-   git commit --allow-empty -m "test: verify build number increment"
-   ```
-
-3. **Build in Xcode** (⌘+B)
-   - Build number should now be 149
-
-4. **Check Settings app:**
-   - Settings → About → Build: (149)
+App Store requires **strictly increasing** build numbers. The `BUILD_NUMBER` file approach solves this.
 
 ## How It Works
 
-### Build Number Calculation
-```bash
-BUILD_NUMBER=$(git rev-list --count HEAD)
+### Pre-Commit Hook (Primary Method)
+
+On every commit, the pre-commit hook:
+
+1. Reads current value from `BUILD_NUMBER` file
+2. Increments by 1
+3. Updates `BUILD_NUMBER` file
+4. Updates all `CURRENT_PROJECT_VERSION` in `project.pbxproj`
+5. Stages both files for inclusion in the commit
+
+```
+📦 Build number: 217
 ```
 
-- **Always incrementing** (required by App Store)
-- **Unique per commit**
-- **Traceable** to exact source code state
+### Installation
 
-### What the Script Does
+The pre-commit hook should already be installed. To verify:
 
-1. Calculates commit count from git
-2. Updates `CURRENT_PROJECT_VERSION` in project settings
-3. Updates `CFBundleVersion` in Info.plist during build
+```bash
+ls -la .git/hooks/pre-commit
+```
+
+If missing, install it:
+
+```bash
+cp Scripts/pre-commit-hook.sh .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+## Xcode Build Phase (Optional)
+
+For extra safety, you can also add a build phase in Xcode. This is optional since the pre-commit hook handles it.
+
+### Add Build Phase
+
+1. Open Xcode, select Ritualist project
+2. Select Ritualist target
+3. Go to Build Phases tab
+4. Click (+) → "New Run Script Phase"
+5. Rename to "Auto Build Number"
+6. Drag to top (before "Compile Sources")
+7. Add script:
+   ```bash
+   ${SOURCE_ROOT}/Scripts/set-build-number.sh
+   ```
 
 ### Build Log Output
 
 When working:
 ```
-🔢 Auto Build Number: 148 (from /Users/.../Ritualist)
-✅ Updated Info.plist CFBundleVersion to 148
+🔢 Auto Build Number: 217 (from /Users/.../Ritualist)
+✅ Updated Info.plist CFBundleVersion to 217
 ```
 
 ## Troubleshooting
 
-### Build number doesn't change
+### Build number doesn't increment
 
-**Symptom:** Build number stays at 1 or old value
+**Check 1:** Is pre-commit hook installed?
+```bash
+ls -la .git/hooks/pre-commit
+cat .git/hooks/pre-commit
+```
 
-**Fixes:**
-1. Verify script is executable:
-   ```bash
-   chmod +x Scripts/set-build-number.sh
-   ```
+**Check 2:** Is BUILD_NUMBER file present?
+```bash
+cat BUILD_NUMBER
+```
 
-2. Check script is in build phases (see setup above)
+**Fix:** Reinstall hook or create BUILD_NUMBER:
+```bash
+cp Scripts/pre-commit-hook.sh .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+echo "216" > BUILD_NUMBER
+```
 
-3. Clean build folder: Product → Clean Build Folder (⌘+Shift+K)
+### BUILD_NUMBER file missing
 
-4. Rebuild: Product → Build (⌘+B)
+The hook will auto-create it from git commit count:
+```bash
+# Or manually
+echo "$(git rev-list --count HEAD)" > BUILD_NUMBER
+git add BUILD_NUMBER
+```
+
+### Build number decreases across branches
+
+This shouldn't happen with the new system. But if you see old build numbers:
+
+1. Check you have the latest main: `git fetch origin main`
+2. Merge main into your branch: `git merge origin/main`
+3. The BUILD_NUMBER file from main will be merged in
+4. Next commit will increment from the higher value
 
 ### Script not found error
 
 **Error:** `Scripts/set-build-number.sh: No such file or directory`
 
-**Fix:** Script uses `${SOURCE_ROOT}` which should point to project root. Verify:
+**Fix:** Verify the script exists:
 ```bash
 ls Scripts/set-build-number.sh
-```
-
-### Build number is wrong
-
-**Symptom:** Build number doesn't match commit count
-
-**Debug:**
-```bash
-# Check commit count
-git rev-list --count HEAD
-
-# Run script manually
-./Scripts/set-build-number.sh
-
-# Check what was set
-grep "CURRENT_PROJECT_VERSION" Ritualist.xcodeproj/project.pbxproj | head -1
+chmod +x Scripts/set-build-number.sh
 ```
 
 ## Manual Update
 
-If you need to update build number without building:
+If you need to force a specific build number:
 
 ```bash
-# Update to current commit count
-./Scripts/set-build-number.sh
+# Set specific number
+echo "250" > BUILD_NUMBER
 
-# Verify
-grep "CURRENT_PROJECT_VERSION" Ritualist.xcodeproj/project.pbxproj | head -1
+# Update project.pbxproj
+sed -i '' 's/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = 250;/g' Ritualist.xcodeproj/project.pbxproj
+
+# Stage files
+git add BUILD_NUMBER Ritualist.xcodeproj/project.pbxproj
 ```
 
 ## Widget Extension
 
-The widget extension (RitualistWidgetExtension) inherits the build number from the main app automatically. No additional setup needed.
+The widget extension (RitualistWidgetExtension) uses the same `CURRENT_PROJECT_VERSION` from `project.pbxproj`, so it inherits the build number automatically.
 
-## TestFlight/App Store
+## TestFlight/App Store Requirements
 
-When uploading to TestFlight or App Store:
 - Build number MUST be higher than previous uploads
-- Git commit count ensures this automatically
+- The `BUILD_NUMBER` file approach ensures this
 - Each commit increments the build number
+- No manual intervention needed
 
-## Alternative: Manual Build Numbers
+## Files Involved
 
-If you prefer manual control:
-
-1. **Don't add the build phase**
-2. **Update manually before TestFlight uploads:**
-   ```bash
-   ./Scripts/bump-version.sh patch  # or minor/major
-   ```
-
-This is NOT recommended - easy to forget and causes upload failures.
+```
+BUILD_NUMBER                           # Source of truth (e.g., "216")
+.git/hooks/pre-commit                  # Increments on commit
+Scripts/pre-commit-hook.sh             # Reference copy of hook
+Scripts/set-build-number.sh            # Optional Xcode build phase
+Ritualist.xcodeproj/project.pbxproj    # CURRENT_PROJECT_VERSION entries
+```
 
 ## See Also
 
-- `docs/VERSIONING.md` - Complete versioning strategy
-- `Scripts/bump-version.sh` - Version bumping tool
+- `docs/reference/versioning/versioning-strategy.md` - Complete versioning strategy
+- `Scripts/bump-version.sh` - Marketing version bumping
 - `CHANGELOG.md` - Version history

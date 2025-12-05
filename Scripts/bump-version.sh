@@ -8,8 +8,20 @@
 # Usage: ./Scripts/bump-version.sh [major|minor|patch]
 # Example: ./Scripts/bump-version.sh minor  # 0.1.0 -> 0.2.0
 #
+# After pushing to main, GitHub Actions will automatically create a git tag.
+# See .github/workflows/auto-tag-version.yml
+#
 
 set -e  # Exit on error
+
+# Portable sed in-place edit (works on both macOS and Linux)
+sed_inplace() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -89,10 +101,10 @@ PACKAGE_SWIFT="${REPO_ROOT}/RitualistCore/Package.swift"
 if [ -f "$PACKAGE_SWIFT" ]; then
     # Update or add version comment at top of file
     if grep -q "// Version:" "$PACKAGE_SWIFT"; then
-        sed -i '' "s|// Version: .*|// Version: $NEW_VERSION|" "$PACKAGE_SWIFT"
+        sed_inplace "s|// Version: .*|// Version: $NEW_VERSION|" "$PACKAGE_SWIFT"
     else
         # Add version comment after the initial comment block
-        sed -i '' "1a\\
+        sed_inplace "1a\\
 // Version: $NEW_VERSION\\
 " "$PACKAGE_SWIFT"
     fi
@@ -102,7 +114,7 @@ fi
 # Update Xcode project MARKETING_VERSION
 PROJECT_FILE="${REPO_ROOT}/Ritualist.xcodeproj/project.pbxproj"
 if [ -f "$PROJECT_FILE" ]; then
-    sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = $NEW_VERSION;/" "$PROJECT_FILE"
+    sed_inplace "s/MARKETING_VERSION = .*/MARKETING_VERSION = $NEW_VERSION;/" "$PROJECT_FILE"
     echo "✓ Updated Xcode project MARKETING_VERSION"
 fi
 
@@ -133,22 +145,31 @@ if [ -f "$CHANGELOG" ]; then
     echo "⚠️  Please edit CHANGELOG.md to add release notes"
 fi
 
-# Create git commit
+# Create git commit (pre-commit hook will NOT run for version files since they're not Localizable.xcstrings)
 echo ""
 echo "Creating git commit..."
 git add "$VERSION_FILE" "$CORE_VERSION_FILE" "$PACKAGE_SWIFT" "$PROJECT_FILE" "$CHANGELOG"
-git commit -m "chore: bump version to $NEW_VERSION
+git commit -m "$(cat <<EOF
+chore: bump version to $NEW_VERSION
 
 - Updated VERSION files
 - Updated Package.swift version comment
 - Updated Xcode project MARKETING_VERSION
 - Added CHANGELOG entry for $NEW_VERSION
-"
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)"
 
 echo "✓ Git commit created"
 echo ""
-echo "Next steps:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 Next steps:"
+echo ""
 echo "1. Edit CHANGELOG.md to add release notes"
-echo "2. Amend the commit: git commit --amend"
-echo "3. Create tag: git tag -a v$NEW_VERSION -m \"Release $NEW_VERSION\""
-echo "4. Push: git push && git push --tags"
+echo "2. Amend the commit if needed: git commit --amend"
+echo "3. Push to main: git push"
+echo ""
+echo "🏷️  Git tag v$NEW_VERSION will be created automatically"
+echo "   by GitHub Actions when pushed to main."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
