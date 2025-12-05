@@ -300,7 +300,22 @@ public final class PersistenceContainer {
     /// - PersistenceContainer needs premium status to decide sync mode
     /// - DI Container registration of SubscriptionService may depend on PersistenceContainer
     private static func checkPremiumStatusFromCache() -> Bool {
-        MockSecureSubscriptionService.isPremiumFromCache()
+        // Defensive check: verify cache was set before PersistenceContainer init
+        // If cacheHasBeenSet is false, it means subscription service hasn't run yet
+        // This could indicate initialization order issues
+        let cacheWasSet = UserDefaults.standard.object(forKey: UserDefaultsKeys.cachedIsPremium) != nil
+        if !cacheWasSet {
+            logger.log(
+                "⚠️ Premium cache not set before PersistenceContainer init - using default (non-premium)",
+                level: .warning,
+                category: .system,
+                metadata: [
+                    "note": "This is expected on first launch or after cache clear. If seen repeatedly on app restart with active subscription, investigate initialization order."
+                ]
+            )
+        }
+
+        return MockSecureSubscriptionService.isPremiumFromCache()
     }
 }
 
