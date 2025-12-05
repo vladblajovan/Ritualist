@@ -225,6 +225,13 @@ public final class SettingsViewModel {
         do {
             // Run deduplication before loading profile to ensure we get the correct one
             // This handles cases where CloudKit sync created duplicate profiles
+            //
+            // Note on race conditions: If CloudKit sync completes during this call,
+            // new duplicates could arrive after dedup but before profile load.
+            // This is acceptable because:
+            // 1. The .onReceive(iCloudDidSyncRemoteChanges) will trigger reload()
+            // 2. Deduplication runs again on next load, catching any new duplicates
+            // 3. The window for this race is very small (milliseconds)
             let dedupResult = try await deduplicateData.execute()
             if dedupResult.profilesRemoved > 0 {
                 logger.log(

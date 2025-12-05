@@ -23,9 +23,23 @@ public enum UserDefaultsKeys {
     public static let hasShownFirstSyncToast = "com.ritualist.hasShownFirstSyncToast"
 
     /// Key for user's iCloud sync preference (premium feature)
-    /// Default: true (opt-out model - sync enabled by default for premium users)
+    /// Default: false (opt-in model - user must explicitly enable sync)
     /// Change takes effect on next app launch (requires restart)
     public static let iCloudSyncEnabled = "com.ritualist.iCloudSyncEnabled"
+
+    // MARK: - Premium Status Cache
+
+    /// Key for caching premium status from StoreKit2 at startup
+    /// Set by transaction observer on app launch before DI initialization
+    /// Used by PersistenceContainer to determine sync mode synchronously
+    ///
+    /// StoreKit2 Implementation:
+    /// 1. On app launch, check `Transaction.currentEntitlements`
+    /// 2. Set this key to true/false based on active subscriptions
+    /// 3. Listen for transaction updates and update the cache
+    ///
+    /// Note: Currently unused - will be needed when migrating from mock to real StoreKit2
+    public static let premiumStatusCache = "com.ritualist.premiumStatusCache"
 
     // MARK: - Schema Migration
 

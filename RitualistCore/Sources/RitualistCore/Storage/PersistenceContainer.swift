@@ -301,16 +301,18 @@ public final class PersistenceContainer {
     /// - DI Container registration of SubscriptionService may depend on PersistenceContainer
     private static func checkPremiumStatusFromCache() -> Bool {
         // Defensive check: verify cache was set before PersistenceContainer init
-        // If cacheHasBeenSet is false, it means subscription service hasn't run yet
-        // This could indicate initialization order issues
-        let cacheWasSet = UserDefaults.standard.object(forKey: UserDefaultsKeys.cachedIsPremium) != nil
+        // This check will be relevant when StoreKit2 is implemented and sets premiumStatusCache at startup
+        //
+        // Note: premiumStatusCache is not yet used - see MockSecureSubscriptionService.isPremiumFromCache()
+        // for current flow which uses allFeaturesEnabledCache and mockPurchases
+        let cacheWasSet = UserDefaults.standard.object(forKey: UserDefaultsKeys.premiumStatusCache) != nil
         if !cacheWasSet {
             logger.log(
-                "⚠️ Premium cache not set before PersistenceContainer init - using default (non-premium)",
-                level: .warning,
+                "ℹ️ Premium status cache not set - using fallback checks",
+                level: .debug,
                 category: .system,
                 metadata: [
-                    "note": "This is expected on first launch or after cache clear. If seen repeatedly on app restart with active subscription, investigate initialization order."
+                    "note": "Expected until StoreKit2 implementation. Currently using allFeaturesEnabledCache and mockPurchases."
                 ]
             )
         }
