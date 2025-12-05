@@ -35,8 +35,30 @@ struct MotivationCardDemoView: View {
         DemoScenario(title: "Afternoon Push", trigger: .afternoonPush, completion: 0.55, timeOfDay: .noon),
         DemoScenario(title: "Evening Reflection", trigger: .eveningReflection, completion: 0.70, timeOfDay: .evening),
         DemoScenario(title: "Weekend Motivation", trigger: .weekendMotivation, completion: 0.45, timeOfDay: .noon),
-        DemoScenario(title: "Comeback Story", trigger: .comebackStory, completion: 0.60, timeOfDay: .evening)
+        DemoScenario(title: "Comeback Story", trigger: .comebackStory, completion: 0.60, timeOfDay: .evening),
+        DemoScenario(title: "Empty Day - No Habits Scheduled", trigger: .emptyDay, completion: 0.0, timeOfDay: .morning)
     ]
+
+    // Demo items for carousel
+    private var carouselDemoItems: [InspirationItem] {
+        [
+            InspirationItem(
+                trigger: .strongFinish,
+                message: "75%+ achieved. Excellence within reach!",
+                slogan: "Excellence becomes your standard."
+            ),
+            InspirationItem(
+                trigger: .halfwayPoint,
+                message: "Halfway there! Keep the momentum going!",
+                slogan: "Midday momentum, unstoppable force."
+            ),
+            InspirationItem(
+                trigger: .afternoonPush,
+                message: "Final push time! You're almost there.",
+                slogan: "Finish strong, tomorrow starts now."
+            )
+        ].compactMap { $0 }
+    }
 
     var body: some View {
         NavigationStack {
@@ -106,6 +128,37 @@ struct MotivationCardDemoView: View {
                     .background(Color(.secondarySystemGroupedBackground))
                     .cornerRadius(12)
                     .padding(.horizontal, 20)
+
+                    // Carousel Demo Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Carousel Demo")
+                                .font(.headline)
+                            Spacer()
+                            Text("Swipe to navigate")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        InspirationCarouselView(
+                            items: carouselDemoItems,
+                            timeOfDay: .noon,
+                            completionPercentage: 0.65,
+                            onDismiss: { _ in },
+                            onDismissAll: {}
+                        )
+                    }
+                    .padding(16)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(12)
+                    .padding(.horizontal, 20)
+
+                    // Single Card Demos
+                    Text("Individual Card Variants")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
 
                     // Demo cards
                     ForEach(Array(demoScenarios.enumerated()), id: \.offset) { index, scenario in
@@ -187,7 +240,7 @@ struct MotivationCardDemoView: View {
     /// Load dismissed triggers from UserDefaults
     private func loadDismissedTriggers() {
         // Load dismissed triggers array
-        if let dismissedData = UserDefaults.standard.data(forKey: "dismissedTriggersToday"),
+        if let dismissedData = UserDefaults.standard.data(forKey: UserDefaultsKeys.dismissedTriggersToday),
            let dismissedArray = try? JSONDecoder().decode([String].self, from: dismissedData) {
             dismissedTriggers = dismissedArray
         } else {
@@ -195,13 +248,13 @@ struct MotivationCardDemoView: View {
         }
 
         // Load last reset date
-        lastResetDate = UserDefaults.standard.object(forKey: "lastInspirationResetDate") as? Date
+        lastResetDate = UserDefaults.standard.object(forKey: UserDefaultsKeys.lastInspirationResetDate) as? Date
     }
 
     /// Clear all dismissed triggers and reset data
     private func clearDismissedTriggers() {
-        UserDefaults.standard.removeObject(forKey: "dismissedTriggersToday")
-        UserDefaults.standard.removeObject(forKey: "lastInspirationResetDate")
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.dismissedTriggersToday)
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.lastInspirationResetDate)
         dismissedTriggers = []
         lastResetDate = nil
     }
@@ -233,6 +286,8 @@ struct MotivationCardDemoView: View {
             return "Weekend habits count too. Keep the momentum going!"
         case .comebackStory:
             return "Today's better than yesterday. That's real progress!"
+        case .emptyDay:
+            return "No habits scheduled today. A perfect time to plan ahead."
         }
     }
 
@@ -261,6 +316,8 @@ struct MotivationCardDemoView: View {
             return "Weekend winners become champions."
         case .comebackStory:
             return "Every improvement counts forward."
+        case .emptyDay:
+            return "Rest and reflection build momentum."
         }
     }
 }
@@ -292,6 +349,14 @@ struct MotivationTriggersDocumentationView: View {
                             priority: "Highest",
                             cooldown: "None",
                             color: .green
+                        )
+
+                        TriggerRow(
+                            name: "Empty Day",
+                            condition: "No habits scheduled today",
+                            priority: "Very High",
+                            cooldown: "None",
+                            color: .teal
                         )
 
                         TriggerRow(
@@ -328,7 +393,7 @@ struct MotivationTriggersDocumentationView: View {
 
                         TriggerRow(
                             name: "Afternoon Push",
-                            condition: "3-5 PM with <60% completion",
+                            condition: "3-4:59 PM with <60% completion",
                             priority: "Medium",
                             cooldown: "2 hours",
                             color: .indigo

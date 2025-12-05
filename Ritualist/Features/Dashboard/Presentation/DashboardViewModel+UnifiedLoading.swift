@@ -54,50 +54,7 @@ extension DashboardViewModel {
     }
     
     // MARK: - Data Extraction Methods (Phase 4)
-    
-    /// Extract completion statistics from unified dashboard data
-    /// Replaces initial service calls with efficient data extraction
-    func extractCompletionStats(from dashboardData: DashboardData) -> HabitCompletionStats {
-        let habits = dashboardData.habits
-        let dateRange = dashboardData.dateRange
-        
-        guard !habits.isEmpty else {
-            return HabitCompletionStats(totalHabits: 0, completedHabits: 0, completionRate: 0.0)
-        }
-        
-        // Calculate total completions across all days in range
-        var totalPossibleCompletions = 0
-        var totalActualCompletions = 0
-        var habitsWithCompletions: Set<UUID> = []
-        
-        var currentDate = dateRange.lowerBound
 
-        while currentDate <= dateRange.upperBound {
-            let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate)
-            let scheduledHabits = dashboardData.scheduledHabits(for: startOfDay)
-            let completionRate = dashboardData.completionRate(for: startOfDay)
-            
-            totalPossibleCompletions += scheduledHabits.count
-            totalActualCompletions += Int(completionRate * Double(scheduledHabits.count))
-            
-            // Track habits that had any completions on this day
-            if completionRate > 0 {
-                let completedHabitsToday = dashboardData.completedHabits(for: startOfDay)
-                habitsWithCompletions.formUnion(completedHabitsToday)
-            }
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
-        }
-        
-        let averageCompletionRate = totalPossibleCompletions > 0 ? Double(totalActualCompletions) / Double(totalPossibleCompletions) : 0.0
-        
-        return HabitCompletionStats(
-            totalHabits: habits.count,
-            completedHabits: habitsWithCompletions.count, // Fixed: Count of unique habits with completions
-            completionRate: averageCompletionRate
-        )
-    }
-    
     /// Extract habit performance data from unified dashboard data
     /// O(n) operation using pre-calculated data - no additional queries
     func extractHabitPerformanceData(from dashboardData: DashboardData) -> [HabitPerformanceViewModel] {
@@ -258,8 +215,8 @@ extension DashboardViewModel {
                     dayOfWeekStats[dayOfWeek]?.total += scheduledHabits.count
                 }
             }
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
 
         return (dayOfWeekStats, daysWithData)
@@ -300,7 +257,7 @@ extension DashboardViewModel {
     }
     
     /// Extract category breakdown from unified dashboard data
-    /// Uses pre-calculated data without additional queries
+    /// Uses DashboardData's pre-calculated category performance data
     func extractCategoryBreakdown(from dashboardData: DashboardData) -> [CategoryPerformanceViewModel] {
         let domainResults = dashboardData.categoryPerformanceData()
         return domainResults.map(CategoryPerformanceViewModel.init)

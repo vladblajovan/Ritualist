@@ -15,20 +15,25 @@ import SwiftData
 
 /// Current active schema version - UPDATE THIS WHEN MIGRATING TO A NEW SCHEMA
 ///
-/// When adding a new schema version (e.g., SchemaV7):
-/// 1. Create SchemaV7.swift with new schema definitions
-/// 2. Update MigrationPlan to include SchemaV7 and migration stage
-/// 3. Update PersistenceContainer to use SchemaV7
-/// 4. Update these type aliases below to point to V7 types
-/// 5. All data sources will automatically use the new schema!
+/// When adding a new schema version (e.g., SchemaV12):
+/// 1. Create SchemaV12.swift with new schema definitions
+/// 2. Update MigrationPlan to include SchemaV12 and migration stage
+/// 3. Update `ActiveSchemaVersion` below to point to SchemaV12
+/// 4. All type aliases and PersistenceContainer automatically use the new schema!
 
-// Current active schema: V10 (CloudKit compatible)
-public typealias ActiveHabitModel = HabitModelV10
-public typealias ActiveHabitLogModel = HabitLogModelV10
-public typealias ActiveHabitCategoryModel = HabitCategoryModelV10
-public typealias ActiveUserProfileModel = UserProfileModelV10
-public typealias ActiveOnboardingStateModel = OnboardingStateModelV10
-public typealias ActivePersonalityAnalysisModel = PersonalityAnalysisModelV10
+// MARK: - Active Schema Reference (SINGLE SOURCE OF TRUTH)
+
+/// The current active schema - UPDATE THIS SINGLE LINE WHEN MIGRATING
+public typealias ActiveSchemaVersion = SchemaV11
+
+// MARK: - Model Type Aliases (derived from ActiveSchemaVersion)
+
+public typealias ActiveHabitModel = ActiveSchemaVersion.HabitModel
+public typealias ActiveHabitLogModel = ActiveSchemaVersion.HabitLogModel
+public typealias ActiveHabitCategoryModel = ActiveSchemaVersion.HabitCategoryModel
+public typealias ActiveUserProfileModel = ActiveSchemaVersion.UserProfileModel
+public typealias ActiveOnboardingStateModel = ActiveSchemaVersion.OnboardingStateModel
+public typealias ActivePersonalityAnalysisModel = ActiveSchemaVersion.PersonalityAnalysisModel
 
 // MARK: - Migration History
 //
@@ -41,4 +46,5 @@ public typealias ActivePersonalityAnalysisModel = PersonalityAnalysisModelV10
 // - V7: Added location-aware habit support (locationConfigData, lastGeofenceTriggerDate)
 // - V8: Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
 // - V9: Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
-// - V10: CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values) (current)
+// - V10: CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values)
+// - V11: User Demographics (gender, ageGroup in UserProfileModel) (current)

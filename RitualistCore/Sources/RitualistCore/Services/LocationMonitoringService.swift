@@ -274,12 +274,19 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
         }
     }
 
+    /// Handle geofence event from iOS - thin pass-through to UseCase layer
+    ///
+    /// ARCHITECTURE NOTE: This service is intentionally a thin infrastructure layer.
+    /// All business logic (frequency checks, notification decisions, database updates)
+    /// is handled by the HandleGeofenceEventUseCase which fetches authoritative
+    /// configuration from the database. This ensures reliability even when the app
+    /// was killed and iOS relaunched it for a geofence event (in-memory state is lost).
     nonisolated private func handleGeofenceEvent(
         region: CLRegion,
         eventType: GeofenceEventType,
         location: CLLocation?
     ) {
-        guard let circularRegion = region as? CLCircularRegion,
+        guard region is CLCircularRegion,
               let habitId = UUID(uuidString: region.identifier) else {
             Task { @MainActor in
                 logger.log(
@@ -293,83 +300,32 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
 
         Task { @MainActor in
             logger.log(
-                "📍 Geofence event detected",
+                "📍 Geofence event detected - forwarding to UseCase",
                 level: .info,
                 category: .location,
                 metadata: ["habitId": habitId.uuidString, "eventType": String(describing: eventType)]
             )
 
-            // Get configuration for this habit
-            guard let configuration = await monitoredHabits[habitId] else {
-                logger.log(
-                    "⚠️ No configuration found for habit",
-                    level: .warning,
-                    category: .location,
-                    metadata: ["habitId": habitId.uuidString]
-                )
-                return
-            }
-
-            // Create geofence event
+            // Create minimal event - UseCase will fetch authoritative config from database
+            // This ensures reliability even if app was killed and relaunched by iOS
             let event = GeofenceEvent(
                 habitId: habitId,
                 eventType: eventType,
                 timestamp: Date(),
-                configuration: configuration,
+                configuration: nil,  // UseCase fetches from database (source of truth)
                 detectedLocation: location?.coordinate
             )
 
-            // Check if event should trigger notification
-            guard event.shouldTriggerNotification() else {
-                logger.log(
-                    "⏭️ Skipping notification - frequency rules",
-                    level: .debug,
-                    category: .location,
-                    metadata: ["habitId": habitId.uuidString]
-                )
-                return
-            }
-
-            logger.log(
-                "🔔 Triggering geofence notification",
-                level: .info,
-                category: .location,
-                metadata: ["habitId": habitId.uuidString, "eventType": String(describing: eventType)]
-            )
-
-            // Call event handler (which will update the database with new trigger dates)
-            // The event handler (HandleGeofenceEventUseCase) will update the database
+            // Forward to UseCase immediately - all business logic handled there
             await eventHandler?(event)
 
-            // IMPORTANT: After the event handler updates the database, we need to sync
-            // our in-memory state. However, the event handler updates the database,
-            // so we update our in-memory state here to match.
-            var updatedConfig = configuration
-            switch eventType {
-            case .entry:
-                updatedConfig.lastEntryTriggerDate = Date()
-            case .exit:
-                updatedConfig.lastExitTriggerDate = Date()
-            }
-            await updateConfiguration(habitId: habitId, configuration: updatedConfig)
-
             logger.log(
-                "✅ Geofence event handled",
-                level: .info,
+                "✅ Geofence event forwarded to UseCase",
+                level: .debug,
                 category: .location,
                 metadata: ["habitId": habitId.uuidString]
             )
         }
-    }
-
-    private func updateConfiguration(habitId: UUID, configuration: LocationConfiguration) {
-        monitoredHabits[habitId] = configuration
-        logger.log(
-            "🔄 Configuration updated",
-            level: .debug,
-            category: .location,
-            metadata: ["habitId": habitId.uuidString]
-        )
     }
 }
 

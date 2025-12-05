@@ -29,7 +29,11 @@ extension Container {
     var getLogForDate: Factory<GetLogForDate> {
         self { GetLogForDate(repo: self.logRepository()) }
     }
-    
+
+    var getEarliestLogDate: Factory<GetEarliestLogDateUseCase> {
+        self { GetEarliestLogDate(repo: self.logRepository()) }
+    }
+
     var logHabit: Factory<LogHabitUseCase> {
         self { LogHabit(
             repo: self.logRepository(),
@@ -55,7 +59,12 @@ extension Container {
     // MARK: - Profile Operations
     
     var loadProfile: Factory<LoadProfile> {
-        self { LoadProfile(repo: self.profileRepository()) }
+        self {
+            LoadProfile(
+                repo: self.profileRepository(),
+                iCloudKeyValueService: self.iCloudKeyValueService()
+            )
+        }
     }
     
     var getCurrentUserProfile: Factory<GetCurrentUserProfile> {
@@ -81,10 +90,16 @@ extension Container {
     }
     
     // MARK: - Streak Calculations
-    
+
     var calculateCurrentStreak: Factory<CalculateCurrentStreakUseCase> {
-        self { 
+        self {
             CalculateCurrentStreak(streakCalculationService: self.streakCalculationService())
+        }
+    }
+
+    var getStreakStatus: Factory<GetStreakStatusUseCase> {
+        self {
+            GetStreakStatus(streakCalculationService: self.streakCalculationService())
         }
     }
 

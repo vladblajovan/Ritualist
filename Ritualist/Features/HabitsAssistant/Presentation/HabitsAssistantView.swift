@@ -232,7 +232,7 @@ private struct HabitSuggestionRow: View {
             return "Daily"
         case .daysOfWeek(let days):
             let dayNames = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            let selectedDays = days.compactMap { day in
+            let selectedDays = days.sorted().compactMap { day in
                 day <= dayNames.count - 1 ? dayNames[day] : nil
             }
             return selectedDays.joined(separator: ", ")

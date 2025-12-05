@@ -5,13 +5,17 @@ import Foundation
 // MARK: - Slogan Use Case
 public final class GetCurrentSlogan: GetCurrentSloganUseCase {
     private let slogansService: SlogansServiceProtocol
-    
+
     public init(slogansService: SlogansServiceProtocol) {
         self.slogansService = slogansService
     }
-    
+
     public func execute() -> String {
         slogansService.getCurrentSlogan()
+    }
+
+    public func getUniqueSlogans(count: Int, for timeOfDay: TimeOfDay) -> [String] {
+        slogansService.getUniqueSlogans(count: count, for: timeOfDay)
     }
 }
 

@@ -86,7 +86,26 @@ public struct BusinessConstants {
     
     /// Background notification delay (20 minutes)
     public static let backgroundNotificationDelay: TimeInterval = 20 * 60
-    
+
+    /// Delay before reading data after NSPersistentStoreRemoteChange notification (in seconds).
+    ///
+    /// SwiftData/CloudKit fires NSPersistentStoreRemoteChange when the persistent store receives
+    /// remote changes, but the merge into the view context happens asynchronously afterward.
+    /// Unfortunately, SwiftData doesn't provide a "merge complete" notification, so we use a
+    /// brief delay to ensure data is fully available before reading.
+    ///
+    /// This is a standard iOS pattern - 500ms provides reliable merge completion on most devices
+    /// while keeping the UI responsive.
+    public static let remoteChangeMergeDelay: TimeInterval = 0.5
+
+    /// Debounce interval for UI refresh notifications (in seconds).
+    ///
+    /// When iCloud changes arrive (local saves, remote sync), we debounce the UI refresh notification.
+    /// This ensures that rapid changes (e.g., user editing multiple profile fields, bulk sync from another
+    /// device) result in ONE UI refresh after activity settles, rather than multiple refreshes causing flashing.
+    /// 3 seconds provides resilience against bulk syncs (observed: 16+ notifications over several seconds).
+    public static let uiRefreshDebounceInterval: TimeInterval = 3.0
+
     // MARK: - Time Intervals
 
     /// Time interval for 1 day in seconds
@@ -131,12 +150,19 @@ public struct BusinessConstants {
     
     /// Perfect completion rate threshold (100%)
     public static let perfectCompletionRate = 1.0
-    
+
+    /// Good completion rate threshold (50%) - habit considered "completed" for stats
+    public static let goodCompletionRate = 0.5
+
     /// Struggling completion rate threshold (60%)
     public static let strugglingCompletionRate = 0.6
     
     // MARK: - Motivation & Engagement
-    
+
+    /// Maximum number of inspiration items to show in the carousel
+    /// Limited to 3 to prevent overwhelming users with too many cards
+    public static let maxInspirationCarouselItems = 3
+
     /// Completion rate for "strong finish" motivation (100%)
     public static let strongFinishCompletionRate = 1.0
     

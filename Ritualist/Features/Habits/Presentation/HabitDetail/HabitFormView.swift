@@ -22,14 +22,12 @@ public struct HabitFormView: View {
             LocationConfigurationSection(vm: vm)
             AppearanceSection(vm: vm)
             if vm.isEditMode {
+                StartDateSection(vm: vm)
                 ActiveStatusSection(vm: vm)
                 DeleteSection(vm: vm)
             }
         }
         .listStyle(.insetGrouped)
-        .task {
-            await vm.loadCategories()
-            await vm.checkLocationAuthStatus()
-        }
+        // Note: Categories and location status are loaded in ViewModel init
     }
 }

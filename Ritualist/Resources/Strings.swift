@@ -14,7 +14,7 @@ public enum Strings {
     public enum Navigation {
         public static let overview = String(localized: "navigationOverview")
         public static let habits = String(localized: "navigationHabits")
-        public static let dashboard = String(localized: "navigationDashboard")
+        public static let stats = String(localized: "navigationStats")
         public static let settings = String(localized: "navigationSettings")
         public static let editHabit = String(localized: "navigationEditHabit")
         public static let newHabit = String(localized: "navigationNewHabit")
@@ -57,6 +57,7 @@ public enum Strings {
         public static let failedLoadHabits = String(localized: "errorFailedLoadHabits")
         public static let failedLoadSettings = String(localized: "errorFailedLoadSettings")
         public static let failedLoadHabit = String(localized: "errorFailedLoadHabit")
+        public static let failedToSave = String(localized: "errorFailedToSave")
         public static let unableSetupOverview = String(localized: "errorUnableSetupOverview")
         public static let unableSetupHabits = String(localized: "errorUnableSetupHabits")
         public static let unableSetupSettings = String(localized: "errorUnableSetupSettings")
@@ -70,6 +71,7 @@ public enum Strings {
         public static let tapPlusToCreate = String(localized: "emptyTapPlusToCreate")
         public static let noHabitSelected = String(localized: "emptyNoHabitSelected")
         public static let tapHabitToView = String(localized: "emptyTapHabitToView")
+        public static let noHabitsScheduled = String(localized: "emptyNoHabitsScheduled")
     }
     
     // MARK: - Form Labels
@@ -183,8 +185,17 @@ public enum Strings {
         public static let profilePhoto = String(localized: "avatar.profile_photo")
         public static let chooseFromPhotos = String(localized: "avatar.choose_from_photos")
         public static let removePhoto = String(localized: "avatar.remove_photo")
+        public static let photoUpdated = String(localized: "avatar.photo_updated")
+        public static let photoRemoved = String(localized: "avatar.photo_removed")
     }
-    
+
+    // MARK: - Profile
+    public enum Profile {
+        public static let nameUpdated = String(localized: "profile.name_updated")
+        public static let genderUpdated = String(localized: "profile.gender_updated")
+        public static let ageGroupUpdated = String(localized: "profile.age_group_updated")
+    }
+
     // MARK: - Notifications
     public enum Notification {
         public static let title = String(localized: "notification.title")
@@ -262,7 +273,6 @@ public enum Strings {
     // MARK: - Dashboard
     public enum Dashboard {
         public static let title = String(localized: "dashboardTitle")
-        public static let completionStats = String(localized: "dashboardCompletionStats")
         public static let totalHabits = String(localized: "dashboardTotalHabits")
         public static let completedHabits = String(localized: "dashboardCompletedHabits")
         public static let overallCompletion = String(localized: "dashboardOverallCompletion")
@@ -275,6 +285,7 @@ public enum Strings {
         public static let startTrackingMessage = String(localized: "dashboardStartTrackingMessage")
         
         // Time period selectors
+        public static let timePeriodPicker = String(localized: "dashboardTimePeriodPicker")
         public static let thisWeek = String(localized: "dashboardThisWeek")
         public static let thisMonth = String(localized: "dashboardThisMonth")
         public static let last6Months = String(localized: "dashboardLast6Months")
@@ -351,6 +362,7 @@ public enum Strings {
         public static let locationNameFooter = String(localized: "location.location_name_footer")
         public static let detectionArea = String(localized: "location.detection_area")
         public static let detectionAreaFooter = String(localized: "location.detection_area_footer")
+        public static let radius = String(localized: "location.radius")
         public static let whenToNotify = String(localized: "location.when_to_notify")
         public static let whenToNotifyFooter = String(localized: "location.when_to_notify_footer")
         public static let whenToNotifyEntry = String(localized: "location.when_to_notify_entry")
@@ -359,17 +371,64 @@ public enum Strings {
 
         // Notification Frequency
         public static let notificationFrequency = String(localized: "location.notification_frequency")
-        public static let oncePerDay = String(localized: "location.once_per_day")
-        public static let cooldownPeriod = String(localized: "location.cooldown_period")
-        public static let frequencyOncePerDayFooter = String(localized: "location.frequency_once_per_day_footer")
+        public static let notificationFrequencyFooter = String(localized: "location.notification_frequency_footer")
+        public static let frequencyOncePerDay = String(localized: "location.frequency_once_per_day")
+        public static let frequencyEvery15Min = String(localized: "location.frequency_every_15_min")
+        public static let frequencyEvery30Min = String(localized: "location.frequency_every_30_min")
+        public static let frequencyEveryHour = String(localized: "location.frequency_every_hour")
+        public static let frequencyEvery2Hours = String(localized: "location.frequency_every_2_hours")
 
-        // Cooldown strings with parameter
-        public static func cooldownMinutes(_ minutes: Int) -> String {
-            String(format: String(localized: "location.cooldown_minutes"), minutes)
-        }
+        // Error Messages
+        public static let geofenceRestoreFailed = String(localized: "location.geofence_restore_failed")
+    }
 
-        public static func frequencyCooldownFooter(_ minutes: Int) -> String {
-            String(format: String(localized: "location.frequency_cooldown_footer"), minutes)
+    // MARK: - iCloud Sync
+    public enum ICloudSync {
+        public static let syncedFromCloud = String(localized: "icloud.synced_from_cloud")
+        public static let stillSyncing = String(localized: "icloud.still_syncing")
+        public static let syncingData = String(localized: "icloud.syncing_data")
+        public static let setupTitle = String(localized: "icloud.setup_title")
+        public static let setupDescription = String(localized: "icloud.setup_description")
+        public static let syncDelayed = String(localized: "icloud.sync_delayed")
+    }
+
+    // MARK: - Data Management
+    public enum DataManagement {
+        public static let deleteAllData = String(localized: "data_management.delete_all_data")
+        public static let deleteTitle = String(localized: "data_management.delete_title")
+        public static let deleteMessageWithICloud = String(localized: "data_management.delete_message_with_icloud")
+        public static let deleteMessageLocalOnly = String(localized: "data_management.delete_message_local_only")
+        public static let footerWithICloud = String(localized: "data_management.footer_with_icloud")
+        public static let footerLocalOnly = String(localized: "data_management.footer_local_only")
+        public static let deleteSuccessMessage = String(localized: "data_management.delete_success_message")
+        public static let deleteSyncDelayedMessage = String(localized: "data_management.delete_sync_delayed_message")
+        public static let deleteFailedMessage = String(localized: "data_management.delete_failed_message")
+    }
+
+    // MARK: - Numeric Habit Log
+    public enum NumericHabitLog {
+        public static let title = String(localized: "numericHabitLog.title")
+        public static let reset = String(localized: "numericHabitLog.reset")
+        public static let completeAll = String(localized: "numericHabitLog.completeAll")
+        public static let wellDoneExtraMile = String(localized: "numericHabitLog.wellDoneExtraMile")
+
+        // Extra mile phrases (randomly selected)
+        public static let extraMileOnFire = String(localized: "numericHabitLog.extraMile.onFire")
+        public static let extraMileCrushing = String(localized: "numericHabitLog.extraMile.crushing")
+        public static let extraMileAboveBeyond = String(localized: "numericHabitLog.extraMile.aboveBeyond")
+        public static let extraMileOverachiever = String(localized: "numericHabitLog.extraMile.overachiever")
+        public static let extraMileExtraEffort = String(localized: "numericHabitLog.extraMile.extraEffort")
+        public static let extraMileBeyondExpectations = String(localized: "numericHabitLog.extraMile.beyondExpectations")
+
+        public static var extraMilePhrases: [String] {
+            [
+                extraMileOnFire,
+                extraMileCrushing,
+                extraMileAboveBeyond,
+                extraMileOverachiever,
+                extraMileExtraEffort,
+                extraMileBeyondExpectations
+            ]
         }
     }
 }

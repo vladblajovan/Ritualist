@@ -11,91 +11,129 @@ struct OnboardingPage1View: View {
         self.viewModel = viewModel
         self.onComplete = onComplete
     }
-    
+
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .topTrailing) {
-                ScrollView {
-                    VStack(spacing: adaptiveSpacing(for: geometry.size.height)) {
-                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
-                    
-                    // Welcome icon
-                    Image(systemName: "hand.wave.fill")
-                        .font(.system(size: Typography.heroIcon))
-                        .foregroundColor(.accentColor)
-                    
-                    VStack(spacing: adaptiveSpacing(for: geometry.size.height) / 2) {
-                        Text("Welcome to Ritualist!")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                        
-                        Text("Let's start by getting to know you better. What should we call you?")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, adaptivePadding(for: geometry.size.width))
+        ZStack(alignment: .topTrailing) {
+            ScrollView {
+                VStack(spacing: 32) {
+                    Spacer(minLength: 20)
+
+                    // App icon with animated glow
+                    if let uiImage = Bundle.main.appIcon {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 120, height: 120)
+                            .clipShape(RoundedRectangle(cornerRadius: 28))
+                            .animatedGlow(glowSize: 160)
+                            .accessibilityLabel("Ritualist app icon")
                     }
-                    
-                    VStack(spacing: Spacing.small) {
-                        TextField("Enter your name", text: $viewModel.userName)
-                            .textFieldStyle(.plain)
-                            .font(.title3)
+
+                    // Welcome message
+                    VStack(spacing: 8) {
+                        Text("Welcome to Ritualist!")
+                            .font(.system(.title, design: .rounded, weight: .bold))
                             .multilineTextAlignment(.center)
-                            .focused($isTextFieldFocused)
-                            .onSubmit {
-                                isTextFieldFocused = false
-                                if viewModel.canProceedFromCurrentPage {
-                                    viewModel.nextPage()
-                                }
-                            }
-                            .padding(.horizontal, adaptivePadding(for: geometry.size.width) * 2)
-                        
-                        if viewModel.userName.isEmpty {
-                            Text("Don't worry, you can change this later in settings")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+
+                        Text("Let's start by getting to know you better.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    // User profile inputs
+                    VStack(spacing: 16) {
+                        // Name input
+                        VStack(alignment: .trailing, spacing: 4) {
+                            TextField("What should we call you?", text: $viewModel.userName)
+                                .font(.system(.body, design: .rounded, weight: .medium))
+                                .foregroundStyle(AppColors.brand)
                                 .multilineTextAlignment(.center)
+                                .textContentType(.name)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled()
+                                .focused($isTextFieldFocused)
+                                .onSubmit {
+                                    isTextFieldFocused = false
+                                }
+                                .accessibilityLabel("Name")
+                                .accessibilityHint("Enter your name to personalize your experience. Maximum \(OnboardingViewModel.maxNameLength) characters.")
+                                .modifier(GradientFieldStyle())
+
+                            // Character count (only show when approaching limit)
+                            if viewModel.userName.count > OnboardingViewModel.maxNameLength - 10 {
+                                Text("\(viewModel.userName.count)/\(OnboardingViewModel.maxNameLength)")
+                                    .font(.caption2)
+                                    .foregroundStyle(
+                                        viewModel.userName.count >= OnboardingViewModel.maxNameLength
+                                            ? .red
+                                            : .secondary
+                                    )
+                                    .padding(.trailing, 8)
+                                    .accessibilityLabel("\(viewModel.userName.count) of \(OnboardingViewModel.maxNameLength) characters used")
+                            }
+                        }
+
+                        // Gender and Age Group selectors in a row
+                        HStack(spacing: 12) {
+                            // Gender picker
+                            Menu {
+                                ForEach(UserGender.allCases) { gender in
+                                    Button(gender.displayName) {
+                                        isTextFieldFocused = false
+                                        viewModel.gender = gender
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(viewModel.gender == .preferNotToSay ? "Gender" : viewModel.gender.displayName)
+                                        .font(.system(.body, design: .rounded, weight: .medium))
+                                        .foregroundStyle(viewModel.gender == .preferNotToSay ? .secondary : AppColors.brand)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .modifier(GradientFieldStyle())
+                            }
+                            .accessibilityLabel("Gender")
+                            .accessibilityValue(viewModel.gender.displayName)
+
+                            // Age group picker
+                            Menu {
+                                ForEach(UserAgeGroup.allCases) { ageGroup in
+                                    Button(ageGroup.displayName) {
+                                        isTextFieldFocused = false
+                                        viewModel.ageGroup = ageGroup
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(viewModel.ageGroup == .preferNotToSay ? "Age" : viewModel.ageGroup.displayName)
+                                        .font(.system(.body, design: .rounded, weight: .medium))
+                                        .foregroundStyle(viewModel.ageGroup == .preferNotToSay ? .secondary : AppColors.brand)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .modifier(GradientFieldStyle())
+                            }
+                            .accessibilityLabel("Age group")
+                            .accessibilityValue(viewModel.ageGroup.displayName)
                         }
                     }
-                    
-                    Spacer(minLength: adaptiveSpacing(for: geometry.size.height) / 2)
+                    .padding(.horizontal, 24)
+
+                    Spacer(minLength: 20)
                 }
-                .frame(minHeight: geometry.size.height)
-                .padding(.horizontal, adaptivePadding(for: geometry.size.width))
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
             }
             .contentShape(Rectangle())
             .onTapGesture {
                 isTextFieldFocused = false
-            }
-            
-            #if DEBUG
-            // Debug-only Skip button in top right corner
-            Button(action: {
-                let logger = Container.shared.debugLogger()
-                logger.log("Skip onboarding initiated from debug button", level: .debug, category: .debug)
-                Task {
-                    let success = await viewModel.skipOnboarding()
-                    logger.log("Skip onboarding completed: \(success ? "success" : "failed")", level: success ? .info : .warning, category: .debug)
-                    if success {
-                        onComplete?()
-                    }
-                }
-            }) {
-                Text("Skip")
-                    .font(.body)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.accentColor)
-                    .cornerRadius(6)
-            }
-            .padding(.top, 50) // Safe area consideration
-            .padding(.trailing, 20)
-            #endif
             }
         }
         .onAppear {
@@ -104,20 +142,33 @@ struct OnboardingPage1View: View {
             }
         }
     }
-    
-    private func adaptiveSpacing(for height: CGFloat) -> CGFloat {
-        switch height {
-        case 0..<600: return 16  // Small screens - compact spacing
-        case 600..<750: return 24  // Medium screens
-        default: return Spacing.xxlarge  // Large screens - original spacing
-        }
-    }
-    
-    private func adaptivePadding(for width: CGFloat) -> CGFloat {
-        switch width {
-        case 0..<350: return 16  // Small screens
-        case 350..<400: return 20  // Medium screens  
-        default: return Spacing.extraLarge  // Large screens - original padding
-        }
+}
+
+// MARK: - Gradient Field Style
+
+private struct GradientFieldStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.vertical, 16)
+            .padding(.horizontal, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.secondarySystemGroupedBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                AppColors.brand.opacity(0.4),
+                                AppColors.brand.opacity(0.15),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
     }
 }

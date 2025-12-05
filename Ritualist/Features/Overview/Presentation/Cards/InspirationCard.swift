@@ -60,7 +60,7 @@ struct InspirationCard: View {
 
                         // Main message on same line as icon
                         Text(message)
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
                             .foregroundColor(.primary)
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
@@ -72,15 +72,17 @@ struct InspirationCard: View {
                     .padding(.top, 20)
 
                     // Show original slogan as subtitle when message and slogan are different
+                    // Extra trailing padding (70pt) creates restricted zone for dismiss button
                     if message != slogan && !slogan.isEmpty {
                         Text(slogan)
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.leading)
-                            .lineLimit(3)
+                            .lineLimit(2)
                             .italic()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 20)
+                            .padding(.leading, 20)
+                            .padding(.trailing, 70) // Restricted zone for dismiss button
                             .padding(.top, 12)
                     }
 
@@ -102,6 +104,8 @@ struct InspirationCard: View {
                 .buttonStyle(PlainButtonStyle())
                 .padding(.trailing, 16)
                 .padding(.bottom, 16)
+                .accessibilityLabel("Dismiss inspiration card")
+                .accessibilityIdentifier(AccessibilityID.InspirationCarousel.cardDismissButton)
             }
             .background(
                 style.gradient

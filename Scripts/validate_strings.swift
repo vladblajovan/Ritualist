@@ -13,7 +13,7 @@ struct StringConstraints {
 
     static let tabBarLabel = StringConstraints(name: "Tab Bar", characterLimit: 12, pixelWidth: 80)
     static let buttonLabel = StringConstraints(name: "Button", characterLimit: 15, pixelWidth: 120)
-    static let formFieldLabel = StringConstraints(name: "Form Field", characterLimit: 30, pixelWidth: 200)
+    static let formFieldLabel = StringConstraints(name: "Form Field", characterLimit: 40, pixelWidth: 200)
     static let validationMessage = StringConstraints(name: "Validation", characterLimit: 85, pixelWidth: 280)
     static let accessibilityLabel = StringConstraints(name: "Accessibility", characterLimit: 100, pixelWidth: 0)
 }

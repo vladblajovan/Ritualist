@@ -11,8 +11,9 @@ public final class UserActionEventMapper {
         case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed,
              .onboardingPageNext, .onboardingPageBack, .onboardingUserNameEntered,
              .onboardingNotificationPermissionRequested, .onboardingNotificationPermissionGranted,
-             .onboardingNotificationPermissionDenied, .onboardingLocationPermissionRequested,
-             .onboardingLocationPermissionGranted, .onboardingLocationPermissionDenied:
+             .onboardingNotificationPermissionDenied, .onboardingNotificationPermissionFailed,
+             .onboardingLocationPermissionRequested, .onboardingLocationPermissionGranted,
+             .onboardingLocationPermissionDenied, .onboardingLocationPermissionFailed:
             return onboardingEventName(for: event)
         case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected, .habitsAssistantCategoryCleared,
              .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
@@ -52,8 +53,9 @@ public final class UserActionEventMapper {
         case .onboardingStarted, .onboardingCompleted, .onboardingSkipped, .onboardingPageViewed,
              .onboardingPageNext, .onboardingPageBack, .onboardingUserNameEntered,
              .onboardingNotificationPermissionRequested, .onboardingNotificationPermissionGranted,
-             .onboardingNotificationPermissionDenied, .onboardingLocationPermissionRequested,
-             .onboardingLocationPermissionGranted, .onboardingLocationPermissionDenied:
+             .onboardingNotificationPermissionDenied, .onboardingNotificationPermissionFailed,
+             .onboardingLocationPermissionRequested, .onboardingLocationPermissionGranted,
+             .onboardingLocationPermissionDenied, .onboardingLocationPermissionFailed:
             return onboardingEventProperties(for: event)
         case .habitsAssistantOpened, .habitsAssistantClosed, .habitsAssistantCategorySelected, .habitsAssistantCategoryCleared,
              .habitsAssistantHabitSuggestionViewed, .habitsAssistantHabitAdded, .habitsAssistantHabitAddFailed,
@@ -103,9 +105,11 @@ private extension UserActionEventMapper {
         case .onboardingNotificationPermissionRequested: return "onboarding_notification_permission_requested"
         case .onboardingNotificationPermissionGranted: return "onboarding_notification_permission_granted"
         case .onboardingNotificationPermissionDenied: return "onboarding_notification_permission_denied"
+        case .onboardingNotificationPermissionFailed: return "onboarding_notification_permission_failed"
         case .onboardingLocationPermissionRequested: return "onboarding_location_permission_requested"
         case .onboardingLocationPermissionGranted: return "onboarding_location_permission_granted"
         case .onboardingLocationPermissionDenied: return "onboarding_location_permission_denied"
+        case .onboardingLocationPermissionFailed: return "onboarding_location_permission_failed"
         default: return "unknown_onboarding_event"
         }
     }

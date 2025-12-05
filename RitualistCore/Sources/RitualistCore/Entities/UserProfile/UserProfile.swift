@@ -33,6 +33,14 @@ public struct UserProfile: Identifiable, Codable, Hashable {
     /// Historical record of timezone changes for debugging and analytics
     public var timezoneChangeHistory: [TimezoneChange]
 
+    // MARK: - Demographics (Added in V11)
+
+    /// User's gender preference (raw value from UserGender enum)
+    public var gender: String?
+
+    /// User's age group (raw value from UserAgeGroup enum)
+    public var ageGroup: String?
+
     // MARK: - Metadata
 
     public var createdAt: Date
@@ -47,6 +55,8 @@ public struct UserProfile: Identifiable, Codable, Hashable {
         homeTimezoneIdentifier: String = TimeZone.current.identifier,
         displayTimezoneMode: DisplayTimezoneMode = .current,
         timezoneChangeHistory: [TimezoneChange] = [],
+        gender: String? = nil,
+        ageGroup: String? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -58,6 +68,8 @@ public struct UserProfile: Identifiable, Codable, Hashable {
         self.homeTimezoneIdentifier = homeTimezoneIdentifier
         self.displayTimezoneMode = displayTimezoneMode
         self.timezoneChangeHistory = timezoneChangeHistory
+        self.gender = gender
+        self.ageGroup = ageGroup
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

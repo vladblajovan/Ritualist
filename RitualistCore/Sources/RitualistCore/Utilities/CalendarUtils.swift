@@ -10,11 +10,12 @@
 
 import Foundation
 
-/// Centralized calendar utilities that handle timezone-aware date operations consistently
-/// Uses UTC for all business logic to ensure consistent behavior across timezones
+/// Centralized calendar utilities that handle timezone-aware date operations consistently.
+/// Uses LOCAL timezone methods for business logic to respect user's timezone context.
+/// UTC calendar is available for specific edge cases but LOCAL methods should be preferred.
 public struct CalendarUtils {
-    
-    /// UTC calendar for business logic - ensures consistent day boundaries regardless of user timezone
+
+    /// UTC calendar - available for specific edge cases requiring absolute time comparison
     public static let utcCalendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(abbreviation: "UTC")!
@@ -373,7 +374,21 @@ public struct CalendarUtils {
     public static func addMonths(_ months: Int, to date: Date) -> Date {
         return utcCalendar.date(byAdding: .month, value: months, to: date) ?? date
     }
-    
+
+    /// Add weeks to date (timezone-aware version)
+    /// Adds weeks using the specified timezone's calendar to handle DST correctly
+    public static func addWeeksLocal(_ weeks: Int, to date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .weekOfYear, value: weeks, to: date) ?? date
+    }
+
+    /// Add months to date (timezone-aware version)
+    /// Adds months using the specified timezone's calendar to handle DST correctly
+    public static func addMonthsLocal(_ months: Int, to date: Date, timezone: TimeZone) -> Date {
+        let calendar = localCalendar(for: timezone)
+        return calendar.date(byAdding: .month, value: months, to: date) ?? date
+    }
+
     /// Get next day (timezone-aware version)
     /// Adds 1 day using the specified timezone's calendar to handle DST correctly
     public static func nextDayLocal(from date: Date, timezone: TimeZone) -> Date {

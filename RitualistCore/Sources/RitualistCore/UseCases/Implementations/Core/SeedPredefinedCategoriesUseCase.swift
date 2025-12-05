@@ -21,8 +21,6 @@ public final class SeedPredefinedCategories: SeedPredefinedCategoriesUseCase {
     private let logger: DebugLogger
     private let userDefaults: UserDefaults
 
-    private static let seedingCompletedKey = "com.ritualist.categories.seedingCompleted"
-
     public init(
         categoryRepository: CategoryRepository,
         categoryDefinitionsService: CategoryDefinitionsServiceProtocol,
@@ -41,7 +39,7 @@ public final class SeedPredefinedCategories: SeedPredefinedCategoriesUseCase {
 
     public func execute() async throws {
         // Check if seeding has already been completed
-        if userDefaults.bool(forKey: Self.seedingCompletedKey) {
+        if userDefaults.bool(forKey: UserDefaultsKeys.categorySeedingCompleted) {
             logger.log(
                 "Category seeding already completed, skipping",
                 level: .debug,
@@ -119,7 +117,7 @@ public final class SeedPredefinedCategories: SeedPredefinedCategoriesUseCase {
 
         // Mark seeding as completed only if all categories were seeded successfully
         if failedCategories.isEmpty {
-            userDefaults.set(true, forKey: Self.seedingCompletedKey)
+            userDefaults.set(true, forKey: UserDefaultsKeys.categorySeedingCompleted)
             logger.log(
                 "Marked category seeding as completed",
                 level: .info,

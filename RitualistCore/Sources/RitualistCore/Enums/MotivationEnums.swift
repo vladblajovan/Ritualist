@@ -19,17 +19,18 @@ public enum InspirationTrigger: CaseIterable, Hashable {
     case firstHabitComplete    // Just completed first habit
     case halfwayPoint         // Hit 50% completion
     case strugglingMidDay     // <40% completion at noon
-    case afternoonPush        // <60% completion in afternoon (3-5pm)
+    case afternoonPush        // <60% completion in afternoon (3-4:59pm)
     case strongFinish         // Hit 75%+ completion
     case perfectDay           // 100% completion
     case eveningReflection    // Evening with good progress (>60%)
     case weekendMotivation    // Weekend-specific encouragement
     case comebackStory        // Improved from yesterday
+    case emptyDay             // No habits scheduled for today (but user has habits on other days)
     
     /// Cooldown period in minutes before this trigger can fire again
     public var cooldownMinutes: Int {
         switch self {
-        case .sessionStart, .perfectDay:
+        case .sessionStart, .perfectDay, .emptyDay:
             return 0  // No cooldown
         case .firstHabitComplete, .halfwayPoint, .strongFinish:
             return 60 // 1 hour cooldown
@@ -54,6 +55,7 @@ public enum InspirationTrigger: CaseIterable, Hashable {
         case .eveningReflection: return "Evening Reflection"
         case .weekendMotivation: return "Weekend Motivation"
         case .comebackStory: return "Comeback Story"
+        case .emptyDay: return "Empty Day"
         }
     }
     
@@ -61,6 +63,7 @@ public enum InspirationTrigger: CaseIterable, Hashable {
     public var priority: Int {
         switch self {
         case .perfectDay: return 100
+        case .emptyDay: return 95  // High priority - takes precedence when no habits scheduled
         case .strongFinish: return 90
         case .comebackStory: return 80
         case .firstHabitComplete: return 70
@@ -72,6 +75,41 @@ public enum InspirationTrigger: CaseIterable, Hashable {
         case .weekendMotivation: return 20
         case .sessionStart: return 10
         }
+    }
+}
+
+// MARK: - Inspiration Item
+
+/// Model representing an inspiration item in the carousel
+/// Each item has a unique message and slogan based on its trigger type
+public struct InspirationItem: Identifiable, Equatable, Sendable {
+    public let id: UUID
+    public let trigger: InspirationTrigger
+    public let message: String
+    public let slogan: String
+
+    /// Creates an inspiration item with validated content
+    /// Returns nil if message or slogan is empty after trimming whitespace
+    public init?(id: UUID = UUID(), trigger: InspirationTrigger, message: String, slogan: String) {
+        guard Self.isValid(message: message, slogan: slogan) else {
+            return nil
+        }
+        self.id = id
+        self.trigger = trigger
+        self.message = message
+        self.slogan = slogan
+    }
+
+    /// Validates that message and slogan are non-empty
+    public static func isValid(message: String, slogan: String) -> Bool {
+        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !slogan.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Equality based on ID only - message/slogan changes don't change identity
+    /// This aligns with SwiftUI's identity-based diffing for carousel animations
+    public static func == (lhs: InspirationItem, rhs: InspirationItem) -> Bool {
+        lhs.id == rhs.id
     }
 }
 

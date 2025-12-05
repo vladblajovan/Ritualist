@@ -10,12 +10,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let canGoToNext: Bool
     let currentSlogan: String?
     let onQuickAction: (Habit) -> Void
-    let onNumericHabitUpdate: ((Habit, Double) async -> Void)?
+    let onNumericHabitUpdate: ((Habit, Double) async throws -> Void)?
     let getProgress: ((Habit) -> Double)
     let onNumericHabitAction: ((Habit) -> Void)? // New callback for numeric habit sheet
     let onDeleteHabitLog: (Habit) -> Void // New callback for deleting habit log
     let getScheduleStatus: (Habit) -> HabitScheduleStatus // New callback for schedule status
     let getValidationMessage: (Habit) async -> String? // New callback for validation message
+    let getStreakStatus: ((Habit) -> HabitStreakStatus)? // Callback for streak at risk indicator
     let onPreviousDay: () -> Void
     let onNextDay: () -> Void
     let onGoToToday: () -> Void
@@ -97,12 +98,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
          canGoToNext: Bool,
          currentSlogan: String? = nil,
          onQuickAction: @escaping (Habit) -> Void,
-         onNumericHabitUpdate: ((Habit, Double) async -> Void)? = nil,
+         onNumericHabitUpdate: ((Habit, Double) async throws -> Void)? = nil,
          getProgressSync: @escaping (Habit) -> Double,
          onNumericHabitAction: ((Habit) -> Void)? = nil,
          onDeleteHabitLog: @escaping (Habit) -> Void,
          getScheduleStatus: @escaping (Habit) -> HabitScheduleStatus,
          getValidationMessage: @escaping (Habit) async -> String?,
+         getStreakStatus: ((Habit) -> HabitStreakStatus)? = nil,
          onPreviousDay: @escaping () -> Void,
          onNextDay: @escaping () -> Void,
          onGoToToday: @escaping () -> Void) {
@@ -119,6 +121,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         self.onDeleteHabitLog = onDeleteHabitLog
         self.getScheduleStatus = getScheduleStatus
         self.getValidationMessage = getValidationMessage
+        self.getStreakStatus = getStreakStatus
         self.onPreviousDay = onPreviousDay
         self.onNextDay = onNextDay
         self.onGoToToday = onGoToToday
@@ -135,11 +138,10 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
         // BUGFIX: Capture viewingDate at start to ensure consistency during filter
         // Additional safety filter to prevent race condition where summary contains habits
-        // from previous viewingDate. Only show habits that are actually scheduled for viewingDate.
+        // from previous viewingDate. Only show habits that are actually scheduled for viewingDate
+        // AND have started (date >= habit.startDate).
         let capturedDate = viewingDate
-        let scheduledIncompleteHabits = summary.incompleteHabits.filter { habit in
-            habit.schedule.isActiveOn(date: capturedDate)
-        }
+        let scheduledIncompleteHabits = summary.incompleteHabits.filter { $0.isScheduledOn(date: capturedDate) }
 
         // Store the filtered count for display
         scheduledIncompleteCount = scheduledIncompleteHabits.count
@@ -316,10 +318,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             }
 
             if let summary = summary {
-                
+
                 // Enhanced Habits Section - show both completed and incomplete habits
                 if !summary.incompleteHabits.isEmpty || !summary.completedHabits.isEmpty {
                     habitsSection(summary: summary)
+                } else {
+                    // Empty state - no habits scheduled for this day
+                    noHabitsScheduledView
                 }
             } else {
                 // Loading State
@@ -546,34 +551,50 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             .redacted(reason: .placeholder)
     }
 
+    @ViewBuilder
+    private var noHabitsScheduledView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "calendar.badge.checkmark")
+                .font(.system(size: 36))
+                .foregroundStyle(.secondary.opacity(0.6))
+
+            Text(Strings.EmptyState.noHabitsScheduled)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+
     // MARK: - Enhanced Habits Section
 
     @ViewBuilder
     // swiftlint:disable:next function_body_length
     private func habitsSection(summary: TodaysSummary) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Section header
-            if scheduledIncompleteCount > 0 {
-                HStack {
-                    Text("Up Next")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .padding(.leading, 12)
-
-                    Spacer()
-
-                    Text("\(scheduledIncompleteCount)")
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundColor(AppColors.brand)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(AppColors.brand.opacity(0.1))
-                        )
-                        .padding(.trailing, 8)
-                }
-            }
+            // TEMPORARY: Commented out "Up Next" header until we find a better UX approach
+            // The habits list is self-explanatory and the header adds visual clutter
+            // if scheduledIncompleteCount > 0 {
+            //     HStack {
+            //         Text("Up Next")
+            //             .font(.system(size: 15, weight: .semibold))
+            //             .foregroundColor(.primary)
+            //             .padding(.leading, 12)
+            //
+            //         Spacer()
+            //
+            //         Text("\(scheduledIncompleteCount)")
+            //             .font(.system(size: 13, weight: .medium, design: .rounded))
+            //             .foregroundColor(AppColors.brand)
+            //             .padding(.horizontal, 8)
+            //             .padding(.vertical, 2)
+            //             .background(
+            //                 RoundedRectangle(cornerRadius: 6)
+            //                     .fill(AppColors.brand.opacity(0.1))
+            //             )
+            //             .padding(.trailing, 8)
+            //     }
+            // }
 
             // Incomplete habits
             if scheduledIncompleteCount > 0 {
@@ -786,6 +807,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         .lineLimit(1)
 
                     if !isCompleted {
+                        // First line: habit-specific status (progress or schedule)
                         if habit.kind == .numeric {
                             let currentValue = getProgress(habit)
                             let target = habit.dailyTarget ?? 1.0
@@ -799,6 +821,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                 .font(.caption)
                                 .foregroundColor(scheduleStatus.color)
                         }
+
                     }
                 }
 
@@ -826,9 +849,25 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 Button {
                     showingScheduleInfoSheet = true
                 } label: {
-                    HabitScheduleIndicator(status: scheduleStatus, size: .medium, style: .iconOnly)
-                        .padding(.leading, 8)
-                        .contentShape(Rectangle())
+                    HStack(spacing: 6) {
+                        // Streak at risk indicator (only show for actual today, not retroactive days)
+                        if isViewingToday,
+                           let streakStatus = getStreakStatus?(habit),
+                           streakStatus.isAtRisk {
+                            HStack(spacing: 0) {
+                                Text("🔥")
+                                    .font(.system(size: 12))
+                                Text("\(streakStatus.atRisk)")
+                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.orange)
+                            }
+                            .modifier(PulseAnimationModifier())
+                        }
+
+                        HabitScheduleIndicator(status: scheduleStatus, size: .medium, style: .iconOnly)
+                    }
+                    .padding(.leading, 8)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -967,8 +1006,16 @@ struct ScheduleIconInfoSheet: View {
                 } footer: {
                     Text("These icons indicate when habits are available to log based on their schedule type.")
                 }
+
+                Section {
+                    StreakInfoRow()
+                } header: {
+                    Text("Streak Indicator")
+                } footer: {
+                    Text("Keep your streaks alive by logging habits before midnight!")
+                }
             }
-            .navigationTitle("Schedule Indicators")
+            .navigationTitle("Habit Status")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -998,6 +1045,26 @@ private struct ScheduleInfoRow: View {
                 Text(title)
                     .font(.headline)
                 Text(description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct StreakInfoRow: View {
+    var body: some View {
+        HStack(spacing: 16) {
+            Text("🔥")
+                .font(.title2)
+                .modifier(SheetPulseAnimationModifier())
+                .frame(width: 32)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Streak at Risk")
+                    .font(.headline)
+                Text("You have an active streak! Log this habit today to keep it going. The number shows your current streak length.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -1067,7 +1134,7 @@ private struct ScheduleInfoRow: View {
                     )
                 ]
             ),
-            viewingDate: CalendarUtils.addDays(-3, to: Date()),
+            viewingDate: CalendarUtils.addDaysLocal(-3, to: Date(), timezone: .current),
             isViewingToday: false,
             canGoToPrevious: true,
             canGoToNext: true,
@@ -1086,4 +1153,72 @@ private struct ScheduleInfoRow: View {
     }
     .padding()
     .background(Color(.systemGroupedBackground))
+}
+
+// MARK: - Pulse Animation for Streak At Risk
+
+private struct PulseAnimationModifier: ViewModifier {
+    @State private var pulseCount = 0
+    @State private var scale: CGFloat = 0.95
+    @State private var opacity: Double = 0.65
+
+    private let maxPulses = 2
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .onAppear {
+                animatePulse()
+            }
+    }
+
+    private func animatePulse() {
+        guard pulseCount < maxPulses else {
+            // Stop at ending size
+            withAnimation(.easeOut(duration: 0.3)) {
+                scale = 1.2
+                opacity = 1.0
+            }
+            return
+        }
+
+        // Pulse up
+        withAnimation(.easeInOut(duration: 0.45)) {
+            scale = 1.2
+            opacity = 1.0
+        }
+
+        // Pulse down after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            withAnimation(.easeInOut(duration: 0.45)) {
+                scale = 0.95
+                opacity = 0.65
+            }
+
+            // Schedule next pulse
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                pulseCount += 1
+                animatePulse()
+            }
+        }
+    }
+}
+
+private struct SheetPulseAnimationModifier: ViewModifier {
+    @State private var isPulsing = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPulsing ? 1.2 : 1.0)
+            .opacity(isPulsing ? 1.0 : 0.7)
+            .animation(
+                .easeInOut(duration: 0.9)
+                .repeatForever(autoreverses: true),
+                value: isPulsing
+            )
+            .onAppear {
+                isPulsing = true
+            }
+    }
 }

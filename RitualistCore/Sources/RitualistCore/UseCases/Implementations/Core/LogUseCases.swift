@@ -107,10 +107,14 @@ public final class LogHabit: LogHabitUseCase {
         guard habit.isActive else {
             throw HabitScheduleValidationError.habitUnavailable(habitName: habit.name)
         }
-        
-        // REMOVED: Incorrect daily restriction for timesPerWeek habits
-        // timesPerWeek habits should allow multiple logs per day, only restricted by weekly target
-        
+
+        // Check if log date is before habit's start date
+        let logDay = CalendarUtils.startOfDayLocal(for: log.date)
+        let startDay = CalendarUtils.startOfDayLocal(for: habit.startDate)
+        guard logDay >= startDay else {
+            throw HabitScheduleValidationError.dateBeforeStartDate(habitName: habit.name)
+        }
+
         // Validate schedule before logging
         let validationResult = try await validateSchedule.execute(habit: habit, date: log.date)
         
@@ -143,5 +147,14 @@ public final class GetLogForDate: GetLogForDateUseCase {
         return allLogs.first { log in
             CalendarUtils.areSameDayLocal(log.date, date)
         }
+    }
+}
+
+public final class GetEarliestLogDate: GetEarliestLogDateUseCase {
+    private let repo: LogRepository
+    public init(repo: LogRepository) { self.repo = repo }
+    public func execute(for habitID: UUID) async throws -> Date? {
+        let allLogs = try await repo.logs(for: habitID)
+        return allLogs.map { CalendarUtils.startOfDayLocal(for: $0.date) }.min()
     }
 }

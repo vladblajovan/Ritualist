@@ -21,7 +21,7 @@ public struct LocationConfigurationSection: View {
             )) {
                 HStack {
                     Image(systemName: "location.fill")
-                        .foregroundColor(.blue)
+                        .foregroundColor(.purple)
                     Text("Location Reminders")
                 }
             }
@@ -68,7 +68,10 @@ public struct LocationConfigurationSection: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 8)
                 }
-                .sheet(isPresented: $vm.showMapPicker) {
+                .sheet(isPresented: $vm.showMapPicker, onDismiss: {
+                    // Handle swipe-to-dismiss: if user didn't save a location, clear placeholder
+                    vm.handleMapPickerDismiss()
+                }) {
                     MapLocationPickerView(vm: vm)
                 }
             } else if vm.locationConfiguration == nil || vm.locationConfiguration?.isEnabled == false {
@@ -84,6 +87,10 @@ public struct LocationConfigurationSection: View {
             }
         } header: {
             Text("Location-Based")
+        } footer: {
+            if vm.locationConfiguration?.isEnabled == true {
+                Text("Notifications are automatically skipped if the habit is already completed.")
+            }
         }
     }
 
@@ -104,12 +111,16 @@ private struct LocationPermissionStatus: View {
     var body: some View {
         switch vm.locationAuthStatus {
         case .notDetermined:
-            RequestPermissionRow(vm: vm, message: "Location permission required")
+            RequestPermissionRow(
+                vm: vm,
+                message: "Grant 'Always' permission for background monitoring",
+                requestAlways: true
+            )
 
         case .authorizedWhenInUse:
             RequestPermissionRow(
                 vm: vm,
-                message: "Grant 'Always' permission for background monitoring",
+                message: "Upgrade to 'Always' for background monitoring",
                 requestAlways: true
             )
 
@@ -151,7 +162,7 @@ private struct RequestPermissionRow: View {
         } label: {
             HStack {
                 Image(systemName: "location.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.purple)
                 Text(message)
                     .font(.caption)
 

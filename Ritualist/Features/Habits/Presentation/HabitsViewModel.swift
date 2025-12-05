@@ -4,7 +4,7 @@ import FactoryKit
 import RitualistCore
 
 @MainActor @Observable
-public final class HabitsViewModel {
+public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     // MARK: - Factory Injected Dependencies
     @ObservationIgnored @Injected(\.loadHabitsData) var loadHabitsData
     @ObservationIgnored @Injected(\.createHabit) var createHabit
@@ -22,6 +22,7 @@ public final class HabitsViewModel {
     @ObservationIgnored @Injected(\.isScheduledDay) private var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     @ObservationIgnored @Injected(\.getSingleHabitLogs) private var getSingleHabitLogs
+    @ObservationIgnored @Injected(\.debugLogger) private var logger
     
     // MARK: - Shared ViewModels
     
@@ -32,6 +33,16 @@ public final class HabitsViewModel {
     public private(set) var isCreating = false
     public private(set) var isUpdating = false
     public private(set) var isDeleting = false
+    public private(set) var isReordering = false
+
+    /// Track if initial data has been loaded to prevent duplicate loads during startup
+    @ObservationIgnored private var hasLoadedInitialData = false
+
+    /// Track view visibility for tab switch detection
+    public var isViewVisible: Bool = false
+
+    /// Track if view has disappeared at least once (to distinguish initial appear from tab switch)
+    @ObservationIgnored private var viewHasDisappearedOnce = false
     
     // MARK: - Category Filtering State
     public var selectedFilterCategory: HabitCategory?
@@ -46,6 +57,7 @@ public final class HabitsViewModel {
     public var showingHabitAssistant = false
     public var shouldReopenAssistantAfterPaywall = false
     public var isHandlingPaywallDismissal = false
+    public var pendingPaywallAfterAssistantDismiss = false
     
     // MARK: - Paywall Protection
     
@@ -118,6 +130,43 @@ public final class HabitsViewModel {
     }
     
     public func load() async {
+        // Skip redundant loads after initial data is loaded
+        guard !hasLoadedInitialData else { return }
+        await performLoad()
+    }
+
+    /// Force reload habits data (for pull-to-refresh, iCloud sync, sheet dismissals, etc.)
+    public func refresh() async {
+        hasLoadedInitialData = false
+        await performLoad()
+    }
+
+    /// Invalidate cache when switching to this tab
+    /// Ensures fresh data is loaded after changes made in other tabs
+    public func invalidateCacheForTabSwitch() {
+        if hasLoadedInitialData {
+            hasLoadedInitialData = false
+        }
+    }
+
+    /// Mark that the view has disappeared (called from onDisappear)
+    public func markViewDisappeared() {
+        viewHasDisappearedOnce = true
+    }
+
+    /// Check if this is a tab switch (view returning after having left)
+    /// Returns false on initial appear, true on subsequent appears after disappearing
+    public var isReturningFromTabSwitch: Bool {
+        viewHasDisappearedOnce
+    }
+
+    /// Set view visibility state
+    public func setViewVisible(_ visible: Bool) {
+        isViewVisible = visible
+    }
+
+    /// Internal load implementation
+    private func performLoad() async {
         let startTime = Date()
         isLoading = true
         error = nil
@@ -136,6 +185,8 @@ public final class HabitsViewModel {
                 unit: "ms",
                 additionalProperties: ["habits_count": habitsData.totalHabitsCount, "categories_count": habitsData.categoriesCount]
             )
+
+            hasLoadedInitialData = true
         } catch {
             self.error = error
             habitsData = HabitsData(habits: [], categories: [])
@@ -151,7 +202,7 @@ public final class HabitsViewModel {
         
         do {
             _ = try await createHabit.execute(habit)
-            await load() // Refresh the list
+            await refresh() // Refresh the list
             isCreating = false
             
             // Track habit creation
@@ -176,7 +227,7 @@ public final class HabitsViewModel {
         
         do {
             try await updateHabit.execute(habit)
-            await load() // Refresh the list
+            await refresh() // Refresh the list
             isUpdating = false
             
             // Track habit update
@@ -203,7 +254,7 @@ public final class HabitsViewModel {
         
         do {
             try await deleteHabit.execute(id: id)
-            await load() // Refresh the list
+            await refresh() // Refresh the list
             isDeleting = false
             
             // Track habit deletion
@@ -232,7 +283,7 @@ public final class HabitsViewModel {
         
         do {
             _ = try await toggleHabitActiveStatus.execute(id: id)
-            await load() // Refresh the list
+            await refresh() // Refresh the list
             isUpdating = false
             
             // Track habit activation/deactivation
@@ -262,26 +313,26 @@ public final class HabitsViewModel {
     }
     
     public func reorderHabits(_ newOrder: [Habit]) async -> Bool {
-        isUpdating = true
+        isReordering = true
         error = nil
-        
+
         do {
             try await reorderHabits.execute(newOrder)
             // Update local state immediately for smooth UI
             habitsData = HabitsData(habits: newOrder, categories: habitsData.categories)
-            isUpdating = false
+            isReordering = false
             return true
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "habit_reorder", additionalProperties: ["habits_count": newOrder.count])
-            await load() // Reload on error to restore correct order
-            isUpdating = false
+            await refresh() // Reload on error to restore correct order
+            isReordering = false
             return false
         }
     }
     
     public func retry() async {
-        await load()
+        await refresh()
     }
     
     private func setupRefreshObservation() {
@@ -308,30 +359,30 @@ public final class HabitsViewModel {
             showingCreateHabit = true
         } else {
             // Show paywall for users who hit the limit
-            showPaywall()
+            Task {
+                await showPaywall()
+            }
         }
     }
     
     /// Show paywall
-    public func showPaywall() {
-        Task {
-            await paywallViewModel.load()
-            paywallViewModel.trackPaywallShown(source: "habits", trigger: "habit_limit")
-            paywallItem = PaywallItem(viewModel: paywallViewModel)
-        }
+    public func showPaywall() async {
+        await paywallViewModel.load()
+        paywallViewModel.trackPaywallShown(source: "habits", trigger: "habit_limit")
+        paywallItem = PaywallItem(viewModel: paywallViewModel)
     }
     
     /// Handle when create habit sheet is dismissed - refresh data
     public func handleCreateHabitDismissal() {
         Task {
-            await load()
+            await refresh()
         }
     }
-    
+
     /// Handle when habit detail sheet is dismissed - refresh data
     public func handleHabitDetailDismissal() {
         Task {
-            await load()
+            await refresh()
         }
     }
     
@@ -350,10 +401,16 @@ public final class HabitsViewModel {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
             return isHabitCompleted.execute(habit: habit, on: today, logs: logs)
         } catch {
+            logger.log(
+                "Failed to check habit completion",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["habit_id": habit.id.uuidString, "error": error.localizedDescription]
+            )
             return false
         }
     }
-    
+
     /// Get current progress for a habit today using CalculateDailyProgressUseCase
     public func getCurrentProgress(for habit: Habit) async -> Double {
         do {
@@ -362,6 +419,12 @@ public final class HabitsViewModel {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
             return calculateDailyProgress.execute(habit: habit, logs: logs, for: today)
         } catch {
+            logger.log(
+                "Failed to get habit progress",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["habit_id": habit.id.uuidString, "error": error.localizedDescription]
+            )
             return 0.0
         }
     }
@@ -413,14 +476,12 @@ public final class HabitsViewModel {
         showingHabitAssistant = true
     }
     
-    /// Show paywall from assistant (sets flag to reopen assistant after)
-    public func showPaywallFromAssistant() {
+    /// Dismiss assistant and show paywall (called from assistant's upgrade button)
+    /// Sets flag to show paywall after assistant dismissal completes
+    public func dismissAssistantAndShowPaywall() {
+        pendingPaywallAfterAssistantDismiss = true
         shouldReopenAssistantAfterPaywall = true
-        Task {
-            await paywallViewModel.load()
-            paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
-            paywallItem = PaywallItem(viewModel: paywallViewModel)
-        }
+        showingHabitAssistant = false
     }
     
     /// Handle paywall dismissal
@@ -447,10 +508,20 @@ public final class HabitsViewModel {
         }
     }
     
-    /// Handle when assistant sheet is dismissed - refresh data
+    /// Handle when assistant sheet is dismissed - refresh data and show pending paywall
     public func handleAssistantDismissal() {
         Task {
-            await load()
+            await refresh()
+        }
+
+        // Check if we need to show paywall after assistant dismissal
+        if pendingPaywallAfterAssistantDismiss {
+            pendingPaywallAfterAssistantDismiss = false
+            // Small delay to let the sheet dismissal animation complete
+            Task {
+                try? await Task.sleep(for: .milliseconds(350))
+                await showPaywall()
+            }
         }
     }
     

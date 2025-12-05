@@ -76,8 +76,9 @@ public struct DashboardData {
     }
     
     /// Get habits scheduled for a specific date
+    /// Only includes habits that have started (date >= habit.startDate) and are scheduled for that day
     public func scheduledHabits(for date: Date) -> [Habit] {
-        return habits.filter { $0.schedule.isActiveOn(date: date) }
+        return habits.filter { $0.isScheduledOn(date: date) }
     }
     
     /// Get streak data for a specific habit using proper UseCase
@@ -112,8 +113,8 @@ public struct DashboardData {
                 date: startOfDay,
                 completionRate: completionRate
             ))
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
         
         return dataPoints.sorted { $0.date < $1.date }
@@ -150,29 +151,30 @@ public struct DashboardData {
     }
     
     /// Get category performance breakdown
+    /// Used by DashboardViewModel.extractCategoryBreakdown() for consistent calculation
     public func categoryPerformanceData() -> [CategoryPerformanceResult] {
         let habitsByCategory = Dictionary(grouping: habits) { $0.categoryId ?? "default" }
-        
+
         return categories.compactMap { category -> CategoryPerformanceResult? in
             let categoryHabits = habitsByCategory[String(describing: category.id)] ?? []
             guard !categoryHabits.isEmpty else { return nil }
-            
+
             let totalCompletions = categoryHabits.reduce(0) { total, habit in
                 let habitCompletions = dailyCompletions.values.reduce(0) { sum, dayCompletion in
                     return sum + (dayCompletion.completedHabits.contains(habit.id) ? 1 : 0)
                 }
                 return total + habitCompletions
             }
-            
+
             let totalPossibleCompletions = categoryHabits.reduce(0) { total, habit in
                 let habitExpected = dailyCompletions.values.reduce(0) { sum, dayCompletion in
                     return sum + (dayCompletion.expectedHabits.contains(habit.id) ? 1 : 0)
                 }
                 return total + habitExpected
             }
-            
+
             let completionRate = totalPossibleCompletions > 0 ? Double(totalCompletions) / Double(totalPossibleCompletions) : 0.0
-            
+
             return CategoryPerformanceResult(
                 categoryId: String(describing: category.id),
                 categoryName: category.displayName,
@@ -196,8 +198,8 @@ public struct DashboardData {
         while currentDate <= dateRange.upperBound {
             let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate)
 
-            // Get habits scheduled for this date
-            let scheduledHabits = habits.filter { $0.schedule.isActiveOn(date: startOfDay) }
+            // Get habits scheduled for this date (must have started AND be scheduled)
+            let scheduledHabits = habits.filter { $0.isScheduledOn(date: startOfDay) }
             let expectedHabits = Set(scheduledHabits.map(\.id))
             
             // Find completed habits for this date
@@ -224,8 +226,8 @@ public struct DashboardData {
                 totalCompleted: completedHabits.count,
                 totalExpected: expectedHabits.count
             )
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
         
         return dailyCompletions

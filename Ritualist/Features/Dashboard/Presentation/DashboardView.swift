@@ -1,11 +1,13 @@
 import SwiftUI
 import Charts
 import RitualistCore
+import FactoryKit
 
 // swiftlint:disable type_body_length
 public struct DashboardView: View {
-    var vm: DashboardViewModel
-    
+    @Bindable var vm: DashboardViewModel
+    @Injected(\.debugLogger) private var logger
+
     public init(vm: DashboardViewModel) {
         self.vm = vm
     }
@@ -17,9 +19,7 @@ public struct DashboardView: View {
                 timePeriodSelector
                 
                 // Main Stats Cards
-                if vm.isLoading {
-                    loadingView
-                } else if let stats = vm.completionStats {
+                if vm.hasHabits {
                     // Weekly Patterns (moved to top)
                     if let weeklyPatterns = vm.weeklyPatterns {
                         weeklyPatternsSection(patterns: weeklyPatterns)
@@ -50,10 +50,39 @@ public struct DashboardView: View {
         .refreshable {
             await vm.refresh()
         }
-        .navigationTitle("Dashboard")
+        .navigationTitle(Strings.Navigation.stats)
         .navigationBarTitleDisplayMode(.large)
         .task {
             await vm.loadData()
+        }
+        .onAppear {
+            vm.setViewVisible(true)
+        }
+        .onDisappear {
+            vm.setViewVisible(false)
+            vm.markViewDisappeared()
+        }
+        .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
+            // When view becomes visible (tab switch), reload to pick up changes from other tabs
+            // Skip on initial appear - the .task modifier handles initial load.
+            if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+                Task {
+                    logger.log("Tab switch detected: Reloading dashboard data", level: .debug, category: .ui)
+                    vm.invalidateCacheForTabSwitch()
+                    await vm.refresh()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+            // Auto-refresh when iCloud syncs new data from another device
+            Task {
+                logger.log(
+                    "☁️ iCloud sync detected - refreshing Dashboard",
+                    level: .info,
+                    category: .system
+                )
+                await vm.refresh()
+            }
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -62,27 +91,16 @@ public struct DashboardView: View {
     
     @ViewBuilder
     private var timePeriodSelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(TimePeriod.allCases, id: \.self) { period in
-                    Button(action: { vm.selectedTimePeriod = period }) {
-                        Text(period.displayName)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(vm.selectedTimePeriod == period ? .white : .primary)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 25)
-                                    .fill(vm.selectedTimePeriod == period ? AppColors.brand : Color(.secondarySystemBackground))
-                            )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
+        // Note: .allTime excluded until performance optimization is complete
+        let availablePeriods = TimePeriod.allCases.filter { $0 != .allTime }
+        Picker(Strings.Dashboard.timePeriodPicker, selection: $vm.selectedTimePeriod) {
+            ForEach(availablePeriods, id: \.self) { period in
+                Text(period.shortDisplayName)
+                    .tag(period)
+                    .accessibilityLabel(period.accessibilityLabel)
             }
-            .padding(.leading, 20)
-            .padding(.trailing, 20)
         }
-        .padding(.leading, -20)
+        .pickerStyle(.segmented)
         .padding(.top, 10)
     }
     
@@ -334,7 +352,7 @@ public struct DashboardView: View {
                         Text("\(Int((category.completionRate * 100).rounded()))%")
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
                             .foregroundColor(.primary)
-                            .frame(width: 35, alignment: .trailing)
+                            .frame(minWidth: 44, alignment: .trailing)
                     }
                 }
                 .padding(.vertical, 2)
@@ -408,10 +426,6 @@ public struct DashboardView: View {
         VStack(spacing: 16) {
             // Schedule insights based on data
             VStack(alignment: .leading, spacing: 12) {
-                Text("Schedule Insights")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.primary)
-
                 // Best performing day (Fix #2: Use pre-calculated rate)
                 HStack {
                     Text("🌟")

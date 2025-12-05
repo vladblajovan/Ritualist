@@ -7,6 +7,8 @@ struct AccountSectionView: View {
     @Binding var name: String
     @Binding var appearance: Int
     @Binding var displayTimezoneMode: String
+    @Binding var gender: UserGender
+    @Binding var ageGroup: UserAgeGroup
     @FocusState.Binding var isNameFieldFocused: Bool
     @Binding var showingImagePicker: Bool
     let updateUserName: () async -> Void
@@ -29,6 +31,9 @@ struct AccountSectionView: View {
                 VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                     TextField(Strings.Form.name, text: $name)
                         .textFieldStyle(.plain)
+                        .textContentType(.name)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
                         .focused($isNameFieldFocused)
                         .onSubmit {
                             isNameFieldFocused = false
@@ -49,27 +54,45 @@ struct AccountSectionView: View {
                 }
             }
 
-            // Appearance Picker
+            // Gender Picker
             HStack {
                 Label {
-                    Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
-                        Text(Strings.Settings.followSystem).tag(0)
-                        Text(Strings.Settings.light).tag(1)
-                        Text(Strings.Settings.dark).tag(2)
+                    Picker("Gender", selection: $gender) {
+                        ForEach(UserGender.allCases) { genderOption in
+                            Text(genderOption.displayName).tag(genderOption)
+                        }
                     }
                     .pickerStyle(MenuPickerStyle())
-                    .onChange(of: appearance) { _, newValue in
+                    .onChange(of: gender) { _, newValue in
                         Task {
-                            // Auto-save appearance changes
-                            vm.profile.appearance = newValue
-                            _ = await vm.save()
-                            await vm.updateAppearance(newValue)
+                            await vm.updateGender(newValue)
                         }
                     }
                 } icon: {
-                    Image(systemName: "circle.lefthalf.filled")
+                    Image(systemName: "person.fill")
                         .font(.title2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.purple)
+                }
+            }
+
+            // Age Group Picker
+            HStack {
+                Label {
+                    Picker("Age Group", selection: $ageGroup) {
+                        ForEach(UserAgeGroup.allCases) { ageGroupOption in
+                            Text(ageGroupOption.displayName).tag(ageGroupOption)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                    .onChange(of: ageGroup) { _, newValue in
+                        Task {
+                            await vm.updateAgeGroup(newValue)
+                        }
+                    }
+                } icon: {
+                    Image(systemName: "number.circle")
+                        .font(.title2)
+                        .foregroundColor(.orange)
                 }
             }
         }

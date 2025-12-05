@@ -215,7 +215,9 @@ struct SubscriptionManagementSectionView: View {
     // MARK: - Actions
 
     private func showPaywall() {
-        vm.showPaywall()
+        Task {
+            await vm.showPaywall()
+        }
     }
 
     private func openSubscriptionManagement() {
@@ -302,7 +304,11 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
         syncWithiCloud: MockSyncWithiCloud(),
         checkiCloudStatus: MockCheckiCloudStatus(),
         getLastSyncDate: MockGetLastSyncDate(),
-        updateLastSyncDate: MockUpdateLastSyncDate()
+        deleteiCloudData: MockDeleteiCloudData(),
+        exportUserData: MockExportUserData(),
+        importUserData: MockImportUserData(),
+        getICloudSyncPreference: MockGetICloudSyncPreference(),
+        setICloudSyncPreference: MockSetICloudSyncPreference()
     )
 
     return vm
@@ -368,10 +374,6 @@ private struct MockGetLastSyncDate: GetLastSyncDateUseCase {
     }
 }
 
-private struct MockUpdateLastSyncDate: UpdateLastSyncDateUseCase {
-    func execute(_ date: Date) async {}
-}
-
 private struct MockGetCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase {
     let plan: SubscriptionPlan
 
@@ -382,4 +384,35 @@ private struct MockGetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
     let expiryDate: Date?
 
     func execute() async -> Date? { expiryDate }
+}
+
+private struct MockDeleteiCloudData: DeleteiCloudDataUseCase {
+    func execute() async throws {}
+}
+
+private struct MockExportUserData: ExportUserDataUseCase {
+    func execute() async throws -> String {
+        return """
+        {
+          "exportedAt": "2025-11-24T00:00:00Z",
+          "profile": { "name": "Test User" },
+          "habits": [],
+          "categories": [],
+          "habitLogs": [],
+          "personalityData": { "currentProfile": null, "analysisHistory": [] }
+        }
+        """
+    }
+}
+
+private struct MockImportUserData: ImportUserDataUseCase {
+    func execute(jsonString: String) async throws {}
+}
+
+private struct MockGetICloudSyncPreference: GetICloudSyncPreferenceUseCase {
+    func execute() -> Bool { true }
+}
+
+private struct MockSetICloudSyncPreference: SetICloudSyncPreferenceUseCase {
+    func execute(_ enabled: Bool) {}
 }

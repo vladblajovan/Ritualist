@@ -25,7 +25,8 @@ public final class CreateHabit: CreateHabitUseCase {
             isActive: habit.isActive,
             displayOrder: maxOrder + 1,
             categoryId: habit.categoryId,
-            suggestionId: habit.suggestionId
+            suggestionId: habit.suggestionId,
+            locationConfiguration: habit.locationConfiguration
         )
         
         try await repo.update(habitWithOrder)
@@ -50,20 +51,50 @@ public final class UpdateHabit: UpdateHabitUseCase {
 
 public final class DeleteHabit: DeleteHabitUseCase {
     private let repo: HabitRepository
-    public init(repo: HabitRepository) { self.repo = repo }
-    public func execute(id: UUID) async throws { 
+    private let cancelHabitReminders: CancelHabitRemindersUseCase?
+    private let locationMonitoringService: LocationMonitoringService?
+
+    public init(
+        repo: HabitRepository,
+        cancelHabitReminders: CancelHabitRemindersUseCase? = nil,
+        locationMonitoringService: LocationMonitoringService? = nil
+    ) {
+        self.repo = repo
+        self.cancelHabitReminders = cancelHabitReminders
+        self.locationMonitoringService = locationMonitoringService
+    }
+
+    public func execute(id: UUID) async throws {
+        // CRITICAL: Clean up notifications and geofences BEFORE deleting
+        // Otherwise we lose the habit data needed for proper cleanup
+
+        // Cancel all pending notifications for this habit
+        await cancelHabitReminders?.execute(habitId: id)
+
+        // Stop geofence monitoring if the habit had location-based reminders
+        await locationMonitoringService?.stopMonitoring(habitId: id)
+
         // SwiftData cascade delete will automatically remove associated logs
-        try await repo.delete(id: id) 
+        try await repo.delete(id: id)
     }
 }
 
 public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
     private let repo: HabitRepository
     private let locationMonitoringService: LocationMonitoringService?
+    private let cancelHabitReminders: CancelHabitRemindersUseCase?
+    private let scheduleHabitReminders: ScheduleHabitRemindersUseCase?
 
-    public init(repo: HabitRepository, locationMonitoringService: LocationMonitoringService? = nil) {
+    public init(
+        repo: HabitRepository,
+        locationMonitoringService: LocationMonitoringService? = nil,
+        cancelHabitReminders: CancelHabitRemindersUseCase? = nil,
+        scheduleHabitReminders: ScheduleHabitRemindersUseCase? = nil
+    ) {
         self.repo = repo
         self.locationMonitoringService = locationMonitoringService
+        self.cancelHabitReminders = cancelHabitReminders
+        self.scheduleHabitReminders = scheduleHabitReminders
     }
 
     public func execute(id: UUID) async throws -> Habit {
@@ -89,10 +120,22 @@ public final class ToggleHabitActiveStatus: ToggleHabitActiveStatusUseCase {
             isActive: newActiveStatus,
             displayOrder: habit.displayOrder,
             categoryId: habit.categoryId,
-            suggestionId: habit.suggestionId
+            suggestionId: habit.suggestionId,
+            locationConfiguration: habit.locationConfiguration
         )
 
         try await repo.update(updatedHabit)
+
+        // Handle notifications based on active status
+        if newActiveStatus {
+            // Reactivating habit - reschedule notifications if habit has reminders
+            if !habit.reminders.isEmpty {
+                try? await scheduleHabitReminders?.execute(habit: updatedHabit)
+            }
+        } else {
+            // Deactivating habit - cancel all pending notifications
+            await cancelHabitReminders?.execute(habitId: id)
+        }
 
         // Handle location monitoring based on active status
         if let locationService = locationMonitoringService,
@@ -133,7 +176,8 @@ public final class ReorderHabits: ReorderHabitsUseCase {
                 isActive: habit.isActive,
                 displayOrder: index,
                 categoryId: habit.categoryId,
-                suggestionId: habit.suggestionId
+                suggestionId: habit.suggestionId,
+                locationConfiguration: habit.locationConfiguration
             )
             updatedHabits.append(updatedHabit)
         }
@@ -207,7 +251,8 @@ public final class OrphanHabitsFromCategory: OrphanHabitsFromCategoryUseCase {
                 isActive: habit.isActive,
                 displayOrder: habit.displayOrder,
                 categoryId: nil,  // Remove category association
-                suggestionId: habit.suggestionId
+                suggestionId: habit.suggestionId,
+                locationConfiguration: habit.locationConfiguration
             )
             
             try await repo.update(orphanedHabit)
@@ -243,13 +288,24 @@ public final class GetActiveHabits: GetActiveHabitsUseCase {
 
 public final class GetHabitCount: GetHabitCountUseCase {
     private let repo: HabitRepository
-    public init(repo: HabitRepository) { self.repo = repo }
-    
+    private let logger: DebugLogger
+
+    public init(repo: HabitRepository, logger: DebugLogger) {
+        self.repo = repo
+        self.logger = logger
+    }
+
     public func execute() async -> Int {
         do {
             let habits = try await repo.fetchAllHabits()
             return habits.count
         } catch {
+            logger.log(
+                "Failed to fetch habit count, returning 0",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
             return 0
         }
     }

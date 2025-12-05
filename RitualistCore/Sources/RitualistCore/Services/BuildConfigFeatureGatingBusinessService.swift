@@ -68,6 +68,15 @@ public final class BuildConfigFeatureGatingBusinessService: FeatureGatingBusines
         }
     }
 
+    public var hasICloudSync: Bool {
+        get async {
+            if buildConfigService.allFeaturesEnabled {
+                return true
+            }
+            return await standardFeatureGating.hasICloudSync
+        }
+    }
+
     nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
         if buildConfigService.allFeaturesEnabled {
             return "All features are enabled in this build configuration."

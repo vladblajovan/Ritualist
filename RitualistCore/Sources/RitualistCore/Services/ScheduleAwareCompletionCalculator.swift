@@ -37,7 +37,7 @@ public protocol ScheduleAwareCompletionCalculator {
 }
 
 public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareCompletionCalculator {
-    
+
     private let habitCompletionService: HabitCompletionService
     
     public init(habitCompletionService: HabitCompletionService = DefaultHabitCompletionService()) {
@@ -111,7 +111,7 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
             totalCompletedEntries += completedDays
             
             // Consider a habit "completed" if it has >50% completion rate
-            if completionRate > 0.5 {
+            if completionRate > BusinessConstants.goodCompletionRate {
                 habitsWithGoodCompletion += 1
             }
         }
@@ -145,12 +145,12 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
             if isHabitCompleted(habit: habit, logs: logs, date: currentDate) {
                 completedDays += 1
             }
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
-        
+
         return Double(completedDays) / Double(expectedDays)
     }
-    
+
     private func calculateDaysOfWeekCompletionRate(
         habit: Habit,
         logs: [HabitLog],
@@ -178,14 +178,14 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
                     completedDays += 1
                 }
             }
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
-        
+
         return Double(completedDays) / Double(expectedDays)
     }
-    
-    
+
+
     private func calculateExpectedDaysForSchedule(
         scheduledDays: Set<Int>,
         startDate: Date,
@@ -202,10 +202,10 @@ public final class DefaultScheduleAwareCompletionCalculator: ScheduleAwareComple
             if scheduledDays.contains(habitWeekday) {
                 expectedDays += 1
             }
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
         }
-        
+
         return expectedDays
     }
     

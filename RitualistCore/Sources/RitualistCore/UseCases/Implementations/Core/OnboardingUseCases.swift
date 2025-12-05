@@ -24,13 +24,40 @@ public final class SaveOnboardingState: SaveOnboardingStateUseCase {
 public final class CompleteOnboarding: CompleteOnboardingUseCase {
     private let onboardingRepo: OnboardingRepository
     private let profileRepo: ProfileRepository
+    private let iCloudKeyValueService: iCloudKeyValueService?
+    private let logger: DebugLogger
 
-    public init(repo: OnboardingRepository, profileRepo: ProfileRepository) {
+    public init(
+        repo: OnboardingRepository,
+        profileRepo: ProfileRepository,
+        iCloudKeyValueService: iCloudKeyValueService? = nil,
+        logger: DebugLogger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "onboarding")
+    ) {
         self.onboardingRepo = repo
         self.profileRepo = profileRepo
+        self.iCloudKeyValueService = iCloudKeyValueService
+        self.logger = logger
     }
 
-    public func execute(userName: String?, hasNotifications: Bool) async throws {
+    public func execute(userName: String?, hasNotifications: Bool, hasLocation: Bool, gender: String?, ageGroup: String?) async throws {
+        // Validate demographic values are valid enum cases (defensive check)
+        if let gender = gender, UserGender(rawValue: gender) == nil {
+            logger.log(
+                "Invalid gender value passed to CompleteOnboarding",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["raw_value": gender]
+            )
+        }
+        if let ageGroup = ageGroup, UserAgeGroup(rawValue: ageGroup) == nil {
+            logger.log(
+                "Invalid ageGroup value passed to CompleteOnboarding",
+                level: .warning,
+                category: .dataIntegrity,
+                metadata: ["raw_value": ageGroup]
+            )
+        }
+        // Note: hasLocation is passed for completeness but not persisted - location permissions are checked at runtime
         // Create completed onboarding state (business logic moved from repository)
         let completedState = OnboardingState(
             isCompleted: true,
@@ -40,27 +67,43 @@ public final class CompleteOnboarding: CompleteOnboardingUseCase {
         )
         try await onboardingRepo.saveOnboardingState(completedState)
 
-        // Update user profile with the name if provided
-        if let userName = userName, !userName.isEmpty {
-            // Load profile or create default if not exists (business logic)
-            var profile: UserProfile
-            if let existingProfile = try await profileRepo.loadProfile() {
-                profile = existingProfile
-            } else {
-                // Create new profile with three-timezone model defaults
-                // All timezones initialize to device timezone (safe default)
-                profile = UserProfile(
-                    appearance: AppearanceManager.getSystemAppearance()
-                    // currentTimezoneIdentifier, homeTimezoneIdentifier, and displayTimezoneMode
-                    // use default values (device timezone and .current mode)
-                )
-            }
+        // Set iCloud flag so other devices know onboarding was completed
+        // This syncs almost instantly via NSUbiquitousKeyValueStore
+        iCloudKeyValueService?.setOnboardingCompleted()
 
-            profile.name = userName
-            profile.updatedAt = Date()
-            try await profileRepo.saveProfile(profile)
+        // Also set local device flag so THIS device knows onboarding is done
+        // This prevents showing returning user welcome on reinstall of same device
+        iCloudKeyValueService?.setOnboardingCompletedLocally()
 
-            // No need to sync to UserService - it uses ProfileRepository as single source of truth
+        // Update user profile with name, gender, and ageGroup
+        // Load profile or create default if not exists (business logic)
+        var profile: UserProfile
+        if let existingProfile = try await profileRepo.loadProfile() {
+            profile = existingProfile
+        } else {
+            // Create new profile with three-timezone model defaults
+            // All timezones initialize to device timezone (safe default)
+            profile = UserProfile(
+                appearance: AppearanceManager.getSystemAppearance()
+                // currentTimezoneIdentifier, homeTimezoneIdentifier, and displayTimezoneMode
+                // use default values (device timezone and .current mode)
+            )
         }
+
+        // Update profile fields from onboarding
+        if let userName = userName, !userName.isEmpty {
+            profile.name = userName
+        }
+        if let gender = gender {
+            profile.gender = gender
+        }
+        if let ageGroup = ageGroup {
+            profile.ageGroup = ageGroup
+        }
+        profile.updatedAt = Date()
+
+        try await profileRepo.saveProfile(profile)
+
+        // No need to sync to UserService - it uses ProfileRepository as single source of truth
     }
 }

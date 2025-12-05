@@ -1,6 +1,6 @@
+import CloudKit
 import Foundation
 import SwiftData
-import os.log
 
 /// Core persistence container for Ritualist app
 /// Manages SwiftData ModelContainer with app group support for widget access
@@ -11,93 +11,128 @@ public final class PersistenceContainer {
     /// App Group identifier for shared container access
     private static let appGroupIdentifier = "group.com.vladblajovan.Ritualist"
 
-    /// Logger for migration and initialization events
-    private static let logger = Logger(subsystem: "com.vladblajovan.Ritualist", category: "Persistence")
-
-    /// UserDefaults key for last known schema version
-    private static let lastSchemaVersionKey = "com.ritualist.lastSchemaVersion"
+    /// Logger for migration and initialization events (uses shared DebugLogger for consistency)
+    private static let logger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "Persistence")
 
     /// Initialize persistence container with app group support
     /// Enables data sharing between main app and widget extension
     ///
-    /// Uses versioned schema (SchemaV10) with migration plan to safely handle schema changes.
+    /// Uses versioned schema with migration plan to safely handle schema changes.
     /// All datasources use Active* type aliases that point to current schema version.
+    ///
+    /// iCloud sync is conditionally enabled based on:
+    /// 1. Premium subscription status (read from UserDefaults cache to avoid DI circular dependency)
+    /// 2. User's sync preference toggle (can disable sync even if premium)
     public init() throws {
-        Self.logger.info("🔍 Initializing PersistenceContainer with versioned schema (V10)")
+        // Determine if sync should be active
+        // Read directly from UserDefaults to avoid DI circular dependency
+        // (PersistenceContainer is needed by DI, so we can't use DI here)
+        let isPremium = Self.checkPremiumStatusFromCache()
+        let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
+        let shouldSync = isPremium && syncPreference
 
-        // Get the current schema version for migration tracking
+        Self.logger.log(
+            "☁️ iCloud sync state",
+            level: .info,
+            category: .system,
+            metadata: [
+                "is_premium": isPremium,
+                "user_sync_preference": syncPreference,
+                "sync_active": shouldSync
+            ]
+        )
+
+        // Get the current schema version for migration tracking and logging
         let currentSchemaVersion = RitualistMigrationPlan.currentSchemaVersion
         let currentVersionString = currentSchemaVersion.description
+        Self.logger.log("🔍 Initializing PersistenceContainer with versioned schema (V\(currentVersionString))", level: .info, category: .system)
 
         // Read last known schema version (nil on first launch)
-        let lastVersionString = UserDefaults.standard.string(forKey: Self.lastSchemaVersionKey)
-        Self.logger.debug("🔍 Last known schema version: \(lastVersionString ?? "none (first launch)")")
-        Self.logger.debug("🔍 Current schema version: \(currentVersionString)")
+        let lastVersionString = UserDefaults.standard.string(forKey: UserDefaultsKeys.lastSchemaVersion)
+        Self.logger.log("🔍 Last known schema version: \(lastVersionString ?? "none (first launch)")", level: .debug, category: .system)
+        Self.logger.log("🔍 Current schema version: \(currentVersionString)", level: .debug, category: .system)
 
         // Notify UI if migration is about to start
         let migrationWillOccur = lastVersionString != nil && lastVersionString != currentVersionString
         if migrationWillOccur, let lastVersion = lastVersionString {
             // Set migration state synchronously on main thread
             // This ensures the UI sees the state before migration starts
-            DispatchQueue.main.async {
-                Task { @MainActor in
+            // Use sync dispatch to ensure startMigration completes before proceeding
+            // This prevents race condition where completeMigration captures stale migration ID
+            //
+            // Note: MainActor.assumeIsolated is safe here because we guarantee main thread:
+            // - If already on main thread: call directly
+            // - If on background thread: DispatchQueue.main.sync ensures we're on main thread
+            if Thread.isMainThread {
+                MainActor.assumeIsolated {
                     MigrationStatusService.shared.startMigration(
                         from: lastVersion,
                         to: currentVersionString
                     )
                 }
+            } else {
+                DispatchQueue.main.sync {
+                    MainActor.assumeIsolated {
+                        MigrationStatusService.shared.startMigration(
+                            from: lastVersion,
+                            to: currentVersionString
+                        )
+                    }
+                }
             }
 
             // Give UI time to render the migration modal (100ms)
             // Without this, the migration completes before the view appears
+            //
+            // NOTE: Thread.sleep is used because init() is synchronous - can't use Task.sleep.
+            // Making init async would require:
+            //   1. Change to static func create() async throws -> PersistenceContainer
+            //   2. Update Factory DI registration to handle async initialization
+            //   3. Update all @Injected(\.persistenceContainer) sites
+            //   4. Await container creation in RitualistApp before showing UI
+            // Current approach works fine for 100ms delay during rare migrations.
             Thread.sleep(forTimeInterval: 0.1)
-            Self.logger.debug("⏱️ Allowing UI time to show migration modal")
+            Self.logger.log("⏱️ Allowing UI time to show migration modal", level: .debug, category: .system)
         }
 
-        // Get shared container URL for app group
-        let sharedContainerURL = PersistenceContainer.getSharedContainerURL()
-        Self.logger.debug("📁 Using shared container URL: \(sharedContainerURL.path)")
-
-        // Configure ModelContainer with shared URL and migration options
-        let databaseURL = sharedContainerURL.appendingPathComponent("Ritualist.sqlite")
-        Self.logger.debug("🗄️ Database file path: \(databaseURL.path)")
-
-        let configuration = ModelConfiguration(
-            url: databaseURL,
-            allowsSave: true,
-            // ✅ CloudKit ENABLED - Syncs to iCloud private database
-            cloudKitDatabase: .private("iCloud.com.vladblajovan.Ritualist")
-        )
+        // Pre-create the Application Support directory in App Group container
+        // SwiftData stores Local.store here (verified: AppGroup/.../Library/Application Support/Local.store)
+        // The directory may not exist on first launch - creating it upfront prevents
+        // CoreData "Failed to stat path" error logs during container initialization
+        Self.ensureApplicationSupportDirectoryExists()
 
         let migrationStartTime = Date()
 
         do {
-            Self.logger.info("📋 Creating Schema from SchemaV10")
-            Self.logger.debug("   SchemaV10 models: \(SchemaV10.models.map { String(describing: $0) })")
+            Self.logger.log("📋 Creating Schema from SchemaV\(currentVersionString)", level: .info, category: .system)
+            Self.logger.log("   Models: \(ActiveSchemaVersion.models.map { String(describing: $0) })", level: .debug, category: .system)
 
-            let schema = Schema(versionedSchema: SchemaV10.self)
-            Self.logger.debug("   Schema version: \(SchemaV10.versionIdentifier)")
+            let schema = Schema(versionedSchema: ActiveSchemaVersion.self)
+            Self.logger.log("   Schema version: \(currentVersionString)", level: .debug, category: .system)
 
-            Self.logger.info("🚀 Initializing ModelContainer with schema and migration plan")
-            Self.logger.info("   Migration plan will handle V2 → V3 → V4 → V5 → V6 → V7 → V8 → V9 → V10 upgrades automatically")
+            Self.logger.log("🚀 Initializing ModelContainer with dual configurations (CloudKit + Local)", level: .info, category: .system)
+            Self.logger.log("   CloudKit entities: \(PersistenceConfiguration.cloudKitSyncedTypes.map { String(describing: $0) })", level: .debug, category: .system)
+            Self.logger.log("   Local-only entities: \(PersistenceConfiguration.localOnlyTypes.map { String(describing: $0) })", level: .debug, category: .system)
 
-            // Use versioned schema with migration plan
-            // This enables safe schema evolution without data loss
-            // Migrations: V2 → V3 (adds isPinned) → V4 (replaces with notes) → V5 (adds lastCompletedDate) → V6 (adds archivedDate) → V7 (adds location support) → V8 (removes subscription fields) → V9 (three-timezone model) → V10 (CloudKit compatibility)
-            // All datasources use Active* type aliases pointing to current schema
+            // Use versioned schema with migration plan and dual configurations
+            // CloudKit config: synced entities (habits, logs, categories, user profile, onboarding)
+            //   - Sync enabled only if premium AND user preference is ON
+            // Local config: privacy-sensitive entities (personality analysis) - always local
+            // See PersistenceConfiguration.swift for entity assignments
+            let configurations = PersistenceConfiguration.allConfigurations(syncEnabled: shouldSync)
             container = try ModelContainer(
                 for: schema,
                 migrationPlan: RitualistMigrationPlan.self,
-                configurations: configuration
+                configurations: configurations
             )
-            Self.logger.info("✅ Successfully initialized ModelContainer with versioned schema (V9)")
+            Self.logger.log("✅ Successfully initialized ModelContainer with versioned schema (V\(currentVersionString))", level: .info, category: .system)
 
             // Calculate migration duration
             let migrationDuration = Date().timeIntervalSince(migrationStartTime)
 
             // Log migration if version changed
             if let lastVersion = lastVersionString, lastVersion != currentVersionString {
-                Self.logger.info("🔄 Schema migration detected: \(lastVersion) → \(currentVersionString)")
+                Self.logger.log("🔄 Schema migration detected: \(lastVersion) → \(currentVersionString)", level: .info, category: .system)
 
                 // Get description of what changed in this migration
                 let changeDescription = Self.getChangeDescription(from: lastVersion, to: currentVersionString)
@@ -115,19 +150,19 @@ public final class PersistenceContainer {
                 }
             } else if lastVersionString == nil {
                 // First launch - no migration, just set the version
-                Self.logger.info("🆕 First launch - setting initial schema version: \(currentVersionString)")
+                Self.logger.log("🆕 First launch - setting initial schema version: \(currentVersionString)", level: .info, category: .system)
             } else {
-                Self.logger.info("✨ No migration needed - schema version unchanged: \(currentVersionString)")
+                Self.logger.log("✨ No migration needed - schema version unchanged: \(currentVersionString)", level: .info, category: .system)
             }
 
             // Update last known schema version
-            UserDefaults.standard.set(currentVersionString, forKey: Self.lastSchemaVersionKey)
+            UserDefaults.standard.set(currentVersionString, forKey: UserDefaultsKeys.lastSchemaVersion)
 
         } catch {
             let migrationDuration = Date().timeIntervalSince(migrationStartTime)
 
-            Self.logger.error("❌ Failed to initialize ModelContainer: \(error.localizedDescription)")
-            Self.logger.error("   Error details: \(String(describing: error))")
+            Self.logger.log("❌ Failed to initialize ModelContainer: \(error.localizedDescription)", level: .error, category: .system)
+            Self.logger.log("   Error details: \(String(describing: error))", level: .error, category: .system)
 
             // Log migration failure if there was a version change
             if let lastVersion = lastVersionString, lastVersion != currentVersionString {
@@ -150,26 +185,76 @@ public final class PersistenceContainer {
         // Create single ModelContext instance to prevent threading issues
         // This context is shared across all repositories for data consistency
         context = ModelContext(container)
-        Self.logger.debug("✅ ModelContext created successfully")
+        Self.logger.log("✅ ModelContext created successfully", level: .debug, category: .system)
 
         // Log database stats using active schema types (post-migration)
         do {
             let habitCount = try context.fetchCount(FetchDescriptor<ActiveHabitModel>())
             let logCount = try context.fetchCount(FetchDescriptor<ActiveHabitLogModel>())
             let categoryCount = try context.fetchCount(FetchDescriptor<ActiveHabitCategoryModel>())
-            Self.logger.info("📊 Database stats - Habits: \(habitCount), Logs: \(logCount), Categories: \(categoryCount)")
+            Self.logger.log("📊 Database stats - Habits: \(habitCount), Logs: \(logCount), Categories: \(categoryCount)", level: .info, category: .system)
         } catch {
-            Self.logger.warning("⚠️ Could not fetch database stats: \(error.localizedDescription)")
+            Self.logger.log("⚠️ Could not fetch database stats: \(error.localizedDescription)", level: .warning, category: .system)
         }
     }
     
     /// Get the shared container URL for app group
     /// Returns the shared directory where both app and widget can access data
-    private static func getSharedContainerURL() -> URL {
+    /// Used by BackupManager for backup storage location
+    public static func getSharedContainerURL() -> URL {
         guard let sharedContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
             fatalError("Failed to get shared container URL for app group: \(appGroupIdentifier)")
         }
         return sharedContainerURL
+    }
+
+    /// Pre-create the Application Support directory in the App Group container
+    /// SwiftData stores the Local.store database here, but the directory may not exist on first launch
+    /// Creating it upfront prevents CoreData "Failed to stat path" error logs during initialization
+    private static func ensureApplicationSupportDirectoryExists() {
+        let sharedContainerURL = getSharedContainerURL()
+        let applicationSupportURL = sharedContainerURL
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Application Support", isDirectory: true)
+
+        if !FileManager.default.fileExists(atPath: applicationSupportURL.path) {
+            do {
+                try FileManager.default.createDirectory(
+                    at: applicationSupportURL,
+                    withIntermediateDirectories: true,
+                    attributes: nil
+                )
+                logger.log(
+                    "📁 Created Application Support directory for local store",
+                    level: .debug,
+                    category: .system
+                )
+            } catch {
+                // Non-fatal - CoreData will recover and create it anyway
+                logger.log(
+                    "⚠️ Failed to pre-create Application Support directory: \(error.localizedDescription)",
+                    level: .warning,
+                    category: .system
+                )
+            }
+        }
+    }
+
+    /// Check if iCloud account is available and device has network connectivity
+    /// - Returns: `true` if device is online and user is signed into iCloud
+    /// - Note: Returns `false` if offline, not signed in, or on any error
+    public static func isICloudAvailable() async -> Bool {
+        // Quick network check first (reads system state, nearly instant)
+        guard await NetworkUtilities.hasNetworkConnectivity() else { return false }
+
+        // Then check CloudKit account status
+        let container = CKContainer(identifier: iCloudConstants.containerIdentifier)
+        do {
+            let accountStatus = try await container.accountStatus()
+            return accountStatus == .available
+        } catch {
+            return false
+        }
     }
 
     /// Get description of what changed in a migration
@@ -203,6 +288,36 @@ public final class PersistenceContainer {
             // For unknown migrations, provide a generic description
             return "Updated database schema from version \(fromVersion) to \(toVersion)."
         }
+    }
+
+    /// Check premium status from UserDefaults cache at startup.
+    ///
+    /// Delegates to `MockSecureSubscriptionService.isPremiumFromCache()` which is the
+    /// single source of truth for startup-time premium checks. See that method for
+    /// implementation details and StoreKit2 migration notes.
+    ///
+    /// This bypasses DI to avoid circular dependency:
+    /// - PersistenceContainer needs premium status to decide sync mode
+    /// - DI Container registration of SubscriptionService may depend on PersistenceContainer
+    private static func checkPremiumStatusFromCache() -> Bool {
+        // Defensive check: verify cache was set before PersistenceContainer init
+        // This check will be relevant when StoreKit2 is implemented and sets premiumStatusCache at startup
+        //
+        // Note: premiumStatusCache is not yet used - see MockSecureSubscriptionService.isPremiumFromCache()
+        // for current flow which uses allFeaturesEnabledCache and mockPurchases
+        let cacheWasSet = UserDefaults.standard.object(forKey: UserDefaultsKeys.premiumStatusCache) != nil
+        if !cacheWasSet {
+            logger.log(
+                "ℹ️ Premium status cache not set - using fallback checks",
+                level: .debug,
+                category: .system,
+                metadata: [
+                    "note": "Expected until StoreKit2 implementation. Currently using allFeaturesEnabledCache and mockPurchases."
+                ]
+            )
+        }
+
+        return MockSecureSubscriptionService.isPremiumFromCache()
     }
 }
 

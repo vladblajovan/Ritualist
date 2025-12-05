@@ -5,6 +5,7 @@ import RitualistCore
 public struct HabitsRoot: View {
     @Injected(\.habitsViewModel) var vm
     @Injected(\.categoryManagementViewModel) var categoryManagementVM
+    @Injected(\.debugLogger) private var logger
     @State private var showingCategoryManagement = false
 
     public init() {}
@@ -17,9 +18,42 @@ public struct HabitsRoot: View {
         .task {
             await vm.load()
         }
+        .onAppear {
+            vm.setViewVisible(true)
+        }
+        .onDisappear {
+            vm.setViewVisible(false)
+            vm.markViewDisappeared()
+        }
+        .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
+            // When view becomes visible (tab switch), reload to pick up changes from other tabs
+            // Skip on initial appear - the .task modifier handles initial load.
+            if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+                Task {
+                    logger.log("Tab switch detected: Reloading habits data", level: .debug, category: .ui)
+                    vm.invalidateCacheForTabSwitch()
+                    await vm.refresh()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+            // Don't refresh while editing - the sheet's ViewModel would be recreated
+            // with stale data, causing issues like location toggle snapping back
+            guard vm.selectedHabit == nil else { return }
+
+            // Auto-refresh when iCloud syncs new data from another device
+            Task {
+                logger.log(
+                    "☁️ iCloud sync detected - refreshing Habits list",
+                    level: .info,
+                    category: .system
+                )
+                await vm.refresh()
+            }
+        }
         .sheet(isPresented: $showingCategoryManagement, onDismiss: {
             Task {
-                await vm.load()
+                await vm.refresh()
             }
         }) {
             NavigationStack {
@@ -33,7 +67,6 @@ private struct HabitsContentView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
     @Binding var showingCategoryManagement: Bool
-    @State private var paywallDelayTask: Task<Void, Never>?
 
     // Constants
     private let rightEdgeInset: CGFloat = 15
@@ -67,24 +100,20 @@ private struct HabitsContentView: View {
                             vm.handleCreateHabitTap()
                         } label: {
                             Image(systemName: "plus")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [.blue, .cyan],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
+                                .font(.body)
+                                .foregroundStyle(.primary)
                         }
+                        .accessibilityIdentifier(AccessibilityID.Habits.addButton)
                         .accessibilityLabel("Add Habit")
                         .accessibilityHint("Create a new habit to track")
                     }
 
-                    // Secondary action: Edit mode
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
-                            .foregroundColor(.secondary)
+                    // Secondary action: Edit mode (only show when habits exist)
+                    if !vm.filteredHabits.isEmpty {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            EditButton()
+                                .foregroundStyle(.primary)
+                        }
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
@@ -134,17 +163,10 @@ private struct HabitsContentView: View {
                 HabitsAssistantSheet(
                     existingHabits: vm.items,
                     onShowPaywall: {
-                        // Dismiss Assistant and show paywall
-                        vm.showingHabitAssistant = false
-                        paywallDelayTask?.cancel()
-                        paywallDelayTask = Task {
-                            try? await Task.sleep(for: .milliseconds(300))
-                            vm.showPaywall()
-                        }
+                        vm.dismissAssistantAndShowPaywall()
                     }
                 )
                 .onDisappear {
-                    paywallDelayTask?.cancel()
                     vm.handleAssistantDismissal()
                 }
             }
@@ -182,21 +204,23 @@ private struct HabitsListView: View {
             } else if vm.filteredHabits.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Reusable category carousel with cogwheel
-                        CategoryCarouselWithManagement(
-                            categories: vm.displayCategories,
-                            selectedCategory: vm.selectedFilterCategory,
-                            onCategoryTap: { category in
-                                vm.selectFilterCategory(category)
-                            },
-                            onManageTap: {
-                                showingCategoryManagement = true
-                            },
-                            scrollToStartOnSelection: true,
-                            allowDeselection: true
-                        )
-                        .padding(.top, Spacing.small)
-                        .padding(.bottom, Spacing.medium)
+                        // Only show category carousel if habits exist but are filtered out
+                        if vm.selectedFilterCategory != nil {
+                            CategoryCarouselWithManagement(
+                                categories: vm.displayCategories,
+                                selectedCategory: vm.selectedFilterCategory,
+                                onCategoryTap: { category in
+                                    vm.selectFilterCategory(category)
+                                },
+                                onManageTap: {
+                                    showingCategoryManagement = true
+                                },
+                                scrollToStartOnSelection: true,
+                                allowDeselection: true
+                            )
+                            .padding(.top, Spacing.small)
+                            .padding(.bottom, Spacing.medium)
+                        }
 
                         VStack(spacing: Spacing.xlarge) {
                             if vm.selectedFilterCategory != nil {
@@ -206,38 +230,28 @@ private struct HabitsListView: View {
                                     description: Text("No habits found for the selected category. Try selecting a different category or create a new habit.")
                                 )
                             } else {
-                                ContentUnavailableView(
-                                    Strings.EmptyState.noHabitsYet,
-                                    systemImage: "plus.circle",
-                                    description: Text(Strings.EmptyState.tapPlusToCreate)
-                                )
+                                ContentUnavailableView {
+                                    Label(Strings.EmptyState.noHabitsYet, systemImage: "plus.circle")
+                                        .foregroundStyle(.secondary)
+                                } description: {
+                                    Text(Strings.EmptyState.tapPlusToCreate)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                         .padding(.top, Spacing.large)
                     }
                 }
                 .refreshable {
-                    await vm.load()
+                    await vm.refresh()
                 }
             } else {
                 // Unified scrolling: Everything inside List
                 List(selection: $selection) {
                     // Categories and banner section (scrolls with list)
                     Section {
-                        if vm.isLoadingCategories {
-                            HStack {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                Text("Loading categories...")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, Spacing.medium)
-                            .listRowInsets(EdgeInsets(top: 0, leading: Spacing.screenMargin, bottom: 0, trailing: Spacing.screenMargin))
-                        } else {
-                            // Reusable category carousel with cogwheel
-                            CategoryCarouselWithManagement(
+                        // Reusable category carousel with cogwheel
+                        CategoryCarouselWithManagement(
                                 categories: vm.displayCategories,
                                 selectedCategory: vm.selectedFilterCategory,
                                 onCategoryTap: { category in
@@ -251,7 +265,6 @@ private struct HabitsListView: View {
                             )
                             .padding(.vertical, Spacing.small)
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        }
 
                         // Over-limit banner (if user has more habits than free plan allows)
                         if vm.isOverFreeLimit {
@@ -259,7 +272,9 @@ private struct HabitsListView: View {
                                 currentCount: vm.habitsData.totalHabitsCount,
                                 maxCount: vm.freeMaxHabits,
                                 onUpgradeTap: {
-                                    vm.showPaywall()
+                                    Task {
+                                        await vm.showPaywall()
+                                    }
                                 }
                             )
                             .padding(.vertical, Spacing.small)
@@ -278,6 +293,7 @@ private struct HabitsListView: View {
                                 vm.selectHabit(habit)
                             }
                             .tag(habit.id)
+                            .accessibilityIdentifier("habit.row.\(habit.id.uuidString)")
                             .swipeActions(edge: .leading) {
                                 if editMode?.wrappedValue != .active {
                                     Button {
@@ -308,7 +324,7 @@ private struct HabitsListView: View {
                     }
                 }
                 .refreshable {
-                    await vm.load()
+                    await vm.refresh()
                 }
                 .onChange(of: editMode?.wrappedValue) { oldValue, newValue in
                     if oldValue == .active && newValue != .active {
@@ -342,32 +358,24 @@ private struct HabitsListView: View {
                     }
                 }
         }
-        .confirmationDialog(
-            "Delete Habit",
-            isPresented: $showingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            if let habit = habitToDelete {
-                Button("Delete", role: .destructive) {
+        .alert("Delete Habit", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                if let habit = habitToDelete {
                     Task {
                         await deleteHabit(habit)
                         habitToDelete = nil
                     }
                 }
-                Button("Cancel", role: .cancel) {
-                    habitToDelete = nil
-                }
+            }
+            Button("Cancel", role: .cancel) {
+                habitToDelete = nil
             }
         } message: {
             if let habit = habitToDelete {
                 Text("Are you sure you want to delete \"\(habit.name)\"? This action cannot be undone and all habit data will be lost.")
             }
         }
-        .confirmationDialog(
-            "Delete Habits",
-            isPresented: $showingBatchDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
+        .alert("Delete Habits", isPresented: $showingBatchDeleteConfirmation) {
             Button("Delete", role: .destructive) {
                 Task {
                     logger.log(
@@ -383,11 +391,7 @@ private struct HabitsListView: View {
         } message: {
             Text(batchDeleteConfirmationMessage)
         }
-        .confirmationDialog(
-            "Deactivate Habits", 
-            isPresented: $showingDeactivateConfirmation,
-            titleVisibility: .visible
-        ) {
+        .alert("Deactivate Habits", isPresented: $showingDeactivateConfirmation) {
             Button("Deactivate", role: .destructive) {
                 Task {
                     logger.log(
@@ -543,10 +547,11 @@ private struct HabitsListView: View {
     
     private func handleMove(from source: IndexSet, to destination: Int) async {
         guard vm.selectedFilterCategory == nil else { return }
-        
+
         var reorderedHabits = vm.filteredHabits
         reorderedHabits.move(fromOffsets: source, toOffset: destination)
-        
+
+        // Update displayOrder for each habit
         for (index, habit) in reorderedHabits.enumerated() {
             reorderedHabits[index] = Habit(
                 id: habit.id,
@@ -566,12 +571,9 @@ private struct HabitsListView: View {
                 suggestionId: habit.suggestionId
             )
         }
-        
-        for habit in reorderedHabits {
-            _ = await vm.update(habit)
-        }
-        
-        await vm.load()
+
+        // Use reorderHabits which sets isReordering (not isUpdating) to avoid overlay flash
+        _ = await vm.reorderHabits(reorderedHabits)
     }
 }
 

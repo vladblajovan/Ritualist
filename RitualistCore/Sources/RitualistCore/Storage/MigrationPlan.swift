@@ -46,7 +46,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             SchemaV7.self,  // Added location-aware habit support (locationConfigData, lastGeofenceTriggerDate)
             SchemaV8.self,  // Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
             SchemaV9.self,  // Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
-            SchemaV10.self  // CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values)
+            SchemaV10.self, // CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values)
+            SchemaV11.self  // User demographics (gender, ageGroup in UserProfileModel)
         ]
     }
 
@@ -74,6 +75,7 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// - V7 → V8: Removed subscription fields from UserProfileModel (lightweight)
     /// - V8 → V9: Three-Timezone Model implementation (custom/heavyweight)
     /// - V9 → V10: CloudKit compatibility (removed .unique constraints, optional relationships) (lightweight)
+    /// - V10 → V11: User demographics (gender, ageGroup in UserProfileModel) (lightweight)
     ///
     /// ## Example Future Migration:
     /// ```swift
@@ -95,7 +97,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             migrateV6toV7,
             migrateV7toV8,
             migrateV8toV9,
-            migrateV9toV10
+            migrateV9toV10,
+            migrateV10toV11
         ]
     }
 
@@ -203,7 +206,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
         toVersion: SchemaV9.self,
         willMigrate: nil,
         didMigrate: { context in
-            print("🔄 [Migration] V8 → V9: Three-Timezone Model Migration")
+            let migrationStartTime = Date()
+            MigrationLogger.shared.logMigrationStart(from: "8.0.0", to: "9.0.0", changeDescription: "Three-Timezone Model Migration")
 
             // During didMigrate, SwiftData has already transformed the schema structure
             // V8 fields (homeTimezone, displayTimezoneMode) are now V9 structure but with default values
@@ -247,7 +251,14 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             }
 
             try context.save()
-            print("✅ [Migration] V8 → V9: Successfully migrated \(profiles.count) user profile(s)")
+
+            let duration = Date().timeIntervalSince(migrationStartTime)
+            MigrationLogger.shared.logMigrationSuccess(
+                from: "8.0.0",
+                to: "9.0.0",
+                duration: duration,
+                changeDescription: "Migrated \(profiles.count) user profile(s) to Three-Timezone Model"
+            )
         }
     )
 
@@ -275,6 +286,31 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     static let migrateV9toV10 = MigrationStage.lightweight(
         fromVersion: SchemaV9.self,
         toVersion: SchemaV10.self
+    )
+
+    /// V10 → V11: User Demographics
+    ///
+    /// This is a LIGHTWEIGHT migration because:
+    /// - Both schemas use the same entity names (UserProfileModel, etc.)
+    /// - Only adding two new optional properties to UserProfileModel:
+    ///   - gender: String? (user's gender preference)
+    ///   - ageGroup: String? (user's age group)
+    /// - SwiftData can automatically migrate the data (adds new columns)
+    /// - No data transformation needed (both properties default to nil)
+    /// - Existing users will have nil values until they update their profile
+    ///
+    /// Changes:
+    /// - UserProfileModel: Added gender: String? (raw value from UserGender enum)
+    /// - UserProfileModel: Added ageGroup: String? (raw value from UserAgeGroup enum)
+    ///
+    /// Impact:
+    /// - ✅ Enables demographic data collection during onboarding
+    /// - ✅ No business logic changes (optional fields)
+    /// - ✅ CloudKit sync compatible (optional fields with nil default)
+    /// - ✅ Zero data loss
+    static let migrateV10toV11 = MigrationStage.lightweight(
+        fromVersion: SchemaV10.self,
+        toVersion: SchemaV11.self
     )
 
     // MARK: - Future Migration Stages (Examples)

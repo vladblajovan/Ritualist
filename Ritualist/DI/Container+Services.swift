@@ -33,6 +33,22 @@ extension Container {
         }
         .singleton
     }
+
+    var dataDeduplicationService: Factory<DataDeduplicationServiceProtocol> {
+        self {
+            DataDeduplicationService(modelContainer: self.persistenceContainer().container)
+        }
+        .singleton
+    }
+
+    /// One-time cleanup service to remove PersonalityAnalysis from CloudKit
+    /// REMOVAL NOTICE: This can be removed after all users have updated (2-3 releases)
+    var cloudKitCleanupService: Factory<CloudKitCleanupServiceProtocol> {
+        self {
+            CloudKitCleanupService(logger: self.debugLogger())
+        }
+        .singleton
+    }
     
     @MainActor
     var navigationService: Factory<NavigationService> {
@@ -89,6 +105,13 @@ extension Container {
                         }
                     }
                 }
+
+                // Handle default tap on notification: navigate to Overview
+                if action == .openApp {
+                    await MainActor.run {
+                        self.navigationService().navigateToOverview(shouldRefresh: true)
+                    }
+                }
             }
             
             return service
@@ -130,6 +153,16 @@ extension Container {
     
     var widgetRefreshService: Factory<WidgetRefreshServiceProtocol> {
         self { WidgetRefreshService(logger: self.debugLogger()) }
+            .singleton
+    }
+
+    var iCloudKeyValueService: Factory<iCloudKeyValueService> {
+        self { DefaultiCloudKeyValueService(logger: self.debugLogger()) }
+            .singleton
+    }
+
+    var iCloudSyncPreferenceService: Factory<ICloudSyncPreferenceServiceProtocol> {
+        self { ICloudSyncPreferenceService.shared }
             .singleton
     }
     
@@ -203,39 +236,6 @@ extension Container {
             #else
             return RitualistCore.NoOpUserActionTrackerService()
             #endif
-        }
-        .singleton
-    }
-    
-    // MARK: - User Business Service
-    
-    var userBusinessService: Factory<UserBusinessService> {
-        self {
-            // ⚠️ TEMPORARY: Using MockUserBusinessService for both DEBUG and Release
-            // CloudKit entitlements are currently disabled (requires paid Apple Developer Program)
-            //
-            // TO RE-ENABLE iCloud sync:
-            // 1. Uncomment CloudKit entitlements in Ritualist.entitlements
-            // 2. Uncomment the #else branch below to use ICloudUserBusinessService in production
-            // 3. Follow CLOUDKIT-SETUP-GUIDE.md for complete setup
-            //
-            // See ICLOUD-INVESTIGATION-SUMMARY.md for details
-
-            return MockUserBusinessService(
-                loadProfile: self.loadProfile(),
-                saveProfile: self.saveProfile(),
-                errorHandler: self.errorHandler()
-            )
-
-            // #if DEBUG
-            // return MockUserBusinessService(
-            //     loadProfile: self.loadProfile(),
-            //     saveProfile: self.saveProfile(),
-            //     errorHandler: self.errorHandler()
-            // )
-            // #else
-            // return ICloudUserBusinessService(errorHandler: self.errorHandler())
-            // #endif
         }
         .singleton
     }
@@ -384,11 +384,21 @@ extension Container {
         .singleton
     }
 
-    // MARK: - Deep Link Coordination
-    
+    // MARK: - Coordinators
+
     @MainActor
     var personalityDeepLinkCoordinator: Factory<PersonalityDeepLinkCoordinator> {
-        self { @MainActor in RitualistCore.PersonalityDeepLinkCoordinator.shared }
+        self { @MainActor in
+            PersonalityDeepLinkCoordinator(logger: self.debugLogger())
+        }
+        .singleton
+    }
+
+    @MainActor
+    var quickActionCoordinator: Factory<QuickActionCoordinator> {
+        self { @MainActor in
+            QuickActionCoordinator(logger: self.debugLogger())
+        }
         .singleton
     }
     
@@ -397,8 +407,16 @@ extension Container {
         .singleton
     }
     
+    // MARK: - Toast Service
+
+    @MainActor
+    var toastService: Factory<ToastServiceProtocol> {
+        self { @MainActor in ToastService() }
+            .singleton
+    }
+
     // MARK: - Debug Services
-    
+
     #if DEBUG
     var debugService: Factory<DebugServiceProtocol> {
         self { 

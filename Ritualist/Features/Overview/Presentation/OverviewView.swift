@@ -14,17 +14,20 @@ public struct OverviewView: View {
             ScrollView {
                 LazyVStack(spacing: CardDesign.cardSpacing) {
                 // Always show core cards
-                // Inspiration card moved to top position
-                if vm.shouldShowInspirationCard {
-                    InspirationCard(
-                        message: vm.currentInspirationMessage,
-                        slogan: vm.currentSlogan,
+                // Inspiration carousel moved to top position
+                if vm.shouldShowInspirationCard && !vm.inspirationItems.isEmpty {
+                    InspirationCarouselView(
+                        items: vm.inspirationItems,
                         timeOfDay: vm.currentTimeOfDay,
                         completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
-                        shouldShow: vm.showInspirationCard,
-                        onDismiss: {
-                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                                vm.hideInspiration()
+                        onDismiss: { item in
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                vm.dismissInspirationItem(item)
+                            }
+                        },
+                        onDismissAll: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                vm.dismissAllInspirationItems()
                             }
                         }
                     )
@@ -45,7 +48,7 @@ public struct OverviewView: View {
                         }
                     },
                     onNumericHabitUpdate: { habit, newValue in
-                        await vm.updateNumericHabit(habit, value: newValue)
+                        try await vm.updateNumericHabit(habit, value: newValue)
                     },
                     getProgressSync: { habit in
                         vm.getProgressSync(for: habit)
@@ -63,6 +66,9 @@ public struct OverviewView: View {
                     },
                     getValidationMessage: { habit in
                         await vm.getScheduleValidationMessage(for: habit)
+                    },
+                    getStreakStatus: { habit in
+                        vm.getStreakStatusSync(for: habit)
                     },
                     onPreviousDay: {
                         vm.goToPreviousDay()
@@ -99,9 +105,7 @@ public struct OverviewView: View {
                             vm.getProgressSync(for: habit)
                         },
                         onNumericHabitUpdate: { habit, newValue in
-                            Task {
-                                await vm.updateNumericHabit(habit, value: newValue)
-                            }
+                            try await vm.updateNumericHabit(habit, value: newValue)
                         },
                         onNumericHabitAction: { habit in
                             vm.showNumericSheet(for: habit)
@@ -197,11 +201,18 @@ public struct OverviewView: View {
             .onDisappear {
                 // RACE CONDITION FIX: Set view as not visible
                 vm.setViewVisible(false)
+                // Track that view has disappeared (for tab switch detection)
+                vm.markViewDisappeared()
             }
             .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
                 // When view becomes visible (tab switch), reload to pick up changes from other tabs
                 // This ensures habit schedule changes from Habits screen are reflected in Overview
-                if !wasVisible && isVisible {
+                //
+                // IMPORTANT: Skip on initial appear - the .task modifier handles initial load.
+                // Only reload when returning to this tab after visiting another tab.
+                // We use isReturningFromTabSwitch which tracks if onDisappear was ever called,
+                // correctly distinguishing initial appear from tab switch regardless of load success.
+                if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
                     Task {
                         Container.shared.debugLogger().log("Tab switch detected: Reloading overview data", level: .debug, category: .ui)
                         vm.invalidateCacheForTabSwitch()
@@ -217,13 +228,25 @@ public struct OverviewView: View {
                     await vm.refresh()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+                // Auto-refresh when iCloud syncs new data from another device
+                // This ensures Overview shows the latest data without requiring tab switch
+                Task {
+                    Container.shared.debugLogger().log(
+                        "☁️ iCloud sync detected - refreshing Overview",
+                        level: .info,
+                        category: .system
+                    )
+                    await vm.refresh()
+                }
+            }
             .sheet(isPresented: $vm.showingNumericSheet) {
                 if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
                     NumericHabitLogSheetDirect(
                         habit: habit,
                         viewingDate: vm.viewingDate,
                         onSave: { newValue in
-                            await vm.updateNumericHabit(habit, value: newValue)
+                            try await vm.updateNumericHabit(habit, value: newValue)
                         },
                         onCancel: {
                             // Sheet dismisses automatically

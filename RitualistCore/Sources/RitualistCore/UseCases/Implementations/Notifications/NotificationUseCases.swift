@@ -104,17 +104,18 @@ public final class LogHabitFromNotification: LogHabitFromNotificationUseCase {
 
 public final class SnoozeHabitReminder: SnoozeHabitReminderUseCase {
     private let notificationService: NotificationService
-    
+
     public init(notificationService: NotificationService) {
         self.notificationService = notificationService
     }
-    
+
     public func execute(habitId: UUID, habitName: String, originalTime: ReminderTime) async throws {
         // Schedule a one-time notification 20 minutes from now
+        // Include habitId so completion status can be checked when notification fires
         let title = "Reminder: \(habitName)"
         let body = "You asked to be reminded about your \(habitName) habit!"
-        
-        try await notificationService.sendImmediate(title: title, body: body)
+
+        try await notificationService.sendImmediate(title: title, body: body, habitId: habitId)
     }
 }
 
@@ -178,10 +179,11 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
             await cancelHabitReminders.execute(habitId: habitId)
             
             // Send confirmation notification for binary habits (background completion)
+            // Pass nil for habitId since this is a celebratory notification, not a reminder
             if habitKind == .binary, let habitName = habitName {
                 let title = "✅ \(habitName) completed!"
                 let body = "Great job! Keep up the streak."
-                try await notificationService.sendImmediate(title: title, body: body)
+                try await notificationService.sendImmediate(title: title, body: body, habitId: nil)
             }
             // For numeric habits, the foreground app will open and show the UI
             
@@ -193,6 +195,11 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
             
         case .dismiss:
             // Nothing to do - user dismissed the notification
+            break
+
+        case .openApp:
+            // Default tap on notification - app opens in foreground
+            // Navigation to Overview is handled by the action handler in Container+Services
             break
         }
     }

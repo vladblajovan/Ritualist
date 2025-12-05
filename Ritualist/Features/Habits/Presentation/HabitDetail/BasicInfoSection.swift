@@ -26,6 +26,7 @@ public struct BasicInfoSection: View {
                     Text(Strings.Form.name)
                     TextField(Strings.Form.habitName, text: $vm.name)
                         .textFieldStyle(.plain)
+                        .textInputAutocapitalization(.sentences)
                         .focused($focusedField, equals: .name)
                         .onSubmit {
                             // Move to next field based on habit type
@@ -39,6 +40,7 @@ public struct BasicInfoSection: View {
                                 await vm.validateForDuplicates()
                             }
                         }
+                        .accessibilityIdentifier(AccessibilityID.HabitDetail.nameField)
                 }
                 
                 // Form validation feedback
@@ -51,7 +53,18 @@ public struct BasicInfoSection: View {
                 }
                 
                 // Duplicate validation feedback
-                if vm.isDuplicateHabit {
+                if vm.duplicateValidationFailed {
+                    HStack(spacing: Spacing.xxsmall) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                        Text(String(localized: "duplicateValidationFailed"))
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                    .padding(.leading, 4)
+                    .transition(.opacity)
+                } else if vm.isDuplicateHabit {
                     HStack(spacing: Spacing.xxsmall) {
                         if vm.isValidatingDuplicate {
                             ProgressView()
@@ -87,6 +100,8 @@ public struct BasicInfoSection: View {
                         Text(Strings.Form.unit)
                         TextField(Strings.Form.unitPlaceholder, text: $vm.unitLabel)
                             .textFieldStyle(.plain)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
                             .focused($focusedField, equals: .unitLabel)
                             .onSubmit {
                                 focusedField = .dailyTarget

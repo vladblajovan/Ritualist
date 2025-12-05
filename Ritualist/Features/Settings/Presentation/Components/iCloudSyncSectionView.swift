@@ -1,64 +1,136 @@
 import SwiftUI
 import RitualistCore
+import UniformTypeIdentifiers
 
 struct ICloudSyncSectionView: View {
     @Bindable var vm: SettingsViewModel
+    @State private var showRestartAlert = false
+    /// Tracks the initial sync preference when the view appeared (used to detect actual changes)
+    @State private var initialSyncEnabled: Bool?
 
     var body: some View {
         Section {
-            // iCloud Account Status
+            if vm.isPremiumUser {
+                // MARK: - Premium User: Show Toggle
+
+                Toggle("Enable iCloud Sync", isOn: Binding(
+                    get: { vm.iCloudSyncEnabled },
+                    set: { newValue in
+                        vm.setICloudSyncEnabled(newValue)
+                        // Only show alert if preference changed from the app launch state
+                        if newValue != initialSyncEnabled {
+                            showRestartAlert = true
+                        }
+                    }
+                ))
+
+                // Show helpful text based on current state
+                if !vm.iCloudSyncEnabled {
+                    Text("Enable to sync your habits across all your devices.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if vm.iCloudSyncEnabled {
+                    syncStatusContent
+                }
+            } else if vm.iCloudStatus.canSync {
+                // MARK: - Free User with iCloud Available (local-only, no sync)
+
+                // Free users have local-only storage, so don't show sync status
+                // which would be misleading since their data is NOT syncing
+                Text("Your habits are stored locally on this device.")
+                    .foregroundStyle(.secondary)
+
+                // Upgrade prompt for free users
+                Text("Upgrade to Pro to sync your habits across all your devices.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                // MARK: - iCloud Not Available
+
+                iCloudSetupPrompt
+            }
+        } header: {
+            Text("iCloud Sync")
+        } footer: {
+            // Footer is no longer needed since we moved the explanation into the section content
+        }
+        .alert("Restart Required", isPresented: $showRestartAlert) {
+            Button("OK") { }
+        } message: {
+            Text("Please restart the app for this change to take effect.")
+        }
+        .onAppear {
+            // Capture initial sync preference on first appearance
+            if initialSyncEnabled == nil {
+                initialSyncEnabled = vm.iCloudSyncEnabled
+            }
+        }
+    }
+
+    // MARK: - Sync Status Content
+
+    @ViewBuilder
+    private var syncStatusContent: some View {
+        // iCloud Account Status
+        HStack {
+            Label("Status", systemImage: "icloud")
+                .foregroundStyle(.primary)
+
+            Spacer()
+
+            if vm.isCheckingCloudStatus {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                statusIndicator
+            }
+        }
+
+        // Last Synced Timestamp - only show when iCloud is available
+        if let lastSync = vm.lastSyncDate {
             HStack {
-                Label("iCloud Status", systemImage: "icloud")
+                Label("Last Synced", systemImage: "clock")
                     .foregroundStyle(.primary)
 
                 Spacer()
 
-                if vm.isCheckingCloudStatus {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    statusIndicator
-                }
+                Text(lastSync, format: .relative(presentation: .named))
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
             }
+        }
+    }
 
-            // Last Synced Timestamp
-            if let lastSync = vm.lastSyncDate {
-                HStack {
-                    Label("Last Synced", systemImage: "clock")
-                        .foregroundStyle(.secondary)
+    // MARK: - iCloud Setup Prompt
 
-                    Spacer()
+    @ViewBuilder
+    private var iCloudSetupPrompt: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.icloud")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
 
-                    Text(lastSync, format: .relative(presentation: .named))
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
-                }
-            }
+            Text(Strings.ICloudSync.setupTitle)
+                .font(.headline)
 
-            // Sync Now Button
+            Text(Strings.ICloudSync.setupDescription)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
             Button {
-                Task {
-                    await vm.syncNow()
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
                 }
             } label: {
-                HStack {
-                    if vm.isSyncing {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Syncing...")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
-                    }
-                }
+                Text(Strings.Settings.openSettings)
             }
-            .disabled(!vm.iCloudStatus.canSync || vm.isSyncing)
-
-        } header: {
-            Text("iCloud Sync")
-        } footer: {
-            footerText
+            .buttonStyle(.borderedProminent)
+            .padding(.top, 4)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Status Indicator
@@ -88,6 +160,12 @@ struct ICloudSyncSectionView: View {
         case .temporarilyUnavailable:
             Image(systemName: "exclamationmark.circle.fill")
                 .foregroundStyle(.yellow)
+        case .timeout:
+            Image(systemName: "wifi.exclamationmark")
+                .foregroundStyle(.orange)
+        case .notConfigured:
+            Image(systemName: "gearshape.fill")
+                .foregroundStyle(.gray)
         case .unknown:
             Image(systemName: "questionmark.circle.fill")
                 .foregroundStyle(.gray)
@@ -104,26 +182,12 @@ struct ICloudSyncSectionView: View {
             return .red
         case .temporarilyUnavailable:
             return .yellow
+        case .timeout:
+            return .orange
+        case .notConfigured:
+            return .gray
         case .unknown:
             return .secondary
-        }
-    }
-
-    // MARK: - Footer Text
-
-    @ViewBuilder
-    private var footerText: some View {
-        switch vm.iCloudStatus {
-        case .available:
-            Text("Your profile syncs automatically across all your devices using iCloud.")
-        case .notSignedIn:
-            Text("Sign in to iCloud in Settings to enable automatic sync across your devices.")
-        case .restricted:
-            Text("iCloud is restricted. Check Screen Time or parental controls in Settings.")
-        case .temporarilyUnavailable:
-            Text("iCloud is temporarily unavailable. Your profile will sync when iCloud is accessible.")
-        case .unknown:
-            Text("Checking iCloud status...")
         }
     }
 }
@@ -144,7 +208,11 @@ struct ICloudSyncSectionView: View {
             syncWithiCloud: MockSyncWithiCloud(),
             checkiCloudStatus: MockCheckiCloudStatus(),
             getLastSyncDate: MockGetLastSyncDate(),
-            updateLastSyncDate: MockUpdateLastSyncDate()
+            deleteiCloudData: MockDeleteiCloudData(),
+            exportUserData: MockExportUserData(),
+            importUserData: MockImportUserData(),
+            getICloudSyncPreference: MockGetICloudSyncPreference(),
+            setICloudSyncPreference: MockSetICloudSyncPreference()
         ))
     }
 }
@@ -213,6 +281,34 @@ private struct MockGetLastSyncDate: GetLastSyncDateUseCase {
     }
 }
 
-private struct MockUpdateLastSyncDate: UpdateLastSyncDateUseCase {
-    func execute(_ date: Date) async {}
+private struct MockDeleteiCloudData: DeleteiCloudDataUseCase {
+    func execute() async throws {}
 }
+
+private struct MockExportUserData: ExportUserDataUseCase {
+    func execute() async throws -> String {
+        """
+        {
+          "exportedAt": "2025-11-24T00:00:00Z",
+          "profile": { "name": "Test User" },
+          "habits": [],
+          "categories": [],
+          "habitLogs": [],
+          "personalityData": { "currentProfile": null, "analysisHistory": [] }
+        }
+        """
+    }
+}
+
+private struct MockImportUserData: ImportUserDataUseCase {
+    func execute(jsonString: String) async throws {}
+}
+
+private struct MockGetICloudSyncPreference: GetICloudSyncPreferenceUseCase {
+    func execute() -> Bool { true }
+}
+
+private struct MockSetICloudSyncPreference: SetICloudSyncPreferenceUseCase {
+    func execute(_ enabled: Bool) {}
+}
+

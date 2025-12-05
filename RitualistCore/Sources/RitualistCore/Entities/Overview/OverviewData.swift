@@ -21,10 +21,11 @@ public struct OverviewData {
     }
     
     // MARK: - Helper Methods
-    
+
     /// Get habits scheduled for a specific date
+    /// Only includes habits that have started (date >= habit.startDate) and are scheduled for that day
     public func scheduledHabits(for date: Date) -> [Habit] {
-        habits.filter { $0.schedule.isActiveOn(date: date) }
+        return habits.filter { $0.isScheduledOn(date: date) }
     }
     
     // REMOVED: completionRate(for:) and completionStatus(for:) methods
@@ -60,42 +61,59 @@ public struct OverviewData {
             return insights
         }
         let startOfWeek = weekInterval.start
-        
+        // End date is one day before weekInterval.end (which is start of next week)
+        let endOfWeek = CalendarUtils.addDaysLocal(-1, to: weekInterval.end, timezone: .current)
+
         // Use unified data instead of separate queries
         guard !habits.isEmpty else {
             return []
         }
-        
+
+        // Use HabitScheduleAnalyzer to correctly calculate expected days per habit
+        // This accounts for both habit schedules (daily vs specific days) and start dates
+        let scheduleAnalyzer = HabitScheduleAnalyzer()
+
         // Analyze completion patterns over the past week using unified data
         var totalCompletions = 0
+        var totalExpectedCompletions = 0
         var dailyCompletions: [Int] = Array(repeating: 0, count: 7)
-        
+
         for habit in habits {
             let logs = habitLogs[habit.id] ?? []
-            let recentLogs = logs.filter { log in
-                log.date >= startOfWeek && log.date < weekInterval.end
-            }
-            
-            // Count actual completions using HabitCompletionService for single source of truth
-            for log in recentLogs {
-                let dayLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, log.date) }
-                if completionService.isCompleted(habit: habit, on: log.date, logs: dayLogs) {
-                    totalCompletions += 1
 
-                    // Count completions per day
-                    let daysSinceStart = CalendarUtils.daysBetweenLocal(
-                        startOfWeek,
-                        log.date
-                    )
-                    if daysSinceStart >= 0 && daysSinceStart < 7 {
-                        dailyCompletions[daysSinceStart] += 1
-                    }
+            // Calculate expected completions for this habit in the week
+            // This respects both the habit's schedule AND start date
+            let expectedDays = scheduleAnalyzer.calculateExpectedDays(
+                for: habit,
+                from: startOfWeek,
+                to: endOfWeek
+            )
+            totalExpectedCompletions += expectedDays
+
+            // Count actual completions per unique day (not per log)
+            // This prevents double-counting when a habit has multiple logs on same day
+            var countedDates: Set<Date> = []
+
+            for dayOffset in 0..<7 {
+                let checkDate = CalendarUtils.addDaysLocal(dayOffset, to: startOfWeek, timezone: .current)
+                let dateKey = CalendarUtils.startOfDayLocal(for: checkDate)
+
+                // Skip if already counted this day
+                guard !countedDates.contains(dateKey) else { continue }
+
+                // Only count if habit was expected on this day
+                guard scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: checkDate) else { continue }
+
+                let dayLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, checkDate) }
+                if completionService.isCompleted(habit: habit, on: checkDate, logs: dayLogs) {
+                    totalCompletions += 1
+                    dailyCompletions[dayOffset] += 1
+                    countedDates.insert(dateKey)
                 }
             }
         }
-        
-        let totalPossibleCompletions = habits.count * 7
-        let completionRate = totalPossibleCompletions > 0 ? Double(totalCompletions) / Double(totalPossibleCompletions) : 0.0
+
+        let completionRate = totalExpectedCompletions > 0 ? Double(totalCompletions) / Double(totalExpectedCompletions) : 0.0
         
         // Generate insights based on actual patterns
         if completionRate >= 0.8 {
@@ -127,7 +145,7 @@ public struct OverviewData {
         // Find best performing day
         if let bestDayIndex = dailyCompletions.enumerated().max(by: { $0.element < $1.element })?.offset {
             // Get the actual date for the best performing day
-            let bestDate = CalendarUtils.addDays(bestDayIndex, to: startOfWeek)
+            let bestDate = CalendarUtils.addDaysLocal(bestDayIndex, to: startOfWeek, timezone: .current)
             
             // Get the day name using the proper date
             let dayFormatter = DateFormatter()

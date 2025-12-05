@@ -12,8 +12,8 @@ extension Container {
     var rootTabViewModel: Factory<RootTabViewModel> {
         self { @MainActor in
             RootTabViewModel(
-                getOnboardingState: self.getOnboardingState(),
                 loadProfile: self.loadProfile(),
+                iCloudKeyValueService: self.iCloudKeyValueService(),
                 appearanceManager: self.appearanceManager(),
                 navigationService: self.navigationService(),
                 personalityDeepLinkCoordinator: self.personalityDeepLinkCoordinator(),
@@ -115,7 +115,11 @@ extension Container {
                 syncWithiCloud: self.syncWithiCloud(),
                 checkiCloudStatus: self.checkiCloudStatus(),
                 getLastSyncDate: self.getLastSyncDate(),
-                updateLastSyncDate: self.updateLastSyncDate(),
+                deleteiCloudData: self.deleteiCloudData(),
+                exportUserData: self.exportUserData(),
+                importUserData: self.importUserData(),
+                getICloudSyncPreference: self.getICloudSyncPreference(),
+                setICloudSyncPreference: self.setICloudSyncPreference(),
                 populateTestData: {
                     #if DEBUG
                     return self.populateTestData() as (any Any)?
@@ -141,6 +145,7 @@ extension Container {
                 getLocationAuthStatus: self.getLocationAuthStatus()
             )
         }
+        .singleton
     }
     
     // MARK: - Dashboard ViewModels

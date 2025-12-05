@@ -23,22 +23,22 @@ public protocol WidgetDateNavigationServiceProtocol {
 }
 
 public final class WidgetDateNavigationService: WidgetDateNavigationServiceProtocol {
-    
+
     // MARK: - Constants
-    
-    private static let appGroupIdentifier = "group.com.vladblajovan.Ritualist"
-    private static let selectedDateKey = "widget_selected_date"
+
+    private static let selectedDateKey = UserDefaultsKeys.widgetSelectedDate
     private static let maxHistoryDays = 30
-    
+
     // MARK: - Properties
-    
+
     private let sharedDefaults: UserDefaults?
     private let calendar = CalendarUtils.currentLocalCalendar
+    private let logger = DebugLogger(subsystem: WidgetConstants.loggerSubsystem, category: "navigation")
     
     // MARK: - Initialization
     
     public init() {
-        self.sharedDefaults = UserDefaults(suiteName: Self.appGroupIdentifier)
+        self.sharedDefaults = UserDefaults(suiteName: WidgetConstants.appGroupIdentifier)
         
         // Initialize with today's date if no stored date exists
         initializeDateIfNeeded()
@@ -85,16 +85,16 @@ public final class WidgetDateNavigationService: WidgetDateNavigationServiceProto
         let current = currentDate
         
         guard canGoBack else {
-            print("[WIDGET-NAV-SERVICE] Cannot navigate to previous day - at boundary")
+            logger.log("Cannot navigate to previous day - at boundary", level: .debug, category: .ui)
             return false
         }
-        
+
         guard let previousDate = calendar.date(byAdding: .day, value: -1, to: current) else {
-            print("[WIDGET-NAV-SERVICE] Date calculation failed for previous day")
+            logger.log("Date calculation failed for previous day", level: .error, category: .ui)
             return false
         }
-        
-        print("[WIDGET-NAV-SERVICE] Navigating to previous day: \(previousDate)")
+
+        logger.log("Navigating to previous day: \(previousDate)", level: .debug, category: .ui)
         return setDate(previousDate)
     }
     
@@ -103,41 +103,41 @@ public final class WidgetDateNavigationService: WidgetDateNavigationServiceProto
         let current = currentDate
         
         guard canGoForward else {
-            print("[WIDGET-NAV-SERVICE] Cannot navigate to next day - at boundary")
+            logger.log("Cannot navigate to next day - at boundary", level: .debug, category: .ui)
             return false
         }
-        
+
         guard let nextDate = calendar.date(byAdding: .day, value: 1, to: current) else {
-            print("[WIDGET-NAV-SERVICE] Date calculation failed for next day")
+            logger.log("Date calculation failed for next day", level: .error, category: .ui)
             return false
         }
-        
-        print("[WIDGET-NAV-SERVICE] Navigating to next day: \(nextDate)")
+
+        logger.log("Navigating to next day: \(nextDate)", level: .debug, category: .ui)
         return setDate(nextDate)
     }
     
     public func navigateToToday() {
-        print("[WIDGET-NAV-SERVICE] Navigating to today")
+        logger.log("Navigating to today", level: .debug, category: .ui)
         setDate(normalizedToday)
     }
     
     @discardableResult
     public func setDate(_ date: Date) -> Bool {
         guard let sharedDefaults = sharedDefaults else {
-            print("[WIDGET-NAV-SERVICE] Cannot set date - no shared defaults")
+            logger.log("Cannot set date - no shared defaults", level: .warning, category: .dataIntegrity)
             return false
         }
-        
+
         let normalizedDate = calendar.startOfDay(for: date)
-        
+
         guard isDateWithinBounds(normalizedDate) else {
-            print("[WIDGET-NAV-SERVICE] Date out of bounds: \(normalizedDate)")
+            logger.log("Date out of bounds: \(normalizedDate)", level: .debug, category: .ui)
             return false
         }
-        
+
         sharedDefaults.set(normalizedDate, forKey: Self.selectedDateKey)
-        print("[WIDGET-NAV-SERVICE] Successfully set date: \(normalizedDate)")
-        
+        logger.log("Successfully set date: \(normalizedDate)", level: .debug, category: .ui)
+
         return true
     }
     
@@ -148,7 +148,7 @@ public final class WidgetDateNavigationService: WidgetDateNavigationServiceProto
     }
     
     private var earliestAllowedDate: Date {
-        return CalendarUtils.addDays(-Self.maxHistoryDays, to: normalizedToday)
+        return CalendarUtils.addDaysLocal(-Self.maxHistoryDays, to: normalizedToday, timezone: .current)
     }
     
     private func isDateWithinBounds(_ date: Date) -> Bool {
@@ -161,22 +161,22 @@ public final class WidgetDateNavigationService: WidgetDateNavigationServiceProto
     
     private func initializeDateIfNeeded() {
         guard let sharedDefaults = sharedDefaults else {
-            print("[WIDGET-NAV-SERVICE] WARNING: Cannot initialize - no shared defaults")
+            logger.log("Cannot initialize - no shared defaults", level: .warning, category: .dataIntegrity)
             return
         }
-        
+
         let storedDate = sharedDefaults.object(forKey: Self.selectedDateKey) as? Date
         let today = normalizedToday
-        
+
         if storedDate == nil {
             sharedDefaults.set(today, forKey: Self.selectedDateKey)
-            print("[WIDGET-NAV-SERVICE] Initialized with today: \(today)")
+            logger.log("Initialized with today: \(today)", level: .debug, category: .ui)
         } else if let date = storedDate, !isDateWithinBounds(date) {
             // Reset to today if stored date is out of bounds
             sharedDefaults.set(today, forKey: Self.selectedDateKey)
-            print("[WIDGET-NAV-SERVICE] Reset out-of-bounds date to today: \(today)")
+            logger.log("Reset out-of-bounds date to today: \(today)", level: .debug, category: .ui)
         } else if let date = storedDate {
-            print("[WIDGET-NAV-SERVICE] Using stored date: \(date)")
+            logger.log("Using stored date: \(date)", level: .debug, category: .ui)
         }
     }
 }

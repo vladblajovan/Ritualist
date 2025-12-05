@@ -49,6 +49,12 @@ public final class DefaultFeatureGatingBusinessService: FeatureGatingBusinessSer
         }
     }
 
+    public var hasICloudSync: Bool {
+        get async {
+            return await isPremiumUser
+        }
+    }
+
     nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
         return FeatureGatingConstants.getFeatureBlockedMessage(for: feature)
     }
@@ -63,6 +69,8 @@ public final class DefaultFeatureGatingBusinessService: FeatureGatingBusinessSer
             return await hasCustomReminders
         case .dataExport:
             return await hasDataExport
+        case .iCloudSync:
+            return await hasICloudSync
         }
     }
     

@@ -17,6 +17,12 @@ extension Container {
     }
     
     var completeOnboarding: Factory<CompleteOnboarding> {
-        self { CompleteOnboarding(repo: self.onboardingRepository(), profileRepo: self.profileRepository()) }
+        self {
+            CompleteOnboarding(
+                repo: self.onboardingRepository(),
+                profileRepo: self.profileRepository(),
+                iCloudKeyValueService: self.iCloudKeyValueService()
+            )
+        }
     }
 }

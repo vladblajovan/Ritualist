@@ -10,6 +10,7 @@ import RitualistCore
 import FactoryKit
 import NaturalLanguage
 import os.log
+import UserNotifications
 
 #if DEBUG
 struct DebugMenuView: View { // swiftlint:disable:this type_body_length
@@ -155,6 +156,27 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 .disabled(vm.isClearingDatabase)
             }
 
+            Section("Notifications") {
+                Button {
+                    Task {
+                        await clearAppBadge()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "app.badge")
+                            .foregroundColor(.red)
+
+                        Text("Clear App Badge")
+
+                        Spacer()
+                    }
+                }
+
+                Text("Removes any stuck badge count from the app icon.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Onboarding Management") {
                 Button(role: .destructive) {
                     showingResetOnboardingConfirmation = true
@@ -187,7 +209,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     }
 
                     // Show last known version from UserDefaults
-                    if let lastVersion = UserDefaults.standard.string(forKey: "com.ritualist.lastSchemaVersion") {
+                    if let lastVersion = UserDefaults.standard.string(forKey: UserDefaultsKeys.lastSchemaVersion) {
                         Text("Last Known: \(lastVersion)")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -596,8 +618,190 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 #endif
             }
 
+            Section("iCloud Sync Diagnostics") {
+                // CloudKit Container Info
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("CloudKit Configuration")
+                            .font(.headline)
+                        Spacer()
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Container:")
+                            Spacer()
+                            Text(iCloudConstants.containerIdentifier)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.blue)
+                        }
+
+                        HStack {
+                            Text("Environment:")
+                            Spacer()
+                            #if DEBUG
+                            Text("Development")
+                                .fontWeight(.medium)
+                                .foregroundColor(.orange)
+                            #else
+                            Text("Production")
+                                .fontWeight(.medium)
+                                .foregroundColor(.green)
+                            #endif
+                        }
+
+                        HStack {
+                            Text("iCloud Status:")
+                            Spacer()
+                            Text(vm.iCloudStatus.displayMessage)
+                                .fontWeight(.medium)
+                                .foregroundColor(vm.iCloudStatus == .available ? .green : .red)
+                        }
+                    }
+                    .font(.subheadline)
+                }
+                .padding(.vertical, 4)
+
+                // Push Notification Status
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Push Notifications")
+                            .font(.headline)
+                        Spacer()
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Registered:")
+                            Spacer()
+                            Text(ICloudSyncDiagnostics.shared.isRegisteredForRemoteNotifications ? "Yes" : "No")
+                                .fontWeight(.medium)
+                                .foregroundColor(ICloudSyncDiagnostics.shared.isRegisteredForRemoteNotifications ? .green : .red)
+                        }
+
+                        HStack {
+                            Text("Push Received:")
+                            Spacer()
+                            Text("\(ICloudSyncDiagnostics.shared.pushNotificationCount)")
+                                .fontWeight(.medium)
+                                .foregroundColor(ICloudSyncDiagnostics.shared.pushNotificationCount > 0 ? .green : .secondary)
+                        }
+
+                        if let lastPush = ICloudSyncDiagnostics.shared.lastPushNotificationDate {
+                            HStack {
+                                Text("Last Push:")
+                                Spacer()
+                                Text(lastPush, format: .relative(presentation: .named))
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                    .font(.subheadline)
+                }
+                .padding(.vertical, 4)
+
+                // Sync Events
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Store Changes")
+                            .font(.headline)
+                        Spacer()
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Remote Changes:")
+                            Spacer()
+                            Text("\(ICloudSyncDiagnostics.shared.remoteChangeCount)")
+                                .fontWeight(.medium)
+                                .foregroundColor(ICloudSyncDiagnostics.shared.remoteChangeCount > 0 ? .green : .secondary)
+                        }
+
+                        if let lastChange = ICloudSyncDiagnostics.shared.lastRemoteChangeDate {
+                            HStack {
+                                Text("Last Sync:")
+                                Spacer()
+                                Text(lastChange, format: .relative(presentation: .named))
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+
+                        HStack {
+                            Text("Dedup Runs:")
+                            Spacer()
+                            Text("\(ICloudSyncDiagnostics.shared.deduplicationRunCount)")
+                                .fontWeight(.medium)
+                        }
+
+                        HStack {
+                            Text("Total Duplicates Removed:")
+                            Spacer()
+                            Text("\(ICloudSyncDiagnostics.shared.totalDuplicatesRemoved)")
+                                .fontWeight(.medium)
+                                .foregroundColor(ICloudSyncDiagnostics.shared.totalDuplicatesRemoved > 0 ? .orange : .secondary)
+                        }
+                    }
+                    .font(.subheadline)
+                }
+                .padding(.vertical, 4)
+
+                // Force Sync Check Button
+                Button {
+                    Task {
+                        await vm.forceCloudStatusCheck()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: vm.isCheckingCloudStatus ? "hourglass" : "arrow.triangle.2.circlepath.icloud")
+                            .foregroundColor(.blue)
+
+                        Text(vm.isCheckingCloudStatus ? "Checking..." : "Force iCloud Status Check")
+
+                        Spacer()
+                    }
+                }
+                .disabled(vm.isCheckingCloudStatus)
+
+                // Reset Diagnostics Button
+                Button(role: .destructive) {
+                    ICloudSyncDiagnostics.shared.reset()
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                            .foregroundColor(.orange)
+
+                        Text("Reset Sync Diagnostics")
+
+                        Spacer()
+                    }
+                }
+
+                Text("Sync flow: Push Received → Store Changes. If 'Registered' is No, check Push Notifications capability. If pushes come but no store changes, check CloudKit Dashboard schema deployment.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Build Information") {
                 VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("App Version:")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                    }
+
+                    HStack {
+                        Text("Build Number:")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown")
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                    }
+
                     HStack {
                         Text("Build Configuration:")
                         Spacer()
@@ -767,6 +971,16 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         }
     }
 
+    // MARK: - Notifications
+
+    /// Clears the app badge count
+    @MainActor
+    private func clearAppBadge() async {
+        try? await UNUserNotificationCenter.current().setBadgeCount(0)
+        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
+            .info("Cleared app badge")
+    }
+
     // MARK: - Migration Management
 
     /// Loads migration statistics (backup count, migration history count)
@@ -793,7 +1007,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         let previousVersion = getPreviousVersionNumber()
         let versionString = "\(previousVersion).0.0"
 
-        UserDefaults.standard.set(versionString, forKey: "com.ritualist.lastSchemaVersion")
+        UserDefaults.standard.set(versionString, forKey: UserDefaultsKeys.lastSchemaVersion)
 
         Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
             .info("Set schema version to \(versionString) - restart app to see migration modal")
@@ -827,9 +1041,8 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         // Re-save unique migrations using the standard save method
         // This ensures proper encoding and persistence
         let encoder = JSONEncoder()
-        if let data = try? encoder.encode(Array(uniqueMigrations.values)),
-           let key = "com.ritualist.migration.history" as String? {
-            UserDefaults.standard.set(data, forKey: key)
+        if let data = try? encoder.encode(Array(uniqueMigrations.values)) {
+            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.migrationHistory)
         }
 
         // Reload stats to update UI
