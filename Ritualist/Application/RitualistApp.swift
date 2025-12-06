@@ -406,6 +406,11 @@ import CloudKit
             if !cachedPremium && actualPremium {
                 // User is now premium but sync wasn't enabled at startup
                 // Show non-intrusive toast to inform them (only once per mismatch)
+                //
+                // SECURITY NOTE: Using UserDefaults for toast tracking (not Keychain) is intentional.
+                // Worst case: user manually sets flag to suppress toast = misses sync prompt = minor UX issue.
+                // This is acceptable because: (1) premium status itself is in Keychain, (2) user can still
+                // manually restart, (3) next fresh install resets flag anyway.
                 let hasShownToast = UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasShownPremiumRestartToast)
 
                 if !hasShownToast {

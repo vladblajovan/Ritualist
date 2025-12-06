@@ -53,12 +53,20 @@ public final class SecurePremiumCache {
     private let cacheTimestampAccount = "cache_timestamp"
 
     /// Offline grace period duration (3 days - industry standard)
-    /// After this period, cached premium status is no longer trusted
+    /// After this period, cached premium status is no longer trusted.
+    ///
+    /// **Rationale:** 3 days matches RevenueCat SDK's default grace period. This balances:
+    /// - User convenience: Allows offline use during travel, poor connectivity, etc.
+    /// - Security: Limits exploitation window if subscription expires while offline
+    /// - Industry practice: Apple's own grace period for payment retries is 16-60 days
     public static let offlineGracePeriod: TimeInterval = 3 * 24 * 60 * 60 // 3 days in seconds
 
     /// Cache staleness threshold (7 days)
-    /// After this period, cache should be verified with StoreKit (but still used for sync bootstrap)
-    /// This is different from offlineGracePeriod: stale cache prompts verification, expired cache is not trusted
+    /// After this period, cache should be verified with StoreKit (but still used for sync bootstrap).
+    /// This is different from offlineGracePeriod: stale cache prompts verification, expired cache is not trusted.
+    ///
+    /// **Rationale:** 7 days allows weekly app users to not trigger verification on every launch,
+    /// while ensuring monthly subscribers are verified at least 4x per billing cycle.
     public static let stalenessThreshold: TimeInterval = 7 * 24 * 60 * 60 // 7 days in seconds
 
     // Local logger: Singleton initialized before DI container
