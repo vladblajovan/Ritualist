@@ -21,36 +21,75 @@ public enum LogLevel: String, CaseIterable {
     }
 }
 
+/// Log categories for organizing and filtering logs.
+/// Each category represents a distinct functional area of the app.
 public enum LogCategory: String, CaseIterable {
-    case userAction = "UserAction"
-    case authentication = "Auth"
-    case subscription = "Subscription"
-    case stateManagement = "State"
-    case errorRecovery = "Recovery"
-    case healthMonitoring = "Health"
-    case dataIntegrity = "Data"
-    case performance = "Performance"
-    case network = "Network"
-    case ui = "UI"
-    case system = "System"
-    case personality = "Personality"
-    case notifications = "Notifications"
-    case deepLinking = "DeepLinking"
-    case navigation = "Navigation"
-    case location = "Location"
-    case debug = "Debug"
+    // MARK: - User & Auth
+    case userAction = "UserAction"       // User interactions, analytics events
+    case authentication = "Auth"         // Login, logout, auth state
+
+    // MARK: - Subscription & Premium
+    case subscription = "Subscription"   // IAP, StoreKit, premium status
+    case premiumCache = "PremiumCache"   // Keychain premium cache operations
+
+    // MARK: - Data & Storage
+    case dataIntegrity = "Data"          // Data validation, deduplication, migrations
+    case stateManagement = "State"       // State transitions, app state
+
+    // MARK: - System & Performance
+    case system = "System"               // App lifecycle, startup, configuration
+    case performance = "Performance"     // Performance metrics, timing
+    case healthMonitoring = "Health"     // Health checks, diagnostics
+    case errorRecovery = "Recovery"      // Error handling, recovery attempts
+
+    // MARK: - Features
+    case personality = "Personality"     // AI personality analysis
+    case notifications = "Notifications" // Push/local notifications
+    case location = "Location"           // Geofencing, location services
+
+    // MARK: - Navigation & UI
+    case ui = "UI"                       // View lifecycle, UI state
+    case navigation = "Navigation"       // Tab switches, screen transitions
+    case deepLinking = "DeepLinking"     // URL handling, deep links
+
+    // MARK: - Infrastructure
+    case network = "Network"             // API calls, network state
+    case debug = "Debug"                 // Development/debug specific
 }
 
 // MARK: - Enhanced Debug Logger
 
-/// Enhanced logging system for debugging and diagnostics
+/// Enhanced logging system for debugging and diagnostics.
+///
+/// **Release Build Behavior:**
+/// - Only `.error` and `.critical` level logs are output in Release builds
+/// - All other log levels are completely suppressed (no console output, no buffer storage)
+/// - This ensures no debug information leaks to production and improves performance
+///
+/// **Debug Build Behavior:**
+/// - All log levels are output to console via `os_log`
+/// - Logs are also stored in an in-memory buffer for diagnostics export
+///
+/// **Usage:**
+/// ```swift
+/// // Via DI (preferred)
+/// @Injected(\.debugLogger) private var logger
+///
+/// // Direct instantiation (for singletons/@ModelActor where DI isn't available)
+/// private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "myCategory")
+/// ```
 public final class DebugLogger {
-    
-    // OS Logging
+
+    // MARK: - Properties
+
+    /// OS Log instance for system-level logging
     private let osLog: OSLog
+
+    /// Indicates if this is a production (Release) build
+    /// In production, only error and critical logs are output
     private let isProductionBuild: Bool
-    
-    // In-memory log buffer for diagnostics
+
+    /// In-memory log buffer for diagnostics (Debug builds only)
     private var logBuffer: [LogEntry] = []
     private let maxBufferSize = 1000
     private let bufferLock = NSLock()
@@ -78,7 +117,7 @@ public final class DebugLogger {
         }
     }
     
-    public init(subsystem: String = "com.ritualist.app", category: String = "general") {
+    public init(subsystem: String = LoggerConstants.appSubsystem, category: String = "general") {
         self.osLog = OSLog(subsystem: subsystem, category: category)
         
         #if DEBUG

@@ -290,33 +290,54 @@ public final class PersistenceContainer {
         }
     }
 
-    /// Check premium status from UserDefaults cache at startup.
+    // MARK: - Premium Check Provider
+
+    /// Closure to check premium status. Injected by the main app to provide
+    /// secure StoreKit-based checking for production, or mock checking for development.
     ///
-    /// Delegates to `MockSecureSubscriptionService.isPremiumFromCache()` which is the
-    /// single source of truth for startup-time premium checks. See that method for
-    /// implementation details and StoreKit2 migration notes.
+    /// **SECURITY:** In production, this should query StoreKit's Transaction.currentEntitlements
+    /// directly - NOT UserDefaults, which can be tampered with.
+    ///
+    /// Set this BEFORE creating PersistenceContainer.
+    public static var premiumCheckProvider: (() -> Bool)?
+
+    /// Check premium status at startup.
+    ///
+    /// Uses the injected `premiumCheckProvider` if set, otherwise falls back to
+    /// `MockSecureSubscriptionService.isPremiumFromCache()` for backwards compatibility.
+    ///
+    /// **Production (Ritualist scheme):**
+    /// The main app sets `premiumCheckProvider` to call `SecurePremiumCache.shared.getCachedPremiumStatus()`
+    /// for instant startup (~5ms). The cache is then verified async via `verifyPremiumAsync()`.
+    ///
+    /// **Development/Testing (AllFeatures/Subscription schemes):**
+    /// Uses the fallback which checks build flags and mock purchases.
     ///
     /// This bypasses DI to avoid circular dependency:
     /// - PersistenceContainer needs premium status to decide sync mode
     /// - DI Container registration of SubscriptionService may depend on PersistenceContainer
     private static func checkPremiumStatusFromCache() -> Bool {
-        // Defensive check: verify cache was set before PersistenceContainer init
-        // This check will be relevant when StoreKit2 is implemented and sets premiumStatusCache at startup
-        //
-        // Note: premiumStatusCache is not yet used - see MockSecureSubscriptionService.isPremiumFromCache()
-        // for current flow which uses allFeaturesEnabledCache and mockPurchases
-        let cacheWasSet = UserDefaults.standard.object(forKey: UserDefaultsKeys.premiumStatusCache) != nil
-        if !cacheWasSet {
+        // Use injected provider if available (production StoreKit check)
+        if let provider = premiumCheckProvider {
+            let isPremium = provider()
             logger.log(
-                "ℹ️ Premium status cache not set - using fallback checks",
+                "🔒 Premium status from secure provider",
                 level: .debug,
                 category: .system,
-                metadata: [
-                    "note": "Expected until StoreKit2 implementation. Currently using allFeaturesEnabledCache and mockPurchases."
-                ]
+                metadata: ["is_premium": isPremium]
             )
+            return isPremium
         }
 
+        // Fallback for backwards compatibility (mock/development builds)
+        logger.log(
+            "ℹ️ Premium check using fallback (mock builds)",
+            level: .debug,
+            category: .system,
+            metadata: [
+                "note": "Using MockSecureSubscriptionService.isPremiumFromCache() - OK for development builds"
+            ]
+        )
         return MockSecureSubscriptionService.isPremiumFromCache()
     }
 }

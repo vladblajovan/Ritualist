@@ -505,6 +505,6 @@ public struct DashboardView: View {
 
 #Preview {
     NavigationStack {
-        DashboardView(vm: DashboardViewModel(logger: DebugLogger(subsystem: "com.ritualist.app", category: "ui")))
+        DashboardView(vm: DashboardViewModel(logger: DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "ui")))
     }
 }

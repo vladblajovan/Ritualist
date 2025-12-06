@@ -10,7 +10,7 @@ extension Container {
 
     var debugLogger: Factory<DebugLogger> {
         self {
-            DebugLogger(subsystem: "com.ritualist.app", category: "general")
+            DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "general")
         }
         .singleton
     }
@@ -262,14 +262,15 @@ extension Container {
 
     var secureSubscriptionService: Factory<SecureSubscriptionService> {
         self {
-            // TEMPORARY: Using mocks until IAP products are created in App Store Connect
-            // TODO: After IAP products are approved, replace with:
-            // #if ALL_FEATURES_ENABLED
-            //     return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
-            // #else
-            //     return StoreKitSubscriptionService(errorHandler: self.errorHandler())
-            // #endif
+            // Build flag logic:
+            // - ALL_FEATURES_ENABLED: Mock with premium always on (Ritualist-AllFeatures scheme)
+            // - SUBSCRIPTION_ENABLED: Mock for testing paywall UI (Ritualist-Subscription scheme)
+            // - No flags (default): Real StoreKit2 for production (Ritualist scheme)
+            #if ALL_FEATURES_ENABLED || SUBSCRIPTION_ENABLED
             return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
+            #else
+            return StoreKitSubscriptionService(errorHandler: self.errorHandler())
+            #endif
         }
         .singleton
     }
@@ -279,53 +280,29 @@ extension Container {
         secureSubscriptionService
     }
     
-    // MARK: - Paywall Business Service
-    
-    var paywallBusinessService: Factory<PaywallBusinessService> {
-        self {
-            #if DEBUG
-            let mockBusiness = MockPaywallBusinessService(
-                testingScenario: .randomResults
-            )
-            mockBusiness.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
-            return mockBusiness
-            #else
-            return NoOpPaywallBusinessService() // TODO: Replace with StoreKit business service
-            #endif
-        }
-        .singleton
-    }
-    
     // MARK: - Paywall Service
 
     var paywallService: Factory<PaywallService> {
         self {
-            // TEMPORARY: Using mocks until IAP products are created in App Store Connect
+            // Build flag logic:
+            // - ALL_FEATURES_ENABLED: Mock with premium always on (Ritualist-AllFeatures scheme)
+            // - SUBSCRIPTION_ENABLED: Mock for testing paywall UI (Ritualist-Subscription scheme)
+            // - No flags (default): Real StoreKit2 for production (Ritualist scheme)
+            #if ALL_FEATURES_ENABLED || SUBSCRIPTION_ENABLED
             let mockPaywall = MockPaywallService(
                 subscriptionService: self.secureSubscriptionService(),
                 testingScenario: .randomResults
             )
             mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
             return mockPaywall
-
-            // TODO: After IAP products are approved, replace with:
-            // #if ALL_FEATURES_ENABLED
-            //     // Keep mocks for AllFeatures scheme (bypass paywall)
-            //     let mockPaywall = MockPaywallService(
-            //         subscriptionService: self.secureSubscriptionService(),
-            //         testingScenario: .randomResults
-            //     )
-            //     mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
-            //     return mockPaywall
-            // #else
-            //     // Use production StoreKit for Subscription scheme
-            //     return MainActor.assumeIsolated {
-            //         StoreKitPaywallService(
-            //             subscriptionService: self.secureSubscriptionService(),
-            //             logger: self.debugLogger()
-            //         )
-            //     }
-            // #endif
+            #else
+            return MainActor.assumeIsolated {
+                StoreKitPaywallService(
+                    subscriptionService: self.secureSubscriptionService(),
+                    logger: self.debugLogger()
+                )
+            }
+            #endif
         }
         .singleton
     }

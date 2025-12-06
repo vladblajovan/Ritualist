@@ -22,8 +22,8 @@ public protocol HabitMaintenanceServiceProtocol {
 @ModelActor
 public actor HabitMaintenanceService: HabitMaintenanceServiceProtocol {
 
-    // Inline logger (cannot inject into @ModelActor - Swift Data limitation)
-    private let logger = DebugLogger(subsystem: "com.ritualist.app", category: "data")
+    // Local logger: @ModelActor cannot use DI injection (SwiftData limitation)
+    private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "data")
 
     /// Cleanup orphaned habits that reference non-existent categories
     /// This maintains data integrity by removing habits that point to deleted categories

@@ -17,7 +17,7 @@ public final class DebugUserActionTrackerService: UserActionTrackerService {
     private let eventMapper = UserActionEventMapper()
     private let logger: DebugLogger
 
-    public init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "general")) {
+    public init(logger: DebugLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "userAction")) {
         self.logger = logger
     }
     

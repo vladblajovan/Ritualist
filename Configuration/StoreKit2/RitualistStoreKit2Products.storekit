@@ -4,21 +4,7 @@
 
   ],
   "products" : [
-    {
-      "displayPrice" : "99.99",
-      "familyShareable" : false,
-      "internalID" : "6736572801",
-      "localizations" : [
-        {
-          "description" : "One-time purchase for lifetime access to all premium features",
-          "displayName" : "Ritualist Pro Lifetime",
-          "locale" : "en_US"
-        }
-      ],
-      "productID" : "com.vladblajovan.ritualist.lifetime",
-      "referenceName" : "Ritualist Pro Lifetime",
-      "type" : "NonConsumable"
-    }
+
   ],
   "settings" : {
     "_applicationInternalID" : "6736572802",

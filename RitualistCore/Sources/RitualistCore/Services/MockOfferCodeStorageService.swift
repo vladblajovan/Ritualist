@@ -37,6 +37,9 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
     private let codesKey = "mock_offer_codes"
     private let redemptionsKey = "mock_offer_code_redemptions"
 
+    // Local logger: RitualistCore module cannot access main app's DI container
+    private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "offerCodes")
+
     // MARK: - Storage
 
     private let userDefaults: UserDefaults
@@ -258,7 +261,12 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
                 try await saveOfferCode(code)
             } catch {
                 // Log error but continue loading other codes
-                print("⚠️ Failed to load default code '\(code.id)': \(error)")
+                logger.log(
+                    "Failed to load default code '\(code.id)'",
+                    level: .warning,
+                    category: .subscription,
+                    metadata: ["error": error.localizedDescription]
+                )
             }
         }
     }

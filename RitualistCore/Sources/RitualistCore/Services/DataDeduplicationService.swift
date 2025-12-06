@@ -81,8 +81,8 @@ public struct DeduplicationResult: Sendable {
 @ModelActor
 public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
 
-    // Inline logger (cannot inject into @ModelActor - SwiftData limitation)
-    private let logger = DebugLogger(subsystem: "com.ritualist.app", category: "deduplication")
+    // Local logger: @ModelActor cannot use DI injection (SwiftData limitation)
+    private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "deduplication")
 
     // MARK: - Public Methods
 

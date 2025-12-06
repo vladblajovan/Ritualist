@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import FactoryKit
 import RitualistCore
+import StoreKit
 
 // swiftlint:disable type_body_length
 @MainActor @Observable
@@ -61,6 +62,10 @@ public final class SettingsViewModel {
     public private(set) var isCheckingCloudStatus = false
     public private(set) var isDeletingCloudData = false
     public private(set) var isExportingData = false
+
+    // Account setup status (for informational display)
+    public private(set) var canMakePayments: Bool = true
+    public private(set) var hasNetworkConnectivity: Bool = true
     public var exportedDataJSON: String?
     public var exportedFileURL: URL?
     public private(set) var isImportingData = false
@@ -120,6 +125,35 @@ public final class SettingsViewModel {
     /// Only premium users can toggle this; free users always have sync enabled by default
     public var iCloudSyncEnabled: Bool {
         getICloudSyncPreference.execute()
+    }
+
+    // MARK: - Account Setup Status
+
+    /// Whether iCloud account is signed in
+    public var isICloudSignedIn: Bool {
+        iCloudStatus == .available
+    }
+
+    /// Whether there are any account setup issues that might affect purchases
+    /// Note: iCloud status is shown in the iCloud Sync section, not here
+    public var hasAccountSetupIssues: Bool {
+        !canMakePayments || !hasNetworkConnectivity
+    }
+
+    /// List of current account setup issues for display in Subscription section
+    /// Note: iCloud status is shown in the iCloud Sync section, not here
+    public var accountSetupIssues: [AccountSetupIssue] {
+        var issues: [AccountSetupIssue] = []
+
+        if !canMakePayments {
+            issues.append(.purchasesRestricted)
+        }
+
+        if !hasNetworkConnectivity {
+            issues.append(.noNetwork)
+        }
+
+        return issues
     }
 
     /// Set iCloud sync preference (requires app restart to take effect)
@@ -269,6 +303,7 @@ public final class SettingsViewModel {
         async let syncDate = getLastSyncDate.execute()
         async let subscriptionPlan = getCurrentSubscriptionPlan.execute()
         async let subscriptionExpiry = getSubscriptionExpiryDate.execute()
+        async let networkStatus = NetworkUtilities.hasNetworkConnectivity()
 
         // Await all results (runs in parallel)
         hasNotificationPermission = await notificationStatus
@@ -277,6 +312,10 @@ public final class SettingsViewModel {
         lastSyncDate = await syncDate
         cachedSubscriptionPlan = await subscriptionPlan
         cachedSubscriptionExpiryDate = await subscriptionExpiry
+        hasNetworkConnectivity = await networkStatus
+
+        // Check if device allows in-app purchases (parental controls, etc.)
+        canMakePayments = SKPaymentQueue.canMakePayments()
 
         // iCloud status has its own loading indicator, run after parallel batch
         await refreshiCloudStatus()

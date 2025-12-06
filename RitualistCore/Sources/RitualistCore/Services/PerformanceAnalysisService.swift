@@ -82,7 +82,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     public init(
         scheduleAnalyzer: HabitScheduleAnalyzerProtocol,
         streakCalculationService: StreakCalculationService,
-        logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "performance")
+        logger: DebugLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "performance")
     ) {
         self.scheduleAnalyzer = scheduleAnalyzer
         self.streakCalculationService = streakCalculationService

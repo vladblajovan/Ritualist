@@ -27,6 +27,8 @@ import RitualistCore
 /// - VerificationResult ensures transactions haven't been tampered with
 /// - No local storage of purchase state (always queries StoreKit as source of truth)
 ///
+/// **Logging:** Uses centralized DebugLogger for consistent logging across the app.
+///
 /// **To Enable:**
 /// 1. Purchase Apple Developer Program membership ($99/year)
 /// 2. Create IAP products in App Store Connect (see StoreKitConstants.swift for IDs)
@@ -50,6 +52,76 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
 
     /// Error handler for logging/analytics
     private let errorHandler: ErrorHandler?
+
+    // Local logger: Static methods run before DI container is initialized
+    private static let startupLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "subscription")
+
+    // MARK: - Static Premium Check (Secure, for Startup)
+
+    /// Verify premium status asynchronously by querying StoreKit's Transaction.currentEntitlements.
+    ///
+    /// **SECURITY:** This method queries StoreKit directly - it cannot be bypassed by modifying
+    /// UserDefaults or any local storage. StoreKit receipts are cryptographically signed by Apple.
+    ///
+    /// **Usage:** Call this after app UI is shown (in `performInitialLaunchTasks()`) to verify
+    /// the cached premium status and update it if needed.
+    ///
+    /// - Returns: `true` if user has any valid (non-expired, non-revoked) subscription or purchase
+    ///
+    /// **Timeout:** Returns cached value if StoreKit doesn't respond within 5 seconds.
+    ///
+    public static func verifyPremiumAsync() async -> Bool {
+        // Use withTaskGroup to implement timeout - if StoreKit hangs, fall back to cache
+        let timeoutSeconds: UInt64 = 5
+
+        return await withTaskGroup(of: Bool?.self) { group in
+            // Task 1: Query StoreKit
+            group.addTask {
+                for await result in Transaction.currentEntitlements {
+                    // Only count verified transactions
+                    if case .verified(let transaction) = result {
+                        // Check not revoked
+                        if transaction.revocationDate == nil {
+                            // Check not expired (for subscriptions)
+                            if let expirationDate = transaction.expirationDate {
+                                if expirationDate > Date() {
+                                    return true
+                                }
+                            } else {
+                                // Non-consumable (lifetime) - no expiry
+                                return true
+                            }
+                        }
+                    }
+                }
+                return false
+            }
+
+            // Task 2: Timeout after specified seconds
+            group.addTask {
+                try? await Task.sleep(nanoseconds: timeoutSeconds * 1_000_000_000)
+                return nil // Signal timeout
+            }
+
+            // Return first result (either StoreKit response or timeout)
+            if let result = await group.next() {
+                group.cancelAll()
+                if let value = result {
+                    return value
+                } else {
+                    // Timeout occurred - fall back to cached value
+                    startupLogger.log(
+                        "⚠️ StoreKit verification timed out after \(timeoutSeconds)s - using cached value",
+                        level: .warning,
+                        category: .subscription
+                    )
+                    return SecurePremiumCache.shared.getCachedPremiumStatus()
+                }
+            }
+
+            return false
+        }
+    }
 
     // MARK: - Initialization
 
@@ -89,6 +161,10 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         // without waiting for StoreKit refresh
         cachedValidPurchases.insert(productId)
         lastCacheUpdate = Date()
+
+        // Update Keychain cache immediately after purchase
+        // This ensures the user has offline access right away
+        SecurePremiumCache.shared.updateCache(isPremium: true)
     }
 
     public func clearPurchases() async throws {
@@ -96,6 +172,9 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         // This is for cache management only
         cachedValidPurchases.removeAll()
         lastCacheUpdate = .distantPast
+
+        // Clear Keychain cache as well
+        SecurePremiumCache.shared.clearCache()
     }
 
     public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
@@ -193,9 +272,14 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
             }
         }
 
-        // Update cache
+        // Update in-memory cache
         cachedValidPurchases = validPurchases
         lastCacheUpdate = Date()
+
+        // Update Keychain cache for offline scenarios (3-day grace period)
+        // This keeps the secure cache fresh whenever we successfully query StoreKit
+        let isPremium = !validPurchases.isEmpty
+        SecurePremiumCache.shared.updateCache(isPremium: isPremium)
     }
 
     /// Check if a transaction is currently valid

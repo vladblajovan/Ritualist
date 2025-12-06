@@ -122,21 +122,16 @@ public struct RootTabView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingPostOnboardingAssistant) {
-            HabitsAssistantSheet(
-                existingHabits: existingHabits,
-                isFirstVisit: true, // Show enhanced intro on first visit post-onboarding
-                onShowPaywall: nil
-            )
-            .onDisappear {
-                Task {
-                    // Refresh habits after assistant dismissal
-                    await loadCurrentHabits()
-                    // Check for iCloud sync toast now that all sheets are dismissed
-                    handleFirstiCloudSync()
-                }
+        .habitsAssistantSheet(
+            isPresented: $showingPostOnboardingAssistant,
+            existingHabits: existingHabits,
+            isFirstVisit: true,
+            onDataRefreshNeeded: {
+                await loadCurrentHabits()
+                // Check for iCloud sync toast now that all sheets are dismissed
+                handleFirstiCloudSync()
             }
-        }
+        )
         .onChange(of: vm.personalityDeepLinkCoordinator.shouldShowPersonalityAnalysis) { oldValue, shouldShow in
             if shouldShow {
                 logger.logPersonalitySheet(
@@ -377,29 +372,24 @@ public struct RootTabView: View {
             HabitDetailView(vm: detailVM)
                 .accessibilityIdentifier(AccessibilityID.HabitDetail.sheet)
         }
-        .sheet(isPresented: $showingQuickActionHabitsAssistant, onDismiss: {
-            Task {
+        .habitsAssistantSheet(
+            isPresented: $showingQuickActionHabitsAssistant,
+            existingHabits: existingHabits,
+            isFirstVisit: false,
+            onDataRefreshNeeded: {
                 await loadCurrentHabits()
+                // Check if we need to re-show this sheet or show a different one
+                if pendingQuickActionHabitsAssistantReshow {
+                    pendingQuickActionHabitsAssistantReshow = false
+                    logger.log("Quick Action: Re-showing Habits Assistant sheet after dismiss", level: .info, category: .ui)
+                    showingQuickActionHabitsAssistant = true
+                } else if pendingQuickActionAddHabitReshow {
+                    pendingQuickActionAddHabitReshow = false
+                    logger.log("Quick Action: Showing Add Habit sheet after Habits Assistant dismiss", level: .info, category: .ui)
+                    showingQuickActionAddHabit = true
+                }
             }
-            // Check if we need to re-show this sheet or show a different one
-            // onDismiss is called after dismiss animation completes, so we can set state directly
-            if pendingQuickActionHabitsAssistantReshow {
-                pendingQuickActionHabitsAssistantReshow = false
-                logger.log("Quick Action: Re-showing Habits Assistant sheet after dismiss", level: .info, category: .ui)
-                showingQuickActionHabitsAssistant = true
-            } else if pendingQuickActionAddHabitReshow {
-                pendingQuickActionAddHabitReshow = false
-                logger.log("Quick Action: Showing Add Habit sheet after Habits Assistant dismiss", level: .info, category: .ui)
-                showingQuickActionAddHabit = true
-            }
-        }) {
-            HabitsAssistantSheet(
-                existingHabits: existingHabits,
-                isFirstVisit: false,
-                onShowPaywall: nil
-            )
-            .accessibilityIdentifier(AccessibilityID.HabitsAssistant.sheet)
-        }
+        )
         // MARK: - Centralized Toast Overlay
         // This overlay is at the root level so toasts appear above all content including NavigationStacks
         // Supports multiple stacked toasts with newest on top

@@ -303,16 +303,19 @@ public extension View {
     /// - Parameters:
     ///   - isPresented: Binding to control sheet presentation
     ///   - existingHabits: Current habits for context
+    ///   - isFirstVisit: Whether this is first time opening assistant (e.g., post-onboarding)
     ///   - onDataRefreshNeeded: Callback triggered when data should be refreshed
     func habitsAssistantSheet(
         isPresented: Binding<Bool>,
         existingHabits: [Habit] = [],
+        isFirstVisit: Bool = false,
         onDataRefreshNeeded: @escaping () async -> Void = {}
     ) -> some View {
         self.modifier(
             HabitsAssistantSheetModifier(
                 isPresented: isPresented,
                 existingHabits: existingHabits,
+                isFirstVisit: isFirstVisit,
                 onDataRefreshNeeded: onDataRefreshNeeded
             )
         )
@@ -327,6 +330,7 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
     @State private var shouldReopenAssistant = false
 
     let existingHabits: [Habit]
+    let isFirstVisit: Bool
     let onDataRefreshNeeded: () async -> Void
 
     func body(content: Content) -> some View {
@@ -334,13 +338,18 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
             .sheet(isPresented: $isPresented) {
                 HabitsAssistantSheet(
                     existingHabits: existingHabits,
+                    isFirstVisit: isFirstVisit,
                     onShowPaywall: {
                         shouldReopenAssistant = true
                         isPresented = false
-                        Task {
-                            await paywallViewModel.load()
-                            paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
-                            showingPaywall = true
+                        // Delay paywall presentation to allow sheet dismiss animation to complete
+                        // Without this, SwiftUI can get confused presenting a new sheet while dismissing another
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            Task {
+                                await paywallViewModel.load()
+                                paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
+                                showingPaywall = true
+                            }
                         }
                     }
                 )

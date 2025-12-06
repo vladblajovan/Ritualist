@@ -177,6 +177,9 @@ public final class MockPaywallService: PaywallService {
     
     public var currentTestingScenario: TestingScenario = .randomResults
 
+    // Local logger: RitualistCore module cannot access main app's DI container
+    private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "paywall")
+
     public init(
         subscriptionService: SecureSubscriptionService,
         offerCodeStorage: OfferCodeStorageService = MockOfferCodeStorageService(),
@@ -327,7 +330,11 @@ public final class MockPaywallService: PaywallService {
     public func presentOfferCodeRedemptionSheet() {
         // In mock mode, we don't show a system sheet
         // Instead, use the debug menu or call redeemOfferCode() directly
-        print("[MockPaywallService] System redemption sheet not available in mock mode. Use redeemOfferCode() instead.")
+        logger.log(
+            "System redemption sheet not available in mock mode. Use redeemOfferCode() instead.",
+            level: .info,
+            category: .subscription
+        )
     }
 
     /// Check if offer code redemption is available

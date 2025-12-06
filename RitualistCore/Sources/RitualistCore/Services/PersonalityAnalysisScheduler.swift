@@ -39,7 +39,7 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         validateAnalysisDataUseCase: ValidateAnalysisDataUseCase,
         notificationService: NotificationService,
         errorHandler: ErrorHandler? = nil,
-        logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "personality")
+        logger: DebugLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "personality")
     ) {
         self.personalityRepository = personalityRepository
         self.analyzePersonalityUseCase = analyzePersonalityUseCase

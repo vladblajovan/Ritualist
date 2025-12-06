@@ -74,6 +74,9 @@
             ReferencedContainer = "container:Ritualist.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference
+         identifier = "../../Configuration/StoreKit2/RitualistStoreKit2Products.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

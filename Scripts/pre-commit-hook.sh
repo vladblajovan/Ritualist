@@ -9,6 +9,12 @@
 #
 # This approach ensures build numbers NEVER decrease, even with parallel branches.
 # The BUILD_NUMBER file is the single source of truth.
+#
+# IMPORTANT: This hook automatically modifies and stages files during commit!
+# On every commit, the following files are updated and added to your commit:
+#   - BUILD_NUMBER (incremented by 1)
+#   - Ritualist.xcodeproj/project.pbxproj (CURRENT_PROJECT_VERSION updated)
+# This is intentional behavior to ensure every commit has a unique build number.
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 

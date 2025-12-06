@@ -41,6 +41,11 @@ public enum UserDefaultsKeys {
     /// Note: Currently unused - will be needed when migrating from mock to real StoreKit2
     public static let premiumStatusCache = "com.ritualist.premiumStatusCache"
 
+    /// Key for tracking if we've shown the "Premium activated, restart for sync" toast
+    /// Prevents showing the toast repeatedly if user doesn't restart immediately
+    /// Reset when cache is updated (so toast shows again if premium status changes)
+    public static let hasShownPremiumRestartToast = "com.ritualist.hasShownPremiumRestartToast"
+
     // MARK: - Schema Migration
 
     /// Key for storing the last schema version for migration tracking
@@ -102,6 +107,19 @@ public enum UserDefaultsKeys {
     /// This bridges the compile-time ALL_FEATURES_ENABLED flag to RitualistCore (Swift Package)
     /// which cannot see the flag directly due to Swift Package compilation isolation
     public static let allFeaturesEnabledCache = "com.ritualist.allFeaturesEnabled"
+}
+
+// MARK: - Logger Constants
+
+/// Centralized constants for logging configuration.
+public enum LoggerConstants {
+    /// Main app logger subsystem identifier
+    /// Used by DebugLogger for consistent os_log output
+    public static let appSubsystem = "com.ritualist.app"
+
+    /// Widget logger subsystem identifier
+    /// Note: Widgets use WidgetConstants.loggerSubsystem in RitualistWidget target
+    public static let widgetSubsystem = "com.ritualist.widget"
 }
 
 // MARK: - Notification Names
