@@ -68,25 +68,59 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     ///
     /// - Returns: `true` if user has any valid (non-expired, non-revoked) subscription or purchase
     ///
+    /// **Timeout:** Returns cached value if StoreKit doesn't respond within 5 seconds.
+    ///
     public static func verifyPremiumAsync() async -> Bool {
-        for await result in Transaction.currentEntitlements {
-            // Only count verified transactions
-            if case .verified(let transaction) = result {
-                // Check not revoked
-                if transaction.revocationDate == nil {
-                    // Check not expired (for subscriptions)
-                    if let expirationDate = transaction.expirationDate {
-                        if expirationDate > Date() {
-                            return true
+        // Use withTaskGroup to implement timeout - if StoreKit hangs, fall back to cache
+        let timeoutSeconds: UInt64 = 5
+
+        return await withTaskGroup(of: Bool?.self) { group in
+            // Task 1: Query StoreKit
+            group.addTask {
+                for await result in Transaction.currentEntitlements {
+                    // Only count verified transactions
+                    if case .verified(let transaction) = result {
+                        // Check not revoked
+                        if transaction.revocationDate == nil {
+                            // Check not expired (for subscriptions)
+                            if let expirationDate = transaction.expirationDate {
+                                if expirationDate > Date() {
+                                    return true
+                                }
+                            } else {
+                                // Non-consumable (lifetime) - no expiry
+                                return true
+                            }
                         }
-                    } else {
-                        // Non-consumable (lifetime) - no expiry
-                        return true
                     }
                 }
+                return false
             }
+
+            // Task 2: Timeout after specified seconds
+            group.addTask {
+                try? await Task.sleep(nanoseconds: timeoutSeconds * 1_000_000_000)
+                return nil // Signal timeout
+            }
+
+            // Return first result (either StoreKit response or timeout)
+            if let result = await group.next() {
+                group.cancelAll()
+                if let value = result {
+                    return value
+                } else {
+                    // Timeout occurred - fall back to cached value
+                    startupLogger.log(
+                        "⚠️ StoreKit verification timed out after \(timeoutSeconds)s - using cached value",
+                        level: .warning,
+                        category: .subscription
+                    )
+                    return SecurePremiumCache.shared.getCachedPremiumStatus()
+                }
+            }
+
+            return false
         }
-        return false
     }
 
     /// Check premium status synchronously by querying StoreKit's Transaction.currentEntitlements.

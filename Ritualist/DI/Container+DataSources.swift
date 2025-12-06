@@ -27,8 +27,8 @@ extension Container {
                 // SECURITY: In production builds, we query StoreKit's Transaction.currentEntitlements
                 // which are cryptographically signed by Apple and cannot be forged.
                 // In development builds (ALL_FEATURES_ENABLED), we use the mock service.
-                #if ALL_FEATURES_ENABLED
-                // Development: Use mock for all-features testing
+                #if ALL_FEATURES_ENABLED || SUBSCRIPTION_ENABLED
+                // Development: Use mock for all-features/subscription testing
                 PersistenceContainer.premiumCheckProvider = {
                     MockSecureSubscriptionService.isPremiumFromCache()
                 }
