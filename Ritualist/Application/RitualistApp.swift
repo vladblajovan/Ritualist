@@ -437,8 +437,11 @@ import CloudKit
             } else {
                 // cached=true, actual=false: Premium expired
                 // Sync continues this session (using cached value), next launch will be correct
+                // Reset toast flag so user can see it again if they resubscribe later
+                UserDefaults.standard.set(false, forKey: UserDefaultsKeys.hasShownPremiumRestartToast)
+
                 logger.log(
-                    "📉 Premium expired - cache updated, sync continues this session",
+                    "📉 Premium expired - cache updated, toast flag reset, sync continues this session",
                     level: .info,
                     category: .system
                 )
