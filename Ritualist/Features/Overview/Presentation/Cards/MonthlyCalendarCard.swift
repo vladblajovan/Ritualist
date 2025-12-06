@@ -20,26 +20,28 @@ private struct DayDisplayData: Identifiable {
 struct MonthlyCalendarCard: View {
     let monthlyData: [Date: Double]
     let onDateSelect: (Date) -> Void
+    /// The timezone used for all date calculations. Should match the timezone used to generate monthlyData keys.
+    let timezone: TimeZone
 
     @State private var currentDate = Date()
     @State private var displayDays: [DayDisplayData] = []
 
     private var calendar: Calendar {
-        CalendarUtils.currentLocalCalendar
+        CalendarUtils.localCalendar(for: timezone)
     }
 
-    private static let monthFormatter: DateFormatter = {
+    private var monthString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
-        return formatter
-    }()
-
-    private var monthString: String {
-        Self.monthFormatter.string(from: currentDate)
+        formatter.timeZone = timezone
+        return formatter.string(from: currentDate)
     }
 
     private var isViewingCurrentMonth: Bool {
-        calendar.isDate(currentDate, equalTo: Date(), toGranularity: .month)
+        let tz = timezone
+        let currentComponents = calendar.dateComponents(in: tz, from: currentDate)
+        let todayComponents = calendar.dateComponents(in: tz, from: Date())
+        return currentComponents.year == todayComponents.year && currentComponents.month == todayComponents.month
     }
 
     var body: some View {
@@ -152,10 +154,18 @@ struct MonthlyCalendarCard: View {
         .onChange(of: monthlyData) { _, _ in
             computeDisplayDays()
         }
+        .onChange(of: timezone.identifier) { _, _ in
+            // Recompute display days when timezone changes
+            // This ensures "today" highlighting is correct after timezone change
+            // Note: Using timezone.identifier (String) for reliable SwiftUI change detection
+            computeDisplayDays()
+        }
+        // Force view identity change when timezone changes to reset @State
+        .id(timezone.identifier)
     }
 
     private var seasonIcon: String {
-        let month = calendar.component(.month, from: currentDate)
+        let month = calendar.dateComponents(in: timezone, from: currentDate).month ?? 1
         switch month {
         case 12, 1, 2: return "❄️"
         case 3, 4, 5: return "🌸"
@@ -187,12 +197,12 @@ struct MonthlyCalendarCard: View {
     // PERFORMANCE: Compute ALL display properties ONCE when month changes
     private func computeDisplayDays() {
         let days = getMonthDays(for: currentDate)
-        let currentMonth = calendar.component(.month, from: currentDate)
+        let currentMonth = calendar.dateComponents(in: timezone, from: currentDate).month ?? 1
         let today = Date()
 
         displayDays = days.enumerated().map { index, date in
-            let dayNumber = calendar.component(.day, from: date)
-            let normalizedDate = CalendarUtils.startOfDayLocal(for: date)
+            let dayNumber = calendar.dateComponents(in: timezone, from: date).day ?? 1
+            let normalizedDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
             let completion = monthlyData[normalizedDate] ?? 0.0
 
             // Use ViewLogic for all display calculations
@@ -241,14 +251,15 @@ struct MonthlyCalendarCard: View {
         var data: [Date: Double] = [:]
         for index in 1...30 {
             let date = CalendarUtils.addDaysLocal(-index, to: Date(), timezone: .current)
-            data[CalendarUtils.startOfDayLocal(for: date)] = Double.random(in: 0...1)
+            data[CalendarUtils.startOfDayLocal(for: date, timezone: .current)] = Double.random(in: 0...1)
         }
         return data
     }()
 
     MonthlyCalendarCard(
         monthlyData: sampleData,
-        onDateSelect: { _ in }
+        onDateSelect: { _ in },
+        timezone: .current
     )
     .padding()
     .background(Color(.systemGroupedBackground))

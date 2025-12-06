@@ -23,6 +23,7 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     @ObservationIgnored @Injected(\.getSingleHabitLogs) private var getSingleHabitLogs
     @ObservationIgnored @Injected(\.debugLogger) private var logger
+    @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
     
     // MARK: - Shared ViewModels
     
@@ -43,6 +44,11 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
 
     /// Track if view has disappeared at least once (to distinguish initial appear from tab switch)
     @ObservationIgnored private var viewHasDisappearedOnce = false
+
+    /// Cached display timezone for synchronous access in computed properties.
+    /// Fetched once on load from TimezoneService.getDisplayTimezone().
+    /// Note: NOT marked @ObservationIgnored so SwiftUI re-renders when timezone changes.
+    internal var displayTimezone: TimeZone = .current
     
     // MARK: - Category Filtering State
     public var selectedFilterCategory: HabitCategory?
@@ -172,6 +178,9 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         error = nil
 
         do {
+            // Fetch display timezone from TimezoneService for all time-based calculations
+            displayTimezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+
             habitsData = try await loadHabitsData.execute()
 
             // Always update original category order to include newly added categories
@@ -392,14 +401,14 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     }
     
     // MARK: - Habit Completion Methods
-    
+
     /// Check if a habit is completed today using IsHabitCompletedUseCase
     public func isHabitCompletedToday(_ habit: Habit) async -> Bool {
         do {
             // Use dedicated UseCase to get logs for a single habit today
-            let today = Date()
+            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
-            return isHabitCompleted.execute(habit: habit, on: today, logs: logs)
+            return isHabitCompleted.execute(habit: habit, on: today, logs: logs, timezone: displayTimezone)
         } catch {
             logger.log(
                 "Failed to check habit completion",
@@ -415,9 +424,9 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     public func getCurrentProgress(for habit: Habit) async -> Double {
         do {
             // Use dedicated UseCase to get logs for a single habit today
-            let today = Date()
+            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
-            return calculateDailyProgress.execute(habit: habit, logs: logs, for: today)
+            return calculateDailyProgress.execute(habit: habit, logs: logs, for: today, timezone: displayTimezone)
         } catch {
             logger.log(
                 "Failed to get habit progress",
@@ -428,16 +437,18 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
             return 0.0
         }
     }
-    
+
     /// Check if a habit should be shown as actionable today using IsScheduledDayUseCase
     public func isHabitActionableToday(_ habit: Habit) -> Bool {
-        isScheduledDay.execute(habit: habit, date: Date())
+        let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
+        return isScheduledDay.execute(habit: habit, date: today, timezone: displayTimezone)
     }
 
     /// Get schedule validation message for a habit
     public func getScheduleValidationMessage(for habit: Habit) async -> String? {
         do {
-            _ = try await validateHabitScheduleUseCase.execute(habit: habit, date: Date())
+            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
+            _ = try await validateHabitScheduleUseCase.execute(habit: habit, date: today)
             return nil // No validation errors
         } catch {
             return error.localizedDescription
@@ -446,23 +457,26 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
 
     /// Get the schedule status for a habit today
     public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
-        HabitScheduleStatus.forHabit(habit, date: Date(), isScheduledDay: isScheduledDay)
+        let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
+        return HabitScheduleStatus.forHabit(habit, date: today, isScheduledDay: isScheduledDay, timezone: displayTimezone)
     }
-    
+
     /// Check if a habit's logging should be disabled based on schedule validation
     public func shouldDisableLogging(for habit: Habit) async -> Bool {
         do {
-            let validationResult = try await validateHabitScheduleUseCase.execute(habit: habit, date: Date())
+            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
+            let validationResult = try await validateHabitScheduleUseCase.execute(habit: habit, date: today)
             return !validationResult.isValid
         } catch {
             return true // Disable if validation fails
         }
     }
-    
+
     /// Get validation result for a habit (used for real-time UI feedback)
     public func getValidationResult(for habit: Habit) async -> HabitScheduleValidationResult? {
         do {
-            return try await validateHabitScheduleUseCase.execute(habit: habit, date: Date())
+            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
+            return try await validateHabitScheduleUseCase.execute(habit: habit, date: today)
         } catch {
             return nil
         }

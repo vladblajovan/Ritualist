@@ -39,6 +39,7 @@ public struct OverviewView: View {
                     summary: vm.todaysSummary,
                     viewingDate: vm.viewingDate,
                     isViewingToday: vm.isViewingToday,
+                    timezone: vm.displayTimezone,
                     canGoToPrevious: vm.canGoToPreviousDay,
                     canGoToNext: vm.canGoToNextDay,
                     currentSlogan: vm.isViewingToday ? vm.currentSlogan : nil,
@@ -138,7 +139,8 @@ public struct OverviewView: View {
                         withAnimation(.easeInOut(duration: 0.6)) {
                             proxy.scrollTo("topCard", anchor: .top)
                         }
-                    }
+                    },
+                    timezone: vm.displayTimezone
                 )
                 .simpleCard()
                 
