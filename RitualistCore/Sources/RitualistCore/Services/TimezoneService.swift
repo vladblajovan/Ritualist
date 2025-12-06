@@ -143,6 +143,8 @@ public struct TravelStatus: Equatable {
 /// Default implementation of TimezoneService using UserProfile storage
 public final class DefaultTimezoneService: TimezoneService {
 
+    // MARK: - Dependencies
+
     private let loadProfile: LoadProfileUseCase
     private let saveProfile: SaveProfileUseCase
 
@@ -221,12 +223,9 @@ public final class DefaultTimezoneService: TimezoneService {
         )
         profile.timezoneChangeHistory.append(change)
 
-        // Trim history to last 100 entries to prevent unbounded growth
-        // NOTE: Only the most recent 100 timezone changes are retained in persistent storage.
-        // For analytics requiring full history, consider exporting changes to external analytics
-        // before truncation, or implement a separate analytics event stream.
-        if profile.timezoneChangeHistory.count > 100 {
-            profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(100))
+        // Trim history to prevent unbounded growth
+        if profile.timezoneChangeHistory.count > TimezoneConstants.maxTimezoneHistoryEntries {
+            profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries))
         }
 
         // Update timestamps
@@ -253,12 +252,9 @@ public final class DefaultTimezoneService: TimezoneService {
             )
             profile.timezoneChangeHistory.append(change)
 
-            // Trim history to last 100 entries to prevent unbounded growth
-            // NOTE: Only the most recent 100 timezone changes are retained in persistent storage.
-            // For analytics requiring full history, consider exporting changes to external analytics
-            // before truncation, or implement a separate analytics event stream.
-            if profile.timezoneChangeHistory.count > 100 {
-                profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(100))
+            // Trim history to prevent unbounded growth
+            if profile.timezoneChangeHistory.count > TimezoneConstants.maxTimezoneHistoryEntries {
+                profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries))
             }
         }
 

@@ -321,7 +321,7 @@ import CloudKit
                                     category: .system,
                                     metadata: ["error": error.localizedDescription]
                                 )
-                                toastService.error("Failed to update timezone setting")
+                                toastService.error("Failed to update timezone: \(error.localizedDescription)")
                             }
                         }
                     }
@@ -351,7 +351,7 @@ import CloudKit
                                     category: .system,
                                     metadata: ["error": error.localizedDescription]
                                 )
-                                toastService.error("Failed to update timezone setting")
+                                toastService.error("Failed to update timezone: \(error.localizedDescription)")
                             }
                         }
                     }
@@ -383,7 +383,7 @@ import CloudKit
                                     category: .system,
                                     metadata: ["error": error.localizedDescription]
                                 )
-                                toastService.error("Failed to update timezone setting")
+                                toastService.error("Failed to update timezone: \(error.localizedDescription)")
                             }
                         }
                     }
@@ -998,7 +998,8 @@ import CloudKit
             // Show timezone change alert to user
             // Only show if app is in foreground (hasCompletedInitialLaunch is true)
             // This prevents the alert from showing during initial app launch when timezone is first detected
-            if hasCompletedInitialLaunch {
+            // Also check if alert is not already showing to prevent race conditions with rapid timezone changes
+            if hasCompletedInitialLaunch && !showTimezoneChangeAlert {
                 await MainActor.run {
                     detectedTimezoneChange = DetectedTimezoneChangeInfo(
                         previousTimezone: previousTimezone,

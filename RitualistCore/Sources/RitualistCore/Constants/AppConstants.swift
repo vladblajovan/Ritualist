@@ -122,6 +122,17 @@ public enum LoggerConstants {
     public static let widgetSubsystem = "com.ritualist.widget"
 }
 
+// MARK: - Timezone Constants
+
+/// Centralized constants for timezone handling.
+public enum TimezoneConstants {
+    /// Maximum number of timezone changes to retain in history.
+    /// Older entries are trimmed to prevent unbounded storage growth.
+    /// For analytics requiring full history, consider exporting changes to external analytics
+    /// before truncation, or implement a separate analytics event stream.
+    public static let maxTimezoneHistoryEntries = 100
+}
+
 // MARK: - Notification Names
 
 public extension Notification.Name {
