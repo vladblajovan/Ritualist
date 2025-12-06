@@ -30,9 +30,9 @@ public enum QuickActionType: String {
     /// Localized title for this action
     public var title: String {
         switch self {
-        case .addHabit: return String(localized: "quickActionAddHabit")
-        case .habitsAssistant: return String(localized: "quickActionHabitsAssistant")
-        case .stats: return String(localized: "quickActionStats")
+        case .addHabit: return String(localized: "quickActionAddHabit", bundle: .main)
+        case .habitsAssistant: return String(localized: "quickActionHabitsAssistant", bundle: .main)
+        case .stats: return String(localized: "quickActionStats", bundle: .main)
         }
     }
 }
