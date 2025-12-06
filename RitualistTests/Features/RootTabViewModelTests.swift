@@ -37,16 +37,34 @@ struct RootTabViewModelTests {
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
     }
 
+    /// Sets up PersistenceContainer.premiumCheckProvider for tests
+    /// Required because RootTabViewModel.isCloudKitSyncActive uses this provider
+    private func setupPremiumProvider(isPremium: Bool) {
+        PersistenceContainer.premiumCheckProvider = { isPremium }
+    }
+
+    /// Sets up iCloud sync preference for tests
+    /// Required because RootTabViewModel.isCloudKitSyncActive checks both premium AND sync preference
+    private func setupSyncPreference(enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: UserDefaultsKeys.iCloudSyncEnabled)
+    }
+
     // MARK: - Test Dependencies
 
     /// Create a test instance with configurable mock dependencies
     @MainActor
     private func createViewModel(
         iCloudCompleted: Bool = false,
-        localCompleted: Bool = false
+        localCompleted: Bool = false,
+        isPremium: Bool = true
     ) -> (RootTabViewModel, MockiCloudKeyValueServiceForViewModel) {
         // Clear UserDefaults to ensure test isolation
         clearTestUserDefaults()
+
+        // Setup premium provider and sync preference for isCloudKitSyncActive check
+        // Default to premium=true and sync=true so returning user tests work (they need sync active)
+        setupPremiumProvider(isPremium: isPremium)
+        setupSyncPreference(enabled: isPremium) // Enable sync when premium
 
         let mockiCloud = MockiCloudKeyValueServiceForViewModel()
         mockiCloud.iCloudOnboardingCompleted = iCloudCompleted
