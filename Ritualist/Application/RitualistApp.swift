@@ -290,11 +290,17 @@ import CloudKit
         // Log startup context
         logStartupContext()
 
-        // FIRST: Verify premium status asynchronously (no blocking)
-        // This validates the cached premium status against StoreKit and updates if needed
-        await verifyAndUpdatePremiumStatus()
+        // PARALLEL EXECUTION: Run independent tasks concurrently for faster startup
+        // These tasks have no dependencies on each other
+        async let premiumVerification: () = verifyAndUpdatePremiumStatus()
+        async let categoriesSeeding: () = seedCategories()
+        async let timezoneDetection: () = detectTimezoneChanges()
+        // REMOVAL NOTICE: cleanupPersonalityAnalysisFromCloudKit() can be removed after v2.5.0 (March 2025)
+        async let cloudKitCleanup: () = cleanupPersonalityAnalysisFromCloudKit()
 
-        await seedCategories()
+        // Wait for all parallel tasks to complete
+        _ = await (premiumVerification, categoriesSeeding, timezoneDetection, cloudKitCleanup)
+
         // NOTE: Deduplication is NOT run here on purpose.
         // We wait for NSPersistentStoreRemoteChange notifications to indicate CloudKit sync activity.
         // Dedup runs on each remote change until no duplicates are found, ensuring we catch all
@@ -307,12 +313,11 @@ import CloudKit
         //   remote data with local data. Without CloudKit sync, no duplicates are created.
         // - When user goes online later, sync will trigger dedup as expected.
 
-        // REMOVAL NOTICE: cleanupPersonalityAnalysisFromCloudKit() can be removed after v2.5.0 (March 2025)
-        // once all TestFlight users have updated to a version that includes this cleanup.
-        await cleanupPersonalityAnalysisFromCloudKit()
-        await detectTimezoneChanges()
+        // SEQUENTIAL: Notification scheduling depends on categories being set up first
         await setupNotifications()
         await scheduleInitialNotifications()
+
+        // SEQUENTIAL: These should run after local setup is complete
         await restoreGeofences()
         await syncWithCloudIfAvailable()
 

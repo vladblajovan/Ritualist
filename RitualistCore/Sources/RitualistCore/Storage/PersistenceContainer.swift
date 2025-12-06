@@ -307,8 +307,8 @@ public final class PersistenceContainer {
     /// `MockSecureSubscriptionService.isPremiumFromCache()` for backwards compatibility.
     ///
     /// **Production (Ritualist scheme):**
-    /// The main app should set `premiumCheckProvider` to call `StoreKitSubscriptionService.isPremiumFromStoreKit()`
-    /// which queries StoreKit directly and cannot be bypassed.
+    /// The main app sets `premiumCheckProvider` to call `SecurePremiumCache.shared.getCachedPremiumStatus()`
+    /// for instant startup (~5ms). The cache is then verified async via `verifyPremiumAsync()`.
     ///
     /// **Development/Testing (AllFeatures/Subscription schemes):**
     /// Uses the fallback which checks build flags and mock purchases.

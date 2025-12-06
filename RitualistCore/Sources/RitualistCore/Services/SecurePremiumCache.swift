@@ -188,6 +188,9 @@ public final class SecurePremiumCache {
         deleteFromKeychain(account: account)
 
         // Create query for new item
+        // Using AfterFirstUnlockThisDeviceOnly to allow app startup without requiring device unlock.
+        // Premium status is not highly sensitive (StoreKit is the source of truth, this is just a cache).
+        // More restrictive options like WhenUnlockedThisDeviceOnly would break cold launch scenarios.
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
