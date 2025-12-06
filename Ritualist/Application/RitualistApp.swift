@@ -100,6 +100,10 @@ import CloudKit
     /// Details about the detected timezone change for the alert
     @State private var detectedTimezoneChange: DetectedTimezoneChangeInfo?
 
+    /// Task for timezone detection to prevent race conditions from rapid calls
+    /// Cancels previous detection if a new one starts before completion
+    @State private var timezoneDetectionTask: Task<Void, Never>?
+
     /// App startup time for performance monitoring
     private let appStartTime = Date()
 
@@ -952,8 +956,27 @@ import CloudKit
     /// Detect timezone changes on app launch/resume
     /// Updates stored current timezone if device timezone changed
     /// This is part of the three-timezone model for proper travel handling
+    ///
+    /// Uses task cancellation to prevent race conditions when called rapidly
+    /// (e.g., multiple foreground transitions in quick succession)
     private func detectTimezoneChanges() async {
+        // Cancel any existing detection task to prevent race conditions
+        timezoneDetectionTask?.cancel()
+
+        timezoneDetectionTask = Task { @MainActor in
+            await performTimezoneDetection()
+        }
+
+        // Wait for the task to complete
+        await timezoneDetectionTask?.value
+    }
+
+    /// Internal implementation of timezone detection logic
+    private func performTimezoneDetection() async {
         do {
+            // Check for cancellation early
+            try Task.checkCancellation()
+
             // Use TimezoneService.detectTimezoneChange() which compares device timezone
             // against the STORED currentTimezoneIdentifier in UserProfile (not TimeZone.current)
             guard let change = try await timezoneService.detectTimezoneChange() else {
@@ -1018,6 +1041,13 @@ import CloudKit
                     ]
                 )
             }
+        } catch is CancellationError {
+            // Task was cancelled (superseded by a newer detection), silently ignore
+            logger.log(
+                "Timezone detection cancelled (superseded by newer detection)",
+                level: .debug,
+                category: .system
+            )
         } catch {
             logger.log(
                 "⚠️ Failed to detect timezone changes",

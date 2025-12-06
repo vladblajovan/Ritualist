@@ -147,17 +147,21 @@ public final class DefaultTimezoneService: TimezoneService {
 
     private let loadProfile: LoadProfileUseCase
     private let saveProfile: SaveProfileUseCase
+    private let logger: DebugLogger
 
     /// Initialize with profile use cases
     /// - Parameters:
     ///   - loadProfile: Use case to load user profile
     ///   - saveProfile: Use case to save user profile
+    ///   - logger: Logger for debugging timezone operations
     public init(
         loadProfile: LoadProfileUseCase,
-        saveProfile: SaveProfileUseCase
+        saveProfile: SaveProfileUseCase,
+        logger: DebugLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "timezone")
     ) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
+        self.logger = logger
     }
 
     // MARK: - Getters
@@ -172,6 +176,15 @@ public final class DefaultTimezoneService: TimezoneService {
         // Attempt to create timezone from identifier
         guard let timezone = TimeZone(identifier: profile.homeTimezoneIdentifier) else {
             // Fallback to current timezone if identifier is invalid
+            logger.log(
+                "⚠️ Invalid home timezone identifier, falling back to current",
+                level: .warning,
+                category: .system,
+                metadata: [
+                    "invalidIdentifier": profile.homeTimezoneIdentifier,
+                    "fallback": TimeZone.current.identifier
+                ]
+            )
             return TimeZone.current
         }
 
@@ -196,6 +209,18 @@ public final class DefaultTimezoneService: TimezoneService {
         )
 
         // Fallback to current timezone if resolution fails
+        if displayTimezone == nil {
+            logger.log(
+                "⚠️ Display timezone resolution failed, falling back to current",
+                level: .warning,
+                category: .system,
+                metadata: [
+                    "displayMode": profile.displayTimezoneMode.toLegacyString(),
+                    "homeTimezone": profile.homeTimezoneIdentifier,
+                    "fallback": TimeZone.current.identifier
+                ]
+            )
+        }
         return displayTimezone ?? TimeZone.current
     }
 

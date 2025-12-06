@@ -75,7 +75,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [partialLog],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Verify: Partial progress should NOT be counted as complete
@@ -110,7 +111,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [fullLog],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Verify: Full progress should be counted as complete
@@ -142,7 +144,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [completeLog],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Verify: Binary habit with value=1.0 should be counted as complete
@@ -177,7 +180,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [incompleteLog],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Verify: Binary habit with value=0.0 should NOT be counted as complete
@@ -197,7 +201,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [],
             logs: [],
             from: TestDates.today,
-            to: TestDates.today
+            to: TestDates.today,
+            timezone: .current
         )
 
         #expect(results.isEmpty)
@@ -238,7 +243,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [inactiveHabit],
             logs: [log],
             from: TestDates.today,
-            to: TestDates.today
+            to: TestDates.today,
+            timezone: .current
         )
 
         #expect(results.isEmpty, "Inactive habits should not appear in results")
@@ -262,7 +268,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit1, habit2, habit3],
             logs: [log1, log3],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         #expect(results.count == 3)
@@ -305,7 +312,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [log1, log2, log3, log4],
             from: oneDayAgo,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         #expect(results.count == 1)
@@ -336,7 +344,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [log1, log2, log3],
             from: startDate,
-            to: endDate
+            to: endDate,
+            timezone: .current
         )
 
         #expect(results.count == 1)
@@ -368,7 +377,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [log],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         #expect(results.count == 1)
@@ -413,7 +423,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit1, habit2, habit3],
             logs: logs1 + logs2 + logs3,
             from: startDate,
-            to: endDate
+            to: endDate,
+            timezone: .current
         )
 
         #expect(results.count == 3)
@@ -487,7 +498,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [],
             logs: [],
             from: TestDates.today,
-            to: TestDates.today
+            to: TestDates.today,
+            timezone: .current
         )
 
         #expect(result.dayOfWeekPerformance.count == 7, "Should have 7 days")
@@ -508,7 +520,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [log],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Find today's weekday result
@@ -545,7 +558,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [partialLog],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Find today's weekday result
@@ -576,7 +590,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: logs,
             from: dates.first!,
-            to: dates.last!
+            to: dates.last!,
+            timezone: .current
         )
 
         #expect(result.bestDay.isEmpty == false)
@@ -603,7 +618,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: logs,
             from: dates.first!,
-            to: dates.last!
+            to: dates.last!,
+            timezone: .current
         )
 
         // Average should be calculated across all 7 days of week performance
@@ -648,7 +664,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [activeHabit, inactiveHabit],
             logs: [activeLog, inactiveLog],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Result should only consider active habit
@@ -676,7 +693,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: logs,
             from: dates.first!,
-            to: dates.last!
+            to: dates.last!,
+            timezone: .current
         )
 
         // Verify sorted descending by completion rate
@@ -702,7 +720,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [],
             logs: [],
             from: startDate,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         #expect(result.currentStreak == 0)
@@ -738,7 +757,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit1, habit2],
             logs: logs,
             from: day1,
-            to: day3
+            to: day3,
+            timezone: .current
         )
 
         #expect(result.currentStreak == 3, "Should have 3-day perfect streak")
@@ -775,7 +795,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit1, habit2],
             logs: logs,
             from: day1,
-            to: day3
+            to: day3,
+            timezone: .current
         )
 
         #expect(result.currentStreak == 1, "Current streak should be 1 (only today)")
@@ -813,7 +834,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [binaryHabit, numericHabit],
             logs: logs,
             from: day1,
-            to: day2
+            to: day2,
+            timezone: .current
         )
 
         #expect(result.currentStreak == 0, "Partial progress should break streak")
@@ -843,7 +865,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: logs,
             from: days.first!,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Current streak (1) < longest streak (7) → should be declining
@@ -889,7 +912,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [activeHabit, inactiveHabit],
             logs: [activeLog],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Should have perfect day with just the active habit
@@ -930,7 +954,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [log],
             from: startOfDay,
-            to: startOfDay
+            to: startOfDay,
+            timezone: newYork
         )
 
         // The log at 11:30 PM should count for Nov 20 (the day it was created in its timezone)
@@ -961,7 +986,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [log],
             from: today,
-            to: today
+            to: today,
+            timezone: currentTz
         )
 
         // Should find the log and have non-zero completion rate
@@ -989,7 +1015,8 @@ struct PerformanceAnalysisServiceTests {
             habits: [habit],
             logs: [log],
             from: today,
-            to: today
+            to: today,
+            timezone: .current
         )
 
         // Should still find the log using fallback timezone
