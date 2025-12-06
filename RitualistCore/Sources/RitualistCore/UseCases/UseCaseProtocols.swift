@@ -59,14 +59,26 @@ public protocol GetHabitCountUseCase {
 }
 
 public protocol IsHabitCompletedUseCase {
+    /// Check if habit is completed with explicit timezone
+    func execute(habit: Habit, on date: Date, logs: [HabitLog], timezone: TimeZone) -> Bool
+
+    /// Convenience method defaulting to device timezone (backward compatibility)
     func execute(habit: Habit, on date: Date, logs: [HabitLog]) -> Bool
 }
 
 public protocol CalculateDailyProgressUseCase {
+    /// Calculate daily progress with explicit timezone
+    func execute(habit: Habit, logs: [HabitLog], for date: Date, timezone: TimeZone) -> Double
+
+    /// Convenience method defaulting to device timezone (backward compatibility)
     func execute(habit: Habit, logs: [HabitLog], for date: Date) -> Double
 }
 
 public protocol IsScheduledDayUseCase {
+    /// Check if day is scheduled with explicit timezone
+    func execute(habit: Habit, date: Date, timezone: TimeZone) -> Bool
+
+    /// Convenience method defaulting to device timezone (backward compatibility)
     func execute(habit: Habit, date: Date) -> Bool
 }
 
@@ -343,6 +355,10 @@ public protocol CheckWeeklyTargetUseCase {
 // MARK: - Streak Calculation Use Cases
 
 public protocol CalculateCurrentStreakUseCase {
+    /// Calculate current streak with explicit timezone
+    func execute(habit: Habit, logs: [HabitLog], asOf: Date, timezone: TimeZone) -> Int
+
+    /// Convenience method defaulting to device timezone (backward compatibility)
     func execute(habit: Habit, logs: [HabitLog], asOf: Date) -> Int
 }
 
@@ -361,8 +377,13 @@ public protocol CalculateCurrentStreakUseCase {
 ///   - habit: The habit to analyze
 ///   - logs: Pre-fetched logs for this habit (avoids N+1 queries when analyzing multiple habits)
 ///   - asOf: The reference date for streak calculation (typically today)
+///   - timezone: The timezone to use for day boundary calculations (defaults to device timezone)
 /// - Returns: A `HabitStreakStatus` containing current streak, best streak, and risk status
 public protocol GetStreakStatusUseCase {
+    /// Get streak status with explicit timezone
+    func execute(habit: Habit, logs: [HabitLog], asOf: Date, timezone: TimeZone) -> HabitStreakStatus
+
+    /// Convenience method defaulting to device timezone (backward compatibility)
     func execute(habit: Habit, logs: [HabitLog], asOf: Date) -> HabitStreakStatus
 }
 
@@ -397,7 +418,15 @@ public protocol GenerateProgressChartDataUseCaseProtocol {
 }
 
 public protocol CalculateStreakAnalysisUseCase {
-    func execute(habits: [Habit], logs: [HabitLog], from startDate: Date, to endDate: Date) -> StreakAnalysisResult
+    func execute(habits: [Habit], logs: [HabitLog], from startDate: Date, to endDate: Date, timezone: TimeZone) -> StreakAnalysisResult
+}
+
+// MARK: - Default Implementation for Backward Compatibility
+public extension CalculateStreakAnalysisUseCase {
+    /// Convenience method that uses the current device timezone
+    func execute(habits: [Habit], logs: [HabitLog], from startDate: Date, to endDate: Date) -> StreakAnalysisResult {
+        execute(habits: habits, logs: logs, from: startDate, to: endDate, timezone: .current)
+    }
 }
 
 // MARK: - Personality Analysis Use Cases

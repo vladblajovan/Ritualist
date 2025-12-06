@@ -104,21 +104,21 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     public var canGoToPreviousDay: Bool {
         let today = Date()
-        let thirtyDaysAgo = CalendarUtils.addDaysLocal(-30, to: today, timezone: .current)
-        let viewingDayStart = CalendarUtils.startOfDayLocal(for: viewingDate)
-        let boundaryStart = CalendarUtils.startOfDayLocal(for: thirtyDaysAgo)
+        let thirtyDaysAgo = CalendarUtils.addDaysLocal(-30, to: today, timezone: displayTimezone)
+        let viewingDayStart = CalendarUtils.startOfDayLocal(for: viewingDate, timezone: displayTimezone)
+        let boundaryStart = CalendarUtils.startOfDayLocal(for: thirtyDaysAgo, timezone: displayTimezone)
         return viewingDayStart > boundaryStart
     }
 
     public var canGoToNextDay: Bool {
         let today = Date()
-        let viewingDayStart = CalendarUtils.startOfDayLocal(for: viewingDate)
-        let todayStart = CalendarUtils.startOfDayLocal(for: today)
+        let viewingDayStart = CalendarUtils.startOfDayLocal(for: viewingDate, timezone: displayTimezone)
+        let todayStart = CalendarUtils.startOfDayLocal(for: today, timezone: displayTimezone)
         return viewingDayStart < todayStart
     }
 
     public var isViewingToday: Bool {
-        CalendarUtils.areSameDayLocal(viewingDate, Date())
+        CalendarUtils.areSameDayLocal(viewingDate, Date(), timezone: displayTimezone)
     }
     
     public var currentSlogan: String {
@@ -174,7 +174,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     @ObservationIgnored @Injected(\.refreshWidget) private var refreshWidget
     @ObservationIgnored @Injected(\.personalizedMessageGenerator) private var personalizedMessageGenerator
     @ObservationIgnored @Injected(\.getMigrationStatus) private var getMigrationStatus
+    @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
     @ObservationIgnored @Injected(\.debugLogger) private var logger
+
+    /// Cached display timezone for use in synchronous calculations.
+    /// Updated on loadData() and when timezone settings change.
+    /// Exposed publicly for UI components that need timezone-aware date calculations.
+    /// Note: NOT marked @ObservationIgnored so SwiftUI re-renders when timezone changes.
+    public internal(set) var displayTimezone: TimeZone = .current
 
     private func getUserId() async -> UUID {
         await getCurrentUserProfile.execute().id
@@ -244,6 +251,33 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         error = nil
 
         do {
+            // Fetch display timezone from TimezoneService (respects user's Settings > Advanced choice)
+            let newTimezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+            let timezoneChanged = displayTimezone.identifier != newTimezone.identifier
+            displayTimezone = newTimezone
+
+            // When timezone changes, recalculate viewingDate to maintain "today" in the new timezone
+            // This ensures MonthlyCalendarCard and TodaysSummaryCard show correct "today" highlighting
+            if timezoneChanged {
+                viewingDate = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
+                logger.log(
+                    "Timezone changed - recalculated viewingDate",
+                    level: .info,
+                    category: .stateManagement,
+                    metadata: [
+                        "newTimezone": displayTimezone.identifier,
+                        "newViewingDate": viewingDate.description
+                    ]
+                )
+            }
+
+            logger.log(
+                "Display timezone loaded",
+                level: .debug,
+                category: .stateManagement,
+                metadata: ["timezone": displayTimezone.identifier]
+            )
+
             // Cache user name for synchronous message generation
             cachedUserName = await getUserName()
 
@@ -255,7 +289,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 category: .stateManagement,
                 metadata: [
                     "habits_count": overviewData.habits.count,
-                    "logs_count": overviewData.habitLogs.values.flatMap { $0 }.count
+                    "logs_count": overviewData.habitLogs.values.flatMap { $0 }.count,
+                    "timezone": displayTimezone.identifier
                 ]
             )
 
@@ -332,11 +367,13 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 // Most numeric habit interactions should go through updateNumericHabit instead
                 try await updateNumericHabit(habit, value: habit.dailyTarget ?? 1.0)
             } else {
-                // Binary habit - just create a log with value 1.0 using LOCAL timestamp and timezone context
+                // Binary habit - just create a log with value 1.0
+                // - date: Uses display timezone to determine which "day" the log belongs to
+                // - timezone: Records device timezone (where user physically is) for audit/analytics
                 let log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
-                    date: CalendarUtils.startOfDayLocal(for: viewingDate),
+                    date: CalendarUtils.startOfDayLocal(for: viewingDate, timezone: displayTimezone),
                     value: 1.0,
                     timezone: TimeZone.current.identifier
                 )
@@ -365,8 +402,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func getCurrentProgress(for habit: Habit) async -> Double {
         do {
             let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate)
-            let logsForDate = allLogs.filter { CalendarUtils.areSameDayLocal($0.date, viewingDate) }
-            
+            let logsForDate = allLogs.filter { CalendarUtils.areSameDayLocal($0.date, viewingDate, timezone: displayTimezone) }
+
             if habit.kind == .numeric {
                 return logsForDate.reduce(0.0) { $0 + ($1.value ?? 0.0) }
             } else {
@@ -395,11 +432,13 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             let log: HabitLog
 
             if existingLogsForDate.isEmpty {
-                // No existing log for this date - create new one using LOCAL timestamp and timezone context
+                // No existing log for this date - create new one
+                // - date: Uses display timezone to determine which "day" the log belongs to
+                // - timezone: Records device timezone (where user physically is) for audit/analytics
                 log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
-                    date: CalendarUtils.startOfDayLocal(for: viewingDate),
+                    date: CalendarUtils.startOfDayLocal(for: viewingDate, timezone: displayTimezone),
                     value: value,
                     timezone: TimeZone.current.identifier
                 )
@@ -417,10 +456,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                     try await deleteLog.execute(id: existingLog.id)
                 }
 
+                // - date: Uses display timezone to determine which "day" the log belongs to
+                // - timezone: Records device timezone (where user physically is) for audit/analytics
                 log = HabitLog(
                     id: UUID(),
                     habitID: habit.id,
-                    date: CalendarUtils.startOfDayLocal(for: viewingDate),
+                    date: CalendarUtils.startOfDayLocal(for: viewingDate, timezone: displayTimezone),
                     value: value,
                     timezone: TimeZone.current.identifier
                 )
@@ -598,7 +639,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func goToPreviousDay() {
         guard canGoToPreviousDay else { return }
 
-        viewingDate = CalendarUtils.addDaysLocal(-1, to: viewingDate, timezone: .current)
+        viewingDate = CalendarUtils.addDaysLocal(-1, to: viewingDate, timezone: displayTimezone)
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -619,7 +660,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func goToNextDay() {
         guard canGoToNextDay else { return }
 
-        viewingDate = CalendarUtils.addDaysLocal(1, to: viewingDate, timezone: .current)
+        viewingDate = CalendarUtils.addDaysLocal(1, to: viewingDate, timezone: displayTimezone)
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -638,7 +679,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
 
     public func goToToday() {
-        viewingDate = CalendarUtils.startOfDayLocal(for: Date())
+        viewingDate = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -657,7 +698,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
 
     public func goToDate(_ date: Date) {
-        viewingDate = CalendarUtils.startOfDayLocal(for: date)
+        viewingDate = CalendarUtils.startOfDayLocal(for: date, timezone: displayTimezone)
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -709,15 +750,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     private func checkForComebackStory(currentCompletion: Double) async -> Bool {
         // Check if today's progress is significantly better than yesterday
-        let yesterday = CalendarUtils.addDaysLocal(-1, to: Date(), timezone: .current)
-        
+        let yesterday = CalendarUtils.addDaysLocal(-1, to: Date(), timezone: displayTimezone)
+
         do {
             let yesterdayHabits = try await getActiveHabits.execute()
             var yesterdayCompletedCount = 0
-            
+
             for habit in yesterdayHabits {
                 let logs = try await getLogs.execute(for: habit.id, since: yesterday, until: yesterday)
-                if logs.contains(where: { CalendarUtils.areSameDayLocal($0.date, yesterday) }) {
+                if logs.contains(where: { CalendarUtils.areSameDayLocal($0.date, yesterday, timezone: displayTimezone) }) {
                     yesterdayCompletedCount += 1
                 }
             }
@@ -1215,14 +1256,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     
     // MARK: - Private Methods
 
-    /// Load overview data from database
+    /// Load overview data from database using the display timezone
     private func loadOverviewData() async throws -> OverviewData {
         // 1. Load habits ONCE
         let habits = try await getActiveHabits.execute()
 
-        // 2. Determine date range (past 30 days for monthly data)
+        // 2. Determine date range (past 30 days for monthly data) using display timezone
         let today = Date()
-        let startDate = CalendarUtils.addDaysLocal(-30, to: today, timezone: .current)
+        let startDate = CalendarUtils.addDaysLocal(-30, to: today, timezone: displayTimezone)
 
         // 3. Load logs ONCE for entire date range using batch operation
         let habitIds = habits.map(\.id)
@@ -1235,7 +1276,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         return OverviewData(
             habits: habits,
             habitLogs: habitLogs,
-            dateRange: startDate...today
+            dateRange: startDate...today,
+            timezone: displayTimezone
         )
     }
 
@@ -1461,14 +1503,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         )
     }
     
-    /// Extract monthly completion data from overview data
+    /// Extract monthly completion data from overview data using the display timezone
     private func extractMonthlyData(from data: OverviewData) -> [Date: Double] {
         var result: [Date: Double] = [:]
 
-        // Get dates from range, ensuring we use startOfDay for consistency
+        // Get dates from range, ensuring we use startOfDay for consistency with display timezone
         for dayOffset in 0...30 {
-            let date = CalendarUtils.addDaysLocal(-dayOffset, to: Date(), timezone: .current)
-            let startOfDay = CalendarUtils.startOfDayLocal(for: date)
+            let date = CalendarUtils.addDaysLocal(-dayOffset, to: Date(), timezone: displayTimezone)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: date, timezone: displayTimezone)
             // Use HabitCompletionService for single source of truth completion rate
             let scheduledHabits = data.scheduledHabits(for: startOfDay)
             if scheduledHabits.isEmpty {
@@ -1476,16 +1518,16 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             } else {
                 let completedCount = scheduledHabits.count { habit in
                     let logs = data.logs(for: habit.id, on: startOfDay)
-                    return isHabitCompleted.execute(habit: habit, on: startOfDay, logs: logs)
+                    return isHabitCompleted.execute(habit: habit, on: startOfDay, logs: logs, timezone: displayTimezone)
                 }
                 result[startOfDay] = Double(completedCount) / Double(scheduledHabits.count)
             }
         }
-        
+
         return result
     }
     
-    /// Extract active streaks from overview data (with grace period support)
+    /// Extract active streaks from overview data (with grace period support) using display timezone
     private func extractActiveStreaks(from data: OverviewData) -> [StreakInfo] {
         var streaks: [StreakInfo] = []
         let today = Date()
@@ -1494,8 +1536,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             // Get logs for this habit from unified data
             let logs = data.habitLogs[habit.id] ?? []
 
-            // Use getStreakStatus for grace period support
-            let streakStatus = getStreakStatusUseCase.execute(habit: habit, logs: logs, asOf: today)
+            // Use getStreakStatus for grace period support with display timezone
+            let streakStatus = getStreakStatusUseCase.execute(habit: habit, logs: logs, asOf: today, timezone: displayTimezone)
 
             // Show streak if either current > 0 OR at risk (grace period)
             let displayStreak = streakStatus.displayStreak
@@ -1517,39 +1559,39 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         return sortedStreaks
     }
     
-    /// Extract smart insights from unified overview data
+    /// Extract smart insights from unified overview data using the display timezone
     /// Uses pre-loaded data and UseCases for consistency
     private func extractSmartInsights(from data: OverviewData) -> [SmartInsight] {
         var insights: [SmartInsight] = []
         let today = Date()
 
-        // Get the proper week interval that respects user's first day of week preference
-        let weekInterval = CalendarUtils.weekIntervalLocal(for: today) ?? DateInterval(start: today, duration: 0)
+        // Get the proper week interval that respects user's first day of week preference and display timezone
+        let weekInterval = CalendarUtils.weekIntervalLocal(for: today, timezone: displayTimezone) ?? DateInterval(start: today, duration: 0)
         let startOfWeek = weekInterval.start
-        
+
         // Use unified data instead of separate queries
         guard !data.habits.isEmpty else {
             return []
         }
-        
+
         // Analyze completion patterns over the past week using unified data
         var totalCompletions = 0
         var dailyCompletions: [Int] = Array(repeating: 0, count: 7)
-        
+
         for habit in data.habits {
             let logs = data.habitLogs[habit.id] ?? []
             let recentLogs = logs.filter { log in
                 log.date >= startOfWeek && log.date < weekInterval.end
             }
-            
+
             // Count actual completions using IsHabitCompletedUseCase for single source of truth
             for log in recentLogs {
-                let dayLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, log.date) }
-                if isHabitCompleted.execute(habit: habit, on: log.date, logs: dayLogs) {
+                let dayLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, log.date, timezone: displayTimezone) }
+                if isHabitCompleted.execute(habit: habit, on: log.date, logs: dayLogs, timezone: displayTimezone) {
                     totalCompletions += 1
 
                     // Count completions per day
-                    let daysSinceStart = CalendarUtils.daysBetweenLocal(startOfWeek, log.date)
+                    let daysSinceStart = CalendarUtils.daysBetweenLocal(startOfWeek, log.date, timezone: displayTimezone)
                     if daysSinceStart >= 0 && daysSinceStart < 7 {
                         dailyCompletions[daysSinceStart] += 1
                     }
@@ -1770,12 +1812,13 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         
         // Find best performing day
         if let bestDayIndex = dailyCompletions.enumerated().max(by: { $0.element < $1.element })?.offset {
-            // Get the actual date for the best performing day
-            let bestDate = CalendarUtils.addDaysLocal(bestDayIndex, to: startOfWeek, timezone: .current)
-            
-            // Get the day name using the proper date
+            // Get the actual date for the best performing day using display timezone
+            let bestDate = CalendarUtils.addDaysLocal(bestDayIndex, to: startOfWeek, timezone: displayTimezone)
+
+            // Get the day name using the proper date and timezone
             let dayFormatter = DateFormatter()
             dayFormatter.dateFormat = "EEEE"
+            dayFormatter.timeZone = displayTimezone
             let bestDayName = dayFormatter.string(from: bestDate)
             
             if dailyCompletions[bestDayIndex] > 0 {

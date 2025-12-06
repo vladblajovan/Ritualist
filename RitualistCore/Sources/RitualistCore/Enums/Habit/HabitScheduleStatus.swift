@@ -76,9 +76,14 @@ public enum HabitScheduleStatus {
 
 public extension HabitScheduleStatus {
     /// Determines the schedule status for a habit on a specific date
-    static func forHabit(_ habit: Habit, date: Date, isScheduledDay: IsScheduledDayUseCase) -> HabitScheduleStatus {
-        let isScheduled = isScheduledDay.execute(habit: habit, date: date)
-        
+    /// - Parameters:
+    ///   - habit: The habit to check
+    ///   - date: The date to check (should be start of day in the given timezone)
+    ///   - isScheduledDay: The use case to determine if a habit is scheduled
+    ///   - timezone: The timezone to use for date calculations (defaults to .current)
+    static func forHabit(_ habit: Habit, date: Date, isScheduledDay: IsScheduledDayUseCase, timezone: TimeZone = .current) -> HabitScheduleStatus {
+        let isScheduled = isScheduledDay.execute(habit: habit, date: date, timezone: timezone)
+
         // Check if it's always available (daily or flexible weekly)
         switch habit.schedule {
         case .daily:

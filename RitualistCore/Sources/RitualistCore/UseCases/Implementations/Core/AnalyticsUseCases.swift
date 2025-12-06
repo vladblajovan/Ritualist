@@ -4,13 +4,13 @@ import Foundation
 
 public final class CalculateStreakAnalysis: CalculateStreakAnalysisUseCase {
     private let performanceAnalysisService: PerformanceAnalysisService
-    
+
     public init(performanceAnalysisService: PerformanceAnalysisService) {
         self.performanceAnalysisService = performanceAnalysisService
     }
-    
-    public func execute(habits: [Habit], logs: [HabitLog], from startDate: Date, to endDate: Date) -> StreakAnalysisResult {
-        performanceAnalysisService.calculateStreakAnalysis(habits: habits, logs: logs, from: startDate, to: endDate)
+
+    public func execute(habits: [Habit], logs: [HabitLog], from startDate: Date, to endDate: Date, timezone: TimeZone) -> StreakAnalysisResult {
+        performanceAnalysisService.calculateStreakAnalysis(habits: habits, logs: logs, from: startDate, to: endDate, timezone: timezone)
     }
 }
 
@@ -61,20 +61,28 @@ public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
     private let habitRepository: HabitRepository
     private let scheduleAnalyzer: HabitScheduleAnalyzerProtocol
     private let getBatchLogs: GetBatchLogsUseCase
-    
-    public init(habitRepository: HabitRepository, scheduleAnalyzer: HabitScheduleAnalyzerProtocol, getBatchLogs: GetBatchLogsUseCase) {
+    private let timezoneService: TimezoneService
+
+    public init(
+        habitRepository: HabitRepository,
+        scheduleAnalyzer: HabitScheduleAnalyzerProtocol,
+        getBatchLogs: GetBatchLogsUseCase,
+        timezoneService: TimezoneService
+    ) {
         self.habitRepository = habitRepository
         self.scheduleAnalyzer = scheduleAnalyzer
         self.getBatchLogs = getBatchLogs
+        self.timezoneService = timezoneService
     }
-    
+
     public func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> HabitCompletionStats {
         // Business logic moved from Service to UseCase
-        
+        let timezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+
         // Get active habits
         let allHabits = try await habitRepository.fetchAllHabits()
         let habits = allHabits.filter { $0.isActive }
-        
+
         // Get logs using batch loading
         let habitIds = habits.map(\.id)
         let logsByHabitId = try await getBatchLogs.execute(
@@ -85,34 +93,34 @@ public final class GetHabitCompletionStats: GetHabitCompletionStatsUseCase {
         let logs = logsByHabitId.values.flatMap { $0 }
 
         let totalHabits = habits.count
-        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayLocal(for: $0.date) })
-        
+        let logsByDate = Dictionary(grouping: logs, by: { CalendarUtils.startOfDayLocal(for: $0.date, timezone: timezone) })
+
         var totalExpectedDays = 0
         var totalCompletedDays = 0
         var habitsWithCompletions: Set<UUID> = []
-        
+
         // Calculate expected days based on each habit's schedule
         var currentDate = startDate
         while currentDate <= endDate {
-            let dayLogs = logsByDate[CalendarUtils.startOfDayLocal(for: currentDate)] ?? []
-            
+            let dayLogs = logsByDate[CalendarUtils.startOfDayLocal(for: currentDate, timezone: timezone)] ?? []
+
             for habit in habits {
-                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: .current) {
+                if scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: currentDate, timezone: timezone) {
                     totalExpectedDays += 1
-                    
+
                     if dayLogs.contains(where: { $0.habitID == habit.id }) {
                         totalCompletedDays += 1
                         habitsWithCompletions.insert(habit.id)
                     }
                 }
             }
-            
-            currentDate = CalendarUtils.addDays(1, to: currentDate)
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: timezone)
         }
-        
+
         let completionRate = totalExpectedDays > 0 ? Double(totalCompletedDays) / Double(totalExpectedDays) : 0.0
         let successfulHabits = habitsWithCompletions.count
-        
+
         return HabitCompletionStats(
             totalHabits: totalHabits,
             completedHabits: successfulHabits,

@@ -22,19 +22,46 @@ public enum MonthlyCalendarViewLogic {
             self.calendar = calendar
         }
 
-        /// Whether this day is today
+        /// Whether this day is today (in the calendar's timezone)
         public var isToday: Bool {
-            calendar.isDateInToday(date)
+            // Compare day/month/year components explicitly using the calendar's timezone
+            let tz = calendar.timeZone
+            let dateComponents = calendar.dateComponents(in: tz, from: date)
+            let todayComponents = calendar.dateComponents(in: tz, from: Date())
+            return dateComponents.year == todayComponents.year &&
+                   dateComponents.month == todayComponents.month &&
+                   dateComponents.day == todayComponents.day
         }
 
-        /// Whether this day is in the future
+        /// Whether this day is in the future (relative to today in the calendar's timezone)
         public var isFuture: Bool {
-            date > today
+            // Compare day/month/year components explicitly using the calendar's timezone
+            let tz = calendar.timeZone
+            let dateComponents = calendar.dateComponents(in: tz, from: date)
+            let todayComponents = calendar.dateComponents(in: tz, from: Date())
+
+            // Safe unwrapping - return false (not future) if any component is nil
+            guard let dateYear = dateComponents.year,
+                  let dateMonth = dateComponents.month,
+                  let dateDay = dateComponents.day,
+                  let todayYear = todayComponents.year,
+                  let todayMonth = todayComponents.month,
+                  let todayDay = todayComponents.day else {
+                return false
+            }
+
+            if dateYear > todayYear { return true }
+            if dateYear < todayYear { return false }
+            if dateMonth > todayMonth { return true }
+            if dateMonth < todayMonth { return false }
+            return dateDay > todayDay
         }
 
         /// Whether this day belongs to the current viewing month
         public var isCurrentMonth: Bool {
-            calendar.component(.month, from: date) == currentMonth
+            let tz = calendar.timeZone
+            let dateMonth = calendar.dateComponents(in: tz, from: date).month
+            return dateMonth == currentMonth
         }
     }
 
