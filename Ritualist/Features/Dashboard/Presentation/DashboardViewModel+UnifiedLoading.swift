@@ -42,11 +42,13 @@ extension DashboardViewModel {
         )
         
         // Create unified data structure with pre-calculated daily completions using UseCases
+        // Pass the display timezone to ensure all date calculations use the user's preferred timezone
         return DashboardData(
             habits: habits,
             categories: categories,
             habitLogs: habitLogs,
             dateRange: range.start...range.end,
+            timezone: displayTimezone,
             isHabitCompleted: self.isHabitCompleted,
             calculateDailyProgress: self.calculateDailyProgress,
             isScheduledDay: self.isScheduledDay
@@ -216,7 +218,7 @@ extension DashboardViewModel {
                 }
             }
 
-            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: dashboardData.timezone)
         }
 
         return (dayOfWeekStats, daysWithData)

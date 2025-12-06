@@ -44,6 +44,12 @@ public final class DashboardViewModel {
     @ObservationIgnored @Injected(\.calculateDailyProgress) internal var calculateDailyProgress
     @ObservationIgnored @Injected(\.isScheduledDay) internal var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
+    @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
+
+    /// Cached display timezone for synchronous access in computed properties.
+    /// Fetched once on load from TimezoneService.getDisplayTimezone().
+    /// Note: NOT marked @ObservationIgnored so SwiftUI re-renders when timezone changes.
+    internal var displayTimezone: TimeZone = .current
 
     internal let logger: DebugLogger
 
@@ -417,6 +423,15 @@ public final class DashboardViewModel {
         error = nil
 
         do {
+            // Fetch display timezone from TimezoneService for all time-based calculations
+            displayTimezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+            logger.log(
+                "Display timezone loaded for Dashboard",
+                level: .debug,
+                category: .ui,
+                metadata: ["timezone": displayTimezone.identifier]
+            )
+
             // PHASE 2: Unified data loading - reduces queries from 471+ to 3
             let dashboardData = try await loadUnifiedDashboardData()
 
@@ -448,12 +463,12 @@ public final class DashboardViewModel {
     }
     
     // MARK: - Habit Completion Methods
-    
+
     /// Check if a habit is completed on a specific date using IsHabitCompletedUseCase
     public func isHabitCompleted(_ habit: Habit, on date: Date) async -> Bool {
         do {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
-            return isHabitCompleted.execute(habit: habit, on: date, logs: logs)
+            return isHabitCompleted.execute(habit: habit, on: date, logs: logs, timezone: displayTimezone)
         } catch {
             logger.log(
                 "Failed to check habit completion",
@@ -469,7 +484,7 @@ public final class DashboardViewModel {
     public func getHabitProgress(_ habit: Habit, on date: Date) async -> Double {
         do {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
-            return calculateDailyProgress.execute(habit: habit, logs: logs, for: date)
+            return calculateDailyProgress.execute(habit: habit, logs: logs, for: date, timezone: displayTimezone)
         } catch {
             logger.log(
                 "Failed to get habit progress",
@@ -480,10 +495,10 @@ public final class DashboardViewModel {
             return 0.0
         }
     }
-    
+
     /// Check if a habit should be shown as actionable on a specific date using IsScheduledDayUseCase
     public func isHabitActionable(_ habit: Habit, on date: Date) -> Bool {
-        isScheduledDay.execute(habit: habit, date: date)
+        isScheduledDay.execute(habit: habit, date: date, timezone: displayTimezone)
     }
     
     /// Get schedule validation message for a habit on a specific date

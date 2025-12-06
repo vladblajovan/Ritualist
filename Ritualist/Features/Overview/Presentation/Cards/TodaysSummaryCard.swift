@@ -6,6 +6,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let summary: TodaysSummary?
     let viewingDate: Date
     let isViewingToday: Bool
+    let timezone: TimeZone
     let canGoToPrevious: Bool
     let canGoToNext: Bool
     let currentSlogan: String?
@@ -74,26 +75,26 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             .joined(separator: "|")
     }
 
-    // PERFORMANCE: Static DateFormatters - created ONCE, reused forever
-    // DateFormatter is extremely expensive to create (50ms+ overhead eliminated)
-    private static let dateFormatter: DateFormatter = {
+    // Date formatters - use instance method to respect timezone parameter
+    private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .full
         formatter.timeStyle = .none
-        formatter.timeZone = TimeZone.current
-        return formatter
-    }()
+        formatter.timeZone = timezone
+        return formatter.string(from: date)
+    }
 
-    private static let todayFormatter: DateFormatter = {
+    private func formatTodayDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMMM yyyy" // e.g., "16 August 2025"
-        formatter.timeZone = TimeZone.current
-        return formatter
-    }()
+        formatter.timeZone = timezone
+        return formatter.string(from: date)
+    }
 
     init(summary: TodaysSummary?,
          viewingDate: Date,
          isViewingToday: Bool,
+         timezone: TimeZone = .current,
          canGoToPrevious: Bool,
          canGoToNext: Bool,
          currentSlogan: String? = nil,
@@ -111,6 +112,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         self.summary = summary
         self.viewingDate = viewingDate
         self.isViewingToday = isViewingToday
+        self.timezone = timezone
         self.canGoToPrevious = canGoToPrevious
         self.canGoToNext = canGoToNext
         self.currentSlogan = currentSlogan
@@ -284,7 +286,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     // Date and Title
                     VStack(spacing: 4) {
                         if isViewingToday {
-                            Text("Today, \(Self.todayFormatter.string(from: CalendarUtils.startOfDayLocal(for: Date())))")
+                            Text("Today, \(formatTodayDate(CalendarUtils.startOfDayLocal(for: Date(), timezone: timezone)))")
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
@@ -344,7 +346,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             }
         } message: {
             if let habit = habitToDelete {
-                Text("This will remove the log entry for \"\(habit.name)\" from \(isViewingToday ? "today" : Self.dateFormatter.string(from: viewingDate)). The habit itself will remain.")
+                Text("This will remove the log entry for \"\(habit.name)\" from \(isViewingToday ? "today" : formatDate(viewingDate)). The habit itself will remain.")
             }
         }
         .sheet(isPresented: $showingScheduleInfoSheet) {

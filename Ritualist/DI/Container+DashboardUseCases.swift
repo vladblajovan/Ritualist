@@ -43,44 +43,50 @@ extension Container {
             GetHabitCompletionStats(
                 habitRepository: self.habitRepository(),
                 scheduleAnalyzer: self.habitScheduleAnalyzer(),
-                getBatchLogs: self.getBatchLogs()
+                getBatchLogs: self.getBatchLogs(),
+                timezoneService: self.timezoneService()
             )
         }
     }
-    
+
     var calculateStreakAnalysis: Factory<CalculateStreakAnalysis> {
         self {
-            CalculateStreakAnalysis(performanceAnalysisService: self.performanceAnalysisService())
-        }
-    }
-    
-    // MARK: - Dashboard UseCases
-    
-    var calculateHabitPerformanceUseCase: Factory<CalculateHabitPerformanceUseCaseProtocol> {
-        self { 
-            CalculateHabitPerformanceUseCase(
-                getActiveHabitsUseCase: self.getActiveHabits(),
-                getHabitLogsUseCase: self.getHabitLogsForAnalytics(),
+            CalculateStreakAnalysis(
                 performanceAnalysisService: self.performanceAnalysisService()
             )
         }
     }
-    
+
+    // MARK: - Dashboard UseCases
+
+    var calculateHabitPerformanceUseCase: Factory<CalculateHabitPerformanceUseCaseProtocol> {
+        self {
+            CalculateHabitPerformanceUseCase(
+                getActiveHabitsUseCase: self.getActiveHabits(),
+                getHabitLogsUseCase: self.getHabitLogsForAnalytics(),
+                performanceAnalysisService: self.performanceAnalysisService(),
+                timezoneService: self.timezoneService()
+            )
+        }
+    }
+
     var generateProgressChartDataUseCase: Factory<GenerateProgressChartDataUseCaseProtocol> {
         self {
             GenerateProgressChartDataUseCase(
                 getHabitCompletionStatsUseCase: self.getHabitCompletionStats(),
-                performanceAnalysisService: self.performanceAnalysisService()
+                performanceAnalysisService: self.performanceAnalysisService(),
+                timezoneService: self.timezoneService()
             )
         }
     }
-    
+
     var analyzeWeeklyPatternsUseCase: Factory<AnalyzeWeeklyPatternsUseCaseProtocol> {
         self {
             AnalyzeWeeklyPatternsUseCase(
                 getActiveHabitsUseCase: self.getActiveHabits(),
                 getHabitLogsUseCase: self.getHabitLogsForAnalytics(),
-                performanceAnalysisService: self.performanceAnalysisService()
+                performanceAnalysisService: self.performanceAnalysisService(),
+                timezoneService: self.timezoneService()
             )
         }
     }

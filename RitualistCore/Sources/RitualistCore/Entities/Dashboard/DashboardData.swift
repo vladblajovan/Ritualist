@@ -10,10 +10,14 @@ public struct DashboardData {
     public let categories: [HabitCategory]
     public let habitLogs: [UUID: [HabitLog]]  // Indexed by habitId for O(1) access
     public let dateRange: ClosedRange<Date>   // Date range we have data for
-    
+
+    /// The timezone used for all date calculations in this data set.
+    /// This should be the user's display timezone from TimezoneService.
+    public let timezone: TimeZone
+
     // Pre-calculated daily metrics for O(1) chart generation
     private let dailyCompletions: [Date: DayCompletion]
-    
+
     public struct DayCompletion {
         public let date: Date
         public let completedHabits: Set<UUID>
@@ -21,7 +25,7 @@ public struct DashboardData {
         public let completionRate: Double
         public let totalCompleted: Int
         public let totalExpected: Int
-        
+
         public init(date: Date, completedHabits: Set<UUID>, expectedHabits: Set<UUID>, completionRate: Double, totalCompleted: Int, totalExpected: Int) {
             self.date = date
             self.completedHabits = completedHabits
@@ -31,18 +35,29 @@ public struct DashboardData {
             self.totalExpected = totalExpected
         }
     }
-    
-    public init(habits: [Habit], categories: [HabitCategory], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, isHabitCompleted: IsHabitCompletedUseCase, calculateDailyProgress: CalculateDailyProgressUseCase, isScheduledDay: IsScheduledDayUseCase) {
+
+    public init(
+        habits: [Habit],
+        categories: [HabitCategory],
+        habitLogs: [UUID: [HabitLog]],
+        dateRange: ClosedRange<Date>,
+        timezone: TimeZone = .current,
+        isHabitCompleted: IsHabitCompletedUseCase,
+        calculateDailyProgress: CalculateDailyProgressUseCase,
+        isScheduledDay: IsScheduledDayUseCase
+    ) {
         self.habits = habits
         self.categories = categories
         self.habitLogs = habitLogs
         self.dateRange = dateRange
-        
+        self.timezone = timezone
+
         // Pre-calculate all daily completions during initialization using UseCases
         self.dailyCompletions = Self.calculateDailyCompletions(
             habits: habits,
             habitLogs: habitLogs,
             dateRange: dateRange,
+            timezone: timezone,
             isHabitCompleted: isHabitCompleted,
             calculateDailyProgress: calculateDailyProgress,
             isScheduledDay: isScheduledDay
@@ -50,46 +65,46 @@ public struct DashboardData {
     }
     
     // MARK: - Helper Methods for O(1) Data Access
-    
-    /// Get completion rate for a specific date (0.0 to 1.0)
+
+    /// Get completion rate for a specific date (0.0 to 1.0) using display timezone
     /// O(1) lookup - no database queries
     public func completionRate(for date: Date) -> Double {
-        let startOfDay = CalendarUtils.startOfDayLocal(for: date)
+        let startOfDay = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
         return dailyCompletions[startOfDay]?.completionRate ?? 0.0
     }
-    
-    /// Get habits completed on a specific date
+
+    /// Get habits completed on a specific date using display timezone
     /// O(1) lookup for habit IDs, then O(n) filtering where n is small
     public func habitsCompleted(on date: Date) -> [Habit] {
-        let startOfDay = CalendarUtils.startOfDayLocal(for: date)
-        
+        let startOfDay = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
+
         guard let dayCompletion = dailyCompletions[startOfDay] else { return [] }
-        
+
         return habits.filter { dayCompletion.completedHabits.contains($0.id) }
     }
-    
-    /// Get completed habit IDs for a specific date
+
+    /// Get completed habit IDs for a specific date using display timezone
     /// O(1) lookup - no database queries
     public func completedHabits(for date: Date) -> Set<UUID> {
-        let startOfDay = CalendarUtils.startOfDayLocal(for: date)
+        let startOfDay = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
         return dailyCompletions[startOfDay]?.completedHabits ?? []
     }
-    
-    /// Get habits scheduled for a specific date
+
+    /// Get habits scheduled for a specific date using display timezone
     /// Only includes habits that have started (date >= habit.startDate) and are scheduled for that day
     public func scheduledHabits(for date: Date) -> [Habit] {
-        return habits.filter { $0.isScheduledOn(date: date) }
+        return habits.filter { $0.isScheduledOn(date: date, timezone: timezone) }
     }
     
-    /// Get streak data for a specific habit using proper UseCase
+    /// Get streak data for a specific habit using proper UseCase and display timezone
     /// Uses pre-loaded logs without additional queries
     public func streakData(for habitId: UUID, using calculateCurrentStreak: CalculateCurrentStreakUseCase) -> StreakInfo? {
         guard let habit = habits.first(where: { $0.id == habitId }),
               let logs = habitLogs[habitId] else { return nil }
-        
-        // Use proper streak calculation UseCase that handles schedules and compliance
-        let currentStreak = calculateCurrentStreak.execute(habit: habit, logs: logs, asOf: Date())
-        
+
+        // Use proper streak calculation UseCase that handles schedules and compliance with display timezone
+        let currentStreak = calculateCurrentStreak.execute(habit: habit, logs: logs, asOf: Date(), timezone: timezone)
+
         return StreakInfo(
             id: habit.id.uuidString,
             habitName: habit.name,
@@ -98,25 +113,25 @@ public struct DashboardData {
             isActive: currentStreak > 0
         )
     }
-    
-    /// Get all chart data points for the date range
+
+    /// Get all chart data points for the date range using display timezone
     /// O(n) where n is number of days - no database queries
     public func chartDataPoints() -> [ProgressChartDataPoint] {
         var dataPoints: [ProgressChartDataPoint] = []
 
         var currentDate = dateRange.lowerBound
         while currentDate <= dateRange.upperBound {
-            let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate, timezone: timezone)
             let completionRate = dailyCompletions[startOfDay]?.completionRate ?? 0.0
-            
+
             dataPoints.append(ProgressChartDataPoint(
                 date: startOfDay,
                 completionRate: completionRate
             ))
 
-            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: timezone)
         }
-        
+
         return dataPoints.sorted { $0.date < $1.date }
     }
     
@@ -187,37 +202,44 @@ public struct DashboardData {
     }
     
     // MARK: - Private Calculation Methods
-    
-    /// Pre-calculate daily completions for the entire date range using UseCases
-    /// This eliminates the need for per-day database queries and ensures single source of truth
-    private static func calculateDailyCompletions(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>, isHabitCompleted: IsHabitCompletedUseCase, calculateDailyProgress: CalculateDailyProgressUseCase, isScheduledDay: IsScheduledDayUseCase) -> [Date: DayCompletion] {
-        var dailyCompletions: [Date: DayCompletion] = [:]
 
+    /// Pre-calculate daily completions for the entire date range using UseCases and display timezone
+    /// This eliminates the need for per-day database queries and ensures single source of truth
+    private static func calculateDailyCompletions(
+        habits: [Habit],
+        habitLogs: [UUID: [HabitLog]],
+        dateRange: ClosedRange<Date>,
+        timezone: TimeZone,
+        isHabitCompleted: IsHabitCompletedUseCase,
+        calculateDailyProgress: CalculateDailyProgressUseCase,
+        isScheduledDay: IsScheduledDayUseCase
+    ) -> [Date: DayCompletion] {
+        var dailyCompletions: [Date: DayCompletion] = [:]
 
         var currentDate = dateRange.lowerBound
         while currentDate <= dateRange.upperBound {
-            let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate)
+            let startOfDay = CalendarUtils.startOfDayLocal(for: currentDate, timezone: timezone)
 
-            // Get habits scheduled for this date (must have started AND be scheduled)
-            let scheduledHabits = habits.filter { $0.isScheduledOn(date: startOfDay) }
+            // Get habits scheduled for this date (must have started AND be scheduled) using display timezone
+            let scheduledHabits = habits.filter { $0.isScheduledOn(date: startOfDay, timezone: timezone) }
             let expectedHabits = Set(scheduledHabits.map(\.id))
-            
+
             // Find completed habits for this date
             var completedHabits: Set<UUID> = []
-            
+
             for habit in scheduledHabits {
                 if let logs = habitLogs[habit.id] {
-                    // Use IsHabitCompletedUseCase for single source of truth completion logic
-                    let isCompleted = isHabitCompleted.execute(habit: habit, on: startOfDay, logs: logs)
-                    
+                    // Use IsHabitCompletedUseCase for single source of truth completion logic with display timezone
+                    let isCompleted = isHabitCompleted.execute(habit: habit, on: startOfDay, logs: logs, timezone: timezone)
+
                     if isCompleted {
                         completedHabits.insert(habit.id)
                     }
                 }
             }
-            
+
             let completionRate = expectedHabits.isEmpty ? 0.0 : Double(completedHabits.count) / Double(expectedHabits.count)
-            
+
             dailyCompletions[startOfDay] = DayCompletion(
                 date: startOfDay,
                 completedHabits: completedHabits,
@@ -227,9 +249,9 @@ public struct DashboardData {
                 totalExpected: expectedHabits.count
             )
 
-            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: .current)
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: timezone)
         }
-        
+
         return dailyCompletions
     }
 }

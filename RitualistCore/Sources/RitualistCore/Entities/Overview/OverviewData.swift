@@ -13,37 +13,47 @@ public struct OverviewData {
     public let habits: [Habit]
     public let habitLogs: [UUID: [HabitLog]]  // Cached logs by habitId
     public let dateRange: ClosedRange<Date>   // Date range we have data for
-    
-    public init(habits: [Habit], habitLogs: [UUID: [HabitLog]], dateRange: ClosedRange<Date>) {
+
+    /// The timezone used for all date calculations in this data set.
+    /// This should be the user's display timezone from TimezoneService.
+    public let timezone: TimeZone
+
+    public init(
+        habits: [Habit],
+        habitLogs: [UUID: [HabitLog]],
+        dateRange: ClosedRange<Date>,
+        timezone: TimeZone = .current
+    ) {
         self.habits = habits
         self.habitLogs = habitLogs
         self.dateRange = dateRange
+        self.timezone = timezone
     }
     
     // MARK: - Helper Methods
 
-    /// Get habits scheduled for a specific date
+    /// Get habits scheduled for a specific date using the display timezone
     /// Only includes habits that have started (date >= habit.startDate) and are scheduled for that day
     public func scheduledHabits(for date: Date) -> [Habit] {
-        return habits.filter { $0.isScheduledOn(date: date) }
+        return habits.filter { $0.isScheduledOn(date: date, timezone: timezone) }
     }
     
     // REMOVED: completionRate(for:) and completionStatus(for:) methods
     // These methods contained duplicate completion logic that competed with HabitCompletionService
     // All completion calculations should now use HabitCompletionService for consistency
-    
-    /// Get all logs for a specific date across all habits (LOCAL timezone business logic)
+
+    /// Get all logs for a specific date across all habits using the display timezone
     public func logs(for date: Date) -> [HabitLog] {
         return habitLogs.values.flatMap { logs in
-            logs.filter { CalendarUtils.areSameDayLocal($0.date, date) }
+            logs.filter { CalendarUtils.areSameDayLocal($0.date, date, timezone: timezone) }
         }
     }
-    
-    /// Get logs for a specific habit on a specific date
+
+    /// Get logs for a specific habit on a specific date using the display timezone
     public func logs(for habitId: UUID, on date: Date) -> [HabitLog] {
         guard let logs = habitLogs[habitId] else { return [] }
 
-        return logs.filter { CalendarUtils.areSameDayLocal($0.date, date) }
+        return logs.filter { CalendarUtils.areSameDayLocal($0.date, date, timezone: timezone) }
     }
     
     // REMOVED: isHabitCompleted(_:on:) method
@@ -56,13 +66,13 @@ public struct OverviewData {
         var insights: [SmartInsight] = []
         let today = Date()
 
-        // Get the proper week interval using LOCAL timezone business logic
-        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: today) else {
+        // Get the proper week interval using the display timezone
+        guard let weekInterval = CalendarUtils.weekIntervalLocal(for: today, timezone: timezone) else {
             return insights
         }
         let startOfWeek = weekInterval.start
         // End date is one day before weekInterval.end (which is start of next week)
-        let endOfWeek = CalendarUtils.addDaysLocal(-1, to: weekInterval.end, timezone: .current)
+        let endOfWeek = CalendarUtils.addDaysLocal(-1, to: weekInterval.end, timezone: timezone)
 
         // Use unified data instead of separate queries
         guard !habits.isEmpty else {
@@ -86,7 +96,8 @@ public struct OverviewData {
             let expectedDays = scheduleAnalyzer.calculateExpectedDays(
                 for: habit,
                 from: startOfWeek,
-                to: endOfWeek
+                to: endOfWeek,
+                timezone: timezone
             )
             totalExpectedCompletions += expectedDays
 
@@ -95,17 +106,17 @@ public struct OverviewData {
             var countedDates: Set<Date> = []
 
             for dayOffset in 0..<7 {
-                let checkDate = CalendarUtils.addDaysLocal(dayOffset, to: startOfWeek, timezone: .current)
-                let dateKey = CalendarUtils.startOfDayLocal(for: checkDate)
+                let checkDate = CalendarUtils.addDaysLocal(dayOffset, to: startOfWeek, timezone: timezone)
+                let dateKey = CalendarUtils.startOfDayLocal(for: checkDate, timezone: timezone)
 
                 // Skip if already counted this day
                 guard !countedDates.contains(dateKey) else { continue }
 
                 // Only count if habit was expected on this day
-                guard scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: checkDate) else { continue }
+                guard scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: checkDate, timezone: timezone) else { continue }
 
-                let dayLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, checkDate) }
-                if completionService.isCompleted(habit: habit, on: checkDate, logs: dayLogs) {
+                let dayLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, checkDate, timezone: timezone) }
+                if completionService.isCompleted(habit: habit, on: checkDate, logs: dayLogs, timezone: timezone) {
                     totalCompletions += 1
                     dailyCompletions[dayOffset] += 1
                     countedDates.insert(dateKey)
@@ -145,11 +156,12 @@ public struct OverviewData {
         // Find best performing day
         if let bestDayIndex = dailyCompletions.enumerated().max(by: { $0.element < $1.element })?.offset {
             // Get the actual date for the best performing day
-            let bestDate = CalendarUtils.addDaysLocal(bestDayIndex, to: startOfWeek, timezone: .current)
-            
-            // Get the day name using the proper date
+            let bestDate = CalendarUtils.addDaysLocal(bestDayIndex, to: startOfWeek, timezone: timezone)
+
+            // Get the day name using the proper date and timezone
             let dayFormatter = DateFormatter()
             dayFormatter.dateFormat = "EEEE"
+            dayFormatter.timeZone = timezone
             let bestDayName = dayFormatter.string(from: bestDate)
             
             if dailyCompletions[bestDayIndex] > 0 {

@@ -185,8 +185,11 @@ public final class DefaultTimezoneService: TimezoneService {
         let profile = try await loadProfile.execute()
 
         // Resolve timezone based on display mode
+        // IMPORTANT: For .current mode, use the ACTUAL device timezone (TimeZone.current),
+        // not the stored currentTimezoneIdentifier. The stored value is for change detection,
+        // but the actual display should always use the live device timezone.
         let displayTimezone = profile.displayTimezoneMode.resolveTimezone(
-            currentTimezoneIdentifier: profile.currentTimezoneIdentifier,
+            currentTimezoneIdentifier: TimeZone.current.identifier,
             homeTimezoneIdentifier: profile.homeTimezoneIdentifier
         )
 

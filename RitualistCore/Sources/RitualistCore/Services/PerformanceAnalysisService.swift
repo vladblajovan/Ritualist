@@ -2,43 +2,55 @@ import Foundation
 
 /// Domain service responsible for performance analysis and calculations
 public protocol PerformanceAnalysisService {
-    
+
     /// Calculate habit performance results from habits and logs
+    /// - Parameters:
+    ///   - timezone: The timezone to use for date calculations. Should be the user's display timezone.
     func calculateHabitPerformance(
-        habits: [Habit], 
-        logs: [HabitLog], 
-        from startDate: Date, 
-        to endDate: Date
+        habits: [Habit],
+        logs: [HabitLog],
+        from startDate: Date,
+        to endDate: Date,
+        timezone: TimeZone
     ) -> [HabitPerformanceResult]
-    
+
     /// Generate progress chart data from completion stats over time
     func generateProgressChartData(
         completionStats: [Date: HabitCompletionStats]
     ) -> [ProgressChartDataPoint]
-    
+
     /// Analyze weekly patterns from habits and logs
+    /// - Parameters:
+    ///   - timezone: The timezone to use for date calculations. Should be the user's display timezone.
     func analyzeWeeklyPatterns(
-        habits: [Habit], 
-        logs: [HabitLog], 
-        from startDate: Date, 
-        to endDate: Date
+        habits: [Habit],
+        logs: [HabitLog],
+        from startDate: Date,
+        to endDate: Date,
+        timezone: TimeZone
     ) -> WeeklyPatternsResult
-    
+
     /// Calculate streak analysis from habits and logs
+    /// - Parameters:
+    ///   - timezone: The timezone to use for date calculations. Should be the user's display timezone.
     func calculateStreakAnalysis(
-        habits: [Habit], 
-        logs: [HabitLog], 
-        from startDate: Date, 
-        to endDate: Date
+        habits: [Habit],
+        logs: [HabitLog],
+        from startDate: Date,
+        to endDate: Date,
+        timezone: TimeZone
     ) -> StreakAnalysisResult
-    
+
     /// Aggregate category performance from habits, categories, and logs
+    /// - Parameters:
+    ///   - timezone: The timezone to use for date calculations. Should be the user's display timezone.
     func aggregateCategoryPerformance(
-        habits: [Habit], 
-        categories: [HabitCategory], 
-        logs: [HabitLog], 
-        from startDate: Date, 
-        to endDate: Date
+        habits: [Habit],
+        categories: [HabitCategory],
+        logs: [HabitLog],
+        from startDate: Date,
+        to endDate: Date,
+        timezone: TimeZone
     ) -> [CategoryPerformanceResult]
 }
 
@@ -90,32 +102,33 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     }
     
     public func calculateHabitPerformance(
-        habits: [Habit], 
-        logs: [HabitLog], 
-        from startDate: Date, 
-        to endDate: Date
+        habits: [Habit],
+        logs: [HabitLog],
+        from startDate: Date,
+        to endDate: Date,
+        timezone: TimeZone
     ) -> [HabitPerformanceResult] {
-        
+
         let activeHabits = habits.filter { $0.isActive }
         var results: [HabitPerformanceResult] = []
-        
+
         for habit in activeHabits {
             let habitLogs = logs.filter { $0.habitID == habit.id }
             let logsInRange = habitLogs.filter { log in
                 log.date >= startDate && log.date <= endDate
             }
-            
+
             // For retroactive logging support: calculate expected days from the earliest relevant date
             // This ensures that if user logs retroactively, we account for those periods in expected days
             let earliestLogDate = logsInRange.map { $0.date }.min()
             let effectiveStartDate = min(habit.startDate, earliestLogDate ?? habit.startDate)
             let calculationStartDate = max(startDate, effectiveStartDate)
-            
+
             let expectedDays = scheduleAnalyzer.calculateExpectedDays(
                 for: habit,
                 from: calculationStartDate,
                 to: endDate,
-                timezone: .current
+                timezone: timezone
             )
 
             // Count only logs that meet completion criteria
@@ -133,10 +146,10 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                 completedDays: completedDays,
                 expectedDays: expectedDays
             )
-            
+
             results.append(result)
         }
-        
+
         return results.sorted { $0.completionRate > $1.completionRate }
     }
     
@@ -158,9 +171,9 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         habits: [Habit],
         logs: [HabitLog],
         from startDate: Date,
-        to endDate: Date
+        to endDate: Date,
+        timezone: TimeZone
     ) -> WeeklyPatternsResult {
-        let timezone = TimeZone.current
 
         // Initialize day performance tracking
         var dayPerformance: [Int: (total: Int, completed: Int)] = [:]
@@ -221,21 +234,23 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     }
     
     public func calculateStreakAnalysis(
-        habits: [Habit], 
-        logs: [HabitLog], 
-        from startDate: Date, 
-        to endDate: Date
+        habits: [Habit],
+        logs: [HabitLog],
+        from startDate: Date,
+        to endDate: Date,
+        timezone: TimeZone
     ) -> StreakAnalysisResult {
-        
+
         let activeHabits = habits.filter { $0.isActive }
-        
+
         // Calculate "perfect day" streaks (where ALL habits are completed)
         // This is different from individual habit streaks and remains useful for overall performance analysis
         let perfectDayAnalysis = calculatePerfectDayStreak(
             habits: activeHabits,
             logs: logs,
             from: startDate,
-            to: endDate
+            to: endDate,
+            timezone: timezone
         )
         
         return StreakAnalysisResult(
@@ -253,9 +268,9 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         habits: [Habit],
         logs: [HabitLog],
         from startDate: Date,
-        to endDate: Date
+        to endDate: Date,
+        timezone: TimeZone
     ) -> PerfectDayStreakResult {
-        let timezone = TimeZone.current
 
         var activeStreak = 0  // Active streak ending today (going backwards from today)
         var tempStreak = 0    // Temporary streak while scanning backwards
@@ -352,7 +367,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         categories: [HabitCategory],
         logs: [HabitLog],
         from startDate: Date,
-        to endDate: Date
+        to endDate: Date,
+        timezone: TimeZone
     ) -> [CategoryPerformanceResult] {
         // Group habits by category
         let habitsByCategory = Dictionary(grouping: habits) { habit in
@@ -364,28 +380,29 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                 return "uncategorized"
             }
         }
-        
+
         var categoryPerformance: [CategoryPerformanceResult] = []
-        
+
         for (categoryId, categoryHabits) in habitsByCategory {
             // Skip the suggestion-unknown group as it indicates a data issue
             if categoryId == "suggestion-unknown" {
                 logger.log("Found habits from suggestions with invalid categoryId", level: .warning, category: .dataIntegrity)
                 continue
             }
-            
+
             // Find category info
             let category = categories.first { $0.id == categoryId }
             let categoryName = category?.displayName ?? "Uncategorized"
             let categoryColor = "#007AFF" // Default color since Category doesn't have colorHex
             let categoryEmoji = category?.emoji
-            
+
             // Calculate completion rate for this category
             let completionRate = calculateCategoryCompletionRate(
                 habits: categoryHabits,
                 logs: logs,
                 from: startDate,
-                to: endDate
+                to: endDate,
+                timezone: timezone
             )
             
             let performance = CategoryPerformanceResult(
@@ -423,7 +440,8 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         habits: [Habit],
         logs: [HabitLog],
         from startDate: Date,
-        to endDate: Date
+        to endDate: Date,
+        timezone: TimeZone
     ) -> Double {
         guard !habits.isEmpty else { return 0.0 }
 
@@ -450,7 +468,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
                 for: habit,
                 from: calculationStartDate,
                 to: endDate,
-                timezone: .current
+                timezone: timezone
             )
 
             // Count only logs that meet completion criteria
