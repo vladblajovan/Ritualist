@@ -31,6 +31,7 @@ import CloudKit
     @Injected(\.userActionTracker) private var userActionTracker
     @Injected(\.deduplicateData) private var deduplicateData
     @Injected(\.cloudKitCleanupService) private var cloudKitCleanupService
+    @Injected(\.toastService) private var toastService
 
     /// Track if initial launch tasks have completed to avoid duplicate work.
     ///
@@ -289,6 +290,10 @@ import CloudKit
         // Log startup context
         logStartupContext()
 
+        // FIRST: Verify premium status asynchronously (no blocking)
+        // This validates the cached premium status against StoreKit and updates if needed
+        await verifyAndUpdatePremiumStatus()
+
         await seedCategories()
         // NOTE: Deduplication is NOT run here on purpose.
         // We wait for NSPersistentStoreRemoteChange notifications to indicate CloudKit sync activity.
@@ -348,7 +353,99 @@ import CloudKit
             metadata: metadata
         )
     }
-    
+
+    /// Verify the cached premium status against StoreKit and update if needed.
+    ///
+    /// This runs as the first async task after launch screen shows, ensuring:
+    /// 1. No main thread blocking (unlike the old semaphore-based approach)
+    /// 2. Cache is always verified and corrected within one session
+    /// 3. Users are notified if premium was just activated (restart needed for sync)
+    ///
+    /// **Edge Cases:**
+    /// - `cached=false, actual=true`: User just became premium → Show toast to restart for sync
+    /// - `cached=true, actual=false`: Premium expired → Update cache silently, sync continues this session
+    /// - First launch with no cache: Returns false, async verification updates cache
+    private func verifyAndUpdatePremiumStatus() async {
+        let cachedPremium = SecurePremiumCache.shared.getCachedPremiumStatus()
+        let cacheStale = SecurePremiumCache.shared.isCacheStale()
+
+        logger.log(
+            "🔐 Verifying premium status",
+            level: .info,
+            category: .system,
+            metadata: [
+                "cached_premium": cachedPremium,
+                "cache_stale": cacheStale
+            ]
+        )
+
+        // Query StoreKit for actual premium status
+        let actualPremium = await StoreKitSubscriptionService.verifyPremiumAsync()
+
+        // Always update cache with fresh value from StoreKit
+        SecurePremiumCache.shared.updateCache(isPremium: actualPremium)
+
+        // Handle mismatch scenarios
+        if actualPremium != cachedPremium {
+            logger.log(
+                "⚠️ Premium status mismatch detected",
+                level: .warning,
+                category: .system,
+                metadata: [
+                    "cached": cachedPremium,
+                    "actual": actualPremium,
+                    "was_stale": cacheStale
+                ]
+            )
+
+            if !cachedPremium && actualPremium {
+                // User is now premium but sync wasn't enabled at startup
+                // Show non-intrusive toast to inform them (only once per mismatch)
+                let hasShownToast = UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasShownPremiumRestartToast)
+
+                if !hasShownToast {
+                    await MainActor.run {
+                        toastService.info(
+                            "Premium activated! Restart app to enable iCloud sync",
+                            icon: "icloud.fill"
+                        )
+                    }
+                    UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasShownPremiumRestartToast)
+
+                    logger.log(
+                        "✨ Premium newly activated - user notified to restart for sync",
+                        level: .info,
+                        category: .system
+                    )
+                } else {
+                    logger.log(
+                        "✨ Premium activated but toast already shown - awaiting restart",
+                        level: .debug,
+                        category: .system
+                    )
+                }
+            } else {
+                // cached=true, actual=false: Premium expired
+                // Sync continues this session (using cached value), next launch will be correct
+                logger.log(
+                    "📉 Premium expired - cache updated, sync continues this session",
+                    level: .info,
+                    category: .system
+                )
+            }
+        } else {
+            // Cache matches StoreKit - reset the toast flag so it shows again if status changes later
+            UserDefaults.standard.set(false, forKey: UserDefaultsKeys.hasShownPremiumRestartToast)
+
+            logger.log(
+                "✅ Premium status verified - cache matches StoreKit",
+                level: .debug,
+                category: .system,
+                metadata: ["is_premium": actualPremium]
+            )
+        }
+    }
+
     // Fallback container if dependency injection fails
     // CRITICAL: This should never reference a specific schema version!
     // Schema version should always come from PersistenceContainer
@@ -1021,7 +1118,8 @@ import CloudKit
 /// UIApplicationDelegate methods run on the main thread, so we mark this @MainActor
 @MainActor
 class AppDelegate: NSObject, UIApplicationDelegate, UIWindowSceneDelegate {
-    private let logger = DebugLogger(subsystem: "com.ritualist.app", category: "appDelegate")
+    // Local logger: AppDelegate runs before DI container is initialized
+    private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "appDelegate")
 
     // MARK: - UIApplicationDelegate
 

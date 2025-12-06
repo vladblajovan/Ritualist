@@ -56,6 +56,14 @@ public final class SecurePremiumCache {
     /// After this period, cached premium status is no longer trusted
     public static let offlineGracePeriod: TimeInterval = 3 * 24 * 60 * 60 // 3 days in seconds
 
+    /// Cache staleness threshold (7 days)
+    /// After this period, cache should be verified with StoreKit (but still used for sync bootstrap)
+    /// This is different from offlineGracePeriod: stale cache prompts verification, expired cache is not trusted
+    public static let stalenessThreshold: TimeInterval = 7 * 24 * 60 * 60 // 7 days in seconds
+
+    // Local logger: Singleton initialized before DI container
+    private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "premiumCache")
+
     // MARK: - Initialization
 
     private init() {}
@@ -150,6 +158,20 @@ public final class SecurePremiumCache {
         return age <= Self.offlineGracePeriod
     }
 
+    /// Check if the cache is stale and should be verified with StoreKit.
+    ///
+    /// **Note:** A stale cache is still used for sync bootstrap decisions (to avoid blocking).
+    /// This method only indicates whether async verification should be prioritized.
+    ///
+    /// - Returns: `true` if cache doesn't exist or is older than 7 days
+    ///
+    public func isCacheStale() -> Bool {
+        guard let age = getCacheAge() else {
+            return true // No cache = stale
+        }
+        return age > Self.stalenessThreshold
+    }
+
     /// Clear the cached premium status.
     ///
     /// Call this when user explicitly signs out or subscription is revoked.
@@ -178,7 +200,12 @@ public final class SecurePremiumCache {
 
         if status != errSecSuccess {
             // Log but don't crash - cache is a fallback, not critical
-            print("⚠️ SecurePremiumCache: Failed to save to Keychain (status: \(status))")
+            logger.log(
+                "Failed to save to Keychain",
+                level: .warning,
+                category: .premiumCache,
+                metadata: ["status": status]
+            )
         }
     }
 
@@ -222,13 +249,16 @@ extension SecurePremiumCache {
         let age = getCacheAge()
         let ageString = age.map { String(format: "%.1f hours", $0 / 3600) } ?? "no cache"
         let gracePeriodHours = Self.offlineGracePeriod / 3600
+        let stalenessThresholdHours = Self.stalenessThreshold / 3600
 
         return """
         SecurePremiumCache:
           - Cached Premium: \(isPremium)
           - Cache Age: \(ageString)
           - Grace Period: \(gracePeriodHours) hours
+          - Staleness Threshold: \(stalenessThresholdHours) hours
           - Cache Valid: \(isCacheValid())
+          - Cache Stale: \(isCacheStale())
         """
     }
 }

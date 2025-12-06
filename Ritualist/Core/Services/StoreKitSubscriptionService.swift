@@ -27,6 +27,8 @@ import RitualistCore
 /// - VerificationResult ensures transactions haven't been tampered with
 /// - No local storage of purchase state (always queries StoreKit as source of truth)
 ///
+/// **Logging:** Uses centralized DebugLogger for consistent logging across the app.
+///
 /// **To Enable:**
 /// 1. Purchase Apple Developer Program membership ($99/year)
 /// 2. Create IAP products in App Store Connect (see StoreKitConstants.swift for IDs)
@@ -51,9 +53,47 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     /// Error handler for logging/analytics
     private let errorHandler: ErrorHandler?
 
+    // Local logger: Static methods run before DI container is initialized
+    private static let startupLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "subscription")
+
     // MARK: - Static Premium Check (Secure, for Startup)
 
+    /// Verify premium status asynchronously by querying StoreKit's Transaction.currentEntitlements.
+    ///
+    /// **SECURITY:** This method queries StoreKit directly - it cannot be bypassed by modifying
+    /// UserDefaults or any local storage. StoreKit receipts are cryptographically signed by Apple.
+    ///
+    /// **Usage:** Call this after app UI is shown (in `performInitialLaunchTasks()`) to verify
+    /// the cached premium status and update it if needed.
+    ///
+    /// - Returns: `true` if user has any valid (non-expired, non-revoked) subscription or purchase
+    ///
+    public static func verifyPremiumAsync() async -> Bool {
+        for await result in Transaction.currentEntitlements {
+            // Only count verified transactions
+            if case .verified(let transaction) = result {
+                // Check not revoked
+                if transaction.revocationDate == nil {
+                    // Check not expired (for subscriptions)
+                    if let expirationDate = transaction.expirationDate {
+                        if expirationDate > Date() {
+                            return true
+                        }
+                    } else {
+                        // Non-consumable (lifetime) - no expiry
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
     /// Check premium status synchronously by querying StoreKit's Transaction.currentEntitlements.
+    ///
+    /// **⚠️ DEPRECATED:** This method blocks the main thread for up to 1.5 seconds.
+    /// Use `verifyPremiumAsync()` instead for async verification after UI is shown.
+    /// For sync bootstrap, use `SecurePremiumCache.shared.getCachedPremiumStatus()` directly.
     ///
     /// **SECURITY:** This method queries StoreKit directly - it cannot be bypassed by modifying
     /// UserDefaults or any local storage. StoreKit receipts are cryptographically signed by Apple.
@@ -71,12 +111,12 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     ///
     /// - Returns: `true` if user has any valid (non-expired, non-revoked) subscription or purchase
     ///
+    @available(*, deprecated, message: "Use verifyPremiumAsync() for async verification or SecurePremiumCache.shared.getCachedPremiumStatus() for sync bootstrap")
     public static func isPremiumFromStoreKit() -> Bool {
         // Use a semaphore to make the async StoreKit call synchronous
         // This runs before UI is shown, so brief blocking is acceptable
         let semaphore = DispatchSemaphore(value: 0)
         var isPremium = false
-        var storeKitResponded = false
 
         Task {
             for await result in Transaction.currentEntitlements {
@@ -98,7 +138,6 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
                     }
                 }
             }
-            storeKitResponded = true
             semaphore.signal()
         }
 
@@ -109,16 +148,29 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         if waitResult == .timedOut {
             // StoreKit timed out - fall back to Keychain cache with 3-day grace period
             // This handles offline scenarios (airplane mode, poor connectivity)
-            print("⚠️ StoreKit entitlement check timed out - checking Keychain cache")
+            startupLogger.log(
+                "StoreKit entitlement check timed out - checking Keychain cache",
+                level: .warning,
+                category: .subscription
+            )
 
             let cachedPremium = SecurePremiumCache.shared.getCachedPremiumStatus()
             if cachedPremium {
                 let cacheAge = SecurePremiumCache.shared.getCacheAge() ?? 0
                 let hoursOld = cacheAge / 3600
-                print("✅ Using cached premium status (cache is \(String(format: "%.1f", hoursOld)) hours old)")
+                startupLogger.log(
+                    "Using cached premium status",
+                    level: .info,
+                    category: .subscription,
+                    metadata: ["cache_age_hours": String(format: "%.1f", hoursOld)]
+                )
                 return true
             } else {
-                print("❌ No valid premium cache - defaulting to non-premium")
+                startupLogger.log(
+                    "No valid premium cache - defaulting to non-premium",
+                    level: .warning,
+                    category: .subscription
+                )
                 return false
             }
         }

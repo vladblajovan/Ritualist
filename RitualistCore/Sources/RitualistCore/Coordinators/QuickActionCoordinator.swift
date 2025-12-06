@@ -58,7 +58,7 @@ public final class QuickActionCoordinator {
 
     // MARK: - Initialization
 
-    public init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "quickActions")) {
+    public init(logger: DebugLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "quickActions")) {
         self.logger = logger
     }
 

@@ -34,7 +34,7 @@ public final class PersonalityDeepLinkCoordinator {
 
     // MARK: - Initialization
 
-    public init(logger: DebugLogger = DebugLogger(subsystem: "com.ritualist.app", category: "general")) {
+    public init(logger: DebugLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "personality")) {
         self.logger = logger
     }
     

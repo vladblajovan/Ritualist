@@ -10,7 +10,7 @@ extension Container {
 
     var debugLogger: Factory<DebugLogger> {
         self {
-            DebugLogger(subsystem: "com.ritualist.app", category: "general")
+            DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "general")
         }
         .singleton
     }

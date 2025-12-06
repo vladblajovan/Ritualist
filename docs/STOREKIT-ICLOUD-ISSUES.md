@@ -13,18 +13,20 @@ This document outlines critical issues, edge cases, and recommended fixes for th
 - UserDefaults can be easily modified by users (jailbreak, plist editing, device backup manipulation)
 - This allowed bypassing payment entirely
 
-### Implemented Fix (2025-12-05):
-- **Production builds**: `PersistenceContainer.premiumCheckProvider` is set to call `StoreKitSubscriptionService.isPremiumFromStoreKit()` which queries `Transaction.currentEntitlements` directly
+### Implemented Fix (2025-12-05, Updated 2025-12-06):
+- **Production builds**: `PersistenceContainer.premiumCheckProvider` uses two-phase startup:
+  1. **Phase 1 (Sync)**: `SecurePremiumCache.shared.getCachedPremiumStatus()` - instant Keychain read (~5ms)
+  2. **Phase 2 (Async)**: `StoreKitSubscriptionService.verifyPremiumAsync()` - verifies and updates cache after UI shows
 - **Development builds** (`ALL_FEATURES_ENABLED`): Uses mock service for testing
 - StoreKit receipts are cryptographically signed by Apple and cannot be forged
-- 1.5-second timeout on sync check (StoreKit typically responds in <500ms)
+- No main thread blocking (removed 1.5-second semaphore wait)
 
 ### Files Changed:
-- `Container+DataSources.swift` - Sets up `premiumCheckProvider` before `PersistenceContainer` init
-- `StoreKitSubscriptionService.swift` - Added `isPremiumFromStoreKit()` static method
-- `PersistenceContainer.swift` - Added injectable `premiumCheckProvider` closure
-- `RitualistApp.swift` - Updated to use secure provider
-- `RootTabViewModel.swift` - Updated to use secure provider
+- `Container+DataSources.swift` - Sets up `premiumCheckProvider` to use Keychain cache
+- `StoreKitSubscriptionService.swift` - Added `verifyPremiumAsync()` async method, deprecated `isPremiumFromStoreKit()`
+- `SecurePremiumCache.swift` - Added `isCacheStale()` method with 7-day staleness threshold
+- `PersistenceContainer.swift` - Injectable `premiumCheckProvider` closure
+- `RitualistApp.swift` - Added `verifyAndUpdatePremiumStatus()` as first async launch task
 
 ---
 
@@ -35,10 +37,12 @@ This document outlines critical issues, edge cases, and recommended fixes for th
 - `StoreKitPaywallService` is lazy-initialized later via DI
 - Result: Premium users may see no sync until app restart
 
-### Implemented Fix (2025-12-05):
-- `StoreKitSubscriptionService.isPremiumFromStoreKit()` queries StoreKit synchronously at startup
-- Called BEFORE `PersistenceContainer` is created (in `Container+DataSources.swift`)
-- Uses 1.5-second timeout; on timeout, falls back to Keychain cache (see below)
+### Implemented Fix (2025-12-05, Updated 2025-12-06):
+- **Two-phase startup** eliminates main thread blocking:
+  1. **Sync bootstrap**: Uses `SecurePremiumCache` (Keychain) for instant premium check (~5ms)
+  2. **Async verification**: `verifyAndUpdatePremiumStatus()` runs after UI shows, corrects cache if needed
+- If cache doesn't match StoreKit, user sees toast: "Premium activated! Restart to enable iCloud sync"
+- Cache is always updated after async verification, so next launch is correct
 
 ---
 
@@ -54,14 +58,18 @@ This document outlines critical issues, edge cases, and recommended fixes for th
 - **Fallback**: `SecurePremiumCache` - Keychain-based cache with 3-day grace period
 - **Industry Standard**: 3-day offline grace period matches RevenueCat SDK
 
-### How It Works:
+### How It Works (Two-Phase Startup):
 ```
-App Startup:
-1. Try StoreKit.currentEntitlements (1.5s timeout)
-   ├── Success → Use result, update Keychain cache
-   └── Timeout → Check Keychain cache
-       ├── Cache exists AND < 3 days old → Grant premium ✅
-       └── Cache missing OR > 3 days old → Deny premium ❌
+App Startup (Sync Bootstrap - ~5ms):
+1. Read from SecurePremiumCache (Keychain)
+   ├── Cache exists AND < 3 days old → Use cached value
+   └── No cache OR > 3 days old → Default to non-premium
+
+After UI Shows (Async Verification):
+2. Query StoreKit.currentEntitlements (non-blocking)
+   ├── Matches cache → Log success, update cache timestamp
+   └── Mismatch → Update cache, show toast if newly premium
+       └── "Premium activated! Restart to enable iCloud sync"
 ```
 
 ### Why Keychain (not UserDefaults):

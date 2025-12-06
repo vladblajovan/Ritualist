@@ -33,10 +33,16 @@ extension Container {
                     MockSecureSubscriptionService.isPremiumFromCache()
                 }
                 #else
-                // Production: Use secure StoreKit check
-                // This queries Transaction.currentEntitlements directly - cannot be bypassed
+                // Production: Use Keychain cache for instant premium check (no blocking)
+                // The cache is verified asynchronously in performInitialLaunchTasks()
+                // and updated if the cached value doesn't match StoreKit's current entitlements.
+                //
+                // SECURITY: This is still secure because:
+                // 1. Keychain cannot be modified without the app's signing identity
+                // 2. The cache is always verified against StoreKit after launch
+                // 3. Any mismatch is logged and corrected within one session
                 PersistenceContainer.premiumCheckProvider = {
-                    StoreKitSubscriptionService.isPremiumFromStoreKit()
+                    SecurePremiumCache.shared.getCachedPremiumStatus()
                 }
                 #endif
 

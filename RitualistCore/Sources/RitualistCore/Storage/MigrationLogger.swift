@@ -28,8 +28,8 @@ public final class MigrationLogger {
 
     // MARK: - Properties
 
-    /// Debug logger for migration events
-    private let logger = DebugLogger(subsystem: "com.ritualist.app", category: "migration")
+    // Local logger: Singleton initialized before DI container
+    private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "migration")
 
     /// UserDefaults key for migration history
     private let migrationHistoryKey = UserDefaultsKeys.migrationHistory
