@@ -13,7 +13,7 @@ import UIKit
 import CoreData
 import CloudKit
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length
 @main struct RitualistApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @Injected(\.notificationService) private var notificationService

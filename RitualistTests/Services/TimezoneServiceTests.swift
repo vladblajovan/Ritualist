@@ -178,14 +178,14 @@ struct TimezoneServiceTests {
         #expect(mode == .home)
     }
 
-    @Test("getDisplayTimezone resolves based on mode - current")
+    @Test("getDisplayTimezone resolves based on mode - current (uses live device timezone)")
     func getDisplayTimezoneResolvesModeCurrentCorrectly() async throws {
         let container = try TestModelContainer.create()
-        let currentTz = TimezoneTestHelpers.newYork
+        let storedCurrentTz = TimezoneTestHelpers.newYork
         let homeTz = TimezoneTestHelpers.tokyo
 
         let profile = UserProfileBuilder.standard(
-            currentTimezone: currentTz,
+            currentTimezone: storedCurrentTz,
             homeTimezone: homeTz,
             displayMode: .current
         )
@@ -194,8 +194,10 @@ struct TimezoneServiceTests {
         let service = createService(container: container)
         let displayTz = try await service.getDisplayTimezone()
 
-        // Should resolve to current timezone
-        #expect(displayTz.identifier == currentTz.identifier)
+        // In .current mode, should resolve to LIVE device timezone (TimeZone.current),
+        // NOT the stored currentTimezoneIdentifier. The stored value is for change detection,
+        // but display should always use the actual device timezone.
+        #expect(displayTz.identifier == TimeZone.current.identifier)
     }
 
     @Test("getDisplayTimezone resolves based on mode - home")
