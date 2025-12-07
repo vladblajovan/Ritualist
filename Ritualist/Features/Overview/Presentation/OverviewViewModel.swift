@@ -180,7 +180,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// Cached display timezone for use in synchronous calculations.
     /// Updated on loadData() and when timezone settings change.
     /// Exposed publicly for UI components that need timezone-aware date calculations.
-    /// Note: NOT marked @ObservationIgnored so SwiftUI re-renders when timezone changes.
+    /// NOT marked @ObservationIgnored - allows SwiftUI to observe direct changes.
+    /// Currently, timezone changes trigger full reload via iCloudDidSyncRemoteChanges notification,
+    /// but keeping this observable provides a safeguard for future direct timezone updates.
     public internal(set) var displayTimezone: TimeZone = .current
 
     private func getUserId() async -> UUID {

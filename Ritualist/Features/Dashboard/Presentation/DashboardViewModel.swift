@@ -48,7 +48,9 @@ public final class DashboardViewModel {
 
     /// Cached display timezone for synchronous access in computed properties.
     /// Fetched once on load from TimezoneService.getDisplayTimezone().
-    /// Note: NOT marked @ObservationIgnored so SwiftUI re-renders when timezone changes.
+    /// NOT marked @ObservationIgnored - allows SwiftUI to observe direct changes.
+    /// Currently, timezone changes trigger full reload via iCloudDidSyncRemoteChanges notification,
+    /// but keeping this observable provides a safeguard for future direct timezone updates.
     internal var displayTimezone: TimeZone = .current
 
     internal let logger: DebugLogger
