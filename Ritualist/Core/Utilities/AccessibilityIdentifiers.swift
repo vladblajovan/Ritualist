@@ -62,6 +62,15 @@ public enum AccessibilityID {
         public static let todaySection = "overview.today"
         public static let habitsList = "overview.habitsList"
         public static let personalityButton = "overview.personalityButton"
+        public static let streaksCard = "overview.streaksCard"
+        public static let summaryCard = "overview.summaryCard"
+        public static let calendarCard = "overview.calendarCard"
+        public static let insightsCard = "overview.insightsCard"
+        public static let previousDayButton = "overview.previousDay"
+        public static let nextDayButton = "overview.nextDay"
+        public static let todayButton = "overview.todayButton"
+        public static func habitRow(_ id: String) -> String { "overview.habit.\(id)" }
+        public static func habitCheckbox(_ id: String) -> String { "overview.habit.checkbox.\(id)" }
     }
 
     // MARK: - Habits Tab
@@ -95,13 +104,18 @@ public enum AccessibilityID {
         public static let sendButton = "habitsAssistant.send"
     }
 
-    // MARK: - Stats Tab
+    // MARK: - Stats Tab (Dashboard)
 
     public enum Stats {
         public static let root = "stats.root"
         public static let dashboard = "stats.dashboard"
         public static let streakCard = "stats.streakCard"
         public static let completionCard = "stats.completionCard"
+        public static let weeklyProgressCard = "stats.weeklyProgress"
+        public static let performanceCard = "stats.performance"
+        public static let habitPerformanceList = "stats.habitPerformanceList"
+        public static func habitPerformanceRow(_ id: String) -> String { "stats.habitPerformance.\(id)" }
+        public static let circularProgress = "stats.circularProgress"
     }
 
     // MARK: - Settings Tab

@@ -62,6 +62,15 @@ enum AccessibilityID {
         static let todaySection = "overview.today"
         static let habitsList = "overview.habitsList"
         static let personalityButton = "overview.personalityButton"
+        static let streaksCard = "overview.streaksCard"
+        static let summaryCard = "overview.summaryCard"
+        static let calendarCard = "overview.calendarCard"
+        static let insightsCard = "overview.insightsCard"
+        static let previousDayButton = "overview.previousDay"
+        static let nextDayButton = "overview.nextDay"
+        static let todayButton = "overview.todayButton"
+        static func habitRow(_ id: String) -> String { "overview.habit.\(id)" }
+        static func habitCheckbox(_ id: String) -> String { "overview.habit.checkbox.\(id)" }
     }
 
     // MARK: - Habits Tab
@@ -95,13 +104,18 @@ enum AccessibilityID {
         static let sendButton = "habitsAssistant.send"
     }
 
-    // MARK: - Stats Tab
+    // MARK: - Stats Tab (Dashboard)
 
     enum Stats {
         static let root = "stats.root"
         static let dashboard = "stats.dashboard"
         static let streakCard = "stats.streakCard"
         static let completionCard = "stats.completionCard"
+        static let weeklyProgressCard = "stats.weeklyProgress"
+        static let performanceCard = "stats.performance"
+        static let habitPerformanceList = "stats.habitPerformanceList"
+        static func habitPerformanceRow(_ id: String) -> String { "stats.habitPerformance.\(id)" }
+        static let circularProgress = "stats.circularProgress"
     }
 
     // MARK: - Settings Tab
@@ -164,5 +178,16 @@ enum AccessibilityID {
         static let iCloudSync = "toast.iCloudSync"
         static let success = "toast.success"
         static let error = "toast.error"
+        static let dismissButton = "toast.dismiss"
+    }
+
+    // MARK: - Inspiration Carousel
+
+    enum InspirationCarousel {
+        static let carousel = "inspiration.carousel"
+        static let dismissAllButton = "inspiration.dismissAll"
+        static let pageIndicators = "inspiration.pageIndicators"
+        static func card(_ index: Int) -> String { "inspiration.card.\(index)" }
+        static let cardDismissButton = "inspiration.card.dismiss"
     }
 }

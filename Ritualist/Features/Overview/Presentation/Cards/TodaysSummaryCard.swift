@@ -2,6 +2,35 @@ import SwiftUI
 import RitualistCore
 import FactoryKit
 
+// MARK: - Accessibility Strings
+
+private enum SummaryAccessibility {
+    static func progressLabel(completed: Int, total: Int) -> String {
+        "\(completed) of \(total) habits completed, \(Int(Double(completed) / max(Double(total), 1.0) * 100)) percent"
+    }
+    static func dateLabel(date: String, isToday: Bool) -> String {
+        isToday ? "Today, \(date)" : date
+    }
+    static let previousDayHint = "Go to previous day"
+    static let nextDayHint = "Go to next day"
+    static let returnToTodayHint = "Return to today"
+    static func habitRowLabel(name: String, isCompleted: Bool, progress: String?) -> String {
+        var label = name
+        if isCompleted {
+            label += ", completed"
+        } else if let progress = progress {
+            label += ", \(progress)"
+        } else {
+            label += ", not completed"
+        }
+        return label
+    }
+    static let completedSectionHeader = "Completed habits"
+    static let remainingSectionHeader = "Remaining habits"
+    static let noHabitsScheduled = "No habits scheduled for this day"
+    static let loading = "Loading habits"
+}
+
 struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let summary: TodaysSummary?
     let viewingDate: Date
@@ -280,6 +309,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                             .foregroundColor(canGoToPrevious ? .secondary : .secondary.opacity(0.3))
                     }
                     .disabled(!canGoToPrevious)
+                    .accessibilityLabel("Previous day")
+                    .accessibilityHint(SummaryAccessibility.previousDayHint)
+                    .accessibilityIdentifier(AccessibilityID.Overview.previousDayButton)
 
                     Spacer()
 
@@ -290,6 +322,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
+                                .accessibilityAddTraits(.isHeader)
                         } else {
                             HStack(spacing: 6) {
                                 Button(action: onGoToToday) {
@@ -298,11 +331,15 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                         .foregroundColor(.secondary)
                                 }
                                 .buttonStyle(PlainButtonStyle())
+                                .accessibilityLabel("Return to today")
+                                .accessibilityHint(SummaryAccessibility.returnToTodayHint)
+                                .accessibilityIdentifier(AccessibilityID.Overview.todayButton)
 
                                 Text(CalendarUtils.formatForDisplay(viewingDate, style: .full))
                                     .font(.headline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
+                                    .accessibilityAddTraits(.isHeader)
                             }
                         }
                     }
@@ -316,6 +353,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                             .foregroundColor(canGoToNext ? .secondary : .secondary.opacity(0.3))
                     }
                     .disabled(!canGoToNext)
+                    .accessibilityLabel("Next day")
+                    .accessibilityHint(SummaryAccessibility.nextDayHint)
+                    .accessibilityIdentifier(AccessibilityID.Overview.nextDayButton)
                 }
             }
 
@@ -551,6 +591,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             .fill(CardDesign.secondaryBackground)
             .frame(height: 8)
             .redacted(reason: .placeholder)
+            .accessibilityLabel(SummaryAccessibility.loading)
     }
 
     @ViewBuilder
@@ -559,6 +600,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             Image(systemName: "calendar.badge.checkmark")
                 .font(.system(size: 36))
                 .foregroundStyle(.secondary.opacity(0.6))
+                .accessibilityHidden(true) // Decorative icon
 
             Text(Strings.EmptyState.noHabitsScheduled)
                 .font(.system(size: 15, weight: .medium))
@@ -566,6 +608,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(SummaryAccessibility.noHabitsScheduled)
     }
 
     // MARK: - Enhanced Habits Section
@@ -674,6 +718,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                             .padding(.trailing, 8)
                     }
                     .padding(.top, summary.incompleteHabits.isEmpty ? 0 : 16)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(SummaryAccessibility.completedSectionHeader), \(summary.completedHabits.count) habits")
+                    .accessibilityAddTraits(.isHeader)
                     
                     VStack(spacing: 6) {
                         // Always show first 2 completed habits
