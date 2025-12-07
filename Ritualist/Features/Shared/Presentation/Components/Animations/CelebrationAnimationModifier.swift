@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import RitualistCore
 
 public struct CelebrationAnimationModifier: ViewModifier {
     @State private var isAnimating = false
@@ -58,26 +59,36 @@ public struct CelebrationAnimationModifier: ViewModifier {
     private func startAnimation() {
         guard !isAnimating else { return }
         isAnimating = true
-        
-        // Haptic feedback
+
+        // Haptic feedback (always provide tactile feedback regardless of motion setting)
         if config.hapticFeedback {
             let impactFeedback = UIImpactFeedbackGenerator(style: config.hapticStyle)
             impactFeedback.impactOccurred()
         }
-        
+
+        // Skip visual animations if user prefers reduced motion
+        if prefersReducedMotion {
+            // Just complete immediately with haptic feedback
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isAnimating = false
+                onAnimationComplete?()
+            }
+            return
+        }
+
         // Main animation sequence
         withAnimation(.easeOut(duration: 0.3)) {
             scaleValue = config.scaleEffect
             glowIntensity = 1.0
         }
-        
+
         // Show confetti after a slight delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             withAnimation(.easeOut(duration: 0.4)) {
                 showConfetti = true
             }
         }
-        
+
         // Start fade out
         DispatchQueue.main.asyncAfter(deadline: .now() + config.duration * 0.6) {
             withAnimation(.easeInOut(duration: config.duration * 0.4)) {
@@ -85,18 +96,39 @@ public struct CelebrationAnimationModifier: ViewModifier {
                 scaleValue = 1.0
             }
         }
-        
+
         // Hide confetti
         DispatchQueue.main.asyncAfter(deadline: .now() + config.duration * 0.8) {
             withAnimation(.easeIn(duration: 0.3)) {
                 showConfetti = false
             }
         }
-        
+
         // Complete animation
         DispatchQueue.main.asyncAfter(deadline: .now() + config.duration) {
             isAnimating = false
             onAnimationComplete?()
         }
+    }
+}
+
+// MARK: - View Extension
+
+public extension View {
+    /// Adds a celebration animation with confetti particles
+    /// - Parameters:
+    ///   - isTriggered: When true, triggers the animation
+    ///   - config: Animation configuration (colors, intensity, duration)
+    ///   - onAnimationComplete: Called when the animation finishes
+    func celebrationAnimation(
+        isTriggered: Bool,
+        config: CelebrationAnimationConfig = .bestStreak,
+        onAnimationComplete: (() -> Void)? = nil
+    ) -> some View {
+        modifier(CelebrationAnimationModifier(
+            isTriggered: isTriggered,
+            config: config,
+            onAnimationComplete: onAnimationComplete
+        ))
     }
 }

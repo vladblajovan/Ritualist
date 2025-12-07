@@ -1,10 +1,32 @@
 import SwiftUI
+import UIKit
+
+// MARK: - Reduced Motion Support
+
+/// Checks if the user has enabled "Reduce Motion" in iOS accessibility settings
+/// Use this to provide instant alternatives to animations for accessibility
+public var prefersReducedMotion: Bool {
+    UIAccessibility.isReduceMotionEnabled
+}
+
+/// Returns the animation or nil if reduced motion is preferred
+/// Usage: `.animation(animationIfEnabled(.spring()), value: state)`
+public func animationIfEnabled(_ animation: Animation) -> Animation? {
+    prefersReducedMotion ? nil : animation
+}
+
+// MARK: - Animation Durations
 
 public enum AnimationDuration {
     public static let fast: Double = 0.2
     public static let medium: Double = 0.3
     public static let slow: Double = 0.5
     public static let verySlow: Double = 1.0
+
+    /// Returns duration or 0 if reduced motion is preferred
+    public static func ifEnabled(_ duration: Double) -> Double {
+        prefersReducedMotion ? 0 : duration
+    }
 }
 
 public enum SpringAnimation {
@@ -26,6 +48,12 @@ public enum SpringAnimation {
     /// Use this for: carousel dismissal, toast animations, card transitions, peek hints
     public static var interactive: Animation {
         .spring(response: interactiveResponse, dampingFraction: interactiveDamping)
+    }
+
+    /// Reduced-motion-aware interactive animation
+    /// Returns nil when user prefers reduced motion (causes instant state change)
+    public static var interactiveIfEnabled: Animation? {
+        animationIfEnabled(interactive)
     }
 }
 
