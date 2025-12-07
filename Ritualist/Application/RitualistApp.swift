@@ -864,6 +864,7 @@ import CloudKit
             return
         }
 
+        let startTime = Date()
         do {
             logger.log(
                 "🔄 Re-scheduling notifications on app active",
@@ -872,12 +873,33 @@ import CloudKit
             )
             try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
             lastNotificationRescheduleUptime = currentUptime
+
+            // Log timing for performance monitoring
+            let duration = Date().timeIntervalSince(startTime)
+            if duration > 1.0 {
+                logger.log(
+                    "⏱️ Notification rescheduling took longer than expected",
+                    level: .warning,
+                    category: .notifications,
+                    metadata: ["duration_ms": Int(duration * 1000)]
+                )
+            } else {
+                logger.log(
+                    "✅ Notification rescheduling completed",
+                    level: .debug,
+                    category: .notifications,
+                    metadata: ["duration_ms": Int(duration * 1000)]
+                )
+            }
         } catch {
             logger.log(
                 "⚠️ Failed to re-schedule notifications",
                 level: .warning,
                 category: .system,
-                metadata: ["error": error.localizedDescription]
+                metadata: [
+                    "error": error.localizedDescription,
+                    "duration_ms": Int(Date().timeIntervalSince(startTime) * 1000)
+                ]
             )
         }
     }

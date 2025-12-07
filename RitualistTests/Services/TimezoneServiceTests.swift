@@ -1181,4 +1181,77 @@ struct TimezoneServiceTests {
         let returnedTravelStatus = try await service.detectTravelStatus()
         #expect(returnedTravelStatus == nil, "Should not detect travel when user returns home")
     }
+
+    // MARK: - First Launch Tests
+
+    @Test("First launch: detectTimezoneChange returns nil (no mismatch)")
+    func firstLaunchDetectTimezoneChangeReturnsNilNoMismatch() async throws {
+        let container = try TestModelContainer.create()
+        // DO NOT save a profile - simulate first app launch
+
+        let service = createService(container: container)
+
+        // On first launch, getHomeTimezone/detectTimezoneChange will create a default profile
+        // with currentTimezoneIdentifier = TimeZone.current.identifier
+        // Therefore, there should be NO mismatch detected
+
+        let change = try await service.detectTimezoneChange()
+
+        #expect(change == nil, "First launch should not detect timezone change - default profile uses device timezone")
+
+        // Verify the default profile was created with current device timezone
+        let profileDataSource = ProfileLocalDataSource(modelContainer: container)
+        let profileRepository = ProfileRepositoryImpl(local: profileDataSource)
+        let createdProfile = try await profileRepository.loadProfile()
+
+        #expect(createdProfile != nil, "Default profile should be created on first launch")
+        #expect(
+            createdProfile?.currentTimezoneIdentifier == TimeZone.current.identifier,
+            "Default profile should use device timezone"
+        )
+    }
+
+    @Test("First launch: no timezone alert should be shown")
+    func firstLaunchNoTimezoneAlertShouldBeShown() async throws {
+        let container = try TestModelContainer.create()
+        // DO NOT save a profile - simulate first app launch
+
+        let service = createService(container: container)
+
+        // Simulate the app's timezone detection flow on first launch
+        // 1. App calls detectTimezoneChange()
+        // 2. This triggers profile creation with current timezone
+        // 3. No change should be detected
+
+        let change = try await service.detectTimezoneChange()
+
+        // The app's logic: if change == nil, don't show alert
+        let shouldShowAlert = change != nil
+
+        #expect(shouldShowAlert == false, "First launch should not trigger timezone change alert")
+    }
+
+    @Test("First launch with existing iCloud profile: detects timezone change if different")
+    func firstLaunchWithExistingICloudProfileDetectsTimezoneChangeIfDifferent() async throws {
+        let container = try TestModelContainer.create()
+
+        // Simulate: User has existing iCloud profile from another device in different timezone
+        // This could happen when user sets up new device and iCloud syncs profile before first launch
+        let existingProfile = UserProfileBuilder.standard(
+            currentTimezone: TimezoneTestHelpers.kiritimati  // Extremely rare timezone
+        )
+        try await saveProfile(existingProfile, to: container)
+
+        let service = createService(container: container)
+
+        // Skip if somehow running in this extremely rare timezone
+        try #require(TimeZone.current.identifier != TimezoneTestHelpers.kiritimati.identifier, "Test not applicable in Kiritimati timezone")
+
+        // On this "first launch" with synced profile, timezone SHOULD be detected as changed
+        let change = try await service.detectTimezoneChange()
+
+        #expect(change != nil, "Should detect timezone change when iCloud profile has different timezone")
+        #expect(change?.previousTimezone == TimezoneTestHelpers.kiritimati.identifier)
+        #expect(change?.newTimezone == TimeZone.current.identifier)
+    }
 }
