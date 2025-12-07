@@ -13,7 +13,7 @@ import UIKit
 import CoreData
 import CloudKit
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length
 @main struct RitualistApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @Injected(\.notificationService) private var notificationService
@@ -91,6 +91,26 @@ import CloudKit
     /// Debounce task for UI refresh notification
     /// Cancels previous pending notification when new changes arrive, ensuring ONE refresh after activity settles
     @State private var uiRefreshDebounceTask: Task<Void, Never>?
+
+    // MARK: - Timezone Change Alert State
+
+    /// Whether to show the timezone change alert dialog
+    @State private var showTimezoneChangeAlert = false
+
+    /// Details about the detected timezone change for the alert
+    @State private var detectedTimezoneChange: DetectedTimezoneChangeInfo?
+
+    /// Task for timezone detection to prevent race conditions from rapid calls
+    /// Cancels previous detection if a new one starts before completion
+    @State private var timezoneDetectionTask: Task<Void, Never>?
+
+    /// Track last notification rescheduling time (using system uptime for clock-drift immunity)
+    /// Prevents duplicate rescheduling when both significantTimeChange and timezone detection fire together
+    @State private var lastNotificationRescheduleUptime: TimeInterval?
+
+    /// Minimum interval between notification reschedulings (5 seconds)
+    /// This debounces rapid-fire events like midnight + timezone change
+    private static let notificationRescheduleThrottleInterval: TimeInterval = 5.0
 
     /// App startup time for performance monitoring
     private let appStartTime = Date()
@@ -281,6 +301,106 @@ import CloudKit
                         cachedICloudStatus = nil
                         lastICloudStatusCheckUptime = nil
                     }
+                }
+                // MARK: - Timezone Change Alert
+                .alert(
+                    "Timezone Changed",
+                    isPresented: $showTimezoneChangeAlert,
+                    presenting: detectedTimezoneChange
+                ) { change in
+                    // Option 1: Keep using home timezone (good for short trips)
+                    Button("Keep Home Timezone") {
+                        // User wants to keep using their home timezone for display
+                        // This is useful for short trips where they want consistency
+                        Task { @MainActor in
+                            do {
+                                try await timezoneService.updateDisplayTimezoneMode(.home)
+                                logger.log(
+                                    "User chose to keep home timezone while traveling",
+                                    level: .info,
+                                    category: .system,
+                                    metadata: [
+                                        "currentLocation": change.newTimezone,
+                                        "displayMode": "home"
+                                    ]
+                                )
+                                // Trigger UI refresh so ViewModels reload with new timezone
+                                NotificationCenter.default.post(name: .iCloudDidSyncRemoteChanges, object: nil)
+                            } catch {
+                                logger.log(
+                                    "Failed to update display timezone mode",
+                                    level: .error,
+                                    category: .system,
+                                    metadata: ["error": error.localizedDescription]
+                                )
+                                toastService.error("Failed to update timezone: \(error.localizedDescription)")
+                            }
+                        }
+                    }
+
+                    // Option 2: Use current location timezone (good for longer stays)
+                    Button("Use Current Timezone") {
+                        // User wants to use their current location's timezone
+                        // This switches display mode to .current
+                        Task { @MainActor in
+                            do {
+                                try await timezoneService.updateDisplayTimezoneMode(.current)
+                                logger.log(
+                                    "User switched to current location timezone",
+                                    level: .info,
+                                    category: .system,
+                                    metadata: [
+                                        "newTimezone": change.newTimezone,
+                                        "displayMode": "current"
+                                    ]
+                                )
+                                // Trigger UI refresh so ViewModels reload with new timezone
+                                NotificationCenter.default.post(name: .iCloudDidSyncRemoteChanges, object: nil)
+                            } catch {
+                                logger.log(
+                                    "Failed to update display timezone mode",
+                                    level: .error,
+                                    category: .system,
+                                    metadata: ["error": error.localizedDescription]
+                                )
+                                toastService.error("Failed to update timezone: \(error.localizedDescription)")
+                            }
+                        }
+                    }
+
+                    // Option 3: Update home timezone (user moved permanently)
+                    Button("I Moved Here") {
+                        // User moved permanently - update home timezone to match current location
+                        Task { @MainActor in
+                            do {
+                                guard let newTz = TimeZone(identifier: change.newTimezone) else { return }
+                                try await timezoneService.updateHomeTimezone(newTz)
+                                // Also switch to home mode so display uses the new home timezone
+                                try await timezoneService.updateDisplayTimezoneMode(.home)
+                                logger.log(
+                                    "User updated home timezone after permanent move",
+                                    level: .info,
+                                    category: .system,
+                                    metadata: [
+                                        "previousHome": change.previousTimezone,
+                                        "newHome": change.newTimezone
+                                    ]
+                                )
+                                // Trigger UI refresh so ViewModels reload with new timezone
+                                NotificationCenter.default.post(name: .iCloudDidSyncRemoteChanges, object: nil)
+                            } catch {
+                                logger.log(
+                                    "Failed to update home timezone",
+                                    level: .error,
+                                    category: .system,
+                                    metadata: ["error": error.localizedDescription]
+                                )
+                                toastService.error("Failed to update timezone: \(error.localizedDescription)")
+                            }
+                        }
+                    }
+                } message: { change in
+                    Text("You're now in \(change.newTimezoneDisplayName).\n\nHow would you like to track your habits?")
                 }
         }
     }
@@ -717,6 +837,8 @@ import CloudKit
     /// This handles day changes and completion status updates while the app was backgrounded
     ///
     /// IMPORTANT: Only schedules if notification authorization is granted.
+    /// Includes throttling to prevent duplicate rescheduling when multiple events fire together
+    /// (e.g., significantTimeChange and timezone detection at midnight).
     private func rescheduleNotificationsIfNeeded() async {
         // Check authorization status first - scheduling without authorization silently fails
         let isAuthorized = await notificationService.checkAuthorizationStatus()
@@ -730,6 +852,19 @@ import CloudKit
             return
         }
 
+        // Throttle to prevent duplicate rescheduling when multiple events fire together
+        let currentUptime = ProcessInfo.processInfo.systemUptime
+        if let lastReschedule = lastNotificationRescheduleUptime,
+           currentUptime - lastReschedule < Self.notificationRescheduleThrottleInterval {
+            logger.log(
+                "⏭️ Skipping notification re-scheduling - throttled (rescheduled \(String(format: "%.1f", currentUptime - lastReschedule))s ago)",
+                level: .debug,
+                category: .system
+            )
+            return
+        }
+
+        let startTime = Date()
         do {
             logger.log(
                 "🔄 Re-scheduling notifications on app active",
@@ -737,12 +872,34 @@ import CloudKit
                 category: .system
             )
             try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
+            lastNotificationRescheduleUptime = currentUptime
+
+            // Log timing for performance monitoring
+            let duration = Date().timeIntervalSince(startTime)
+            if duration > 1.0 {
+                logger.log(
+                    "⏱️ Notification rescheduling took longer than expected",
+                    level: .warning,
+                    category: .notifications,
+                    metadata: ["duration_ms": Int(duration * 1000)]
+                )
+            } else {
+                logger.log(
+                    "✅ Notification rescheduling completed",
+                    level: .debug,
+                    category: .notifications,
+                    metadata: ["duration_ms": Int(duration * 1000)]
+                )
+            }
         } catch {
             logger.log(
                 "⚠️ Failed to re-schedule notifications",
                 level: .warning,
                 category: .system,
-                metadata: ["error": error.localizedDescription]
+                metadata: [
+                    "error": error.localizedDescription,
+                    "duration_ms": Int(Date().timeIntervalSince(startTime) * 1000)
+                ]
             )
         }
     }
@@ -844,34 +1001,56 @@ import CloudKit
     /// Detect timezone changes on app launch/resume
     /// Updates stored current timezone if device timezone changed
     /// This is part of the three-timezone model for proper travel handling
+    ///
+    /// Uses task cancellation to prevent race conditions when called rapidly
+    /// (e.g., multiple foreground transitions in quick succession)
     private func detectTimezoneChanges() async {
-        do {
-            // Atomically capture current device timezone to prevent race conditions
-            let currentDeviceTimezone = TimeZone.current.identifier
-            let storedTimezone = try await timezoneService.getCurrentTimezone().identifier
+        // Cancel any existing detection task to prevent race conditions
+        timezoneDetectionTask?.cancel()
 
-            // Check if timezone changed
-            guard currentDeviceTimezone != storedTimezone else { return }
+        timezoneDetectionTask = Task { @MainActor in
+            await performTimezoneDetection()
+        }
+
+        // Wait for the task to complete
+        await timezoneDetectionTask?.value
+    }
+
+    /// Internal implementation of timezone detection logic
+    private func performTimezoneDetection() async {
+        do {
+            // Check for cancellation early
+            try Task.checkCancellation()
+
+            // Use TimezoneService.detectTimezoneChange() which compares device timezone
+            // against the STORED currentTimezoneIdentifier in UserProfile (not TimeZone.current)
+            guard let change = try await timezoneService.detectTimezoneChange() else {
+                // No timezone change detected
+                return
+            }
+
+            let previousTimezone = change.previousTimezone
+            let newTimezone = change.newTimezone
 
             logger.log(
                 "🌐 Timezone change detected",
                 level: .info,
                 category: .system,
                 metadata: [
-                    "previousTimezone": storedTimezone,
-                    "newTimezone": currentDeviceTimezone,
+                    "previousTimezone": previousTimezone,
+                    "newTimezone": newTimezone,
                     "detectedAt": Date().ISO8601Format()
                 ]
             )
 
-            // Update stored current timezone with the captured value
+            // Update stored current timezone with the new device timezone
             try await timezoneService.updateCurrentTimezone()
 
             logger.log(
                 "✅ Updated current timezone",
                 level: .info,
                 category: .system,
-                metadata: ["newTimezone": currentDeviceTimezone]
+                metadata: ["newTimezone": newTimezone]
             )
 
             // CRITICAL: Reschedule notifications when timezone changes
@@ -884,10 +1063,36 @@ import CloudKit
             )
             try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
 
-            // TODO Phase 3: Show travel notification to user
-            // if let travelStatus = try await timezoneService.detectTravelStatus(), travelStatus.isTravel {
-            //     // Show notification about timezone change and travel mode
-            // }
+            // Show timezone change alert to user
+            // Only show if app is in foreground (hasCompletedInitialLaunch is true)
+            // This prevents the alert from showing during initial app launch when timezone is first detected
+            // Also check if alert is not already showing to prevent race conditions with rapid timezone changes
+            if hasCompletedInitialLaunch && !showTimezoneChangeAlert {
+                await MainActor.run {
+                    detectedTimezoneChange = DetectedTimezoneChangeInfo(
+                        previousTimezone: previousTimezone,
+                        newTimezone: newTimezone
+                    )
+                    showTimezoneChangeAlert = true
+                }
+
+                logger.log(
+                    "📱 Showing timezone change alert to user",
+                    level: .info,
+                    category: .system,
+                    metadata: [
+                        "from": previousTimezone,
+                        "to": newTimezone
+                    ]
+                )
+            }
+        } catch is CancellationError {
+            // Task was cancelled (superseded by a newer detection), silently ignore
+            logger.log(
+                "Timezone detection cancelled (superseded by newer detection)",
+                level: .debug,
+                category: .system
+            )
         } catch {
             logger.log(
                 "⚠️ Failed to detect timezone changes",
@@ -1325,5 +1530,23 @@ struct RootAppView: View {
     var body: some View {
         RootTabView()
             // RootTabView now handles onboarding through Factory injection
+    }
+}
+
+// MARK: - Timezone Change Info
+
+/// Information about a detected timezone change for display in the alert dialog
+struct DetectedTimezoneChangeInfo {
+    let previousTimezone: String
+    let newTimezone: String
+
+    /// Human-readable display name for the previous timezone (e.g., "Eastern Standard Time")
+    var previousTimezoneDisplayName: String {
+        TimeZone(identifier: previousTimezone)?.localizedName(for: .standard, locale: .current) ?? previousTimezone
+    }
+
+    /// Human-readable display name for the new timezone (e.g., "Pacific Standard Time")
+    var newTimezoneDisplayName: String {
+        TimeZone(identifier: newTimezone)?.localizedName(for: .standard, locale: .current) ?? newTimezone
     }
 }

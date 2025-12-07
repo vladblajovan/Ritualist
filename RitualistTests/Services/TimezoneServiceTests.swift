@@ -178,14 +178,14 @@ struct TimezoneServiceTests {
         #expect(mode == .home)
     }
 
-    @Test("getDisplayTimezone resolves based on mode - current")
+    @Test("getDisplayTimezone resolves based on mode - current (uses live device timezone)")
     func getDisplayTimezoneResolvesModeCurrentCorrectly() async throws {
         let container = try TestModelContainer.create()
-        let currentTz = TimezoneTestHelpers.newYork
+        let storedCurrentTz = TimezoneTestHelpers.newYork
         let homeTz = TimezoneTestHelpers.tokyo
 
         let profile = UserProfileBuilder.standard(
-            currentTimezone: currentTz,
+            currentTimezone: storedCurrentTz,
             homeTimezone: homeTz,
             displayMode: .current
         )
@@ -194,8 +194,10 @@ struct TimezoneServiceTests {
         let service = createService(container: container)
         let displayTz = try await service.getDisplayTimezone()
 
-        // Should resolve to current timezone
-        #expect(displayTz.identifier == currentTz.identifier)
+        // In .current mode, should resolve to LIVE device timezone (TimeZone.current),
+        // NOT the stored currentTimezoneIdentifier. The stored value is for change detection,
+        // but display should always use the actual device timezone.
+        #expect(displayTz.identifier == TimeZone.current.identifier)
     }
 
     @Test("getDisplayTimezone resolves based on mode - home")
@@ -900,5 +902,356 @@ struct TimezoneServiceTests {
             // Verify save error was propagated
             #expect(error.localizedDescription.contains("Save failed"))
         }
+    }
+
+    // MARK: - Detection Logic Tests (Additional Coverage)
+
+    @Test("detectTimezoneChange is read-only (does not modify profile)")
+    func detectTimezoneChangeIsReadOnlyDoesNotModifyProfile() async throws {
+        let container = try TestModelContainer.create()
+
+        // Use an extremely rare timezone (UTC+14, Line Islands)
+        let storedTimezone = TimezoneTestHelpers.kiritimati
+
+        let profile = UserProfileBuilder.standard(
+            currentTimezone: storedTimezone
+        )
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Skip if somehow running in this extremely rare timezone
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
+
+        // Detect change - this should NOT update the stored timezone
+        // (updateCurrentTimezone() is separate and must be called explicitly)
+        let change = try await service.detectTimezoneChange()
+
+        // Verify change was detected
+        #expect(change != nil)
+
+        // Verify the stored timezone was NOT modified (detectTimezoneChange is read-only)
+        let profileDataSource = ProfileLocalDataSource(modelContainer: container)
+        let profileRepository = ProfileRepositoryImpl(local: profileDataSource)
+        let updatedProfile = try await profileRepository.loadProfile()
+
+        #expect(
+            updatedProfile?.currentTimezoneIdentifier == storedTimezone.identifier,
+            "detectTimezoneChange should be read-only - use updateCurrentTimezone to persist changes"
+        )
+    }
+
+    @Test("detectTimezoneChange followed by updateCurrentTimezone persists change")
+    func detectTimezoneChangeFollowedByUpdateCurrentTimezonePersistsChange() async throws {
+        let container = try TestModelContainer.create()
+
+        // Use an extremely rare timezone (UTC+14, Line Islands)
+        let storedTimezone = TimezoneTestHelpers.kiritimati
+
+        let profile = UserProfileBuilder.standard(
+            currentTimezone: storedTimezone
+        )
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Skip if somehow running in this extremely rare timezone
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
+
+        // First detect the change
+        let change = try await service.detectTimezoneChange()
+        #expect(change != nil, "Should detect change")
+
+        // Then explicitly update (this is the expected usage pattern)
+        try await service.updateCurrentTimezone()
+
+        // Verify the stored timezone WAS updated after explicit update call
+        let profileDataSource = ProfileLocalDataSource(modelContainer: container)
+        let profileRepository = ProfileRepositoryImpl(local: profileDataSource)
+        let updatedProfile = try await profileRepository.loadProfile()
+
+        #expect(updatedProfile?.currentTimezoneIdentifier == TimeZone.current.identifier)
+    }
+
+    @Test("Multiple detectTimezoneChange calls return same change until updateCurrentTimezone called")
+    func multipleDetectTimezoneChangeCallsReturnSameChangeUntilUpdateCalled() async throws {
+        let container = try TestModelContainer.create()
+
+        // Use an extremely rare timezone (UTC+14, Line Islands)
+        let storedTimezone = TimezoneTestHelpers.kiritimati
+
+        let profile = UserProfileBuilder.standard(
+            currentTimezone: storedTimezone
+        )
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Skip if somehow running in this extremely rare timezone
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
+
+        // First call should detect change
+        let firstChange = try await service.detectTimezoneChange()
+        #expect(firstChange != nil)
+
+        // Second call should ALSO detect change (no update was made)
+        let secondChange = try await service.detectTimezoneChange()
+        #expect(secondChange != nil, "Should still detect change - no update was made")
+        #expect(secondChange?.previousTimezone == firstChange?.previousTimezone)
+        #expect(secondChange?.newTimezone == firstChange?.newTimezone)
+
+        // Now call updateCurrentTimezone to persist
+        try await service.updateCurrentTimezone()
+
+        // Third call should return nil (change has been persisted)
+        let thirdChange = try await service.detectTimezoneChange()
+        #expect(thirdChange == nil, "Should return nil after updateCurrentTimezone persisted the change")
+    }
+
+    @Test("detectTimezoneChange detection info contains accurate timestamp")
+    func detectTimezoneChangeDetectionInfoContainsAccurateTimestamp() async throws {
+        let container = try TestModelContainer.create()
+
+        // Use an extremely rare timezone (UTC+14, Line Islands)
+        let storedTimezone = TimezoneTestHelpers.kiritimati
+
+        let profile = UserProfileBuilder.standard(
+            currentTimezone: storedTimezone
+        )
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Skip if somehow running in this extremely rare timezone
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
+
+        let beforeDetection = Date()
+
+        // Detect change
+        let change = try await service.detectTimezoneChange()
+
+        let afterDetection = Date()
+
+        // Verify timestamp is within expected range
+        #expect(change != nil)
+        #expect(change!.detectedAt >= beforeDetection)
+        #expect(change!.detectedAt <= afterDetection)
+    }
+
+    // MARK: - Integration Flow Tests
+
+    @Test("Complete timezone change flow: detect → show alert → user confirms → update")
+    func completeTimezoneChangeFlowDetectShowAlertUserConfirmsUpdate() async throws {
+        let container = try TestModelContainer.create()
+
+        // Setup: User's stored timezone is Kiritimati, device is now something else
+        let storedTimezone = TimezoneTestHelpers.kiritimati
+
+        let profile = UserProfileBuilder.standard(
+            currentTimezone: storedTimezone,
+            homeTimezone: storedTimezone  // Home matches stored current
+        )
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Skip if somehow running in this extremely rare timezone
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
+
+        // Step 1: Detect change (app foreground, timer fires, etc.)
+        let detectedChange = try await service.detectTimezoneChange()
+        #expect(detectedChange != nil, "Should detect timezone has changed")
+
+        // Step 2: App would show alert to user with detectedChange info
+        // (User sees: "Your timezone changed from Kiritimati to Bucharest")
+
+        // Step 3: User confirms → app calls updateCurrentTimezone()
+        try await service.updateCurrentTimezone()
+
+        // Verify: Profile is updated
+        let profileDataSource = ProfileLocalDataSource(modelContainer: container)
+        let profileRepository = ProfileRepositoryImpl(local: profileDataSource)
+        let updatedProfile = try await profileRepository.loadProfile()
+
+        #expect(updatedProfile?.currentTimezoneIdentifier == TimeZone.current.identifier)
+        #expect(updatedProfile?.timezoneChangeHistory.count == 1)
+        #expect(updatedProfile?.timezoneChangeHistory.first?.trigger == .deviceChange)
+    }
+
+    @Test("Timezone change flow when user dismisses alert: no update persisted")
+    func timezoneChangeFlowWhenUserDismissesAlertNoUpdatePersisted() async throws {
+        let container = try TestModelContainer.create()
+
+        // Setup: User's stored timezone is Kiritimati
+        let storedTimezone = TimezoneTestHelpers.kiritimati
+
+        let profile = UserProfileBuilder.standard(
+            currentTimezone: storedTimezone
+        )
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Skip if somehow running in this extremely rare timezone
+        try #require(TimeZone.current.identifier != storedTimezone.identifier, "Test not applicable in Kiritimati timezone")
+
+        // Step 1: Detect change
+        let detectedChange = try await service.detectTimezoneChange()
+        #expect(detectedChange != nil)
+
+        // Step 2: User dismisses alert (does NOT confirm)
+        // Step 3: App does NOT call updateCurrentTimezone()
+
+        // Verify: Profile is NOT updated
+        let profileDataSource = ProfileLocalDataSource(modelContainer: container)
+        let profileRepository = ProfileRepositoryImpl(local: profileDataSource)
+        let unchangedProfile = try await profileRepository.loadProfile()
+
+        #expect(unchangedProfile?.currentTimezoneIdentifier == storedTimezone.identifier)
+        #expect(unchangedProfile?.timezoneChangeHistory.isEmpty == true)
+    }
+
+    // MARK: - Travel Detection Integration Tests
+
+    @Test("Travel detection: user travels from home timezone to different timezone")
+    func travelDetectionUserTravelsFromHomeTimezone() async throws {
+        let container = try TestModelContainer.create()
+
+        // Setup: User is at home (New York)
+        let homeTimezone = TimezoneTestHelpers.newYork
+        let profile = UserProfileBuilder.standard(
+            currentTimezone: homeTimezone,
+            homeTimezone: homeTimezone
+        )
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Initially: Not traveling
+        let initialTravelStatus = try await service.detectTravelStatus()
+        #expect(initialTravelStatus == nil, "Should not detect travel when current == home")
+
+        // Simulate travel: Update current timezone to Tokyo
+        try await service.updateHomeTimezone(homeTimezone) // Keep home as NY
+        var profileData = ProfileLocalDataSource(modelContainer: container)
+        var profileRepo = ProfileRepositoryImpl(local: profileData)
+        var travelProfile = try await profileRepo.loadProfile()
+
+        // Manually update current timezone to simulate device detecting new timezone
+        travelProfile?.currentTimezoneIdentifier = TimezoneTestHelpers.tokyo.identifier
+        try await profileRepo.saveProfile(travelProfile!)
+
+        // Now: Should detect travel
+        let travelStatus = try await service.detectTravelStatus()
+        #expect(travelStatus != nil, "Should detect travel when current != home")
+        #expect(travelStatus?.isTravel == true)
+        #expect(travelStatus?.currentTimezone.identifier == TimezoneTestHelpers.tokyo.identifier)
+        #expect(travelStatus?.homeTimezone.identifier == homeTimezone.identifier)
+    }
+
+    @Test("Travel detection: user returns home")
+    func travelDetectionUserReturnsHome() async throws {
+        let container = try TestModelContainer.create()
+
+        // Setup: User is traveling (current = Tokyo, home = New York)
+        let homeTimezone = TimezoneTestHelpers.newYork
+        let currentTimezone = TimezoneTestHelpers.tokyo
+
+        let profile = UserProfileBuilder.traveling(
+            currentTimezone: currentTimezone,
+            homeTimezone: homeTimezone
+        )
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Initially: Traveling
+        let initialTravelStatus = try await service.detectTravelStatus()
+        #expect(initialTravelStatus != nil, "Should detect travel")
+        #expect(initialTravelStatus?.isTravel == true)
+
+        // User returns home: Update current timezone to match home
+        let profileData = ProfileLocalDataSource(modelContainer: container)
+        let profileRepo = ProfileRepositoryImpl(local: profileData)
+        var returnedProfile = try await profileRepo.loadProfile()
+        returnedProfile?.currentTimezoneIdentifier = homeTimezone.identifier
+        try await profileRepo.saveProfile(returnedProfile!)
+
+        // Now: Should not detect travel
+        let returnedTravelStatus = try await service.detectTravelStatus()
+        #expect(returnedTravelStatus == nil, "Should not detect travel when user returns home")
+    }
+
+    // MARK: - First Launch Tests
+
+    @Test("First launch: detectTimezoneChange returns nil (no mismatch)")
+    func firstLaunchDetectTimezoneChangeReturnsNilNoMismatch() async throws {
+        let container = try TestModelContainer.create()
+        // DO NOT save a profile - simulate first app launch
+
+        let service = createService(container: container)
+
+        // On first launch, getHomeTimezone/detectTimezoneChange will create a default profile
+        // with currentTimezoneIdentifier = TimeZone.current.identifier
+        // Therefore, there should be NO mismatch detected
+
+        let change = try await service.detectTimezoneChange()
+
+        #expect(change == nil, "First launch should not detect timezone change - default profile uses device timezone")
+
+        // Verify the default profile was created with current device timezone
+        let profileDataSource = ProfileLocalDataSource(modelContainer: container)
+        let profileRepository = ProfileRepositoryImpl(local: profileDataSource)
+        let createdProfile = try await profileRepository.loadProfile()
+
+        #expect(createdProfile != nil, "Default profile should be created on first launch")
+        #expect(
+            createdProfile?.currentTimezoneIdentifier == TimeZone.current.identifier,
+            "Default profile should use device timezone"
+        )
+    }
+
+    @Test("First launch: no timezone alert should be shown")
+    func firstLaunchNoTimezoneAlertShouldBeShown() async throws {
+        let container = try TestModelContainer.create()
+        // DO NOT save a profile - simulate first app launch
+
+        let service = createService(container: container)
+
+        // Simulate the app's timezone detection flow on first launch
+        // 1. App calls detectTimezoneChange()
+        // 2. This triggers profile creation with current timezone
+        // 3. No change should be detected
+
+        let change = try await service.detectTimezoneChange()
+
+        // The app's logic: if change == nil, don't show alert
+        let shouldShowAlert = change != nil
+
+        #expect(shouldShowAlert == false, "First launch should not trigger timezone change alert")
+    }
+
+    @Test("First launch with existing iCloud profile: detects timezone change if different")
+    func firstLaunchWithExistingICloudProfileDetectsTimezoneChangeIfDifferent() async throws {
+        let container = try TestModelContainer.create()
+
+        // Simulate: User has existing iCloud profile from another device in different timezone
+        // This could happen when user sets up new device and iCloud syncs profile before first launch
+        let existingProfile = UserProfileBuilder.standard(
+            currentTimezone: TimezoneTestHelpers.kiritimati  // Extremely rare timezone
+        )
+        try await saveProfile(existingProfile, to: container)
+
+        let service = createService(container: container)
+
+        // Skip if somehow running in this extremely rare timezone
+        try #require(TimeZone.current.identifier != TimezoneTestHelpers.kiritimati.identifier, "Test not applicable in Kiritimati timezone")
+
+        // On this "first launch" with synced profile, timezone SHOULD be detected as changed
+        let change = try await service.detectTimezoneChange()
+
+        #expect(change != nil, "Should detect timezone change when iCloud profile has different timezone")
+        #expect(change?.previousTimezone == TimezoneTestHelpers.kiritimati.identifier)
+        #expect(change?.newTimezone == TimeZone.current.identifier)
     }
 }

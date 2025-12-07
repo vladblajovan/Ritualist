@@ -28,6 +28,10 @@ public final class DashboardViewModel {
     /// Track if initial data has been loaded to prevent duplicate loads during startup
     @ObservationIgnored private var hasLoadedInitialData = false
 
+    /// Track if a refresh was requested while a load was in progress
+    /// When true, performLoad() will re-run after current load completes
+    @ObservationIgnored private var needsRefreshAfterLoad = false
+
     /// Track view visibility for tab switch detection
     public var isViewVisible: Bool = false
 
@@ -44,6 +48,14 @@ public final class DashboardViewModel {
     @ObservationIgnored @Injected(\.calculateDailyProgress) internal var calculateDailyProgress
     @ObservationIgnored @Injected(\.isScheduledDay) internal var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
+    @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
+
+    /// Cached display timezone for synchronous access in computed properties.
+    /// Fetched once on load from TimezoneService.getDisplayTimezone().
+    /// NOT marked @ObservationIgnored - allows SwiftUI to observe direct changes.
+    /// Currently, timezone changes trigger full reload via iCloudDidSyncRemoteChanges notification,
+    /// but keeping this observable provides a safeguard for future direct timezone updates.
+    internal var displayTimezone: TimeZone = .current
 
     internal let logger: DebugLogger
 
@@ -380,6 +392,18 @@ public final class DashboardViewModel {
 
     /// Force reload dashboard data (for pull-to-refresh, iCloud sync, etc.)
     public func refresh() async {
+        // If a load is in progress, mark that we need to refresh after it completes
+        // This handles the race condition where timezone changes during an ongoing load
+        if isLoading {
+            needsRefreshAfterLoad = true
+            logger.log(
+                "Dashboard load in progress - marking for refresh after current load completes",
+                level: .info,
+                category: .ui
+            )
+            return
+        }
+
         hasLoadedInitialData = false
         await performLoad()
     }
@@ -417,6 +441,15 @@ public final class DashboardViewModel {
         error = nil
 
         do {
+            // Fetch display timezone from TimezoneService for all time-based calculations
+            displayTimezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+            logger.log(
+                "Display timezone loaded for Dashboard",
+                level: .debug,
+                category: .ui,
+                metadata: ["timezone": displayTimezone.identifier]
+            )
+
             // PHASE 2: Unified data loading - reduces queries from 471+ to 3
             let dashboardData = try await loadUnifiedDashboardData()
 
@@ -445,15 +478,28 @@ public final class DashboardViewModel {
         }
 
         self.isLoading = false
+
+        // Check if a refresh was requested while we were loading
+        // This handles the race condition where timezone changes during an ongoing load
+        if needsRefreshAfterLoad {
+            needsRefreshAfterLoad = false
+            logger.log(
+                "Processing pending Dashboard refresh that was requested during load",
+                level: .info,
+                category: .ui
+            )
+            hasLoadedInitialData = false
+            await performLoad()
+        }
     }
     
     // MARK: - Habit Completion Methods
-    
+
     /// Check if a habit is completed on a specific date using IsHabitCompletedUseCase
     public func isHabitCompleted(_ habit: Habit, on date: Date) async -> Bool {
         do {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
-            return isHabitCompleted.execute(habit: habit, on: date, logs: logs)
+            return isHabitCompleted.execute(habit: habit, on: date, logs: logs, timezone: displayTimezone)
         } catch {
             logger.log(
                 "Failed to check habit completion",
@@ -469,7 +515,7 @@ public final class DashboardViewModel {
     public func getHabitProgress(_ habit: Habit, on date: Date) async -> Double {
         do {
             let logs = try await getSingleHabitLogs.execute(for: habit.id, from: date, to: date)
-            return calculateDailyProgress.execute(habit: habit, logs: logs, for: date)
+            return calculateDailyProgress.execute(habit: habit, logs: logs, for: date, timezone: displayTimezone)
         } catch {
             logger.log(
                 "Failed to get habit progress",
@@ -480,10 +526,10 @@ public final class DashboardViewModel {
             return 0.0
         }
     }
-    
+
     /// Check if a habit should be shown as actionable on a specific date using IsScheduledDayUseCase
     public func isHabitActionable(_ habit: Habit, on date: Date) -> Bool {
-        isScheduledDay.execute(habit: habit, date: date)
+        isScheduledDay.execute(habit: habit, date: date, timezone: displayTimezone)
     }
     
     /// Get schedule validation message for a habit on a specific date
