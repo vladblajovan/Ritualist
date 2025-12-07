@@ -104,6 +104,14 @@ import CloudKit
     /// Cancels previous detection if a new one starts before completion
     @State private var timezoneDetectionTask: Task<Void, Never>?
 
+    /// Track last notification rescheduling time (using system uptime for clock-drift immunity)
+    /// Prevents duplicate rescheduling when both significantTimeChange and timezone detection fire together
+    @State private var lastNotificationRescheduleUptime: TimeInterval?
+
+    /// Minimum interval between notification reschedulings (5 seconds)
+    /// This debounces rapid-fire events like midnight + timezone change
+    private static let notificationRescheduleThrottleInterval: TimeInterval = 5.0
+
     /// App startup time for performance monitoring
     private let appStartTime = Date()
 
@@ -829,6 +837,8 @@ import CloudKit
     /// This handles day changes and completion status updates while the app was backgrounded
     ///
     /// IMPORTANT: Only schedules if notification authorization is granted.
+    /// Includes throttling to prevent duplicate rescheduling when multiple events fire together
+    /// (e.g., significantTimeChange and timezone detection at midnight).
     private func rescheduleNotificationsIfNeeded() async {
         // Check authorization status first - scheduling without authorization silently fails
         let isAuthorized = await notificationService.checkAuthorizationStatus()
@@ -842,6 +852,18 @@ import CloudKit
             return
         }
 
+        // Throttle to prevent duplicate rescheduling when multiple events fire together
+        let currentUptime = ProcessInfo.processInfo.systemUptime
+        if let lastReschedule = lastNotificationRescheduleUptime,
+           currentUptime - lastReschedule < Self.notificationRescheduleThrottleInterval {
+            logger.log(
+                "⏭️ Skipping notification re-scheduling - throttled (rescheduled \(String(format: "%.1f", currentUptime - lastReschedule))s ago)",
+                level: .debug,
+                category: .system
+            )
+            return
+        }
+
         do {
             logger.log(
                 "🔄 Re-scheduling notifications on app active",
@@ -849,6 +871,7 @@ import CloudKit
                 category: .system
             )
             try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
+            lastNotificationRescheduleUptime = currentUptime
         } catch {
             logger.log(
                 "⚠️ Failed to re-schedule notifications",

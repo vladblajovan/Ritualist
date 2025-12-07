@@ -28,6 +28,10 @@ public final class DashboardViewModel {
     /// Track if initial data has been loaded to prevent duplicate loads during startup
     @ObservationIgnored private var hasLoadedInitialData = false
 
+    /// Track if a refresh was requested while a load was in progress
+    /// When true, performLoad() will re-run after current load completes
+    @ObservationIgnored private var needsRefreshAfterLoad = false
+
     /// Track view visibility for tab switch detection
     public var isViewVisible: Bool = false
 
@@ -388,6 +392,18 @@ public final class DashboardViewModel {
 
     /// Force reload dashboard data (for pull-to-refresh, iCloud sync, etc.)
     public func refresh() async {
+        // If a load is in progress, mark that we need to refresh after it completes
+        // This handles the race condition where timezone changes during an ongoing load
+        if isLoading {
+            needsRefreshAfterLoad = true
+            logger.log(
+                "Dashboard load in progress - marking for refresh after current load completes",
+                level: .info,
+                category: .ui
+            )
+            return
+        }
+
         hasLoadedInitialData = false
         await performLoad()
     }
@@ -462,6 +478,19 @@ public final class DashboardViewModel {
         }
 
         self.isLoading = false
+
+        // Check if a refresh was requested while we were loading
+        // This handles the race condition where timezone changes during an ongoing load
+        if needsRefreshAfterLoad {
+            needsRefreshAfterLoad = false
+            logger.log(
+                "Processing pending Dashboard refresh that was requested during load",
+                level: .info,
+                category: .ui
+            )
+            hasLoadedInitialData = false
+            await performLoad()
+        }
     }
     
     // MARK: - Habit Completion Methods

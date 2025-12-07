@@ -61,6 +61,10 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// Track if initial data has been loaded to prevent duplicate loads
     @ObservationIgnored private var hasLoadedInitialData = false
 
+    /// Track if a refresh was requested while a load was in progress
+    /// When true, loadData() will re-run after current load completes
+    @ObservationIgnored private var needsRefreshAfterLoad = false
+
     /// Public accessor for view to check if initial load has completed
     public var hasInitialDataLoaded: Bool {
         hasLoadedInitialData
@@ -195,14 +199,16 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
     
     // MARK: - Public Methods
-    
+
+    // swiftlint:disable:next function_body_length
     public func loadData() async {
         // Prevent duplicate loads while one is already in progress
+        // If refresh() is called during a load, we'll catch it at the end and re-run
         guard !isLoading else {
             logger.logStateTransition(
                 from: "loading_blocked",
                 to: "already_loading",
-                context: ["reason": "Preventing duplicate load"]
+                context: ["reason": "Preventing duplicate load, will check needsRefreshAfterLoad"]
             )
             return
         }
@@ -323,15 +329,41 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         }
 
         self.isLoading = false
+
+        // Check if a refresh was requested while we were loading
+        // This handles the race condition where timezone changes during an ongoing load
+        if needsRefreshAfterLoad {
+            needsRefreshAfterLoad = false
+            logger.log(
+                "Processing pending refresh that was requested during load",
+                level: .info,
+                category: .stateManagement
+            )
+            hasLoadedInitialData = false
+            await loadData()
+        }
     }
-    
+
     public func refresh() async {
         logger.log(
             "Manual refresh requested",
             level: .info,
             category: .userAction,
-            metadata: ["action": "User initiated data reload"]
+            metadata: ["action": "User initiated data reload", "isLoading": isLoading]
         )
+
+        // If a load is in progress, mark that we need to refresh after it completes
+        // This handles the race condition where timezone changes during an ongoing load
+        if isLoading {
+            needsRefreshAfterLoad = true
+            logger.log(
+                "Load in progress - marking for refresh after current load completes",
+                level: .info,
+                category: .stateManagement
+            )
+            return
+        }
+
         hasLoadedInitialData = false  // Allow reload
         await loadData()
     }
