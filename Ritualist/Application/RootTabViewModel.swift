@@ -12,6 +12,7 @@ public final class RootTabViewModel {
     private let loadProfile: LoadProfile
     private let iCloudKeyValueService: iCloudKeyValueService
     private let logger: DebugLogger
+    private let premiumVerifier: () async -> Bool
     @ObservationIgnored @Injected(\.toastService) private var toastService
 
     // MARK: - Services (exposed for view binding)
@@ -41,7 +42,8 @@ public final class RootTabViewModel {
         appearanceManager: AppearanceManager,
         navigationService: NavigationService,
         personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator,
-        logger: DebugLogger
+        logger: DebugLogger,
+        premiumVerifier: @escaping () async -> Bool = { await StoreKitSubscriptionService.verifyPremiumAsync() }
     ) {
         self.loadProfile = loadProfile
         self.iCloudKeyValueService = iCloudKeyValueService
@@ -49,6 +51,7 @@ public final class RootTabViewModel {
         self.navigationService = navigationService
         self.personalityDeepLinkCoordinator = personalityDeepLinkCoordinator
         self.logger = logger
+        self.premiumVerifier = premiumVerifier
     }
 
     // MARK: - Public Methods
@@ -66,7 +69,7 @@ public final class RootTabViewModel {
         // Transaction.currentEntitlements is tied to the Apple ID, not the device.
         // Without this, returning users would see new user onboarding because
         // isCloudKitSyncActive would return false (cached premium status is false).
-        let isPremiumVerified = await StoreKitSubscriptionService.verifyPremiumAsync()
+        let isPremiumVerified = await premiumVerifier()
         if isPremiumVerified {
             logger.log(
                 "Premium subscription verified at startup - enabling sync for returning user check",

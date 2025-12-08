@@ -12,7 +12,7 @@ import Foundation
 
 public protocol ICloudSyncPreferenceServiceProtocol: Sendable {
     /// Whether user has enabled iCloud sync (user preference)
-    /// Default: false (opt-in model - user must explicitly enable sync)
+    /// Default: true (opt-out model - sync enabled by default for premium users)
     var isICloudSyncEnabled: Bool { get }
 
     /// Set iCloud sync preference (requires app restart to take effect)
@@ -20,7 +20,7 @@ public protocol ICloudSyncPreferenceServiceProtocol: Sendable {
 
     /// Whether sync should actually be active (premium + user preference)
     /// - Parameter isPremium: Whether the user has premium subscription
-    /// - Returns: true if sync should be active (both premium AND user preference enabled)
+    /// - Returns: true if sync should be active (premium AND not explicitly disabled)
     func shouldSyncBeActive(isPremium: Bool) -> Bool
 }
 
@@ -30,10 +30,10 @@ public final class ICloudSyncPreferenceService: ICloudSyncPreferenceServiceProto
     public static let shared = ICloudSyncPreferenceService()
 
     private init() {
-        // Register default value (opt-in model - sync disabled by default)
-        // User must explicitly enable sync after becoming premium
+        // Register default value (opt-out model - sync enabled by default)
+        // Premium users get sync automatically; they can disable in Settings if desired
         UserDefaults.standard.register(defaults: [
-            UserDefaultsKeys.iCloudSyncEnabled: false
+            UserDefaultsKeys.iCloudSyncEnabled: true
         ])
     }
 

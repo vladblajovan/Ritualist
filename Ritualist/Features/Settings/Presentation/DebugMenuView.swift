@@ -23,6 +23,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     @State private var showingMigrationSimulationAlert = false
     @State private var showingMotivationCardDemo = false
     @State private var showingResetOnboardingConfirmation = false
+    @State private var showingSimulateNewDeviceConfirmation = false
     @State private var showingRestartRequiredAlert = false
     @State private var restartInstructionMessage = ""
     @State private var migrationLogger = MigrationLogger.shared
@@ -30,7 +31,93 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     @State private var backupCount: Int = 0
     @State private var migrationHistoryCount: Int = 0
     
+    // swiftlint:disable:next function_body_length
     var body: some View {
+        formContent
+            .navigationTitle("Debug Menu")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                await vm.loadDatabaseStats()
+                loadMigrationStats()
+            }
+            .sheet(isPresented: $showingScenarios) {
+                NavigationStack {
+                    TestDataScenariosView(vm: vm)
+                }
+            }
+            .sheet(isPresented: $showingMigrationHistory) {
+                NavigationStack {
+                    MigrationHistoryView(logger: migrationLogger)
+                }
+            }
+            .sheet(isPresented: $showingBackupList) {
+                NavigationStack {
+                    BackupListView(backupManager: backupManager, onRefresh: loadMigrationStats)
+                }
+            }
+            .sheet(isPresented: $showingMotivationCardDemo) {
+                MotivationCardDemoView()
+            }
+            .alert("Clear Database?", isPresented: $showingDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear All Data", role: .destructive) {
+                    Task {
+                        await vm.clearDatabase()
+                    }
+                }
+            } message: {
+                Text("This will permanently delete all habits, logs, categories, and user data from the local database. This action cannot be undone.\n\nThis is useful for testing with a clean slate.")
+            }
+            .alert("Migration Simulation Ready", isPresented: $showingMigrationSimulationAlert) {
+                Button("OK") { }
+            } message: {
+                let previousVersion = getPreviousVersionNumber()
+                let currentVersionString = RitualistMigrationPlan.currentSchemaVersion.description
+                let localizedText = String(localized: "alert.message.migration_restart_test", defaultValue: "Restart to test V%1$lld → V%2$@", comment: "Alert message for migration simulation")
+                Text(String(format: localizedText, previousVersion, currentVersionString))
+            }
+            .alert("Reset Onboarding?", isPresented: $showingResetOnboardingConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    Task {
+                        await vm.resetOnboarding()
+                        restartInstructionMessage = "Onboarding has been reset. Please close and reopen the app to see the onboarding flow."
+                        showingRestartRequiredAlert = true
+                    }
+                }
+            } message: {
+                Text("This will clear the onboarding completion status. You'll need to manually restart the app to see the onboarding flow again.")
+            }
+            .alert("Simulate New Device?", isPresented: $showingSimulateNewDeviceConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Simulate", role: .destructive) {
+                    Task {
+                        await vm.simulateNewDevice()
+                        restartInstructionMessage = "New device simulation ready. Please close and reopen the app to test the returning user flow."
+                        showingRestartRequiredAlert = true
+                    }
+                }
+            } message: {
+                Text("This will simulate a returning user on a new device by keeping the iCloud onboarding flag but clearing local device flags. You'll need to restart the app to see the effect.")
+            }
+            .alert("Restart Required", isPresented: $showingRestartRequiredAlert) {
+                Button("OK") { }
+            } message: {
+                Text(restartInstructionMessage)
+            }
+            .refreshable {
+                await vm.loadDatabaseStats()
+            }
+    }
+
+    private var formContent: some View {
         Form {
             Section {
                 Text("Debug tools for development and testing. These options are only available in debug builds.")
@@ -192,6 +279,23 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 }
 
                 Text("Clears onboarding completion status. You'll need to manually restart the app to see the onboarding flow again.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Button(role: .destructive) {
+                    showingSimulateNewDeviceConfirmation = true
+                } label: {
+                    HStack {
+                        Image(systemName: "iphone.and.arrow.forward")
+                            .foregroundColor(.blue)
+
+                        Text("Simulate New Device")
+
+                        Spacer()
+                    }
+                }
+
+                Text("Simulates a returning user on a new device: keeps iCloud onboarding flag set but clears local device flags. Useful for testing returning user flow without deleting the app.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -841,77 +945,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 .font(.subheadline)
                 .padding(.vertical, 4)
             }
-        }
-        .navigationTitle("Debug Menu")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Done") {
-                    dismiss()
-                }
-            }
-        }
-        .task {
-            // Load database stats when the view appears
-            await vm.loadDatabaseStats()
-            // Load migration stats
-            loadMigrationStats()
-        }
-        .sheet(isPresented: $showingScenarios) {
-            NavigationStack {
-                TestDataScenariosView(vm: vm)
-            }
-        }
-        .sheet(isPresented: $showingMigrationHistory) {
-            NavigationStack {
-                MigrationHistoryView(logger: migrationLogger)
-            }
-        }
-        .sheet(isPresented: $showingBackupList) {
-            NavigationStack {
-                BackupListView(backupManager: backupManager, onRefresh: loadMigrationStats)
-            }
-        }
-        .sheet(isPresented: $showingMotivationCardDemo) {
-            MotivationCardDemoView()
-        }
-        .alert("Clear Database?", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Clear All Data", role: .destructive) {
-                Task {
-                    await vm.clearDatabase()
-                }
-            }
-        } message: {
-            Text("This will permanently delete all habits, logs, categories, and user data from the local database. This action cannot be undone.\n\nThis is useful for testing with a clean slate.")
-        }
-        .alert("Migration Simulation Ready", isPresented: $showingMigrationSimulationAlert) {
-            Button("OK") { }
-        } message: {
-            let previousVersion = getPreviousVersionNumber()
-            let currentVersionString = RitualistMigrationPlan.currentSchemaVersion.description
-            let localizedText = String(localized: "alert.message.migration_restart_test", defaultValue: "Restart to test V%1$lld → V%2$@", comment: "Alert message for migration simulation")
-            Text(String(format: localizedText, previousVersion, currentVersionString))
-        }
-        .alert("Reset Onboarding?", isPresented: $showingResetOnboardingConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Reset", role: .destructive) {
-                Task {
-                    await vm.resetOnboarding()
-                    restartInstructionMessage = "Onboarding has been reset. Please close and reopen the app to see the onboarding flow."
-                    showingRestartRequiredAlert = true
-                }
-            }
-        } message: {
-            Text("This will clear the onboarding completion status. You'll need to manually restart the app to see the onboarding flow again.")
-        }
-        .alert("Restart Required", isPresented: $showingRestartRequiredAlert) {
-            Button("OK") { }
-        } message: {
-            Text(restartInstructionMessage)
-        }
-        .refreshable {
-            await vm.loadDatabaseStats()
         }
     }
 

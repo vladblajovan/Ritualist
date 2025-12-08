@@ -62,9 +62,10 @@ struct RootTabViewModelTests {
         clearTestUserDefaults()
 
         // Setup premium provider and sync preference for isCloudKitSyncActive check
-        // Default to premium=true and sync=true so returning user tests work (they need sync active)
+        // Sync defaults to true (opt-out model), so we only need to set premium status
+        // For non-premium tests, we explicitly set sync=false to match expected behavior
         setupPremiumProvider(isPremium: isPremium)
-        setupSyncPreference(enabled: isPremium) // Enable sync when premium
+        setupSyncPreference(enabled: isPremium) // Sync enabled matches premium status
 
         let mockiCloud = MockiCloudKeyValueServiceForViewModel()
         mockiCloud.iCloudOnboardingCompleted = iCloudCompleted
@@ -79,13 +80,18 @@ struct RootTabViewModelTests {
         let personalityCoordinator = PersonalityDeepLinkCoordinator(logger: DebugLogger(subsystem: "test", category: "coordinator"))
         let logger = DebugLogger(subsystem: "test", category: "viewmodel")
 
+        // Create mock premium verifier that returns the test's isPremium value
+        // This bypasses StoreKit which always returns false in unit tests
+        let mockPremiumVerifier: () async -> Bool = { isPremium }
+
         let viewModel = RootTabViewModel(
             loadProfile: mockLoadProfile,
             iCloudKeyValueService: mockiCloud,
             appearanceManager: appearanceManager,
             navigationService: navigationService,
             personalityDeepLinkCoordinator: personalityCoordinator,
-            logger: logger
+            logger: logger,
+            premiumVerifier: mockPremiumVerifier
         )
 
         return (viewModel, mockiCloud)
