@@ -123,12 +123,12 @@ public struct DashboardView: View {
                 .font(.system(size: 60)) // Keep fixed for decorative icon
                 .foregroundColor(.secondary.opacity(0.6))
                 .accessibilityHidden(true) // Decorative icon
-            
+
             VStack(spacing: 8) {
                 Text(Strings.Dashboard.noDataAvailable)
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+
                 Text(Strings.Dashboard.startTrackingMessage)
                     .font(.body)
                     .foregroundColor(.secondary)
@@ -137,6 +137,8 @@ public struct DashboardView: View {
         }
         .frame(height: 300)
         .padding(.horizontal, 40)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("No data available. Start tracking habits to see statistics")
     }
     
     @ViewBuilder
