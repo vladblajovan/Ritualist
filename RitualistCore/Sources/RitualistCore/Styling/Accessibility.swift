@@ -327,10 +327,14 @@ public enum AccessibilityAnnouncement {
     }
 }
 
-// MARK: - Accessibility Identifiers
+// MARK: - Accessibility Identifiers (RitualistCore)
 
-/// Centralized accessibility identifier constants
-/// Use these for UI testing and VoiceOver identification
+/// Accessibility identifier constants for RitualistCore components.
+///
+/// - Note: For app-level UI testing identifiers, use `AccessibilityID` from
+///   `Ritualist/Core/Utilities/AccessibilityIdentifiers.swift` which provides
+///   comprehensive coverage with dot-notation (e.g., "tab.overview").
+///   This enum uses underscore notation and is primarily for RitualistCore internal use.
 public enum AccessibilityIdentifiers {
     // MARK: - Navigation
     public enum Navigation {

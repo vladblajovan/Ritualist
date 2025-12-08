@@ -10,6 +10,7 @@ import Foundation
 import Testing
 import SwiftUI
 @testable import RitualistCore
+@testable import Ritualist
 
 /// Tests for accessibility helper functions and utilities
 @Suite("Accessibility Utilities - Animation Constants")
@@ -106,74 +107,84 @@ struct AccessibilityLayoutModeTests {
     }
 }
 
-/// Tests for accessibility identifiers consistency
-@Suite("Accessibility Identifiers - Consistency")
-struct AccessibilityIdentifiersTests {
+/// Tests for AccessibilityID - the primary accessibility identifier system
+/// Note: AccessibilityIdentifiers in RitualistCore is deprecated in favor of AccessibilityID.
+@Suite("AccessibilityID - Primary Identifier System")
+struct AccessibilityIDTests {
+
+    @Test("TabBar identifiers have expected string format")
+    func tabBarIdentifiers() {
+        #expect(AccessibilityID.TabBar.overview == "tab.overview")
+        #expect(AccessibilityID.TabBar.habits == "tab.habits")
+        #expect(AccessibilityID.TabBar.stats == "tab.stats")
+        #expect(AccessibilityID.TabBar.settings == "tab.settings")
+    }
 
     @Test("Overview identifiers have expected string format")
     func overviewIdentifiers() {
-        // Verify identifiers follow consistent naming convention
-        #expect(AccessibilityIdentifiers.Overview.screen == "overview_screen")
-        #expect(AccessibilityIdentifiers.Overview.dateSelector == "overview_date_selector")
-        #expect(AccessibilityIdentifiers.Overview.previousDayButton == "overview_previous_day")
-        #expect(AccessibilityIdentifiers.Overview.nextDayButton == "overview_next_day")
-        #expect(AccessibilityIdentifiers.Overview.todayButton == "overview_today_button")
-        #expect(AccessibilityIdentifiers.Overview.habitList == "overview_habit_list")
-        #expect(AccessibilityIdentifiers.Overview.addHabitButton == "overview_add_habit")
-        #expect(AccessibilityIdentifiers.Overview.emptyState == "overview_empty_state")
+        #expect(AccessibilityID.Overview.root == "overview.root")
+        #expect(AccessibilityID.Overview.habitsList == "overview.habitsList")
+        #expect(AccessibilityID.Overview.previousDayButton == "overview.previousDay")
+        #expect(AccessibilityID.Overview.nextDayButton == "overview.nextDay")
+        #expect(AccessibilityID.Overview.todayButton == "overview.todayButton")
+        #expect(AccessibilityID.Overview.streaksCard == "overview.streaksCard")
+        #expect(AccessibilityID.Overview.summaryCard == "overview.summaryCard")
     }
 
-    @Test("Dashboard identifiers have expected string format")
-    func dashboardIdentifiers() {
-        #expect(AccessibilityIdentifiers.Dashboard.screen == "dashboard_screen")
-        #expect(AccessibilityIdentifiers.Dashboard.scrollView == "dashboard_scroll_view")
-        #expect(AccessibilityIdentifiers.Dashboard.streaksCard == "dashboard_streaks_card")
-        #expect(AccessibilityIdentifiers.Dashboard.statsCard == "dashboard_stats_card")
-        #expect(AccessibilityIdentifiers.Dashboard.calendarCard == "dashboard_calendar_card")
-        #expect(AccessibilityIdentifiers.Dashboard.insightsCard == "dashboard_insights_card")
+    @Test("Habits identifiers have expected string format")
+    func habitsIdentifiers() {
+        #expect(AccessibilityID.Habits.root == "habits.root")
+        #expect(AccessibilityID.Habits.habitsList == "habits.list")
+        #expect(AccessibilityID.Habits.addButton == "habits.add")
+        #expect(AccessibilityID.Habits.emptyState == "habits.emptyState")
     }
 
-    @Test("HabitCard identifiers generate unique IDs per habit")
-    func habitCardIdentifiersAreUnique() {
+    @Test("Stats identifiers have expected string format")
+    func statsIdentifiers() {
+        #expect(AccessibilityID.Stats.root == "stats.root")
+        #expect(AccessibilityID.Stats.dashboard == "stats.dashboard")
+        #expect(AccessibilityID.Stats.streakCard == "stats.streakCard")
+        #expect(AccessibilityID.Stats.completionCard == "stats.completionCard")
+    }
+
+    @Test("Dynamic identifiers generate unique IDs")
+    func dynamicIdentifiersAreUnique() {
         let habitId1 = "habit-123"
         let habitId2 = "habit-456"
 
-        // Card identifiers should be unique per habit
-        #expect(AccessibilityIdentifiers.HabitCard.card(habitId: habitId1) != AccessibilityIdentifiers.HabitCard.card(habitId: habitId2))
-        #expect(AccessibilityIdentifiers.HabitCard.checkbox(habitId: habitId1) != AccessibilityIdentifiers.HabitCard.checkbox(habitId: habitId2))
-        #expect(AccessibilityIdentifiers.HabitCard.title(habitId: habitId1) != AccessibilityIdentifiers.HabitCard.title(habitId: habitId2))
-        #expect(AccessibilityIdentifiers.HabitCard.progress(habitId: habitId1) != AccessibilityIdentifiers.HabitCard.progress(habitId: habitId2))
+        // Overview habit identifiers should be unique per habit
+        #expect(AccessibilityID.Overview.habitRow(habitId1) != AccessibilityID.Overview.habitRow(habitId2))
+        #expect(AccessibilityID.Overview.habitCheckbox(habitId1) != AccessibilityID.Overview.habitCheckbox(habitId2))
+
+        // Stats habit performance identifiers should be unique
+        #expect(AccessibilityID.Stats.habitPerformanceRow(habitId1) != AccessibilityID.Stats.habitPerformanceRow(habitId2))
 
         // Identifiers should contain the habit ID
-        #expect(AccessibilityIdentifiers.HabitCard.card(habitId: habitId1).contains(habitId1))
-        #expect(AccessibilityIdentifiers.HabitCard.card(habitId: habitId2).contains(habitId2))
-    }
-
-    @Test("Navigation identifiers have expected string format")
-    func navigationIdentifiers() {
-        #expect(AccessibilityIdentifiers.Navigation.tabBar == "main_tab_bar")
-        #expect(AccessibilityIdentifiers.Navigation.overviewTab == "overview_tab")
-        #expect(AccessibilityIdentifiers.Navigation.dashboardTab == "dashboard_tab")
-        #expect(AccessibilityIdentifiers.Navigation.settingsTab == "settings_tab")
+        #expect(AccessibilityID.Overview.habitRow(habitId1).contains(habitId1))
+        #expect(AccessibilityID.Stats.habitPerformanceRow(habitId2).contains(habitId2))
     }
 
     @Test("Common identifiers have expected string format")
     func commonIdentifiers() {
-        #expect(AccessibilityIdentifiers.Common.loadingIndicator == "loading_indicator")
-        #expect(AccessibilityIdentifiers.Common.errorView == "error_view")
-        #expect(AccessibilityIdentifiers.Common.retryButton == "retry_button")
-        #expect(AccessibilityIdentifiers.Common.closeButton == "close_button")
-        #expect(AccessibilityIdentifiers.Common.saveButton == "save_button")
-        #expect(AccessibilityIdentifiers.Common.cancelButton == "cancel_button")
-        #expect(AccessibilityIdentifiers.Common.deleteButton == "delete_button")
+        #expect(AccessibilityID.Common.loadingIndicator == "common.loading")
+        #expect(AccessibilityID.Common.errorMessage == "common.error")
+        #expect(AccessibilityID.Common.emptyState == "common.emptyState")
+        #expect(AccessibilityID.Common.refreshControl == "common.refresh")
+    }
+
+    @Test("Navigation identifiers have expected string format")
+    func navigationIdentifiers() {
+        #expect(AccessibilityID.Navigation.backButton == "navigation.back")
+        #expect(AccessibilityID.Navigation.closeButton == "navigation.close")
+        #expect(AccessibilityID.Navigation.doneButton == "navigation.done")
+        #expect(AccessibilityID.Navigation.cancelButton == "navigation.cancel")
     }
 
     @Test("Settings identifiers have expected string format")
     func settingsIdentifiers() {
-        #expect(AccessibilityIdentifiers.Settings.screen == "settings_screen")
-        #expect(AccessibilityIdentifiers.Settings.notificationsSection == "settings_notifications")
-        #expect(AccessibilityIdentifiers.Settings.appearanceSection == "settings_appearance")
-        #expect(AccessibilityIdentifiers.Settings.dataSection == "settings_data")
-        #expect(AccessibilityIdentifiers.Settings.aboutSection == "settings_about")
+        #expect(AccessibilityID.Settings.root == "settings.root")
+        #expect(AccessibilityID.Settings.profileSection == "settings.profile")
+        #expect(AccessibilityID.Settings.appearanceSection == "settings.appearance")
+        #expect(AccessibilityID.Settings.notificationsSection == "settings.notifications")
     }
 }

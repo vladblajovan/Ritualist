@@ -3,6 +3,22 @@ import Charts
 import RitualistCore
 import FactoryKit
 
+// MARK: - Accessibility Strings
+
+private enum DashboardAccessibility {
+    static let emptyStateLabel = "No data available. Start tracking habits to see statistics"
+    static let chartNoData = "No data available"
+
+    static func chartDescription(avgCompletion: Int, trend: String) -> String {
+        "Average completion rate \(avgCompletion)%, trend is \(trend)"
+    }
+
+    static func categoryLabel(name: String, habitCount: Int, completionPercent: Int) -> String {
+        let habitText = habitCount == 1 ? "1 habit" : "\(habitCount) habits"
+        return "\(name), \(habitText), \(completionPercent)% completion"
+    }
+}
+
 // swiftlint:disable type_body_length
 public struct DashboardView: View {
     @Bindable var vm: DashboardViewModel
@@ -138,7 +154,7 @@ public struct DashboardView: View {
         .frame(height: 300)
         .padding(.horizontal, 40)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("No data available. Start tracking habits to see statistics")
+        .accessibilityLabel(DashboardAccessibility.emptyStateLabel)
     }
     
     @ViewBuilder
@@ -200,10 +216,10 @@ public struct DashboardView: View {
     }
 
     private func chartAccessibilityDescription(data: [DashboardViewModel.ChartDataPointViewModel]) -> String {
-        guard !data.isEmpty else { return "No data available" }
+        guard !data.isEmpty else { return DashboardAccessibility.chartNoData }
         let avgCompletion = data.map { $0.completionRate }.reduce(0, +) / Double(data.count)
         let trend = data.count > 1 && data.last!.completionRate > data.first!.completionRate ? "improving" : "declining"
-        return "Average completion rate \(Int(avgCompletion * 100))%, trend is \(trend)"
+        return DashboardAccessibility.chartDescription(avgCompletion: Int(avgCompletion * 100), trend: trend)
     }
     
     @ViewBuilder
@@ -332,12 +348,14 @@ public struct DashboardView: View {
                         if let emoji = category.emoji {
                             Text(emoji)
                                 .font(.title3)
+                                .accessibilityHidden(true) // Decorative emoji
                         } else {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color(hex: category.color) ?? AppColors.brand)
                                 .frame(width: 16, height: 16)
+                                .accessibilityHidden(true) // Decorative color indicator
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(category.categoryName)
                                 .font(.subheadline.weight(.medium))
@@ -347,21 +365,22 @@ public struct DashboardView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     // Progress bar and percentage
                     HStack(spacing: 8) {
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color(.systemGray5))
                                 .frame(width: 60, height: 8)
-                            
+
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color(hex: category.color) ?? AppColors.brand)
                                 .frame(width: 60 * category.completionRate, height: 8)
                         }
-                        
+                        .accessibilityHidden(true) // Progress bar is decorative, info conveyed via label
+
                         Text("\(Int((category.completionRate * 100).rounded()))%")
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(.primary)
@@ -369,6 +388,12 @@ public struct DashboardView: View {
                     }
                 }
                 .padding(.vertical, 2)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(DashboardAccessibility.categoryLabel(
+                    name: category.categoryName,
+                    habitCount: category.habitCount,
+                    completionPercent: Int((category.completionRate * 100).rounded())
+                ))
             }
         }
         .cardStyle()
