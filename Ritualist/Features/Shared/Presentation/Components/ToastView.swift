@@ -75,9 +75,11 @@ struct ToastView: View {
                 Image(systemName: "xmark")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.white.opacity(0.8))
+                    .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Dismiss")
+            .accessibilityLabel("Dismiss notification")
+            .accessibilityHint("Double-tap to dismiss this notification")
             .accessibilityIdentifier(AccessibilityID.Toast.dismissButton)
         }
         .padding(.leading, Spacing.medium)

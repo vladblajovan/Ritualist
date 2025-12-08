@@ -121,7 +121,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                         // Header with emoji and name
                         VStack(spacing: Spacing.medium) {
                             Text(habit.emoji ?? "📊")
-                                .font(.system(size: 48))
+                                .font(.system(size: 48)) // Keep fixed for decorative emoji
                             
                             Text(habit.name)
                                 .font(.title2)
@@ -140,7 +140,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     }
                                 } label: {
                                     Image(systemName: "minus.circle.fill")
-                                        .font(.system(size: 44))
+                                        .font(.system(size: 44)) // Keep fixed for consistent touch target
                                         .foregroundStyle(
                                             LinearGradient(
                                                 colors: [CardDesign.progressOrange, .ritualistCyan],
@@ -164,7 +164,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
 
                                     VStack(spacing: 2) {
                                         Text("\(Int(value))")
-                                            .font(.system(size: 28, weight: .bold))
+                                            .font(.title.weight(.bold))
                                             .foregroundStyle(
                                                 LinearGradient(
                                                     colors: CircularProgressView.adaptiveProgressColors(for: progressPercentage),
@@ -186,7 +186,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     }
                                 } label: {
                                     Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 44))
+                                        .font(.system(size: 44)) // Keep fixed for consistent touch target
                                         .foregroundStyle(
                                             LinearGradient(
                                                 colors: [CardDesign.progressGreen, .ritualistCyan],
@@ -204,6 +204,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 if value == dailyTarget {
                                     HStack(spacing: Spacing.small) {
                                         Text("🏆")
+                                            .accessibilityHidden(true) // Decorative emoji
                                         Text(Strings.NumericHabitLog.wellDoneExtraMile)
                                             .font(.subheadline)
                                             .fontWeight(.medium)
@@ -218,6 +219,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 } else if value > dailyTarget, let text = extraMileText {
                                     HStack(spacing: Spacing.small) {
                                         Text("🎉")
+                                            .accessibilityHidden(true) // Decorative emoji
                                         Text(text)
                                             .font(.subheadline)
                                             .fontWeight(.medium)
@@ -299,6 +301,10 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
             } else {
                 loadCurrentValue()
             }
+            // Announce sheet to VoiceOver for focus management
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                UIAccessibility.post(notification: .screenChanged, argument: "Log \(habit.name)")
+            }
         }
         .onDisappear {
             loadTask?.cancel()
@@ -350,7 +356,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
             }
         } label: {
             Text(Strings.NumericHabitLog.reset)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.body.weight(.semibold))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, Spacing.large)
                 .frame(height: 44)
@@ -369,7 +375,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
             }
         } label: {
             Text(Strings.NumericHabitLog.completeAll)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.body.weight(.semibold))
                 .foregroundColor(adaptiveColor)
                 .padding(.horizontal, Spacing.large)
                 .frame(height: 44)

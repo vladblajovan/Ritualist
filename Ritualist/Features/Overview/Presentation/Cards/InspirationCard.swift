@@ -9,6 +9,9 @@ struct InspirationCard: View {
     let shouldShow: Bool
     let onDismiss: () -> Void
 
+    // Dynamic Type support for icon frame
+    @ScaledMetric(relativeTo: .title2) private var iconFrameSize: CGFloat = 32
+
     // PERFORMANCE OPTIMIZATION: Cache computed style to prevent recomputation on every render
     // This eliminates repeated gradient creation and branching logic evaluation
     @State private var cachedStyle: InspirationStyleViewLogic.Style?
@@ -52,15 +55,16 @@ struct InspirationCard: View {
                 VStack(spacing: 0) {
                     // Header with icon and title
                     HStack(alignment: .center, spacing: 12) {
-                        // Time-based icon with fixed frame and padding for consistency
+                        // Time-based icon with scaled frame for Dynamic Type
                         Image(systemName: style.iconName)
-                            .font(.system(size: 24, weight: .medium))
+                            .font(.title2.weight(.medium))
                             .foregroundColor(style.accentColor)
-                            .frame(width: 32, height: 32)
+                            .frame(width: iconFrameSize, height: iconFrameSize)
+                            .accessibilityHidden(true) // Decorative icon
 
                         // Main message on same line as icon
                         Text(message)
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundColor(.primary)
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
@@ -75,7 +79,7 @@ struct InspirationCard: View {
                     // Extra trailing padding (70pt) creates restricted zone for dismiss button
                     if message != slogan && !slogan.isEmpty {
                         Text(slogan)
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .font(.subheadline.weight(.medium))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
@@ -93,9 +97,9 @@ struct InspirationCard: View {
                 // Acknowledgement button in bottom-right
                 Button(action: onDismiss) {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundColor(.secondary)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 44, height: 44) // Keep fixed for 44pt touch target
                         .background(
                             Circle()
                                 .fill(.secondary.opacity(0.15))

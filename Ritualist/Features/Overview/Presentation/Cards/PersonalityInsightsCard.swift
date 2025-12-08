@@ -99,10 +99,13 @@ struct PersonalityInsightsCard: View {
                 .padding(.top, 4)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.3)) {
+                    animateIfAllowed(.easeInOut(duration: 0.3)) {
                         isExpanded.toggle()
                     }
                 }
+                .accessibilityLabel(isExpanded ? "Show less insights" : "View \(insights.count - 3) more insights")
+                .accessibilityHint("Double-tap to \(isExpanded ? "collapse" : "expand") the insights list")
+                .accessibilityAddTraits(.isButton)
             }
         }
     }
@@ -202,7 +205,7 @@ private struct InsightRow: View {
                 // Insight Content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(insight.title)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.subheadline.weight(.medium))
                         .foregroundColor(.primary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)

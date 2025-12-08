@@ -99,6 +99,32 @@ public var prefersBoldText: Bool {
     UIAccessibility.isBoldTextEnabled
 }
 
+/// Checks if the user prefers reduced motion
+/// Use this to disable or simplify animations
+public var isReduceMotionEnabled: Bool {
+    UIAccessibility.isReduceMotionEnabled
+}
+
+// MARK: - Reduce Motion Helpers
+
+/// Executes animation only if user hasn't enabled Reduce Motion
+/// Falls back to instant state change when Reduce Motion is enabled
+public func animateIfAllowed<T>(
+    _ animation: Animation? = .default,
+    _ body: () throws -> T
+) rethrows -> T {
+    if isReduceMotionEnabled {
+        return try body()
+    } else {
+        return try withAnimation(animation, body)
+    }
+}
+
+/// Returns the animation or nil based on Reduce Motion preference
+public func reduceMotionSafe(_ animation: Animation) -> Animation? {
+    isReduceMotionEnabled ? nil : animation
+}
+
 // MARK: - View Modifiers
 
 /// Modifier to ensure minimum touch target size
@@ -256,6 +282,27 @@ public extension View {
     /// Conditionally applies accessibility layout mode based on text size
     func accessibilityLayoutAware() -> some View {
         environment(\.accessibilityLayoutMode, prefersAccessibilityLayout ? .accessible : .standard)
+    }
+
+    /// Applies animation only when Reduce Motion is not enabled
+    /// Use this instead of .animation() for accessibility compliance
+    func reduceMotionAnimation<V: Equatable>(
+        _ animation: Animation?,
+        value: V
+    ) -> some View {
+        self.animation(isReduceMotionEnabled ? nil : animation, value: value)
+    }
+
+    /// Applies transaction that respects Reduce Motion preference
+    func reduceMotionTransaction(_ body: @escaping (inout Transaction) -> Void) -> some View {
+        self.transaction { transaction in
+            if isReduceMotionEnabled {
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            } else {
+                body(&transaction)
+            }
+        }
     }
 }
 

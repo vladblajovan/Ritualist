@@ -75,7 +75,7 @@ public struct GenericRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
-        .opacity(isEnabled ? 1.0 : 0.7)
+        .opacity(isEnabled ? 1.0 : 0.6)
         .allowsHitTesting(action != nil)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(action != nil ? .isButton : [])
@@ -418,7 +418,7 @@ private struct HabitRowWithSplitZones: View {
                     // Time-based reminders indicator (if reminders are set)
                     if !habit.reminders.isEmpty {
                         Image(systemName: "bell.fill")
-                            .font(.system(size: 16))
+                            .font(.body)
                             .foregroundColor(.orange)
                             .accessibilityLabel("Time-based reminders enabled")
                     }
@@ -426,7 +426,7 @@ private struct HabitRowWithSplitZones: View {
                     // Location indicator (if location-based reminders are enabled)
                     if habit.locationConfiguration?.isEnabled == true {
                         Image(systemName: "location.fill")
-                            .font(.system(size: 16))
+                            .font(.body)
                             .foregroundColor(.purple)
                             .accessibilityLabel("Location-based reminders enabled")
                     }

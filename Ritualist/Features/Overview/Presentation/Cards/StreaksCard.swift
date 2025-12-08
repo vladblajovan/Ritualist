@@ -90,7 +90,7 @@ struct StreaksCard: View {
                 Spacer()
 
                 Text("\(streaks.count) \(streaks.count == 1 ? "streak" : "streaks")")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .font(.subheadline.weight(.medium))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -119,7 +119,7 @@ struct StreaksCard: View {
                 // Empty state
                 VStack(spacing: 12) {
                     Image(systemName: "flame")
-                        .font(.system(size: 32))
+                        .font(.title)
                         .foregroundColor(.secondary.opacity(0.6))
                         .accessibilityHidden(true) // Decorative
 
@@ -156,6 +156,7 @@ struct StreaksCard: View {
             }
         }
         .padding(20)
+        .accessibilityIdentifier("streaks_card")
         // PERFORMANCE: Removed .glassmorphicMaximizedContentStyle() - unnecessary Button wrapper with animation
         // Card is already wrapped in .simpleCard() in OverviewView
         .onAppear {
@@ -207,7 +208,7 @@ struct StreaksCard: View {
                             .accessibilityHidden(true) // Decorative flame
 
                         Text("\(streak.currentStreak)")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(.body.weight(.bold))
                             .foregroundColor(.primary)
 
                         Text(streak.currentStreak == 1 ? "day" : "days")
@@ -241,6 +242,7 @@ struct StreaksCard: View {
         ))
         .accessibilityHint(StreaksAccessibility.streakItemHint)
         .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("streak_item_\(streak.id)")
         .celebrationAnimation(
             isTriggered: animatingStreakId == streak.id,
             config: .bestStreak,

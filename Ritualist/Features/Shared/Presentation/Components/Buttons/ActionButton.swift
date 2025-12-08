@@ -50,8 +50,19 @@ public struct ActionButton: View {
         .disabled(isDisabled || isLoading)
         .opacity(isDisabled ? 0.6 : 1.0)
         .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(accessibilityHint)
         .accessibilityAddTraits(.isButton)
         .accessibilityValue(isLoading ? "Loading" : "")
+    }
+
+    private var accessibilityHint: String {
+        if isLoading {
+            return "Please wait"
+        }
+        if isDisabled {
+            return "Button is currently disabled"
+        }
+        return "Double-tap to activate"
     }
     
     @ViewBuilder

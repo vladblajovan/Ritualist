@@ -627,7 +627,7 @@ private struct DraggableFloatingButton: View {
 
             // AI icon with gradient
             Image(systemName: "sparkles")
-                .font(.system(size: 24, weight: .semibold))
+                .font(.title2.weight(.semibold))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.blue, .purple],

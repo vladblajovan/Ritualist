@@ -3,16 +3,13 @@ import UIKit
 
 // MARK: - Reduced Motion Support
 
-/// Checks if the user has enabled "Reduce Motion" in iOS accessibility settings
-/// Use this to provide instant alternatives to animations for accessibility
-public var prefersReducedMotion: Bool {
-    UIAccessibility.isReduceMotionEnabled
-}
+// Note: Use isReduceMotionEnabled from Accessibility.swift for reduce motion checks
+// This file provides animation utilities that respect that setting
 
 /// Returns the animation or nil if reduced motion is preferred
 /// Usage: `.animation(animationIfEnabled(.spring()), value: state)`
 public func animationIfEnabled(_ animation: Animation) -> Animation? {
-    prefersReducedMotion ? nil : animation
+    isReduceMotionEnabled ? nil : animation
 }
 
 // MARK: - Animation Durations
@@ -25,7 +22,7 @@ public enum AnimationDuration {
 
     /// Returns duration or 0 if reduced motion is preferred
     public static func ifEnabled(_ duration: Double) -> Double {
-        prefersReducedMotion ? 0 : duration
+        isReduceMotionEnabled ? 0 : duration
     }
 }
 

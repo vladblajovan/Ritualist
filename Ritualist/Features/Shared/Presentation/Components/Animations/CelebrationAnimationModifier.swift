@@ -67,7 +67,7 @@ public struct CelebrationAnimationModifier: ViewModifier {
         }
 
         // Skip visual animations if user prefers reduced motion
-        if prefersReducedMotion {
+        if isReduceMotionEnabled {
             // Just complete immediately with haptic feedback
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isAnimating = false
