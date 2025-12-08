@@ -61,6 +61,20 @@ public final class RootTabViewModel {
         // This avoids race condition where seedCategories() runs in parallel and sets this flag
         let hasRunAppBeforeCapture = UserDefaults.standard.bool(forKey: UserDefaultsKeys.categorySeedingCompleted)
 
+        // CRITICAL: Verify subscription status BEFORE checking onboarding
+        // This automatically "restores" purchases for returning users on new devices.
+        // Transaction.currentEntitlements is tied to the Apple ID, not the device.
+        // Without this, returning users would see new user onboarding because
+        // isCloudKitSyncActive would return false (cached premium status is false).
+        let isPremiumVerified = await StoreKitSubscriptionService.verifyPremiumAsync()
+        if isPremiumVerified {
+            logger.log(
+                "Premium subscription verified at startup - enabling sync for returning user check",
+                level: .info,
+                category: .subscription
+            )
+        }
+
         // Synchronize iCloud KV store with short timeout (0.3s)
         // This is enough for cached data; longer waits hurt new user experience
         let syncCompleted = await iCloudKeyValueService.synchronizeAndWait(timeout: 0.3)
@@ -82,40 +96,14 @@ public final class RootTabViewModel {
             return
         }
 
-        // Step 2: Local device flag is false - check iCloud flag
-        // But ONLY if iCloud is actually available. Without an iCloud account,
-        // NSUbiquitousKeyValueStore may contain stale data from previous sessions.
-        // Skip real CloudKit check in unit tests (XCTest environment)
-        let isICloudAvailable: Bool
-        if NSClassFromString("XCTestCase") != nil {
-            // In unit tests, assume iCloud is available (use mock service)
-            isICloudAvailable = true
-        } else {
-            let container = CKContainer(identifier: iCloudConstants.containerIdentifier)
-            let accountStatus: CKAccountStatus
-            do {
-                accountStatus = try await container.accountStatus()
-            } catch {
-                logger.log(
-                    "Failed to check iCloud account status - defaulting to new user flow",
-                    level: .warning,
-                    category: .ui,
-                    metadata: ["error": error.localizedDescription]
-                )
-                showOnboarding = true
-                isCheckingOnboarding = false
-                return
-            }
-            isICloudAvailable = accountStatus == .available
+        // Step 2: Check iCloud availability (returns nil on error, to trigger new user flow)
+        guard let isICloudAvailable = await checkICloudAvailability() else {
+            showOnboarding = true
+            isCheckingOnboarding = false
+            return
         }
-
         guard isICloudAvailable else {
-            // No iCloud account - treat as new user, show onboarding
-            logger.log(
-                "No iCloud account available - showing onboarding for new user",
-                level: .info,
-                category: .ui
-            )
+            logger.log("No iCloud account available - showing onboarding for new user", level: .info, category: .ui)
             showOnboarding = true
             isCheckingOnboarding = false
             return
@@ -124,7 +112,12 @@ public final class RootTabViewModel {
         // iCloud flag tells us if user completed onboarding on ANY device
         let iCloudOnboardingCompleted = iCloudKeyValueService.hasCompletedOnboarding()
 
-        if iCloudOnboardingCompleted && isCloudKitSyncActive {
+        // Check if CloudKit sync will be active - use the freshly verified premium status
+        // to handle returning users on new devices correctly
+        let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
+        let willSyncBeActive = isPremiumVerified && syncPreference
+
+        if iCloudOnboardingCompleted && willSyncBeActive {
             // Returning user with active sync - show welcome after data syncs
             logger.log("Returning user detected - iCloud flag set, sync active", level: .info, category: .ui)
             showOnboarding = false
@@ -264,6 +257,29 @@ public final class RootTabViewModel {
     }
 
     // MARK: - Private Methods
+
+    /// Check if iCloud account is available.
+    /// Returns `nil` on error (caller should show new user flow), `true`/`false` for availability.
+    private func checkICloudAvailability() async -> Bool? {
+        // Skip real CloudKit check in unit tests (XCTest environment)
+        if NSClassFromString("XCTestCase") != nil {
+            return true
+        }
+
+        let container = CKContainer(identifier: iCloudConstants.containerIdentifier)
+        do {
+            let accountStatus = try await container.accountStatus()
+            return accountStatus == .available
+        } catch {
+            logger.log(
+                "Failed to check iCloud account status - defaulting to new user flow",
+                level: .warning,
+                category: .ui,
+                metadata: ["error": error.localizedDescription]
+            )
+            return nil
+        }
+    }
 
     /// Handles UI testing launch arguments for onboarding flow control.
     /// Returns true if a testing argument was handled (caller should return early).
