@@ -13,7 +13,8 @@ public struct CelebrationAnimationModifier: ViewModifier {
     @State private var showConfetti = false
     @State private var glowIntensity: Double = 0
     @State private var scaleValue: Double = 1.0
-    
+    @State private var animationTask: Task<Void, Never>?
+
     private let isTriggered: Bool
     private let config: CelebrationAnimationConfig
     private let onAnimationComplete: (() -> Void)?
@@ -54,6 +55,10 @@ public struct CelebrationAnimationModifier: ViewModifier {
                     startAnimation()
                 }
             }
+            .onDisappear {
+                // Cancel any pending animation tasks when view disappears
+                animationTask?.cancel()
+            }
     }
     
     private func startAnimation() {
@@ -69,43 +74,48 @@ public struct CelebrationAnimationModifier: ViewModifier {
         // Skip visual animations if user prefers reduced motion
         if isReduceMotionEnabled {
             // Just complete immediately with haptic feedback
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            animationTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(100))
+                guard !Task.isCancelled else { return }
                 isAnimating = false
                 onAnimationComplete?()
             }
             return
         }
 
-        // Main animation sequence
-        withAnimation(.easeOut(duration: 0.3)) {
-            scaleValue = config.scaleEffect
-            glowIntensity = 1.0
-        }
+        // Run animation sequence with cancellation support
+        animationTask = Task { @MainActor in
+            // Main animation sequence
+            withAnimation(.easeOut(duration: 0.3)) {
+                scaleValue = config.scaleEffect
+                glowIntensity = 1.0
+            }
 
-        // Show confetti after a slight delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            // Show confetti after a slight delay
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.4)) {
                 showConfetti = true
             }
-        }
 
-        // Start fade out
-        DispatchQueue.main.asyncAfter(deadline: .now() + config.duration * 0.6) {
+            // Start fade out
+            try? await Task.sleep(for: .milliseconds(Int(config.duration * 400))) // 0.6 - 0.2 = 0.4
+            guard !Task.isCancelled else { return }
             withAnimation(.easeInOut(duration: config.duration * 0.4)) {
                 glowIntensity = 0
                 scaleValue = 1.0
             }
-        }
 
-        // Hide confetti
-        DispatchQueue.main.asyncAfter(deadline: .now() + config.duration * 0.8) {
+            // Hide confetti
+            try? await Task.sleep(for: .milliseconds(Int(config.duration * 200))) // 0.8 - 0.6 = 0.2
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.3)) {
                 showConfetti = false
             }
-        }
 
-        // Complete animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + config.duration) {
+            // Complete animation
+            try? await Task.sleep(for: .milliseconds(Int(config.duration * 200))) // 1.0 - 0.8 = 0.2
+            guard !Task.isCancelled else { return }
             isAnimating = false
             onAnimationComplete?()
         }
