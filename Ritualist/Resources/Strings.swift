@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Centralized localized strings using String Catalogs (.xcstrings)
 /// This provides type-safe access to all localized strings in the app
+// swiftlint:disable:next type_body_length
 public enum Strings {
     
     // MARK: - App
@@ -241,6 +242,52 @@ public enum Strings {
         public static func streakInfo(_ currentStreak: String, _ bestStreak: String) -> String {
             String(format: String(localized: "accessibilityStreakInfo"), currentStreak, bestStreak)
         }
+
+        // MARK: - Dashboard Accessibility
+
+        public static let dashboardEmptyState = String(localized: "accessibilityDashboardEmptyState")
+        public static let chartNoData = String(localized: "accessibilityChartNoData")
+
+        public static func chartDescription(avgCompletion: Int, trend: String) -> String {
+            String(format: String(localized: "accessibilityChartDescription"), avgCompletion, trend)
+        }
+
+        public static func categoryLabel(name: String, habitCount: Int, completionPercent: Int) -> String {
+            let habitText = habitCount == 1 ? "1 habit" : "\(habitCount) habits"
+            return String(format: String(localized: "accessibilityCategoryLabel"), name, habitText, completionPercent)
+        }
+
+        // MARK: - Today's Summary Accessibility
+
+        public static func progressLabel(completed: Int, total: Int) -> String {
+            let percent = total > 0 ? Int(Double(completed) / Double(total) * 100) : 0
+            return String(format: String(localized: "accessibilityProgressLabel"), completed, total, percent)
+        }
+
+        public static func dateLabel(date: String, isToday: Bool) -> String {
+            isToday ? String(format: String(localized: "accessibilityDateLabelToday"), date) : date
+        }
+
+        public static let previousDayHint = String(localized: "accessibilityPreviousDayHint")
+        public static let nextDayHint = String(localized: "accessibilityNextDayHint")
+        public static let returnToTodayHint = String(localized: "accessibilityReturnToTodayHint")
+
+        public static func habitRowLabel(name: String, isCompleted: Bool, progress: String?) -> String {
+            var label = name
+            if isCompleted {
+                label += String(localized: "accessibilityHabitCompleted")
+            } else if let progress = progress {
+                label += ", \(progress)"
+            } else {
+                label += String(localized: "accessibilityHabitNotCompleted")
+            }
+            return label
+        }
+
+        public static let completedSectionHeader = String(localized: "accessibilityCompletedSectionHeader")
+        public static let remainingSectionHeader = String(localized: "accessibilityRemainingSectionHeader")
+        public static let noHabitsScheduledAccessibility = String(localized: "accessibilityNoHabitsScheduled")
+        public static let loadingHabits = String(localized: "accessibilityLoadingHabits")
     }
     
     // MARK: - Number Formatting

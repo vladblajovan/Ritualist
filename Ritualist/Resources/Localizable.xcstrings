@@ -609,6 +609,186 @@
         }
       }
     },
+    "accessibilityDashboardEmptyState" : {
+      "comment" : "VoiceOver label for empty dashboard state",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data available. Start tracking habits to see statistics"
+          }
+        }
+      }
+    },
+    "accessibilityChartNoData" : {
+      "comment" : "VoiceOver label when chart has no data",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data available"
+          }
+        }
+      }
+    },
+    "accessibilityChartDescription" : {
+      "comment" : "VoiceOver description for chart with completion and trend info",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average completion rate %lld percent, trend is %@"
+          }
+        }
+      }
+    },
+    "accessibilityCategoryLabel" : {
+      "comment" : "VoiceOver label for category with habit count and completion",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@, %lld percent completion"
+          }
+        }
+      }
+    },
+    "accessibilityProgressLabel" : {
+      "comment" : "VoiceOver label for habit progress",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld habits completed, %lld percent"
+          }
+        }
+      }
+    },
+    "accessibilityDateLabelToday" : {
+      "comment" : "VoiceOver label for today's date",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today, %@"
+          }
+        }
+      }
+    },
+    "accessibilityPreviousDayHint" : {
+      "comment" : "VoiceOver hint for previous day button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to previous day"
+          }
+        }
+      }
+    },
+    "accessibilityNextDayHint" : {
+      "comment" : "VoiceOver hint for next day button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to next day"
+          }
+        }
+      }
+    },
+    "accessibilityReturnToTodayHint" : {
+      "comment" : "VoiceOver hint for return to today button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return to today"
+          }
+        }
+      }
+    },
+    "accessibilityHabitCompleted" : {
+      "comment" : "VoiceOver suffix for completed habit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", completed"
+          }
+        }
+      }
+    },
+    "accessibilityHabitNotCompleted" : {
+      "comment" : "VoiceOver suffix for incomplete habit",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", not completed"
+          }
+        }
+      }
+    },
+    "accessibilityCompletedSectionHeader" : {
+      "comment" : "VoiceOver label for completed habits section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed habits"
+          }
+        }
+      }
+    },
+    "accessibilityRemainingSectionHeader" : {
+      "comment" : "VoiceOver label for remaining habits section",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remaining habits"
+          }
+        }
+      }
+    },
+    "accessibilityNoHabitsScheduled" : {
+      "comment" : "VoiceOver label when no habits are scheduled",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No habits scheduled for this day"
+          }
+        }
+      }
+    },
+    "accessibilityLoadingHabits" : {
+      "comment" : "VoiceOver label when habits are loading",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading habits"
+          }
+        }
+      }
+    },
     "Account" : {
 
     },

@@ -116,6 +116,7 @@ public struct CircularProgressView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabelText ?? "\(Int(progress * 100)) percent progress")
         .accessibilityValue("\(Int(progress * 100)) percent")
+        .accessibilityIdentifier(AccessibilityID.Stats.circularProgress)
     }
 
     // MARK: - Computed Properties

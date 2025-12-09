@@ -111,6 +111,7 @@ public struct StatCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel(for: title, value: value, subtitle: subtitle, trend: trend))
         .accessibilityAddTraits(action != nil ? .isButton : [])
+        .accessibilityIdentifier(AccessibilityID.Stats.statCardNamed(title))
     }
     
     // MARK: - Layout Variations

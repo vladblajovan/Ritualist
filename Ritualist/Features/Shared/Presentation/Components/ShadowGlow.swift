@@ -90,7 +90,7 @@ public extension View {
 
 public extension View {
     /// - Warning: Deprecated. Use `shadowGlow()` instead for clarity.
-    @available(*, deprecated, renamed: "shadowGlow")
+    @available(*, deprecated, renamed: "shadowGlow", message: "Use shadowGlow() for clarity. Will be removed in v2.0")
     func glowEffect(
         isGlowing: Bool,
         color: Color = .green,

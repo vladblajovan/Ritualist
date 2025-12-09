@@ -64,6 +64,7 @@ enum AccessibilityID {
         static let personalityButton = "overview.personalityButton"
         static let streaksCard = "overview.streaksCard"
         static let summaryCard = "overview.summaryCard"
+        static let todaysSummaryCard = "overview.todaysSummaryCard"
         static let calendarCard = "overview.calendarCard"
         static let insightsCard = "overview.insightsCard"
         static let previousDayButton = "overview.previousDay"
@@ -116,6 +117,8 @@ enum AccessibilityID {
         static let habitPerformanceList = "stats.habitPerformanceList"
         static func habitPerformanceRow(_ id: String) -> String { "stats.habitPerformance.\(id)" }
         static let circularProgress = "stats.circularProgress"
+        static let statCard = "stats.statCard"
+        static func statCardNamed(_ title: String) -> String { "stats.statCard.\(title.lowercased().replacingOccurrences(of: " ", with: "_"))" }
     }
 
     // MARK: - Settings Tab

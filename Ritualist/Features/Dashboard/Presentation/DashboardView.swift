@@ -3,22 +3,6 @@ import Charts
 import RitualistCore
 import FactoryKit
 
-// MARK: - Accessibility Strings
-
-private enum DashboardAccessibility {
-    static let emptyStateLabel = "No data available. Start tracking habits to see statistics"
-    static let chartNoData = "No data available"
-
-    static func chartDescription(avgCompletion: Int, trend: String) -> String {
-        "Average completion rate \(avgCompletion)%, trend is \(trend)"
-    }
-
-    static func categoryLabel(name: String, habitCount: Int, completionPercent: Int) -> String {
-        let habitText = habitCount == 1 ? "1 habit" : "\(habitCount) habits"
-        return "\(name), \(habitText), \(completionPercent)% completion"
-    }
-}
-
 // swiftlint:disable type_body_length
 public struct DashboardView: View {
     @Bindable var vm: DashboardViewModel
@@ -154,7 +138,7 @@ public struct DashboardView: View {
         .frame(height: 300)
         .padding(.horizontal, 40)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(DashboardAccessibility.emptyStateLabel)
+        .accessibilityLabel(Strings.Accessibility.dashboardEmptyState)
     }
     
     @ViewBuilder
@@ -216,10 +200,10 @@ public struct DashboardView: View {
     }
 
     private func chartAccessibilityDescription(data: [DashboardViewModel.ChartDataPointViewModel]) -> String {
-        guard !data.isEmpty else { return DashboardAccessibility.chartNoData }
+        guard !data.isEmpty else { return Strings.Accessibility.chartNoData }
         let avgCompletion = data.map { $0.completionRate }.reduce(0, +) / Double(data.count)
         let trend = data.count > 1 && data.last!.completionRate > data.first!.completionRate ? "improving" : "declining"
-        return DashboardAccessibility.chartDescription(avgCompletion: Int(avgCompletion * 100), trend: trend)
+        return Strings.Accessibility.chartDescription(avgCompletion: Int(avgCompletion * 100), trend: trend)
     }
     
     @ViewBuilder
@@ -389,7 +373,7 @@ public struct DashboardView: View {
                 }
                 .padding(.vertical, 2)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(DashboardAccessibility.categoryLabel(
+                .accessibilityLabel(Strings.Accessibility.categoryLabel(
                     name: category.categoryName,
                     habitCount: category.habitCount,
                     completionPercent: Int((category.completionRate * 100).rounded())
