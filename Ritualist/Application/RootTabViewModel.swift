@@ -70,6 +70,12 @@ public final class RootTabViewModel {
         // Transaction.currentEntitlements is tied to the Apple ID, not the device.
         // Without this, returning users would see new user onboarding because
         // isCloudKitSyncActive would return false (cached premium status is false).
+        //
+        // SLOW VERIFICATION NOTE: StoreKit has a 5s internal timeout. If verification
+        // is slow (>2s), the user may see a brief loading state. This is acceptable
+        // because: (1) it only affects first launch on new devices, (2) showing new
+        // user onboarding is a safe fallback, (3) on next launch, cached status is
+        // used. No retry logic is needed - StoreKit handles network retries internally.
         let isPremiumVerified = await premiumVerifier()
         if isPremiumVerified {
             logger.log(
@@ -81,8 +87,15 @@ public final class RootTabViewModel {
 
         // Synchronize iCloud KV store with short timeout (0.3s)
         // This is enough for cached data; longer waits hurt new user experience
+        //
+        // TELEMETRY NOTE: If timeout frequency becomes a concern, consider:
+        // 1. Adding analytics to track timeout rates in production
+        // 2. Increasing timeout to 0.5s if >10% of users experience timeouts
+        // 3. The timeout only affects returning user detection, not app functionality
         let syncCompleted = await iCloudKeyValueService.synchronizeAndWait(timeout: 0.3)
-        if !syncCompleted { logger.log("iCloud KV sync timed out", level: .debug, category: .ui) }
+        if !syncCompleted {
+            logger.log("iCloud KV sync timed out - may affect returning user detection", level: .warning, category: .ui)
+        }
 
         // Step 1: Check LOCAL device flag (UserDefaults - not synced)
         // This tells us if THIS device has completed onboarding

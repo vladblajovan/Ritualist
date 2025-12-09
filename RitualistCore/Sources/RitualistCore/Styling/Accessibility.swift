@@ -356,6 +356,10 @@ public enum AccessibilityAnnouncement {
 ///   `Ritualist/Core/Utilities/AccessibilityIdentifiers.swift` which provides
 ///   comprehensive coverage with dot-notation (e.g., "tab.overview").
 ///   This enum uses underscore notation and is primarily for RitualistCore internal use.
+///
+/// - Important: **DEPRECATION PLANNED** - This enum is scheduled for deprecation.
+///   Migrate to `AccessibilityID` (dot notation) for consistency. The underscore
+///   notation creates confusion and maintenance burden. Track migration in a future PR.
 public enum AccessibilityIdentifiers {
     // MARK: - Navigation
     public enum Navigation {
