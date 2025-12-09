@@ -7,8 +7,9 @@ public struct CircularProgressView: View {
     let showPercentage: Bool
     let strokeStyle: StrokeStyle
 
-    // Accessibility support - optional label for context
+    // Accessibility support - optional label and identifier for context
     private let accessibilityLabelText: String?
+    private let accessibilityIdentifierText: String?
 
     // Animation duration constant for consistent timing across all circular progress indicators
     private static let progressAnimationDuration: Double = 1.0
@@ -23,7 +24,8 @@ public struct CircularProgressView: View {
         color: Color,
         lineWidth: CGFloat = 8,
         showPercentage: Bool = false,
-        accessibilityLabel: String? = nil
+        accessibilityLabel: String? = nil,
+        accessibilityIdentifier: String? = nil
     ) {
         self.progress = progress
         self.color = color
@@ -32,6 +34,7 @@ public struct CircularProgressView: View {
         self.showPercentage = showPercentage
         self.strokeStyle = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
         self.accessibilityLabelText = accessibilityLabel
+        self.accessibilityIdentifierText = accessibilityIdentifier
     }
 
     /// Creates a circular progress view with icon-inspired gradient (cyan → blue)
@@ -40,7 +43,8 @@ public struct CircularProgressView: View {
         lineWidth: CGFloat = 8,
         showPercentage: Bool = false,
         useIconGradient: Bool = true,
-        accessibilityLabel: String? = nil
+        accessibilityLabel: String? = nil,
+        accessibilityIdentifier: String? = nil
     ) {
         self.progress = progress
         self.color = nil
@@ -53,6 +57,7 @@ public struct CircularProgressView: View {
         self.showPercentage = showPercentage
         self.strokeStyle = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
         self.accessibilityLabelText = accessibilityLabel
+        self.accessibilityIdentifierText = accessibilityIdentifier
     }
 
     /// Creates a circular progress view with adaptive gradient based on completion percentage
@@ -62,7 +67,8 @@ public struct CircularProgressView: View {
         lineWidth: CGFloat = 8,
         showPercentage: Bool = false,
         useAdaptiveGradient: Bool,
-        accessibilityLabel: String? = nil
+        accessibilityLabel: String? = nil,
+        accessibilityIdentifier: String? = nil
     ) {
         self.progress = progress
         self.color = nil
@@ -71,6 +77,7 @@ public struct CircularProgressView: View {
         self.showPercentage = showPercentage
         self.strokeStyle = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
         self.accessibilityLabelText = accessibilityLabel
+        self.accessibilityIdentifierText = accessibilityIdentifier
     }
 
     /// Creates a circular progress view with custom gradient
@@ -79,7 +86,8 @@ public struct CircularProgressView: View {
         gradient: LinearGradient,
         lineWidth: CGFloat = 8,
         showPercentage: Bool = false,
-        accessibilityLabel: String? = nil
+        accessibilityLabel: String? = nil,
+        accessibilityIdentifier: String? = nil
     ) {
         self.progress = progress
         self.color = nil
@@ -88,6 +96,7 @@ public struct CircularProgressView: View {
         self.showPercentage = showPercentage
         self.strokeStyle = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
         self.accessibilityLabelText = accessibilityLabel
+        self.accessibilityIdentifierText = accessibilityIdentifier
     }
 
     public var body: some View {
@@ -116,7 +125,7 @@ public struct CircularProgressView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabelText ?? "\(Int(progress * 100)) percent progress")
         .accessibilityValue("\(Int(progress * 100)) percent")
-        .accessibilityIdentifier(AccessibilityID.Stats.circularProgress)
+        .accessibilityIdentifier(accessibilityIdentifierText ?? AccessibilityID.Stats.circularProgress)
     }
 
     // MARK: - Computed Properties

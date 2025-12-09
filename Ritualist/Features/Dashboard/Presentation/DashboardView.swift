@@ -202,7 +202,9 @@ public struct DashboardView: View {
     private func chartAccessibilityDescription(data: [DashboardViewModel.ChartDataPointViewModel]) -> String {
         guard !data.isEmpty else { return Strings.Accessibility.chartNoData }
         let avgCompletion = data.map { $0.completionRate }.reduce(0, +) / Double(data.count)
-        let trend = data.count > 1 && data.last!.completionRate > data.first!.completionRate ? "improving" : "declining"
+        let firstRate = data.first?.completionRate ?? 0
+        let lastRate = data.last?.completionRate ?? 0
+        let trend = data.count > 1 && lastRate > firstRate ? "improving" : "declining"
         return Strings.Accessibility.chartDescription(avgCompletion: Int(avgCompletion * 100), trend: trend)
     }
     
