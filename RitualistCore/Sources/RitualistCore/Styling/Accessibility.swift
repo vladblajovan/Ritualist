@@ -106,9 +106,28 @@ public var isReduceMotionEnabled: Bool {
 }
 
 // MARK: - Reduce Motion Helpers
+//
+// Two patterns are available for respecting Reduce Motion preferences:
+//
+// 1. `animateIfAllowed()` - Use for imperative `withAnimation` blocks:
+//    ```
+//    animateIfAllowed(.easeOut) {
+//        isExpanded = true
+//    }
+//    ```
+//
+// 2. `.reduceMotionAnimation()` - Use for declarative value-based animations:
+//    ```
+//    .reduceMotionAnimation(.spring(), value: isExpanded)
+//    ```
+//
+// Both patterns automatically respect the user's Reduce Motion preference.
 
 /// Executes animation only if user hasn't enabled Reduce Motion
 /// Falls back to instant state change when Reduce Motion is enabled
+///
+/// Use this function when you need to animate state changes imperatively
+/// (i.e., inside button actions or event handlers).
 public func animateIfAllowed<T>(
     _ animation: Animation? = .default,
     _ body: () throws -> T
@@ -285,7 +304,9 @@ public extension View {
     }
 
     /// Applies animation only when Reduce Motion is not enabled
-    /// Use this instead of .animation() for accessibility compliance
+    ///
+    /// Use this modifier instead of `.animation()` for declarative, value-based animations.
+    /// For imperative animations inside event handlers, use `animateIfAllowed()` instead.
     func reduceMotionAnimation<V: Equatable>(
         _ animation: Animation?,
         value: V
