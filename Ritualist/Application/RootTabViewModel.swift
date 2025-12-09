@@ -43,6 +43,7 @@ public final class RootTabViewModel {
         navigationService: NavigationService,
         personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator,
         logger: DebugLogger,
+        /// Testing seam: Inject a mock to verify premium status in tests
         premiumVerifier: @escaping () async -> Bool = { await StoreKitSubscriptionService.verifyPremiumAsync() }
     ) {
         self.loadProfile = loadProfile
