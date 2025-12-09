@@ -170,7 +170,10 @@ struct WelcomeBackView: View {
         .padding(.horizontal, 24)
         .accessibilityElement(children: .ignore)
         .accessibilityIdentifier("Synced data summary")
-        .accessibilityLabel("Synced data summary: \(summary.habitsCount) habits, \(summary.categoriesCount) categories, profile restored")
+        .accessibilityLabel(Strings.Accessibility.syncedDataSummary(
+            habits: summary.habitsCount,
+            categories: summary.categoriesCount
+        ))
     }
 }
 

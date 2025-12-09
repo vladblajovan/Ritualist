@@ -335,6 +335,11 @@ struct RootTabViewModelTests {
     }
 
     // MARK: - Non-Premium Returning User Tests
+    //
+    // Note: The checkICloudAvailability() method uses real CloudKit and is bypassed in unit tests
+    // (returns true when XCTestCase is detected). Production CloudKit availability behavior is
+    // tested via manual testing and UI tests. The premium verification path is tested via the
+    // premiumVerifier closure injection - see createViewModel(isPremium:).
 
     @Test("Non-premium returning user sees normal onboarding (no welcome screen)")
     @MainActor

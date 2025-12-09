@@ -288,6 +288,20 @@ public enum Strings {
         public static let remainingSectionHeader = String(localized: "accessibilityRemainingSectionHeader")
         public static let noHabitsScheduledAccessibility = String(localized: "accessibilityNoHabitsScheduled")
         public static let loadingHabits = String(localized: "accessibilityLoadingHabits")
+
+        // MARK: - Quick Actions Accessibility
+
+        /// Announcement for habit validation message (e.g., "Morning Workout: Only available on weekdays")
+        public static func habitValidationAnnouncement(_ habitName: String, _ message: String) -> String {
+            String(format: String(localized: "accessibilityHabitValidationAnnouncement"), habitName, message)
+        }
+
+        // MARK: - Welcome Back Accessibility
+
+        /// Summary of synced data for returning users
+        public static func syncedDataSummary(habits: Int, categories: Int) -> String {
+            String(format: String(localized: "accessibilitySyncedDataSummary"), habits, categories)
+        }
     }
     
     // MARK: - Number Formatting

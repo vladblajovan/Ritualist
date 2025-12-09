@@ -143,7 +143,7 @@ struct QuickActionsCard: View {
                     if let message = await getValidationMessage(habit) {
                         validationMessages[habit.id] = message
                         // Announce to VoiceOver users
-                        AccessibilityAnnouncement.post("\(habit.name): \(message)")
+                        AccessibilityAnnouncement.post(Strings.Accessibility.habitValidationAnnouncement(habit.name, message))
                         // Clear message after a few seconds
                         try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
                         // Check if task was cancelled before updating state

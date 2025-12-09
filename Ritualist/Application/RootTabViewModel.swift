@@ -118,6 +118,12 @@ public final class RootTabViewModel {
 
         // Check if CloudKit sync will be active - use the freshly verified premium status
         // to handle returning users on new devices correctly
+        //
+        // NOTE: We intentionally use the cached `isPremiumVerified` value here rather than
+        // calling premiumVerifier() again. The value was verified at the start of this method
+        // and subscription status doesn't change mid-function. Re-calling would add latency
+        // without benefit. If subscription changes during app session, checkOnboardingStatus()
+        // would not be called again anyway (it only runs at startup).
         let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
         let willSyncBeActive = isPremiumVerified && syncPreference
 
