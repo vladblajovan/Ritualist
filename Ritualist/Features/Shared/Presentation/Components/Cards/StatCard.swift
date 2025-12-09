@@ -385,7 +385,7 @@ private struct CardButtonStyle: ButtonStyle {
         configuration.label
             .modifier(CardStyle())
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+            .reduceMotionAnimation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
