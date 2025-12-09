@@ -119,11 +119,17 @@ public final class RootTabViewModel {
         // Check if CloudKit sync will be active - use the freshly verified premium status
         // to handle returning users on new devices correctly
         //
-        // NOTE: We intentionally use the cached `isPremiumVerified` value here rather than
-        // calling premiumVerifier() again. The value was verified at the start of this method
-        // and subscription status doesn't change mid-function. Re-calling would add latency
-        // without benefit. If subscription changes during app session, checkOnboardingStatus()
-        // would not be called again anyway (it only runs at startup).
+        // RACE CONDITION ANALYSIS: We intentionally use the cached `isPremiumVerified` value
+        // here rather than calling premiumVerifier() again. Theoretical race conditions:
+        // 1. User restores purchase in another app instance during this check
+        // 2. CloudKit sync brings updated subscription status mid-check
+        //
+        // These are acceptable because:
+        // - checkOnboardingStatus() only runs ONCE at app startup
+        // - The check completes in milliseconds (StoreKit has 5s timeout, iCloud KV has 0.3s)
+        // - Concurrent purchase restoration requires user action in Settings/App Store
+        // - Worst case: user sees onboarding instead of welcome, which is still valid UX
+        // - On next app launch, the correct flow will be shown
         let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
         let willSyncBeActive = isPremiumVerified && syncPreference
 

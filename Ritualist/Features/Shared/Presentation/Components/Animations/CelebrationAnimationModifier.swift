@@ -63,6 +63,11 @@ public struct CelebrationAnimationModifier: ViewModifier {
     
     private func startAnimation() {
         guard !isAnimating else { return }
+
+        // Cancel any existing animation task to prevent duplicates in rapid scrolling scenarios
+        animationTask?.cancel()
+        animationTask = nil
+
         isAnimating = true
 
         // Haptic feedback (always provide tactile feedback regardless of motion setting)
@@ -86,7 +91,7 @@ public struct CelebrationAnimationModifier: ViewModifier {
         // Run animation sequence with cancellation support
         animationTask = Task { @MainActor in
             // Main animation sequence
-            withAnimation(.easeOut(duration: 0.3)) {
+            withAnimation(.easeOut(duration: AnimationDuration.medium)) {
                 scaleValue = config.scaleEffect
                 glowIntensity = 1.0
             }
@@ -94,7 +99,7 @@ public struct CelebrationAnimationModifier: ViewModifier {
             // Show confetti after a slight delay
             try? await Task.sleep(for: .milliseconds(200))
             guard !Task.isCancelled else { return }
-            withAnimation(.easeOut(duration: 0.4)) {
+            withAnimation(.easeOut(duration: AnimationDuration.slow)) {
                 showConfetti = true
             }
 
@@ -109,7 +114,7 @@ public struct CelebrationAnimationModifier: ViewModifier {
             // Hide confetti
             try? await Task.sleep(for: .milliseconds(Int(config.duration * 200))) // 0.8 - 0.6 = 0.2
             guard !Task.isCancelled else { return }
-            withAnimation(.easeIn(duration: 0.3)) {
+            withAnimation(.easeIn(duration: AnimationDuration.medium)) {
                 showConfetti = false
             }
 
