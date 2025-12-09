@@ -2,11 +2,26 @@ import SwiftUI
 import UIKit
 
 // MARK: - Reduced Motion Support
-
-// Note: Use isReduceMotionEnabled from Accessibility.swift for reduce motion checks
-// This file provides animation utilities that respect that setting
+//
+// Three functions exist for respecting Reduce Motion preferences:
+//
+// 1. `animationIfEnabled()` (this file) - Returns Animation? for `.animation()` modifier
+//    Usage: `.animation(animationIfEnabled(.spring()), value: state)`
+//
+// 2. `animateIfAllowed()` (Accessibility.swift) - Wraps `withAnimation` for imperative use
+//    Usage: `animateIfAllowed(.easeOut) { isExpanded = true }`
+//
+// 3. `.reduceMotionAnimation()` (Accessibility.swift) - View modifier alternative to .animation()
+//    Usage: `.reduceMotionAnimation(.spring(), value: isExpanded)`
+//
+// Recommendation: Use `animationIfEnabled()` for animation parameter passing,
+// `animateIfAllowed()` for imperative animations, `.reduceMotionAnimation()` for view chains.
 
 /// Returns the animation or nil if reduced motion is preferred
+///
+/// Use this when passing an Animation to `.animation()` modifier.
+/// For imperative animations, use `animateIfAllowed()` from Accessibility.swift.
+///
 /// Usage: `.animation(animationIfEnabled(.spring()), value: state)`
 public func animationIfEnabled(_ animation: Animation) -> Animation? {
     isReduceMotionEnabled ? nil : animation

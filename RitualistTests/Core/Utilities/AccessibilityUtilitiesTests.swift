@@ -107,6 +107,79 @@ struct AccessibilityLayoutModeTests {
     }
 }
 
+/// Tests for Reduce Motion utilities
+///
+/// Note: `isReduceMotionEnabled` reads directly from `UIAccessibility.isReduceMotionEnabled`
+/// which cannot be mocked in unit tests. These tests verify the API contracts and behavior
+/// when reduce motion is NOT enabled (the default simulator/test state).
+///
+/// For full coverage of reduce motion behavior, use UI tests with the simulator's
+/// Accessibility Inspector to toggle "Reduce Motion" setting.
+@Suite("Accessibility Utilities - Reduce Motion")
+struct ReduceMotionTests {
+
+    // MARK: - animationIfEnabled Tests (Animations.swift)
+
+    @Test("animationIfEnabled returns animation when reduce motion is disabled")
+    func animationIfEnabledReturnsAnimation() {
+        // In test environment, reduce motion is typically disabled
+        // This test documents the expected behavior
+        let animation = Animation.spring()
+        let result = animationIfEnabled(animation)
+
+        // When reduce motion is disabled, should return the animation
+        // Note: We can't compare Animation directly, so we check it's not nil
+        #expect(result != nil)
+    }
+
+    @Test("AnimationDuration.ifEnabled returns duration when reduce motion is disabled")
+    func animationDurationIfEnabledReturnsDuration() {
+        let duration = 0.5
+        let result = AnimationDuration.ifEnabled(duration)
+
+        // When reduce motion is disabled, should return the original duration
+        #expect(result == duration)
+    }
+
+    @Test("SpringAnimation.interactiveIfEnabled returns animation when reduce motion is disabled")
+    func springAnimationInteractiveIfEnabledReturnsAnimation() {
+        let result = SpringAnimation.interactiveIfEnabled
+
+        // When reduce motion is disabled, should return the animation
+        #expect(result != nil)
+    }
+
+    // MARK: - reduceMotionSafe Tests (Accessibility.swift)
+
+    @Test("reduceMotionSafe returns animation when reduce motion is disabled")
+    func reduceMotionSafeReturnsAnimation() {
+        let animation = Animation.easeInOut
+        let result = reduceMotionSafe(animation)
+
+        // When reduce motion is disabled, should return the animation
+        #expect(result != nil)
+    }
+
+    // MARK: - API Documentation Tests
+
+    @Test("Three reduce motion helpers exist with distinct purposes")
+    func reduceMotionHelpersExist() {
+        // These compile-time checks document the API surface:
+        // 1. animationIfEnabled() - for .animation() modifier parameter
+        let _: Animation? = animationIfEnabled(.default)
+
+        // 2. reduceMotionSafe() - alias with clearer naming
+        let _: Animation? = reduceMotionSafe(.default)
+
+        // 3. animateIfAllowed() - for withAnimation blocks (returns the body result)
+        var value = false
+        animateIfAllowed(.default) {
+            value = true
+        }
+        #expect(value == true)
+    }
+}
+
 /// Tests for AccessibilityID - the primary accessibility identifier system
 /// Note: AccessibilityIdentifiers in RitualistCore is deprecated in favor of AccessibilityID.
 @Suite("AccessibilityID - Primary Identifier System")

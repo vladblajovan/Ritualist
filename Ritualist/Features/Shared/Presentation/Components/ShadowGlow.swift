@@ -87,22 +87,3 @@ public extension View {
     }
 }
 
-// MARK: - Deprecated Aliases
-
-public extension View {
-    /// - Warning: Deprecated. Use `shadowGlow()` instead for clarity.
-    @available(*, deprecated, renamed: "shadowGlow", message: "Use shadowGlow() for clarity. Will be removed in v2.0")
-    func glowEffect(
-        isGlowing: Bool,
-        color: Color = .green,
-        radius: CGFloat = 8,
-        intensity: Double = 0.8
-    ) -> some View {
-        shadowGlow(
-            isGlowing: isGlowing,
-            color: color,
-            radius: radius,
-            intensity: intensity
-        )
-    }
-}
