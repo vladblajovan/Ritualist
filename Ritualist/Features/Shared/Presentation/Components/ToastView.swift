@@ -95,7 +95,7 @@ struct ToastView: View {
         // to avoid conflicting double-animations that cause janky behavior.
         .opacity(isVisible ? 1 : 0)
         .offset(y: isVisible ? dragOffset : -20)
-        .animation(SpringAnimation.interactive, value: dragOffset)
+        .reduceMotionAnimation(SpringAnimation.interactive, value: dragOffset)
         // Accessibility: Expose swipe gesture to VoiceOver users
         .accessibilityHint("Swipe up to dismiss")
         .accessibilityAction(.escape) { dismissToast() }
@@ -118,8 +118,8 @@ struct ToastView: View {
                 }
         )
         .task {
-            // Animate in
-            withAnimation {
+            // Animate in (respects reduce motion preference)
+            animateIfAllowed(.default) {
                 isVisible = true
             }
 
@@ -149,12 +149,14 @@ struct ToastView: View {
         dismissTask?.cancel()
         dismissTask = nil
 
-        withAnimation {
+        animateIfAllowed(.default) {
             isVisible = false
         }
 
         // Call dismiss after animation completes
         // Using DispatchQueue ensures single callback even if view is deallocated
+        // Note: [onDismiss] capture is intentional - onDismiss is a closure passed to init,
+        // not a reference to self. If callers need weak capture, they handle it externally.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [onDismiss] in
             onDismiss()
         }

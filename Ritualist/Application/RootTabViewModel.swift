@@ -133,6 +133,16 @@ public final class RootTabViewModel {
         let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
         let willSyncBeActive = isPremiumVerified && syncPreference
 
+        // Monitor for potential race condition: sync preference enabled but premium not verified
+        // This could indicate StoreKit verification took longer than expected or failed
+        if syncPreference && !isPremiumVerified {
+            logger.log(
+                "Sync preference enabled but premium not verified - possible timing issue",
+                level: .warning,
+                category: .subscription
+            )
+        }
+
         if iCloudOnboardingCompleted && willSyncBeActive {
             // Returning user with active sync - show welcome after data syncs
             logger.log("Returning user detected - iCloud flag set, sync active", level: .info, category: .ui)
