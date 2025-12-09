@@ -23,6 +23,7 @@ struct QuickActionsCard: View {
     @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     @State private var validationMessages: [UUID: String] = [:] // Store validation messages for habits
+    @State private var validationTask: Task<Void, Never>? // Track validation message task to prevent leaks
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -99,6 +100,11 @@ struct QuickActionsCard: View {
                 Text("This will remove the log entry for \"\(habit.name)\" from today. The habit itself will remain.")
             }
         }
+        .onDisappear {
+            // Cancel validation task to prevent memory leaks
+            validationTask?.cancel()
+            validationTask = nil
+        }
     }
     
     @ViewBuilder
@@ -131,13 +137,17 @@ struct QuickActionsCard: View {
                 }
             } else if !scheduleStatus.isAvailable {
                 // Show validation message when user tries to tap disabled habit
-                Task {
+                // Cancel any existing validation task to prevent leaks
+                validationTask?.cancel()
+                validationTask = Task {
                     if let message = await getValidationMessage(habit) {
                         validationMessages[habit.id] = message
                         // Announce to VoiceOver users
                         AccessibilityAnnouncement.post("\(habit.name): \(message)")
                         // Clear message after a few seconds
                         try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                        // Check if task was cancelled before updating state
+                        guard !Task.isCancelled else { return }
                         validationMessages[habit.id] = nil
                     }
                 }

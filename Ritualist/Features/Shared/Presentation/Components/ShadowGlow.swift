@@ -34,7 +34,7 @@ public struct ShadowGlow: ViewModifier {
                 x: 0, y: 0
             )
             // Uses animationIfEnabled() which returns nil when Reduce Motion is enabled
-            .animation(animationIfEnabled(.easeInOut(duration: 0.3)), value: isGlowing)
+            .animation(animationIfEnabled(.easeInOut(duration: AnimationDuration.medium)), value: isGlowing)
     }
 }
 

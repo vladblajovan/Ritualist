@@ -334,6 +334,36 @@ struct RootTabViewModelTests {
         #expect(mockiCloud.synchronizeCallCount == 1)
     }
 
+    // MARK: - Non-Premium Returning User Tests
+
+    @Test("Non-premium returning user sees normal onboarding (no welcome screen)")
+    @MainActor
+    func nonPremiumReturningUserSeesNormalOnboarding() async {
+        // Non-premium user with iCloud flag set (from previous premium period)
+        // should see normal onboarding, not returning user welcome
+        let (viewModel, _) = createViewModel(iCloudCompleted: true, localCompleted: false, isPremium: false)
+
+        await viewModel.checkOnboardingStatus()
+
+        // Should show normal onboarding since CloudKit sync is not active
+        #expect(viewModel.showOnboarding == true)
+        #expect(viewModel.isCheckingOnboarding == false)
+        #expect(viewModel.pendingReturningUserWelcome == false)
+    }
+
+    @Test("Non-premium user with local flag skips onboarding")
+    @MainActor
+    func nonPremiumUserWithLocalFlagSkipsOnboarding() async {
+        // Non-premium user who completed onboarding locally should skip
+        let (viewModel, _) = createViewModel(iCloudCompleted: false, localCompleted: true, isPremium: false)
+
+        await viewModel.checkOnboardingStatus()
+
+        #expect(viewModel.showOnboarding == false)
+        #expect(viewModel.isCheckingOnboarding == false)
+        #expect(viewModel.pendingReturningUserWelcome == false)
+    }
+
     // MARK: - Synced Data Summary Tests
 
     @Test("Synced data summary is populated for returning user welcome")
