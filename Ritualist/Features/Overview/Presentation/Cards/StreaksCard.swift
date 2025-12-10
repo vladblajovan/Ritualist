@@ -1,6 +1,25 @@
 import SwiftUI
 import RitualistCore
 
+// MARK: - Accessibility Strings
+
+private enum StreaksAccessibility {
+    static let cardTitle = "Current Streaks"
+    static func streakCount(_ count: Int) -> String {
+        count == 1 ? "1 active streak" : "\(count) active streaks"
+    }
+    static func streakItem(habitName: String, days: Int, level: String?) -> String {
+        var label = "\(habitName), \(days) day streak"
+        if let level = level {
+            label += ", \(level)"
+        }
+        return label
+    }
+    static let streakItemHint = "Double tap for streak details"
+    static let emptyStateLabel = "No active streaks. Start completing habits to build your streaks."
+    static let loadingLabel = "Loading streaks"
+}
+
 struct StreaksCard: View {
     let streaks: [StreakInfo]
     let shouldAnimateBestStreak: Bool
@@ -58,16 +77,20 @@ struct StreaksCard: View {
                 HStack(spacing: 8) {
                     Text("🔥")
                         .font(.title2)
+                        .accessibilityHidden(true) // Decorative emoji
                     Text("Current Streaks")
                         .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityLabel(StreaksAccessibility.cardTitle)
 
                 Spacer()
-                
+
                 Text("\(streaks.count) \(streaks.count == 1 ? "streak" : "streaks")")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .font(.subheadline.weight(.medium))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -75,6 +98,7 @@ struct StreaksCard: View {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(CardDesign.secondaryBackground)
                     )
+                    .accessibilityLabel(StreaksAccessibility.streakCount(streaks.count))
             }
             
             if isLoading {
@@ -82,25 +106,28 @@ struct StreaksCard: View {
                 VStack(spacing: 12) {
                     ProgressView()
                         .scaleEffect(0.8)
-                    
+
                     Text("Loading streaks...")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(StreaksAccessibility.loadingLabel)
             } else if streaks.isEmpty {
                 // Empty state
                 VStack(spacing: 12) {
                     Image(systemName: "flame")
-                        .font(.system(size: 32))
+                        .font(.title)
                         .foregroundColor(.secondary.opacity(0.6))
-                    
+                        .accessibilityHidden(true) // Decorative
+
                     Text("No Active Streaks")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
-                    
+
                     Text("Start completing habits to build your streaks!")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -108,6 +135,8 @@ struct StreaksCard: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(StreaksAccessibility.emptyStateLabel)
             } else {
                 // Horizontal Scrolling Grid (horizontal-first filling)
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -127,6 +156,7 @@ struct StreaksCard: View {
             }
         }
         .padding(20)
+        .accessibilityIdentifier("streaks_card")
         // PERFORMANCE: Removed .glassmorphicMaximizedContentStyle() - unnecessary Button wrapper with animation
         // Card is already wrapped in .simpleCard() in OverviewView
         .onAppear {
@@ -144,12 +174,14 @@ struct StreaksCard: View {
     
     @ViewBuilder
     private func streakItem(for streak: StreakInfo) -> some View {
+        let streakLevel = streak.flameCount > 0 ? StreakDetailSheet.streakLevelText(for: streak.flameCount) : nil
+
         Button {
             // Ensure we have valid streak data before showing sheet
-            guard !isLoading, 
+            guard !isLoading,
                   !streak.habitName.isEmpty,
-                  streak.currentStreak >= 0 else { 
-                return 
+                  streak.currentStreak >= 0 else {
+                return
             }
             sheetStreak = streak
         } label: {
@@ -158,7 +190,8 @@ struct StreaksCard: View {
                 VStack(spacing: 4) {
                     Text(streak.emoji)
                         .font(.title2)
-                    
+                        .accessibilityHidden(true) // Emoji is decorative, info is in label
+
                     Text(streak.habitName)
                         .font(.caption)
                         .fontWeight(.medium)
@@ -166,22 +199,23 @@ struct StreaksCard: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
-                
+
                 // Streak stats
                 VStack(spacing: 2) {
                     HStack(spacing: 4) {
                         Text(streak.flameEmoji)
                             .font(.caption2)
-                        
+                            .accessibilityHidden(true) // Decorative flame
+
                         Text("\(streak.currentStreak)")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(.body.weight(.bold))
                             .foregroundColor(.primary)
-                        
+
                         Text(streak.currentStreak == 1 ? "day" : "days")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     // Show streak level based on flameCount
                     if streak.flameCount > 0 {
                         Text(StreakDetailSheet.streakLevelText(for: streak.flameCount))
@@ -200,6 +234,15 @@ struct StreaksCard: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(StreaksAccessibility.streakItem(
+            habitName: streak.habitName,
+            days: streak.currentStreak,
+            level: streakLevel
+        ))
+        .accessibilityHint(StreaksAccessibility.streakItemHint)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("streak_item_\(streak.id)")
         .celebrationAnimation(
             isTriggered: animatingStreakId == streak.id,
             config: .bestStreak,

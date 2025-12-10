@@ -148,12 +148,29 @@ public final class ToastService: ToastServiceProtocol {
 
         let toast = Toast(type: type, persistent: persistent)
 
+        // Trigger haptic feedback based on toast type
+        triggerHapticFeedback(for: type)
+
         // Insert at beginning (newest first)
         toasts.insert(toast, at: 0)
 
         // Trim to max visible
         if toasts.count > Self.maxVisibleToasts {
             toasts = Array(toasts.prefix(Self.maxVisibleToasts))
+        }
+    }
+
+    /// Trigger appropriate haptic feedback for toast type
+    private func triggerHapticFeedback(for type: ToastType) {
+        switch type {
+        case .success:
+            HapticFeedbackService.shared.trigger(.success)
+        case .error:
+            HapticFeedbackService.shared.trigger(.error)
+        case .warning:
+            HapticFeedbackService.shared.trigger(.warning)
+        case .info:
+            HapticFeedbackService.shared.trigger(.light)
         }
     }
 

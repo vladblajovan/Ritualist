@@ -139,6 +139,10 @@ public struct BaseSheet<Content: View>: View {
         .onAppear {
             // Capture screen height for responsive calculations
             screenHeight = UIScreen.main.bounds.height
+            // Announce sheet title to VoiceOver for focus management
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                UIAccessibility.post(notification: .screenChanged, argument: title)
+            }
         }
     }
     

@@ -145,6 +145,9 @@ private struct RadiusSection: View {
                     in: LocationConfiguration.minimumRadius...LocationConfiguration.maximumRadius,
                     step: 10
                 )
+                .accessibilityLabel("Detection radius")
+                .accessibilityValue("\(Int(radius)) meters")
+                .accessibilityHint("Adjust the area where the habit will be tracked")
 
                 HStack {
                     Text("\(Int(LocationConfiguration.minimumRadius))m")

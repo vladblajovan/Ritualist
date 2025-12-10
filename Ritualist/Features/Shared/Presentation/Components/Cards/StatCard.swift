@@ -1,6 +1,49 @@
 import SwiftUI
 import RitualistCore
 
+// MARK: - Accessibility Support
+
+private extension StatCard {
+    /// Generates accessibility label combining all card information
+    func accessibilityLabel(for title: String, value: String, subtitle: String?, trend: TrendIndicator?) -> String {
+        var components: [String] = []
+
+        // Main content
+        components.append("\(title): \(value)")
+
+        // Subtitle if present
+        if let subtitle = subtitle {
+            components.append(subtitle)
+        }
+
+        // Trend information
+        if let trend = trend {
+            switch trend {
+            case .up(let percentage):
+                if let value = percentage {
+                    components.append("up \(String(format: "%.1f", value)) percent")
+                } else {
+                    components.append("trending up")
+                }
+            case .down(let percentage):
+                if let value = percentage {
+                    components.append("down \(String(format: "%.1f", value)) percent")
+                } else {
+                    components.append("trending down")
+                }
+            case .neutral:
+                components.append("no change")
+            case .custom(_, let percentage, _):
+                if let value = percentage {
+                    components.append("\(String(format: "%.1f", value)) percent change")
+                }
+            }
+        }
+
+        return components.joined(separator: ", ")
+    }
+}
+
 /// An enhanced stats card component with trend indicators and flexible layouts
 /// Replaces the dashboard-specific StatsCard with more features and customization
 public struct StatCard: View {
@@ -50,7 +93,7 @@ public struct StatCard: View {
     }
     
     // MARK: - Content View
-    
+
     @ViewBuilder
     private var contentView: some View {
         Group {
@@ -65,6 +108,10 @@ public struct StatCard: View {
         }
         .frame(maxWidth: .infinity, alignment: layoutAlignment)
         .modifier(CardStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel(for: title, value: value, subtitle: subtitle, trend: trend))
+        .accessibilityAddTraits(action != nil ? .isButton : [])
+        .accessibilityIdentifier(AccessibilityID.Stats.statCardNamed(title))
     }
     
     // MARK: - Layout Variations
@@ -338,7 +385,7 @@ private struct CardButtonStyle: ButtonStyle {
         configuration.label
             .modifier(CardStyle())
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+            .reduceMotionAnimation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 

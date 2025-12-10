@@ -6,29 +6,37 @@ public struct Chip: View {
     let emoji: String?
     let color: Color?
     let isSelected: Bool
-    
+    let accessibilityIdentifier: String?
+
+    // Scaled padding for Dynamic Type support
+    @ScaledMetric(relativeTo: .subheadline) private var horizontalPadding: CGFloat = 20
+    @ScaledMetric(relativeTo: .subheadline) private var verticalPadding: CGFloat = 12
+
     public init(
         text: String,
         emoji: String? = nil,
         color: Color? = nil,
-        isSelected: Bool = false
+        isSelected: Bool = false,
+        accessibilityIdentifier: String? = nil
     ) {
         self.text = text
         self.emoji = emoji
         self.color = color
         self.isSelected = isSelected
+        self.accessibilityIdentifier = accessibilityIdentifier
     }
-    
+
     public var body: some View {
         HStack(spacing: Spacing.small) {
             if let emoji = emoji {
                 Text(emoji)
+                    .accessibilityHidden(true) // Decorative emoji
             }
             Text(text)
-                .font(.system(size: 15, weight: .medium))
+                .font(.subheadline.weight(.medium))
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.horizontal, horizontalPadding)
+        .padding(.vertical, verticalPadding)
         .background(
             RoundedRectangle(cornerRadius: 25)
                 .fill(isSelected ? (color ?? AppColors.brand) : Color(.tertiarySystemBackground))
@@ -36,5 +44,10 @@ public struct Chip: View {
         .foregroundColor(
             isSelected ? .white : .primary
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(text)\(isSelected ? ", selected" : "")")
+        .accessibilityHint("Double-tap to \(isSelected ? "deselect" : "select")")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier(accessibilityIdentifier ?? "chip_\(text)")
     }
 }

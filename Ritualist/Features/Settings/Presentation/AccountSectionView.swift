@@ -41,6 +41,8 @@ struct AccountSectionView: View {
                                 await updateUserName()
                             }
                         }
+                        .accessibilityLabel("Your name")
+                        .accessibilityHint("Enter your display name")
 
                     if vm.isUpdatingUser {
                         HStack {
@@ -68,6 +70,8 @@ struct AccountSectionView: View {
                             await vm.updateGender(newValue)
                         }
                     }
+                    .accessibilityLabel("Gender")
+                    .accessibilityHint("Select your gender for personalized insights")
                 } icon: {
                     Image(systemName: "person.fill")
                         .font(.title2)
@@ -89,6 +93,8 @@ struct AccountSectionView: View {
                             await vm.updateAgeGroup(newValue)
                         }
                     }
+                    .accessibilityLabel("Age group")
+                    .accessibilityHint("Select your age range for personalized insights")
                 } icon: {
                     Image(systemName: "number.circle")
                         .font(.title2)

@@ -11,15 +11,15 @@ public struct HabitScheduleIndicator: View {
         case small
         case medium
         case large
-        
-        var iconSize: CGFloat {
+
+        var iconFont: Font {
             switch self {
-            case .small: return 12
-            case .medium: return 16
-            case .large: return 20
+            case .small: return .caption2
+            case .medium: return .caption
+            case .large: return .footnote
             }
         }
-        
+
         var fontSize: Font {
             switch self {
             case .small: return .caption2
@@ -27,7 +27,7 @@ public struct HabitScheduleIndicator: View {
             case .large: return .footnote
             }
         }
-        
+
         var padding: CGFloat {
             switch self {
             case .small: return 4
@@ -88,7 +88,7 @@ public struct HabitScheduleIndicator: View {
         HStack(spacing: 4) {
             if style.showsIcon {
                 Image(systemName: status.iconName)
-                    .font(.system(size: size.iconSize))
+                    .font(size.iconFont)
                     .foregroundColor(status.color)
             }
             
@@ -104,7 +104,7 @@ public struct HabitScheduleIndicator: View {
     private var badgeView: some View {
         HStack(spacing: 4) {
             Image(systemName: status.iconName)
-                .font(.system(size: size.iconSize))
+                .font(size.iconFont)
                 .foregroundColor(status.isAvailable ? .white : status.color)
             
             if style.showsText {

@@ -22,9 +22,12 @@ public struct LocationConfigurationSection: View {
                 HStack {
                     Image(systemName: "location.fill")
                         .foregroundColor(.purple)
+                        .accessibilityHidden(true) // Decorative icon
                     Text("Location Reminders")
                 }
             }
+            .accessibilityLabel("Location Reminders")
+            .accessibilityHint((vm.locationConfiguration?.isEnabled ?? false) ? "Currently enabled. Double tap to disable location-based reminders." : "Currently disabled. Double tap to enable reminders when you arrive at or leave a location.")
 
             // Show configuration UI when enabled
             if let config = vm.locationConfiguration, config.isEnabled {

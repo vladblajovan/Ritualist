@@ -41,6 +41,8 @@ public struct BasicInfoSection: View {
                             }
                         }
                         .accessibilityIdentifier(AccessibilityID.HabitDetail.nameField)
+                        .accessibilityLabel("Habit name")
+                        .accessibilityHint("Enter a name for your habit")
                 }
                 
                 // Form validation feedback
@@ -92,6 +94,8 @@ public struct BasicInfoSection: View {
                     Text(Strings.Form.count).tag(HabitKind.numeric)
                 }
                 .pickerStyle(SegmentedPickerStyle())
+                .accessibilityLabel("Habit type")
+                .accessibilityHint("Choose between yes/no completion or numeric counting")
             }
             
             if vm.selectedKind == .numeric {
@@ -106,6 +110,8 @@ public struct BasicInfoSection: View {
                             .onSubmit {
                                 focusedField = .dailyTarget
                             }
+                            .accessibilityLabel("Unit label")
+                            .accessibilityHint("Enter the unit of measurement, like glasses, minutes, or steps")
                     }
                     
                     if !vm.isUnitLabelValid && focusedField != .unitLabel {
@@ -126,6 +132,9 @@ public struct BasicInfoSection: View {
                                 .foregroundColor(.primary)
                         }
                     }
+                    .accessibilityLabel("Daily target")
+                    .accessibilityValue("\(Int(vm.dailyTarget)) \(vm.unitLabel.isEmpty ? "units" : vm.unitLabel)")
+                    .accessibilityHint("Adjust to set your daily goal")
 
                     if !vm.isDailyTargetValid {
                         Text(Strings.Validation.targetGreaterThanZero)

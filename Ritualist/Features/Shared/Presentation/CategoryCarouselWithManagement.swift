@@ -59,7 +59,7 @@ public struct CategoryCarouselWithManagement: View {
     private var cogwheelButtonContent: some View {
         HStack(spacing: Spacing.small) {
             Image(systemName: "gearshape")
-                .font(.system(size: 15, weight: .medium))
+                .font(.subheadline.weight(.medium))
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -106,7 +106,7 @@ public struct CategoryCarouselWithManagement: View {
         } else {
             // Select - optionally scroll to start
             if scrollToStartOnSelection && !isCurrentlySelected {
-                withAnimation {
+                animateIfAllowed(.default) {
                     scrollProxy.scrollTo("cogwheel", anchor: .leading)
                 }
             }

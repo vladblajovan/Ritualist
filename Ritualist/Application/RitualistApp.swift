@@ -12,6 +12,7 @@ import RitualistCore
 import UIKit
 import CoreData
 import CloudKit
+import TipKit
 
 // swiftlint:disable type_body_length file_length
 @main struct RitualistApp: App {
@@ -114,6 +115,29 @@ import CloudKit
 
     /// App startup time for performance monitoring
     private let appStartTime = Date()
+
+    init() {
+        // Check if tips should be reset (set from Debug Menu)
+        if UserDefaults.standard.bool(forKey: "shouldResetTipsOnNextLaunch") {
+            UserDefaults.standard.set(false, forKey: "shouldResetTipsOnNextLaunch")
+            do {
+                try Tips.resetDatastore()
+                tipLogger.info("✅ TipKit datastore reset successfully")
+            } catch {
+                tipLogger.error("❌ TipKit datastore reset failed: \(error.localizedDescription)")
+            }
+        }
+
+        // Configure TipKit
+        do {
+            try Tips.configure([
+                .displayFrequency(.immediate)
+            ])
+            tipLogger.info("✅ TipKit configured successfully with displayFrequency: immediate")
+        } catch {
+            tipLogger.error("❌ TipKit configuration failed: \(error.localizedDescription)")
+        }
+    }
 
     /// Minimum interval between geofence restorations (in seconds).
     ///

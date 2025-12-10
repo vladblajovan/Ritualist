@@ -62,9 +62,10 @@ struct RootTabViewModelTests {
         clearTestUserDefaults()
 
         // Setup premium provider and sync preference for isCloudKitSyncActive check
-        // Default to premium=true and sync=true so returning user tests work (they need sync active)
+        // Sync defaults to true (opt-out model), so we only need to set premium status
+        // For non-premium tests, we explicitly set sync=false to match expected behavior
         setupPremiumProvider(isPremium: isPremium)
-        setupSyncPreference(enabled: isPremium) // Enable sync when premium
+        setupSyncPreference(enabled: isPremium) // Sync enabled matches premium status
 
         let mockiCloud = MockiCloudKeyValueServiceForViewModel()
         mockiCloud.iCloudOnboardingCompleted = iCloudCompleted
@@ -79,13 +80,18 @@ struct RootTabViewModelTests {
         let personalityCoordinator = PersonalityDeepLinkCoordinator(logger: DebugLogger(subsystem: "test", category: "coordinator"))
         let logger = DebugLogger(subsystem: "test", category: "viewmodel")
 
+        // Create mock premium verifier that returns the test's isPremium value
+        // This bypasses StoreKit which always returns false in unit tests
+        let mockPremiumVerifier: () async -> Bool = { isPremium }
+
         let viewModel = RootTabViewModel(
             loadProfile: mockLoadProfile,
             iCloudKeyValueService: mockiCloud,
             appearanceManager: appearanceManager,
             navigationService: navigationService,
             personalityDeepLinkCoordinator: personalityCoordinator,
-            logger: logger
+            logger: logger,
+            premiumVerifier: mockPremiumVerifier
         )
 
         return (viewModel, mockiCloud)
@@ -326,6 +332,41 @@ struct RootTabViewModelTests {
         await viewModel.checkOnboardingStatus()
 
         #expect(mockiCloud.synchronizeCallCount == 1)
+    }
+
+    // MARK: - Non-Premium Returning User Tests
+    //
+    // Note: The checkICloudAvailability() method uses real CloudKit and is bypassed in unit tests
+    // (returns true when XCTestCase is detected). Production CloudKit availability behavior is
+    // tested via manual testing and UI tests. The premium verification path is tested via the
+    // premiumVerifier closure injection - see createViewModel(isPremium:).
+
+    @Test("Non-premium returning user sees normal onboarding (no welcome screen)")
+    @MainActor
+    func nonPremiumReturningUserSeesNormalOnboarding() async {
+        // Non-premium user with iCloud flag set (from previous premium period)
+        // should see normal onboarding, not returning user welcome
+        let (viewModel, _) = createViewModel(iCloudCompleted: true, localCompleted: false, isPremium: false)
+
+        await viewModel.checkOnboardingStatus()
+
+        // Should show normal onboarding since CloudKit sync is not active
+        #expect(viewModel.showOnboarding == true)
+        #expect(viewModel.isCheckingOnboarding == false)
+        #expect(viewModel.pendingReturningUserWelcome == false)
+    }
+
+    @Test("Non-premium user with local flag skips onboarding")
+    @MainActor
+    func nonPremiumUserWithLocalFlagSkipsOnboarding() async {
+        // Non-premium user who completed onboarding locally should skip
+        let (viewModel, _) = createViewModel(iCloudCompleted: false, localCompleted: true, isPremium: false)
+
+        await viewModel.checkOnboardingStatus()
+
+        #expect(viewModel.showOnboarding == false)
+        #expect(viewModel.isCheckingOnboarding == false)
+        #expect(viewModel.pendingReturningUserWelcome == false)
     }
 
     // MARK: - Synced Data Summary Tests

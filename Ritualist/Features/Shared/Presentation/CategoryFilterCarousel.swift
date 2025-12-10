@@ -69,9 +69,13 @@ public struct CategoryFilterCarousel: View {
 
                                     Text("🤖")
                                         .font(.system(size: 16))
+                                        .accessibilityHidden(true) // Decorative emoji
                                 }
                             }
+                            .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
                             .accessibilityLabel("Habits Assistant")
+                            .accessibilityHint("Open the AI habit assistant")
+                            .accessibilityIdentifier("category_filter_assistant_button")
                         }
 
                         if let onAddHabit = onAddHabit {
@@ -82,7 +86,10 @@ public struct CategoryFilterCarousel: View {
                                     .font(.title3)
                                     .foregroundColor(AppColors.brand)
                             }
+                            .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
                             .accessibilityLabel("Add Habit")
+                            .accessibilityHint("Create a new habit")
+                            .accessibilityIdentifier("category_filter_add_habit_button")
                         }
                     }
                 }
@@ -116,7 +123,8 @@ public struct CategoryFilterCarousel: View {
                                 Chip(
                                     text: category.displayName,
                                     emoji: category.emoji,
-                                    isSelected: selectedCategory?.id == category.id
+                                    isSelected: selectedCategory?.id == category.id,
+                                    accessibilityIdentifier: "category_chip_\(category.id)"
                                 )
                             }
                             .buttonStyle(PlainButtonStyle())

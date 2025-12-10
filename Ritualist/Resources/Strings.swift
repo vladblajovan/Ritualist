@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Centralized localized strings using String Catalogs (.xcstrings)
 /// This provides type-safe access to all localized strings in the app
+// swiftlint:disable:next type_body_length
 public enum Strings {
     
     // MARK: - App
@@ -241,6 +242,66 @@ public enum Strings {
         public static func streakInfo(_ currentStreak: String, _ bestStreak: String) -> String {
             String(format: String(localized: "accessibilityStreakInfo"), currentStreak, bestStreak)
         }
+
+        // MARK: - Dashboard Accessibility
+
+        public static let dashboardEmptyState = String(localized: "accessibilityDashboardEmptyState")
+        public static let chartNoData = String(localized: "accessibilityChartNoData")
+
+        public static func chartDescription(avgCompletion: Int, trend: String) -> String {
+            String(format: String(localized: "accessibilityChartDescription"), avgCompletion, trend)
+        }
+
+        public static func categoryLabel(name: String, habitCount: Int, completionPercent: Int) -> String {
+            let habitText = habitCount == 1 ? "1 habit" : "\(habitCount) habits"
+            return String(format: String(localized: "accessibilityCategoryLabel"), name, habitText, completionPercent)
+        }
+
+        // MARK: - Today's Summary Accessibility
+
+        public static func progressLabel(completed: Int, total: Int) -> String {
+            let percent = total > 0 ? Int(Double(completed) / Double(total) * 100) : 0
+            return String(format: String(localized: "accessibilityProgressLabel"), completed, total, percent)
+        }
+
+        public static func dateLabel(date: String, isToday: Bool) -> String {
+            isToday ? String(format: String(localized: "accessibilityDateLabelToday"), date) : date
+        }
+
+        public static let previousDayHint = String(localized: "accessibilityPreviousDayHint")
+        public static let nextDayHint = String(localized: "accessibilityNextDayHint")
+        public static let returnToTodayHint = String(localized: "accessibilityReturnToTodayHint")
+
+        public static func habitRowLabel(name: String, isCompleted: Bool, progress: String?) -> String {
+            var label = name
+            if isCompleted {
+                label += String(localized: "accessibilityHabitCompleted")
+            } else if let progress = progress {
+                label += ", \(progress)"
+            } else {
+                label += String(localized: "accessibilityHabitNotCompleted")
+            }
+            return label
+        }
+
+        public static let completedSectionHeader = String(localized: "accessibilityCompletedSectionHeader")
+        public static let remainingSectionHeader = String(localized: "accessibilityRemainingSectionHeader")
+        public static let noHabitsScheduledAccessibility = String(localized: "accessibilityNoHabitsScheduled")
+        public static let loadingHabits = String(localized: "accessibilityLoadingHabits")
+
+        // MARK: - Quick Actions Accessibility
+
+        /// Announcement for habit validation message (e.g., "Morning Workout: Only available on weekdays")
+        public static func habitValidationAnnouncement(_ habitName: String, _ message: String) -> String {
+            String(format: String(localized: "accessibilityHabitValidationAnnouncement"), habitName, message)
+        }
+
+        // MARK: - Welcome Back Accessibility
+
+        /// Summary of synced data for returning users
+        public static func syncedDataSummary(habits: Int, categories: Int) -> String {
+            String(format: String(localized: "accessibilitySyncedDataSummary"), habits, categories)
+        }
     }
     
     // MARK: - Number Formatting
@@ -411,6 +472,7 @@ public enum Strings {
         public static let reset = String(localized: "numericHabitLog.reset")
         public static let completeAll = String(localized: "numericHabitLog.completeAll")
         public static let wellDoneExtraMile = String(localized: "numericHabitLog.wellDoneExtraMile")
+        public static let loadingCurrentValue = String(localized: "numericHabitLog.loadingCurrentValue")
 
         // Extra mile phrases (randomly selected)
         public static let extraMileOnFire = String(localized: "numericHabitLog.extraMile.onFire")
@@ -429,6 +491,68 @@ public enum Strings {
                 extraMileExtraEffort,
                 extraMileBeyondExpectations
             ]
+        }
+
+        // Accessibility hints
+        public static let decreaseHint = String(localized: "numericHabitLog.accessibility.decreaseHint")
+        public static let increaseHint = String(localized: "numericHabitLog.accessibility.increaseHint")
+        public static let resetHint = String(localized: "numericHabitLog.accessibility.resetHint")
+        public static let completeAllHint = String(localized: "numericHabitLog.accessibility.completeAllHint")
+        public static let doneHint = String(localized: "numericHabitLog.accessibility.doneHint")
+
+        /// Accessibility label for quick increment button
+        public static func quickIncrementLabel(_ amount: String) -> String {
+            String(format: String(localized: "numericHabitLog.accessibility.quickIncrementLabel"), amount)
+        }
+
+        /// Accessibility hint for quick increment button
+        public static func quickIncrementHint(_ amount: String) -> String {
+            String(format: String(localized: "numericHabitLog.accessibility.quickIncrementHint"), amount)
+        }
+
+        /// Accessibility label for progress circle showing current value, target, and completion
+        public static func progressLabel(current: Int, target: Int, isCompleted: Bool) -> String {
+            if isCompleted {
+                return String(
+                    format: String(localized: "numericHabitLog.accessibility.progressCompleted"),
+                    current,
+                    target
+                )
+            } else {
+                return String(
+                    format: String(localized: "numericHabitLog.accessibility.progressInProgress"),
+                    current,
+                    target
+                )
+            }
+        }
+    }
+
+    // MARK: - Common
+    public enum Common {
+        public static let done = String(localized: "common.done")
+        public static let cancel = String(localized: "common.cancel")
+        public static let decrease = String(localized: "common.decrease")
+        public static let increase = String(localized: "common.increase")
+    }
+
+    // MARK: - Uncomplete Habit Sheet
+    public enum UncompleteHabitSheet {
+        public static let completed = String(localized: "uncompleteHabitSheet.completed")
+        public static let markAsNotCompleted = String(localized: "uncompleteHabitSheet.markAsNotCompleted")
+
+        // Accessibility
+        public static let markAsNotCompletedHint = String(localized: "uncompleteHabitSheet.accessibility.markAsNotCompletedHint")
+        public static let cancelHint = String(localized: "uncompleteHabitSheet.accessibility.cancelHint")
+
+        /// Accessibility label for header combining habit name and completed status
+        public static func headerAccessibilityLabel(_ habitName: String) -> String {
+            String(format: String(localized: "uncompleteHabitSheet.accessibility.headerLabel"), habitName)
+        }
+
+        /// VoiceOver announcement when sheet appears
+        public static func screenChangedAnnouncement(_ habitName: String) -> String {
+            String(format: String(localized: "uncompleteHabitSheet.accessibility.screenChanged"), habitName)
         }
     }
 }

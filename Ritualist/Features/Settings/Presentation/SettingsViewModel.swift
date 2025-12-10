@@ -122,7 +122,8 @@ public final class SettingsViewModel {
     }
 
     /// Whether iCloud sync is enabled (user preference)
-    /// Only premium users can toggle this; free users always have sync enabled by default
+    /// Default: true (sync enabled by default for premium users)
+    /// Premium users can disable in Settings; free users see upgrade prompt instead
     public var iCloudSyncEnabled: Bool {
         getICloudSyncPreference.execute()
     }
@@ -297,6 +298,9 @@ public final class SettingsViewModel {
 
     /// Load all status checks in parallel for faster startup
     private func loadStatusesInParallel() async {
+        // Set iCloud loading indicator immediately
+        isCheckingCloudStatus = true
+
         async let notificationStatus = checkNotificationStatus.execute()
         async let locationStatus = getLocationAuthStatus.execute()
         async let premiumStatus = checkPremiumStatus.execute()
@@ -304,6 +308,7 @@ public final class SettingsViewModel {
         async let subscriptionPlan = getCurrentSubscriptionPlan.execute()
         async let subscriptionExpiry = getSubscriptionExpiryDate.execute()
         async let networkStatus = NetworkUtilities.hasNetworkConnectivity()
+        async let cloudStatus = checkiCloudStatus.execute()
 
         // Await all results (runs in parallel)
         hasNotificationPermission = await notificationStatus
@@ -313,12 +318,13 @@ public final class SettingsViewModel {
         cachedSubscriptionPlan = await subscriptionPlan
         cachedSubscriptionExpiryDate = await subscriptionExpiry
         hasNetworkConnectivity = await networkStatus
+        iCloudStatus = await cloudStatus
 
         // Check if device allows in-app purchases (parental controls, etc.)
         canMakePayments = SKPaymentQueue.canMakePayments()
 
-        // iCloud status has its own loading indicator, run after parallel batch
-        await refreshiCloudStatus()
+        // Clear iCloud loading indicator
+        isCheckingCloudStatus = false
     }
 
     public func save() async -> Bool {
@@ -766,6 +772,10 @@ public final class SettingsViewModel {
             // Reset the local device flag (so this device sees new user flow)
             iCloudKeyValueService.resetLocalOnboardingFlag()
 
+            // Reset categorySeedingCompleted flag (used in migration check)
+            // Without this, the app treats the user as "existing" and skips onboarding
+            UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+
             // Reset onboarding view model to clear any cached state
             onboardingViewModel.reset()
 
@@ -775,6 +785,27 @@ public final class SettingsViewModel {
             self.error = error
             userActionTracker.trackError(error, context: "debug_onboarding_reset")
         }
+    }
+
+    /// Simulates a returning user on a new device for testing.
+    /// Keeps the iCloud onboarding flag (hasCompletedOnboarding) but clears local flags.
+    /// This allows testing the returning user welcome flow without deleting the app.
+    public func simulateNewDevice() async {
+        // Keep iCloud flag set (user completed onboarding on "another device")
+        // Just ensure it's set in case it isn't
+        iCloudKeyValueService.setOnboardingCompleted()
+
+        // Clear local device flag (this "device" hasn't seen onboarding)
+        iCloudKeyValueService.resetLocalOnboardingFlag()
+
+        // Clear categorySeedingCompleted (so migration check doesn't skip onboarding)
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+
+        // Reset onboarding view model
+        onboardingViewModel.reset()
+
+        // Track the debug action
+        userActionTracker.track(.custom(event: "debug_simulate_new_device", parameters: [:]))
     }
 
     public func populateTestData(scenario: TestDataScenario = .full) async {

@@ -3,6 +3,8 @@ import RitualistCore
 
 /// A swipeable carousel of inspiration cards, sorted by trigger priority
 struct InspirationCarouselView: View {
+    // MARK: - Reduce Motion Support
+    private var shouldAnimateVisuals: Bool { !isReduceMotionEnabled }
     let items: [InspirationItem]
     let timeOfDay: TimeOfDay
     let completionPercentage: Double
@@ -26,7 +28,7 @@ struct InspirationCarouselView: View {
                             completionPercentage: completionPercentage,
                             shouldShow: true,
                             onDismiss: {
-                                withAnimation(SpringAnimation.interactive) {
+                                animateIfAllowed(SpringAnimation.interactive) {
                                     onDismiss(item)
                                 }
                             }
@@ -41,7 +43,7 @@ struct InspirationCarouselView: View {
                 // Reset to valid index when items change (e.g., after dismissal)
                 .onChange(of: items.count) { oldCount, newCount in
                     if currentIndex >= newCount {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        animateIfAllowed(.easeInOut(duration: 0.2)) {
                             currentIndex = max(0, newCount - 1)
                         }
                     }
@@ -59,7 +61,7 @@ struct InspirationCarouselView: View {
                             Circle()
                                 .fill(index == currentIndex ? Color.white : Color.white.opacity(0.4))
                                 .frame(width: 6, height: 6)
-                                .animation(.easeInOut(duration: 0.2), value: currentIndex)
+                                .reduceMotionAnimation(.easeInOut(duration: 0.2), value: currentIndex)
                         }
                     }
                     .padding(.horizontal, 10)
@@ -97,10 +99,14 @@ struct InspirationCarouselView: View {
     /// Shows a subtle "peek" animation to hint that the carousel is swipeable.
     /// Only triggers once when carousel first appears with multiple items.
     /// Uses structured concurrency for automatic cancellation when view disappears.
+    /// Respects Reduce Motion accessibility setting.
     @MainActor
     private func showPeekHintIfNeeded() async {
         guard items.count > 1, !hasShownPeekHint else { return }
         hasShownPeekHint = true
+
+        // Skip visual animations if user prefers reduced motion
+        guard !isReduceMotionEnabled else { return }
 
         // Delay before starting the peek animation
         try? await Task.sleep(for: .milliseconds(600))
@@ -123,7 +129,7 @@ struct InspirationCarouselView: View {
     @MainActor
     private func performPeekBounce() async {
         // Peek left to reveal edge of next card
-        withAnimation(.easeOut(duration: 0.2)) {
+        animateIfAllowed(.easeOut(duration: 0.2)) {
             peekOffset = -25
         }
 
@@ -136,7 +142,7 @@ struct InspirationCarouselView: View {
         }
 
         // Bounce back to original position
-        withAnimation(SpringAnimation.interactive) {
+        animateIfAllowed(SpringAnimation.interactive) {
             peekOffset = 0
         }
 

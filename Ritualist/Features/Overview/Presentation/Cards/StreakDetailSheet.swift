@@ -12,7 +12,8 @@ struct StreakDetailSheet: View {
                     // Header
                     VStack(spacing: 12) {
                         Text(streak.emoji)
-                            .font(.system(size: 48))
+                            .font(.system(size: 48)) // Keep fixed for decorative emoji
+                            .accessibilityHidden(true)
                         
                         Text(streak.habitName)
                             .font(.title2)

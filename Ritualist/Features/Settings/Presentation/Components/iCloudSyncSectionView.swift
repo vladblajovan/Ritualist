@@ -35,6 +35,8 @@ struct ICloudSyncSectionView: View {
                         }
                     }
                 ))
+                .accessibilityLabel("Enable iCloud Sync")
+                .accessibilityHint(vm.iCloudSyncEnabled ? "Currently enabled. Double tap to disable syncing." : "Currently disabled. Double tap to enable syncing across devices.")
 
                 // Show helpful text based on current state
                 if !vm.iCloudSyncEnabled {

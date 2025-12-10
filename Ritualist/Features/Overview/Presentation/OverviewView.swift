@@ -176,7 +176,7 @@ public struct OverviewView: View {
                 
                 Spacer(minLength: 100) // Tab bar padding
             }
-            .padding(.horizontal, Spacing.screenMargin)
+            .padding(.horizontal, Spacing.large)
             }
             .refreshable {
                 await vm.refresh()
