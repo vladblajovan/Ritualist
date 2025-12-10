@@ -531,8 +531,29 @@ public enum Strings {
     // MARK: - Common
     public enum Common {
         public static let done = String(localized: "common.done")
+        public static let cancel = String(localized: "common.cancel")
         public static let decrease = String(localized: "common.decrease")
         public static let increase = String(localized: "common.increase")
+    }
+
+    // MARK: - Uncomplete Habit Sheet
+    public enum UncompleteHabitSheet {
+        public static let completed = String(localized: "uncompleteHabitSheet.completed")
+        public static let markAsNotCompleted = String(localized: "uncompleteHabitSheet.markAsNotCompleted")
+
+        // Accessibility
+        public static let markAsNotCompletedHint = String(localized: "uncompleteHabitSheet.accessibility.markAsNotCompletedHint")
+        public static let cancelHint = String(localized: "uncompleteHabitSheet.accessibility.cancelHint")
+
+        /// Accessibility label for header combining habit name and completed status
+        public static func headerAccessibilityLabel(_ habitName: String) -> String {
+            String(format: String(localized: "uncompleteHabitSheet.accessibility.headerLabel"), habitName)
+        }
+
+        /// VoiceOver announcement when sheet appears
+        public static func screenChangedAnnouncement(_ habitName: String) -> String {
+            String(format: String(localized: "uncompleteHabitSheet.accessibility.screenChanged"), habitName)
+        }
     }
 }
 

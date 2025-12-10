@@ -1,6 +1,7 @@
 import SwiftUI
 import RitualistCore
 import FactoryKit
+import TipKit
 
 /// Direct sheet implementation without caching layer
 public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_body_length
@@ -20,7 +21,6 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     @State private var value: Double = 0.0
     @State private var extraMileText: String?
     @State private var loadTask: Task<Void, Never>?
-    @State private var saveTask: Task<Void, Never>?
     @Environment(\.dismiss) private var dismiss
 
     // MARK: - Dynamic Type Scaling
@@ -294,41 +294,36 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         .onDisappear {
             loadTask?.cancel()
             loadTask = nil
-            saveTask?.cancel()
-            saveTask = nil
+
+            // Save on dismiss if value changed - user sees Overview animate with new progress
+            if value != currentValue {
+                Task {
+                    do {
+                        try await onSave(value)
+                    } catch {
+                        logger.log(
+                            "Failed to save habit value on dismiss",
+                            level: .error,
+                            category: .dataIntegrity,
+                            metadata: ["habit_id": habit.id.uuidString, "value": "\(value)", "error": error.localizedDescription]
+                        )
+                    }
+                }
+            }
         }
         .onChange(of: currentValue) { _, newValue in
             value = newValue
         }
         .onChange(of: value) { oldValue, newValue in
-            // Auto-save when value changes (skip initial load)
-            guard !isLoading, oldValue != newValue else { return }
-
             // Set extra mile text when first exceeding target
             if newValue > dailyTarget && extraMileText == nil {
                 extraMileText = Strings.NumericHabitLog.extraMilePhrases.randomElement()
             }
 
-            // Debounce saves to prevent excessive database writes during rapid changes
-            saveTask?.cancel()
-            saveTask = Task {
-                // Wait 300ms before saving - allows rapid clicks to coalesce
-                try? await Task.sleep(for: .milliseconds(300))
-                guard !Task.isCancelled else { return }
-
-                do {
-                    try await onSave(newValue)
-                } catch {
-                    logger.log(
-                        "Failed to auto-save habit value",
-                        level: .error,
-                        category: .dataIntegrity,
-                        metadata: ["habit_id": habit.id.uuidString, "value": "\(newValue)", "error": error.localizedDescription]
-                    )
-                    #if DEBUG
-                    toastService.error(Strings.Error.failedToSave)
-                    #endif
-                }
+            // Trigger tip for completed habits when reaching target for the first time
+            if newValue >= dailyTarget && oldValue < dailyTarget {
+                TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
+                tipLogger.info("📤 Numeric habit completed - donated shouldShowCompletedTip event")
             }
         }
         .completionGlow(isGlowing: isGlowing)

@@ -11,6 +11,7 @@ import FactoryKit
 import NaturalLanguage
 import os.log
 import UserNotifications
+import TipKit
 
 #if DEBUG
 struct DebugMenuView: View { // swiftlint:disable:this type_body_length
@@ -296,6 +297,23 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                 }
 
                 Text("Simulates a returning user on a new device: keeps iCloud onboarding flag set but clears local device flags. Useful for testing returning user flow without deleting the app.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Button(role: .destructive) {
+                    resetTips()
+                } label: {
+                    HStack {
+                        Image(systemName: "lightbulb")
+                            .foregroundColor(.yellow)
+
+                        Text("Reset Tips")
+
+                        Spacer()
+                    }
+                }
+
+                Text("Resets all TipKit tips so they can be shown again. Useful for testing the tip flow.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -1012,6 +1030,20 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         try? await UNUserNotificationCenter.current().setBadgeCount(0)
         Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
             .info("Cleared app badge")
+    }
+
+    // MARK: - Tips
+
+    /// Resets all TipKit tips so they can be shown again
+    /// Note: Tips.resetDatastore() must be called before Tips.configure()
+    /// So we set a flag and reset on next app launch
+    private func resetTips() {
+        UserDefaults.standard.set(true, forKey: "shouldResetTipsOnNextLaunch")
+        Logger(subsystem: "com.vladblajovan.Ritualist", category: "Tips")
+            .info("✅ Tips reset scheduled - restart the app to see tips again")
+
+        restartInstructionMessage = "Tips reset scheduled. Please close and reopen the app to see the tips again."
+        showingRestartRequiredAlert = true
     }
 
     // MARK: - Migration Management

@@ -1,9 +1,13 @@
 import SwiftUI
 import RitualistCore
 import FactoryKit
+import TipKit
 
 
 struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
+    // MARK: - Tips
+    private let tapHabitTip = TapHabitTip()
+    private let tapCompletedHabitTip = TapCompletedHabitTip()
     let summary: TodaysSummary?
     let viewingDate: Date
     let isViewingToday: Bool
@@ -28,6 +32,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     @State private var showingScheduleInfoSheet = false
+    @State private var habitToUncomplete: Habit?
     @State private var animatingHabitId: UUID? = nil
     @State private var glowingHabitId: UUID? = nil
     @State private var animatingProgress: Double = 0.0
@@ -365,6 +370,18 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         .sheet(isPresented: $showingScheduleInfoSheet) {
             ScheduleIconInfoSheet()
         }
+        .sheet(item: $habitToUncomplete) { habit in
+            UncompleteHabitSheet(
+                habit: habit,
+                onUncomplete: {
+                    onDeleteHabitLog(habit)
+                    habitToUncomplete = nil
+                },
+                onCancel: {
+                    habitToUncomplete = nil
+                }
+            )
+        }
         // PERFORMANCE: Update pre-computed arrays when data or expansion state changes
         .onAppear {
             updateVisibleHabits()
@@ -620,8 +637,23 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 VStack(spacing: 8) {
                     // Show first 3 habits, or all if expanded
                     // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
-                    ForEach(visibleIncompleteHabits, id: \.id) { habit in
-                        habitRow(habit: habit, isCompleted: false)
+                    ForEach(Array(visibleIncompleteHabits.enumerated()), id: \.element.id) { index, habit in
+                        if index == 0 {
+                            // Use TipView for the first incomplete habit to ensure tip shows
+                            VStack(spacing: 4) {
+                                TipView(tapHabitTip, arrowEdge: .bottom) { action in
+                                    // When first tip is dismissed, trigger second tip eligibility
+                                    TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
+                                    tipLogger.info("📤 First tip dismissed - donated shouldShowCompletedTip event")
+                                }
+                                habitRow(habit: habit, isCompleted: false)
+                            }
+                            .onAppear {
+                                tipLogger.info("🎯 First incomplete habit row appeared - tip should show if eligible")
+                            }
+                        } else {
+                            habitRow(habit: habit, isCompleted: false)
+                        }
                     }
 
                     if scheduledIncompleteCount > 3 {
@@ -697,10 +729,21 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     
                     VStack(spacing: 6) {
                         // Always show first 2 completed habits
-                        ForEach(summary.completedHabits.prefix(2), id: \.id) { habit in
-                            habitRow(habit: habit, isCompleted: true)
+                        ForEach(Array(summary.completedHabits.prefix(2).enumerated()), id: \.element.id) { index, habit in
+                            if index == 0 {
+                                // Use TipView for the first completed habit to ensure tip shows when it becomes eligible
+                                VStack(spacing: 4) {
+                                    TipView(tapCompletedHabitTip, arrowEdge: .bottom)
+                                    habitRow(habit: habit, isCompleted: true)
+                                }
+                                .onAppear {
+                                    tipLogger.info("🎯 First completed habit row appeared - tip should show if eligible")
+                                }
+                            } else {
+                                habitRow(habit: habit, isCompleted: true)
+                            }
                         }
-                        
+
                         // Expandable section for additional completed habits
                         if summary.completedHabits.count > 2 {
                             if isCompletedSectionExpanded {
@@ -762,9 +805,18 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         let isDisabled = !isCompleted && !scheduleStatus.isAvailable
         
         HStack(spacing: 0) {
-            // LEFT ZONE: Main content - tappable for quick action
+            // LEFT ZONE: Main content - tappable for quick action or adjustment
             Button {
-                if !isCompleted && scheduleStatus.isAvailable {
+                if isCompleted {
+                    // Completed habits: allow adjustment
+                    if habit.kind == .numeric {
+                        // Numeric habit: open progress sheet to adjust value
+                        onNumericHabitAction?(habit)
+                    } else {
+                        // Binary habit: show uncomplete confirmation sheet
+                        habitToUncomplete = habit
+                    }
+                } else if scheduleStatus.isAvailable {
                     if habit.kind == .numeric {
                         onNumericHabitAction?(habit)
                     } else {
@@ -828,22 +880,20 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         .strikethrough(isCompleted, color: .gray)
                         .lineLimit(1)
 
-                    if !isCompleted {
-                        // First line: habit-specific status (progress or schedule)
-                        if habit.kind == .numeric {
-                            let currentValue = getProgress(habit)
-                            let target = habit.dailyTarget ?? 1.0
-                            let currentInt = Int(currentValue)
-                            let targetInt = Int(target)
-                            Text("\(currentInt)/\(targetInt) \(habit.unitLabel ?? "units")")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        } else if isDisabled {
-                            Text(scheduleStatus.displayText)
-                                .font(.caption)
-                                .foregroundColor(scheduleStatus.color)
-                        }
-
+                    // Show progress for numeric habits (both completed and incomplete)
+                    if habit.kind == .numeric {
+                        let currentValue = getProgress(habit)
+                        let target = habit.dailyTarget ?? 1.0
+                        let currentInt = Int(currentValue)
+                        let targetInt = Int(target)
+                        Text("\(currentInt)/\(targetInt) \(habit.unitLabel ?? "units")")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    } else if !isCompleted && isDisabled {
+                        // Show schedule status only for incomplete disabled habits
+                        Text(scheduleStatus.displayText)
+                            .font(.caption)
+                            .foregroundColor(scheduleStatus.color)
                     }
                 }
 
@@ -852,7 +902,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 .contentShape(Rectangle())
             }
             .buttonStyle(PlainButtonStyle())
-            .disabled(isDisabled)
+            .disabled(isDisabled && !isCompleted)  // Allow completed habits to be tapped for adjustment
 
             // RIGHT ZONE: Icon area - tappable for info sheet (or delete for completed)
             if isCompleted {
@@ -954,6 +1004,10 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
             // Complete the habit
             onQuickAction(habit)
+
+            // Trigger tip for completed habits (so second tip can appear)
+            TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
+            tipLogger.info("📤 Habit completed - donated shouldShowCompletedTip event")
 
             // Clean up animation state
             try? await Task.sleep(nanoseconds: AnimationTiming.animationCleanupDelay)
@@ -1244,3 +1298,4 @@ private struct SheetPulseAnimationModifier: ViewModifier {
             }
     }
 }
+
