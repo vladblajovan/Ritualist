@@ -4877,6 +4877,28 @@
         }
       }
     },
+    "numericHabitLog.accessibility.progressCompleted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld, complete"
+          }
+        }
+      }
+    },
+    "numericHabitLog.accessibility.progressInProgress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress: %lld of %lld"
+          }
+        }
+      }
+    },
     "numericHabitLog.completeAll" : {
       "extractionState" : "manual",
       "localizations" : {

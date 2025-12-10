@@ -22,6 +22,13 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     @State private var loadTask: Task<Void, Never>?
     @State private var saveTask: Task<Void, Never>?
     @Environment(\.dismiss) private var dismiss
+
+    // MARK: - Dynamic Type Scaling
+    @ScaledMetric(relativeTo: .title) private var incrementButtonSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .title) private var progressCircleSize: CGFloat = 120
+    @ScaledMetric(relativeTo: .subheadline) private var celebrationHeight: CGFloat = 24
+    @ScaledMetric(relativeTo: .headline) private var quickIncrementHeight: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var buttonHeight: CGFloat = 44
     
     public init(
         habit: Habit,
@@ -103,7 +110,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     }
                                 } label: {
                                     Image(systemName: "minus.circle.fill")
-                                        .font(.system(size: 44)) // Keep fixed for consistent touch target
+                                        .font(.system(size: incrementButtonSize))
                                         .foregroundStyle(
                                             LinearGradient(
                                                 colors: [CardDesign.progressOrange, .ritualistCyan],
@@ -125,7 +132,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                         showPercentage: false,
                                         useAdaptiveGradient: true
                                     )
-                                    .frame(width: 120, height: 120)
+                                    .frame(width: progressCircleSize, height: progressCircleSize)
 
                                     VStack(spacing: 2) {
                                         Text("\(Int(value))")
@@ -142,6 +149,14 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                             .foregroundColor(.secondary)
                                     }
                                 }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(
+                                    Strings.NumericHabitLog.progressLabel(
+                                        current: Int(value),
+                                        target: Int(dailyTarget),
+                                        isCompleted: isCompleted
+                                    )
+                                )
 
                                 // Plus button - green to blue gradient
                                 Button {
@@ -151,7 +166,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     }
                                 } label: {
                                     Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 44)) // Keep fixed for consistent touch target
+                                        .font(.system(size: incrementButtonSize))
                                         .foregroundStyle(
                                             LinearGradient(
                                                 colors: [CardDesign.progressGreen, .ritualistCyan],
@@ -202,10 +217,10 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     Color.clear
                                 }
                             }
-                            .frame(height: 24)
+                            .frame(minHeight: celebrationHeight)
                         }
 
-                        // Quick increment buttons - fixed height to prevent layout jumps
+                        // Quick increment buttons - scales with Dynamic Type
                         Group {
                             if !quickIncrementAmounts.isEmpty {
                                 HStack(spacing: Spacing.medium) {
@@ -217,7 +232,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 Color.clear
                             }
                         }
-                        .frame(height: 36)
+                        .frame(minHeight: quickIncrementHeight)
 
                         // Reset, Complete All, and Done buttons
                         HStack {
@@ -278,7 +293,9 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         }
         .onDisappear {
             loadTask?.cancel()
+            loadTask = nil
             saveTask?.cancel()
+            saveTask = nil
         }
         .onChange(of: currentValue) { _, newValue in
             value = newValue
@@ -329,7 +346,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .font(.body.weight(.semibold))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, Spacing.large)
-                .frame(height: 44)
+                .frame(minHeight: buttonHeight)
                 .background(Color.secondary.opacity(0.1))
                 .cornerRadius(12)
         }
@@ -349,7 +366,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .font(.body.weight(.semibold))
                 .foregroundColor(adaptiveColor)
                 .padding(.horizontal, Spacing.large)
-                .frame(height: 44)
+                .frame(minHeight: buttonHeight)
                 .background(adaptiveColor.opacity(0.1))
                 .cornerRadius(12)
         }
@@ -366,7 +383,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .font(.body.weight(.semibold))
                 .foregroundColor(.accentColor)
                 .padding(.horizontal, Spacing.large)
-                .frame(height: 44)
+                .frame(minHeight: buttonHeight)
                 .background(Color.accentColor.opacity(0.1))
                 .cornerRadius(12)
         }
@@ -392,7 +409,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .foregroundStyle(gradient)
                 .padding(.horizontal, Spacing.medium)
                 .frame(minWidth: 60)
-                .frame(height: 44) // Apple HIG 44pt minimum touch target
+                .frame(minHeight: buttonHeight)
                 .background(gradient.opacity(0.15))
                 .cornerRadius(8)
         }

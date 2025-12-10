@@ -509,6 +509,23 @@ public enum Strings {
         public static func quickIncrementHint(_ amount: String) -> String {
             String(format: String(localized: "numericHabitLog.accessibility.quickIncrementHint"), amount)
         }
+
+        /// Accessibility label for progress circle showing current value, target, and completion
+        public static func progressLabel(current: Int, target: Int, isCompleted: Bool) -> String {
+            if isCompleted {
+                return String(
+                    format: String(localized: "numericHabitLog.accessibility.progressCompleted"),
+                    current,
+                    target
+                )
+            } else {
+                return String(
+                    format: String(localized: "numericHabitLog.accessibility.progressInProgress"),
+                    current,
+                    target
+                )
+            }
+        }
     }
 
     // MARK: - Common

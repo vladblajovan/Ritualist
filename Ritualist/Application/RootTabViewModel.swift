@@ -83,6 +83,13 @@ public final class RootTabViewModel {
                 level: .info,
                 category: .subscription
             )
+        } else {
+            // Log for production monitoring - helps identify StoreKit verification issues
+            logger.log(
+                "Premium subscription not verified at startup - user treated as free tier",
+                level: .debug,
+                category: .subscription
+            )
         }
 
         // Synchronize iCloud KV store with short timeout (0.3s)
