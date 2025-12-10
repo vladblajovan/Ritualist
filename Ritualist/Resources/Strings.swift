@@ -472,6 +472,7 @@ public enum Strings {
         public static let reset = String(localized: "numericHabitLog.reset")
         public static let completeAll = String(localized: "numericHabitLog.completeAll")
         public static let wellDoneExtraMile = String(localized: "numericHabitLog.wellDoneExtraMile")
+        public static let loadingCurrentValue = String(localized: "numericHabitLog.loadingCurrentValue")
 
         // Extra mile phrases (randomly selected)
         public static let extraMileOnFire = String(localized: "numericHabitLog.extraMile.onFire")
@@ -491,6 +492,30 @@ public enum Strings {
                 extraMileBeyondExpectations
             ]
         }
+
+        // Accessibility hints
+        public static let decreaseHint = String(localized: "numericHabitLog.accessibility.decreaseHint")
+        public static let increaseHint = String(localized: "numericHabitLog.accessibility.increaseHint")
+        public static let resetHint = String(localized: "numericHabitLog.accessibility.resetHint")
+        public static let completeAllHint = String(localized: "numericHabitLog.accessibility.completeAllHint")
+        public static let doneHint = String(localized: "numericHabitLog.accessibility.doneHint")
+
+        /// Accessibility label for quick increment button
+        public static func quickIncrementLabel(_ amount: String) -> String {
+            String(format: String(localized: "numericHabitLog.accessibility.quickIncrementLabel"), amount)
+        }
+
+        /// Accessibility hint for quick increment button
+        public static func quickIncrementHint(_ amount: String) -> String {
+            String(format: String(localized: "numericHabitLog.accessibility.quickIncrementHint"), amount)
+        }
+    }
+
+    // MARK: - Common
+    public enum Common {
+        public static let done = String(localized: "common.done")
+        public static let decrease = String(localized: "common.decrease")
+        public static let increase = String(localized: "common.increase")
     }
 }
 

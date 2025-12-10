@@ -37,79 +37,42 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         self.initialValue = initialValue
     }
     
+    // MARK: - Computed Properties (delegating to ViewLogic for testability)
+
     private var dailyTarget: Double {
-        max(habit.dailyTarget ?? 1.0, 1.0)
+        NumericHabitLogViewLogic.effectiveDailyTarget(from: habit.dailyTarget)
     }
-    
+
     private var progressPercentage: Double {
-        guard dailyTarget > 0 else { return 0 }
-        return min(max(value / dailyTarget, 0.0), 1.0)
+        NumericHabitLogViewLogic.progressPercentage(value: value, dailyTarget: dailyTarget)
     }
-    
+
     private var isCompleted: Bool {
-        value >= dailyTarget
+        NumericHabitLogViewLogic.isCompleted(value: value, dailyTarget: dailyTarget)
     }
-    
+
     private var unitLabel: String {
-        if let label = habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !label.isEmpty {
-            return label
-        }
-        return "units"
+        NumericHabitLogViewLogic.unitLabel(from: habit.unitLabel)
     }
-    
-    /// Maximum allowed value (10% over target, minimum 50 over, capped at 2x target)
+
     private var maxAllowedValue: Double {
-        let calculated = dailyTarget + max(50, dailyTarget * 0.1)
-        return min(calculated, dailyTarget * 2.0)
+        NumericHabitLogViewLogic.maxAllowedValue(for: dailyTarget)
     }
 
     private var isValidValue: Bool {
-        value >= 0 && value <= maxAllowedValue
+        NumericHabitLogViewLogic.isValidValue(value, dailyTarget: dailyTarget)
     }
 
     private var canDecrement: Bool {
-        value > 0
+        NumericHabitLogViewLogic.canDecrement(value: value)
     }
 
     private var canIncrement: Bool {
-        value < maxAllowedValue
+        NumericHabitLogViewLogic.canIncrement(value: value, dailyTarget: dailyTarget)
     }
 
-    /// Remaining amount to reach target
-    private var remaining: Double {
-        max(dailyTarget - value, 0)
-    }
-
-    /// Remaining amount to reach max allowed value
-    private var remainingToMax: Double {
-        max(maxAllowedValue - value, 0)
-    }
-
-    /// Adaptive quick increment values based on remaining progress
-    /// Before target: computed against remaining to target
-    /// After target: computed against remaining to max
     private var quickIncrementAmounts: [Int] {
-        let rem = Int(isCompleted ? remainingToMax : remaining)
-
-        switch rem {
-        case ..<5:
-            return []  // No quick buttons when very close
-        case 5..<20:
-            return [2, 5]
-        case 20..<100:
-            return [5, 10]
-        case 100..<500:
-            return [10, 50]
-        case 500..<2000:
-            return [100, 500]
-        case 2000..<10000:
-            return [500, 1000]
-        case 10000..<50000:
-            return [1000, 5000]
-        default:
-            return [5000, 10000]
-        }
+        NumericHabitLogViewLogic.quickIncrementAmounts(value: value, dailyTarget: dailyTarget)
     }
     
     public var body: some View {
@@ -135,7 +98,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 // Minus button - orange to blue gradient
                                 Button {
                                     HapticFeedbackService.shared.trigger(.light)
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         value = max(0, value - 1)
                                     }
                                 } label: {
@@ -151,6 +114,8 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                         .opacity(canDecrement ? 1.0 : 0.3)
                                 }
                                 .disabled(!canDecrement)
+                                .accessibilityLabel(Strings.Common.decrease)
+                                .accessibilityHint(Strings.NumericHabitLog.decreaseHint)
 
                                 // Progress circle
                                 ZStack {
@@ -181,7 +146,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 // Plus button - green to blue gradient
                                 Button {
                                     HapticFeedbackService.shared.trigger(.light)
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         value += 1
                                     }
                                 } label: {
@@ -197,6 +162,8 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                         .opacity(canIncrement ? 1.0 : 0.3)
                                 }
                                 .disabled(!canIncrement)
+                                .accessibilityLabel(Strings.Common.increase)
+                                .accessibilityHint(Strings.NumericHabitLog.increaseHint)
                             }
 
                             // Celebration text - fixed height to prevent layout jumps
@@ -252,7 +219,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                         }
                         .frame(height: 36)
 
-                        // Reset and Complete All buttons
+                        // Reset, Complete All, and Done buttons
                         HStack {
                             // Reset button - bottom left (only show if value > 0)
                             if value > 0 {
@@ -265,6 +232,9 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                             completeButton()
                                 .disabled(isCompleted)
                                 .opacity(isCompleted ? 0.4 : 1)
+
+                            // Done button - dismisses sheet
+                            doneButton()
                         }
                         .padding(.top, Spacing.small)
                     }
@@ -282,10 +252,10 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 if isLoading {
                     ZStack {
                         Color(.systemBackground).opacity(0.8)
-                        VStack(spacing: 12) {
+                        VStack(spacing: Spacing.medium) {
                             ProgressView()
                                 .scaleEffect(1.2)
-                            Text("Loading current value...")
+                            Text(Strings.NumericHabitLog.loadingCurrentValue)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -351,7 +321,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     private func resetButton() -> some View {
         Button {
             HapticFeedbackService.shared.trigger(.medium)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                 value = 0
             }
         } label: {
@@ -363,6 +333,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .background(Color.secondary.opacity(0.1))
                 .cornerRadius(12)
         }
+        .accessibilityHint(Strings.NumericHabitLog.resetHint)
     }
 
     @ViewBuilder
@@ -370,7 +341,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         let adaptiveColor = CircularProgressView.adaptiveProgressColors(for: 1.0).last ?? CardDesign.progressGreen
         Button {
             HapticFeedbackService.shared.trigger(.success)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                 value = dailyTarget
             }
         } label: {
@@ -382,6 +353,24 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .background(adaptiveColor.opacity(0.1))
                 .cornerRadius(12)
         }
+        .accessibilityHint(Strings.NumericHabitLog.completeAllHint)
+    }
+
+    @ViewBuilder
+    private func doneButton() -> some View {
+        Button {
+            HapticFeedbackService.shared.trigger(.light)
+            dismiss()
+        } label: {
+            Text(Strings.Common.done)
+                .font(.body.weight(.semibold))
+                .foregroundColor(.accentColor)
+                .padding(.horizontal, Spacing.large)
+                .frame(height: 44)
+                .background(Color.accentColor.opacity(0.1))
+                .cornerRadius(12)
+        }
+        .accessibilityHint(Strings.NumericHabitLog.doneHint)
     }
 
     @ViewBuilder
@@ -394,7 +383,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
 
         Button {
             HapticFeedbackService.shared.trigger(.light)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                 value = min(value + Double(amount), maxAllowedValue)
             }
         } label: {
@@ -403,22 +392,16 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .foregroundStyle(gradient)
                 .padding(.horizontal, Spacing.medium)
                 .frame(minWidth: 60)
-                .frame(height: 36)
+                .frame(height: 44) // Apple HIG 44pt minimum touch target
                 .background(gradient.opacity(0.15))
                 .cornerRadius(8)
         }
+        .accessibilityLabel(Strings.NumericHabitLog.quickIncrementLabel(formatAmount(amount)))
+        .accessibilityHint(Strings.NumericHabitLog.quickIncrementHint(formatAmount(amount)))
     }
 
-    /// Format large numbers with K suffix for readability
     private func formatAmount(_ amount: Int) -> String {
-        if amount >= 1000 {
-            let thousands = Double(amount) / 1000.0
-            if thousands == Double(Int(thousands)) {
-                return "\(Int(thousands))K"
-            }
-            return String(format: "%.1fK", thousands)
-        }
-        return "\(amount)"
+        NumericHabitLogViewLogic.formatAmount(amount)
     }
     
     private func loadCurrentValue() {

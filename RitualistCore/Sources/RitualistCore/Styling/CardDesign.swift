@@ -15,7 +15,7 @@ public struct CardDesign {
             return 16 // Classic radius for older iOS
         }
     }()
-    public static let cardPadding: CGFloat = 20
+    public static let cardPadding: CGFloat = 16
     public static let cardSpacing: CGFloat = 16
     public static let shadowRadius: CGFloat = 5
     
