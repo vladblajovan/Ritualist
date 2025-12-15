@@ -14,6 +14,11 @@ public enum AccessibilityConfig {
 
     /// WCAG 2.1 minimum contrast ratio for large text (18pt+)
     public static let minimumLargeTextContrastRatio: CGFloat = 3.0
+
+    /// Delay before posting VoiceOver announcements after view transitions.
+    /// Allows the screen to stabilize before announcing changes, preventing
+    /// announcements from being cut off by rapid UI updates.
+    public static let voiceOverAnnouncementDelay: TimeInterval = 0.5
 }
 
 // MARK: - Dynamic Type Scaled Spacing

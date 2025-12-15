@@ -101,7 +101,12 @@ public final class RootTabViewModel {
         // 3. The timeout only affects returning user detection, not app functionality
         let syncCompleted = await iCloudKeyValueService.synchronizeAndWait(timeout: 0.3)
         if !syncCompleted {
-            logger.log("iCloud KV sync timed out - may affect returning user detection", level: .warning, category: .ui)
+            logger.log(
+                "iCloud KV sync timed out - may affect returning user detection",
+                level: .warning,
+                category: .ui,
+                metadata: ["syncCompleted": syncCompleted, "timeoutSeconds": 0.3]
+            )
         }
 
         // Step 1: Check LOCAL device flag (UserDefaults - not synced)
