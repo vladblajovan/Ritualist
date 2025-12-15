@@ -119,6 +119,8 @@ import TipKit
     init() {
         // Check if tips should be reset (set from Debug Menu)
         if UserDefaults.standard.bool(forKey: "shouldResetTipsOnNextLaunch") {
+            // Clear flag BEFORE reset attempt to prevent crash loops
+            // If resetDatastore() crashes, we don't want to retry on every launch
             UserDefaults.standard.set(false, forKey: "shouldResetTipsOnNextLaunch")
             do {
                 try Tips.resetDatastore()
