@@ -55,20 +55,17 @@ public final class GetBatchLogs: GetBatchLogsUseCase {
             result[habitID] = []
         }
 
+        // Pre-calculate date boundaries outside the loop (O(1) instead of O(n))
+        let sinceStart = since.map { CalendarUtils.startOfDayLocal(for: $0, timezone: timezone) }
+        let untilStart = until.map { CalendarUtils.startOfDayLocal(for: $0, timezone: timezone) }
+
         // Group and filter logs using the specified timezone for day boundaries
         for log in allLogs {
-            var includeLog = true
+            let logStart = CalendarUtils.startOfDayLocal(for: log.date, timezone: timezone)
 
-            if let since {
-                let sinceStart = CalendarUtils.startOfDayLocal(for: since, timezone: timezone)
-                let logStart = CalendarUtils.startOfDayLocal(for: log.date, timezone: timezone)
-                if logStart < sinceStart { includeLog = false }
-            }
-            if let until {
-                let untilStart = CalendarUtils.startOfDayLocal(for: until, timezone: timezone)
-                let logStart = CalendarUtils.startOfDayLocal(for: log.date, timezone: timezone)
-                if logStart > untilStart { includeLog = false }
-            }
+            var includeLog = true
+            if let sinceStart, logStart < sinceStart { includeLog = false }
+            if let untilStart, logStart > untilStart { includeLog = false }
 
             if includeLog {
                 result[log.habitID, default: []].append(log)
