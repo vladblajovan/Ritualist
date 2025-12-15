@@ -35,6 +35,10 @@ public final class MockGetEarliestLogDate: GetEarliestLogDateUseCase {
         }
         return dateToReturn
     }
+
+    public func execute(for habitID: UUID) async throws -> Date? {
+        try await execute(for: habitID, timezone: .current)
+    }
 }
 
 /// Mock implementation of ValidateHabitUniquenessUseCase
