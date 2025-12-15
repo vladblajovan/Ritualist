@@ -205,8 +205,15 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     }
 
     public func isPremiumUser() -> Bool {
-        // Check if any validated purchases exist in cache
-        return !cachedValidPurchases.isEmpty
+        // Check in-memory cache first (populated after StoreKit queries this session)
+        if !cachedValidPurchases.isEmpty {
+            return true
+        }
+
+        // Fall back to Keychain cache (populated by verifyPremiumAsync at startup)
+        // This handles the case where sync isPremiumUser() is called before
+        // async refreshCache() has populated the in-memory cache
+        return SecurePremiumCache.shared.getCachedPremiumStatus()
     }
 
     public func getValidPurchases() -> [String] {

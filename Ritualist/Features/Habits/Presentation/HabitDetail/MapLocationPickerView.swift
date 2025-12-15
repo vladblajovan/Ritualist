@@ -2,7 +2,7 @@
 //  MapLocationPickerView.swift
 //  Ritualist
 //
-//  Created by Claude on 03.11.2025.
+//  Full-screen map for selecting geofence center location with inline configuration.
 //
 
 import SwiftUI
@@ -15,31 +15,39 @@ public struct MapLocationPickerView: View {
     private enum MapConstants {
         static let defaultSpanDelta: Double = 0.01
         static let minimumSpanDelta: Double = 0.002
-        static let minimumZoomDelta: Double = 0.001
-        static let zoomMultiplier: Double = 2.0
-        static let paddingMultiplier: CGFloat = 3.0
     }
 
     @Bindable var vm: HabitDetailViewModel
     @Environment(\.dismiss) var dismiss
 
+    // Map state
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var selectedCoordinate: CLLocationCoordinate2D?
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var currentSpan: MKCoordinateSpan = MKCoordinateSpan(
-        latitudeDelta: MapConstants.defaultSpanDelta,
-        longitudeDelta: MapConstants.defaultSpanDelta
-    )
+
+    // Configuration state (local, synced on Done)
+    @State private var radius: Double = LocationConfiguration.defaultRadius
+    @State private var triggerType: GeofenceTrigger = .entry
+    @State private var frequencyPreset: FrequencyPreset = .oncePerDay
+    @State private var locationLabel: String = ""
+
+    // Bottom card state
+    @State private var showConfigCard = false
+
+    private let locationManager = CLLocationManager()
 
     public var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                // Map View
+                // Map View - uses radius binding for real-time circle updates
                 MapView(
                     selectedCoordinate: $selectedCoordinate,
                     position: $position,
-                    radius: vm.locationConfiguration?.radius ?? LocationConfiguration.defaultRadius
+                    radius: radius,
+                    onCoordinateSelected: { coordinate in
+                        handleLocationSelected(coordinate)
+                    }
                 )
                 .ignoresSafeArea()
 
@@ -55,12 +63,6 @@ public struct MapLocationPickerView: View {
                         instructionalBanner()
                             .padding()
                     }
-
-                    // Configuration Sheet Button
-                    if selectedCoordinate != nil {
-                        configureButton()
-                            .padding()
-                    }
                 }
 
                 // Current Location Button (floating, top-right)
@@ -68,7 +70,7 @@ public struct MapLocationPickerView: View {
                     HStack {
                         Spacer()
                         Button {
-                            position = .userLocation(followsHeading: false, fallback: .automatic)
+                            selectCurrentLocation()
                         } label: {
                             Image(systemName: "location.fill")
                                 .font(.system(size: 20))
@@ -83,42 +85,6 @@ public struct MapLocationPickerView: View {
                     .padding(.top, 80) // Below search bar
                     Spacer()
                 }
-
-                // Zoom controls (floating, bottom-right)
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        VStack(spacing: 0) {
-                            Button {
-                                zoomIn()
-                            } label: {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.primary)
-                                    .frame(width: 40, height: 40)
-                                    .background(Color(.systemBackground))
-                            }
-
-                            Divider()
-                                .frame(width: 40)
-
-                            Button {
-                                zoomOut()
-                            } label: {
-                                Image(systemName: "minus")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.primary)
-                                    .frame(width: 40, height: 40)
-                                    .background(Color(.systemBackground))
-                            }
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .shadow(color: .black.opacity(0.2), radius: 4)
-                        .padding(.trailing)
-                        .padding(.bottom, selectedCoordinate != nil ? 90 : 20) // Above configure button if shown
-                    }
-                }
             }
             .navigationTitle(Strings.Location.selectLocation)
             .navigationBarTitleDisplayMode(.inline)
@@ -132,34 +98,129 @@ public struct MapLocationPickerView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button(Strings.Button.done) {
-                        saveLocation()
+                        saveConfiguration()
                         dismiss()
                     }
                     .disabled(selectedCoordinate == nil)
                 }
             }
-            .sheet(isPresented: $vm.showGeofenceSettings) {
-                GeofenceConfigurationSheet(vm: vm)
+            .sheet(isPresented: $showConfigCard) {
+                LocationConfigCard(
+                    radius: $radius,
+                    triggerType: $triggerType,
+                    frequencyPreset: $frequencyPreset,
+                    locationLabel: $locationLabel,
+                    onDone: {
+                        showConfigCard = false
+                    }
+                )
+                .presentationDetents([.fraction(0.4), .fraction(0.75)])
+                .presentationDragIndicator(.visible)
+                .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.4)))
+                .interactiveDismissDisabled(false)
             }
             .onAppear {
-                loadExistingLocation()
-            }
-            .onChange(of: vm.locationConfiguration) { _, newConfig in
-                // Sync selectedCoordinate when configuration changes (e.g., from GeofenceConfigurationSheet)
-                if let config = newConfig {
-                    let isPlaceholder = config.coordinate.latitude == 0 && config.coordinate.longitude == 0
-                    if !isPlaceholder {
-                        selectedCoordinate = config.coordinate
-                    }
-                }
+                loadExistingConfiguration()
             }
         }
     }
 
-    // MARK: - Helper Methods
+    // MARK: - Location Selection
+
+    private func handleLocationSelected(_ coordinate: CLLocationCoordinate2D) {
+        // Sync coordinate to config immediately
+        syncCoordinateToConfig(coordinate)
+
+        // Show config card if not already showing
+        if !showConfigCard {
+            showConfigCard = true
+        }
+    }
+
+    private func selectCurrentLocation() {
+        guard let location = locationManager.location else {
+            position = .userLocation(followsHeading: false, fallback: .automatic)
+            return
+        }
+
+        let coordinate = location.coordinate
+        selectedCoordinate = coordinate
+        handleLocationSelected(coordinate)
+
+        position = .region(MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(
+                latitudeDelta: MapConstants.defaultSpanDelta,
+                longitudeDelta: MapConstants.defaultSpanDelta
+            )
+        ))
+    }
+
+    // MARK: - Configuration Management
+
+    private func loadExistingConfiguration() {
+        guard let config = vm.locationConfiguration else {
+            position = .userLocation(followsHeading: false, fallback: .automatic)
+            return
+        }
+
+        // Load configuration values into local state
+        radius = config.radius
+        triggerType = config.triggerType
+        frequencyPreset = FrequencyPreset.from(config.frequency)
+        locationLabel = config.locationLabel ?? ""
+
+        // Load location if not placeholder
+        let isPlaceholder = config.coordinate.latitude == 0 && config.coordinate.longitude == 0
+        if !isPlaceholder {
+            selectedCoordinate = config.coordinate
+            position = .region(MKCoordinateRegion(
+                center: config.coordinate,
+                span: MKCoordinateSpan(
+                    latitudeDelta: MapConstants.defaultSpanDelta,
+                    longitudeDelta: MapConstants.defaultSpanDelta
+                )
+            ))
+            // Show config card for existing location
+            showConfigCard = true
+        } else {
+            position = .userLocation(followsHeading: false, fallback: .automatic)
+        }
+    }
+
+    private func syncCoordinateToConfig(_ coordinate: CLLocationCoordinate2D) {
+        if var config = vm.locationConfiguration {
+            config.latitude = coordinate.latitude
+            config.longitude = coordinate.longitude
+            vm.updateLocationConfiguration(config)
+        } else {
+            let newConfig = LocationConfiguration.create(
+                from: coordinate,
+                radius: radius,
+                triggerType: triggerType,
+                frequency: frequencyPreset.toNotificationFrequency,
+                isEnabled: true,
+                locationLabel: locationLabel.isEmpty ? nil : locationLabel
+            )
+            vm.updateLocationConfiguration(newConfig)
+        }
+    }
+
+    private func saveConfiguration() {
+        guard let coordinate = selectedCoordinate else { return }
+
+        let config = LocationConfiguration.create(
+            from: coordinate,
+            radius: radius,
+            triggerType: triggerType,
+            frequency: frequencyPreset.toNotificationFrequency,
+            isEnabled: true,
+            locationLabel: locationLabel.isEmpty ? nil : locationLabel
+        )
+        vm.updateLocationConfiguration(config)
+    }
 
     private func handleCancel() {
-        // If this was a new location (placeholder), clear it to revert the toggle
         if let config = vm.locationConfiguration {
             let isPlaceholder = config.coordinate.latitude == 0 && config.coordinate.longitude == 0
             if isPlaceholder {
@@ -168,31 +229,9 @@ public struct MapLocationPickerView: View {
         }
     }
 
-    private func loadExistingLocation() {
-        if let config = vm.locationConfiguration {
-            // Only load if this is a real coordinate (not the placeholder 0,0)
-            let isPlaceholder = config.coordinate.latitude == 0 && config.coordinate.longitude == 0
-            if !isPlaceholder {
-                selectedCoordinate = config.coordinate
-                position = .region(MKCoordinateRegion(
-                    center: config.coordinate,
-                    span: MKCoordinateSpan(
-                        latitudeDelta: MapConstants.defaultSpanDelta,
-                        longitudeDelta: MapConstants.defaultSpanDelta
-                    )
-                ))
-            } else {
-                // Placeholder config - try to center on user location
-                position = .userLocation(followsHeading: false, fallback: .automatic)
-            }
-        } else {
-            // No config - try to center on user location
-            position = .userLocation(followsHeading: false, fallback: .automatic)
-        }
-    }
+    // MARK: - Search
 
     private func handleSearch(_ query: String) {
-        // Simple geocoding search
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString(query) { placemarks, error in
             if let placemark = placemarks?.first, let location = placemark.location {
@@ -204,37 +243,12 @@ public struct MapLocationPickerView: View {
                         longitudeDelta: MapConstants.defaultSpanDelta
                     )
                 ))
+                handleLocationSelected(location.coordinate)
             }
         }
     }
 
-    private func saveLocation() {
-        guard let coordinate = selectedCoordinate else { return }
-
-        if var config = vm.locationConfiguration {
-            // Only update coordinates if they've actually changed
-            // This prevents overwriting other config changes (from GeofenceConfigurationSheet)
-            // when the user didn't move the pin
-            let coordinatesChanged = config.latitude != coordinate.latitude || config.longitude != coordinate.longitude
-
-            if coordinatesChanged {
-                config.latitude = coordinate.latitude
-                config.longitude = coordinate.longitude
-                vm.updateLocationConfiguration(config)
-            }
-            // If coordinates haven't changed, no need to save (config already has latest changes from sheet)
-        } else {
-            // Create new configuration
-            let newConfig = LocationConfiguration.create(
-                from: coordinate,
-                radius: LocationConfiguration.defaultRadius,
-                triggerType: .entry,
-                frequency: .oncePerDay,
-                isEnabled: true
-            )
-            vm.updateLocationConfiguration(newConfig)
-        }
-    }
+    // MARK: - UI Components
 
     @ViewBuilder
     private func instructionalBanner() -> some View {
@@ -258,47 +272,6 @@ public struct MapLocationPickerView: View {
         .cornerRadius(12)
         .shadow(radius: 4)
     }
-
-    @ViewBuilder
-    private func configureButton() -> some View {
-        Button {
-            vm.showGeofenceSettings = true
-        } label: {
-            HStack {
-                Image(systemName: "gear")
-                Text(Strings.Location.configureLocationDetails)
-            }
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(12)
-        }
-    }
-
-    private func zoomIn() {
-        let newSpan = MKCoordinateSpan(
-            latitudeDelta: max(currentSpan.latitudeDelta / MapConstants.zoomMultiplier, MapConstants.minimumZoomDelta),
-            longitudeDelta: max(currentSpan.longitudeDelta / MapConstants.zoomMultiplier, MapConstants.minimumZoomDelta)
-        )
-        currentSpan = newSpan
-
-        if let center = selectedCoordinate {
-            position = .region(MKCoordinateRegion(center: center, span: newSpan))
-        }
-    }
-
-    private func zoomOut() {
-        let newSpan = MKCoordinateSpan(
-            latitudeDelta: min(currentSpan.latitudeDelta * MapConstants.zoomMultiplier, 180),
-            longitudeDelta: min(currentSpan.longitudeDelta * MapConstants.zoomMultiplier, 180)
-        )
-        currentSpan = newSpan
-
-        if let center = selectedCoordinate {
-            position = .region(MKCoordinateRegion(center: center, span: newSpan))
-        }
-    }
 }
 
 // MARK: - Map View
@@ -307,6 +280,7 @@ private struct MapView: View {
     @Binding var selectedCoordinate: CLLocationCoordinate2D?
     @Binding var position: MapCameraPosition
     let radius: Double
+    var onCoordinateSelected: ((CLLocationCoordinate2D) -> Void)?
 
     var body: some View {
         MapReader { proxy in
@@ -325,7 +299,7 @@ private struct MapView: View {
                         }
                     }
 
-                    // Radius circle
+                    // Radius circle - updates in real-time as slider changes
                     MapCircle(center: coordinate, radius: radius)
                         .foregroundStyle(Color.blue.opacity(0.2))
                         .stroke(Color.blue, lineWidth: 1)
@@ -333,9 +307,9 @@ private struct MapView: View {
             }
             .mapStyle(.standard)
             .onTapGesture { location in
-                // Convert screen tap location to map coordinate
                 if let coordinate = proxy.convert(location, from: .local) {
                     selectedCoordinate = coordinate
+                    onCoordinateSelected?(coordinate)
                 }
             }
         }
@@ -379,4 +353,3 @@ private struct SearchBarOverlay: View {
         }
     }
 }
-
