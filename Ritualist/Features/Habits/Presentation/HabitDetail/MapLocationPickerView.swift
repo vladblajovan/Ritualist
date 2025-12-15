@@ -34,6 +34,7 @@ public struct MapLocationPickerView: View {
 
     // Bottom card state
     @State private var showConfigCard = false
+    @State private var searchError: String?
 
     private let locationManager = CLLocationManager()
 
@@ -111,13 +112,21 @@ public struct MapLocationPickerView: View {
                     frequencyPreset: $frequencyPreset,
                     locationLabel: $locationLabel
                 )
-                .presentationDetents([.fraction(0.4), .fraction(0.75)])
+                .presentationDetents([.fraction(CardDesign.sheetDetentCollapsed), .fraction(CardDesign.sheetDetentExpanded)])
                 .presentationDragIndicator(.visible)
-                .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.4)))
+                .presentationBackgroundInteraction(.enabled(upThrough: .fraction(CardDesign.sheetDetentCollapsed)))
                 .interactiveDismissDisabled(true)
             }
             .onAppear {
                 loadExistingConfiguration()
+            }
+            .alert("Search Error", isPresented: .init(
+                get: { searchError != nil },
+                set: { if !$0 { searchError = nil } }
+            )) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(searchError ?? "")
             }
         }
     }
@@ -229,19 +238,28 @@ public struct MapLocationPickerView: View {
     // MARK: - Search
 
     private func handleSearch(_ query: String) {
+        searchError = nil
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString(query) { placemarks, error in
-            if let placemark = placemarks?.first, let location = placemark.location {
-                selectedCoordinate = location.coordinate
-                position = .region(MKCoordinateRegion(
-                    center: location.coordinate,
-                    span: MKCoordinateSpan(
-                        latitudeDelta: MapConstants.defaultSpanDelta,
-                        longitudeDelta: MapConstants.defaultSpanDelta
-                    )
-                ))
-                handleLocationSelected(location.coordinate)
+            if let error = error {
+                searchError = "Could not find location. Please try a different search."
+                return
             }
+
+            guard let placemark = placemarks?.first, let location = placemark.location else {
+                searchError = "No results found for \"\(query)\""
+                return
+            }
+
+            selectedCoordinate = location.coordinate
+            position = .region(MKCoordinateRegion(
+                center: location.coordinate,
+                span: MKCoordinateSpan(
+                    latitudeDelta: MapConstants.defaultSpanDelta,
+                    longitudeDelta: MapConstants.defaultSpanDelta
+                )
+            ))
+            handleLocationSelected(location.coordinate)
         }
     }
 
@@ -320,6 +338,8 @@ private struct SearchBarOverlay: View {
     @Binding var isSearching: Bool
     let onSearch: (String) -> Void
 
+    @State private var searchTask: Task<Void, Never>?
+
     var body: some View {
         HStack {
             HStack {
@@ -328,7 +348,24 @@ private struct SearchBarOverlay: View {
 
                 TextField(Strings.Location.searchPlaceholder, text: $searchText)
                     .textFieldStyle(.plain)
+                    .onChange(of: searchText) { _, newValue in
+                        // Cancel previous search task
+                        searchTask?.cancel()
+
+                        guard !newValue.isEmpty else { return }
+
+                        // Debounce: wait 500ms before searching
+                        searchTask = Task {
+                            try? await Task.sleep(nanoseconds: 500_000_000)
+                            guard !Task.isCancelled else { return }
+                            await MainActor.run {
+                                onSearch(newValue)
+                            }
+                        }
+                    }
                     .onSubmit {
+                        // Immediate search on submit
+                        searchTask?.cancel()
                         if !searchText.isEmpty {
                             onSearch(searchText)
                         }
@@ -336,6 +373,7 @@ private struct SearchBarOverlay: View {
 
                 if !searchText.isEmpty {
                     Button {
+                        searchTask?.cancel()
                         searchText = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")

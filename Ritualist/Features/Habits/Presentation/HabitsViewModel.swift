@@ -39,6 +39,9 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Track if initial data has been loaded to prevent duplicate loads during startup
     @ObservationIgnored private var hasLoadedInitialData = false
 
+    /// Task for coalescing rapid notification posts (prevents notification spam)
+    @ObservationIgnored private var notificationCoalesceTask: Task<Void, Never>?
+
     /// Track view visibility for tab switch detection
     public var isViewVisible: Bool = false
 
@@ -222,7 +225,21 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
 
         isLoading = false
     }
-    
+
+    /// Posts habitsDataDidChange notification with coalescing to prevent spam.
+    /// Multiple rapid calls within 100ms are coalesced into a single notification.
+    private func postCoalescedDataChangeNotification() {
+        // Cancel any pending notification
+        notificationCoalesceTask?.cancel()
+
+        // Schedule new notification with short delay for coalescing
+        notificationCoalesceTask = Task {
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            guard !Task.isCancelled else { return }
+            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
+        }
+    }
+
     public func create(_ habit: Habit) async -> Bool {
         isCreating = true
         error = nil
@@ -230,9 +247,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         do {
             _ = try await createHabit.execute(habit)
 
-            // Notify other tabs (Overview) to refresh immediately
-            // Post before local refresh so observers start their own independent refresh
-            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
+            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
+            postCoalescedDataChangeNotification()
 
             await refresh() // Refresh the list
             isCreating = false
@@ -260,9 +276,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         do {
             try await updateHabit.execute(habit)
 
-            // Notify other tabs (Overview) to refresh immediately
-            // Post before local refresh so observers start their own independent refresh
-            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
+            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
+            postCoalescedDataChangeNotification()
 
             await refresh() // Refresh the list
             isUpdating = false
@@ -292,9 +307,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         do {
             try await deleteHabit.execute(id: id)
 
-            // Notify other tabs (Overview) to refresh immediately
-            // Post before local refresh so observers start their own independent refresh
-            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
+            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
+            postCoalescedDataChangeNotification()
 
             await refresh() // Refresh the list
             isDeleting = false

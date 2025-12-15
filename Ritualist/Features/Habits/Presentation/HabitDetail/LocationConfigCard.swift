@@ -12,7 +12,7 @@ import RitualistCore
 // MARK: - Frequency Preset
 
 /// Preset options for notification frequency
-private enum FrequencyPreset: CaseIterable, Identifiable {
+enum FrequencyPreset: CaseIterable, Identifiable {
     case oncePerDay
     case every15Minutes
     case every30Minutes
@@ -141,7 +141,7 @@ private struct LocationHeader: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(AppColors.brand.opacity(isLabelFocused ? 0.5 : 0), lineWidth: 1.5)
                 )
-                .animation(.easeInOut(duration: 0.2), value: isLabelFocused)
+                .animation(.easeInOut(duration: CardDesign.quickAnimationDuration), value: isLabelFocused)
         }
         .padding(.top, 8)
     }

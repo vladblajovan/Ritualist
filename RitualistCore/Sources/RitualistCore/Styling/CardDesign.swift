@@ -15,9 +15,24 @@ public struct CardDesign {
             return 16 // Classic radius for older iOS
         }
     }()
+    /// Smaller corner radius for inner elements (chips, pills, rows) to visually match card corners
+    /// Smaller elements need proportionally smaller radii to avoid looking overly rounded
+    public static let innerCornerRadius: CGFloat = 12
     public static let cardPadding: CGFloat = 16
     public static let cardSpacing: CGFloat = 16
     public static let shadowRadius: CGFloat = 5
+
+    // MARK: - Animation
+    /// Standard duration for quick UI transitions (focus changes, selection)
+    public static let quickAnimationDuration: Double = 0.2
+    /// Standard duration for medium UI transitions (expansion, collapse)
+    public static let mediumAnimationDuration: Double = 0.3
+
+    // MARK: - Sheet Detents
+    /// Collapsed/minimized sheet height (bottom card overlays)
+    public static let sheetDetentCollapsed: CGFloat = 0.4
+    /// Expanded sheet height (bottom card overlays)
+    public static let sheetDetentExpanded: CGFloat = 0.75
     
     // MARK: - Colors (Light/Dark Mode Adaptive)
     #if canImport(UIKit)

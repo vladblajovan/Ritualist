@@ -703,98 +703,73 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
             // Completed habits section (always show if any exist)
             if !summary.completedHabits.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Completed")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 12)
-
-                        Spacer()
-
-                        Text("\(summary.completedHabits.count)")
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                            .foregroundColor(.green)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color.green.opacity(0.1))
-                            )
-                            .padding(.trailing, 8)
-                    }
-                    .padding(.top, summary.incompleteHabits.isEmpty ? 0 : 16)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(Strings.Accessibility.completedSectionHeader), \(summary.completedHabits.count) habits")
-                    .accessibilityAddTraits(.isHeader)
-                    
-                    VStack(spacing: 6) {
-                        // Always show first 2 completed habits
-                        ForEach(Array(summary.completedHabits.prefix(2).enumerated()), id: \.element.id) { index, habit in
-                            if index == 0 {
-                                // Use TipView for the first completed habit to ensure tip shows when it becomes eligible
-                                VStack(spacing: 4) {
-                                    TipView(tapCompletedHabitTip, arrowEdge: .bottom)
-                                    habitRow(habit: habit, isCompleted: true)
-                                }
-                                .onAppear {
-                                    tipLogger.info("🎯 First completed habit row appeared - tip should show if eligible")
-                                }
-                            } else {
+                VStack(spacing: 6) {
+                    // Always show first 2 completed habits
+                    ForEach(Array(summary.completedHabits.prefix(2).enumerated()), id: \.element.id) { index, habit in
+                        if index == 0 {
+                            // Use TipView for the first completed habit to ensure tip shows when it becomes eligible
+                            VStack(spacing: 4) {
+                                TipView(tapCompletedHabitTip, arrowEdge: .bottom)
                                 habitRow(habit: habit, isCompleted: true)
                             }
-                        }
-
-                        // Expandable section for additional completed habits
-                        if summary.completedHabits.count > 2 {
-                            if isCompletedSectionExpanded {
-                                // Show all remaining completed habits
-                                // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
-                                ForEach(visibleCompletedHabits, id: \.id) { habit in
-                                    habitRow(habit: habit, isCompleted: true)
-                                }
-
-                                // Collapse button
-                                Button {
-                                    isCompletedSectionExpanded = false
-                                } label: {
-                                    HStack {
-                                        Text("Show less")
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundColor(.green)
-
-                                        Image(systemName: "chevron.up")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundColor(.green)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                .padding(.top, 4)
-                            } else {
-                                // Expand button
-                                Button {
-                                    isCompletedSectionExpanded = true
-                                } label: {
-                                    HStack {
-                                        Text("+ \(summary.completedHabits.count - 2) more completed")
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundColor(.green)
-
-                                        Image(systemName: "chevron.down")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundColor(.green)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                .padding(.top, 2)
+                            .onAppear {
+                                tipLogger.info("🎯 First completed habit row appeared - tip should show if eligible")
                             }
+                        } else {
+                            habitRow(habit: habit, isCompleted: true)
+                        }
+                    }
+
+                    // Expandable section for additional completed habits
+                    if summary.completedHabits.count > 2 {
+                        if isCompletedSectionExpanded {
+                            // Show all remaining completed habits
+                            // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
+                            ForEach(visibleCompletedHabits, id: \.id) { habit in
+                                habitRow(habit: habit, isCompleted: true)
+                            }
+
+                            // Collapse button
+                            Button {
+                                isCompletedSectionExpanded = false
+                            } label: {
+                                HStack {
+                                    Text("Show less")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.green)
+
+                                    Image(systemName: "chevron.up")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(.green)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(.top, 4)
+                        } else {
+                            // Expand button
+                            Button {
+                                isCompletedSectionExpanded = true
+                            } label: {
+                                HStack {
+                                    Text("+ \(summary.completedHabits.count - 2) more completed")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.green)
+
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(.green)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(.top, 2)
                         }
                     }
                 }
+                .padding(.top, summary.incompleteHabits.isEmpty ? 0 : 12)
             }
         }
     }
@@ -948,11 +923,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .background(
-            RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
+            RoundedRectangle(cornerRadius: CardDesign.innerCornerRadius)
                 .fill(isCompleted ? Color.green.opacity(0.1) : (isDisabled ? CardDesign.secondaryBackground.opacity(0.5) : AppColors.brand.opacity(0.1)))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
+            RoundedRectangle(cornerRadius: CardDesign.innerCornerRadius)
                 .stroke(isCompleted ? Color.green.opacity(0.2) : (isDisabled ? Color.secondary.opacity(0.1) : AppColors.brand.opacity(0.2)), lineWidth: 1)
         )
         .opacity(isDisabled ? 0.6 : 1.0)
