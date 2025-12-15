@@ -137,9 +137,9 @@ struct QuickActionsCard: View {
                 }
             } else if !scheduleStatus.isAvailable {
                 // Show validation message when user tries to tap disabled habit
-                // Cancel any existing validation task and clear reference to prevent memory leaks
-                validationTask?.cancel()
-                validationTask = nil
+                // Cancel any existing validation task before creating new one
+                let previousTask = validationTask
+                previousTask?.cancel()
                 validationTask = Task {
                     if let message = await getValidationMessage(habit) {
                         validationMessages[habit.id] = message
