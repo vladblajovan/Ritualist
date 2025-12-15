@@ -229,18 +229,20 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         
         do {
             _ = try await createHabit.execute(habit)
+
+            // Notify other tabs (Overview) to refresh immediately
+            // Post before local refresh so observers start their own independent refresh
+            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
+
             await refresh() // Refresh the list
             isCreating = false
-            
+
             // Track habit creation
             userActionTracker.track(.habitCreated(
                 habitId: habit.id.uuidString,
                 habitName: habit.name,
                 habitType: habit.kind == .binary ? "binary" : "numeric"
             ))
-
-            // Notify other tabs (Overview) to refresh immediately
-            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
 
             return true
         } catch {
@@ -257,17 +259,19 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         
         do {
             try await updateHabit.execute(habit)
+
+            // Notify other tabs (Overview) to refresh immediately
+            // Post before local refresh so observers start their own independent refresh
+            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
+
             await refresh() // Refresh the list
             isUpdating = false
-            
+
             // Track habit update
             userActionTracker.track(.habitUpdated(
                 habitId: habit.id.uuidString,
                 habitName: habit.name
             ))
-
-            // Notify other tabs (Overview) to refresh immediately
-            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
 
             return true
         } catch {
@@ -287,9 +291,14 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         
         do {
             try await deleteHabit.execute(id: id)
+
+            // Notify other tabs (Overview) to refresh immediately
+            // Post before local refresh so observers start their own independent refresh
+            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
+
             await refresh() // Refresh the list
             isDeleting = false
-            
+
             // Track habit deletion
             if let habit = habitToDelete {
                 userActionTracker.track(.habitDeleted(
@@ -297,9 +306,6 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
                     habitName: habit.name
                 ))
             }
-
-            // Notify other tabs (Overview) to refresh immediately
-            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
 
             return true
         } catch {

@@ -12,7 +12,7 @@ import RitualistCore
 // MARK: - Frequency Preset
 
 /// Preset options for notification frequency
-enum FrequencyPreset: CaseIterable, Identifiable {
+private enum FrequencyPreset: CaseIterable, Identifiable {
     case oncePerDay
     case every15Minutes
     case every30Minutes
@@ -385,6 +385,8 @@ private struct TriggerChip: View {
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: isSelected)
+        .accessibilityLabel("Notify when \(label)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -436,6 +438,8 @@ private struct FrequencyChip: View {
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: isSelected)
+        .accessibilityLabel("Notify \(preset.displayName)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

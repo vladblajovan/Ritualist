@@ -76,7 +76,7 @@ public struct MapLocationPickerView: View {
                                 .font(.system(size: 20))
                                 .foregroundColor(.white)
                                 .frame(width: 44, height: 44)
-                                .background(Color.blue)
+                                .background(AppColors.brand)
                                 .clipShape(Circle())
                                 .shadow(radius: 4)
                         }
