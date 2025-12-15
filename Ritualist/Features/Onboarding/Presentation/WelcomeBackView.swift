@@ -127,28 +127,53 @@ struct WelcomeBackView: View {
     }
 
     private var syncedDataCard: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.icloud.fill")
-                .font(.title2)
-                .foregroundStyle(.green)
-                .frame(width: 28)
-                .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 12) {
+            // Habits synced
+            if summary.habitsCount > 0 {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .frame(width: 24)
+                    Text("\(summary.habitsCount) habits synced")
+                        .font(.subheadline)
+                }
+            }
 
-            Text("Your data has been synced and the app is ready to use")
-                .font(.body)
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.leading)
+            // Categories synced
+            if summary.categoriesCount > 0 {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .frame(width: 24)
+                    Text("\(summary.categoriesCount) custom categories synced")
+                        .font(.subheadline)
+                }
+            }
 
-            Spacer()
+            // Profile restored
+            if summary.hasProfile {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .frame(width: 24)
+                    Text("Profile restored")
+                        .font(.subheadline)
+                }
+            }
         }
         .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(.secondarySystemGroupedBackground))
         )
         .padding(.horizontal, 24)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Your data has been synced and the app is ready to use")
+        .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier("Synced data summary")
+        .accessibilityLabel(Strings.Accessibility.syncedDataSummary(
+            habits: summary.habitsCount,
+            categories: summary.categoriesCount
+        ))
     }
 }
 

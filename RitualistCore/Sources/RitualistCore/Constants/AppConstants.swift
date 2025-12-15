@@ -23,7 +23,8 @@ public enum UserDefaultsKeys {
     public static let hasShownFirstSyncToast = "com.ritualist.hasShownFirstSyncToast"
 
     /// Key for user's iCloud sync preference (premium feature)
-    /// Default: false (opt-in model - user must explicitly enable sync)
+    /// Default: true (opt-out model - sync enabled by default for premium users)
+    /// Premium users can disable in Settings if they prefer local-only storage
     /// Change takes effect on next app launch (requires restart)
     public static let iCloudSyncEnabled = "com.ritualist.iCloudSyncEnabled"
 

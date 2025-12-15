@@ -69,6 +69,17 @@ public final class SecurePremiumCache {
     /// while ensuring monthly subscribers are verified at least 4x per billing cycle.
     public static let stalenessThreshold: TimeInterval = 7 * 24 * 60 * 60 // 7 days in seconds
 
+    /// Verification skip threshold (24 hours)
+    /// If cache is newer than this, skip StoreKit verification entirely on app launch.
+    /// This dramatically improves startup performance while maintaining reasonable freshness.
+    ///
+    /// **Rationale:**
+    /// - StoreKit verification has a 5-second timeout and involves network calls
+    /// - 24 hours is short enough to catch subscription changes within a day
+    /// - Users who purchased/cancelled will see updates on next launch after 24h
+    /// - Explicit "Restore Purchases" always bypasses this cache for immediate verification
+    public static let verificationSkipThreshold: TimeInterval = 24 * 60 * 60 // 24 hours in seconds
+
     // Local logger: Singleton initialized before DI container
     private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "premiumCache")
 
@@ -178,6 +189,23 @@ public final class SecurePremiumCache {
             return true // No cache = stale
         }
         return age > Self.stalenessThreshold
+    }
+
+    /// Check if the cache is fresh enough to skip StoreKit verification entirely.
+    ///
+    /// Use this to avoid expensive StoreKit calls on every app launch.
+    /// If returns `true`, the cached status can be trusted for startup decisions.
+    ///
+    /// - Returns: `true` if cache exists, is premium, and is less than 24 hours old
+    ///
+    /// **Note:** This is more aggressive than `isCacheValid()` which uses 3-day grace period.
+    /// For startup optimization, we want a shorter threshold to ensure responsiveness to
+    /// subscription changes while still avoiding unnecessary verification overhead.
+    public func canSkipVerification() -> Bool {
+        guard let age = getCacheAge() else {
+            return false // No cache = must verify
+        }
+        return age <= Self.verificationSkipThreshold
     }
 
     /// Clear the cached premium status.

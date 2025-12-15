@@ -123,6 +123,15 @@ struct AdvancedSettingsView: View {
                 homeTimezone = newTimezone
                 showingHomeTimezonePicker = false
 
+                // Auto-switch to home mode when user selects a home timezone
+                // This ensures the selected timezone takes effect immediately
+                if displayMode != .home {
+                    try await timezoneService.updateDisplayTimezoneMode(.home)
+                    displayMode = .home
+                    vm.profile.displayTimezoneMode = .home
+                    _ = await vm.save()
+                }
+
                 // Refresh travel status
                 travelStatus = try await timezoneService.detectTravelStatus()
             } catch {

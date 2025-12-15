@@ -58,23 +58,63 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
 
     // MARK: - Static Premium Check (Secure, for Startup)
 
-    /// Verify premium status asynchronously by querying StoreKit's Transaction.currentEntitlements.
+    /// Verify premium status asynchronously, using cache when fresh to avoid unnecessary StoreKit calls.
     ///
-    /// **SECURITY:** This method queries StoreKit directly - it cannot be bypassed by modifying
-    /// UserDefaults or any local storage. StoreKit receipts are cryptographically signed by Apple.
+    /// **PERFORMANCE OPTIMIZATION:**
+    /// - If cache is less than 24 hours old, returns cached value immediately (no StoreKit call)
+    /// - Only queries StoreKit when cache is stale or doesn't exist
+    /// - This dramatically reduces app startup time for returning users
+    ///
+    /// **SECURITY:** When StoreKit is queried, it uses cryptographically signed receipts
+    /// that cannot be bypassed by modifying local storage.
     ///
     /// **Usage:** Call this after app UI is shown (in `performInitialLaunchTasks()`) to verify
     /// the cached premium status and update it if needed.
     ///
+    /// - Parameter forceVerification: If `true`, always queries StoreKit regardless of cache freshness.
+    ///   Use this for explicit "Restore Purchases" actions.
     /// - Returns: `true` if user has any valid (non-expired, non-revoked) subscription or purchase
     ///
     /// **Timeout:** Returns cached value if StoreKit doesn't respond within 5 seconds.
     ///
-    public static func verifyPremiumAsync() async -> Bool {
+    public static func verifyPremiumAsync(forceVerification: Bool = false) async -> Bool {
+        let startTime = Date()
+
+        // Check if we can skip verification using cached value
+        if !forceVerification && SecurePremiumCache.shared.canSkipVerification() {
+            let cachedStatus = SecurePremiumCache.shared.getCachedPremiumStatus()
+            let cacheAge = SecurePremiumCache.shared.getCacheAge() ?? 0
+
+            startupLogger.log(
+                "✅ Using cached premium status (cache fresh)",
+                level: .info,
+                category: .subscription,
+                metadata: [
+                    "cached_premium": cachedStatus,
+                    "cache_age_hours": String(format: "%.1f", cacheAge / 3600),
+                    "verification_skipped": true
+                ]
+            )
+
+            return cachedStatus
+        }
+
+        // Cache is stale or doesn't exist - query StoreKit
+        let cacheAge = SecurePremiumCache.shared.getCacheAge()
+        startupLogger.log(
+            "🔐 Querying StoreKit for premium status",
+            level: .info,
+            category: .subscription,
+            metadata: [
+                "reason": forceVerification ? "forced" : (cacheAge == nil ? "no_cache" : "cache_stale"),
+                "cache_age_hours": cacheAge.map { String(format: "%.1f", $0 / 3600) } ?? "none"
+            ]
+        )
+
         // Use withTaskGroup to implement timeout - if StoreKit hangs, fall back to cache
         let timeoutSeconds: UInt64 = 5
 
-        return await withTaskGroup(of: Bool?.self) { group in
+        let result = await withTaskGroup(of: Bool?.self) { group in
             // Task 1: Query StoreKit
             group.addTask {
                 for await result in Transaction.currentEntitlements {
@@ -104,9 +144,11 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
             }
 
             // Return first result (either StoreKit response or timeout)
-            if let result = await group.next() {
+            if let queryResult = await group.next() {
                 group.cancelAll()
-                if let value = result {
+                if let value = queryResult {
+                    // StoreKit responded - update cache with fresh value
+                    SecurePremiumCache.shared.updateCache(isPremium: value)
                     return value
                 } else {
                     // Timeout occurred - fall back to cached value
@@ -121,6 +163,21 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
 
             return false
         }
+
+        // Log verification timing for performance monitoring
+        let duration = Date().timeIntervalSince(startTime)
+        startupLogger.log(
+            "🔐 StoreKit verification completed",
+            level: .info,
+            category: .subscription,
+            metadata: [
+                "is_premium": result,
+                "duration_ms": Int(duration * 1000),
+                "timed_out": duration >= Double(timeoutSeconds)
+            ]
+        )
+
+        return result
     }
 
     // MARK: - Initialization

@@ -62,6 +62,16 @@ public enum AccessibilityID {
         public static let todaySection = "overview.today"
         public static let habitsList = "overview.habitsList"
         public static let personalityButton = "overview.personalityButton"
+        public static let streaksCard = "overview.streaksCard"
+        public static let summaryCard = "overview.summaryCard"
+        public static let todaysSummaryCard = "overview.todaysSummaryCard"
+        public static let calendarCard = "overview.calendarCard"
+        public static let insightsCard = "overview.insightsCard"
+        public static let previousDayButton = "overview.previousDay"
+        public static let nextDayButton = "overview.nextDay"
+        public static let todayButton = "overview.todayButton"
+        public static func habitRow(_ id: String) -> String { "overview.habit.\(id)" }
+        public static func habitCheckbox(_ id: String) -> String { "overview.habit.checkbox.\(id)" }
     }
 
     // MARK: - Habits Tab
@@ -95,13 +105,20 @@ public enum AccessibilityID {
         public static let sendButton = "habitsAssistant.send"
     }
 
-    // MARK: - Stats Tab
+    // MARK: - Stats Tab (Dashboard)
 
     public enum Stats {
         public static let root = "stats.root"
         public static let dashboard = "stats.dashboard"
         public static let streakCard = "stats.streakCard"
         public static let completionCard = "stats.completionCard"
+        public static let weeklyProgressCard = "stats.weeklyProgress"
+        public static let performanceCard = "stats.performance"
+        public static let habitPerformanceList = "stats.habitPerformanceList"
+        public static func habitPerformanceRow(_ id: String) -> String { "stats.habitPerformance.\(id)" }
+        public static let circularProgress = "stats.circularProgress"
+        public static let statCard = "stats.statCard"
+        public static func statCardNamed(_ title: String) -> String { "stats.statCard.\(title.lowercased().replacingOccurrences(of: " ", with: "_"))" }
     }
 
     // MARK: - Settings Tab
@@ -156,6 +173,11 @@ public enum AccessibilityID {
 
     public enum Sheet {
         public static let dismissHandle = "sheet.dismissHandle"
+
+        // Uncomplete Habit Sheet
+        public static let uncompleteHabit = "sheet.uncompleteHabit"
+        public static let uncompleteHabitConfirmButton = "sheet.uncompleteHabit.confirm"
+        public static let uncompleteHabitCancelButton = "sheet.uncompleteHabit.cancel"
     }
 
     // MARK: - Toasts

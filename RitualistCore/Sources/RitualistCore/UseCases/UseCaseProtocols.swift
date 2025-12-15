@@ -96,12 +96,20 @@ public protocol RemoveHabitFromSuggestionUseCase {
 
 // MARK: - Log Use Cases
 
-public protocol GetLogsUseCase { 
-    func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog] 
+public protocol GetLogsUseCase {
+    /// Get logs with explicit timezone for date filtering
+    func execute(for habitID: UUID, since: Date?, until: Date?, timezone: TimeZone) async throws -> [HabitLog]
+
+    /// Convenience method defaulting to device timezone (backward compatibility)
+    func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog]
 }
 
-public protocol GetBatchLogsUseCase { 
-    func execute(for habitIDs: [UUID], since: Date?, until: Date?) async throws -> [UUID: [HabitLog]] 
+public protocol GetBatchLogsUseCase {
+    /// Get batch logs with explicit timezone for date filtering
+    func execute(for habitIDs: [UUID], since: Date?, until: Date?, timezone: TimeZone) async throws -> [UUID: [HabitLog]]
+
+    /// Convenience method defaulting to device timezone (backward compatibility)
+    func execute(for habitIDs: [UUID], since: Date?, until: Date?) async throws -> [UUID: [HabitLog]]
 }
 
 public protocol GetSingleHabitLogsUseCase {
@@ -117,6 +125,10 @@ public protocol DeleteLogUseCase {
 }
 
 public protocol GetLogForDateUseCase {
+    /// Get log for date with explicit timezone for day comparison
+    func execute(habitID: UUID, date: Date, timezone: TimeZone) async throws -> HabitLog?
+
+    /// Convenience method defaulting to device timezone (backward compatibility)
     func execute(habitID: UUID, date: Date) async throws -> HabitLog?
 }
 
@@ -130,6 +142,10 @@ public protocol GetLogForDateUseCase {
 /// - Returns: The date of the earliest log entry, or `nil` if no logs exist for this habit
 /// - Throws: Repository errors if the database query fails
 public protocol GetEarliestLogDateUseCase {
+    /// Get earliest log date with explicit timezone for day normalization
+    func execute(for habitID: UUID, timezone: TimeZone) async throws -> Date?
+
+    /// Convenience method defaulting to device timezone (backward compatibility)
     func execute(for habitID: UUID) async throws -> Date?
 }
 

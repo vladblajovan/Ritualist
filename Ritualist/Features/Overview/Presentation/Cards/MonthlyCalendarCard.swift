@@ -44,15 +44,24 @@ struct MonthlyCalendarCard: View {
         return currentComponents.year == todayComponents.year && currentComponents.month == todayComponents.month
     }
 
+    /// Accessibility label summarizing the calendar grid for VoiceOver
+    private var calendarAccessibilityLabel: String {
+        let completedDays = displayDays.filter { $0.isCurrentMonth && $0.bgColor != .clear && monthlyData[$0.date] ?? 0 > 0 }.count
+        let totalDays = displayDays.filter { $0.isCurrentMonth }.count
+        return "Calendar for \(monthString). \(completedDays) of \(totalDays) days have activity recorded"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Header with navigation
             HStack {
                 Text(seasonIcon)
                     .font(.title2)
+                    .accessibilityHidden(true) // Decorative season emoji
                 Text(monthString)
                     .font(.headline)
                     .fontWeight(.semibold)
+                    .accessibilityAddTraits(.isHeader)
                 Spacer()
 
                 // Navigation controls
@@ -62,26 +71,38 @@ struct MonthlyCalendarCard: View {
                             currentDate = Date()
                         } label: {
                             Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(.body.weight(.medium))
                                 .foregroundColor(.secondary)
                         }
+                        .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
+                        .accessibilityLabel("Return to current month")
+                        .accessibilityHint("Go back to \(monthString)")
+                        .accessibilityIdentifier("calendar_return_to_today")
                     }
 
                     Button {
                         changeMonth(by: -1)
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.body.weight(.medium))
                             .foregroundColor(.secondary)
                     }
+                    .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
+                    .accessibilityLabel("Previous month")
+                    .accessibilityHint("Navigate to the previous month")
+                    .accessibilityIdentifier("calendar_previous_month")
 
                     Button {
                         changeMonth(by: 1)
                     } label: {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.body.weight(.medium))
                             .foregroundColor(.secondary)
                     }
+                    .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
+                    .accessibilityLabel("Next month")
+                    .accessibilityHint("Navigate to the next month")
+                    .accessibilityIdentifier("calendar_next_month")
                 }
             }
 
@@ -143,6 +164,11 @@ struct MonthlyCalendarCard: View {
                 let strokePadding: CGFloat = 2  // Padding for border stroke (top and bottom)
                 return strokePadding * 2 + CGFloat(maxRow + 1) * (cellSize + verticalSpacing)
             }())
+            // Accessibility: Provide summary for VoiceOver users
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(calendarAccessibilityLabel)
+            .accessibilityHint("Double-tap to select a date")
+            .accessibilityIdentifier("monthly_calendar_grid")
         }
         .padding(20)
         .onAppear {

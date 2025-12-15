@@ -1,11 +1,13 @@
 import SwiftUI
 import RitualistCore
 import FactoryKit
+import TipKit
 
 /// Direct sheet implementation without caching layer
 public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_body_length
     let habit: Habit
     let viewingDate: Date
+    let timezone: TimeZone
     let onSave: (Double) async throws -> Void
     let onCancel: () -> Void
     let initialValue: Double?
@@ -20,96 +22,67 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     @State private var value: Double = 0.0
     @State private var extraMileText: String?
     @State private var loadTask: Task<Void, Never>?
-    @State private var saveTask: Task<Void, Never>?
     @Environment(\.dismiss) private var dismiss
+
+    // MARK: - Dynamic Type Scaling
+    @ScaledMetric(relativeTo: .title) private var incrementButtonSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .title) private var progressCircleSize: CGFloat = 120
+    @ScaledMetric(relativeTo: .subheadline) private var celebrationHeight: CGFloat = 24
+    @ScaledMetric(relativeTo: .headline) private var quickIncrementHeight: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var buttonHeight: CGFloat = 44
     
     public init(
         habit: Habit,
         viewingDate: Date,
+        timezone: TimeZone = .current,
         onSave: @escaping (Double) async throws -> Void,
         onCancel: @escaping () -> Void = {},
         initialValue: Double? = nil
     ) {
         self.habit = habit
         self.viewingDate = viewingDate
+        self.timezone = timezone
         self.onSave = onSave
         self.onCancel = onCancel
         self.initialValue = initialValue
     }
     
+    // MARK: - Computed Properties (delegating to ViewLogic for testability)
+
     private var dailyTarget: Double {
-        max(habit.dailyTarget ?? 1.0, 1.0)
+        NumericHabitLogViewLogic.effectiveDailyTarget(from: habit.dailyTarget)
     }
-    
+
     private var progressPercentage: Double {
-        guard dailyTarget > 0 else { return 0 }
-        return min(max(value / dailyTarget, 0.0), 1.0)
+        NumericHabitLogViewLogic.progressPercentage(value: value, dailyTarget: dailyTarget)
     }
-    
+
     private var isCompleted: Bool {
-        value >= dailyTarget
+        NumericHabitLogViewLogic.isCompleted(value: value, dailyTarget: dailyTarget)
     }
-    
+
     private var unitLabel: String {
-        if let label = habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !label.isEmpty {
-            return label
-        }
-        return "units"
+        NumericHabitLogViewLogic.unitLabel(from: habit.unitLabel)
     }
-    
-    /// Maximum allowed value (10% over target, minimum 50 over, capped at 2x target)
+
     private var maxAllowedValue: Double {
-        let calculated = dailyTarget + max(50, dailyTarget * 0.1)
-        return min(calculated, dailyTarget * 2.0)
+        NumericHabitLogViewLogic.maxAllowedValue(for: dailyTarget)
     }
 
     private var isValidValue: Bool {
-        value >= 0 && value <= maxAllowedValue
+        NumericHabitLogViewLogic.isValidValue(value, dailyTarget: dailyTarget)
     }
 
     private var canDecrement: Bool {
-        value > 0
+        NumericHabitLogViewLogic.canDecrement(value: value)
     }
 
     private var canIncrement: Bool {
-        value < maxAllowedValue
+        NumericHabitLogViewLogic.canIncrement(value: value, dailyTarget: dailyTarget)
     }
 
-    /// Remaining amount to reach target
-    private var remaining: Double {
-        max(dailyTarget - value, 0)
-    }
-
-    /// Remaining amount to reach max allowed value
-    private var remainingToMax: Double {
-        max(maxAllowedValue - value, 0)
-    }
-
-    /// Adaptive quick increment values based on remaining progress
-    /// Before target: computed against remaining to target
-    /// After target: computed against remaining to max
     private var quickIncrementAmounts: [Int] {
-        let rem = Int(isCompleted ? remainingToMax : remaining)
-
-        switch rem {
-        case ..<5:
-            return []  // No quick buttons when very close
-        case 5..<20:
-            return [2, 5]
-        case 20..<100:
-            return [5, 10]
-        case 100..<500:
-            return [10, 50]
-        case 500..<2000:
-            return [100, 500]
-        case 2000..<10000:
-            return [500, 1000]
-        case 10000..<50000:
-            return [1000, 5000]
-        default:
-            return [5000, 10000]
-        }
+        NumericHabitLogViewLogic.quickIncrementAmounts(value: value, dailyTarget: dailyTarget)
     }
     
     public var body: some View {
@@ -121,7 +94,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                         // Header with emoji and name
                         VStack(spacing: Spacing.medium) {
                             Text(habit.emoji ?? "📊")
-                                .font(.system(size: 48))
+                                .font(.system(size: 48)) // Keep fixed for decorative emoji
                             
                             Text(habit.name)
                                 .font(.title2)
@@ -135,12 +108,12 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 // Minus button - orange to blue gradient
                                 Button {
                                     HapticFeedbackService.shared.trigger(.light)
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         value = max(0, value - 1)
                                     }
                                 } label: {
                                     Image(systemName: "minus.circle.fill")
-                                        .font(.system(size: 44))
+                                        .font(.system(size: incrementButtonSize))
                                         .foregroundStyle(
                                             LinearGradient(
                                                 colors: [CardDesign.progressOrange, .ritualistCyan],
@@ -151,6 +124,8 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                         .opacity(canDecrement ? 1.0 : 0.3)
                                 }
                                 .disabled(!canDecrement)
+                                .accessibilityLabel(Strings.Common.decrease)
+                                .accessibilityHint(Strings.NumericHabitLog.decreaseHint)
 
                                 // Progress circle
                                 ZStack {
@@ -160,11 +135,11 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                         showPercentage: false,
                                         useAdaptiveGradient: true
                                     )
-                                    .frame(width: 120, height: 120)
+                                    .frame(width: progressCircleSize, height: progressCircleSize)
 
                                     VStack(spacing: 2) {
                                         Text("\(Int(value))")
-                                            .font(.system(size: 28, weight: .bold))
+                                            .font(.title.weight(.bold))
                                             .foregroundStyle(
                                                 LinearGradient(
                                                     colors: CircularProgressView.adaptiveProgressColors(for: progressPercentage),
@@ -177,16 +152,24 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                             .foregroundColor(.secondary)
                                     }
                                 }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(
+                                    Strings.NumericHabitLog.progressLabel(
+                                        current: Int(value),
+                                        target: Int(dailyTarget),
+                                        isCompleted: isCompleted
+                                    )
+                                )
 
                                 // Plus button - green to blue gradient
                                 Button {
                                     HapticFeedbackService.shared.trigger(.light)
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                                         value += 1
                                     }
                                 } label: {
                                     Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 44))
+                                        .font(.system(size: incrementButtonSize))
                                         .foregroundStyle(
                                             LinearGradient(
                                                 colors: [CardDesign.progressGreen, .ritualistCyan],
@@ -197,6 +180,8 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                         .opacity(canIncrement ? 1.0 : 0.3)
                                 }
                                 .disabled(!canIncrement)
+                                .accessibilityLabel(Strings.Common.increase)
+                                .accessibilityHint(Strings.NumericHabitLog.increaseHint)
                             }
 
                             // Celebration text - fixed height to prevent layout jumps
@@ -204,6 +189,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 if value == dailyTarget {
                                     HStack(spacing: Spacing.small) {
                                         Text("🏆")
+                                            .accessibilityHidden(true) // Decorative emoji
                                         Text(Strings.NumericHabitLog.wellDoneExtraMile)
                                             .font(.subheadline)
                                             .fontWeight(.medium)
@@ -218,6 +204,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 } else if value > dailyTarget, let text = extraMileText {
                                     HStack(spacing: Spacing.small) {
                                         Text("🎉")
+                                            .accessibilityHidden(true) // Decorative emoji
                                         Text(text)
                                             .font(.subheadline)
                                             .fontWeight(.medium)
@@ -233,10 +220,10 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     Color.clear
                                 }
                             }
-                            .frame(height: 24)
+                            .frame(minHeight: celebrationHeight)
                         }
 
-                        // Quick increment buttons - fixed height to prevent layout jumps
+                        // Quick increment buttons - scales with Dynamic Type
                         Group {
                             if !quickIncrementAmounts.isEmpty {
                                 HStack(spacing: Spacing.medium) {
@@ -248,9 +235,9 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                 Color.clear
                             }
                         }
-                        .frame(height: 36)
+                        .frame(minHeight: quickIncrementHeight)
 
-                        // Reset and Complete All buttons
+                        // Reset, Complete All, and Done buttons
                         HStack {
                             // Reset button - bottom left (only show if value > 0)
                             if value > 0 {
@@ -263,6 +250,9 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                             completeButton()
                                 .disabled(isCompleted)
                                 .opacity(isCompleted ? 0.4 : 1)
+
+                            // Done button - dismisses sheet
+                            doneButton()
                         }
                         .padding(.top, Spacing.small)
                     }
@@ -280,10 +270,10 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 if isLoading {
                     ZStack {
                         Color(.systemBackground).opacity(0.8)
-                        VStack(spacing: 12) {
+                        VStack(spacing: Spacing.medium) {
                             ProgressView()
                                 .scaleEffect(1.2)
-                            Text("Loading current value...")
+                            Text(Strings.NumericHabitLog.loadingCurrentValue)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -299,43 +289,44 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
             } else {
                 loadCurrentValue()
             }
+            // Announce sheet to VoiceOver for focus management
+            DispatchQueue.main.asyncAfter(deadline: .now() + AccessibilityConfig.voiceOverAnnouncementDelay) {
+                UIAccessibility.post(notification: .screenChanged, argument: "Log \(habit.name)")
+            }
         }
         .onDisappear {
             loadTask?.cancel()
-            saveTask?.cancel()
+            loadTask = nil
+
+            // Save on dismiss if value changed - user sees Overview animate with new progress
+            if value != currentValue {
+                Task {
+                    do {
+                        try await onSave(value)
+                    } catch {
+                        logger.log(
+                            "Failed to save habit value on dismiss",
+                            level: .error,
+                            category: .dataIntegrity,
+                            metadata: ["habit_id": habit.id.uuidString, "value": "\(value)", "error": error.localizedDescription]
+                        )
+                    }
+                }
+            }
         }
         .onChange(of: currentValue) { _, newValue in
             value = newValue
         }
         .onChange(of: value) { oldValue, newValue in
-            // Auto-save when value changes (skip initial load)
-            guard !isLoading, oldValue != newValue else { return }
-
             // Set extra mile text when first exceeding target
             if newValue > dailyTarget && extraMileText == nil {
                 extraMileText = Strings.NumericHabitLog.extraMilePhrases.randomElement()
             }
 
-            // Debounce saves to prevent excessive database writes during rapid changes
-            saveTask?.cancel()
-            saveTask = Task {
-                // Wait 300ms before saving - allows rapid clicks to coalesce
-                try? await Task.sleep(for: .milliseconds(300))
-                guard !Task.isCancelled else { return }
-
-                do {
-                    try await onSave(newValue)
-                } catch {
-                    logger.log(
-                        "Failed to auto-save habit value",
-                        level: .error,
-                        category: .dataIntegrity,
-                        metadata: ["habit_id": habit.id.uuidString, "value": "\(newValue)", "error": error.localizedDescription]
-                    )
-                    #if DEBUG
-                    toastService.error(Strings.Error.failedToSave)
-                    #endif
-                }
+            // Trigger tip for completed habits when reaching target for the first time
+            if newValue >= dailyTarget && oldValue < dailyTarget {
+                TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
+                tipLogger.info("📤 Numeric habit completed - donated shouldShowCompletedTip event")
             }
         }
         .completionGlow(isGlowing: isGlowing)
@@ -345,18 +336,19 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     private func resetButton() -> some View {
         Button {
             HapticFeedbackService.shared.trigger(.medium)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                 value = 0
             }
         } label: {
             Text(Strings.NumericHabitLog.reset)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.body.weight(.semibold))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, Spacing.large)
-                .frame(height: 44)
+                .frame(minHeight: buttonHeight)
                 .background(Color.secondary.opacity(0.1))
                 .cornerRadius(12)
         }
+        .accessibilityHint(Strings.NumericHabitLog.resetHint)
     }
 
     @ViewBuilder
@@ -364,18 +356,36 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
         let adaptiveColor = CircularProgressView.adaptiveProgressColors(for: 1.0).last ?? CardDesign.progressGreen
         Button {
             HapticFeedbackService.shared.trigger(.success)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                 value = dailyTarget
             }
         } label: {
             Text(Strings.NumericHabitLog.completeAll)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.body.weight(.semibold))
                 .foregroundColor(adaptiveColor)
                 .padding(.horizontal, Spacing.large)
-                .frame(height: 44)
+                .frame(minHeight: buttonHeight)
                 .background(adaptiveColor.opacity(0.1))
                 .cornerRadius(12)
         }
+        .accessibilityHint(Strings.NumericHabitLog.completeAllHint)
+    }
+
+    @ViewBuilder
+    private func doneButton() -> some View {
+        Button {
+            HapticFeedbackService.shared.trigger(.light)
+            dismiss()
+        } label: {
+            Text(Strings.Common.done)
+                .font(.body.weight(.semibold))
+                .foregroundColor(.accentColor)
+                .padding(.horizontal, Spacing.large)
+                .frame(minHeight: buttonHeight)
+                .background(Color.accentColor.opacity(0.1))
+                .cornerRadius(12)
+        }
+        .accessibilityHint(Strings.NumericHabitLog.doneHint)
     }
 
     @ViewBuilder
@@ -388,7 +398,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
 
         Button {
             HapticFeedbackService.shared.trigger(.light)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
                 value = min(value + Double(amount), maxAllowedValue)
             }
         } label: {
@@ -397,22 +407,16 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .foregroundStyle(gradient)
                 .padding(.horizontal, Spacing.medium)
                 .frame(minWidth: 60)
-                .frame(height: 36)
+                .frame(minHeight: buttonHeight)
                 .background(gradient.opacity(0.15))
                 .cornerRadius(8)
         }
+        .accessibilityLabel(Strings.NumericHabitLog.quickIncrementLabel(formatAmount(amount)))
+        .accessibilityHint(Strings.NumericHabitLog.quickIncrementHint(formatAmount(amount)))
     }
 
-    /// Format large numbers with K suffix for readability
     private func formatAmount(_ amount: Int) -> String {
-        if amount >= 1000 {
-            let thousands = Double(amount) / 1000.0
-            if thousands == Double(Int(thousands)) {
-                return "\(Int(thousands))K"
-            }
-            return String(format: "%.1fK", thousands)
-        }
-        return "\(amount)"
+        NumericHabitLogViewLogic.formatAmount(amount)
     }
     
     private func loadCurrentValue() {
@@ -422,7 +426,16 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
 
                 guard !Task.isCancelled else { return }
 
-                let targetDateLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, viewingDate) }
+                // Use cross-timezone comparison: log's calendar day (in its stored timezone) vs viewing date (in display timezone)
+                let targetDateLogs = logs.filter { log in
+                    let logTimezone = log.resolvedTimezone(fallback: timezone)
+                    return CalendarUtils.areSameDayAcrossTimezones(
+                        log.date,
+                        timezone1: logTimezone,
+                        viewingDate,
+                        timezone2: timezone
+                    )
+                }
                 let totalValue = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
 
                 guard !Task.isCancelled else { return }

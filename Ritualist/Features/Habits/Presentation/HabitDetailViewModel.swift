@@ -28,7 +28,11 @@ public final class HabitDetailViewModel {
     @ObservationIgnored @Injected(\.scheduleHabitReminders) var scheduleHabitReminders
     @ObservationIgnored @Injected(\.configureHabitLocation) var configureHabitLocation
     @ObservationIgnored @Injected(\.requestLocationPermissions) var requestLocationPermissions
+    @ObservationIgnored @Injected(\.timezoneService) var timezoneService
     @ObservationIgnored @Injected(\.debugLogger) var logger
+
+    /// Cached display timezone for synchronous calculations
+    @ObservationIgnored private var displayTimezone: TimeZone = .current
 
     // Form state
     public var name = ""
@@ -159,8 +163,8 @@ public final class HabitDetailViewModel {
     /// If there are logs, start date must be on or before the earliest log date.
     public var isStartDateValid: Bool {
         guard let earliestLog = earliestLogDate else { return true }
-        let startDay = CalendarUtils.startOfDayLocal(for: startDate)
-        let earliestDay = CalendarUtils.startOfDayLocal(for: earliestLog)
+        let startDay = CalendarUtils.startOfDayLocal(for: startDate, timezone: displayTimezone)
+        let earliestDay = CalendarUtils.startOfDayLocal(for: earliestLog, timezone: displayTimezone)
         return startDay <= earliestDay
     }
 
@@ -277,7 +281,10 @@ public final class HabitDetailViewModel {
     public func loadCategories() async {
         isLoadingCategories = true
         categoriesError = nil
-        
+
+        // Load display timezone for date comparisons
+        displayTimezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+
         do {
             categories = try await getActiveCategories.execute()
             

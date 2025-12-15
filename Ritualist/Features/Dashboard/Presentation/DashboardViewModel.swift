@@ -313,7 +313,7 @@ public final class DashboardViewModel {
         }
     }
     
-    /// Requirement for Schedule Optimization feature
+    /// Requirement for Habit Patterns feature
     public struct ThresholdRequirement {
         public let title: String
         public let description: String

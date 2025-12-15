@@ -23,6 +23,7 @@ struct QuickActionsCard: View {
     @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     @State private var validationMessages: [UUID: String] = [:] // Store validation messages for habits
+    @State private var validationTask: Task<Void, Never>? // Track validation message task to prevent leaks
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -40,7 +41,7 @@ struct QuickActionsCard: View {
                 Spacer()
                 
                 Text("\(incompleteHabits.count) remaining")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .font(.subheadline.weight(.medium))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -57,7 +58,7 @@ struct QuickActionsCard: View {
                         ForEach(incompleteHabits, id: \.id) { habit in
                             habitChip(for: habit, isCompleted: false)
                                 .opacity(animatingHabitId == habit.id ? 0.0 : 1.0)
-                                .animation(.easeOut(duration: 0.3), value: animatingHabitId)
+                                .reduceMotionAnimation(.easeOut(duration: 0.3), value: animatingHabitId)
                         }
                     }
                     .padding(.horizontal, 2) // Small padding for shadow
@@ -66,7 +67,8 @@ struct QuickActionsCard: View {
                 // Perfect day message when no incomplete habits
                 VStack(spacing: 12) {
                     Text("🎉")
-                        .font(.system(size: 32))
+                        .font(.largeTitle)
+                        .accessibilityHidden(true) // Decorative emoji
                     
                     Text("All habits completed!")
                         .font(.headline)
@@ -98,6 +100,11 @@ struct QuickActionsCard: View {
                 Text("This will remove the log entry for \"\(habit.name)\" from today. The habit itself will remain.")
             }
         }
+        .onDisappear {
+            // Cancel validation task to prevent memory leaks
+            validationTask?.cancel()
+            validationTask = nil
+        }
     }
     
     @ViewBuilder
@@ -114,10 +121,10 @@ struct QuickActionsCard: View {
                     // For binary habits, complete with glow effect
                     glowingHabitId = habit.id
                     
-                    withAnimation(.easeOut(duration: 0.3)) {
+                    animateIfAllowed(.easeOut(duration: 0.3)) {
                         animatingHabitId = habit.id
                     }
-                    
+
                     Task {
                         // Small delay for glow effect, then complete
                         try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds for glow
@@ -130,11 +137,18 @@ struct QuickActionsCard: View {
                 }
             } else if !scheduleStatus.isAvailable {
                 // Show validation message when user tries to tap disabled habit
-                Task {
+                // Cancel any existing validation task and clear reference to prevent memory leaks
+                validationTask?.cancel()
+                validationTask = nil
+                validationTask = Task {
                     if let message = await getValidationMessage(habit) {
                         validationMessages[habit.id] = message
+                        // Announce to VoiceOver users
+                        AccessibilityAnnouncement.post(Strings.Accessibility.habitValidationAnnouncement(habit.name, message))
                         // Clear message after a few seconds
                         try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                        // Check if task was cancelled before updating state
+                        guard !Task.isCancelled else { return }
                         validationMessages[habit.id] = nil
                     }
                 }
@@ -165,7 +179,7 @@ struct QuickActionsCard: View {
                             .stroke(Color(hex: habit.colorHex), lineWidth: 3)
                             .frame(width: 40, height: 40)
                             .rotationEffect(.degrees(-90))
-                            .animation(.easeInOut(duration: 0.3), value: progressValue)
+                            .reduceMotionAnimation(.easeInOut(duration: 0.3), value: progressValue)
                     } 
                     // else {
                         // Completed habits show full circle - DISABLED: UX overkill
@@ -184,7 +198,7 @@ struct QuickActionsCard: View {
                 // Habit Info
                 VStack(alignment: .leading, spacing: 2) {
                     Text(habit.name)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.subheadline.weight(.medium))
                         .foregroundColor(isDisabled ? .primary.opacity(0.6) : (isCompleted ? .primary.opacity(0.8) : .primary))
                         .lineLimit(1)
                     
@@ -229,8 +243,8 @@ struct QuickActionsCard: View {
         .opacity(isDisabled && !isCompleted ? 0.7 : 1.0)
         .scaleEffect(1.0)
         .completionGlow(isGlowing: glowingHabitId == habit.id)
-        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: incompleteHabits.count)
-        .animation(.easeInOut(duration: 0.2), value: validationMessages[habit.id])
+        .reduceMotionAnimation(.spring(response: 0.3, dampingFraction: 0.6), value: incompleteHabits.count)
+        .reduceMotionAnimation(.easeInOut(duration: 0.2), value: validationMessages[habit.id])
         .onLongPressGesture {
             if isCompleted {
                 habitToDelete = habit

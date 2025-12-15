@@ -45,7 +45,7 @@ public struct DashboardView: View {
                 
                 Spacer(minLength: 100) // Bottom padding for tab bar
             }
-            .padding(.horizontal, Spacing.screenMargin)
+            .padding(.horizontal, Spacing.large)
         }
         .refreshable {
             await vm.refresh()
@@ -120,14 +120,15 @@ public struct DashboardView: View {
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "chart.bar")
-                .font(.system(size: 60))
+                .font(.system(size: 60)) // Keep fixed for decorative icon
                 .foregroundColor(.secondary.opacity(0.6))
-            
+                .accessibilityHidden(true) // Decorative icon
+
             VStack(spacing: 8) {
                 Text(Strings.Dashboard.noDataAvailable)
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+
                 Text(Strings.Dashboard.startTrackingMessage)
                     .font(.body)
                     .foregroundColor(.secondary)
@@ -136,6 +137,8 @@ public struct DashboardView: View {
         }
         .frame(height: 300)
         .padding(.horizontal, 40)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Strings.Accessibility.dashboardEmptyState)
     }
     
     @ViewBuilder
@@ -189,8 +192,20 @@ public struct DashboardView: View {
                         .foregroundStyle(.secondary.opacity(0.5))
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Progress trend chart")
+            .accessibilityValue(chartAccessibilityDescription(data: data))
         }
         .cardStyle()
+    }
+
+    private func chartAccessibilityDescription(data: [DashboardViewModel.ChartDataPointViewModel]) -> String {
+        guard !data.isEmpty else { return Strings.Accessibility.chartNoData }
+        let avgCompletion = data.map { $0.completionRate }.reduce(0, +) / Double(data.count)
+        let firstRate = data.first?.completionRate ?? 0
+        let lastRate = data.last?.completionRate ?? 0
+        let trend = data.count > 1 && lastRate > firstRate ? "improving" : "declining"
+        return Strings.Accessibility.chartDescription(avgCompletion: Int(avgCompletion * 100), trend: trend)
     }
     
     @ViewBuilder
@@ -202,10 +217,10 @@ public struct DashboardView: View {
                     .foregroundColor(.purple)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Schedule Optimization")
+                    Text("Habit Patterns")
                         .font(.headline)
                         .foregroundColor(.primary)
-                    Text("Optimize your habit scheduling")
+                    Text("Understand your consistency trends")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -250,15 +265,15 @@ public struct DashboardView: View {
                 GridItem(.flexible())
             ], spacing: 16) {
                 VStack(spacing: 4) {
-                    Text("\(analysis.currentStreak)")
+                    Text("\(analysis.daysWithFullCompletion)")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.orange)
-                    Text("In Period")
+                    Text("Perfect Days")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack(spacing: 4) {
                     Text("\(analysis.longestStreak)")
                         .font(.title2)
@@ -268,7 +283,7 @@ public struct DashboardView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack(spacing: 4) {
                     Text(String(format: "%.0f%%", analysis.consistencyScore * 100))
                         .font(.title2)
@@ -319,49 +334,58 @@ public struct DashboardView: View {
                         if let emoji = category.emoji {
                             Text(emoji)
                                 .font(.title3)
+                                .accessibilityHidden(true) // Decorative emoji
                         } else {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color(hex: category.color) ?? AppColors.brand)
                                 .frame(width: 16, height: 16)
+                                .accessibilityHidden(true) // Decorative color indicator
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(category.categoryName)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.subheadline.weight(.medium))
                                 .foregroundColor(.primary)
                             Text("\(category.habitCount) habits")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     // Progress bar and percentage
                     HStack(spacing: 8) {
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color(.systemGray5))
                                 .frame(width: 60, height: 8)
-                            
+
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color(hex: category.color) ?? AppColors.brand)
                                 .frame(width: 60 * category.completionRate, height: 8)
                         }
-                        
+                        .accessibilityHidden(true) // Progress bar is decorative, info conveyed via label
+
                         Text("\(Int((category.completionRate * 100).rounded()))%")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundColor(.primary)
                             .frame(minWidth: 44, alignment: .trailing)
                     }
                 }
                 .padding(.vertical, 2)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Strings.Accessibility.categoryLabel(
+                    name: category.categoryName,
+                    habitCount: category.habitCount,
+                    completionPercent: Int((category.completionRate * 100).rounded())
+                ))
             }
         }
         .cardStyle()
     }
     
-    // MARK: - Schedule Optimization Helpers
+    // MARK: - Habit Patterns Helpers
     
     @ViewBuilder
     private func thresholdRequirementsContent(requirements: [DashboardViewModel.ThresholdRequirement]) -> some View {
@@ -369,8 +393,9 @@ public struct DashboardView: View {
             // Header message
             VStack(spacing: 8) {
                 Text("🎯")
-                    .font(.system(size: 32))
+                    .font(.title)
                     .opacity(0.6)
+                    .accessibilityHidden(true) // Decorative emoji
                 
                 VStack(spacing: 4) {
                     Text("Building Your Profile")
@@ -391,20 +416,20 @@ public struct DashboardView: View {
                     HStack(spacing: 12) {
                         // Status icon
                         Image(systemName: requirement.isMet ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 16))
+                            .font(.body)
                             .foregroundColor(requirement.isMet ? .green : .secondary)
                         
                         // Content
                         VStack(alignment: .leading, spacing: 2) {
                             HStack {
                                 Text(requirement.title)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.subheadline.weight(.medium))
                                     .foregroundColor(.primary)
                                 
                                 Spacer()
                                 
                                 Text(requirement.progressText)
-                                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                                    .font(.caption.weight(.medium))
                                     .foregroundColor(requirement.isMet ? .green : .secondary)
                             }
                             
@@ -430,10 +455,11 @@ public struct DashboardView: View {
                 HStack {
                     Text("🌟")
                         .font(.title3)
+                        .accessibilityHidden(true) // Decorative emoji
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(patterns.bestDay) works best")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.caption.weight(.medium))
                             .foregroundColor(.primary)
 
                         Text("\(Int((patterns.bestDayCompletionRate * 100).rounded()))% completion rate")
@@ -448,10 +474,11 @@ public struct DashboardView: View {
                 HStack {
                     Text(patterns.isOptimizationMeaningful ? "⚡" : "✅")
                         .font(.title3)
+                        .accessibilityHidden(true) // Decorative emoji
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(patterns.optimizationMessage)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.caption.weight(.medium))
                             .foregroundColor(.primary)
 
                         if patterns.isOptimizationMeaningful {
@@ -497,6 +524,9 @@ public struct DashboardView: View {
                         .font(.caption2)
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Weekly performance chart")
+            .accessibilityValue("Best day is \(patterns.bestDay) at \(Int((patterns.bestDayCompletionRate * 100).rounded()))% completion")
         }
     }
 }

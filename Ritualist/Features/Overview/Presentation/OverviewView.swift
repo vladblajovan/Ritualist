@@ -154,12 +154,6 @@ public struct OverviewView: View {
                     .simpleCard()
                 }
                 
-                // Smart contextual insights (basic habit patterns)
-                if vm.shouldShowInsights {
-                    SmartInsightsCard(insights: vm.smartInsights)
-                        .simpleCard()
-                }
-                
                 // Personality-based insights (separate card)
                 if vm.shouldShowPersonalityInsights {
                     PersonalityInsightsCard(
@@ -176,7 +170,7 @@ public struct OverviewView: View {
                 
                 Spacer(minLength: 100) // Tab bar padding
             }
-            .padding(.horizontal, Spacing.screenMargin)
+            .padding(.horizontal, Spacing.large)
             }
             .refreshable {
                 await vm.refresh()
@@ -247,6 +241,7 @@ public struct OverviewView: View {
                     NumericHabitLogSheetDirect(
                         habit: habit,
                         viewingDate: vm.viewingDate,
+                        timezone: vm.displayTimezone,
                         onSave: { newValue in
                             try await vm.updateNumericHabit(habit, value: newValue)
                         },

@@ -12,6 +12,7 @@ import RitualistCore
 import UIKit
 import CoreData
 import CloudKit
+import TipKit
 
 // swiftlint:disable type_body_length file_length
 @main struct RitualistApp: App {
@@ -114,6 +115,31 @@ import CloudKit
 
     /// App startup time for performance monitoring
     private let appStartTime = Date()
+
+    init() {
+        // Check if tips should be reset (set from Debug Menu)
+        if UserDefaults.standard.bool(forKey: "shouldResetTipsOnNextLaunch") {
+            // Clear flag BEFORE reset attempt to prevent crash loops
+            // If resetDatastore() crashes, we don't want to retry on every launch
+            UserDefaults.standard.set(false, forKey: "shouldResetTipsOnNextLaunch")
+            do {
+                try Tips.resetDatastore()
+                tipLogger.info("✅ TipKit datastore reset successfully")
+            } catch {
+                tipLogger.error("❌ TipKit datastore reset failed: \(error.localizedDescription)")
+            }
+        }
+
+        // Configure TipKit
+        do {
+            try Tips.configure([
+                .displayFrequency(.immediate)
+            ])
+            tipLogger.info("✅ TipKit configured successfully with displayFrequency: immediate")
+        } catch {
+            tipLogger.error("❌ TipKit configuration failed: \(error.localizedDescription)")
+        }
+    }
 
     /// Minimum interval between geofence restorations (in seconds).
     ///
@@ -1247,12 +1273,14 @@ import CloudKit
     @MainActor
     private func navigateToDateInOverview(_ targetDate: Date) async {
         let overviewViewModel = Container.shared.overviewViewModel()
-        
-        // Set the date first - normalize to local calendar's start of day
-        overviewViewModel.viewingDate = CalendarUtils.startOfDayLocal(for: targetDate)
-        
-        // Wait for data loading to complete before proceeding
+
+        // Load data first to ensure displayTimezone is correctly set from user preferences
+        // This prevents the viewingDate from being calculated with the wrong timezone
         await overviewViewModel.loadData()
+
+        // Now set the target date using the correctly loaded displayTimezone
+        // This must happen AFTER loadData() because loadData() resets viewingDate to today on first load
+        overviewViewModel.viewingDate = CalendarUtils.startOfDayLocal(for: targetDate, timezone: overviewViewModel.displayTimezone)
     }
     
     /// Handle overview deep links from widget

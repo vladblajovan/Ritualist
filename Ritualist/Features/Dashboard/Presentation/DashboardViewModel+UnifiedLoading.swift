@@ -34,11 +34,13 @@ extension DashboardViewModel {
         let categories = try await getAllCategories.execute()
         
         // 3. Single batch query for ALL habit logs in the entire date range
+        // Use display timezone for date filtering to ensure correct day boundaries
         let habitIds: [UUID] = habits.map { $0.id }
         let habitLogs = try await self.getBatchLogs.execute(
             for: habitIds,
             since: range.start,
-            until: range.end
+            until: range.end,
+            timezone: displayTimezone
         )
         
         // Create unified data structure with pre-calculated daily completions using UseCases
@@ -194,16 +196,23 @@ extension DashboardViewModel {
         var daysWithData = 0
 
         while currentDate <= dateRange.upperBound {
-            let dayOfWeek = calendar.component(.weekday, from: currentDate)
-            let dayName = DateFormatter.weekdayName.string(from: currentDate)
+            // Use display timezone for weekday calculation (not device timezone)
+            let dayOfWeek = CalendarUtils.weekdayComponentLocal(from: currentDate, timezone: dashboardData.timezone)
             let scheduledHabits = dashboardData.scheduledHabits(for: currentDate)
             let completedHabits = dashboardData.completedHabits(for: currentDate)
             
             totalDaysAnalyzed += 1
             
             // Only count as "data day" if there are logs for this date (actual user activity)
+            // Uses cross-timezone comparison: log's calendar day (in its stored timezone) vs query date (in display timezone)
             let hasLogsForDate = dashboardData.habitLogs.values.flatMap { $0 }.contains { log in
-                CalendarUtils.areSameDayLocal(log.date, currentDate)
+                let logTimezone = log.resolvedTimezone(fallback: dashboardData.timezone)
+                return CalendarUtils.areSameDayAcrossTimezones(
+                    log.date,
+                    timezone1: logTimezone,
+                    currentDate,
+                    timezone2: dashboardData.timezone
+                )
             }
 
             // Count any day with logs (user activity), regardless of whether all scheduled habits were completed
@@ -246,13 +255,15 @@ extension DashboardViewModel {
         
         // Flatten habitLogs for service call
         let allLogs = dashboardData.habitLogs.values.flatMap { $0 }
-        
+
         // Use existing UseCase for proper streak analysis
+        // Pass the display timezone for consistent date calculations
         let streakAnalysisResult = calculateStreakAnalysis.execute(
             habits: habits,
             logs: allLogs,
             from: dateRange.lowerBound,
-            to: dateRange.upperBound
+            to: dateRange.upperBound,
+            timezone: dashboardData.timezone
         )
         
         return StreakAnalysisViewModel(from: streakAnalysisResult)

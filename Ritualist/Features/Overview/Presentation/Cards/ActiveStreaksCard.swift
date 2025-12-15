@@ -24,8 +24,9 @@ struct ActiveStreaksCard: View {
                 // Empty State
                 VStack(spacing: 12) {
                     Text("🎯")
-                        .font(.system(size: 32))
+                        .font(.largeTitle)
                         .opacity(0.6)
+                        .accessibilityHidden(true) // Decorative emoji
                     
                     VStack(spacing: 4) {
                         Text("No Active Streaks")
@@ -56,7 +57,7 @@ struct ActiveStreaksCard: View {
                             // Habit Info
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(streak.habitName)
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.body.weight(.medium))
                                     .foregroundColor(.primary)
                                     .lineLimit(1)
                                 
@@ -70,13 +71,14 @@ struct ActiveStreaksCard: View {
                             // Streak Display
                             HStack(spacing: 4) {
                                 Text("\(streak.currentStreak)")
-                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                                    .font(.body.weight(.bold))
                                     .foregroundColor(streakColor(for: streak.currentStreak))
                                 
                                 Text(streak.flameEmoji)
-                                    .font(.system(size: 16))
+                                    .font(.body)
                                     .scaleEffect(streak.flameCount > 1 ? 1.1 : 1.0)
-                                    .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.1), value: streak.flameCount)
+                                    .accessibilityHidden(true) // Decorative emoji
+                                    .reduceMotionAnimation(.easeInOut(duration: 0.3).delay(Double(index) * 0.1), value: streak.flameCount)
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)

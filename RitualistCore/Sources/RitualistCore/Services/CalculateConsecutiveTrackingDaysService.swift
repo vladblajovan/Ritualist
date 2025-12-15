@@ -29,18 +29,35 @@ public final class DefaultCalculateConsecutiveTrackingDaysService: CalculateCons
     public init() {}
 
     public func execute(logs: [HabitLog], timezone: TimeZone = .current) -> Int {
-        // Group logs by date using the specified timezone
-        let logsByDate = Dictionary(grouping: logs, by: {
-            CalendarUtils.startOfDayLocal(for: $0.date, timezone: timezone)
-        })
+        // Group logs by their calendar day using cross-timezone comparison
+        // Each log's date is interpreted in its stored timezone to determine the calendar day
+        var uniqueCalendarDays: Set<Date> = []
 
-        let sortedDates = logsByDate.keys.sorted(by: >)
+        for log in logs {
+            // Use log's stored timezone to determine which calendar day this log belongs to
+            let logTimezone = log.resolvedTimezone(fallback: timezone)
+            let logCalendarDay = CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)
+            uniqueCalendarDays.insert(logCalendarDay)
+        }
+
+        let sortedDates = uniqueCalendarDays.sorted(by: >)
 
         var consecutiveDays = 0
         var currentDate = CalendarUtils.startOfDayLocal(for: Date(), timezone: timezone)
 
         for date in sortedDates {
-            if CalendarUtils.areSameDayLocal(date, currentDate, timezone: timezone) {
+            // Check if any log exists for currentDate using cross-timezone comparison
+            let hasLogForCurrentDate = logs.contains { log in
+                let logTimezone = log.resolvedTimezone(fallback: timezone)
+                return CalendarUtils.areSameDayAcrossTimezones(
+                    log.date,
+                    timezone1: logTimezone,
+                    currentDate,
+                    timezone2: timezone
+                )
+            }
+
+            if hasLogForCurrentDate {
                 consecutiveDays += 1
                 currentDate = CalendarUtils.addDaysLocal(-1, to: currentDate, timezone: timezone)
             } else if date < currentDate {
