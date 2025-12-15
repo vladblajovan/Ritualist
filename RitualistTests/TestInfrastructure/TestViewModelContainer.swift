@@ -20,14 +20,16 @@ public final class MockGetEarliestLogDate: GetEarliestLogDateUseCase {
     public var failureError: Error = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Mock error"])
     public private(set) var executeCallCount = 0
     public private(set) var lastRequestedHabitID: UUID?
+    public private(set) var lastRequestedTimezone: TimeZone?
 
     public init(dateToReturn: Date? = nil) {
         self.dateToReturn = dateToReturn
     }
 
-    public func execute(for habitID: UUID) async throws -> Date? {
+    public func execute(for habitID: UUID, timezone: TimeZone) async throws -> Date? {
         executeCallCount += 1
         lastRequestedHabitID = habitID
+        lastRequestedTimezone = timezone
         if shouldFail {
             throw failureError
         }
