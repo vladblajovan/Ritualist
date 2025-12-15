@@ -57,6 +57,7 @@ public final class RootTabViewModel {
 
     // MARK: - Public Methods
 
+    // swiftlint:disable:next function_body_length
     public func checkOnboardingStatus() async {
         // Handle UI testing launch arguments
         if handleTestingLaunchArguments() { return }
@@ -85,9 +86,12 @@ public final class RootTabViewModel {
             )
         } else {
             // Log for production monitoring - helps identify StoreKit verification issues
+            // Note: This could be either "user is genuinely free tier" OR "StoreKit verification failed"
+            // StoreKit handles retries internally with 5s timeout; if this appears frequently
+            // alongside sync timeout warnings, investigate network conditions
             logger.log(
                 "Premium subscription not verified at startup - user treated as free tier",
-                level: .debug,
+                level: .info,
                 category: .subscription
             )
         }
@@ -100,12 +104,19 @@ public final class RootTabViewModel {
         // 2. Increasing timeout to 0.5s if >10% of users experience timeouts
         // 3. The timeout only affects returning user detection, not app functionality
         let syncCompleted = await iCloudKeyValueService.synchronizeAndWait(timeout: 0.3)
+        // Capture sync preference immediately after sync attempt for accurate logging
+        let syncPreferenceAfterSync = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
         if !syncCompleted {
             logger.log(
                 "iCloud KV sync timed out - may affect returning user detection",
                 level: .warning,
                 category: .ui,
-                metadata: ["syncCompleted": syncCompleted, "timeoutSeconds": 0.3]
+                metadata: [
+                    "syncCompleted": syncCompleted,
+                    "timeoutSeconds": 0.3,
+                    "syncPreference": syncPreferenceAfterSync,
+                    "isPremiumVerified": isPremiumVerified
+                ]
             )
         }
 

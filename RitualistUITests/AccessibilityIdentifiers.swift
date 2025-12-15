@@ -173,6 +173,11 @@ enum AccessibilityID {
 
     enum Sheet {
         static let dismissHandle = "sheet.dismissHandle"
+
+        // Uncomplete Habit Sheet
+        static let uncompleteHabit = "sheet.uncompleteHabit"
+        static let uncompleteHabitConfirmButton = "sheet.uncompleteHabit.confirm"
+        static let uncompleteHabitCancelButton = "sheet.uncompleteHabit.cancel"
     }
 
     // MARK: - Toasts

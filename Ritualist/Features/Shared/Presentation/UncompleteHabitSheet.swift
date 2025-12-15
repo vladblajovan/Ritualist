@@ -62,6 +62,7 @@ public struct UncompleteHabitSheet: View {
                     .background(Color.orange.opacity(0.1))
                     .cornerRadius(12)
                 }
+                .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabitConfirmButton)
                 .accessibilityHint(Strings.UncompleteHabitSheet.markAsNotCompletedHint)
 
                 Button {
@@ -74,11 +75,13 @@ public struct UncompleteHabitSheet: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.medium)
                 }
+                .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabitCancelButton)
                 .accessibilityHint(Strings.UncompleteHabitSheet.cancelHint)
             }
             .padding(.horizontal)
             .padding(.bottom, Spacing.medium)
         }
+        .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabit)
         .presentationDetents([.height(280)])
         .presentationDragIndicator(.visible)
         .onAppear {
