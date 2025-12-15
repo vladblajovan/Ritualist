@@ -144,14 +144,26 @@ public final class DefaultHabitCompletionService: HabitCompletionService {
 
     private func isCompletedOnSpecificDay(habit: Habit, date: Date, logs: [HabitLog], timezone: TimeZone) -> Bool {
         // Check if any log for this habit was created on the specified calendar day
-        // Important: Each log's timezone determines which calendar day it belongs to
+        //
+        // IMPORTANT: The log's `date` field is stored as "start of day in DISPLAY timezone at creation time".
+        // The log's `timezone` field stores the DISPLAY timezone that was used to calculate the date,
+        // which tells us which calendar day the log represents.
+        //
+        // When comparing, we use areSameDayAcrossTimezones to check if:
+        // - The log's calendar day (in its stored timezone) matches
+        // - The query's calendar day (in the query timezone)
+        //
+        // This ensures a log created for "Dec 11 in Melbourne" will ALWAYS represent Dec 11,
+        // regardless of what timezone you're viewing from. The log is "sticky" to its original day.
 
         let dayLogs = logs.filter { log in
             guard log.habitID == habit.id else { return false }
 
             let logTimezone = log.resolvedTimezone(fallback: timezone)
 
-            // Use shared utility for cross-timezone day comparison
+            // Compare calendar days across timezones:
+            // - Log's date interpreted in log's stored timezone (the display timezone when created)
+            // - Query date interpreted in query timezone (current display timezone)
             return CalendarUtils.areSameDayAcrossTimezones(
                 log.date,
                 timezone1: logTimezone,

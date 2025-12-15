@@ -145,28 +145,22 @@ struct PersonalityInsightsCard: View {
                 .foregroundColor(.secondary)
             
             VStack(spacing: 8) {
-                ForEach(thresholdRequirements.prefix(3), id: \.id) { requirement in
+                ForEach(thresholdRequirements, id: \.id) { requirement in
                     HStack {
                         Image(systemName: requirement.isMet ? "checkmark.circle.fill" : "circle")
                             .font(.caption)
                             .foregroundColor(requirement.isMet ? .green : .secondary)
-                        
+
                         Text(requirement.name)
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        
+
                         Spacer()
-                        
+
                         Text("\(requirement.currentValue)/\(requirement.requiredValue)")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
-                }
-                
-                if thresholdRequirements.count > 3 {
-                    Text("+ \(thresholdRequirements.count - 3) more requirements")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
                 }
             }
         }

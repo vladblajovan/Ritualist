@@ -217,10 +217,10 @@ public struct DashboardView: View {
                     .foregroundColor(.purple)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Schedule Optimization")
+                    Text("Habit Patterns")
                         .font(.headline)
                         .foregroundColor(.primary)
-                    Text("Optimize your habit scheduling")
+                    Text("Understand your consistency trends")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -265,15 +265,15 @@ public struct DashboardView: View {
                 GridItem(.flexible())
             ], spacing: 16) {
                 VStack(spacing: 4) {
-                    Text("\(analysis.currentStreak)")
+                    Text("\(analysis.daysWithFullCompletion)")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.orange)
-                    Text("In Period")
+                    Text("Perfect Days")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack(spacing: 4) {
                     Text("\(analysis.longestStreak)")
                         .font(.title2)
@@ -283,7 +283,7 @@ public struct DashboardView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack(spacing: 4) {
                     Text(String(format: "%.0f%%", analysis.consistencyScore * 100))
                         .font(.title2)
@@ -385,7 +385,7 @@ public struct DashboardView: View {
         .cardStyle()
     }
     
-    // MARK: - Schedule Optimization Helpers
+    // MARK: - Habit Patterns Helpers
     
     @ViewBuilder
     private func thresholdRequirementsContent(requirements: [DashboardViewModel.ThresholdRequirement]) -> some View {

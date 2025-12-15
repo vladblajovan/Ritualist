@@ -264,6 +264,11 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
     
     /// Calculate "perfect day" streaks where ALL active habits are completed
     /// This is different from individual habit streaks - it tracks overall consistency
+    ///
+    /// - Parameters:
+    ///   - startDate: The start of the period to analyze
+    ///   - endDate: The end of the period to analyze (streak scan starts from here, not from today)
+    ///   - timezone: The timezone to use for date calculations
     private func calculatePerfectDayStreak(
         habits: [Habit],
         logs: [HabitLog],
@@ -272,14 +277,17 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         timezone: TimeZone
     ) -> PerfectDayStreakResult {
 
-        var activeStreak = 0  // Active streak ending today (going backwards from today)
+        var activeStreak = 0  // Active streak ending at effectiveEndDate (going backwards)
         var tempStreak = 0    // Temporary streak while scanning backwards
         var longestStreak = 0
         var daysWithFullCompletion = 0
         var isActiveStreakSet = false  // Track if we've captured the active streak yet
 
         let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: timezone)
-        var currentDate = today
+        let periodEnd = CalendarUtils.startOfDayLocal(for: endDate, timezone: timezone)
+        // Use the earlier of today or period end - can't have streaks for future dates
+        let effectiveEndDate = min(today, periodEnd)
+        var currentDate = effectiveEndDate
         let start = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
 
         while currentDate >= start {
@@ -339,9 +347,9 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
             activeStreak = tempStreak
         }
 
-        // Calculate consistency based on analysis period
+        // Calculate consistency based on analysis period (start to effectiveEndDate)
         // Add 1 to convert from "difference" to "count" (3 days = difference of 2)
-        let totalDays = CalendarUtils.daysBetweenLocal(start, today) + 1
+        let totalDays = CalendarUtils.daysBetweenLocal(start, effectiveEndDate) + 1
         let consistencyScore = totalDays > 0 ? Double(daysWithFullCompletion) / Double(totalDays) : 0.0
 
         let streakTrend: String
@@ -354,7 +362,7 @@ public final class PerformanceAnalysisServiceImpl: PerformanceAnalysisService {
         }
 
         return PerfectDayStreakResult(
-            currentStreak: activeStreak,  // Return active streak (ending today)
+            currentStreak: activeStreak,  // Return active streak (ending at period end)
             longestStreak: longestStreak,
             streakTrend: streakTrend,
             daysWithFullCompletion: daysWithFullCompletion,

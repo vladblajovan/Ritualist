@@ -67,6 +67,6 @@ public extension Habit {
     func isScheduledOn(date: Date, timezone: TimeZone = .current) -> Bool {
         let dateStart = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
         let habitStartDay = CalendarUtils.startOfDayLocal(for: startDate, timezone: timezone)
-        return dateStart >= habitStartDay && schedule.isActiveOn(date: date)
+        return dateStart >= habitStartDay && schedule.isActiveOn(date: date, timezone: timezone)
     }
 }

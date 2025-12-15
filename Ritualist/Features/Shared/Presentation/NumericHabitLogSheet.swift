@@ -7,6 +7,7 @@ import TipKit
 public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_body_length
     let habit: Habit
     let viewingDate: Date
+    let timezone: TimeZone
     let onSave: (Double) async throws -> Void
     let onCancel: () -> Void
     let initialValue: Double?
@@ -33,12 +34,14 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     public init(
         habit: Habit,
         viewingDate: Date,
+        timezone: TimeZone = .current,
         onSave: @escaping (Double) async throws -> Void,
         onCancel: @escaping () -> Void = {},
         initialValue: Double? = nil
     ) {
         self.habit = habit
         self.viewingDate = viewingDate
+        self.timezone = timezone
         self.onSave = onSave
         self.onCancel = onCancel
         self.initialValue = initialValue
@@ -423,7 +426,16 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
 
                 guard !Task.isCancelled else { return }
 
-                let targetDateLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, viewingDate) }
+                // Use cross-timezone comparison: log's calendar day (in its stored timezone) vs viewing date (in display timezone)
+                let targetDateLogs = logs.filter { log in
+                    let logTimezone = log.resolvedTimezone(fallback: timezone)
+                    return CalendarUtils.areSameDayAcrossTimezones(
+                        log.date,
+                        timezone1: logTimezone,
+                        viewingDate,
+                        timezone2: timezone
+                    )
+                }
                 let totalValue = targetDateLogs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
 
                 guard !Task.isCancelled else { return }

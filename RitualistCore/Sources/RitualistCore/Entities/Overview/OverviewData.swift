@@ -42,18 +42,36 @@ public struct OverviewData {
     // These methods contained duplicate completion logic that competed with HabitCompletionService
     // All completion calculations should now use HabitCompletionService for consistency
 
-    /// Get all logs for a specific date across all habits using the display timezone
+    /// Get all logs for a specific date across all habits
+    /// Uses cross-timezone comparison: log's calendar day (in its stored timezone) vs query date (in display timezone)
     public func logs(for date: Date) -> [HabitLog] {
         return habitLogs.values.flatMap { logs in
-            logs.filter { CalendarUtils.areSameDayLocal($0.date, date, timezone: timezone) }
+            logs.filter { log in
+                let logTimezone = log.resolvedTimezone(fallback: timezone)
+                return CalendarUtils.areSameDayAcrossTimezones(
+                    log.date,
+                    timezone1: logTimezone,
+                    date,
+                    timezone2: timezone
+                )
+            }
         }
     }
 
-    /// Get logs for a specific habit on a specific date using the display timezone
+    /// Get logs for a specific habit on a specific date
+    /// Uses cross-timezone comparison: log's calendar day (in its stored timezone) vs query date (in display timezone)
     public func logs(for habitId: UUID, on date: Date) -> [HabitLog] {
         guard let logs = habitLogs[habitId] else { return [] }
 
-        return logs.filter { CalendarUtils.areSameDayLocal($0.date, date, timezone: timezone) }
+        return logs.filter { log in
+            let logTimezone = log.resolvedTimezone(fallback: timezone)
+            return CalendarUtils.areSameDayAcrossTimezones(
+                log.date,
+                timezone1: logTimezone,
+                date,
+                timezone2: timezone
+            )
+        }
     }
     
     // REMOVED: isHabitCompleted(_:on:) method
@@ -115,7 +133,15 @@ public struct OverviewData {
                 // Only count if habit was expected on this day
                 guard scheduleAnalyzer.isHabitExpectedOnDate(habit: habit, date: checkDate, timezone: timezone) else { continue }
 
-                let dayLogs = logs.filter { CalendarUtils.areSameDayLocal($0.date, checkDate, timezone: timezone) }
+                let dayLogs = logs.filter { log in
+                    let logTimezone = log.resolvedTimezone(fallback: timezone)
+                    return CalendarUtils.areSameDayAcrossTimezones(
+                        log.date,
+                        timezone1: logTimezone,
+                        checkDate,
+                        timezone2: timezone
+                    )
+                }
                 if completionService.isCompleted(habit: habit, on: checkDate, logs: dayLogs, timezone: timezone) {
                     totalCompletions += 1
                     dailyCompletions[dayOffset] += 1

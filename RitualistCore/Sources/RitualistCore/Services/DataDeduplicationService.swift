@@ -363,9 +363,52 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
             // Re-fetch after Phase 1 deletions to get clean state
             let remainingLogs = try modelContext.fetch(descriptor)
 
-            // Group by (habitID + startOfDay)
+            // DEBUG: Log current timezone and all logs before grouping
+            let currentTz = TimeZone.current
+            logger.log(
+                "🔍 DEDUP DEBUG: Starting Phase 2 grouping",
+                level: .info,
+                category: .dataIntegrity,
+                metadata: [
+                    "current_timezone": currentTz.identifier,
+                    "current_offset_hours": currentTz.secondsFromGMT() / 3600,
+                    "total_logs": remainingLogs.count
+                ]
+            )
+
+            // DEBUG: Log each log's timezone info before grouping
+            for log in remainingLogs {
+                let logTimezone = TimeZone(identifier: log.timezone) ?? currentTz
+                let logCalendarDay = CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)
+                let currentTzCalendarDay = CalendarUtils.startOfDayLocal(for: log.date, timezone: currentTz)
+
+                let dateFormatter = ISO8601DateFormatter()
+                dateFormatter.formatOptions = [.withFullDate, .withFullTime]
+
+                logger.log(
+                    "🔍 DEDUP DEBUG: Log details before grouping",
+                    level: .info,
+                    category: .dataIntegrity,
+                    metadata: [
+                        "log_id": log.id.uuidString.prefix(8),
+                        "habit": log.habit?.name ?? "Unknown",
+                        "stored_timezone": log.timezone,
+                        "date_utc": dateFormatter.string(from: log.date),
+                        "calendar_day_in_stored_tz": dateFormatter.string(from: logCalendarDay),
+                        "calendar_day_in_current_tz": dateFormatter.string(from: currentTzCalendarDay),
+                        "would_group_by_stored_tz": "\(log.habitID.uuidString.prefix(8))_\(logCalendarDay.timeIntervalSince1970)",
+                        "will_group_by_current_tz": "\(log.habitID.uuidString.prefix(8))_\(currentTzCalendarDay.timeIntervalSince1970)"
+                    ]
+                )
+            }
+
+            // Group by (habitID + startOfDay in LOG'S STORED TIMEZONE)
+            // FIXED: Each log's calendar day is determined by its stored timezone, not current device timezone.
+            // This ensures logs from different calendar days (in their original timezones)
+            // are never incorrectly merged as duplicates when the device timezone changes.
             let groupedByHabitAndDate = Dictionary(grouping: remainingLogs) { log -> String in
-                let dateKey = CalendarUtils.startOfDayLocal(for: log.date)
+                let logTimezone = TimeZone(identifier: log.timezone) ?? currentTz
+                let dateKey = CalendarUtils.startOfDayLocal(for: log.date, timezone: logTimezone)
                 return "\(log.habitID.uuidString)_\(dateKey.timeIntervalSince1970)"
             }
 
@@ -374,6 +417,47 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                 let habitName = duplicates.first?.habit?.name ?? "Unknown"
                 // kindRaw: 0 = binary, 1 = numeric
                 let kindRaw = duplicates.first?.habit?.kindRaw ?? 0
+
+                // DEBUG: Log detailed info about each "duplicate" being considered
+                let dateFormatter = ISO8601DateFormatter()
+                dateFormatter.formatOptions = [.withFullDate, .withFullTime]
+
+                logger.log(
+                    "⚠️ DEDUP DEBUG: Found 'duplicates' - checking timezone mismatch",
+                    level: .warning,
+                    category: .dataIntegrity,
+                    metadata: [
+                        "grouping_key": key,
+                        "habit": habitName,
+                        "count": duplicates.count,
+                        "current_timezone": currentTz.identifier
+                    ]
+                )
+
+                // Log each "duplicate" with its stored timezone
+                for (index, dup) in duplicates.enumerated() {
+                    let dupTimezone = TimeZone(identifier: dup.timezone) ?? currentTz
+                    let calendarDayInStoredTz = CalendarUtils.startOfDayLocal(for: dup.date, timezone: dupTimezone)
+                    let calendarDayInCurrentTz = CalendarUtils.startOfDayLocal(for: dup.date, timezone: currentTz)
+
+                    // Check if this is a FALSE duplicate (different days in stored timezones)
+                    let isFalseDuplicate = calendarDayInStoredTz != calendarDayInCurrentTz
+
+                    logger.log(
+                        "⚠️ DEDUP DEBUG: 'Duplicate' #\(index + 1) details",
+                        level: .warning,
+                        category: .dataIntegrity,
+                        metadata: [
+                            "log_id": dup.id.uuidString.prefix(8),
+                            "stored_timezone": dup.timezone,
+                            "date_utc": dateFormatter.string(from: dup.date),
+                            "calendar_day_stored_tz": dateFormatter.string(from: calendarDayInStoredTz),
+                            "calendar_day_current_tz": dateFormatter.string(from: calendarDayInCurrentTz),
+                            "IS_FALSE_DUPLICATE": isFalseDuplicate ? "YES - TIMEZONE BUG!" : "no",
+                            "value": dup.value ?? 0
+                        ]
+                    )
+                }
 
                 logger.log(
                     "Found duplicate logs for same habit+date",
@@ -401,7 +485,39 @@ public actor DataDeduplicationService: DataDeduplicationServiceProtocol {
                 let toKeep = sorted[0]
                 let toDelete = sorted.dropFirst()
 
+                // DEBUG: Log what's being kept vs deleted
+                let keptTimezone = TimeZone(identifier: toKeep.timezone) ?? currentTz
+                let keptCalendarDay = CalendarUtils.startOfDayLocal(for: toKeep.date, timezone: keptTimezone)
+
+                logger.log(
+                    "🗑️ DEDUP DEBUG: About to delete logs",
+                    level: .warning,
+                    category: .dataIntegrity,
+                    metadata: [
+                        "keeping_log_id": toKeep.id.uuidString.prefix(8),
+                        "keeping_timezone": toKeep.timezone,
+                        "keeping_calendar_day": dateFormatter.string(from: keptCalendarDay),
+                        "deleting_count": toDelete.count,
+                        "deleting_ids": toDelete.map { String($0.id.uuidString.prefix(8)) }.joined(separator: ", ")
+                    ]
+                )
+
                 for duplicate in toDelete {
+                    let dupTimezone = TimeZone(identifier: duplicate.timezone) ?? currentTz
+                    let dupCalendarDay = CalendarUtils.startOfDayLocal(for: duplicate.date, timezone: dupTimezone)
+
+                    logger.log(
+                        "🗑️ DEDUP DEBUG: DELETING log",
+                        level: .error,
+                        category: .dataIntegrity,
+                        metadata: [
+                            "deleted_log_id": duplicate.id.uuidString.prefix(8),
+                            "deleted_timezone": duplicate.timezone,
+                            "deleted_calendar_day_in_stored_tz": dateFormatter.string(from: dupCalendarDay),
+                            "DIFFERENT_DAY_THAN_KEPT": dupCalendarDay != keptCalendarDay ? "YES - DATA LOSS!" : "no"
+                        ]
+                    )
+
                     modelContext.delete(duplicate)
                     removedCount += 1
                 }

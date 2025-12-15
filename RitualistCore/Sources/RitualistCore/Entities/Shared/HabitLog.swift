@@ -22,10 +22,11 @@ public struct HabitLog: Identifiable, Codable, Hashable {
         self.timezone = timezone ?? TimeZone.current.identifier
     }
     
-    /// Convenience initializer that automatically captures current timezone context
+    /// Convenience initializer that captures current device timezone for the given date
+    /// IMPORTANT: This uses the provided date (not current time) with current device timezone
     public static func withCurrentTimezone(id: UUID = UUID(), habitID: UUID, date: Date, value: Double? = nil) -> HabitLog {
-        let (utcTimestamp, timezoneId) = CalendarUtils.createTimestampedEntry()
-        return HabitLog(id: id, habitID: habitID, date: utcTimestamp, value: value, timezone: timezoneId)
+        // Use the provided date, not Date() - this allows retroactive logging
+        return HabitLog(id: id, habitID: habitID, date: date, value: value, timezone: TimeZone.current.identifier)
     }
 
     /// Resolve the stored timezone identifier to a TimeZone, with fallback for invalid identifiers

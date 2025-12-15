@@ -148,8 +148,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         // Additional safety filter to prevent race condition where summary contains habits
         // from previous viewingDate. Only show habits that are actually scheduled for viewingDate
         // AND have started (date >= habit.startDate).
+        // Use display timezone for correct weekday calculation across timezone boundaries.
         let capturedDate = viewingDate
-        let scheduledIncompleteHabits = summary.incompleteHabits.filter { $0.isScheduledOn(date: capturedDate) }
+        let scheduledIncompleteHabits = summary.incompleteHabits.filter { $0.isScheduledOn(date: capturedDate, timezone: timezone) }
 
         // Store the filtered count for display
         scheduledIncompleteCount = scheduledIncompleteHabits.count
@@ -312,7 +313,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                 .accessibilityHint(Strings.Accessibility.returnToTodayHint)
                                 .accessibilityIdentifier(AccessibilityID.Overview.todayButton)
 
-                                Text(CalendarUtils.formatForDisplay(viewingDate, style: .full))
+                                Text(CalendarUtils.formatForDisplay(viewingDate, style: .full, timezone: timezone))
                                     .font(.headline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)

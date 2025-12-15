@@ -1271,10 +1271,12 @@ import TipKit
     @MainActor
     private func navigateToDateInOverview(_ targetDate: Date) async {
         let overviewViewModel = Container.shared.overviewViewModel()
-        
-        // Set the date first - normalize to local calendar's start of day
-        overviewViewModel.viewingDate = CalendarUtils.startOfDayLocal(for: targetDate)
-        
+
+        // Set the date first - normalize to local calendar's start of day using the viewModel's timezone
+        // Note: displayTimezone may be .current initially, but loadData() will update viewingDate
+        // if the user's display timezone preference differs
+        overviewViewModel.viewingDate = CalendarUtils.startOfDayLocal(for: targetDate, timezone: overviewViewModel.displayTimezone)
+
         // Wait for data loading to complete before proceeding
         await overviewViewModel.loadData()
     }
