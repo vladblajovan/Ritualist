@@ -2,8 +2,8 @@
 //  LocationConfigCard.swift
 //  Ritualist
 //
-//  Bottom card overlay for location configuration (Apple Maps style).
-//  Replaces the nested GeofenceConfigurationSheet with inline configuration.
+//  Modern bottom card overlay for location configuration.
+//  Inspired by Apple Maps with refined visual design.
 //
 
 import SwiftUI
@@ -72,86 +72,111 @@ struct LocationConfigCard: View {
     @Binding var frequencyPreset: FrequencyPreset
     @Binding var locationLabel: String
 
-    let onDone: () -> Void
-
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                // Location Label
-                LocationLabelField(text: $locationLabel)
+            VStack(spacing: 24) {
+                // Header with location name
+                LocationHeader(
+                    locationLabel: $locationLabel
+                )
 
-                // Compact Summary Row (visible in collapsed state)
-                CompactSummaryRow(
+                // Quick stats summary
+                QuickStatsSummary(
                     radius: radius,
                     triggerType: triggerType,
                     frequency: frequencyPreset
                 )
 
-                Divider()
+                // Configuration sections
+                VStack(spacing: 20) {
+                    // Radius control
+                    RadiusControl(radius: $radius)
 
-                // Radius Slider
-                RadiusSlider(radius: $radius)
+                    // Trigger type selection
+                    TriggerSelection(selection: $triggerType)
 
-                // Trigger Type Picker
-                TriggerTypePicker(selection: $triggerType)
-
-                // Frequency Picker
-                FrequencyPicker(selection: $frequencyPreset)
-
-                // Done Button
-                Button(action: onDone) {
-                    Text(Strings.Button.done)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                    // Frequency selection
+                    FrequencySelection(selection: $frequencyPreset)
                 }
-                .padding(.top, 8)
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
         }
+        .background(.ultraThinMaterial)
     }
 }
 
-// MARK: - Compact Summary Row
+// MARK: - Location Header
 
-private struct CompactSummaryRow: View {
+private struct LocationHeader: View {
+    @Binding var locationLabel: String
+    @FocusState private var isLabelFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Location pin icon
+            ZStack {
+                Circle()
+                    .fill(AppColors.brand.opacity(0.12))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: "mappin.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(AppColors.brand)
+            }
+
+            // Editable location name
+            TextField("Name this location", text: $locationLabel)
+                .font(.title3.weight(.semibold))
+                .focused($isLabelFocused)
+                .submitLabel(.done)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color(.systemGray6).opacity(0.5))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(AppColors.brand.opacity(isLabelFocused ? 0.5 : 0), lineWidth: 1.5)
+                )
+                .animation(.easeInOut(duration: 0.2), value: isLabelFocused)
+        }
+        .padding(.top, 8)
+    }
+}
+
+// MARK: - Quick Stats Summary
+
+private struct QuickStatsSummary: View {
     let radius: Double
     let triggerType: GeofenceTrigger
     let frequency: FrequencyPreset
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Radius
-            HStack(spacing: 4) {
-                Image(systemName: "circle.dashed")
-                    .font(.caption)
-                Text("\(Int(radius))m")
-                    .font(.subheadline)
-            }
-            .foregroundColor(.secondary)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                StatPill(
+                    icon: "circle.dashed",
+                    value: "\(Int(radius))m",
+                    color: .orange
+                )
 
-            // Trigger
-            HStack(spacing: 4) {
-                Image(systemName: triggerIcon)
-                    .font(.caption)
-                Text(triggerType.displayName)
-                    .font(.subheadline)
-            }
-            .foregroundColor(.secondary)
+                StatPill(
+                    icon: triggerIcon,
+                    value: triggerShortName,
+                    color: .green
+                )
 
-            // Frequency
-            HStack(spacing: 4) {
-                Image(systemName: "clock")
-                    .font(.caption)
-                Text(frequency.shortName)
-                    .font(.subheadline)
+                StatPill(
+                    icon: "clock",
+                    value: frequency.shortName,
+                    color: .purple
+                )
             }
-            .foregroundColor(.secondary)
+            .padding(.horizontal, 2)
         }
-        .frame(maxWidth: .infinity)
     }
 
     private var triggerIcon: String {
@@ -161,183 +186,269 @@ private struct CompactSummaryRow: View {
         case .both: return "arrow.up.arrow.down.circle"
         }
     }
-}
 
-// MARK: - Location Label Field
-
-private struct LocationLabelField: View {
-    @Binding var text: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(Strings.Location.locationName)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-
-            TextField(Strings.Location.locationNameOptional, text: $text)
-                .textFieldStyle(.roundedBorder)
-                .submitLabel(.done)
+    private var triggerShortName: String {
+        switch triggerType {
+        case .entry: return "Arriving"
+        case .exit: return "Leaving"
+        case .both: return "Arriving & Leaving"
         }
     }
 }
 
-// MARK: - Radius Slider
+private struct StatPill: View {
+    let icon: String
+    let value: String
+    let color: Color
 
-private struct RadiusSlider: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(color)
+
+            Text(value)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(color.opacity(0.1))
+        )
+    }
+}
+
+// MARK: - Radius Control
+
+private struct RadiusControl: View {
     @Binding var radius: Double
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(Strings.Location.detectionArea)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-                Text("\(Int(radius))m")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            // Section header
+            SectionHeader(title: Strings.Location.detectionArea)
 
-            Slider(
-                value: $radius,
-                in: LocationConfiguration.minimumRadius...LocationConfiguration.maximumRadius,
-                step: 10
-            )
-            .tint(.blue)
-            .accessibilityLabel("Detection radius")
-            .accessibilityValue("\(Int(radius)) meters")
+            VStack(spacing: 8) {
+                // Radius value display
+                HStack {
+                    Text("\(Int(radius))")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                    Text("meters")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 2)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
 
-            HStack {
-                Text("\(Int(LocationConfiguration.minimumRadius))m")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Spacer()
-                Text("\(Int(LocationConfiguration.maximumRadius))m")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-    }
-}
+                // Custom slider
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        // Track background
+                        Capsule()
+                            .fill(Color(.systemGray5))
+                            .frame(height: 8)
 
-// MARK: - Trigger Type Picker
+                        // Filled track
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [AppColors.brand.opacity(0.7), AppColors.brand],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: sliderPosition(in: geometry.size.width), height: 8)
 
-private struct TriggerTypePicker: View {
-    @Binding var selection: GeofenceTrigger
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(Strings.Location.whenToNotify)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-
-            HStack(spacing: 8) {
-                ForEach([GeofenceTrigger.entry, .exit, .both], id: \.self) { trigger in
-                    TriggerButton(
-                        trigger: trigger,
-                        isSelected: selection == trigger,
-                        action: { selection = trigger }
+                        // Thumb
+                        Circle()
+                            .fill(.white)
+                            .frame(width: 28, height: 28)
+                            .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
+                            .overlay(
+                                Circle()
+                                    .fill(AppColors.brand)
+                                    .frame(width: 12, height: 12)
+                            )
+                            .offset(x: sliderPosition(in: geometry.size.width) - 14)
+                    }
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                updateRadius(from: value.location.x, in: geometry.size.width)
+                            }
                     )
                 }
+                .frame(height: 28)
+
+                // Min/Max labels
+                HStack {
+                    Text("\(Int(LocationConfiguration.minimumRadius))m")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                    Text("\(Int(LocationConfiguration.maximumRadius))m")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.secondarySystemGroupedBackground))
+            )
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Detection radius")
+        .accessibilityValue("\(Int(radius)) meters")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment:
+                radius = min(radius + 10, LocationConfiguration.maximumRadius)
+            case .decrement:
+                radius = max(radius - 10, LocationConfiguration.minimumRadius)
+            @unknown default:
+                break
+            }
+        }
+    }
+
+    private func sliderPosition(in width: CGFloat) -> CGFloat {
+        let range = LocationConfiguration.maximumRadius - LocationConfiguration.minimumRadius
+        let percentage = (radius - LocationConfiguration.minimumRadius) / range
+        return CGFloat(percentage) * width
+    }
+
+    private func updateRadius(from x: CGFloat, in width: CGFloat) {
+        let percentage = max(0, min(1, x / width))
+        let range = LocationConfiguration.maximumRadius - LocationConfiguration.minimumRadius
+        let newValue = LocationConfiguration.minimumRadius + (range * Double(percentage))
+        radius = (newValue / 10).rounded() * 10 // Snap to 10m increments
+    }
+}
+
+// MARK: - Trigger Selection
+
+private struct TriggerSelection: View {
+    @Binding var selection: GeofenceTrigger
+
+    private let triggers: [(GeofenceTrigger, String, String)] = [
+        (.entry, "arrow.down.to.line", "Arriving"),
+        (.exit, "arrow.up.to.line", "Leaving"),
+        (.both, "arrow.up.arrow.down", "Arriving & Leaving")
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: Strings.Location.whenToNotify)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(triggers, id: \.0) { trigger, icon, label in
+                        TriggerChip(
+                            icon: icon,
+                            label: label,
+                            isSelected: selection == trigger,
+                            action: { selection = trigger }
+                        )
+                    }
+                }
+                .padding(.horizontal, 2)
             }
         }
     }
 }
 
-private struct TriggerButton: View {
-    let trigger: GeofenceTrigger
+private struct TriggerChip: View {
+    let icon: String
+    let label: String
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: iconName)
-                    .font(.title3)
-                Text(trigger.displayName)
-                    .font(.caption)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(label)
+                    .font(.subheadline.weight(.medium))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(isSelected ? Color.blue.opacity(0.15) : Color(.systemGray6))
-            .foregroundColor(isSelected ? .blue : .primary)
-            .cornerRadius(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isSelected ? AppColors.brand : Color(.secondarySystemGroupedBackground))
             )
+            .foregroundStyle(isSelected ? .white : .primary)
         }
         .buttonStyle(.plain)
-    }
-
-    private var iconName: String {
-        switch trigger {
-        case .entry: return "arrow.down.circle"
-        case .exit: return "arrow.up.circle"
-        case .both: return "arrow.up.arrow.down.circle"
-        }
+        .animation(.easeInOut(duration: 0.15), value: isSelected)
     }
 }
 
-// MARK: - Frequency Picker
+// MARK: - Frequency Selection
 
-private struct FrequencyPicker: View {
+private struct FrequencySelection: View {
     @Binding var selection: FrequencyPreset
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(Strings.Location.notificationFrequency)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: Strings.Location.notificationFrequency)
 
-            VStack(spacing: 0) {
-                ForEach(FrequencyPreset.allCases) { preset in
-                    FrequencyRow(
-                        preset: preset,
-                        isSelected: selection == preset,
-                        action: { selection = preset }
-                    )
-
-                    if preset != FrequencyPreset.allCases.last {
-                        Divider()
-                            .padding(.leading, 16)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(FrequencyPreset.allCases) { preset in
+                        FrequencyChip(
+                            preset: preset,
+                            isSelected: selection == preset,
+                            action: { selection = preset }
+                        )
                     }
                 }
+                .padding(.horizontal, 2)
             }
-            .background(Color(.systemGray6))
-            .cornerRadius(10)
         }
     }
 }
 
-private struct FrequencyRow: View {
+private struct FrequencyChip: View {
     let preset: FrequencyPreset
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack {
-                Text(preset.displayName)
-                    .foregroundColor(.primary)
-                Spacer()
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .foregroundColor(.blue)
-                        .fontWeight(.semibold)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
+            Text(preset.shortName)
+                .font(.subheadline.weight(.medium))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? AppColors.brand : Color(.secondarySystemGroupedBackground))
+                )
+                .foregroundStyle(isSelected ? .white : .primary)
+                .overlay(
+                    Capsule()
+                        .stroke(isSelected ? Color.clear : Color(.separator).opacity(0.3), lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.15), value: isSelected)
+    }
+}
+
+// MARK: - Section Header
+
+private struct SectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .tracking(0.5)
     }
 }

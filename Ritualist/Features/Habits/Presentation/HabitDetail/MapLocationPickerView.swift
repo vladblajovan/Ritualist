@@ -109,15 +109,12 @@ public struct MapLocationPickerView: View {
                     radius: $radius,
                     triggerType: $triggerType,
                     frequencyPreset: $frequencyPreset,
-                    locationLabel: $locationLabel,
-                    onDone: {
-                        showConfigCard = false
-                    }
+                    locationLabel: $locationLabel
                 )
                 .presentationDetents([.fraction(0.4), .fraction(0.75)])
                 .presentationDragIndicator(.visible)
                 .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.4)))
-                .interactiveDismissDisabled(false)
+                .interactiveDismissDisabled(true)
             }
             .onAppear {
                 loadExistingConfiguration()
