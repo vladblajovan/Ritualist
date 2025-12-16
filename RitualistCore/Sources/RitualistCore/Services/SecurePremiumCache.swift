@@ -20,6 +20,11 @@ import Security
 /// - Much more secure than UserDefaults (which can be easily modified)
 /// - Cannot be copied between apps or easily tampered with
 ///
+/// **Thread Safety:**
+/// All read methods (`getCachedPremiumStatus()`, `getCacheAge()`, etc.) are thread-safe.
+/// iOS Keychain APIs (Security.framework) handle synchronization internally.
+/// These methods can be safely called from any thread without additional locking.
+///
 /// **Offline Grace Period:**
 /// - Industry standard: 3 days (matches RevenueCat SDK)
 /// - If user was premium when they went offline, they retain access for 3 days
@@ -35,7 +40,7 @@ import Security
 ///     // Grant premium access (within grace period)
 /// }
 /// ```
-public final class SecurePremiumCache {
+public final class SecurePremiumCache: @unchecked Sendable {
 
     // MARK: - Singleton
 

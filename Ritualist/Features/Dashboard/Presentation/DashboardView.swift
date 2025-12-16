@@ -7,6 +7,7 @@ import FactoryKit
 public struct DashboardView: View {
     @Bindable var vm: DashboardViewModel
     @Injected(\.debugLogger) private var logger
+    @Injected(\.navigationService) private var navigationService
 
     public init(vm: DashboardViewModel) {
         self.vm = vm
@@ -211,11 +212,17 @@ public struct DashboardView: View {
     @ViewBuilder
     private func weeklyPatternsSection(patterns: DashboardViewModel.WeeklyPatternsViewModel) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "calendar.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(.purple)
-                
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(AppColors.brand.opacity(0.12))
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(AppColors.brand)
+                }
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Habit Patterns")
                         .font(.headline)
@@ -224,15 +231,13 @@ public struct DashboardView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
             }
-            
+
             if patterns.isDataSufficient {
-                // Show optimization insights when data is sufficient
                 scheduleOptimizationContent(patterns: patterns)
             } else {
-                // Show threshold requirements when data is insufficient
                 thresholdRequirementsContent(requirements: patterns.thresholdRequirements)
             }
         }
@@ -328,58 +333,74 @@ public struct DashboardView: View {
             }
             
             ForEach(categories.prefix(5)) { category in
-                HStack(spacing: 12) {
-                    // Category indicator
-                    HStack(spacing: 6) {
-                        if let emoji = category.emoji {
-                            Text(emoji)
-                                .font(.title3)
-                                .accessibilityHidden(true) // Decorative emoji
-                        } else {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(hex: category.color) ?? AppColors.brand)
-                                .frame(width: 16, height: 16)
-                                .accessibilityHidden(true) // Decorative color indicator
+                Button {
+                    navigationService.navigateToHabits(withCategoryId: category.id)
+                } label: {
+                    HStack(spacing: 12) {
+                        // Category indicator
+                        HStack(spacing: 6) {
+                            if let emoji = category.emoji {
+                                Text(emoji)
+                                    .font(.title3)
+                                    .accessibilityHidden(true) // Decorative emoji
+                            } else {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color(hex: category.color) ?? AppColors.brand)
+                                    .frame(width: 16, height: 16)
+                                    .accessibilityHidden(true) // Decorative color indicator
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(category.categoryName)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundColor(.primary)
+                                Text("\(category.habitCount) habits")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(category.categoryName)
-                                .font(.subheadline.weight(.medium))
+                        Spacer()
+
+                        // Progress bar and percentage with modern gradient
+                        HStack(spacing: 8) {
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(CardDesign.secondaryBackground)
+                                    .frame(width: 60, height: 8)
+
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: CircularProgressView.adaptiveProgressColors(for: category.completionRate),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: 60 * category.completionRate, height: 8)
+                            }
+                            .accessibilityHidden(true) // Progress bar is decorative, info conveyed via label
+
+                            Text("\(Int((category.completionRate * 100).rounded()))%")
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundColor(.primary)
-                            Text("\(category.habitCount) habits")
-                                .font(.caption)
+                                .frame(minWidth: 44, alignment: .trailing)
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
                                 .foregroundColor(.secondary)
                         }
                     }
-
-                    Spacer()
-
-                    // Progress bar and percentage
-                    HStack(spacing: 8) {
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(.systemGray5))
-                                .frame(width: 60, height: 8)
-
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(hex: category.color) ?? AppColors.brand)
-                                .frame(width: 60 * category.completionRate, height: 8)
-                        }
-                        .accessibilityHidden(true) // Progress bar is decorative, info conveyed via label
-
-                        Text("\(Int((category.completionRate * 100).rounded()))%")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.primary)
-                            .frame(minWidth: 44, alignment: .trailing)
-                    }
+                    .padding(.vertical, 2)
                 }
-                .padding(.vertical, 2)
+                .buttonStyle(.plain)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(Strings.Accessibility.categoryLabel(
                     name: category.categoryName,
                     habitCount: category.habitCount,
                     completionPercent: Int((category.completionRate * 100).rounded())
                 ))
+                .accessibilityHint("Tap to view habits in this category")
             }
         }
         .cardStyle()
@@ -391,55 +412,73 @@ public struct DashboardView: View {
     private func thresholdRequirementsContent(requirements: [DashboardViewModel.ThresholdRequirement]) -> some View {
         VStack(spacing: 16) {
             // Header message
-            VStack(spacing: 8) {
-                Text("🎯")
-                    .font(.title)
-                    .opacity(0.6)
-                    .accessibilityHidden(true) // Decorative emoji
-                
-                VStack(spacing: 4) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(AppColors.brand.opacity(0.12))
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: "scope")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(AppColors.brand)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Building Your Profile")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(.subheadline.weight(.semibold))
                         .foregroundColor(.primary)
-                    
-                    Text("Complete these requirements to unlock personalized scheduling insights")
+
+                    Text("Complete these to unlock insights")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
                 }
+
+                Spacer()
             }
-            
-            // Requirements list
-            VStack(spacing: 12) {
-                ForEach(Array(requirements.enumerated()), id: \.offset) { index, requirement in
-                    HStack(spacing: 12) {
-                        // Status icon
-                        Image(systemName: requirement.isMet ? "checkmark.circle.fill" : "circle")
-                            .font(.body)
-                            .foregroundColor(requirement.isMet ? .green : .secondary)
-                        
-                        // Content
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack {
-                                Text(requirement.title)
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundColor(.primary)
-                                
-                                Spacer()
-                                
-                                Text(requirement.progressText)
-                                    .font(.caption.weight(.medium))
-                                    .foregroundColor(requirement.isMet ? .green : .secondary)
-                            }
-                            
-                            Text(requirement.description)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
+
+            // Requirements list with progress bars
+            VStack(spacing: 10) {
+                ForEach(Array(requirements.enumerated()), id: \.offset) { _, requirement in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Image(systemName: requirement.isMet ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(requirement.isMet ? .green : .secondary)
+
+                            Text(requirement.title)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.primary)
+
+                            Spacer()
+
+                            Text(requirement.progressText)
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(requirement.isMet ? .green : AppColors.brand)
                         }
+
+                        // Progress bar
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color(.systemGray5))
+                                    .frame(height: 6)
+
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: requirement.isMet ?
+                                                [.green.opacity(0.8), .green] :
+                                                [AppColors.brand.opacity(0.7), AppColors.brand],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: geometry.size.width * requirement.progress, height: 6)
+                            }
+                        }
+                        .frame(height: 6)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 4)
                 }
             }
         }
@@ -447,86 +486,126 @@ public struct DashboardView: View {
     }
     
     @ViewBuilder
+    // swiftlint:disable:next function_body_length
     private func scheduleOptimizationContent(patterns: DashboardViewModel.WeeklyPatternsViewModel) -> some View {
         VStack(spacing: 16) {
             // Schedule insights based on data
             VStack(alignment: .leading, spacing: 12) {
-                // Best performing day (Fix #2: Use pre-calculated rate)
-                HStack {
-                    Text("🌟")
-                        .font(.title3)
-                        .accessibilityHidden(true) // Decorative emoji
+                // Best performing day or consistent performance message
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(patterns.isConsistentExcellence ? Color.green.opacity(0.15) : Color.yellow.opacity(0.15))
+                            .frame(width: 32, height: 32)
+
+                        Image(systemName: patterns.isConsistentExcellence ? "trophy.fill" : "star.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(patterns.isConsistentExcellence ? .green : .yellow)
+                    }
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(patterns.bestDay) works best")
-                            .font(.caption.weight(.medium))
+                        if patterns.isConsistentExcellence {
+                            Text("Excellent every day")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.primary)
+
+                            Text("Consistent \(Int((patterns.averageWeeklyCompletion * 100).rounded()))% completion")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else if patterns.isConsistentPerformance {
+                            Text("Consistent across all days")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.primary)
+
+                            Text("\(Int((patterns.averageWeeklyCompletion * 100).rounded()))% average completion")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("\(patterns.bestDay) works best")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.primary)
+
+                            Text("\(Int((patterns.bestDayCompletionRate * 100).rounded()))% completion rate")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Spacer()
+                }
+
+                // Smart optimization suggestion
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(patterns.isOptimizationMeaningful ? Color.orange.opacity(0.15) : Color.green.opacity(0.15))
+                            .frame(width: 32, height: 32)
+
+                        Image(systemName: patterns.isOptimizationMeaningful ? "bolt.fill" : "checkmark.circle.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(patterns.isOptimizationMeaningful ? .orange : .green)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(patterns.optimizationMessage)
+                            .font(.subheadline.weight(.medium))
                             .foregroundColor(.primary)
 
-                        Text("\(Int((patterns.bestDayCompletionRate * 100).rounded()))% completion rate")
+                        Text(patterns.isOptimizationMeaningful ? "Consider rescheduling some habits" : "No changes needed")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
 
                     Spacer()
                 }
-
-                // Smart optimization suggestion (Fix #3 & #4: Validation + Smart messaging)
-                HStack {
-                    Text(patterns.isOptimizationMeaningful ? "⚡" : "✅")
-                        .font(.title3)
-                        .accessibilityHidden(true) // Decorative emoji
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(patterns.optimizationMessage)
-                            .font(.caption.weight(.medium))
-                            .foregroundColor(.primary)
-
-                        if patterns.isOptimizationMeaningful {
-                            Text("Consider rescheduling some habits")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("No changes needed")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    Spacer()
-                }
             }
             
-            // Mini chart showing performance
+            // Mini chart showing performance with gradient bars
+            // Gradient reversed so result color (red/orange/green) shows at bottom for short bars
             Chart(patterns.dayOfWeekPerformance) { dayData in
                 BarMark(
                     x: .value("Day", String(dayData.dayName.prefix(3))),
                     y: .value("Completion", dayData.completionRate)
                 )
                 .foregroundStyle(
-                    dayData.dayName == patterns.bestDay ? .green :
-                    dayData.dayName == patterns.worstDay ? .orange : .blue
+                    LinearGradient(
+                        colors: CircularProgressView.adaptiveProgressColors(for: dayData.completionRate).reversed(),
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
                 )
+                .cornerRadius(CardDesign.innerCornerRadius / 2)
             }
-            .frame(height: 80)
+            .frame(height: 100)
             .chartYAxis {
                 AxisMarks { value in
                     AxisValueLabel {
                         if let doubleValue = value.as(Double.self) {
                             Text("\(Int(doubleValue * 100))%")
                                 .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
                     }
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(.secondary.opacity(0.2))
                 }
             }
             .chartXAxis {
                 AxisMarks { _ in
                     AxisValueLabel()
                         .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Weekly performance chart")
-            .accessibilityValue("Best day is \(patterns.bestDay) at \(Int((patterns.bestDayCompletionRate * 100).rounded()))% completion")
+            .accessibilityValue(
+                patterns.isConsistentExcellence
+                    ? "Excellent consistent performance at \(Int((patterns.averageWeeklyCompletion * 100).rounded()))% completion"
+                    : patterns.isConsistentPerformance
+                        ? "Consistent performance at \(Int((patterns.averageWeeklyCompletion * 100).rounded()))% average completion"
+                        : "Best day is \(patterns.bestDay) at \(Int((patterns.bestDayCompletionRate * 100).rounded()))% completion"
+            )
         }
     }
 }

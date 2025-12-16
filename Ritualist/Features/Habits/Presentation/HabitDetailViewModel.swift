@@ -69,7 +69,6 @@ public final class HabitDetailViewModel {
     public private(set) var isCheckingLocationAuth = false
     public private(set) var isRequestingLocationPermission = false
     public var showMapPicker = false
-    public var showGeofenceSettings = false
 
     // State management
     public private(set) var isLoading = false

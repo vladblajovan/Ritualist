@@ -236,6 +236,12 @@ public struct OverviewView: View {
                     await vm.refresh()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .habitsDataDidChange)) { _ in
+                // Refresh immediately when habits are created/updated/deleted in other tabs
+                Task {
+                    await vm.refresh()
+                }
+            }
             .sheet(isPresented: $vm.showingNumericSheet) {
                 if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
                     NumericHabitLogSheetDirect(

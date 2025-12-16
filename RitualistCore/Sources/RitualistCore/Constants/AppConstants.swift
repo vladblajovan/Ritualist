@@ -140,4 +140,8 @@ public extension Notification.Name {
     /// Posted when iCloud syncs data from another device.
     /// Used to trigger the sync toast in RootTabView.
     static let iCloudDidSyncRemoteChanges = Notification.Name("iCloudDidSyncRemoteChanges")
+
+    /// Posted when habits data changes locally (create, update, delete).
+    /// Used to trigger immediate refresh in other tabs (e.g., Overview).
+    static let habitsDataDidChange = Notification.Name("habitsDataDidChange")
 }

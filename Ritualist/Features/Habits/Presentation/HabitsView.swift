@@ -5,10 +5,18 @@ import RitualistCore
 public struct HabitsRoot: View {
     @Injected(\.habitsViewModel) var vm
     @Injected(\.categoryManagementViewModel) var categoryManagementVM
+    @Injected(\.navigationService) private var navigationService
     @Injected(\.debugLogger) private var logger
     @State private var showingCategoryManagement = false
 
     public init() {}
+
+    /// Applies pending category filter from navigation service if available
+    private func applyPendingCategoryFilter() {
+        if let pendingCategoryId = navigationService.consumePendingCategoryId() {
+            vm.selectFilterCategoryById(pendingCategoryId)
+        }
+    }
 
     public var body: some View {
         HabitsContentView(
@@ -17,9 +25,16 @@ public struct HabitsRoot: View {
         )
         .task {
             await vm.load()
+            // Apply pending category filter from navigation (e.g., from stats category tap)
+            applyPendingCategoryFilter()
         }
         .onAppear {
             vm.setViewVisible(true)
+            // For tab switches when data is already loaded, apply pending filter immediately
+            // Skip if categories not loaded yet - .task will handle it after load
+            if !vm.categories.isEmpty {
+                applyPendingCategoryFilter()
+            }
         }
         .onDisappear {
             vm.setViewVisible(false)
@@ -33,6 +48,8 @@ public struct HabitsRoot: View {
                     logger.log("Tab switch detected: Reloading habits data", level: .debug, category: .ui)
                     vm.invalidateCacheForTabSwitch()
                     await vm.refresh()
+                    // Apply pending category filter after refresh completes
+                    applyPendingCategoryFilter()
                 }
             }
         }

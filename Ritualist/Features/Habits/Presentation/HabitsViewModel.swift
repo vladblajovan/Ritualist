@@ -39,6 +39,9 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Track if initial data has been loaded to prevent duplicate loads during startup
     @ObservationIgnored private var hasLoadedInitialData = false
 
+    /// Task for coalescing rapid notification posts (prevents notification spam)
+    @ObservationIgnored private var notificationCoalesceTask: Task<Void, Never>?
+
     /// Track view visibility for tab switch detection
     public var isViewVisible: Bool = false
 
@@ -68,7 +71,11 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     public var pendingPaywallAfterAssistantDismiss = false
     
     // MARK: - Paywall Protection
-    
+
+    /// Cached premium status for SwiftUI reactivity.
+    /// Updated during load and when view becomes visible to ensure banner state is correct.
+    public private(set) var cachedCanCreateMoreHabits: Bool = true
+
     /// Check if user can create more habits based on current count
     public var canCreateMoreHabits: Bool {
         checkHabitCreationLimit.execute(currentCount: habitsData.totalHabitsCount)
@@ -79,17 +86,22 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         // Show banner if:
         // 1. User has reached or exceeded the free limit (>= 5 habits)
         // 2. User is NOT in AllFeatures mode (build config check)
-        // 3. User cannot create more habits (not premium)
+        // 3. User cannot create more habits (not premium) - uses CACHED value for reactivity
         #if ALL_FEATURES_ENABLED
         return false  // Never show in AllFeatures mode
         #else
-        return habitsData.totalHabitsCount >= freeMaxHabits && !canCreateMoreHabits
+        return habitsData.totalHabitsCount >= freeMaxHabits && !cachedCanCreateMoreHabits
         #endif
     }
 
     /// Free plan max habits constant
     public var freeMaxHabits: Int {
         BusinessConstants.freeMaxHabits
+    }
+
+    /// Refresh the cached premium status. Call when view appears or after potential status changes.
+    public func refreshPremiumStatus() {
+        cachedCanCreateMoreHabits = canCreateMoreHabits
     }
     
     /// Filtered habits based on selected category and active categories only
@@ -171,6 +183,10 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Set view visibility state
     public func setViewVisible(_ visible: Bool) {
         isViewVisible = visible
+        // Refresh premium status when view becomes visible to catch any status changes
+        if visible {
+            refreshPremiumStatus()
+        }
     }
 
     /// Internal load implementation
@@ -197,6 +213,9 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
                 additionalProperties: ["habits_count": habitsData.totalHabitsCount, "categories_count": habitsData.categoriesCount]
             )
 
+            // Refresh premium status after loading data (ensures correct banner state)
+            refreshPremiumStatus()
+
             hasLoadedInitialData = true
         } catch {
             self.error = error
@@ -206,23 +225,41 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
 
         isLoading = false
     }
-    
+
+    /// Posts habitsDataDidChange notification with coalescing to prevent spam.
+    /// Multiple rapid calls within 100ms are coalesced into a single notification.
+    private func postCoalescedDataChangeNotification() {
+        // Cancel any pending notification
+        notificationCoalesceTask?.cancel()
+
+        // Schedule new notification with short delay for coalescing
+        notificationCoalesceTask = Task {
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            guard !Task.isCancelled else { return }
+            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
+        }
+    }
+
     public func create(_ habit: Habit) async -> Bool {
         isCreating = true
         error = nil
         
         do {
             _ = try await createHabit.execute(habit)
+
+            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
+            postCoalescedDataChangeNotification()
+
             await refresh() // Refresh the list
             isCreating = false
-            
+
             // Track habit creation
             userActionTracker.track(.habitCreated(
                 habitId: habit.id.uuidString,
                 habitName: habit.name,
                 habitType: habit.kind == .binary ? "binary" : "numeric"
             ))
-            
+
             return true
         } catch {
             self.error = error
@@ -238,15 +275,19 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         
         do {
             try await updateHabit.execute(habit)
+
+            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
+            postCoalescedDataChangeNotification()
+
             await refresh() // Refresh the list
             isUpdating = false
-            
+
             // Track habit update
             userActionTracker.track(.habitUpdated(
                 habitId: habit.id.uuidString,
                 habitName: habit.name
             ))
-            
+
             return true
         } catch {
             self.error = error
@@ -265,9 +306,13 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         
         do {
             try await deleteHabit.execute(id: id)
+
+            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
+            postCoalescedDataChangeNotification()
+
             await refresh() // Refresh the list
             isDeleting = false
-            
+
             // Track habit deletion
             if let habit = habitToDelete {
                 userActionTracker.track(.habitDeleted(
@@ -275,7 +320,7 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
                     habitName: habit.name
                 ))
             }
-            
+
             return true
         } catch {
             self.error = error
@@ -361,7 +406,14 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Note: Feature gating is handled by CreateHabitFromSuggestion UseCase
     /// and HabitsAssistantSheet's onShowPaywall callback
     public func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
-        return await createHabitFromSuggestionUseCase.execute(suggestion)
+        let result = await createHabitFromSuggestionUseCase.execute(suggestion)
+
+        // Notify other tabs (Overview) to refresh immediately on success
+        if case .success = result {
+            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
+        }
+
+        return result
     }
     
     /// Handle create habit button tap from toolbar
@@ -504,16 +556,19 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     public func handlePaywallDismissal() {
         // Guard against multiple calls
         guard !isHandlingPaywallDismissal else { return }
-        
+
         // Track paywall dismissal
         paywallViewModel.trackPaywallDismissed()
-        
+
+        // Refresh premium status in case user purchased
+        refreshPremiumStatus()
+
         isHandlingPaywallDismissal = true
-        
+
         if shouldReopenAssistantAfterPaywall {
             // Reset the flag
             shouldReopenAssistantAfterPaywall = false
-            
+
             // Wait for paywall dismissal animation to complete before reopening assistant
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.showingHabitAssistant = true
@@ -544,5 +599,11 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Handle category filter selection
     public func selectFilterCategory(_ category: HabitCategory?) {
         selectedFilterCategory = category
+    }
+
+    /// Select a category filter by ID (used for deep linking from stats)
+    public func selectFilterCategoryById(_ categoryId: String) {
+        guard let matchedCategory = categories.first(where: { $0.id == categoryId }) else { return }
+        selectFilterCategory(matchedCategory)
     }
 }

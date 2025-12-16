@@ -9,7 +9,10 @@ public final class NavigationService {
     public var selectedTab: Pages = .overview
     public var shouldRefreshOverview = false
     public var trackingService: UserActionTrackerService?
-    
+
+    /// Pending category ID to filter habits when navigating to Habits tab
+    public var pendingCategoryId: String?
+
     public init() {}
     
     public func navigateToOverview(shouldRefresh: Bool = false) {
@@ -27,10 +30,23 @@ public final class NavigationService {
     public func navigateToHabits() {
         let previousTab = tabName(selectedTab)
         selectedTab = .habits
-        
+
         if previousTab != tabName(selectedTab) {
             trackingService?.track(.tabSwitched(from: previousTab, to: tabName(selectedTab)))
         }
+    }
+
+    /// Navigate to habits tab with a specific category pre-selected for filtering
+    public func navigateToHabits(withCategoryId categoryId: String) {
+        pendingCategoryId = categoryId
+        navigateToHabits()
+    }
+
+    /// Consume and return the pending category ID (clears it after reading)
+    public func consumePendingCategoryId() -> String? {
+        let id = pendingCategoryId
+        pendingCategoryId = nil
+        return id
     }
     
     public func navigateToStats() {
