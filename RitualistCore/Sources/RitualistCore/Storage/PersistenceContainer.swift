@@ -20,26 +20,13 @@ public final class PersistenceContainer {
     /// Uses versioned schema with migration plan to safely handle schema changes.
     /// All datasources use Active* type aliases that point to current schema version.
     ///
-    /// iCloud sync is conditionally enabled based on:
-    /// 1. Premium subscription status (read from UserDefaults cache to avoid DI circular dependency)
-    /// 2. User's sync preference toggle (can disable sync even if premium)
+    /// iCloud sync is always enabled for all users - it's a free feature.
+    /// PersonalityAnalysisModel remains local-only for privacy.
     public init() throws {
-        // Determine if sync should be active
-        // Read directly from UserDefaults to avoid DI circular dependency
-        // (PersistenceContainer is needed by DI, so we can't use DI here)
-        let isPremium = Self.checkPremiumStatusFromCache()
-        let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
-        let shouldSync = isPremium && syncPreference
-
         Self.logger.log(
-            "☁️ iCloud sync state",
+            "☁️ iCloud sync enabled (free for all users)",
             level: .info,
-            category: .system,
-            metadata: [
-                "is_premium": isPremium,
-                "user_sync_preference": syncPreference,
-                "sync_active": shouldSync
-            ]
+            category: .system
         )
 
         // Get the current schema version for migration tracking and logging
@@ -116,10 +103,10 @@ public final class PersistenceContainer {
 
             // Use versioned schema with migration plan and dual configurations
             // CloudKit config: synced entities (habits, logs, categories, user profile, onboarding)
-            //   - Sync enabled only if premium AND user preference is ON
+            //   - Sync always enabled (free for all users)
             // Local config: privacy-sensitive entities (personality analysis) - always local
             // See PersistenceConfiguration.swift for entity assignments
-            let configurations = PersistenceConfiguration.allConfigurations(syncEnabled: shouldSync)
+            let configurations = PersistenceConfiguration.allConfigurations
             container = try ModelContainer(
                 for: schema,
                 migrationPlan: RitualistMigrationPlan.self,
@@ -290,56 +277,6 @@ public final class PersistenceContainer {
         }
     }
 
-    // MARK: - Premium Check Provider
-
-    /// Closure to check premium status. Injected by the main app to provide
-    /// secure StoreKit-based checking for production, or mock checking for development.
-    ///
-    /// **SECURITY:** In production, this should query StoreKit's Transaction.currentEntitlements
-    /// directly - NOT UserDefaults, which can be tampered with.
-    ///
-    /// Set this BEFORE creating PersistenceContainer.
-    public static var premiumCheckProvider: (() -> Bool)?
-
-    /// Check premium status at startup.
-    ///
-    /// Uses the injected `premiumCheckProvider` if set, otherwise falls back to
-    /// `MockSecureSubscriptionService.isPremiumFromCache()` for backwards compatibility.
-    ///
-    /// **Production (Ritualist scheme):**
-    /// The main app sets `premiumCheckProvider` to call `SecurePremiumCache.shared.getCachedPremiumStatus()`
-    /// for instant startup (~5ms). The cache is then verified async via `verifyPremiumAsync()`.
-    ///
-    /// **Development/Testing (AllFeatures/Subscription schemes):**
-    /// Uses the fallback which checks build flags and mock purchases.
-    ///
-    /// This bypasses DI to avoid circular dependency:
-    /// - PersistenceContainer needs premium status to decide sync mode
-    /// - DI Container registration of SubscriptionService may depend on PersistenceContainer
-    private static func checkPremiumStatusFromCache() -> Bool {
-        // Use injected provider if available (production StoreKit check)
-        if let provider = premiumCheckProvider {
-            let isPremium = provider()
-            logger.log(
-                "🔒 Premium status from secure provider",
-                level: .debug,
-                category: .system,
-                metadata: ["is_premium": isPremium]
-            )
-            return isPremium
-        }
-
-        // Fallback for backwards compatibility (mock/development builds)
-        logger.log(
-            "ℹ️ Premium check using fallback (mock builds)",
-            level: .debug,
-            category: .system,
-            metadata: [
-                "note": "Using MockSecureSubscriptionService.isPremiumFromCache() - OK for development builds"
-            ]
-        )
-        return MockSecureSubscriptionService.isPremiumFromCache()
-    }
 }
 
 // MARK: - Persistence Errors

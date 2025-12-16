@@ -118,8 +118,6 @@ extension Container {
                 deleteiCloudData: self.deleteiCloudData(),
                 exportUserData: self.exportUserData(),
                 importUserData: self.importUserData(),
-                getICloudSyncPreference: self.getICloudSyncPreference(),
-                setICloudSyncPreference: self.setICloudSyncPreference(),
                 populateTestData: {
                     #if DEBUG
                     return self.populateTestData() as (any Any)?

@@ -19,15 +19,13 @@ struct OnboardingPage1View: View {
                     Spacer(minLength: 20)
 
                     // App icon with animated glow
-                    if let uiImage = Bundle.main.appIcon {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 120, height: 120)
-                            .clipShape(RoundedRectangle(cornerRadius: 28))
-                            .animatedGlow(glowSize: 160)
-                            .accessibilityLabel("Ritualist app icon")
-                    }
+                    Image("LaunchIcon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 120)
+                        .clipShape(RoundedRectangle(cornerRadius: 28))
+                        .animatedGlow(glowSize: 160)
+                        .accessibilityLabel("Ritualist app icon")
 
                     // Welcome message
                     VStack(spacing: 8) {

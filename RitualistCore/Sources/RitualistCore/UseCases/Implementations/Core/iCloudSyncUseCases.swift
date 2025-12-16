@@ -216,38 +216,3 @@ public final class DefaultUpdateLastSyncDateUseCase: UpdateLastSyncDateUseCase {
     }
 }
 
-// MARK: - iCloud Sync Preference UseCases
-
-/// Get the user's iCloud sync preference
-public protocol GetICloudSyncPreferenceUseCase {
-    func execute() -> Bool
-}
-
-public final class DefaultGetICloudSyncPreferenceUseCase: GetICloudSyncPreferenceUseCase {
-    private let preferenceService: ICloudSyncPreferenceServiceProtocol
-
-    public init(preferenceService: ICloudSyncPreferenceServiceProtocol) {
-        self.preferenceService = preferenceService
-    }
-
-    public func execute() -> Bool {
-        preferenceService.isICloudSyncEnabled
-    }
-}
-
-/// Set the user's iCloud sync preference (requires app restart to take effect)
-public protocol SetICloudSyncPreferenceUseCase {
-    func execute(_ enabled: Bool)
-}
-
-public final class DefaultSetICloudSyncPreferenceUseCase: SetICloudSyncPreferenceUseCase {
-    private let preferenceService: ICloudSyncPreferenceServiceProtocol
-
-    public init(preferenceService: ICloudSyncPreferenceServiceProtocol) {
-        self.preferenceService = preferenceService
-    }
-
-    public func execute(_ enabled: Bool) {
-        preferenceService.setICloudSyncEnabled(enabled)
-    }
-}

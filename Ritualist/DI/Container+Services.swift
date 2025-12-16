@@ -161,11 +161,6 @@ extension Container {
             .singleton
     }
 
-    var iCloudSyncPreferenceService: Factory<ICloudSyncPreferenceServiceProtocol> {
-        self { ICloudSyncPreferenceService.shared }
-            .singleton
-    }
-    
     var scheduleAwareCompletionCalculator: Factory<ScheduleAwareCompletionCalculator> {
         self { DefaultScheduleAwareCompletionCalculator(habitCompletionService: self.habitCompletionService()) }
             .singleton

@@ -507,27 +507,18 @@ import TipKit
 
     /// Verify the cached premium status against StoreKit and update if needed.
     ///
-    /// This runs as the first async task after launch screen shows, ensuring:
-    /// 1. No main thread blocking (unlike the old semaphore-based approach)
-    /// 2. Cache is always verified and corrected within one session
-    /// 3. Users are notified if premium was just activated (restart needed for sync)
+    /// Verify premium status for feature gating (habit limits, analytics, etc.)
     ///
-    /// **Edge Cases:**
-    /// - `cached=false, actual=true`: User just became premium → Show toast to restart for sync
-    /// - `cached=true, actual=false`: Premium expired → Update cache silently, sync continues this session
-    /// - First launch with no cache: Returns false, async verification updates cache
+    /// Note: This is no longer needed for iCloud sync (which is now free for all users).
+    /// It's kept for premium feature gating only.
     private func verifyAndUpdatePremiumStatus() async {
         let cachedPremium = SecurePremiumCache.shared.getCachedPremiumStatus()
-        let cacheStale = SecurePremiumCache.shared.isCacheStale()
 
         logger.log(
-            "🔐 Verifying premium status",
+            "🔐 Verifying premium status (for feature gating)",
             level: .info,
             category: .system,
-            metadata: [
-                "cached_premium": cachedPremium,
-                "cache_stale": cacheStale
-            ]
+            metadata: ["cached_premium": cachedPremium]
         )
 
         // Query StoreKit for actual premium status
@@ -536,68 +527,16 @@ import TipKit
         // Always update cache with fresh value from StoreKit
         SecurePremiumCache.shared.updateCache(isPremium: actualPremium)
 
-        // Handle mismatch scenarios
         if actualPremium != cachedPremium {
             logger.log(
-                "⚠️ Premium status mismatch detected",
-                level: .warning,
+                "⚠️ Premium status changed",
+                level: .info,
                 category: .system,
-                metadata: [
-                    "cached": cachedPremium,
-                    "actual": actualPremium,
-                    "was_stale": cacheStale
-                ]
+                metadata: ["cached": cachedPremium, "actual": actualPremium]
             )
-
-            if !cachedPremium && actualPremium {
-                // User is now premium but sync wasn't enabled at startup
-                // Show non-intrusive toast to inform them (only once per mismatch)
-                //
-                // SECURITY NOTE: Using UserDefaults for toast tracking (not Keychain) is intentional.
-                // Worst case: user manually sets flag to suppress toast = misses sync prompt = minor UX issue.
-                // This is acceptable because: (1) premium status itself is in Keychain, (2) user can still
-                // manually restart, (3) next fresh install resets flag anyway.
-                let hasShownToast = UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasShownPremiumRestartToast)
-
-                if !hasShownToast {
-                    await MainActor.run {
-                        toastService.info(
-                            "Premium activated! Restart app to enable iCloud sync",
-                            icon: "icloud.fill"
-                        )
-                    }
-                    UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasShownPremiumRestartToast)
-
-                    logger.log(
-                        "✨ Premium newly activated - user notified to restart for sync",
-                        level: .info,
-                        category: .system
-                    )
-                } else {
-                    logger.log(
-                        "✨ Premium activated but toast already shown - awaiting restart",
-                        level: .debug,
-                        category: .system
-                    )
-                }
-            } else {
-                // cached=true, actual=false: Premium expired
-                // Sync continues this session (using cached value), next launch will be correct
-                // Reset toast flag so user can see it again if they resubscribe later
-                UserDefaults.standard.set(false, forKey: UserDefaultsKeys.hasShownPremiumRestartToast)
-
-                logger.log(
-                    "📉 Premium expired - cache updated, toast flag reset, sync continues this session",
-                    level: .info,
-                    category: .system
-                )
-            }
         } else {
-            // Cache matches StoreKit - reset the toast flag so it shows again if status changes later
-            UserDefaults.standard.set(false, forKey: UserDefaultsKeys.hasShownPremiumRestartToast)
-
             logger.log(
-                "✅ Premium status verified - cache matches StoreKit",
+                "✅ Premium status verified",
                 level: .debug,
                 category: .system,
                 metadata: ["is_premium": actualPremium]
@@ -1296,29 +1235,10 @@ import TipKit
     /// - App launch: Ensures latest profile is loaded from cloud
     /// - App becomes active: Syncs changes made on other devices while this app was backgrounded
     ///
-    /// Only runs if CloudKit sync is active (premium user with sync enabled).
+    /// iCloud sync is free for all users.
     /// Failures are handled gracefully and logged but do not block app functionality.
     /// Users can always manually sync from Settings if automatic sync fails.
     private func syncWithCloudIfAvailable() async {
-        // Check if CloudKit sync is actually active
-        // Free users have local-only storage, so auto-sync would be a no-op
-        //
-        // SECURITY: Use PersistenceContainer.premiumCheckProvider which is set up at app startup
-        // to use StoreKit-based checking (production) or mock checking (development builds).
-        // This ensures we never bypass the paywall by modifying UserDefaults.
-        let isPremium = PersistenceContainer.premiumCheckProvider?() ?? false
-        let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
-
-        guard isPremium && syncPreference else {
-            logger.log(
-                "⏭️ Skipping auto-sync - CloudKit sync not active",
-                level: .debug,
-                category: .system,
-                metadata: ["is_premium": isPremium, "sync_preference": syncPreference]
-            )
-            return
-        }
-
         do {
             logger.log(
                 "☁️ Auto-syncing with iCloud",

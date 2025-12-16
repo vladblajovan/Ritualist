@@ -22,12 +22,6 @@ public enum UserDefaultsKeys {
     /// Key for tracking if we've shown the first iCloud sync toast
     public static let hasShownFirstSyncToast = "com.ritualist.hasShownFirstSyncToast"
 
-    /// Key for user's iCloud sync preference (premium feature)
-    /// Default: true (opt-out model - sync enabled by default for premium users)
-    /// Premium users can disable in Settings if they prefer local-only storage
-    /// Change takes effect on next app launch (requires restart)
-    public static let iCloudSyncEnabled = "com.ritualist.iCloudSyncEnabled"
-
     // MARK: - Premium Status Cache
 
     /// Key for caching premium status from StoreKit2 at startup

@@ -301,9 +301,7 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
         getLastSyncDate: MockGetLastSyncDate(),
         deleteiCloudData: MockDeleteiCloudData(),
         exportUserData: MockExportUserData(),
-        importUserData: MockImportUserData(),
-        getICloudSyncPreference: MockGetICloudSyncPreference(),
-        setICloudSyncPreference: MockSetICloudSyncPreference()
+        importUserData: MockImportUserData()
     )
 
     return vm
@@ -402,12 +400,4 @@ private struct MockExportUserData: ExportUserDataUseCase {
 
 private struct MockImportUserData: ImportUserDataUseCase {
     func execute(jsonString: String) async throws {}
-}
-
-private struct MockGetICloudSyncPreference: GetICloudSyncPreferenceUseCase {
-    func execute() -> Bool { true }
-}
-
-private struct MockSetICloudSyncPreference: SetICloudSyncPreferenceUseCase {
-    func execute(_ enabled: Bool) {}
 }
