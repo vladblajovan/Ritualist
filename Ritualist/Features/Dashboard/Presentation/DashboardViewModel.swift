@@ -111,6 +111,12 @@ public final class DashboardViewModel {
         public let optimizationMessage: String
         public let thresholdRequirements: [ThresholdRequirement]
 
+        /// Indicates excellent consistent performance across all days (no meaningful gap + near-perfect rates)
+        public let isConsistentExcellence: Bool
+
+        /// Indicates consistent performance without excellence (small gap but not near-perfect)
+        public let isConsistentPerformance: Bool
+
         // MARK: - Constants
 
         /// Minimum performance gap (15%) required for meaningful optimization suggestions.
@@ -213,6 +219,10 @@ public final class DashboardViewModel {
             let hasMeaningfulGap = performanceGap >= Self.minimumMeaningfulPerformanceGap
             let bestDayNotPerfect = self.bestDayCompletionRate < Self.nearPerfectCompletionThreshold
             self.isOptimizationMeaningful = self.isDataSufficient && hasMeaningfulGap && bestDayNotPerfect
+
+            // Determine consistent performance states for UI
+            self.isConsistentExcellence = !hasMeaningfulGap && !bestDayNotPerfect
+            self.isConsistentPerformance = !hasMeaningfulGap && bestDayNotPerfect
 
             // Fix #4: Smart messaging based on actual performance (localized)
             if !self.isOptimizationMeaningful {
@@ -321,9 +331,14 @@ public final class DashboardViewModel {
         public let target: Int
         public let isMet: Bool
         public let unit: String
-        
+
         public var progressText: String {
             "\(current)/\(target) \(unit)"
+        }
+
+        public var progress: CGFloat {
+            guard target > 0 else { return 0 }
+            return min(CGFloat(current) / CGFloat(target), 1.0)
         }
     }
     

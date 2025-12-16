@@ -325,7 +325,14 @@ private struct RadiusControl: View {
         let percentage = max(0, min(1, x / width))
         let range = LocationConfiguration.maximumRadius - LocationConfiguration.minimumRadius
         let newValue = LocationConfiguration.minimumRadius + (range * Double(percentage))
-        radius = (newValue / 10).rounded() * 10 // Snap to 10m increments
+        let snapped = (newValue / 10).rounded() * 10 // Snap to 10m increments
+
+        // Only trigger haptic if value changed
+        if snapped != radius {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            radius = snapped
+        }
     }
 }
 

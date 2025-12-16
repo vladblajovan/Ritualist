@@ -556,16 +556,19 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     public func handlePaywallDismissal() {
         // Guard against multiple calls
         guard !isHandlingPaywallDismissal else { return }
-        
+
         // Track paywall dismissal
         paywallViewModel.trackPaywallDismissed()
-        
+
+        // Refresh premium status in case user purchased
+        refreshPremiumStatus()
+
         isHandlingPaywallDismissal = true
-        
+
         if shouldReopenAssistantAfterPaywall {
             // Reset the flag
             shouldReopenAssistantAfterPaywall = false
-            
+
             // Wait for paywall dismissal animation to complete before reopening assistant
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.showingHabitAssistant = true
@@ -596,5 +599,11 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Handle category filter selection
     public func selectFilterCategory(_ category: HabitCategory?) {
         selectedFilterCategory = category
+    }
+
+    /// Select a category filter by ID (used for deep linking from stats)
+    public func selectFilterCategoryById(_ categoryId: String) {
+        guard let matchedCategory = categories.first(where: { $0.id == categoryId }) else { return }
+        selectFilterCategory(matchedCategory)
     }
 }
