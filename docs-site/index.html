@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ritualist - Build Better Habits</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1a1a1a;
+            --secondary-color: #666666;
+            --accent-color: #007AFF;
+            --border-color: #e5e5e5;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #f5f5f5;
+                --secondary-color: #a0a0a0;
+                --accent-color: #0A84FF;
+                --border-color: #333333;
+            }
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+        }
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            box-shadow: 0 10px 40px rgba(0, 122, 255, 0.3);
+        }
+        .logo-icon {
+            font-size: 3rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        .tagline {
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            margin-bottom: 2rem;
+        }
+        .links {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+        .links a {
+            color: var(--accent-color);
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--accent-color);
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        .links a:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        .app-store-badge {
+            margin-top: 1rem;
+        }
+        .app-store-badge img {
+            height: 50px;
+        }
+        footer {
+            margin-top: 3rem;
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+        footer a {
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <span class="logo-icon">✓</span>
+        </div>
+
+        <h1>Ritualist</h1>
+        <p class="tagline">Build Better Habits, One Day at a Time</p>
+
+        <div class="links">
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Service</a>
+        </div>
+
+        <!-- Uncomment when app is live on App Store -->
+        <!--
+        <div class="app-store-badge">
+            <a href="https://apps.apple.com/app/ritualist/idXXXXXXXXXX">
+                <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store">
+            </a>
+        </div>
+        -->
+
+        <footer>
+            <p>&copy; 2025 Ritualist. All rights reserved.</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="mailto:support@ritualist.app">Contact Us</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

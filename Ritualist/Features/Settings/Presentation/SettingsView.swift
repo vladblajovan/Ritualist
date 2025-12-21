@@ -152,6 +152,29 @@ private struct SettingsFormView: View {
                     // Social Media Section
                     SocialMediaLinksView()
 
+                    // Legal Section
+                    Section("Legal") {
+                        Link(destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/privacy.html")!) {
+                            HStack {
+                                Text("Privacy Policy")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Link(destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/terms.html")!) {
+                            HStack {
+                                Text("Terms of Service")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
                     // About Section
                     Section("About") {
                         // Version (always visible)
