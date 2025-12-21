@@ -12,7 +12,6 @@ public final class RootTabViewModel {
     private let loadProfile: LoadProfile
     private let iCloudKeyValueService: iCloudKeyValueService
     private let logger: DebugLogger
-    private let premiumVerifier: () async -> Bool
     @ObservationIgnored @Injected(\.toastService) private var toastService
 
     // MARK: - Services (exposed for view binding)
@@ -42,9 +41,7 @@ public final class RootTabViewModel {
         appearanceManager: AppearanceManager,
         navigationService: NavigationService,
         personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator,
-        logger: DebugLogger,
-        /// Testing seam: Inject a mock to verify premium status in tests
-        premiumVerifier: @escaping () async -> Bool = { await StoreKitSubscriptionService.verifyPremiumAsync() }
+        logger: DebugLogger
     ) {
         self.loadProfile = loadProfile
         self.iCloudKeyValueService = iCloudKeyValueService
@@ -52,7 +49,6 @@ public final class RootTabViewModel {
         self.navigationService = navigationService
         self.personalityDeepLinkCoordinator = personalityDeepLinkCoordinator
         self.logger = logger
-        self.premiumVerifier = premiumVerifier
     }
 
     // MARK: - Public Methods
@@ -66,57 +62,15 @@ public final class RootTabViewModel {
         // This avoids race condition where seedCategories() runs in parallel and sets this flag
         let hasRunAppBeforeCapture = UserDefaults.standard.bool(forKey: UserDefaultsKeys.categorySeedingCompleted)
 
-        // CRITICAL: Verify subscription status BEFORE checking onboarding
-        // This automatically "restores" purchases for returning users on new devices.
-        // Transaction.currentEntitlements is tied to the Apple ID, not the device.
-        // Without this, returning users would see new user onboarding because
-        // isCloudKitSyncActive would return false (cached premium status is false).
-        //
-        // SLOW VERIFICATION NOTE: StoreKit has a 5s internal timeout. If verification
-        // is slow (>2s), the user may see a brief loading state. This is acceptable
-        // because: (1) it only affects first launch on new devices, (2) showing new
-        // user onboarding is a safe fallback, (3) on next launch, cached status is
-        // used. No retry logic is needed - StoreKit handles network retries internally.
-        let isPremiumVerified = await premiumVerifier()
-        if isPremiumVerified {
-            logger.log(
-                "Premium subscription verified at startup - enabling sync for returning user check",
-                level: .info,
-                category: .subscription
-            )
-        } else {
-            // Log for production monitoring - helps identify StoreKit verification issues
-            // Note: This could be either "user is genuinely free tier" OR "StoreKit verification failed"
-            // StoreKit handles retries internally with 5s timeout; if this appears frequently
-            // alongside sync timeout warnings, investigate network conditions
-            logger.log(
-                "Premium subscription not verified at startup - user treated as free tier",
-                level: .info,
-                category: .subscription
-            )
-        }
-
         // Synchronize iCloud KV store with short timeout (0.3s)
         // This is enough for cached data; longer waits hurt new user experience
-        //
-        // TELEMETRY NOTE: If timeout frequency becomes a concern, consider:
-        // 1. Adding analytics to track timeout rates in production
-        // 2. Increasing timeout to 0.5s if >10% of users experience timeouts
-        // 3. The timeout only affects returning user detection, not app functionality
         let syncCompleted = await iCloudKeyValueService.synchronizeAndWait(timeout: 0.3)
-        // Capture sync preference immediately after sync attempt for accurate logging
-        let syncPreferenceAfterSync = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
         if !syncCompleted {
             logger.log(
                 "iCloud KV sync timed out - may affect returning user detection",
                 level: .warning,
                 category: .ui,
-                metadata: [
-                    "syncCompleted": syncCompleted,
-                    "timeoutSeconds": 0.3,
-                    "syncPreference": syncPreferenceAfterSync,
-                    "isPremiumVerified": isPremiumVerified
-                ]
+                metadata: ["timeoutSeconds": 0.3]
             )
         }
 
@@ -152,44 +106,14 @@ public final class RootTabViewModel {
         // iCloud flag tells us if user completed onboarding on ANY device
         let iCloudOnboardingCompleted = iCloudKeyValueService.hasCompletedOnboarding()
 
-        // Check if CloudKit sync will be active - use the freshly verified premium status
-        // to handle returning users on new devices correctly
-        //
-        // RACE CONDITION ANALYSIS: We intentionally use the cached `isPremiumVerified` value
-        // here rather than calling premiumVerifier() again. Theoretical race conditions:
-        // 1. User restores purchase in another app instance during this check
-        // 2. CloudKit sync brings updated subscription status mid-check
-        //
-        // These are acceptable because:
-        // - checkOnboardingStatus() only runs ONCE at app startup
-        // - The check completes in milliseconds (StoreKit has 5s timeout, iCloud KV has 0.3s)
-        // - Concurrent purchase restoration requires user action in Settings/App Store
-        // - Worst case: user sees onboarding instead of welcome, which is still valid UX
-        // - On next app launch, the correct flow will be shown
-        let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
-        let willSyncBeActive = isPremiumVerified && syncPreference
-
-        // Monitor for potential race condition: sync preference enabled but premium not verified
-        // This could indicate StoreKit verification took longer than expected or failed
-        if syncPreference && !isPremiumVerified {
-            logger.log(
-                "Sync preference enabled but premium not verified - possible timing issue",
-                level: .warning,
-                category: .subscription
-            )
-        }
-
-        if iCloudOnboardingCompleted && willSyncBeActive {
-            // Returning user with active sync - show welcome after data syncs
-            logger.log("Returning user detected - iCloud flag set, sync active", level: .info, category: .ui)
+        // iCloud sync is free for all users, so if the iCloud flag is set,
+        // the user is returning and their data will sync automatically
+        if iCloudOnboardingCompleted {
+            logger.log("Returning user detected - iCloud flag set, data will sync", level: .info, category: .ui)
             showOnboarding = false
             isCheckingOnboarding = false
             pendingReturningUserWelcome = true
             return
-        } else if iCloudOnboardingCompleted {
-            // Free user or sync disabled - iCloud KV flag synced but data won't, treat as new user
-            logger.log("iCloud flag set but sync not active - treating as new user", level: .info, category: .ui)
-            // Fall through to new user check below
         }
 
         // Step 3: Neither flag set - could be new user OR upgrade from old version
@@ -443,31 +367,6 @@ extension RootTabViewModel {
 // MARK: - Toast Helpers
 
 extension RootTabViewModel {
-    // MARK: - CloudKit Sync Helpers
-
-    /// Check if CloudKit sync is currently active (premium + sync preference enabled)
-    ///
-    /// Used to gate features that only make sense when data is actually syncing:
-    /// - Returning user welcome flow
-    /// - "Syncing data from iCloud" toast
-    /// - Auto-sync on app launch
-    ///
-    /// **SECURITY:** Uses PersistenceContainer.premiumCheckProvider which is set up at app startup
-    /// to use StoreKit-based checking (production) or mock checking (development builds).
-    /// This ensures we never bypass the paywall by modifying UserDefaults.
-    ///
-    /// **CACHE DEPENDENCY:** This is a synchronous check using SecurePremiumCache.
-    /// The cache is refreshed by `verifyAndUpdatePremiumStatus()` which runs at app startup
-    /// in parallel with `checkOnboardingStatus()`. For most scenarios:
-    /// - Cache is fresh (<24h old): Premium status is accurate from recent verification
-    /// - Cache is stale (>24h): StoreKit verification runs at startup before this is checked
-    /// - First launch on new device: StoreKit verification runs before returning user detection
-    private var isCloudKitSyncActive: Bool {
-        let isPremium = PersistenceContainer.premiumCheckProvider?() ?? false
-        let syncPreference = ICloudSyncPreferenceService.shared.isICloudSyncEnabled
-        return isPremium && syncPreference
-    }
-
     // MARK: - Toast Management
 
     /// Check if any toast is currently being displayed
@@ -507,15 +406,9 @@ extension RootTabViewModel {
     /// This toast stays visible until manually dismissed
     /// Only shows once per session to prevent duplicate appearances
     ///
-    /// Note: Only shows if CloudKit sync is actually active (premium user with sync enabled).
-    /// Free users have local-only storage, so showing "Syncing from iCloud" would be misleading.
+    /// iCloud sync is free for all users, so this always shows for returning users.
     public func showSyncingDataToast() {
         guard !hasShownSyncingToast else { return }
-        guard isCloudKitSyncActive else {
-            logger.log("Skipping sync toast - CloudKit sync not active", level: .debug, category: .ui)
-            return
-        }
-
         hasShownSyncingToast = true
         toastService.infoPersistent(Strings.ICloudSync.syncingData, icon: "icloud.and.arrow.down")
     }

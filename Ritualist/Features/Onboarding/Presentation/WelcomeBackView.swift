@@ -77,16 +77,13 @@ struct WelcomeBackView: View {
     // MARK: - Subviews
 
     /// App icon for branding (consistent with AppLaunchView)
-    @ViewBuilder
     private var appIconSection: some View {
-        if let uiImage = Bundle.main.appIcon {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 100, height: 100)
-                .clipShape(RoundedRectangle(cornerRadius: 22))
-                .shadow(color: AppColors.brand.opacity(0.3), radius: 15, x: 0, y: 8)
-        }
+        Image("LaunchIcon")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 100, height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+            .shadow(color: AppColors.brand.opacity(0.3), radius: 15, x: 0, y: 8)
     }
 
     @ViewBuilder

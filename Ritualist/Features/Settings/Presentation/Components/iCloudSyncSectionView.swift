@@ -4,9 +4,6 @@ import UniformTypeIdentifiers
 
 struct ICloudSyncSectionView: View {
     @Bindable var vm: SettingsViewModel
-    @State private var showRestartAlert = false
-    /// Tracks the initial sync preference when the view appeared (used to detect actual changes)
-    @State private var initialSyncEnabled: Bool?
 
     var body: some View {
         Section {
@@ -19,59 +16,17 @@ struct ICloudSyncSectionView: View {
                         .foregroundStyle(.secondary)
                 }
             } else if !vm.iCloudStatus.canSync {
-                // MARK: - iCloud Not Available (any user)
-
+                // MARK: - iCloud Not Available
                 iCloudSetupPrompt
-            } else if vm.isPremiumUser {
-                // MARK: - Premium User: Show Toggle
-
-                Toggle("Enable iCloud Sync", isOn: Binding(
-                    get: { vm.iCloudSyncEnabled },
-                    set: { newValue in
-                        vm.setICloudSyncEnabled(newValue)
-                        // Only show alert if preference changed from the app launch state
-                        if newValue != initialSyncEnabled {
-                            showRestartAlert = true
-                        }
-                    }
-                ))
-                .accessibilityLabel("Enable iCloud Sync")
-                .accessibilityHint(vm.iCloudSyncEnabled ? "Currently enabled. Double tap to disable syncing." : "Currently disabled. Double tap to enable syncing across devices.")
-
-                // Show helpful text based on current state
-                if !vm.iCloudSyncEnabled {
-                    Text("Enable to sync your habits across all your devices.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else if vm.iCloudSyncEnabled {
-                    syncStatusContent
-                }
             } else {
-                // MARK: - Free User with iCloud Available (local-only, no sync)
-
-                UpgradeBannerView(
-                    subtitle: "Sync your habits across all your devices",
-                    onUpgradeTap: {
-                        Task {
-                            await vm.showPaywall()
-                        }
-                    }
-                )
+                // MARK: - iCloud Available: Show Status
+                syncStatusContent
             }
         } header: {
             Text("iCloud Sync")
         } footer: {
-            // Footer is no longer needed since we moved the explanation into the section content
-        }
-        .alert("Restart Required", isPresented: $showRestartAlert) {
-            Button("OK") { }
-        } message: {
-            Text("Please restart the app for this change to take effect.")
-        }
-        .onAppear {
-            // Capture initial sync preference on first appearance
-            if initialSyncEnabled == nil {
-                initialSyncEnabled = vm.iCloudSyncEnabled
+            if vm.iCloudStatus.canSync {
+                Text("Your habits sync automatically across all your devices signed into the same iCloud account.")
             }
         }
     }
@@ -95,7 +50,7 @@ struct ICloudSyncSectionView: View {
             }
         }
 
-        // Last Synced Timestamp - only show when iCloud is available
+        // Last Synced Timestamp
         if let lastSync = vm.lastSyncDate {
             HStack {
                 Label("Last Synced", systemImage: "clock")
@@ -203,9 +158,7 @@ struct ICloudSyncSectionView: View {
             getLastSyncDate: MockGetLastSyncDate(),
             deleteiCloudData: MockDeleteiCloudData(),
             exportUserData: MockExportUserData(),
-            importUserData: MockImportUserData(),
-            getICloudSyncPreference: MockGetICloudSyncPreference(),
-            setICloudSyncPreference: MockSetICloudSyncPreference()
+            importUserData: MockImportUserData()
         ))
     }
 }
@@ -296,12 +249,3 @@ private struct MockExportUserData: ExportUserDataUseCase {
 private struct MockImportUserData: ImportUserDataUseCase {
     func execute(jsonString: String) async throws {}
 }
-
-private struct MockGetICloudSyncPreference: GetICloudSyncPreferenceUseCase {
-    func execute() -> Bool { true }
-}
-
-private struct MockSetICloudSyncPreference: SetICloudSyncPreferenceUseCase {
-    func execute(_ enabled: Bool) {}
-}
-

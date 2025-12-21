@@ -66,14 +66,6 @@ extension Container {
         self { DefaultUpdateLastSyncDateUseCase() }
     }
 
-    var getICloudSyncPreference: Factory<GetICloudSyncPreferenceUseCase> {
-        self { GetICloudSyncPreference(preferenceService: self.iCloudSyncPreferenceService()) }
-    }
-
-    var setICloudSyncPreference: Factory<SetICloudSyncPreferenceUseCase> {
-        self { SetICloudSyncPreference(preferenceService: self.iCloudSyncPreferenceService()) }
-    }
-
     var deleteiCloudData: Factory<DeleteiCloudDataUseCase> {
         self {
             DefaultDeleteiCloudDataUseCase(

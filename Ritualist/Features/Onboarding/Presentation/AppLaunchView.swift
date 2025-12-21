@@ -22,16 +22,14 @@ struct AppLaunchView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            // App icon from bundle
-            if let uiImage = Bundle.main.appIcon {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 180, height: 180)
-                    .clipShape(RoundedRectangle(cornerRadius: 40))
-                    .animatedGlow(glowSize: 220)
-                    .accessibilityLabel("Ritualist app icon")
-            }
+            // App icon - using dedicated high-res asset for crisp display
+            Image("LaunchIcon")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 180, height: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 40))
+                .animatedGlow(glowSize: 220)
+                .accessibilityLabel("Ritualist app icon")
 
             // App name
             Text("Ritualist")

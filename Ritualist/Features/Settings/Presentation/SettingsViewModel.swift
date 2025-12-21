@@ -23,8 +23,6 @@ public final class SettingsViewModel {
     private let deleteiCloudData: DeleteiCloudDataUseCase
     private let exportUserData: ExportUserDataUseCase
     private let importUserData: ImportUserDataUseCase
-    private let getICloudSyncPreference: GetICloudSyncPreferenceUseCase
-    private let setICloudSyncPreference: SetICloudSyncPreferenceUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.appearanceManager) var appearanceManager
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
@@ -121,13 +119,6 @@ public final class SettingsViewModel {
         cachedSubscriptionExpiryDate
     }
 
-    /// Whether iCloud sync is enabled (user preference)
-    /// Default: true (sync enabled by default for premium users)
-    /// Premium users can disable in Settings; free users see upgrade prompt instead
-    public var iCloudSyncEnabled: Bool {
-        getICloudSyncPreference.execute()
-    }
-
     // MARK: - Account Setup Status
 
     /// Whether iCloud account is signed in
@@ -157,21 +148,6 @@ public final class SettingsViewModel {
         return issues
     }
 
-    /// Set iCloud sync preference (requires app restart to take effect)
-    public func setICloudSyncEnabled(_ enabled: Bool) {
-        setICloudSyncPreference.execute(enabled)
-        userActionTracker.track(.custom(
-            event: "icloud_sync_toggled",
-            parameters: ["enabled": enabled]
-        ))
-        logger.log(
-            "☁️ iCloud sync preference changed",
-            level: .info,
-            category: .system,
-            metadata: ["enabled": enabled, "requires_restart": true]
-        )
-    }
-
     public init(loadProfile: LoadProfileUseCase,
                 saveProfile: SaveProfileUseCase,
                 requestNotificationPermission: RequestNotificationPermissionUseCase,
@@ -188,8 +164,6 @@ public final class SettingsViewModel {
                 deleteiCloudData: DeleteiCloudDataUseCase,
                 exportUserData: ExportUserDataUseCase,
                 importUserData: ImportUserDataUseCase,
-                getICloudSyncPreference: GetICloudSyncPreferenceUseCase,
-                setICloudSyncPreference: SetICloudSyncPreferenceUseCase,
                 populateTestData: (any Any)? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
@@ -207,8 +181,6 @@ public final class SettingsViewModel {
         self.deleteiCloudData = deleteiCloudData
         self.exportUserData = exportUserData
         self.importUserData = importUserData
-        self.getICloudSyncPreference = getICloudSyncPreference
-        self.setICloudSyncPreference = setICloudSyncPreference
         #if DEBUG
         self.populateTestData = populateTestData as? PopulateTestDataUseCase
         #endif

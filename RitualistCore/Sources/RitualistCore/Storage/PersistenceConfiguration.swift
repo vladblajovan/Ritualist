@@ -43,30 +43,12 @@ public enum PersistenceConfiguration {
     }
 
     /// ModelConfiguration for CloudKit-synced entities
-    /// NOTE: Use `syncableEntitiesConfiguration(syncEnabled:)` for dynamic sync control
+    /// Sync is always enabled - it's a free feature for all users
     public static var cloudKitConfiguration: ModelConfiguration {
         ModelConfiguration(
             "CloudKit",
             schema: Schema(cloudKitSyncedTypes),
             cloudKitDatabase: .private(iCloudConstants.containerIdentifier)
-        )
-    }
-
-    /// Get configuration for syncable entities based on whether sync is enabled
-    ///
-    /// Uses SAME store name ("CloudKit") regardless of sync setting to prevent data orphaning.
-    /// When user toggles sync off, their data stays in the same store file - only the sync
-    /// behavior changes. This ensures data is never orphaned when toggling sync.
-    ///
-    /// - Parameter syncEnabled: Whether CloudKit sync should be active
-    /// - Returns: ModelConfiguration for syncable entities with appropriate CloudKit setting
-    public static func syncableEntitiesConfiguration(syncEnabled: Bool) -> ModelConfiguration {
-        ModelConfiguration(
-            "CloudKit",  // SAME name always = same store file
-            schema: Schema(cloudKitSyncedTypes),
-            cloudKitDatabase: syncEnabled
-                ? .private(iCloudConstants.containerIdentifier)
-                : .none  // Same store, just no sync
         )
     }
 
@@ -95,20 +77,10 @@ public enum PersistenceConfiguration {
 
     // MARK: - All Configurations
 
-    /// All model configurations for the persistence container (sync always enabled)
-    /// NOTE: Use `allConfigurations(syncEnabled:)` for dynamic sync control
+    /// All model configurations for the persistence container
+    /// - CloudKit: Synced entities (habits, logs, categories, profile, onboarding)
+    /// - Local: Privacy-sensitive entities (personality analysis)
     public static var allConfigurations: [ModelConfiguration] {
         [cloudKitConfiguration, localConfiguration]
-    }
-
-    /// Get all configurations for the container based on sync preference
-    ///
-    /// - Parameter syncEnabled: Whether CloudKit sync should be active for syncable entities
-    /// - Returns: Array of ModelConfigurations for the container
-    public static func allConfigurations(syncEnabled: Bool) -> [ModelConfiguration] {
-        [
-            syncableEntitiesConfiguration(syncEnabled: syncEnabled),
-            localConfiguration  // PersonalityAnalysis - always local
-        ]
     }
 }

@@ -381,6 +381,7 @@ public enum Strings {
         public static let dailyTracking = String(localized: "onboarding.premium.daily_tracking")
         public static let basicNotifications = String(localized: "onboarding.premium.basic_notifications")
         public static let tipsInsights = String(localized: "onboarding.premium.tips_insights")
+        public static let iCloudSync = String(localized: "onboarding.premium.icloud_sync")
         public static let unlimitedHabits = String(localized: "onboarding.premium.unlimited_habits")
         public static let advancedAnalytics = String(localized: "onboarding.premium.advanced_analytics")
         public static let customReminders = String(localized: "onboarding.premium.custom_reminders")

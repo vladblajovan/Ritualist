@@ -78,6 +78,21 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     /// **Timeout:** Returns cached value if StoreKit doesn't respond within 5 seconds.
     ///
     public static func verifyPremiumAsync(forceVerification: Bool = false) async -> Bool {
+        return await verifyPremiumSync(timeout: 5.0, forceVerification: forceVerification)
+    }
+
+    /// Verify premium status with configurable timeout.
+    ///
+    /// This is the core verification method used by both:
+    /// - `verifyPremiumAsync()` - for post-launch verification (5s timeout)
+    /// - Container initialization - for pre-container sync blocking (2s timeout)
+    ///
+    /// - Parameters:
+    ///   - timeout: Maximum seconds to wait for StoreKit response
+    ///   - forceVerification: If `true`, always queries StoreKit regardless of cache freshness
+    /// - Returns: `true` if user has any valid subscription or purchase
+    ///
+    public static func verifyPremiumSync(timeout: Double, forceVerification: Bool = false) async -> Bool {
         let startTime = Date()
 
         // Check if we can skip verification using cached value
@@ -112,7 +127,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         )
 
         // Use withTaskGroup to implement timeout - if StoreKit hangs, fall back to cache
-        let timeoutSeconds: UInt64 = 5
+        let timeoutSeconds: UInt64 = UInt64(timeout)
 
         let result = await withTaskGroup(of: Bool?.self) { group in
             // Task 1: Query StoreKit
@@ -173,7 +188,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
             metadata: [
                 "is_premium": result,
                 "duration_ms": Int(duration * 1000),
-                "timed_out": duration >= Double(timeoutSeconds)
+                "timed_out": duration >= timeout
             ]
         )
 

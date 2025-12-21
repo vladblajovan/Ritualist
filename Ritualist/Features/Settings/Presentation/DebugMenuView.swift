@@ -705,6 +705,24 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     .font(.caption)
                     .foregroundColor(.secondary)
                 #endif
+
+                // Clear Premium Cache (Keychain) - for testing feature gating
+                Button(role: .destructive) {
+                    SecurePremiumCache.shared.clearCache()
+                } label: {
+                    HStack {
+                        Image(systemName: "key.slash")
+                            .foregroundColor(.red)
+
+                        Text("Clear Premium Cache (Keychain)")
+
+                        Spacer()
+                    }
+                }
+
+                Text("Clears the Keychain-cached premium status for testing feature gating (habit limits). iCloud sync is always enabled regardless of premium status.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Section("Offer Codes Testing") {
