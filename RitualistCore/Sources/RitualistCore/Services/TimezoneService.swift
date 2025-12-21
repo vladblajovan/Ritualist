@@ -246,12 +246,11 @@ public final class DefaultTimezoneService: TimezoneService {
             toTimezone: newHomeTimezone,
             trigger: .userUpdate
         )
-        profile.timezoneChangeHistory.append(change)
-
-        // Trim history to prevent unbounded growth
-        if profile.timezoneChangeHistory.count > TimezoneConstants.maxTimezoneHistoryEntries {
-            profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries))
+        // Trim history BEFORE appending to ensure atomicity (fixes potential data loss if interrupted)
+        if profile.timezoneChangeHistory.count >= TimezoneConstants.maxTimezoneHistoryEntries {
+            profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries - 1))
         }
+        profile.timezoneChangeHistory.append(change)
 
         // Update timestamps
         profile.updatedAt = Date()
@@ -275,12 +274,11 @@ public final class DefaultTimezoneService: TimezoneService {
                 toTimezone: mode.toLegacyString(),
                 trigger: .displayModeChange
             )
-            profile.timezoneChangeHistory.append(change)
-
-            // Trim history to prevent unbounded growth
-            if profile.timezoneChangeHistory.count > TimezoneConstants.maxTimezoneHistoryEntries {
-                profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries))
+            // Trim history BEFORE appending to ensure atomicity (fixes potential data loss if interrupted)
+            if profile.timezoneChangeHistory.count >= TimezoneConstants.maxTimezoneHistoryEntries {
+                profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries - 1))
             }
+            profile.timezoneChangeHistory.append(change)
         }
 
         // Update timestamps
@@ -348,6 +346,10 @@ public final class DefaultTimezoneService: TimezoneService {
             toTimezone: newCurrentTimezone,
             trigger: .deviceChange
         )
+        // Trim history BEFORE appending to ensure atomicity (fixes potential data loss if interrupted)
+        if profile.timezoneChangeHistory.count >= TimezoneConstants.maxTimezoneHistoryEntries {
+            profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries - 1))
+        }
         profile.timezoneChangeHistory.append(change)
 
         // Update timestamps
