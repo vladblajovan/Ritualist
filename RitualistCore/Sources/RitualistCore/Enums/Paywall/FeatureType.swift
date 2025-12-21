@@ -13,7 +13,6 @@ public enum FeatureType: String, CaseIterable {
     case advancedAnalytics = "advanced_analytics"
     case customReminders = "custom_reminders"
     case dataExport = "data_export"
-    case iCloudSync = "icloud_sync"
 
     public var displayName: String {
         switch self {
@@ -21,7 +20,6 @@ public enum FeatureType: String, CaseIterable {
         case .advancedAnalytics: return "Advanced Analytics"
         case .customReminders: return "Custom Reminders"
         case .dataExport: return "Data Export"
-        case .iCloudSync: return "iCloud Sync"
         }
     }
 }

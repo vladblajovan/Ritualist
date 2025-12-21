@@ -44,10 +44,6 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
         isPremiumUser
     }
 
-    public var hasICloudSync: Bool {
-        isPremiumUser
-    }
-
     nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
         return FeatureGatingConstants.getFeatureBlockedMessage(for: feature)
     }
@@ -62,8 +58,6 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
             return hasCustomReminders
         case .dataExport:
             return hasDataExport
-        case .iCloudSync:
-            return hasICloudSync
         }
     }
     

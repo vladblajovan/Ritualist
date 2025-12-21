@@ -171,6 +171,13 @@ private struct SettingsFormView: View {
                                 .foregroundColor(.secondary)
                         }
                         #endif
+
+                        // Acknowledgements (open source licenses)
+                        NavigationLink {
+                            AcknowledgementsView()
+                        } label: {
+                            Text("Acknowledgements")
+                        }
                     }
                 }
                 .refreshable {

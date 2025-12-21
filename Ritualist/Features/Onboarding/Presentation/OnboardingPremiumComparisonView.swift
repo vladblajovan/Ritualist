@@ -44,7 +44,8 @@ struct OnboardingPremiumComparisonView: View {
                             PremiumFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.fiveHabits, color: .green),
                             PremiumFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.dailyTracking, color: .green),
                             PremiumFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.basicNotifications, color: .green),
-                            PremiumFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.tipsInsights, color: .green)
+                            PremiumFeature(icon: "checkmark.circle.fill", text: Strings.OnboardingPremium.tipsInsights, color: .green),
+                            PremiumFeature(icon: "icloud.fill", text: Strings.OnboardingPremium.iCloudSync, color: .green)
                         ],
                         isPro: false
                     )

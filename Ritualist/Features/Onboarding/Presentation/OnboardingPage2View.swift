@@ -64,6 +64,13 @@ struct OnboardingPage2View: View {
                         title: "Smart Reminders",
                         description: "Get notified when it's time for your habits"
                     )
+
+                    OnboardingFeatureCard(
+                        icon: "icloud.fill",
+                        iconColor: .cyan,
+                        title: "iCloud Sync",
+                        description: "Your habits sync automatically across all your devices"
+                    )
                 }
                 .padding(.horizontal, 24)
 

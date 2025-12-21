@@ -64,13 +64,6 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService {
         return standardFeatureGating.hasDataExport
     }
 
-    public var hasICloudSync: Bool {
-        if buildConfigService.allFeaturesEnabled {
-            return true
-        }
-        return standardFeatureGating.hasICloudSync
-    }
-
     nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
         if buildConfigService.allFeaturesEnabled {
             return "All features are enabled in this build configuration."
