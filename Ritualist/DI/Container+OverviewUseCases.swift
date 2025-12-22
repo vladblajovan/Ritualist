@@ -57,16 +57,29 @@ extension Container {
     }
     
     // MARK: - Profile Operations
-    
-    var loadProfile: Factory<LoadProfile> {
+
+    /// Shared profile cache for reducing database reads
+    /// Used by both loadProfile and saveProfile to maintain consistency
+    var profileCache: Factory<ProfileCache> {
+        self { ProfileCache() }
+            .singleton
+    }
+
+    /// Cached LoadProfile with 5-minute TTL
+    /// Reduces redundant database reads for profile data
+    var loadProfile: Factory<LoadProfileUseCase> {
         self {
-            LoadProfile(
+            let innerLoadProfile = LoadProfile(
                 repo: self.profileRepository(),
                 iCloudKeyValueService: self.iCloudKeyValueService()
             )
+            return CachedLoadProfile(
+                innerLoadProfile: innerLoadProfile,
+                cache: self.profileCache()
+            )
         }
     }
-    
+
     var getCurrentUserProfile: Factory<GetCurrentUserProfile> {
         self { GetCurrentUserProfile(userService: self.userService()) }
     }

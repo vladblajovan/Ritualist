@@ -9,7 +9,7 @@ import CloudKit
 public final class RootTabViewModel {
 
     // MARK: - Dependencies
-    private let loadProfile: LoadProfile
+    private let loadProfile: LoadProfileUseCase
     private let iCloudKeyValueService: iCloudKeyValueService
     private let userDefaults: UserDefaultsService
     private let logger: DebugLogger
@@ -37,7 +37,7 @@ public final class RootTabViewModel {
     public var syncedDataSummary: SyncedDataSummary?
 
     public init(
-        loadProfile: LoadProfile,
+        loadProfile: LoadProfileUseCase,
         iCloudKeyValueService: iCloudKeyValueService,
         userDefaults: UserDefaultsService,
         appearanceManager: AppearanceManager,
