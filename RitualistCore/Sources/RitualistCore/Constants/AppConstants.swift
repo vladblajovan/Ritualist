@@ -22,25 +22,6 @@ public enum UserDefaultsKeys {
     /// Key for tracking if we've shown the first iCloud sync toast
     public static let hasShownFirstSyncToast = "com.ritualist.hasShownFirstSyncToast"
 
-    // MARK: - Premium Status Cache
-
-    /// Key for caching premium status from StoreKit2 at startup
-    /// Set by transaction observer on app launch before DI initialization
-    /// Used by PersistenceContainer to determine sync mode synchronously
-    ///
-    /// StoreKit2 Implementation:
-    /// 1. On app launch, check `Transaction.currentEntitlements`
-    /// 2. Set this key to true/false based on active subscriptions
-    /// 3. Listen for transaction updates and update the cache
-    ///
-    /// Note: Currently unused - will be needed when migrating from mock to real StoreKit2
-    public static let premiumStatusCache = "com.ritualist.premiumStatusCache"
-
-    /// Key for tracking if we've shown the "Premium activated, restart for sync" toast
-    /// Prevents showing the toast repeatedly if user doesn't restart immediately
-    /// Reset when cache is updated (so toast shows again if premium status changes)
-    public static let hasShownPremiumRestartToast = "com.ritualist.hasShownPremiumRestartToast"
-
     // MARK: - Schema Migration
 
     /// Key for storing the last schema version for migration tracking

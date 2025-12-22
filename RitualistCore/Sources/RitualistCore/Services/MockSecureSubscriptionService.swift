@@ -31,25 +31,13 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
     /// Check premium status synchronously from cached values.
     ///
     /// This static method is designed for use during app initialization when
-    /// DI is not yet available (e.g., `PersistenceContainer.init()`).
+    /// DI is not yet available. Used for feature gating (habit limits, analytics).
+    ///
+    /// Note: iCloud sync is free for all users and does not depend on premium status.
     ///
     /// ## Check Order
     /// 1. Build configuration cache (ALL_FEATURES_ENABLED scheme)
     /// 2. Mock purchases (development testing with Subscription scheme)
-    ///
-    /// ## StoreKit2 Migration
-    /// When implementing real StoreKit2, add a check BEFORE mock purchases:
-    /// ```swift
-    /// // Check UserDefaults flag set by StoreKit2 transaction observer
-    /// if let isPremium = userDefaults.object(forKey: UserDefaultsKeys.premiumStatusCache) as? Bool {
-    ///     return isPremium
-    /// }
-    /// ```
-    ///
-    /// The StoreKit2 implementation should:
-    /// 1. On app launch, check `Transaction.currentEntitlements`
-    /// 2. Set `UserDefaultsKeys.premiumStatusCache` to true/false
-    /// 3. Listen for transaction updates and update the cache
     ///
     /// - Parameter userDefaults: UserDefaults service for checking cached values.
     ///   Defaults to DefaultUserDefaultsService.
