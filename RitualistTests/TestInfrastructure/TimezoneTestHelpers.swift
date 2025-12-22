@@ -382,37 +382,8 @@ public enum TimezoneTestHelpers {
 
     // MARK: - Timezone Comparison Helpers
 
-    /// Compare if two dates are the same calendar day in their respective timezones
-    ///
-    /// **Use Case:** Validating that "same day" logic works correctly across timezones
-    ///
-    /// - Parameters:
-    ///   - date1: First date
-    ///   - timezone1: Timezone for first date
-    ///   - date2: Second date
-    ///   - timezone2: Timezone for second date
-    /// - Returns: `true` if both dates represent the same calendar day in their timezones
-    public static func areSameCalendarDay(
-        date1: Date,
-        timezone1: TimeZone,
-        date2: Date,
-        timezone2: TimeZone
-    ) -> Bool {
-        let calendar1 = Calendar(identifier: .gregorian)
-        let calendar2 = Calendar(identifier: .gregorian)
-
-        var cal1 = calendar1
-        cal1.timeZone = timezone1
-        let components1 = cal1.dateComponents([.year, .month, .day], from: date1)
-
-        var cal2 = calendar2
-        cal2.timeZone = timezone2
-        let components2 = cal2.dateComponents([.year, .month, .day], from: date2)
-
-        return components1.year == components2.year &&
-               components1.month == components2.month &&
-               components1.day == components2.day
-    }
+    // NOTE: For cross-timezone day comparison, use CalendarUtils.areSameDayAcrossTimezones()
+    // This helper was removed to avoid duplicating app logic.
 
     /// Get the calendar day components (year, month, day) for a date in a specific timezone
     ///
