@@ -33,6 +33,20 @@ import Foundation
 /// // Invalidate on save
 /// await cache.invalidate()
 /// ```
+///
+/// ## Limitations:
+///
+/// - **In-memory only**: Cache is not persisted to disk. On app termination or
+///   memory pressure, cached data is lost and will be reloaded from the database.
+///
+/// - **Not shared across app extensions**: Each process (main app, widgets, etc.)
+///   has its own cache instance. Extensions should use their own cache or read
+///   directly from the database for fresh data.
+///
+/// - **5-minute TTL rationale**: The default 300-second TTL balances read performance
+///   with data freshness. Profile data changes infrequently (settings updates, iCloud sync),
+///   so a longer TTL is acceptable. The cache is also explicitly invalidated on save
+///   operations, ensuring consistency even within the TTL window.
 public actor ProfileCache {
 
     // MARK: - Cache Entry
