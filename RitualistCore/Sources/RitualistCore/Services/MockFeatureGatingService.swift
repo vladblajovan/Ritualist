@@ -8,7 +8,6 @@
 import Foundation
 import Observation
 
-@available(*, deprecated, message: "Use FeatureGatingUIService with MockFeatureGatingBusinessService instead")
 public final class MockFeatureGatingService: FeatureGatingService {
     private let errorHandler: ErrorHandler?
     

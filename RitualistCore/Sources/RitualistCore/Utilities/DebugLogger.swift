@@ -78,7 +78,12 @@ public enum LogCategory: String, CaseIterable {
 /// // Direct instantiation (for singletons/@ModelActor where DI isn't available)
 /// private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "myCategory")
 /// ```
-public final class DebugLogger {
+///
+/// **Thread Safety:**
+/// Marked as `@unchecked Sendable` because thread safety is ensured via NSLock.
+/// All mutable state (logBuffer) is protected by `bufferLock`. The `OSLog` instance
+/// and `isProductionBuild` flag are immutable after initialization.
+public final class DebugLogger: @unchecked Sendable {
 
     // MARK: - Properties
 

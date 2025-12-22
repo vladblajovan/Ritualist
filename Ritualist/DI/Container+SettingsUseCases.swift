@@ -7,9 +7,16 @@ import RitualistCore
 extension Container {
     
     // MARK: - Profile Operations
-    
-    var saveProfile: Factory<SaveProfile> {
-        self { SaveProfile(repo: self.profileRepository()) }
+
+    /// Cache-aware SaveProfile that invalidates the shared profile cache on save
+    var saveProfile: Factory<SaveProfileUseCase> {
+        self {
+            let innerSaveProfile = SaveProfile(repo: self.profileRepository())
+            return CacheAwareSaveProfile(
+                innerSaveProfile: innerSaveProfile,
+                cache: self.profileCache()
+            )
+        }
     }
     
     // MARK: - Notification Operations

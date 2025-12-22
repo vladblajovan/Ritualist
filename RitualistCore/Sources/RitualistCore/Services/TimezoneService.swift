@@ -141,6 +141,15 @@ public struct TravelStatus: Equatable {
 // MARK: - Default Implementation
 
 /// Default implementation of TimezoneService using UserProfile storage
+///
+/// ## Thread Safety:
+/// This service uses a load-modify-save pattern that is NOT inherently atomic.
+/// However, it is safe in practice because:
+/// 1. All callers are on MainActor (ViewModels, SwiftUI views, App lifecycle)
+/// 2. The underlying ProfileLocalDataSource is a @ModelActor (serialized DB access)
+///
+/// **Important:** Do not call this service from background threads without proper
+/// synchronization. If background access is needed, consider making this an actor.
 public final class DefaultTimezoneService: TimezoneService {
 
     // MARK: - Dependencies
@@ -162,6 +171,26 @@ public final class DefaultTimezoneService: TimezoneService {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
         self.logger = logger
+    }
+
+    // MARK: - Private Helpers
+
+    /// Append a timezone change to history with automatic truncation to prevent unbounded growth.
+    ///
+    /// The history is trimmed BEFORE appending to ensure atomicity - if the operation is interrupted
+    /// after truncation but before append, we lose at most one entry rather than risking data
+    /// inconsistency from a partial append operation.
+    ///
+    /// - Parameters:
+    ///   - change: The timezone change to append
+    ///   - profile: The user profile to modify (inout)
+    private func appendTimezoneChange(_ change: TimezoneChange, to profile: inout UserProfile) {
+        if profile.timezoneChangeHistory.count >= TimezoneConstants.maxTimezoneHistoryEntries {
+            profile.timezoneChangeHistory = Array(
+                profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries - 1)
+            )
+        }
+        profile.timezoneChangeHistory.append(change)
     }
 
     // MARK: - Getters
@@ -239,18 +268,14 @@ public final class DefaultTimezoneService: TimezoneService {
         // Update home timezone
         profile.homeTimezoneIdentifier = newHomeTimezone
 
-        // Log timezone change
+        // Log timezone change with automatic history truncation
         let change = TimezoneChange(
             timestamp: Date(),
             fromTimezone: oldHomeTimezone,
             toTimezone: newHomeTimezone,
             trigger: .userUpdate
         )
-        // Trim history BEFORE appending to ensure atomicity (fixes potential data loss if interrupted)
-        if profile.timezoneChangeHistory.count >= TimezoneConstants.maxTimezoneHistoryEntries {
-            profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries - 1))
-        }
-        profile.timezoneChangeHistory.append(change)
+        appendTimezoneChange(change, to: &profile)
 
         // Update timestamps
         profile.updatedAt = Date()
@@ -266,7 +291,7 @@ public final class DefaultTimezoneService: TimezoneService {
         // Update display mode
         profile.displayTimezoneMode = mode
 
-        // Log change if mode actually changed
+        // Log change if mode actually changed (with automatic history truncation)
         if oldMode != mode {
             let change = TimezoneChange(
                 timestamp: Date(),
@@ -274,11 +299,7 @@ public final class DefaultTimezoneService: TimezoneService {
                 toTimezone: mode.toLegacyString(),
                 trigger: .displayModeChange
             )
-            // Trim history BEFORE appending to ensure atomicity (fixes potential data loss if interrupted)
-            if profile.timezoneChangeHistory.count >= TimezoneConstants.maxTimezoneHistoryEntries {
-                profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries - 1))
-            }
-            profile.timezoneChangeHistory.append(change)
+            appendTimezoneChange(change, to: &profile)
         }
 
         // Update timestamps
@@ -339,18 +360,14 @@ public final class DefaultTimezoneService: TimezoneService {
         // Update current timezone
         profile.currentTimezoneIdentifier = newCurrentTimezone
 
-        // Log timezone change
+        // Log timezone change with automatic history truncation
         let change = TimezoneChange(
             timestamp: Date(),
             fromTimezone: oldCurrentTimezone,
             toTimezone: newCurrentTimezone,
             trigger: .deviceChange
         )
-        // Trim history BEFORE appending to ensure atomicity (fixes potential data loss if interrupted)
-        if profile.timezoneChangeHistory.count >= TimezoneConstants.maxTimezoneHistoryEntries {
-            profile.timezoneChangeHistory = Array(profile.timezoneChangeHistory.suffix(TimezoneConstants.maxTimezoneHistoryEntries - 1))
-        }
-        profile.timezoneChangeHistory.append(change)
+        appendTimezoneChange(change, to: &profile)
 
         // Update timestamps
         profile.updatedAt = Date()

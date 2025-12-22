@@ -152,9 +152,32 @@ private struct SettingsFormView: View {
                     // Social Media Section
                     SocialMediaLinksView()
 
+                    // Support Section
+                    Section("Support") {
+                        Link(destination: AppURLs.supportEmail) {
+                            HStack {
+                                Label("Contact Support", systemImage: "envelope")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Link(destination: AppURLs.helpAndFAQ) {
+                            HStack {
+                                Label("Help & FAQ", systemImage: "questionmark.circle")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
                     // Legal Section
                     Section("Legal") {
-                        Link(destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/privacy.html")!) {
+                        Link(destination: AppURLs.privacyPolicy) {
                             HStack {
                                 Text("Privacy Policy")
                                 Spacer()
@@ -164,7 +187,7 @@ private struct SettingsFormView: View {
                             }
                         }
 
-                        Link(destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/terms.html")!) {
+                        Link(destination: AppURLs.termsOfService) {
                             HStack {
                                 Text("Terms of Service")
                                 Spacer()
@@ -278,8 +301,8 @@ private struct SettingsFormView: View {
         displayTimezoneMode = vm.profile.displayTimezoneMode.toLegacyString()
         // Load gender/ageGroup from profile (converting from raw string values)
         if let genderRaw = vm.profile.gender {
-            if let g = UserGender(rawValue: genderRaw) {
-                gender = g
+            if let parsedGender = UserGender(rawValue: genderRaw) {
+                gender = parsedGender
             } else {
                 logger.log(
                     "Failed to parse gender from profile",
@@ -293,8 +316,8 @@ private struct SettingsFormView: View {
             gender = .preferNotToSay
         }
         if let ageRaw = vm.profile.ageGroup {
-            if let a = UserAgeGroup(rawValue: ageRaw) {
-                ageGroup = a
+            if let parsedAgeGroup = UserAgeGroup(rawValue: ageRaw) {
+                ageGroup = parsedAgeGroup
             } else {
                 logger.log(
                     "Failed to parse age group from profile",

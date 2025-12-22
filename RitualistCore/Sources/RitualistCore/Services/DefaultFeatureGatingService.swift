@@ -10,7 +10,6 @@ import Foundation
 import Observation
 
 @available(iOS 17.0, macOS 14.0, *)
-@available(*, deprecated, message: "Use FeatureGatingUIService instead")
 @Observable
 public final class DefaultFeatureGatingService: FeatureGatingService {
     private let subscriptionService: SecureSubscriptionService

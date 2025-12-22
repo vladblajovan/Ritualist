@@ -41,11 +41,13 @@ public final class BackupManager {
     private let pendingRestoreKey = UserDefaultsKeys.pendingRestore
 
     /// UserDefaults for storing pending restore
-    private let userDefaults = UserDefaults.standard
+    private let userDefaults: UserDefaultsService
 
     // MARK: - Initialization
 
-    public init() {}
+    public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
+        self.userDefaults = userDefaults
+    }
 
     // MARK: - Public Methods
 

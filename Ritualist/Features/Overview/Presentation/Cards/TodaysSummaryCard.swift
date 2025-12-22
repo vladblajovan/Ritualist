@@ -3,7 +3,6 @@ import RitualistCore
 import FactoryKit
 import TipKit
 
-
 struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     // MARK: - Tips
     private let tapHabitTip = TapHabitTip()

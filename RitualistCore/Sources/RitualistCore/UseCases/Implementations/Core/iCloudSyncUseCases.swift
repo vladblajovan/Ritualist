@@ -182,10 +182,14 @@ public protocol GetLastSyncDateUseCase {
 }
 
 public final class DefaultGetLastSyncDateUseCase: GetLastSyncDateUseCase {
-    public init() {}
+    private let userDefaults: UserDefaultsService
+
+    public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
+        self.userDefaults = userDefaults
+    }
 
     public func execute() async -> Date? {
-        return UserDefaults.standard.object(forKey: UserDefaultsKeys.lastSyncDate) as? Date
+        return userDefaults.date(forKey: UserDefaultsKeys.lastSyncDate)
     }
 }
 
@@ -209,10 +213,14 @@ public protocol UpdateLastSyncDateUseCase {
 }
 
 public final class DefaultUpdateLastSyncDateUseCase: UpdateLastSyncDateUseCase {
-    public init() {}
+    private let userDefaults: UserDefaultsService
+
+    public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
+        self.userDefaults = userDefaults
+    }
 
     public func execute(_ date: Date) async {
-        UserDefaults.standard.set(date, forKey: UserDefaultsKeys.lastSyncDate)
+        userDefaults.set(date, forKey: UserDefaultsKeys.lastSyncDate)
     }
 }
 

@@ -116,7 +116,6 @@ public final class StoreKitPaywallService: PaywallService {
                 if product2.isPopular { return false }
                 return product1.price < product2.price
             }
-
         } catch {
             // Handle StoreKit errors with detailed logging
             logger.log(
@@ -171,16 +170,13 @@ public final class StoreKitPaywallService: PaywallService {
                 purchaseState = .failed("Unknown error occurred")
                 return false
             }
-
         } catch let error as PaywallError {
             // Re-throw PaywallErrors
             throw error
-
         } catch StoreKitError.userCancelled {
             // StoreKit user cancellation
             purchaseState = .idle
             throw PaywallError.userCancelled
-
         } catch {
             // Generic error handling
             purchaseState = .failed("Purchase failed: \(error.localizedDescription)")
@@ -191,29 +187,23 @@ public final class StoreKitPaywallService: PaywallService {
     public func restorePurchases() async throws -> Bool {
         purchaseState = .purchasing("restore")
 
-        do {
-            // Collect all verified transactions
-            var restoredProducts: [String] = []
+        // Collect all verified transactions
+        var restoredProducts: [String] = []
 
-            for await result in Transaction.currentEntitlements {
-                // Verify each transaction
-                if let transaction = try? checkVerified(result) {
-                    restoredProducts.append(transaction.productID)
+        for await result in Transaction.currentEntitlements {
+            // Verify each transaction
+            if let transaction = try? checkVerified(result) {
+                restoredProducts.append(transaction.productID)
 
-                    // Update subscription service
-                    try? await subscriptionService.registerPurchase(transaction.productID)
-                }
+                // Update subscription service
+                try? await subscriptionService.registerPurchase(transaction.productID)
             }
-
-            purchaseState = .idle
-
-            // Return true if we restored any purchases
-            return !restoredProducts.isEmpty
-
-        } catch {
-            purchaseState = .failed("Restore failed: \(error.localizedDescription)")
-            throw PaywallError.noPurchasesToRestore
         }
+
+        purchaseState = .idle
+
+        // Return true if we restored any purchases
+        return !restoredProducts.isEmpty
     }
 
     public func isProductPurchased(_ productId: String) async -> Bool {
@@ -266,50 +256,29 @@ public final class StoreKitPaywallService: PaywallService {
     /// - Returns: `true` if the device supports offer code redemption (iOS 14+)
     ///
     public func isOfferCodeRedemptionAvailable() -> Bool {
-        if #available(iOS 14.0, *) {
-            return true
-        } else {
-            return false
-        }
+        true // iOS 14+ is always available since minimum deployment is iOS 18
     }
 
     // MARK: - Active Discounts
 
     /// Get the active discount for a specific product
     ///
-    /// **Note:** Discount vouchers are not yet supported in production StoreKit implementation.
-    /// This will be implemented in Phase 3 of the discount voucher feature.
-    ///
     /// - Parameter productId: The product to check for discounts
-    /// - Returns: Always returns nil (not yet implemented)
-    ///
+    /// - Returns: Always returns nil (discount vouchers not supported)
     public func getActiveDiscount(for productId: String) async -> ActiveDiscount? {
-        // TODO: Implement production discount voucher support
-        // Will require:
-        // 1. StoreKit offer codes configured in App Store Connect
-        // 2. Transaction listener updates to detect offer redemptions
-        // 3. ActiveDiscountService integration
-        return nil
+        nil
     }
 
     /// Check if there's an active discount for a specific product
     ///
-    /// **Note:** Discount vouchers are not yet supported in production StoreKit implementation.
-    ///
     /// - Parameter productId: The product to check
-    /// - Returns: Always returns false (not yet implemented)
-    ///
+    /// - Returns: Always returns false (discount vouchers not supported)
     public func hasActiveDiscount(for productId: String) async -> Bool {
-        return false
+        false
     }
 
-    /// Clear the active discount
-    ///
-    /// **Note:** Discount vouchers are not yet supported in production StoreKit implementation.
-    ///
-    public func clearActiveDiscount() async {
-        // No-op for now
-    }
+    /// Clear the active discount (no-op, discount vouchers not supported)
+    public func clearActiveDiscount() async {}
 
     // MARK: - Private Methods
 
@@ -417,7 +386,8 @@ public final class StoreKitPaywallService: PaywallService {
     /// but automatic detection requires iOS 15+ for the `transaction.offer` property.
     ///
     private func listenForTransactions() -> Task<Void, Never> {
-        Task.detached { [weak self] in
+        let logger = self.logger // Capture for use in detached task
+        return Task.detached { [weak self] in
             // Monitor transaction updates
             for await result in Transaction.updates {
                 guard let self = self else { return }
@@ -438,7 +408,6 @@ public final class StoreKitPaywallService: PaywallService {
 
                     // Finish the transaction
                     await transaction.finish()
-
                 } catch {
                     // Log verification failure (in production, send to analytics)
                     logger.log("Transaction verification failed: \(error)", level: .error, category: .subscription)
@@ -457,8 +426,9 @@ public final class StoreKitPaywallService: PaywallService {
     ///
     @available(iOS 15.0, *)
     private func handleOfferCodeTransaction(_ transaction: Transaction, offer: Transaction.Offer) async {
+        let offerId = offer.id ?? "unknown"
         logger.log(
-            "✨ Offer code redeemed - Product: \(transaction.productID), Offer ID: \(offer.id)",
+            "✨ Offer code redeemed - Product: \(transaction.productID), Offer ID: \(offerId)",
             level: .info,
             category: .subscription
         )
@@ -469,7 +439,7 @@ public final class StoreKitPaywallService: PaywallService {
         // Update state on main actor
         await MainActor.run {
             self.offerCodeRedemptionState = .success(
-                code: "OFFER_\(offer.id)",
+                code: "OFFER_\(offerId)",
                 productId: transaction.productID
             )
         }

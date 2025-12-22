@@ -302,6 +302,268 @@ public enum TimezoneEdgeCaseFixtures {
         )
     }
 
+    // MARK: - Scenario 5a: 7-Day Streak Across US Spring Forward
+
+    /// 7-day streak spanning US DST spring forward (March 9, 2025)
+    ///
+    /// **Test Case:**
+    /// - Daily habit with logs for 7 consecutive days
+    /// - Day 4 (Sunday, March 9) is spring forward day (23-hour day)
+    ///
+    /// **Why This Matters:**
+    /// Streak should remain unbroken even when one day has only 23 hours
+    ///
+    /// - Returns: Test scenario with 7-day streak across spring forward
+    public static func dstStreakAcrossSpringForwardScenario() -> TestScenario {
+        let weekDates = TimezoneTestHelpers.weekContainingUSSpringForward()
+        let startDate = CalendarUtils.startOfDayLocal(for: weekDates.first!, timezone: TimezoneTestHelpers.newYork)
+
+        let habit = HabitBuilder.binary(
+            name: "Daily Reading",
+            emoji: "📖",
+            schedule: .daily,
+            startDate: startDate
+        )
+
+        let logs = weekDates.map { date in
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: CalendarUtils.startOfDayLocal(for: date, timezone: TimezoneTestHelpers.newYork),
+                value: 1.0,
+                timezone: TimezoneTestHelpers.newYork.identifier
+            )
+        }
+
+        return TestScenario(
+            habit: habit,
+            logs: logs,
+            description: "7-day streak across US spring forward - streak should remain unbroken",
+            metadata: [
+                "timezone": TimezoneTestHelpers.newYork.identifier,
+                "dstDay": "2025-03-09 (Sunday)",
+                "dstType": "spring_forward",
+                "expectedStreak": 7,
+                "hoursOnDstDay": 23
+            ]
+        )
+    }
+
+    // MARK: - Scenario 5b: 7-Day Streak Across US Fall Back
+
+    /// 7-day streak spanning US DST fall back (November 2, 2025)
+    ///
+    /// **Test Case:**
+    /// - Daily habit with logs for 7 consecutive days
+    /// - Day 4 (Sunday, November 2) is fall back day (25-hour day)
+    ///
+    /// **Why This Matters:**
+    /// Streak should remain unbroken even when one day has 25 hours
+    ///
+    /// - Returns: Test scenario with 7-day streak across fall back
+    public static func dstStreakAcrossFallBackScenario() -> TestScenario {
+        let weekDates = TimezoneTestHelpers.weekContainingUSFallBack()
+        let startDate = CalendarUtils.startOfDayLocal(for: weekDates.first!, timezone: TimezoneTestHelpers.newYork)
+
+        let habit = HabitBuilder.binary(
+            name: "Evening Meditation",
+            emoji: "🧘",
+            schedule: .daily,
+            startDate: startDate
+        )
+
+        let logs = weekDates.map { date in
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: CalendarUtils.startOfDayLocal(for: date, timezone: TimezoneTestHelpers.newYork),
+                value: 1.0,
+                timezone: TimezoneTestHelpers.newYork.identifier
+            )
+        }
+
+        return TestScenario(
+            habit: habit,
+            logs: logs,
+            description: "7-day streak across US fall back - streak should remain unbroken",
+            metadata: [
+                "timezone": TimezoneTestHelpers.newYork.identifier,
+                "dstDay": "2025-11-02 (Sunday)",
+                "dstType": "fall_back",
+                "expectedStreak": 7,
+                "hoursOnDstDay": 25
+            ]
+        )
+    }
+
+    // MARK: - Scenario 5c: EU DST Transitions
+
+    /// EU DST transition scenarios (London timezone)
+    ///
+    /// **Test Case:**
+    /// - Spring Forward: March 30, 2025 at 1:00 AM (clock jumps to 2:00 AM)
+    /// - Fall Back: October 26, 2025 at 2:00 AM (clock jumps back to 1:00 AM)
+    ///
+    /// **Why This Matters:**
+    /// EU and US have different DST dates; both need testing
+    ///
+    /// - Returns: Test scenario with logs during EU DST transitions
+    public static func euDstTransitionScenario() -> TestScenario {
+        let habit = HabitBuilder.binary(
+            name: "Tea Time",
+            emoji: "🫖",
+            schedule: .daily
+        )
+
+        let springForward = TimezoneTestHelpers.euDstSpringForwardDate()
+        let fallBack = TimezoneTestHelpers.euDstFallBackDate()
+
+        let logs = [
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: CalendarUtils.startOfDayLocal(for: springForward, timezone: TimezoneTestHelpers.london),
+                value: 1.0,
+                timezone: TimezoneTestHelpers.london.identifier
+            ),
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: CalendarUtils.startOfDayLocal(for: fallBack, timezone: TimezoneTestHelpers.london),
+                value: 1.0,
+                timezone: TimezoneTestHelpers.london.identifier
+            )
+        ]
+
+        return TestScenario(
+            habit: habit,
+            logs: logs,
+            description: "EU DST transition test - logs during spring forward and fall back in London",
+            metadata: [
+                "timezone": TimezoneTestHelpers.london.identifier,
+                "springForwardDate": "2025-03-30 00:30 GMT",
+                "fallBackDate": "2025-10-26 00:30 BST",
+                "dstTransitions": 2
+            ]
+        )
+    }
+
+    // MARK: - Scenario 5d: Before and After DST on Same Day
+
+    /// Logs both before and after DST transition on the same calendar day
+    ///
+    /// **Test Case:**
+    /// - Log at 1:30 AM (before spring forward)
+    /// - Log at 3:30 AM (after spring forward)
+    /// - Both should count for the same day (March 9)
+    ///
+    /// **Why This Matters:**
+    /// Multiple logs on a DST day should all count for that single day
+    ///
+    /// - Returns: Test scenario with multiple logs on spring forward day
+    public static func dstSameDayMultipleLogsScenario() -> TestScenario {
+        let beforeDst = TimezoneTestHelpers.dstSpringForwardDate()
+        let afterDst = TimezoneTestHelpers.afterSpringForward()
+        let startDate = CalendarUtils.startOfDayLocal(for: beforeDst, timezone: TimezoneTestHelpers.newYork)
+
+        let habit = HabitBuilder.numeric(
+            name: "Drink Water",
+            emoji: "💧",
+            target: 8.0,
+            unit: "glasses",
+            schedule: .daily,
+            startDate: startDate
+        )
+
+        let logs = [
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: beforeDst,
+                value: 3.0,
+                timezone: TimezoneTestHelpers.newYork.identifier
+            ),
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: afterDst,
+                value: 5.0,
+                timezone: TimezoneTestHelpers.newYork.identifier
+            )
+        ]
+
+        return TestScenario(
+            habit: habit,
+            logs: logs,
+            description: "Multiple logs on DST spring forward day - both should count for same day",
+            metadata: [
+                "timezone": TimezoneTestHelpers.newYork.identifier,
+                "beforeDstTime": "01:30 EST",
+                "afterDstTime": "03:30 EDT",
+                "totalValue": 8.0,
+                "expectedDayCount": 1
+            ]
+        )
+    }
+
+    // MARK: - Scenario 5e: Fall Back Repeated Hour
+
+    /// Logs during the repeated hour of fall back (1:00-2:00 AM happens twice)
+    ///
+    /// **Test Case:**
+    /// - Log at 1:30 AM before fall back (first occurrence)
+    /// - Log at 3:30 AM after fall back
+    /// - Both should count for November 2
+    ///
+    /// **Why This Matters:**
+    /// The repeated hour during fall back should not cause duplicate day counts
+    ///
+    /// - Returns: Test scenario with logs during fall back
+    public static func dstFallBackRepeatedHourScenario() -> TestScenario {
+        let beforeFallBack = TimezoneTestHelpers.dstFallBackDate()
+        let afterFallBack = TimezoneTestHelpers.afterFallBack()
+        let startDate = CalendarUtils.startOfDayLocal(for: beforeFallBack, timezone: TimezoneTestHelpers.newYork)
+
+        let habit = HabitBuilder.numeric(
+            name: "Steps",
+            emoji: "👟",
+            target: 10000.0,
+            unit: "steps",
+            schedule: .daily,
+            startDate: startDate
+        )
+
+        let logs = [
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: beforeFallBack,
+                value: 5000.0,
+                timezone: TimezoneTestHelpers.newYork.identifier
+            ),
+            HabitLog(
+                id: UUID(),
+                habitID: habit.id,
+                date: afterFallBack,
+                value: 6000.0,
+                timezone: TimezoneTestHelpers.newYork.identifier
+            )
+        ]
+
+        return TestScenario(
+            habit: habit,
+            logs: logs,
+            description: "Logs during fall back repeated hour - should count as same calendar day",
+            metadata: [
+                "timezone": TimezoneTestHelpers.newYork.identifier,
+                "beforeFallBackTime": "01:30 EDT",
+                "afterFallBackTime": "03:30 EST",
+                "totalValue": 11000.0,
+                "expectedDayCount": 1
+            ]
+        )
+    }
+
     // MARK: - Scenario 6: Numeric Habit with Timezone
 
     /// Numeric habit with daily progress across different timezones

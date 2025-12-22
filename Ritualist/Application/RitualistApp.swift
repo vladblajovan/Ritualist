@@ -33,6 +33,8 @@ import TipKit
     @Injected(\.deduplicateData) private var deduplicateData
     @Injected(\.cloudKitCleanupService) private var cloudKitCleanupService
     @Injected(\.toastService) private var toastService
+    @Injected(\.userDefaultsService) private var userDefaults
+    @Injected(\.profileCache) private var profileCache
 
     /// Track if initial launch tasks have completed to avoid duplicate work.
     ///
@@ -118,10 +120,12 @@ import TipKit
 
     init() {
         // Check if tips should be reset (set from Debug Menu)
-        if UserDefaults.standard.bool(forKey: "shouldResetTipsOnNextLaunch") {
+        // Note: Using DefaultUserDefaultsService directly here since @Injected is not available during init
+        let initUserDefaults = DefaultUserDefaultsService()
+        if initUserDefaults.bool(forKey: "shouldResetTipsOnNextLaunch") {
             // Clear flag BEFORE reset attempt to prevent crash loops
             // If resetDatastore() crashes, we don't want to retry on every launch
-            UserDefaults.standard.set(false, forKey: "shouldResetTipsOnNextLaunch")
+            initUserDefaults.set(false, forKey: "shouldResetTipsOnNextLaunch")
             do {
                 try Tips.resetDatastore()
                 tipLogger.info("✅ TipKit datastore reset successfully")
@@ -233,19 +237,23 @@ import TipKit
                     // @MainActor ensures thread-safe access to @State properties and
                     // serializes all debounce/throttle operations despite background notification origin
                     Task { @MainActor in
+                        // Invalidate profile cache to pick up any profile changes from other devices
+                        // This ensures the next profile read fetches fresh data from the database
+                        await profileCache.invalidate()
+
                         // Only update last sync timestamp if iCloud is actually available
                         // This prevents stale "Last Synced" times when user isn't signed in
                         // Uses cached status to avoid redundant CloudKit API calls during bulk sync
                         let iCloudStatus = await getCachedICloudStatus()
                         if iCloudStatus == .available {
-                            UserDefaults.standard.set(Date(), forKey: UserDefaultsKeys.lastSyncDate)
+                            userDefaults.set(Date(), forKey: UserDefaultsKeys.lastSyncDate)
                         }
 
                         try? await Task.sleep(for: .seconds(BusinessConstants.remoteChangeMergeDelay))
 
                         // Debounce UI refresh notification to prevent rapid flashing when multiple changes arrive
                         // (e.g., user editing profile fields, bulk sync from another device)
-                        await postUIRefreshNotificationDebounced()
+                        postUIRefreshNotificationDebounced()
 
                         // Deduplicate any duplicates created by CloudKit sync before restoring geofences
                         // During initial sync: run dedup on EVERY change (not throttled) until no duplicates found
@@ -633,7 +641,7 @@ import TipKit
 
     /// Mark CloudKit cleanup as complete (used when cleanup should not be retried)
     private func markCloudKitCleanupComplete() {
-        UserDefaults.standard.set(true, forKey: "personalityAnalysisCloudKitCleanupCompleted")
+        userDefaults.set(true, forKey: "personalityAnalysisCloudKitCleanupCompleted")
     }
 
     /// Deduplicate and return the result for callers that need to check if duplicates were found

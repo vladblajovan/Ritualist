@@ -17,6 +17,7 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     private let analyzePersonalityUseCase: AnalyzePersonalityUseCase
     private let validateAnalysisDataUseCase: ValidateAnalysisDataUseCase
     private let notificationService: NotificationService
+    private let userDefaults: UserDefaultsService
     private let errorHandler: ErrorHandler?
     private let logger: DebugLogger
     
@@ -38,6 +39,7 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         analyzePersonalityUseCase: AnalyzePersonalityUseCase,
         validateAnalysisDataUseCase: ValidateAnalysisDataUseCase,
         notificationService: NotificationService,
+        userDefaults: UserDefaultsService = DefaultUserDefaultsService(),
         errorHandler: ErrorHandler? = nil,
         logger: DebugLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "personality")
     ) {
@@ -45,6 +47,7 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
         self.validateAnalysisDataUseCase = validateAnalysisDataUseCase
         self.notificationService = notificationService
+        self.userDefaults = userDefaults
         self.errorHandler = errorHandler
         self.logger = logger
 
@@ -300,32 +303,32 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         let encoder = JSONEncoder()
 
         if let scheduledData = try? encoder.encode(Array(scheduledUsers)) {
-            UserDefaults.standard.set(scheduledData, forKey: UserDefaultsKeys.personalitySchedulerUsers)
+            userDefaults.set(scheduledData, forKey: UserDefaultsKeys.personalitySchedulerUsers)
         }
 
         if let datesData = try? encoder.encode(lastAnalysisDates) {
-            UserDefaults.standard.set(datesData, forKey: UserDefaultsKeys.personalitySchedulerDates)
+            userDefaults.set(datesData, forKey: UserDefaultsKeys.personalitySchedulerDates)
         }
 
         if let hashData = try? encoder.encode(lastDataHashes) {
-            UserDefaults.standard.set(hashData, forKey: UserDefaultsKeys.personalitySchedulerHashes)
+            userDefaults.set(hashData, forKey: UserDefaultsKeys.personalitySchedulerHashes)
         }
     }
-    
+
     private func loadSchedulerState() {
         let decoder = JSONDecoder()
 
-        if let scheduledData = UserDefaults.standard.data(forKey: UserDefaultsKeys.personalitySchedulerUsers),
+        if let scheduledData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerUsers),
            let scheduledArray = try? decoder.decode([UUID].self, from: scheduledData) {
             scheduledUsers = Set(scheduledArray)
         }
 
-        if let datesData = UserDefaults.standard.data(forKey: UserDefaultsKeys.personalitySchedulerDates),
+        if let datesData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerDates),
            let dates = try? decoder.decode([UUID: Date].self, from: datesData) {
             lastAnalysisDates = dates
         }
 
-        if let hashData = UserDefaults.standard.data(forKey: UserDefaultsKeys.personalitySchedulerHashes),
+        if let hashData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerHashes),
            let hashes = try? decoder.decode([UUID: String].self, from: hashData) {
             lastDataHashes = hashes
         }

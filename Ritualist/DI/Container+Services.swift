@@ -45,7 +45,10 @@ extension Container {
     /// REMOVAL NOTICE: This can be removed after all users have updated (2-3 releases)
     var cloudKitCleanupService: Factory<CloudKitCleanupServiceProtocol> {
         self {
-            CloudKitCleanupService(logger: self.debugLogger())
+            CloudKitCleanupService(
+                logger: self.debugLogger(),
+                userDefaults: self.userDefaultsService()
+            )
         }
         .singleton
     }
@@ -158,6 +161,11 @@ extension Container {
 
     var iCloudKeyValueService: Factory<iCloudKeyValueService> {
         self { DefaultiCloudKeyValueService(logger: self.debugLogger()) }
+            .singleton
+    }
+
+    var userDefaultsService: Factory<UserDefaultsService> {
+        self { DefaultUserDefaultsService() }
             .singleton
     }
 
@@ -316,29 +324,6 @@ extension Container {
             .singleton
     }
 
-    var defaultFeatureGatingBusinessService: Factory<FeatureGatingBusinessService> {
-        self { DefaultFeatureGatingBusinessService(subscriptionService: self.subscriptionService(), errorHandler: self.errorHandler()) }
-            .singleton
-    }
-    
-    // MARK: - Feature Gating Service
-    
-    // MARK: - Feature Gating Business Service
-    
-    var featureGatingBusinessService: Factory<FeatureGatingBusinessService> {
-        self {
-            #if ALL_FEATURES_ENABLED
-            return MockFeatureGatingBusinessService(errorHandler: self.errorHandler())
-            #else
-            return BuildConfigFeatureGatingBusinessService(
-                buildConfigService: self.buildConfigurationService(),
-                standardFeatureGating: self.defaultFeatureGatingBusinessService()
-            )
-            #endif
-        }
-        .singleton
-    }
-    
     // MARK: - Legacy Feature Gating Service
     
     @available(*, deprecated, message: "Use featureGatingUIService instead")

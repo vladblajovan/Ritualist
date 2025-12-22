@@ -22,25 +22,6 @@ public enum UserDefaultsKeys {
     /// Key for tracking if we've shown the first iCloud sync toast
     public static let hasShownFirstSyncToast = "com.ritualist.hasShownFirstSyncToast"
 
-    // MARK: - Premium Status Cache
-
-    /// Key for caching premium status from StoreKit2 at startup
-    /// Set by transaction observer on app launch before DI initialization
-    /// Used by PersistenceContainer to determine sync mode synchronously
-    ///
-    /// StoreKit2 Implementation:
-    /// 1. On app launch, check `Transaction.currentEntitlements`
-    /// 2. Set this key to true/false based on active subscriptions
-    /// 3. Listen for transaction updates and update the cache
-    ///
-    /// Note: Currently unused - will be needed when migrating from mock to real StoreKit2
-    public static let premiumStatusCache = "com.ritualist.premiumStatusCache"
-
-    /// Key for tracking if we've shown the "Premium activated, restart for sync" toast
-    /// Prevents showing the toast repeatedly if user doesn't restart immediately
-    /// Reset when cache is updated (so toast shows again if premium status changes)
-    public static let hasShownPremiumRestartToast = "com.ritualist.hasShownPremiumRestartToast"
-
     // MARK: - Schema Migration
 
     /// Key for storing the last schema version for migration tracking
@@ -126,6 +107,24 @@ public enum TimezoneConstants {
     /// For analytics requiring full history, consider exporting changes to external analytics
     /// before truncation, or implement a separate analytics event stream.
     public static let maxTimezoneHistoryEntries = 100
+}
+
+// MARK: - App URLs
+
+/// Centralized URLs for external links.
+/// Using static let ensures fail-fast at app startup if URLs are malformed.
+public enum AppURLs {
+    /// Support email address
+    public static let supportEmail = URL(string: "mailto:ritualist-support@gmail.com")!
+
+    /// Help & FAQ page
+    public static let helpAndFAQ = URL(string: "https://vladblajovan.github.io/ritualist-legal/support.html")!
+
+    /// Privacy Policy page
+    public static let privacyPolicy = URL(string: "https://vladblajovan.github.io/ritualist-legal/privacy.html")!
+
+    /// Terms of Service page
+    public static let termsOfService = URL(string: "https://vladblajovan.github.io/ritualist-legal/terms.html")!
 }
 
 // MARK: - Notification Names

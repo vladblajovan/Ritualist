@@ -35,11 +35,13 @@ public final class MigrationLogger {
     private let migrationHistoryKey = UserDefaultsKeys.migrationHistory
 
     /// Migration history storage
-    private let userDefaults = UserDefaults.standard
+    private let userDefaults: UserDefaultsService
 
     // MARK: - Initialization
 
-    private init() {}
+    private init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
+        self.userDefaults = userDefaults
+    }
 
     // MARK: - Public Methods
 

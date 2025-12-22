@@ -205,6 +205,122 @@ public enum TimezoneTestHelpers {
         )
     }
 
+    // MARK: - EU DST Helpers
+
+    /// Create a date during EU DST spring forward transition
+    ///
+    /// **Note:** In Europe/London, DST spring forward happens on March 30, 2025 at 1:00 AM
+    /// Clock jumps from 12:59 AM → 2:00 AM (1:00 AM - 1:59 AM don't exist)
+    ///
+    /// - Returns: Date just before EU DST spring forward in Europe/London timezone
+    public static func euDstSpringForwardDate() -> Date {
+        return createDate(
+            year: 2025,
+            month: 3,
+            day: 30,
+            hour: 0,
+            minute: 30,
+            timezone: london
+        )
+    }
+
+    /// Create a date during EU DST fall back transition
+    ///
+    /// **Note:** In Europe/London, DST fall back happens on October 26, 2025 at 2:00 AM
+    /// Clock jumps from 1:59 AM → 1:00 AM (1:00 AM - 1:59 AM happen twice)
+    ///
+    /// - Returns: Date just before EU DST fall back in Europe/London timezone
+    public static func euDstFallBackDate() -> Date {
+        return createDate(
+            year: 2025,
+            month: 10,
+            day: 26,
+            hour: 0,
+            minute: 30,
+            timezone: london
+        )
+    }
+
+    // MARK: - DST Week Helpers
+
+    /// Create a 7-day date range containing the US DST spring forward transition
+    ///
+    /// **Use Case:** Testing that week calculations work correctly when one day has only 23 hours
+    ///
+    /// - Returns: Array of 7 dates centered around March 9, 2025 (US spring forward)
+    public static func weekContainingUSSpringForward() -> [Date] {
+        // March 6-12, 2025 (Thu-Wed, with Sunday March 9 being DST day)
+        return (6...12).map { day in
+            createDate(year: 2025, month: 3, day: day, hour: 12, minute: 0, timezone: newYork)
+        }
+    }
+
+    /// Create a 7-day date range containing the US DST fall back transition
+    ///
+    /// **Use Case:** Testing that week calculations work correctly when one day has 25 hours
+    ///
+    /// - Returns: Array of 7 dates centered around November 2, 2025 (US fall back)
+    public static func weekContainingUSFallBack() -> [Date] {
+        // October 30 - November 5, 2025 (Thu-Wed, with Sunday Nov 2 being DST day)
+        return [
+            createDate(year: 2025, month: 10, day: 30, hour: 12, minute: 0, timezone: newYork),
+            createDate(year: 2025, month: 10, day: 31, hour: 12, minute: 0, timezone: newYork),
+            createDate(year: 2025, month: 11, day: 1, hour: 12, minute: 0, timezone: newYork),
+            createDate(year: 2025, month: 11, day: 2, hour: 12, minute: 0, timezone: newYork),
+            createDate(year: 2025, month: 11, day: 3, hour: 12, minute: 0, timezone: newYork),
+            createDate(year: 2025, month: 11, day: 4, hour: 12, minute: 0, timezone: newYork),
+            createDate(year: 2025, month: 11, day: 5, hour: 12, minute: 0, timezone: newYork)
+        ]
+    }
+
+    /// Create a 7-day date range containing the EU DST spring forward transition
+    ///
+    /// - Returns: Array of 7 dates centered around March 30, 2025 (EU spring forward)
+    public static func weekContainingEUSpringForward() -> [Date] {
+        // March 27 - April 2, 2025 (Thu-Wed, with Sunday March 30 being DST day)
+        return [
+            createDate(year: 2025, month: 3, day: 27, hour: 12, minute: 0, timezone: london),
+            createDate(year: 2025, month: 3, day: 28, hour: 12, minute: 0, timezone: london),
+            createDate(year: 2025, month: 3, day: 29, hour: 12, minute: 0, timezone: london),
+            createDate(year: 2025, month: 3, day: 30, hour: 12, minute: 0, timezone: london),
+            createDate(year: 2025, month: 3, day: 31, hour: 12, minute: 0, timezone: london),
+            createDate(year: 2025, month: 4, day: 1, hour: 12, minute: 0, timezone: london),
+            createDate(year: 2025, month: 4, day: 2, hour: 12, minute: 0, timezone: london)
+        ]
+    }
+
+    /// Create a 7-day date range containing the EU DST fall back transition
+    ///
+    /// - Returns: Array of 7 dates centered around October 26, 2025 (EU fall back)
+    public static func weekContainingEUFallBack() -> [Date] {
+        // October 23-29, 2025 (Thu-Wed, with Sunday Oct 26 being DST day)
+        return (23...29).map { day in
+            createDate(year: 2025, month: 10, day: day, hour: 12, minute: 0, timezone: london)
+        }
+    }
+
+    /// Get the date after DST spring forward (same calendar day, after transition)
+    ///
+    /// - Parameter timezone: Timezone (US or EU)
+    /// - Returns: Date at 3:30 AM on spring forward day (after clocks jumped)
+    public static func afterSpringForward(timezone: TimeZone = newYork) -> Date {
+        if timezone.identifier == london.identifier {
+            return createDate(year: 2025, month: 3, day: 30, hour: 3, minute: 30, timezone: london)
+        }
+        return createDate(year: 2025, month: 3, day: 9, hour: 3, minute: 30, timezone: newYork)
+    }
+
+    /// Get the date after DST fall back (same calendar day, after transition)
+    ///
+    /// - Parameter timezone: Timezone (US or EU)
+    /// - Returns: Date at 3:30 AM on fall back day (after clocks fell back)
+    public static func afterFallBack(timezone: TimeZone = newYork) -> Date {
+        if timezone.identifier == london.identifier {
+            return createDate(year: 2025, month: 10, day: 26, hour: 3, minute: 30, timezone: london)
+        }
+        return createDate(year: 2025, month: 11, day: 2, hour: 3, minute: 30, timezone: newYork)
+    }
+
     // MARK: - Timezone Transition Scenarios
 
     /// Create a pair of dates representing timezone transition (e.g., travel from Tokyo to New York)
@@ -266,37 +382,8 @@ public enum TimezoneTestHelpers {
 
     // MARK: - Timezone Comparison Helpers
 
-    /// Compare if two dates are the same calendar day in their respective timezones
-    ///
-    /// **Use Case:** Validating that "same day" logic works correctly across timezones
-    ///
-    /// - Parameters:
-    ///   - date1: First date
-    ///   - timezone1: Timezone for first date
-    ///   - date2: Second date
-    ///   - timezone2: Timezone for second date
-    /// - Returns: `true` if both dates represent the same calendar day in their timezones
-    public static func areSameCalendarDay(
-        date1: Date,
-        timezone1: TimeZone,
-        date2: Date,
-        timezone2: TimeZone
-    ) -> Bool {
-        let calendar1 = Calendar(identifier: .gregorian)
-        let calendar2 = Calendar(identifier: .gregorian)
-
-        var cal1 = calendar1
-        cal1.timeZone = timezone1
-        let components1 = cal1.dateComponents([.year, .month, .day], from: date1)
-
-        var cal2 = calendar2
-        cal2.timeZone = timezone2
-        let components2 = cal2.dateComponents([.year, .month, .day], from: date2)
-
-        return components1.year == components2.year &&
-               components1.month == components2.month &&
-               components1.day == components2.day
-    }
+    // NOTE: For cross-timezone day comparison, use CalendarUtils.areSameDayAcrossTimezones()
+    // This helper was removed to avoid duplicating app logic.
 
     /// Get the calendar day components (year, month, day) for a date in a specific timezone
     ///

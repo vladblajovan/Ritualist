@@ -9,8 +9,9 @@ import CloudKit
 public final class RootTabViewModel {
 
     // MARK: - Dependencies
-    private let loadProfile: LoadProfile
+    private let loadProfile: LoadProfileUseCase
     private let iCloudKeyValueService: iCloudKeyValueService
+    private let userDefaults: UserDefaultsService
     private let logger: DebugLogger
     @ObservationIgnored @Injected(\.toastService) private var toastService
 
@@ -36,8 +37,9 @@ public final class RootTabViewModel {
     public var syncedDataSummary: SyncedDataSummary?
 
     public init(
-        loadProfile: LoadProfile,
+        loadProfile: LoadProfileUseCase,
         iCloudKeyValueService: iCloudKeyValueService,
+        userDefaults: UserDefaultsService,
         appearanceManager: AppearanceManager,
         navigationService: NavigationService,
         personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator,
@@ -45,6 +47,7 @@ public final class RootTabViewModel {
     ) {
         self.loadProfile = loadProfile
         self.iCloudKeyValueService = iCloudKeyValueService
+        self.userDefaults = userDefaults
         self.appearanceManager = appearanceManager
         self.navigationService = navigationService
         self.personalityDeepLinkCoordinator = personalityDeepLinkCoordinator
@@ -60,7 +63,7 @@ public final class RootTabViewModel {
 
         // IMPORTANT: Capture categorySeedingCompleted flag BEFORE any async operations
         // This avoids race condition where seedCategories() runs in parallel and sets this flag
-        let hasRunAppBeforeCapture = UserDefaults.standard.bool(forKey: UserDefaultsKeys.categorySeedingCompleted)
+        let hasRunAppBeforeCapture = userDefaults.bool(forKey: UserDefaultsKeys.categorySeedingCompleted)
 
         // Synchronize iCloud KV store with short timeout (0.3s)
         // This is enough for cached data; longer waits hurt new user experience

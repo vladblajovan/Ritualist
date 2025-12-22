@@ -478,6 +478,109 @@ struct TimezoneServiceTests {
         #expect(mostRecent?.toTimezone == TimezoneTestHelpers.tokyo.identifier)
     }
 
+    @Test("Timezone history boundary: 100 entries stays at 100 after append")
+    func timezoneHistoryBoundaryCondition() async throws {
+        let container = try TestModelContainer.create()
+        var profile = UserProfileBuilder.standard()
+
+        // Create exactly 100 existing timezone changes (at the limit)
+        profile.timezoneChangeHistory = (0..<100).map { index in
+            TimezoneChange(
+                timestamp: Date().addingTimeInterval(TimeInterval(-index * 3600)),
+                fromTimezone: "UTC",
+                toTimezone: "America/New_York",
+                trigger: .userUpdate
+            )
+        }
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Add one more change - should truncate to 99, then append = 100
+        try await service.updateHomeTimezone(TimezoneTestHelpers.tokyo)
+
+        // Verify
+        let profileDataSource = ProfileLocalDataSource(modelContainer: container)
+        let profileRepository = ProfileRepositoryImpl(local: profileDataSource)
+        let updatedProfile = try await profileRepository.loadProfile()
+
+        // Contract: count should be exactly 100 (not 101)
+        #expect(updatedProfile?.timezoneChangeHistory.count == 100)
+
+        // The most recent entry should be the Tokyo update
+        let mostRecentEntry = updatedProfile?.timezoneChangeHistory.last
+        #expect(mostRecentEntry?.toTimezone == TimezoneTestHelpers.tokyo.identifier)
+    }
+
+    @Test("Timezone history boundary: 101 entries (over limit) truncates to 100 after append")
+    func timezoneHistoryOverLimitBoundaryCondition() async throws {
+        let container = try TestModelContainer.create()
+        var profile = UserProfileBuilder.standard()
+
+        // Create 101 existing timezone changes (one over the limit)
+        // This simulates a scenario where data might have exceeded limit due to bug or migration
+        profile.timezoneChangeHistory = (0..<101).map { index in
+            TimezoneChange(
+                timestamp: Date().addingTimeInterval(TimeInterval(-index * 3600)),
+                fromTimezone: "UTC",
+                toTimezone: "America/New_York",
+                trigger: .userUpdate
+            )
+        }
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Add one more change - should truncate to 99, then append = 100
+        try await service.updateHomeTimezone(TimezoneTestHelpers.tokyo)
+
+        // Verify
+        let profileDataSource = ProfileLocalDataSource(modelContainer: container)
+        let profileRepository = ProfileRepositoryImpl(local: profileDataSource)
+        let updatedProfile = try await profileRepository.loadProfile()
+
+        // Contract: count should be exactly 100 (not 102)
+        #expect(updatedProfile?.timezoneChangeHistory.count == 100)
+
+        // The most recent entry should be the Tokyo update
+        let mostRecentEntry = updatedProfile?.timezoneChangeHistory.last
+        #expect(mostRecentEntry?.toTimezone == TimezoneTestHelpers.tokyo.identifier)
+    }
+
+    @Test("Timezone history boundary: 99 entries stays under limit after append")
+    func timezoneHistoryUnderLimitBoundaryCondition() async throws {
+        let container = try TestModelContainer.create()
+        var profile = UserProfileBuilder.standard()
+
+        // Create 99 existing timezone changes (one under the limit)
+        profile.timezoneChangeHistory = (0..<99).map { index in
+            TimezoneChange(
+                timestamp: Date().addingTimeInterval(TimeInterval(-index * 3600)),
+                fromTimezone: "UTC",
+                toTimezone: "America/New_York",
+                trigger: .userUpdate
+            )
+        }
+        try await saveProfile(profile, to: container)
+
+        let service = createService(container: container)
+
+        // Add one more change - should simply append = 100 (no truncation needed)
+        try await service.updateHomeTimezone(TimezoneTestHelpers.tokyo)
+
+        // Verify
+        let profileDataSource = ProfileLocalDataSource(modelContainer: container)
+        let profileRepository = ProfileRepositoryImpl(local: profileDataSource)
+        let updatedProfile = try await profileRepository.loadProfile()
+
+        // Contract: count should be exactly 100 (99 + 1)
+        #expect(updatedProfile?.timezoneChangeHistory.count == 100)
+
+        // The most recent entry should be the Tokyo update
+        let mostRecentEntry = updatedProfile?.timezoneChangeHistory.last
+        #expect(mostRecentEntry?.toTimezone == TimezoneTestHelpers.tokyo.identifier)
+    }
+
     // MARK: - Detection Tests
 
     @Test("detectTimezoneChange returns nil when no change")

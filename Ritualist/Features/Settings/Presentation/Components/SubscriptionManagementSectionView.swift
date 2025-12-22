@@ -385,7 +385,7 @@ private struct MockDeleteiCloudData: DeleteiCloudDataUseCase {
 
 private struct MockExportUserData: ExportUserDataUseCase {
     func execute() async throws -> String {
-        return """
+        """
         {
           "exportedAt": "2025-11-24T00:00:00Z",
           "profile": { "name": "Test User" },

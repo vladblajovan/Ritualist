@@ -22,7 +22,10 @@ public final class PersistenceContainer {
     ///
     /// iCloud sync is always enabled for all users - it's a free feature.
     /// PersonalityAnalysisModel remains local-only for privacy.
-    public init() throws {
+    ///
+    /// - Parameter userDefaults: UserDefaults service for storing schema version.
+    ///   Defaults to DefaultUserDefaultsService.
+    public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) throws {
         Self.logger.log(
             "☁️ iCloud sync enabled (free for all users)",
             level: .info,
@@ -35,7 +38,7 @@ public final class PersistenceContainer {
         Self.logger.log("🔍 Initializing PersistenceContainer with versioned schema (V\(currentVersionString))", level: .info, category: .system)
 
         // Read last known schema version (nil on first launch)
-        let lastVersionString = UserDefaults.standard.string(forKey: UserDefaultsKeys.lastSchemaVersion)
+        let lastVersionString = userDefaults.string(forKey: UserDefaultsKeys.lastSchemaVersion)
         Self.logger.log("🔍 Last known schema version: \(lastVersionString ?? "none (first launch)")", level: .debug, category: .system)
         Self.logger.log("🔍 Current schema version: \(currentVersionString)", level: .debug, category: .system)
 
@@ -143,7 +146,7 @@ public final class PersistenceContainer {
             }
 
             // Update last known schema version
-            UserDefaults.standard.set(currentVersionString, forKey: UserDefaultsKeys.lastSchemaVersion)
+            userDefaults.set(currentVersionString, forKey: UserDefaultsKeys.lastSchemaVersion)
 
         } catch {
             let migrationDuration = Date().timeIntervalSince(migrationStartTime)

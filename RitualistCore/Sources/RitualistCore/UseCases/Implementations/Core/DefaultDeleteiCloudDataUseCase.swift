@@ -11,15 +11,18 @@ import SwiftData
 public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
     private let modelContext: ModelContext
     private let iCloudKeyValueService: iCloudKeyValueService
+    private let userDefaults: UserDefaultsService
     private let logger: DebugLogger
 
     public init(
         modelContext: ModelContext,
         iCloudKeyValueService: iCloudKeyValueService,
+        userDefaults: UserDefaultsService = DefaultUserDefaultsService(),
         logger: DebugLogger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "iCloudData")
     ) {
         self.modelContext = modelContext
         self.iCloudKeyValueService = iCloudKeyValueService
+        self.userDefaults = userDefaults
         self.logger = logger
     }
 
@@ -38,11 +41,11 @@ public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
         try modelContext.save()
 
         // Clear sync metadata from UserDefaults
-        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.lastSyncDate)
+        userDefaults.removeObject(forKey: UserDefaultsKeys.lastSyncDate)
 
         // Clear category seeding flag so categories are re-seeded on next launch
         // Without this, deleting all data leaves the flag set, preventing category re-seeding
-        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+        userDefaults.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
         logger.log("🗑️ Cleared category seeding flag", level: .info, category: .system)
 
         // Clear iCloud KV store onboarding flag so user sees onboarding on reinstall

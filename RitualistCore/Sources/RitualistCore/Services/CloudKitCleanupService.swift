@@ -49,9 +49,10 @@ public enum CloudKitCleanupError: LocalizedError {
 public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Sendable {
 
     private let logger: DebugLogger
+    private let userDefaults: UserDefaultsService
 
     /// UserDefaults key to track if cleanup has been performed
-    private static let cleanupCompletedKey = "personalityAnalysisCloudKitCleanupCompleted"
+    static let cleanupCompletedKey = "personalityAnalysisCloudKitCleanupCompleted"
 
     /// CloudKit record type for PersonalityAnalysisModel
     ///
@@ -63,13 +64,14 @@ public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Senda
     /// Reference: This is observable in CloudKit Dashboard when inspecting synced records.
     private static let recordType = "CD_PersonalityAnalysisModel"
 
-    public init(logger: DebugLogger) {
+    public init(logger: DebugLogger, userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
         self.logger = logger
+        self.userDefaults = userDefaults
     }
 
     public func cleanupPersonalityAnalysisFromCloudKit() async throws -> Int? {
         // Check if cleanup was already performed
-        if UserDefaults.standard.bool(forKey: Self.cleanupCompletedKey) {
+        if userDefaults.bool(forKey: Self.cleanupCompletedKey) {
             logger.log(
                 "PersonalityAnalysis CloudKit cleanup already completed, skipping",
                 level: .debug,
@@ -139,7 +141,7 @@ public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Senda
         }
 
         // All deletions succeeded - mark cleanup as completed
-        UserDefaults.standard.set(true, forKey: Self.cleanupCompletedKey)
+        userDefaults.set(true, forKey: Self.cleanupCompletedKey)
 
         logger.log(
             "PersonalityAnalysis CloudKit cleanup completed successfully",
