@@ -34,6 +34,7 @@ import TipKit
     @Injected(\.cloudKitCleanupService) private var cloudKitCleanupService
     @Injected(\.toastService) private var toastService
     @Injected(\.userDefaultsService) private var userDefaults
+    @Injected(\.profileCache) private var profileCache
 
     /// Track if initial launch tasks have completed to avoid duplicate work.
     ///
@@ -236,6 +237,10 @@ import TipKit
                     // @MainActor ensures thread-safe access to @State properties and
                     // serializes all debounce/throttle operations despite background notification origin
                     Task { @MainActor in
+                        // Invalidate profile cache to pick up any profile changes from other devices
+                        // This ensures the next profile read fetches fresh data from the database
+                        await profileCache.invalidate()
+
                         // Only update last sync timestamp if iCloud is actually available
                         // This prevents stale "Last Synced" times when user isn't signed in
                         // Uses cached status to avoid redundant CloudKit API calls during bulk sync

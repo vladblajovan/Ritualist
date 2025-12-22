@@ -141,6 +141,15 @@ public struct TravelStatus: Equatable {
 // MARK: - Default Implementation
 
 /// Default implementation of TimezoneService using UserProfile storage
+///
+/// ## Thread Safety:
+/// This service uses a load-modify-save pattern that is NOT inherently atomic.
+/// However, it is safe in practice because:
+/// 1. All callers are on MainActor (ViewModels, SwiftUI views, App lifecycle)
+/// 2. The underlying ProfileLocalDataSource is a @ModelActor (serialized DB access)
+///
+/// **Important:** Do not call this service from background threads without proper
+/// synchronization. If background access is needed, consider making this an actor.
 public final class DefaultTimezoneService: TimezoneService {
 
     // MARK: - Dependencies

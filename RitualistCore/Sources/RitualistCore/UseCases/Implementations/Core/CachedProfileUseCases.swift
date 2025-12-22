@@ -45,8 +45,9 @@ import Foundation
 ///
 /// - **5-minute TTL rationale**: The default 300-second TTL balances read performance
 ///   with data freshness. Profile data changes infrequently (settings updates, iCloud sync),
-///   so a longer TTL is acceptable. The cache is also explicitly invalidated on save
-///   operations, ensuring consistency even within the TTL window.
+///   so a longer TTL is acceptable. The cache is explicitly invalidated on:
+///   1. Save operations (CacheAwareSaveProfile)
+///   2. iCloud sync notifications (NSPersistentStoreRemoteChange in RitualistApp)
 public actor ProfileCache {
 
     // MARK: - Cache Entry
