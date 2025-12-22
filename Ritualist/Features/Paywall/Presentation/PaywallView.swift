@@ -70,7 +70,10 @@ public struct PaywallView: View {
 
                             // Purchase Button
                             purchaseSection
-                            
+
+                            // Subscription Terms & Legal Links
+                            PaywallLegalSection()
+
                             // Restore Purchases
                             restoreSection
                         }
@@ -422,7 +425,7 @@ public struct PaywallView: View {
     }
     
     // MARK: - Restore Section
-    
+
     private var restoreSection: some View {
         Button("Restore Purchases") {
             Task {
@@ -720,6 +723,37 @@ private struct PricingCard: View {
         guard savings > 0 else { return nil }
 
         return savings.asCurrency()
+    }
+}
+
+// MARK: - Legal Section
+
+private struct PaywallLegalSection: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            // Apple-mandated subscription disclosure
+            Text("Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions by going to your account settings in the App Store after purchase.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 8)
+
+            // Legal links
+            HStack(spacing: 16) {
+                Link("Privacy Policy", destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/privacy.html")!)
+                    .font(.caption)
+                    .foregroundColor(.blue)
+
+                Text("•")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Link("Terms of Service", destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/terms.html")!)
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            }
+        }
+        .padding(.top, 8)
     }
 }
 
