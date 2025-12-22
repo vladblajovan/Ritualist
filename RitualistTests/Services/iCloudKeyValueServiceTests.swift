@@ -205,6 +205,19 @@ struct iCloudKeyValueServiceTests {
     }
 }
 
+// MARK: - Notification Name Tests
+
+@Suite("iCloudKeyValueService Notifications")
+struct iCloudKeyValueNotificationTests {
+
+    @Test("iCloudKeyValueDidChange notification name is properly defined")
+    func notificationNameExists() {
+        // Verify the notification name matches expected value
+        let name = Notification.Name.iCloudKeyValueDidChange
+        #expect(name.rawValue == "iCloudKeyValueDidChange")
+    }
+}
+
 // MARK: - Mock for Integration Tests
 
 /// Mock implementation for testing code that depends on iCloudKeyValueService
