@@ -301,8 +301,8 @@ private struct SettingsFormView: View {
         displayTimezoneMode = vm.profile.displayTimezoneMode.toLegacyString()
         // Load gender/ageGroup from profile (converting from raw string values)
         if let genderRaw = vm.profile.gender {
-            if let g = UserGender(rawValue: genderRaw) {
-                gender = g
+            if let parsedGender = UserGender(rawValue: genderRaw) {
+                gender = parsedGender
             } else {
                 logger.log(
                     "Failed to parse gender from profile",
@@ -316,8 +316,8 @@ private struct SettingsFormView: View {
             gender = .preferNotToSay
         }
         if let ageRaw = vm.profile.ageGroup {
-            if let a = UserAgeGroup(rawValue: ageRaw) {
-                ageGroup = a
+            if let parsedAgeGroup = UserAgeGroup(rawValue: ageRaw) {
+                ageGroup = parsedAgeGroup
             } else {
                 logger.log(
                     "Failed to parse age group from profile",

@@ -534,7 +534,7 @@ private struct ResponsiveContentView<Content: View>: View {
                     contentHeight = geometry.size.height
                     onHeightMeasured(contentHeight)
                 }
-                .onChange(of: geometry.size.height) { newHeight in
+                .onChange(of: geometry.size.height) { _, newHeight in
                     contentHeight = newHeight
                     onHeightMeasured(contentHeight)
                 }

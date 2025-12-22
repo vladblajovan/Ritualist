@@ -501,12 +501,13 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                         HStack {
                             Text("Today (UTC):")
                             Spacer()
-                            Text(formatDate(CalendarUtils.startOfDayUTC(for: now)))
+                            // Intentionally using deprecated UTC method for debug comparison
+                            Text(formatDate(startOfDayUTCForDebug(now)))
                                 .fontWeight(.medium)
                         }
 
                         // Show if different
-                        if !CalendarUtils.areSameDayUTC(now, CalendarUtils.startOfDayLocal(for: now)) {
+                        if !areSameDayUTCForDebug(now, CalendarUtils.startOfDayLocal(for: now)) {
                             Text("⚠️ Local and UTC days are different!")
                                 .font(.caption)
                                 .foregroundColor(.orange)
@@ -1167,6 +1168,17 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         }
     }
 
+    /// Helper to get UTC start of day for debug comparison (intentionally uses deprecated method)
+    @available(*, deprecated, message: "Debug-only wrapper for deprecated UTC method")
+    private func startOfDayUTCForDebug(_ date: Date) -> Date {
+        CalendarUtils.startOfDayUTC(for: date)
+    }
+
+    /// Helper to compare days in UTC for debug comparison (intentionally uses deprecated method)
+    @available(*, deprecated, message: "Debug-only wrapper for deprecated UTC method")
+    private func areSameDayUTCForDebug(_ date1: Date, _ date2: Date) -> Bool {
+        CalendarUtils.areSameDayUTC(date1, date2)
+    }
 }
 
 // MARK: - Migration History View

@@ -294,7 +294,7 @@ public final class SettingsViewModel {
         iCloudStatus = await cloudStatus
 
         // Check if device allows in-app purchases (parental controls, etc.)
-        canMakePayments = SKPaymentQueue.canMakePayments()
+        canMakePayments = AppStore.canMakePayments
 
         // Clear iCloud loading indicator
         isCheckingCloudStatus = false
