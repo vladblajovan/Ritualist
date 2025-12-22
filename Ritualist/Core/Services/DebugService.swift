@@ -20,12 +20,14 @@ public final class DebugService: DebugServiceProtocol {
     }
     
     public func clearDatabase() async throws {
-        let context = persistenceContainer.context
+        let container = persistenceContainer
 
         // Delete all data by fetching and deleting individual records
         // This respects SwiftData relationship constraints properly
         // CRITICAL: Use Active* type aliases to work with current schema version
         try await MainActor.run {
+            let context = container.context
+
             // 1. Delete all habit logs first (child entities)
             let habitLogs = try context.fetch(FetchDescriptor<ActiveHabitLogModel>())
             for log in habitLogs {
@@ -72,10 +74,11 @@ public final class DebugService: DebugServiceProtocol {
     }
     
     public func getDatabaseStats() async throws -> DebugDatabaseStats {
-        let context = persistenceContainer.context
+        let container = persistenceContainer
 
         // CRITICAL: Use Active* type aliases to work with current schema version
         return try await MainActor.run {
+            let context = container.context
             let habitsCount = try context.fetchCount(FetchDescriptor<ActiveHabitModel>())
             let logsCount = try context.fetchCount(FetchDescriptor<ActiveHabitLogModel>())
             let categoriesCount = try context.fetchCount(FetchDescriptor<ActiveHabitCategoryModel>())
