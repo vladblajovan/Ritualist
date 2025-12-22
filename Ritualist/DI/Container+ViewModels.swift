@@ -14,6 +14,7 @@ extension Container {
             RootTabViewModel(
                 loadProfile: self.loadProfile(),
                 iCloudKeyValueService: self.iCloudKeyValueService(),
+                userDefaults: self.userDefaultsService(),
                 appearanceManager: self.appearanceManager(),
                 navigationService: self.navigationService(),
                 personalityDeepLinkCoordinator: self.personalityDeepLinkCoordinator(),

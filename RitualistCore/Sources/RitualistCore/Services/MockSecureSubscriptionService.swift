@@ -111,7 +111,7 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
 
     public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
         // Check AllFeatures build flag first (returns lifetime for TestFlight/dev builds)
-        if UserDefaults.standard.bool(forKey: UserDefaultsKeys.allFeaturesEnabledCache) {
+        if userDefaults.bool(forKey: UserDefaultsKeys.allFeaturesEnabledCache) {
             return .lifetime
         }
 

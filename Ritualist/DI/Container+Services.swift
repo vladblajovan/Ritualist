@@ -45,7 +45,10 @@ extension Container {
     /// REMOVAL NOTICE: This can be removed after all users have updated (2-3 releases)
     var cloudKitCleanupService: Factory<CloudKitCleanupServiceProtocol> {
         self {
-            CloudKitCleanupService(logger: self.debugLogger())
+            CloudKitCleanupService(
+                logger: self.debugLogger(),
+                userDefaults: self.userDefaultsService()
+            )
         }
         .singleton
     }
@@ -158,6 +161,11 @@ extension Container {
 
     var iCloudKeyValueService: Factory<iCloudKeyValueService> {
         self { DefaultiCloudKeyValueService(logger: self.debugLogger()) }
+            .singleton
+    }
+
+    var userDefaultsService: Factory<UserDefaultsService> {
+        self { DefaultUserDefaultsService() }
             .singleton
     }
 

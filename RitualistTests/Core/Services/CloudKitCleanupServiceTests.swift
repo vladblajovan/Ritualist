@@ -32,55 +32,34 @@ import Foundation
 
 /// Tests for CloudKit cleanup flag behavior
 ///
-/// Note: These tests use UserDefaults.standard because CloudKitCleanupService
-/// doesn't support dependency injection for UserDefaults. This is acceptable because:
-/// 1. Swift Testing runs tests serially by default
-/// 2. Each test resets the flag before and after execution
-/// 3. The tests are lightweight and don't persist state
-///
-/// If test isolation becomes an issue, CloudKitCleanupService could be refactored
-/// to accept a UserDefaults instance via init, but that adds complexity for minimal benefit.
-@Suite("CloudKitCleanupService - Completion Flag Behavior", .serialized)
+/// Uses MockUserDefaultsService for test isolation - no shared state between tests.
+@Suite("CloudKitCleanupService - Completion Flag Behavior")
 struct CloudKitCleanupCompletionFlagTests {
-
-    /// UserDefaults key used by CloudKitCleanupService
-    private static let cleanupCompletedKey = "personalityAnalysisCloudKitCleanupCompleted"
-
-    /// Reset the cleanup flag - called before and after tests that modify it
-    private func resetCleanupFlag() {
-        UserDefaults.standard.removeObject(forKey: Self.cleanupCompletedKey)
-        UserDefaults.standard.synchronize()
-    }
 
     @Test("Cleanup skips when already completed")
     func cleanupSkipsWhenAlreadyCompleted() async throws {
-        resetCleanupFlag()
-
-        // Set the flag to indicate cleanup already completed
-        UserDefaults.standard.set(true, forKey: Self.cleanupCompletedKey)
+        // Use mock UserDefaults for test isolation
+        let mockUserDefaults = MockUserDefaultsService()
+        mockUserDefaults.set(true, forKey: CloudKitCleanupService.cleanupCompletedKey)
 
         let logger = DebugLogger(subsystem: "com.ritualist.tests", category: "test")
-        let service = CloudKitCleanupService(logger: logger)
+        let service = CloudKitCleanupService(logger: logger, userDefaults: mockUserDefaults)
 
         // Should return nil (skipped) when already completed
         let result = try await service.cleanupPersonalityAnalysisFromCloudKit()
 
         #expect(result == nil, "Should return nil when cleanup was already completed")
-
-        // Clean up
-        resetCleanupFlag()
     }
 
-    @Test("Cleanup flag defaults to false when removed")
-    func cleanupFlagDefaultsToFalseWhenRemoved() {
-        // Clear the flag
-        UserDefaults.standard.removeObject(forKey: Self.cleanupCompletedKey)
-        UserDefaults.standard.synchronize()
+    @Test("Cleanup flag defaults to false when not set")
+    func cleanupFlagDefaultsToFalseWhenNotSet() {
+        // Fresh mock with no values set
+        let mockUserDefaults = MockUserDefaultsService()
 
         // When key doesn't exist, bool(forKey:) returns false
-        let flagValue = UserDefaults.standard.bool(forKey: Self.cleanupCompletedKey)
+        let flagValue = mockUserDefaults.bool(forKey: CloudKitCleanupService.cleanupCompletedKey)
 
-        #expect(flagValue == false, "Cleanup flag should default to false when key is removed")
+        #expect(flagValue == false, "Cleanup flag should default to false when key is not set")
     }
 
     @Test("DisabledCloudKitCleanupService returns nil without side effects")

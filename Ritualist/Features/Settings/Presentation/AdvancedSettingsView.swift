@@ -204,7 +204,7 @@ private struct DisplayModeSectionView: View {
                             Text("Home Timezone")
                                 .foregroundColor(.primary)
                             Spacer()
-                            Text(homeTimezone.abbreviation() ?? homeTimezone.identifier)
+                            Text(homeTimezone.compactDisplayName)
                                 .foregroundColor(.secondary)
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.secondary)
@@ -226,9 +226,9 @@ private struct DisplayModeSectionView: View {
     private var modeExplanation: String {
         switch displayMode {
         case .current:
-            return "Habits track in your current device timezone (\(currentTimezone.abbreviation() ?? currentTimezone.identifier)). Perfect for daily use."
+            return "Habits track in your current device timezone (\(currentTimezone.compactDisplayName)). Perfect for daily use."
         case .home:
-            return "Habits track in your home timezone (\(homeTimezone.abbreviation() ?? homeTimezone.identifier)). Use this while traveling to maintain your home schedule."
+            return "Habits track in your home timezone (\(homeTimezone.compactDisplayName)). Use this while traveling to maintain your home schedule."
         case .custom:
             return "Use a custom timezone for habit tracking."
         }
@@ -248,7 +248,7 @@ private struct TimezoneInformationSectionView: View {
             HStack {
                 Text("Current Timezone")
                 Spacer()
-                Text(currentTimezone.identifier)
+                Text(currentTimezone.localizedDisplayName)
                     .foregroundColor(.secondary)
                     .font(.caption)
             }
@@ -257,7 +257,7 @@ private struct TimezoneInformationSectionView: View {
             HStack {
                 Text("Home Timezone")
                 Spacer()
-                Text(homeTimezone.identifier)
+                Text(homeTimezone.localizedDisplayName)
                     .foregroundColor(.secondary)
                     .font(.caption)
             }
@@ -266,7 +266,7 @@ private struct TimezoneInformationSectionView: View {
             HStack {
                 Text("Using for Habits")
                 Spacer()
-                Text(effectiveTimezone.identifier)
+                Text(effectiveTimezone.localizedDisplayName)
                     .foregroundColor(.blue)
                     .font(.caption.weight(.medium))
             }
@@ -309,14 +309,12 @@ private struct HomeTimezonePickerView: View {
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(timezone.identifier.replacingOccurrences(of: "_", with: " "))
+                                Text(timezone.cityName)
                                     .foregroundColor(.primary)
 
-                                if let abbreviation = timezone.abbreviation() {
-                                    Text(abbreviation)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
+                                Text(timezone.gmtOffsetString)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
 
                             Spacer()
@@ -345,15 +343,14 @@ private struct HomeTimezonePickerView: View {
     private var filteredTimezones: [TimeZone] {
         let all = TimeZone.knownTimeZoneIdentifiers
             .compactMap { TimeZone(identifier: $0) }
-            .sorted { $0.identifier < $1.identifier }
+            .sorted { $0.cityName < $1.cityName }
 
         if searchText.isEmpty {
             return all
         }
 
         return all.filter { timezone in
-            timezone.identifier.localizedCaseInsensitiveContains(searchText) ||
-            (timezone.abbreviation()?.localizedCaseInsensitiveContains(searchText) ?? false)
+            timezone.searchableText.localizedCaseInsensitiveContains(searchText)
         }
     }
 }

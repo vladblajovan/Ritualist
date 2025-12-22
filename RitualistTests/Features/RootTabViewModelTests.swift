@@ -57,6 +57,9 @@ struct RootTabViewModelTests {
         let mockProfileRepo = MockProfileRepository()
         let mockLoadProfile = LoadProfile(repo: mockProfileRepo, iCloudKeyValueService: mockiCloud)
 
+        // Create mock UserDefaultsService for test isolation
+        let mockUserDefaults = MockUserDefaultsService()
+
         let appearanceManager = AppearanceManager()
         let navigationService = NavigationService()
         let personalityCoordinator = PersonalityDeepLinkCoordinator(logger: DebugLogger(subsystem: "test", category: "coordinator"))
@@ -65,6 +68,7 @@ struct RootTabViewModelTests {
         let viewModel = RootTabViewModel(
             loadProfile: mockLoadProfile,
             iCloudKeyValueService: mockiCloud,
+            userDefaults: mockUserDefaults,
             appearanceManager: appearanceManager,
             navigationService: navigationService,
             personalityDeepLinkCoordinator: personalityCoordinator,
