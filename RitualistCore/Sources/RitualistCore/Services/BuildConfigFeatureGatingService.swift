@@ -9,11 +9,10 @@
 import Foundation
 import Observation
 
-/// Legacy Feature gating service that respects build-time configuration
+/// Feature gating service that respects build-time configuration
 /// When all features are enabled at build time, this service grants access to everything
 /// When subscription gating is enabled, it delegates to the standard feature gating logic
 @available(iOS 17.0, macOS 14.0, *)
-@available(*, deprecated, message: "Use FeatureGatingUIService with BuildConfigFeatureGatingBusinessService instead")
 @Observable
 public final class BuildConfigFeatureGatingService: FeatureGatingService {
     private let buildConfigService: BuildConfigurationService

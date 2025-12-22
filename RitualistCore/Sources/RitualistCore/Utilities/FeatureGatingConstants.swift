@@ -10,10 +10,6 @@ import Foundation
 
 /// Centralized constants for feature gating messages and configuration
 ///
-/// Extracted from duplicate implementations in:
-/// - DefaultFeatureGatingBusinessService
-/// - DefaultFeatureGatingService
-///
 /// This provides a single source of truth for premium feature messaging,
 /// making it easier to maintain consistency and update copy across the app.
 public enum FeatureGatingConstants {

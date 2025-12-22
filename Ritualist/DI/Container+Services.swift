@@ -324,29 +324,6 @@ extension Container {
             .singleton
     }
 
-    var defaultFeatureGatingBusinessService: Factory<FeatureGatingBusinessService> {
-        self { DefaultFeatureGatingBusinessService(subscriptionService: self.subscriptionService(), errorHandler: self.errorHandler()) }
-            .singleton
-    }
-    
-    // MARK: - Feature Gating Service
-    
-    // MARK: - Feature Gating Business Service
-    
-    var featureGatingBusinessService: Factory<FeatureGatingBusinessService> {
-        self {
-            #if ALL_FEATURES_ENABLED
-            return MockFeatureGatingBusinessService(errorHandler: self.errorHandler())
-            #else
-            return BuildConfigFeatureGatingBusinessService(
-                buildConfigService: self.buildConfigurationService(),
-                standardFeatureGating: self.defaultFeatureGatingBusinessService()
-            )
-            #endif
-        }
-        .singleton
-    }
-    
     // MARK: - Legacy Feature Gating Service
     
     @available(*, deprecated, message: "Use featureGatingUIService instead")
