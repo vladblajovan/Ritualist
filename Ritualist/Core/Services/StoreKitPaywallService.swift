@@ -116,7 +116,6 @@ public final class StoreKitPaywallService: PaywallService {
                 if product2.isPopular { return false }
                 return product1.price < product2.price
             }
-
         } catch {
             // Handle StoreKit errors with detailed logging
             logger.log(
@@ -171,16 +170,13 @@ public final class StoreKitPaywallService: PaywallService {
                 purchaseState = .failed("Unknown error occurred")
                 return false
             }
-
         } catch let error as PaywallError {
             // Re-throw PaywallErrors
             throw error
-
         } catch StoreKitError.userCancelled {
             // StoreKit user cancellation
             purchaseState = .idle
             throw PaywallError.userCancelled
-
         } catch {
             // Generic error handling
             purchaseState = .failed("Purchase failed: \(error.localizedDescription)")
@@ -429,7 +425,6 @@ public final class StoreKitPaywallService: PaywallService {
 
                     // Finish the transaction
                     await transaction.finish()
-
                 } catch {
                     // Log verification failure (in production, send to analytics)
                     logger.log("Transaction verification failed: \(error)", level: .error, category: .subscription)
