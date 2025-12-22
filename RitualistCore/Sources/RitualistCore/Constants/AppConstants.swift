@@ -109,6 +109,24 @@ public enum TimezoneConstants {
     public static let maxTimezoneHistoryEntries = 100
 }
 
+// MARK: - App URLs
+
+/// Centralized URLs for external links.
+/// Using static let ensures fail-fast at app startup if URLs are malformed.
+public enum AppURLs {
+    /// Support email address
+    public static let supportEmail = URL(string: "mailto:ritualist-support@gmail.com")!
+
+    /// Help & FAQ page
+    public static let helpAndFAQ = URL(string: "https://vladblajovan.github.io/ritualist-legal/support.html")!
+
+    /// Privacy Policy page
+    public static let privacyPolicy = URL(string: "https://vladblajovan.github.io/ritualist-legal/privacy.html")!
+
+    /// Terms of Service page
+    public static let termsOfService = URL(string: "https://vladblajovan.github.io/ritualist-legal/terms.html")!
+}
+
 // MARK: - Notification Names
 
 public extension Notification.Name {

@@ -154,7 +154,7 @@ private struct SettingsFormView: View {
 
                     // Support Section
                     Section("Support") {
-                        Link(destination: URL(string: "mailto:ritualist-support@gmail.com")!) {
+                        Link(destination: AppURLs.supportEmail) {
                             HStack {
                                 Label("Contact Support", systemImage: "envelope")
                                 Spacer()
@@ -164,7 +164,7 @@ private struct SettingsFormView: View {
                             }
                         }
 
-                        Link(destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/support.html")!) {
+                        Link(destination: AppURLs.helpAndFAQ) {
                             HStack {
                                 Label("Help & FAQ", systemImage: "questionmark.circle")
                                 Spacer()
@@ -177,7 +177,7 @@ private struct SettingsFormView: View {
 
                     // Legal Section
                     Section("Legal") {
-                        Link(destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/privacy.html")!) {
+                        Link(destination: AppURLs.privacyPolicy) {
                             HStack {
                                 Text("Privacy Policy")
                                 Spacer()
@@ -187,7 +187,7 @@ private struct SettingsFormView: View {
                             }
                         }
 
-                        Link(destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/terms.html")!) {
+                        Link(destination: AppURLs.termsOfService) {
                             HStack {
                                 Text("Terms of Service")
                                 Spacer()

@@ -44,6 +44,9 @@ public protocol UserDefaultsService: Sendable {
 // MARK: - Default Implementation
 
 /// Production implementation wrapping UserDefaults.standard
+///
+/// Marked as `@unchecked Sendable` because `UserDefaults.standard` is internally thread-safe.
+/// Apple's documentation confirms UserDefaults is safe for concurrent access from multiple threads.
 public final class DefaultUserDefaultsService: UserDefaultsService, @unchecked Sendable {
     private let defaults: UserDefaults
 
@@ -116,6 +119,9 @@ public final class DefaultUserDefaultsService: UserDefaultsService, @unchecked S
 
 #if DEBUG
 /// Mock implementation for testing that stores values in memory
+///
+/// Marked as `@unchecked Sendable` because thread safety is ensured via NSLock.
+/// All mutable state access is protected by the lock.
 public final class MockUserDefaultsService: UserDefaultsService, @unchecked Sendable {
     private var storage: [String: Any] = [:]
     private let lock = NSLock()
