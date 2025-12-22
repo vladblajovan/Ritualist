@@ -191,29 +191,23 @@ public final class StoreKitPaywallService: PaywallService {
     public func restorePurchases() async throws -> Bool {
         purchaseState = .purchasing("restore")
 
-        do {
-            // Collect all verified transactions
-            var restoredProducts: [String] = []
+        // Collect all verified transactions
+        var restoredProducts: [String] = []
 
-            for await result in Transaction.currentEntitlements {
-                // Verify each transaction
-                if let transaction = try? checkVerified(result) {
-                    restoredProducts.append(transaction.productID)
+        for await result in Transaction.currentEntitlements {
+            // Verify each transaction
+            if let transaction = try? checkVerified(result) {
+                restoredProducts.append(transaction.productID)
 
-                    // Update subscription service
-                    try? await subscriptionService.registerPurchase(transaction.productID)
-                }
+                // Update subscription service
+                try? await subscriptionService.registerPurchase(transaction.productID)
             }
-
-            purchaseState = .idle
-
-            // Return true if we restored any purchases
-            return !restoredProducts.isEmpty
-
-        } catch {
-            purchaseState = .failed("Restore failed: \(error.localizedDescription)")
-            throw PaywallError.noPurchasesToRestore
         }
+
+        purchaseState = .idle
+
+        // Return true if we restored any purchases
+        return !restoredProducts.isEmpty
     }
 
     public func isProductPurchased(_ productId: String) async -> Bool {
@@ -266,11 +260,7 @@ public final class StoreKitPaywallService: PaywallService {
     /// - Returns: `true` if the device supports offer code redemption (iOS 14+)
     ///
     public func isOfferCodeRedemptionAvailable() -> Bool {
-        if #available(iOS 14.0, *) {
-            return true
-        } else {
-            return false
-        }
+        true // iOS 14+ is always available since minimum deployment is iOS 18
     }
 
     // MARK: - Active Discounts
@@ -300,7 +290,7 @@ public final class StoreKitPaywallService: PaywallService {
     /// - Returns: Always returns false (not yet implemented)
     ///
     public func hasActiveDiscount(for productId: String) async -> Bool {
-        return false
+        false
     }
 
     /// Clear the active discount
@@ -417,7 +407,8 @@ public final class StoreKitPaywallService: PaywallService {
     /// but automatic detection requires iOS 15+ for the `transaction.offer` property.
     ///
     private func listenForTransactions() -> Task<Void, Never> {
-        Task.detached { [weak self] in
+        let logger = self.logger // Capture for use in detached task
+        return Task.detached { [weak self] in
             // Monitor transaction updates
             for await result in Transaction.updates {
                 guard let self = self else { return }
@@ -457,8 +448,9 @@ public final class StoreKitPaywallService: PaywallService {
     ///
     @available(iOS 15.0, *)
     private func handleOfferCodeTransaction(_ transaction: Transaction, offer: Transaction.Offer) async {
+        let offerId = offer.id ?? "unknown"
         logger.log(
-            "✨ Offer code redeemed - Product: \(transaction.productID), Offer ID: \(offer.id)",
+            "✨ Offer code redeemed - Product: \(transaction.productID), Offer ID: \(offerId)",
             level: .info,
             category: .subscription
         )
@@ -469,7 +461,7 @@ public final class StoreKitPaywallService: PaywallService {
         // Update state on main actor
         await MainActor.run {
             self.offerCodeRedemptionState = .success(
-                code: "OFFER_\(offer.id)",
+                code: "OFFER_\(offerId)",
                 productId: transaction.productID
             )
         }
