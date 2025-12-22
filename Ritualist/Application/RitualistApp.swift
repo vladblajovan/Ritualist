@@ -248,7 +248,7 @@ import TipKit
 
                         // Debounce UI refresh notification to prevent rapid flashing when multiple changes arrive
                         // (e.g., user editing profile fields, bulk sync from another device)
-                        await postUIRefreshNotificationDebounced()
+                        postUIRefreshNotificationDebounced()
 
                         // Deduplicate any duplicates created by CloudKit sync before restoring geofences
                         // During initial sync: run dedup on EVERY change (not throttled) until no duplicates found
