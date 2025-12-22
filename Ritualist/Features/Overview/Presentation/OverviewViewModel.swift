@@ -176,6 +176,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
     @ObservationIgnored @Injected(\.checkPremiumStatus) private var checkPremiumStatus
     @ObservationIgnored @Injected(\.debugLogger) private var logger
+    @ObservationIgnored @Injected(\.userDefaultsService) private var userDefaults
 
     /// Cached display timezone for use in synchronous calculations.
     /// Updated on loadData() and when timezone settings change.
@@ -1803,15 +1804,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         // Check if we've moved to a new day since last session
         // Use display timezone for day boundary comparison
-        if let lastResetDate = UserDefaults.standard.object(forKey: UserDefaultsKeys.lastInspirationResetDate) as? Date {
+        if let lastResetDate = userDefaults.date(forKey: UserDefaultsKeys.lastInspirationResetDate) {
             if !CalendarUtils.areSameDayLocal(lastResetDate, today, timezone: displayTimezone) {
                 // New day - reset all inspiration state
                 dismissedTriggersToday.removeAll()
                 lastEvaluatedTriggerSet = []
-                UserDefaults.standard.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
+                userDefaults.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
             } else {
                 // Load dismissed triggers for today from UserDefaults
-                if let dismissedData = UserDefaults.standard.data(forKey: UserDefaultsKeys.dismissedTriggersToday) {
+                if let dismissedData = userDefaults.data(forKey: UserDefaultsKeys.dismissedTriggersToday) {
                     do {
                         let dismissedArray = try JSONDecoder().decode([String].self, from: dismissedData)
                         dismissedTriggersToday = Set(dismissedArray.compactMap { triggerString in
@@ -1830,15 +1831,15 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             }
         } else {
             // First time - set today as reset date
-            UserDefaults.standard.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
+            userDefaults.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
         }
     }
-    
+
     private func saveDismissedTriggers() {
         let dismissedArray = dismissedTriggersToday.map { "\($0)" }
         do {
             let data = try JSONEncoder().encode(dismissedArray)
-            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.dismissedTriggersToday)
+            userDefaults.set(data, forKey: UserDefaultsKeys.dismissedTriggersToday)
         } catch {
             logger.log(
                 "Failed to encode dismissed triggers",

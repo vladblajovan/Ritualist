@@ -41,7 +41,7 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
     /// When implementing real StoreKit2, add a check BEFORE mock purchases:
     /// ```swift
     /// // Check UserDefaults flag set by StoreKit2 transaction observer
-    /// if let isPremium = UserDefaults.standard.object(forKey: UserDefaultsKeys.premiumStatusCache) as? Bool {
+    /// if let isPremium = userDefaults.object(forKey: UserDefaultsKeys.premiumStatusCache) as? Bool {
     ///     return isPremium
     /// }
     /// ```
@@ -51,16 +51,18 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
     /// 2. Set `UserDefaultsKeys.premiumStatusCache` to true/false
     /// 3. Listen for transaction updates and update the cache
     ///
+    /// - Parameter userDefaults: UserDefaults service for checking cached values.
+    ///   Defaults to DefaultUserDefaultsService.
     /// - Returns: `true` if user has premium access based on cached values
-    public static func isPremiumFromCache() -> Bool {
+    public static func isPremiumFromCache(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) -> Bool {
         // 1. Check build configuration cache (set by main app for AllFeatures scheme)
         // This bridges the ALL_FEATURES_ENABLED flag from main app to Swift Package
-        if UserDefaults.standard.bool(forKey: UserDefaultsKeys.allFeaturesEnabledCache) {
+        if userDefaults.bool(forKey: UserDefaultsKeys.allFeaturesEnabledCache) {
             return true
         }
 
         // 2. Check mock purchases (for development/testing with Subscription scheme)
-        let purchases = UserDefaults.standard.stringArray(forKey: UserDefaultsKeys.mockPurchases) ?? []
+        let purchases = userDefaults.stringArray(forKey: UserDefaultsKeys.mockPurchases) ?? []
         return !purchases.isEmpty
     }
 

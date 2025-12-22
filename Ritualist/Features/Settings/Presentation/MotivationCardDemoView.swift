@@ -7,10 +7,12 @@
 
 import SwiftUI
 import RitualistCore
+import FactoryKit
 
 #if DEBUG
 struct MotivationCardDemoView: View {
     @Environment(\.dismiss) private var dismiss
+    @Injected(\.userDefaultsService) private var userDefaults
     @State private var dismissedTriggers: [String] = []
     @State private var lastResetDate: Date?
     @State private var showingDocumentation = false
@@ -240,7 +242,7 @@ struct MotivationCardDemoView: View {
     /// Load dismissed triggers from UserDefaults
     private func loadDismissedTriggers() {
         // Load dismissed triggers array
-        if let dismissedData = UserDefaults.standard.data(forKey: UserDefaultsKeys.dismissedTriggersToday),
+        if let dismissedData = userDefaults.data(forKey: UserDefaultsKeys.dismissedTriggersToday),
            let dismissedArray = try? JSONDecoder().decode([String].self, from: dismissedData) {
             dismissedTriggers = dismissedArray
         } else {
@@ -248,13 +250,13 @@ struct MotivationCardDemoView: View {
         }
 
         // Load last reset date
-        lastResetDate = UserDefaults.standard.object(forKey: UserDefaultsKeys.lastInspirationResetDate) as? Date
+        lastResetDate = userDefaults.date(forKey: UserDefaultsKeys.lastInspirationResetDate)
     }
 
     /// Clear all dismissed triggers and reset data
     private func clearDismissedTriggers() {
-        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.dismissedTriggersToday)
-        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.lastInspirationResetDate)
+        userDefaults.removeObject(forKey: UserDefaultsKeys.dismissedTriggersToday)
+        userDefaults.removeObject(forKey: UserDefaultsKeys.lastInspirationResetDate)
         dismissedTriggers = []
         lastResetDate = nil
     }

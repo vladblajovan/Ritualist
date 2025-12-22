@@ -12,10 +12,12 @@ extension Container {
             do {
                 // Bridge ALL_FEATURES_ENABLED flag to Swift Package for premium feature gating
                 // (habit limits, analytics, etc. - NOT for sync, which is now free)
+                // Note: Using service directly since this runs during DI container initialization
+                let userDefaults = self.userDefaultsService()
                 #if ALL_FEATURES_ENABLED
-                UserDefaults.standard.set(true, forKey: UserDefaultsKeys.allFeaturesEnabledCache)
+                userDefaults.set(true, forKey: UserDefaultsKeys.allFeaturesEnabledCache)
                 #else
-                UserDefaults.standard.set(false, forKey: UserDefaultsKeys.allFeaturesEnabledCache)
+                userDefaults.set(false, forKey: UserDefaultsKeys.allFeaturesEnabledCache)
                 #endif
 
                 // Execute pending restore BEFORE creating ModelContainer

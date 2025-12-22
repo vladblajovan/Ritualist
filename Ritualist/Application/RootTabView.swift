@@ -11,6 +11,7 @@ public struct RootTabView: View {
     @Injected(\.loadProfile) var loadProfile
     @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
     @Injected(\.debugLogger) var logger
+    @Injected(\.userDefaultsService) var userDefaults
     @State private var showOnboarding = false
     @State private var isCheckingOnboarding = true
     @State private var showingPersonalityAnalysis = false
@@ -552,7 +553,7 @@ public struct RootTabView: View {
         #endif
 
         // Check if we've already shown this toast (check BEFORE spawning async work)
-        guard !UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else {
+        guard !userDefaults.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else {
             return
         }
 
@@ -575,7 +576,7 @@ public struct RootTabView: View {
         // Load habits to check if data actually synced
         Task {
             // Double-check flag inside Task to prevent race conditions from multiple notifications
-            guard !UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else {
+            guard !userDefaults.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else {
                 return
             }
 
@@ -615,7 +616,7 @@ public struct RootTabView: View {
             }
 
             // Mark as shown IMMEDIATELY to prevent race conditions
-            UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasShownFirstSyncToast)
+            userDefaults.set(true, forKey: UserDefaultsKeys.hasShownFirstSyncToast)
 
             logger.log(
                 "☁️ First iCloud sync with data - showing welcome toast",

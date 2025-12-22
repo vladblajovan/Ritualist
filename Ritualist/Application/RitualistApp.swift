@@ -33,6 +33,7 @@ import TipKit
     @Injected(\.deduplicateData) private var deduplicateData
     @Injected(\.cloudKitCleanupService) private var cloudKitCleanupService
     @Injected(\.toastService) private var toastService
+    @Injected(\.userDefaultsService) private var userDefaults
 
     /// Track if initial launch tasks have completed to avoid duplicate work.
     ///
@@ -118,10 +119,12 @@ import TipKit
 
     init() {
         // Check if tips should be reset (set from Debug Menu)
-        if UserDefaults.standard.bool(forKey: "shouldResetTipsOnNextLaunch") {
+        // Note: Using DefaultUserDefaultsService directly here since @Injected is not available during init
+        let initUserDefaults = DefaultUserDefaultsService()
+        if initUserDefaults.bool(forKey: "shouldResetTipsOnNextLaunch") {
             // Clear flag BEFORE reset attempt to prevent crash loops
             // If resetDatastore() crashes, we don't want to retry on every launch
-            UserDefaults.standard.set(false, forKey: "shouldResetTipsOnNextLaunch")
+            initUserDefaults.set(false, forKey: "shouldResetTipsOnNextLaunch")
             do {
                 try Tips.resetDatastore()
                 tipLogger.info("✅ TipKit datastore reset successfully")
@@ -238,7 +241,7 @@ import TipKit
                         // Uses cached status to avoid redundant CloudKit API calls during bulk sync
                         let iCloudStatus = await getCachedICloudStatus()
                         if iCloudStatus == .available {
-                            UserDefaults.standard.set(Date(), forKey: UserDefaultsKeys.lastSyncDate)
+                            userDefaults.set(Date(), forKey: UserDefaultsKeys.lastSyncDate)
                         }
 
                         try? await Task.sleep(for: .seconds(BusinessConstants.remoteChangeMergeDelay))
@@ -633,7 +636,7 @@ import TipKit
 
     /// Mark CloudKit cleanup as complete (used when cleanup should not be retried)
     private func markCloudKitCleanupComplete() {
-        UserDefaults.standard.set(true, forKey: "personalityAnalysisCloudKitCleanupCompleted")
+        userDefaults.set(true, forKey: "personalityAnalysisCloudKitCleanupCompleted")
     }
 
     /// Deduplicate and return the result for callers that need to check if duplicates were found

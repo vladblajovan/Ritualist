@@ -17,6 +17,7 @@ import TipKit
 struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     @Bindable var vm: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
+    @Injected(\.userDefaultsService) private var userDefaults
     @State private var showingDeleteAlert = false
     @State private var showingScenarios = false
     @State private var showingMigrationHistory = false
@@ -331,7 +332,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     }
 
                     // Show last known version from UserDefaults
-                    if let lastVersion = UserDefaults.standard.string(forKey: UserDefaultsKeys.lastSchemaVersion) {
+                    if let lastVersion = userDefaults.string(forKey: UserDefaultsKeys.lastSchemaVersion) {
                         Text("Last Known: \(lastVersion)")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -1056,7 +1057,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     /// Note: Tips.resetDatastore() must be called before Tips.configure()
     /// So we set a flag and reset on next app launch
     private func resetTips() {
-        UserDefaults.standard.set(true, forKey: "shouldResetTipsOnNextLaunch")
+        userDefaults.set(true, forKey: "shouldResetTipsOnNextLaunch")
         Logger(subsystem: "com.vladblajovan.Ritualist", category: "Tips")
             .info("✅ Tips reset scheduled - restart the app to see tips again")
 
@@ -1090,7 +1091,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         let previousVersion = getPreviousVersionNumber()
         let versionString = "\(previousVersion).0.0"
 
-        UserDefaults.standard.set(versionString, forKey: UserDefaultsKeys.lastSchemaVersion)
+        userDefaults.set(versionString, forKey: UserDefaultsKeys.lastSchemaVersion)
 
         Logger(subsystem: "com.vladblajovan.Ritualist", category: "Debug")
             .info("Set schema version to \(versionString) - restart app to see migration modal")
@@ -1125,7 +1126,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         // This ensures proper encoding and persistence
         let encoder = JSONEncoder()
         if let data = try? encoder.encode(Array(uniqueMigrations.values)) {
-            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.migrationHistory)
+            userDefaults.set(data, forKey: UserDefaultsKeys.migrationHistory)
         }
 
         // Reload stats to update UI

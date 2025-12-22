@@ -31,11 +31,8 @@ struct RootTabViewModelTests {
 
     // MARK: - Test Setup
 
-    /// Clears UserDefaults keys that would interfere with test isolation
-    /// RootTabViewModel reads categorySeedingCompleted from real UserDefaults
-    private func clearTestUserDefaults() {
-        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
-    }
+    // Note: Tests use MockUserDefaultsService for complete isolation.
+    // No need to clear UserDefaults.standard as the ViewModel receives an isolated mock.
 
     // MARK: - Test Dependencies
 
@@ -46,8 +43,7 @@ struct RootTabViewModelTests {
         iCloudCompleted: Bool = false,
         localCompleted: Bool = false
     ) -> (RootTabViewModel, MockiCloudKeyValueServiceForViewModel) {
-        // Clear UserDefaults to ensure test isolation
-        clearTestUserDefaults()
+        // Tests use MockUserDefaultsService for complete isolation
 
         let mockiCloud = MockiCloudKeyValueServiceForViewModel()
         mockiCloud.iCloudOnboardingCompleted = iCloudCompleted

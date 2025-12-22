@@ -41,6 +41,7 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase
     @ObservationIgnored @Injected(\.saveOnboardingState) var saveOnboardingState
     @ObservationIgnored @Injected(\.iCloudKeyValueService) var iCloudKeyValueService
+    @ObservationIgnored @Injected(\.userDefaultsService) var userDefaults
     #endif
 
     public var profile = UserProfile()
@@ -746,7 +747,7 @@ public final class SettingsViewModel {
 
             // Reset categorySeedingCompleted flag (used in migration check)
             // Without this, the app treats the user as "existing" and skips onboarding
-            UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+            userDefaults.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
 
             // Reset onboarding view model to clear any cached state
             onboardingViewModel.reset()
@@ -771,7 +772,7 @@ public final class SettingsViewModel {
         iCloudKeyValueService.resetLocalOnboardingFlag()
 
         // Clear categorySeedingCompleted (so migration check doesn't skip onboarding)
-        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+        userDefaults.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
 
         // Reset onboarding view model
         onboardingViewModel.reset()
