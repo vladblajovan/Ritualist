@@ -152,6 +152,29 @@ private struct SettingsFormView: View {
                     // Social Media Section
                     SocialMediaLinksView()
 
+                    // Support Section
+                    Section("Support") {
+                        Link(destination: URL(string: "mailto:ritualist-support@gmail.com")!) {
+                            HStack {
+                                Label("Contact Support", systemImage: "envelope")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Link(destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/support.html")!) {
+                            HStack {
+                                Label("Help & FAQ", systemImage: "questionmark.circle")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
                     // Legal Section
                     Section("Legal") {
                         Link(destination: URL(string: "https://vladblajovan.github.io/ritualist-legal/privacy.html")!) {
