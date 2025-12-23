@@ -149,10 +149,16 @@ struct DataManagementSectionView: View {
         }
         .sheet(isPresented: $vm.showExportPicker) {
             if let jsonString = vm.exportedDataJSON {
-                DocumentPickerForExport(jsonString: jsonString) {
-                    // Clear exported data after picker dismisses
-                    vm.exportedDataJSON = nil
-                }
+                DocumentPickerForExport(
+                    jsonString: jsonString,
+                    onDismiss: {
+                        // Clear exported data after picker dismisses
+                        vm.exportedDataJSON = nil
+                    },
+                    onError: { errorMessage in
+                        vm.toastService.error(errorMessage)
+                    }
+                )
             }
         }
         .sheet(isPresented: $vm.showImportPicker) {
@@ -167,16 +173,17 @@ struct DataManagementSectionView: View {
     private func handleImportFile(url: URL) async {
         // Start accessing security-scoped resource
         guard url.startAccessingSecurityScopedResource() else {
-            // If we can't access the file, just return
-            // The file picker already handles user feedback
+            vm.toastService.error("Unable to access the selected file. Please try again.")
             return
         }
         defer { url.stopAccessingSecurityScopedResource() }
 
         // Read the file and pass to view model
-        // View model will handle errors and update UI state
-        if let jsonString = try? String(contentsOf: url, encoding: .utf8) {
+        do {
+            let jsonString = try String(contentsOf: url, encoding: .utf8)
             await vm.importData(jsonString: jsonString)
+        } catch {
+            vm.toastService.error("Could not read the file. Make sure it's a valid JSON file.")
         }
     }
 }
@@ -186,6 +193,7 @@ struct DataManagementSectionView: View {
 struct DocumentPickerForExport: UIViewControllerRepresentable {
     let jsonString: String
     let onDismiss: () -> Void
+    var onError: ((String) -> Void)?
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         // Create temporary file with JSON data
@@ -196,8 +204,8 @@ struct DocumentPickerForExport: UIViewControllerRepresentable {
         do {
             try jsonString.write(to: fileURL, atomically: true, encoding: .utf8)
         } catch {
-            // If writing fails, return a picker with empty file list
-            // The error will be visible to the user when they see no file
+            // If writing fails, notify via callback and return empty picker
+            onError?("Failed to prepare export file. Please try again.")
             return UIDocumentPickerViewController(forExporting: [])
         }
 

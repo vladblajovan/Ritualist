@@ -358,6 +358,78 @@ struct DailyNotificationSchedulerServiceTests {
         #expect(scheduledHabits.count == 0)
     }
 
+    // MARK: - Premium Gating Tests
+
+    @Test("Skips scheduling notifications for non-premium users")
+    func skipsSchedulingNotificationsForNonPremiumUsers() async throws {
+        let container = try TestModelContainer.create()
+        let scheduleHabitReminders = TrackingScheduleHabitReminders()
+
+        // Create active habits with reminders that WOULD be scheduled for premium users
+        let habit1 = HabitBuilder.binary(
+            name: "Active With Reminders 1",
+            isActive: true,
+            reminders: [ReminderTime(hour: 9, minute: 0)]
+        )
+
+        let habit2 = HabitBuilder.binary(
+            name: "Active With Reminders 2",
+            isActive: true,
+            reminders: [ReminderTime(hour: 10, minute: 0)]
+        )
+
+        try await saveHabits([habit1, habit2], to: container)
+
+        // Use non-premium subscription service
+        let service = createService(
+            container: container,
+            scheduleHabitReminders: scheduleHabitReminders,
+            subscriptionService: TestSubscriptionService(isPremium: false)
+        )
+
+        // Execute
+        try await service.rescheduleAllHabitNotifications()
+
+        // Verify: Should NOT schedule any notifications for non-premium users
+        let scheduledHabits = await scheduleHabitReminders.getScheduledHabits()
+        #expect(scheduledHabits.count == 0, "Non-premium users should not have notifications scheduled")
+    }
+
+    @Test("Premium users get notifications scheduled normally")
+    func premiumUsersGetNotificationsScheduledNormally() async throws {
+        let container = try TestModelContainer.create()
+        let scheduleHabitReminders = TrackingScheduleHabitReminders()
+
+        // Create active habits with reminders
+        let habit1 = HabitBuilder.binary(
+            name: "Active With Reminders 1",
+            isActive: true,
+            reminders: [ReminderTime(hour: 9, minute: 0)]
+        )
+
+        let habit2 = HabitBuilder.binary(
+            name: "Active With Reminders 2",
+            isActive: true,
+            reminders: [ReminderTime(hour: 10, minute: 0)]
+        )
+
+        try await saveHabits([habit1, habit2], to: container)
+
+        // Explicitly use premium subscription service
+        let service = createService(
+            container: container,
+            scheduleHabitReminders: scheduleHabitReminders,
+            subscriptionService: TestSubscriptionService(isPremium: true)
+        )
+
+        // Execute
+        try await service.rescheduleAllHabitNotifications()
+
+        // Verify: Premium users should have notifications scheduled
+        let scheduledHabits = await scheduleHabitReminders.getScheduledHabits()
+        #expect(scheduledHabits.count == 2, "Premium users should have notifications scheduled")
+    }
+
 }
 
 // MARK: - Test Subscription Service
@@ -386,8 +458,20 @@ private final class TestSubscriptionService: SecureSubscriptionService {
         isPremium ? ["premium_subscription"] : []
     }
 
-    func registerPurchase(_ productId: String) {
+    func registerPurchase(_ productId: String) async throws {
         // No-op for tests
+    }
+
+    func clearPurchases() async throws {
+        // No-op for tests
+    }
+
+    func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
+        isPremium ? .annual : .free
+    }
+
+    func getSubscriptionExpiryDate() async -> Date? {
+        isPremium ? Date().addingTimeInterval(365 * 24 * 60 * 60) : nil
     }
 }
 

@@ -362,14 +362,10 @@ private struct HabitRowWithSplitZones: View {
 
     @Injected(\.subscriptionService) private var subscriptionService
     @State private var showingIconInfoSheet = false
+    @State private var isPremiumUser = false
 
     private var isEnabled: Bool {
         habit.isActive && scheduleStatus.isAvailable
-    }
-
-    /// Only show reminder icons for premium users
-    private var isPremiumUser: Bool {
-        subscriptionService.isPremiumUser()
     }
 
     var body: some View {
@@ -449,6 +445,9 @@ private struct HabitRowWithSplitZones: View {
         .opacity(isEnabled ? 1.0 : 0.7)
         .sheet(isPresented: $showingIconInfoSheet) {
             HabitIconInfoSheet()
+        }
+        .onAppear {
+            isPremiumUser = subscriptionService.isPremiumUser()
         }
     }
 }
