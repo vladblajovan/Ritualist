@@ -332,11 +332,15 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
          toVersion: SchemaV3.self,
          willMigrate: { context in
              // Optional: Pre-migration setup
+             #if DEBUG
              print("Starting migration V2 → V3")
+             #endif
          },
          didMigrate: { context in
              // Optional: Post-migration cleanup
+             #if DEBUG
              print("Completed migration V2 → V3")
+             #endif
 
              // Example: Transform data after schema change
              let habits = try context.fetch(FetchDescriptor<HabitModelV3>())

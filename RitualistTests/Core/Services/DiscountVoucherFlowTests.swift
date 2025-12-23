@@ -280,7 +280,7 @@ struct DiscountVoucherFlowTests {
         // Arrange - $20 off
         let discount = ActiveDiscount(
             codeId: "TWENTY",
-            productId: StoreKitProductID.lifetime,
+            productId: StoreKitProductID.annual,
             discountType: .fixed,
             discountValue: 20.00,
             duration: nil

@@ -112,7 +112,7 @@ public final class MockPaywallService: PaywallService {
                 "Unlimited habits",
                 "Advanced analytics & insights",
                 "Custom reminders & notifications",
-                "Data export (CSV, PDF)",
+                "Data import & export",
                 "Dark mode & themes",
                 "Priority support"
             ],
@@ -130,7 +130,7 @@ public final class MockPaywallService: PaywallService {
                 "Unlimited habits",
                 "Advanced analytics & insights",
                 "Custom reminders & notifications",
-                "Data export (CSV, PDF)",
+                "Data import & export",
                 "Dark mode & premium themes",
                 "Priority support",
                 "Early access to new features",
@@ -139,24 +139,6 @@ public final class MockPaywallService: PaywallService {
             ],
             isPopular: true,
             discount: "Save 58%"
-        ),
-        Product(
-            id: StoreKitProductID.lifetime,
-            name: "Ritualist Pro Lifetime",
-            description: "One-time purchase, lifetime access",
-            price: "$99.99",
-            localizedPrice: "$99.99 once",
-            subscriptionPlan: .lifetime,
-            duration: .monthly,
-            features: [
-                "Everything in Pro",
-                "Lifetime updates",
-                "No recurring charges",
-                "Premium support forever",
-                "Exclusive lifetime features"
-            ],
-            isPopular: false,
-            discount: "Best Deal"
         )
     ]
     

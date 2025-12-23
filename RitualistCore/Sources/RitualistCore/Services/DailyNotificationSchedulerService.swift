@@ -36,6 +36,7 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
     private let habitRepository: HabitRepository
     private let scheduleHabitReminders: ScheduleHabitRemindersUseCase
     private let notificationService: NotificationService
+    private let subscriptionService: SecureSubscriptionService
     private let logger: DebugLogger
 
     // MARK: - Initialization
@@ -44,11 +45,13 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
         habitRepository: HabitRepository,
         scheduleHabitReminders: ScheduleHabitRemindersUseCase,
         notificationService: NotificationService,
+        subscriptionService: SecureSubscriptionService,
         logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.scheduleHabitReminders = scheduleHabitReminders
         self.notificationService = notificationService
+        self.subscriptionService = subscriptionService
         self.logger = logger
     }
 
@@ -56,6 +59,36 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
 
     public func rescheduleAllHabitNotifications() async throws {
         logger.logNotification(event: "Starting daily notification rescheduling")
+
+        // Premium check: Only premium users get habit notifications
+        guard subscriptionService.isPremiumUser() else {
+            logger.logNotification(event: "Non-premium user - skipping habit notifications")
+
+            // Clear any existing habit notifications for non-premium users
+            let center = UNUserNotificationCenter.current()
+            let pendingRequests = await center.pendingNotificationRequests()
+            let habitNotificationIds = pendingRequests.compactMap { request in
+                let id = request.identifier
+                if id.contains("-") && (
+                    id.hasPrefix("today_") ||
+                    id.hasPrefix("rich_") ||
+                    id.hasPrefix("tailored_") ||
+                    UUID(uuidString: id.components(separatedBy: "-").first ?? "") != nil
+                ) {
+                    return id
+                }
+                return nil
+            }
+
+            if !habitNotificationIds.isEmpty {
+                center.removePendingNotificationRequests(withIdentifiers: habitNotificationIds)
+                logger.logNotification(
+                    event: "Cleared habit notifications for non-premium user",
+                    metadata: ["count": habitNotificationIds.count]
+                )
+            }
+            return
+        }
 
         // Fetch all active habits
         let allHabits = try await habitRepository.fetchAllHabits()

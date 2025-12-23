@@ -6,7 +6,7 @@ import RitualistCore
 public struct ReminderSection: View {
     @Bindable var vm: HabitDetailViewModel
     @State private var showingAddReminder = false
-    
+
     public var body: some View {
         Section("Reminders") {
             if vm.reminders.isEmpty {
@@ -28,15 +28,32 @@ public struct ReminderSection: View {
                     )
                 }
             }
-            
+
             Button {
-                showingAddReminder = true
+                if vm.isPremiumUser {
+                    showingAddReminder = true
+                } else {
+                    Task {
+                        await vm.showPaywall()
+                    }
+                }
             } label: {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                         .foregroundColor(.blue)
                     Text("Add Reminder")
                         .foregroundColor(.blue)
+                    if !vm.isPremiumUser {
+                        Spacer()
+                        Text("PRO")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange)
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
+                    }
                 }
             }
             .sheet(isPresented: $showingAddReminder) {

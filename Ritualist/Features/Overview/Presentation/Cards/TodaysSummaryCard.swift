@@ -4,6 +4,9 @@ import FactoryKit
 import TipKit
 
 struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
+    // MARK: - Dependencies
+    @Injected(\.debugLogger) private var logger
+
     // MARK: - Tips
     private let tapHabitTip = TapHabitTip()
     private let tapCompletedHabitTip = TapCompletedHabitTip()
@@ -644,12 +647,12 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                 TipView(tapHabitTip, arrowEdge: .bottom) { action in
                                     // When first tip is dismissed, trigger second tip eligibility
                                     TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
-                                    tipLogger.info("📤 First tip dismissed - donated shouldShowCompletedTip event")
+                                    logger.log("First tip dismissed - donated shouldShowCompletedTip event", level: .debug, category: .ui)
                                 }
                                 habitRow(habit: habit, isCompleted: false)
                             }
                             .onAppear {
-                                tipLogger.info("🎯 First incomplete habit row appeared - tip should show if eligible")
+                                logger.log("First incomplete habit row appeared - tip should show if eligible", level: .debug, category: .ui)
                             }
                         } else {
                             habitRow(habit: habit, isCompleted: false)
@@ -712,7 +715,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                 habitRow(habit: habit, isCompleted: true)
                             }
                             .onAppear {
-                                tipLogger.info("🎯 First completed habit row appeared - tip should show if eligible")
+                                logger.log("First completed habit row appeared - tip should show if eligible", level: .debug, category: .ui)
                             }
                         } else {
                             habitRow(habit: habit, isCompleted: true)
@@ -982,7 +985,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
             // Trigger tip for completed habits (so second tip can appear)
             TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
-            tipLogger.info("📤 Habit completed - donated shouldShowCompletedTip event")
+            logger.log("Habit completed - donated shouldShowCompletedTip event", level: .debug, category: .ui)
 
             // Clean up animation state
             try? await Task.sleep(nanoseconds: AnimationTiming.animationCleanupDelay)

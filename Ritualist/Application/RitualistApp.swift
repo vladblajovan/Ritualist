@@ -128,9 +128,9 @@ import TipKit
             initUserDefaults.set(false, forKey: "shouldResetTipsOnNextLaunch")
             do {
                 try Tips.resetDatastore()
-                tipLogger.info("✅ TipKit datastore reset successfully")
+                logger.log("TipKit datastore reset successfully", level: .debug, category: .system)
             } catch {
-                tipLogger.error("❌ TipKit datastore reset failed: \(error.localizedDescription)")
+                logger.log("TipKit datastore reset failed: \(error.localizedDescription)", level: .error, category: .system)
             }
         }
 
@@ -139,9 +139,9 @@ import TipKit
             try Tips.configure([
                 .displayFrequency(.immediate)
             ])
-            tipLogger.info("✅ TipKit configured successfully with displayFrequency: immediate")
+            logger.log("TipKit configured successfully", level: .debug, category: .system)
         } catch {
-            tipLogger.error("❌ TipKit configuration failed: \(error.localizedDescription)")
+            logger.log("TipKit configuration failed: \(error.localizedDescription)", level: .error, category: .system)
         }
     }
 

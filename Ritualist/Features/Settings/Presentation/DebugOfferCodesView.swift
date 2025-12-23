@@ -358,12 +358,12 @@ struct OfferCodeRow: View {
 
     private func productName(for productId: String) -> String {
         switch productId {
+        case StoreKitProductID.weekly:
+            return "Weekly"
         case StoreKitProductID.monthly:
             return "Monthly"
         case StoreKitProductID.annual:
             return "Annual"
-        case StoreKitProductID.lifetime:
-            return "Lifetime"
         default:
             return "Unknown"
         }
@@ -402,9 +402,9 @@ struct CreateOfferCodeView: View {
 
                 Section("Product") {
                     Picker("Target Product", selection: $selectedProduct) {
+                        Text("Weekly").tag(StoreKitProductID.weekly)
                         Text("Monthly").tag(StoreKitProductID.monthly)
                         Text("Annual").tag(StoreKitProductID.annual)
-                        Text("Lifetime").tag(StoreKitProductID.lifetime)
                     }
                 }
 
@@ -563,12 +563,12 @@ struct RedemptionHistoryView: View {
 
     private func productName(for productId: String) -> String {
         switch productId {
+        case StoreKitProductID.weekly:
+            return "Weekly"
         case StoreKitProductID.monthly:
             return "Monthly"
         case StoreKitProductID.annual:
             return "Annual"
-        case StoreKitProductID.lifetime:
-            return "Lifetime"
         default:
             return productId
         }

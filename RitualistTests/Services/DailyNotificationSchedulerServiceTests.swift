@@ -34,7 +34,8 @@ struct DailyNotificationSchedulerServiceTests {
     /// Create service with REAL dependencies
     func createService(
         container: ModelContainer,
-        scheduleHabitReminders: ScheduleHabitRemindersUseCase
+        scheduleHabitReminders: ScheduleHabitRemindersUseCase,
+        subscriptionService: SecureSubscriptionService? = nil
     ) -> DefaultDailyNotificationScheduler {
         // Create REAL data source and repository
         let habitDataSource = HabitLocalDataSource(modelContainer: container)
@@ -44,10 +45,14 @@ struct DailyNotificationSchedulerServiceTests {
         let notificationService = TestNotificationService()
         let logger = DebugLogger(subsystem: "test", category: "scheduler")
 
+        // Default to premium user for existing tests
+        let subscription = subscriptionService ?? TestSubscriptionService(isPremium: true)
+
         return DefaultDailyNotificationScheduler(
             habitRepository: habitRepository,
             scheduleHabitReminders: scheduleHabitReminders,
             notificationService: notificationService,
+            subscriptionService: subscription,
             logger: logger
         )
     }
@@ -297,6 +302,7 @@ struct DailyNotificationSchedulerServiceTests {
             habitRepository: failingRepo,
             scheduleHabitReminders: scheduleHabitReminders,
             notificationService: notificationService,
+            subscriptionService: TestSubscriptionService(isPremium: true),
             logger: logger
         )
 
@@ -352,5 +358,36 @@ struct DailyNotificationSchedulerServiceTests {
         #expect(scheduledHabits.count == 0)
     }
 
+}
+
+// MARK: - Test Subscription Service
+
+/// Simple test implementation of SecureSubscriptionService
+private final class TestSubscriptionService: SecureSubscriptionService {
+    private let isPremium: Bool
+
+    init(isPremium: Bool = true) {
+        self.isPremium = isPremium
+    }
+
+    func validatePurchase(_ productId: String) async -> Bool {
+        isPremium
+    }
+
+    func restorePurchases() async -> [String] {
+        isPremium ? ["premium_subscription"] : []
+    }
+
+    func isPremiumUser() -> Bool {
+        isPremium
+    }
+
+    func getValidPurchases() -> [String] {
+        isPremium ? ["premium_subscription"] : []
+    }
+
+    func registerPurchase(_ productId: String) {
+        // No-op for tests
+    }
 }
 

@@ -12,7 +12,6 @@ public enum SubscriptionPlan: String, Codable, CaseIterable {
     case weekly
     case monthly
     case annual
-    case lifetime
 
     public var displayName: String {
         switch self {
@@ -20,7 +19,6 @@ public enum SubscriptionPlan: String, Codable, CaseIterable {
         case .weekly: return "Weekly"
         case .monthly: return "Monthly"
         case .annual: return "Annual"
-        case .lifetime: return "Lifetime"
         }
     }
 
@@ -30,14 +28,13 @@ public enum SubscriptionPlan: String, Codable, CaseIterable {
         case .weekly: return "$2.99"
         case .monthly: return "$9.99"
         case .annual: return "$49.99"
-        case .lifetime: return "$99.99"
         }
     }
 
     /// Indicates if this plan is a recurring subscription (has expiry date)
     public var isRecurring: Bool {
         switch self {
-        case .free, .lifetime:
+        case .free:
             return false
         case .weekly, .monthly, .annual:
             return true
@@ -49,7 +46,7 @@ public enum SubscriptionPlan: String, Codable, CaseIterable {
         switch self {
         case .free:
             return false
-        case .weekly, .monthly, .annual, .lifetime:
+        case .weekly, .monthly, .annual:
             return true
         }
     }

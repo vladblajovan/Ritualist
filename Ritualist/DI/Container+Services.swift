@@ -199,6 +199,7 @@ extension Container {
                 habitRepository: self.habitRepository(),
                 scheduleHabitReminders: self.scheduleHabitReminders(),
                 notificationService: self.notificationService(),
+                subscriptionService: self.subscriptionService(),
                 logger: self.debugLogger()
             )
         }

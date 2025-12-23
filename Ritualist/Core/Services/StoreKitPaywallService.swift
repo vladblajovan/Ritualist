@@ -301,7 +301,7 @@ public final class StoreKitPaywallService: PaywallService {
                 duration = .monthly
             }
         } else {
-            // Non-consumable (lifetime)
+            // Fallback for unknown product types
             duration = .monthly
         }
 
@@ -340,7 +340,7 @@ public final class StoreKitPaywallService: PaywallService {
             "Unlimited habits",
             "Advanced analytics & insights",
             "Custom reminders & notifications",
-            "Data export (CSV, PDF)"
+            "Data import & export"
         ]
 
         if product.id == StoreKitProductID.annual {
@@ -350,14 +350,6 @@ public final class StoreKitPaywallService: PaywallService {
                 "Early access to new features",
                 "Cloud backup & sync",
                 "7-day free trial"
-            ]
-        } else if product.id == StoreKitProductID.lifetime {
-            return baseFeatures + [
-                "Dark mode & premium themes",
-                "Lifetime updates",
-                "No recurring charges",
-                "Premium support forever",
-                "Exclusive lifetime features"
             ]
         } else if product.id == StoreKitProductID.weekly {
             // Weekly - minimal features for trial-like experience
@@ -490,9 +482,9 @@ public final class StoreKitPaywallService: PaywallService {
     3. Enable In-App Purchases capability
     4. Create Subscription Group: "Ritualist Pro"
     5. Create IAP Products:
+       - com.vladblajovan.ritualist.weekly ($2.99/week)
        - com.vladblajovan.ritualist.monthly ($9.99/month)
        - com.vladblajovan.ritualist.annual ($49.99/year, 7-day trial)
-       - com.vladblajovan.ritualist.lifetime ($100 one-time)
     6. Submit products for review
 
  ✅ Phase 2: Code Activation

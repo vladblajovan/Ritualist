@@ -94,20 +94,6 @@ public final class MockOfferCodeStorageService: OfferCodeStorageService {
             maxRedemptions: 100
         ),
 
-        // Lifetime discount (fixed $20 off)
-        OfferCode(
-            id: "LIFETIME20",
-            displayName: "Lifetime $20 Off",
-            productId: StoreKitProductID.lifetime,
-            offerType: .discount,
-            discount: OfferCode.OfferDiscount(
-                type: .fixed,
-                value: 20.00,
-                duration: nil  // One-time purchase, no duration
-            ),
-            expirationDate: Date().addingTimeInterval(30 * 24 * 60 * 60)
-        ),
-
         // Expired code (for testing expiration logic)
         OfferCode(
             id: "EXPIRED2024",

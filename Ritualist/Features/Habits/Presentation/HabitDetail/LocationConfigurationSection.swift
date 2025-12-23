@@ -14,16 +14,36 @@ public struct LocationConfigurationSection: View {
 
     public var body: some View {
         Section {
-            // Enable/Disable Toggle
+            // Enable/Disable Toggle (Premium Feature)
             Toggle(isOn: Binding(
                 get: { vm.locationConfiguration?.isEnabled ?? false },
-                set: { vm.toggleLocationEnabled($0) }
+                set: { newValue in
+                    if newValue && !vm.isPremiumUser {
+                        // Show paywall when non-premium user tries to enable
+                        Task {
+                            await vm.showPaywall()
+                        }
+                    } else {
+                        vm.toggleLocationEnabled(newValue)
+                    }
+                }
             )) {
                 HStack {
                     Image(systemName: "location.fill")
                         .foregroundColor(.purple)
                         .accessibilityHidden(true) // Decorative icon
                     Text("Location Reminders")
+                    if !vm.isPremiumUser {
+                        Spacer()
+                        Text("PRO")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange)
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
+                    }
                 }
             }
             .accessibilityLabel("Location Reminders")

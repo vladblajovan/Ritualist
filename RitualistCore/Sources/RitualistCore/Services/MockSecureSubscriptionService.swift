@@ -100,17 +100,12 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
     }
 
     public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
-        // Check AllFeatures build flag first (returns lifetime for TestFlight/dev builds)
+        // Check AllFeatures build flag first (returns annual for TestFlight/dev builds)
         if userDefaults.bool(forKey: UserDefaultsKeys.allFeaturesEnabledCache) {
-            return .lifetime
+            return .annual
         }
 
-        // Check for lifetime purchase first (highest priority)
-        if validatedPurchases.contains(StoreKitProductID.lifetime) {
-            return .lifetime
-        }
-
-        // Check for annual subscription
+        // Check for annual subscription (highest priority)
         if validatedPurchases.contains(StoreKitProductID.annual) {
             return .annual
         }
@@ -142,8 +137,8 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
         case .annual:
             // Mock expiry: 365 days from now
             return Date().addingTimeInterval(365 * 24 * 60 * 60)
-        case .lifetime, .free:
-            // No expiry for lifetime or free
+        case .free:
+            // No expiry for free
             return nil
         }
     }

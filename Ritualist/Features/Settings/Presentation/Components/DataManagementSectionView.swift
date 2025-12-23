@@ -27,13 +27,19 @@ struct DataManagementSectionView: View {
 
     var body: some View {
         Section {
-            // Export My Data Button
+            // Export My Data Button (Premium Feature)
             Button(action: {
-                Task {
-                    await vm.exportData()
-                    // Only show picker if export succeeded
-                    if vm.exportedDataJSON != nil {
-                        vm.showExportPicker = true
+                if vm.isPremiumUser {
+                    Task {
+                        await vm.exportData()
+                        // Only show picker if export succeeded
+                        if vm.exportedDataJSON != nil {
+                            vm.showExportPicker = true
+                        }
+                    }
+                } else {
+                    Task {
+                        await vm.showPaywall()
                     }
                 }
             }) {
@@ -45,6 +51,17 @@ struct DataManagementSectionView: View {
                             .foregroundStyle(.secondary)
                     } else {
                         Label("Export", systemImage: "square.and.arrow.up")
+                        Spacer()
+                        if !vm.isPremiumUser {
+                            Text("PRO")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange)
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -53,9 +70,15 @@ struct DataManagementSectionView: View {
             .buttonStyle(.plain)
             .disabled(vm.isExportingData || vm.isImportingData)
 
-            // Import My Data Button
+            // Import My Data Button (Premium Feature)
             Button(action: {
-                vm.showImportPicker = true
+                if vm.isPremiumUser {
+                    vm.showImportPicker = true
+                } else {
+                    Task {
+                        await vm.showPaywall()
+                    }
+                }
             }) {
                 HStack {
                     if vm.isImportingData {
@@ -65,6 +88,17 @@ struct DataManagementSectionView: View {
                             .foregroundStyle(.secondary)
                     } else {
                         Label("Import", systemImage: "square.and.arrow.down")
+                        Spacer()
+                        if !vm.isPremiumUser {
+                            Text("PRO")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange)
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

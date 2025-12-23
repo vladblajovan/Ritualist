@@ -1163,8 +1163,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
             return .secondary
         case .weekly, .monthly, .annual:
             return .green
-        case .lifetime:
-            return .orange
         }
     }
 

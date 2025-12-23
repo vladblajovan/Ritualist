@@ -30,9 +30,14 @@ public final class HabitDetailViewModel {
     @ObservationIgnored @Injected(\.requestLocationPermissions) var requestLocationPermissions
     @ObservationIgnored @Injected(\.timezoneService) var timezoneService
     @ObservationIgnored @Injected(\.debugLogger) var logger
+    @ObservationIgnored @Injected(\.checkPremiumStatus) var checkPremiumStatus
+    @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
 
     /// Cached display timezone for synchronous calculations
     @ObservationIgnored private var displayTimezone: TimeZone = .current
+
+    /// Cached premium status for synchronous UI checks
+    private var cachedPremiumStatus = false
 
     // Form state
     public var name = ""
@@ -69,6 +74,14 @@ public final class HabitDetailViewModel {
     public private(set) var isCheckingLocationAuth = false
     public private(set) var isRequestingLocationPermission = false
     public var showMapPicker = false
+
+    // Premium/Paywall state
+    public var paywallItem: PaywallItem?
+
+    /// Whether user has premium subscription (for feature gating)
+    public var isPremiumUser: Bool {
+        cachedPremiumStatus
+    }
 
     // State management
     public private(set) var isLoading = false
@@ -122,7 +135,20 @@ public final class HabitDetailViewModel {
         async let categories: () = loadCategories()
         async let location: () = checkLocationAuthStatus()
         async let earliestLog: () = loadEarliestLogDate()
-        _ = await (categories, location, earliestLog)
+        async let premium: () = loadPremiumStatus()
+        _ = await (categories, location, earliestLog, premium)
+    }
+
+    /// Load and cache premium status for feature gating
+    private func loadPremiumStatus() async {
+        cachedPremiumStatus = await checkPremiumStatus.execute()
+    }
+
+    /// Show the paywall for premium features
+    public func showPaywall() async {
+        await paywallViewModel.load()
+        paywallViewModel.trackPaywallShown(source: "habit_detail", trigger: "premium_feature")
+        paywallItem = PaywallItem(viewModel: paywallViewModel)
     }
     
     public var isFormValid: Bool {

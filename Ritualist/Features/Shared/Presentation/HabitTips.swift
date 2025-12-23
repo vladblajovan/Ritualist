@@ -1,8 +1,5 @@
 import TipKit
 import SwiftUI
-import os.log
-
-let tipLogger = Logger(subsystem: "com.vladblajovan.Ritualist", category: "Tips")
 
 /// Tip to inform users they can tap a habit to log progress or complete it
 /// Shows when: user has at least 1 incomplete habit (no other conditions)

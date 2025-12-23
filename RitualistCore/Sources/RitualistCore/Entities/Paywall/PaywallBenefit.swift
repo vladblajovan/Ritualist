@@ -45,10 +45,10 @@ public struct PaywallBenefit: Identifiable, Hashable {
                 icon: "bell.badge.circle.fill"
             ),
             PaywallBenefit(
-                id: "data_export",
-                title: "Data Export",
-                description: "Export your habit data to CSV",
-                icon: "square.and.arrow.up.circle.fill"
+                id: "data_import_export",
+                title: "Import & Export",
+                description: "Import or export your habit data",
+                icon: "arrow.up.arrow.down.circle.fill"
             )
         ]
     }

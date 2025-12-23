@@ -40,15 +40,6 @@ public enum StoreKitProductID {
     /// **Best value** - saves 58% compared to monthly.
     public static let annual = "com.vladblajovan.ritualist.annual"
 
-    // MARK: - Non-Consumable Products
-
-    /// Lifetime purchase - $99.99 one-time
-    ///
-    /// One-time purchase providing permanent access to all premium features.
-    /// Never expires, no recurring charges.
-    /// Restores across devices via Apple ID.
-    public static let lifetime = "com.vladblajovan.ritualist.lifetime"
-
     // MARK: - Product Collections
 
     /// All subscription product IDs (weekly, monthly and annual)
@@ -60,18 +51,9 @@ public enum StoreKitProductID {
         annual
     ]
 
-    /// All non-consumable product IDs (lifetime)
-    ///
-    /// Use this for loading one-time purchase offerings from StoreKit.
-    public static let nonConsumableProducts: [String] = [
-        lifetime
-    ]
-
     /// All product IDs available for purchase
     ///
     /// Use this for loading all products from StoreKit in one request.
-    /// Note: Currently only subscription products are available.
-    /// Lifetime was removed from App Store Connect offerings.
     public static let allProducts: [String] = subscriptionProducts
 
     // MARK: - Subscription Group
@@ -93,14 +75,6 @@ public enum StoreKitProductID {
         subscriptionProducts.contains(productID)
     }
 
-    /// Checks if a product ID is a non-consumable (lifetime)
-    ///
-    /// - Parameter productID: The product identifier to check
-    /// - Returns: `true` if the product is a non-consumable, `false` otherwise
-    public static func isNonConsumable(_ productID: String) -> Bool {
-        nonConsumableProducts.contains(productID)
-    }
-
     /// Maps a product ID to a SubscriptionPlan
     ///
     /// - Parameter productID: The product identifier
@@ -113,8 +87,6 @@ public enum StoreKitProductID {
             return .monthly
         case annual:
             return .annual
-        case lifetime:
-            return .lifetime
         default:
             return .free
         }
@@ -132,7 +104,6 @@ extension StoreKitProductID {
     public enum Test {
         public static let monthly = "com.vladblajovan.ritualist.test.monthly"
         public static let annual = "com.vladblajovan.ritualist.test.annual"
-        public static let lifetime = "com.vladblajovan.ritualist.test.lifetime"
     }
 }
 #endif

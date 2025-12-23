@@ -29,5 +29,8 @@ public struct HabitFormView: View {
         }
         .listStyle(.insetGrouped)
         // Note: Categories and location status are loaded in ViewModel init
+        .sheet(item: $vm.paywallItem) { item in
+            PaywallView(vm: item.viewModel)
+        }
     }
 }

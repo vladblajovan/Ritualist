@@ -19,7 +19,6 @@ import RitualistCore
 /// - StoreKit 2 Transaction.currentEntitlements for real-time status
 /// - On-device receipt verification (StoreKit handles cryptographic validation)
 /// - Subscription expiry detection
-/// - Lifetime purchase recognition
 /// - Performance-optimized caching
 ///
 /// **Security:**
@@ -142,9 +141,6 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
                                 if expirationDate > Date() {
                                     return true
                                 }
-                            } else {
-                                // Non-consumable (lifetime) - no expiry
-                                return true
                             }
                         }
                     }
@@ -260,12 +256,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         // Refresh cache if needed
         await refreshCacheIfNeeded()
 
-        // Check for lifetime purchase first (highest priority)
-        if cachedValidPurchases.contains(StoreKitProductID.lifetime) {
-            return .lifetime
-        }
-
-        // Check for annual subscription
+        // Check for annual subscription (highest priority)
         if cachedValidPurchases.contains(StoreKitProductID.annual) {
             return .annual
         }
@@ -304,7 +295,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
             }
         }
 
-        // No expiry date found (lifetime purchase or free user)
+        // No expiry date found (free user)
         return nil
     }
 
@@ -378,7 +369,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
             return expirationDate > Date()
         }
 
-        // For non-consumables (lifetime), always valid if not revoked
+        // No expiration date means non-subscription purchase - always valid if not revoked
         return true
     }
 
@@ -418,9 +409,9 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     3. Enable In-App Purchases capability
     4. Create Subscription Group: "Ritualist Pro"
     5. Create IAP Products:
+       - com.vladblajovan.ritualist.weekly ($2.99/week)
        - com.vladblajovan.ritualist.monthly ($9.99/month)
        - com.vladblajovan.ritualist.annual ($49.99/year, 7-day trial)
-       - com.vladblajovan.ritualist.lifetime ($100 one-time)
     6. Submit products for review
 
  ✅ Phase 2: Code Activation
@@ -435,8 +426,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     2. Test purchase validation
     3. Test restore purchases
     4. Test subscription expiry detection
-    5. Test lifetime purchase (non-consumable)
-    6. Test cache refresh logic
+    5. Test cache refresh logic
 
  ✅ Phase 4: Deployment
     1. TestFlight: Use Ritualist-AllFeatures scheme (bypass paywall)

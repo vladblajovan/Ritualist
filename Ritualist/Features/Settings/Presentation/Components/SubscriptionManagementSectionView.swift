@@ -52,9 +52,8 @@ struct SubscriptionManagementSectionView: View {
                 UpgradeBannerView(onUpgradeTap: showPaywall)
             }
 
-            // Expiry Date Row (for time-limited subscriptions)
-            if let expiryDate = vm.subscriptionExpiryDate,
-               vm.subscriptionPlan != .lifetime {
+            // Expiry Date Row (for subscriptions)
+            if let expiryDate = vm.subscriptionExpiryDate {
                 HStack {
                     Label("Renews", systemImage: "calendar")
                         .foregroundStyle(.secondary)
@@ -88,17 +87,13 @@ struct SubscriptionManagementSectionView: View {
                 .disabled(isRestoringPurchases)
             }
 
-            // Manage Subscription / View Purchase History Button (for all premium users)
-            if vm.subscriptionPlan == .monthly || vm.subscriptionPlan == .annual || vm.subscriptionPlan == .lifetime {
+            // Manage Subscription Button (for all premium users)
+            if vm.subscriptionPlan == .weekly || vm.subscriptionPlan == .monthly || vm.subscriptionPlan == .annual {
                 Button {
                     openSubscriptionManagement()
                 } label: {
                     HStack {
-                        if vm.subscriptionPlan == .lifetime {
-                            Label("View Purchase History", systemImage: "clock.arrow.circlepath")
-                        } else {
-                            Label("Manage Subscription", systemImage: "gearshape")
-                        }
+                        Label("Manage Subscription", systemImage: "gearshape")
                         Spacer()
                         Image(systemName: "arrow.up.right.square")
                             .font(.caption)
@@ -132,8 +127,6 @@ struct SubscriptionManagementSectionView: View {
             return "person"
         case .weekly, .monthly, .annual:
             return "star.circle.fill"
-        case .lifetime:
-            return "crown.fill"
         }
     }
 
@@ -167,10 +160,6 @@ struct SubscriptionManagementSectionView: View {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
                 .font(.caption)
-        case .lifetime:
-            Image(systemName: "infinity.circle.fill")
-                .foregroundStyle(.orange)
-                .font(.caption)
         }
     }
 
@@ -180,8 +169,6 @@ struct SubscriptionManagementSectionView: View {
             return .secondary
         case .weekly, .monthly, .annual:
             return .green
-        case .lifetime:
-            return .orange
         }
     }
 
@@ -201,8 +188,6 @@ struct SubscriptionManagementSectionView: View {
             Text("Your monthly subscription gives you access to all premium features. Manage or cancel anytime in App Store.")
         case .annual:
             Text("Your annual subscription includes all premium features. You can manage or cancel anytime in App Store.")
-        case .lifetime:
-            Text("You have lifetime access to all premium features. Thank you for your support!")
         }
         #endif
     }
@@ -271,9 +256,6 @@ struct SubscriptionManagementSectionView: View {
 
             // Annual subscriber preview
             SubscriptionManagementSectionView(vm: makePreviewVM(plan: .annual, expiryDate: Date().addingTimeInterval(BusinessConstants.oneYearInterval)))
-
-            // Lifetime access preview
-            SubscriptionManagementSectionView(vm: makePreviewVM(plan: .lifetime))
         }
         .navigationTitle("Subscription Previews")
     }

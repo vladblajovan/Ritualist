@@ -57,7 +57,7 @@ struct OnboardingPremiumComparisonView: View {
                             PremiumFeature(icon: "infinity.circle.fill", text: Strings.OnboardingPremium.unlimitedHabits, color: .orange),
                             PremiumFeature(icon: "chart.line.uptrend.xyaxis.circle.fill", text: Strings.OnboardingPremium.advancedAnalytics, color: .orange),
                             PremiumFeature(icon: "bell.badge.circle.fill", text: Strings.OnboardingPremium.customReminders, color: .orange),
-                            PremiumFeature(icon: "square.and.arrow.up.circle.fill", text: Strings.OnboardingPremium.dataExport, color: .orange)
+                            PremiumFeature(icon: "arrow.up.arrow.down.circle.fill", text: Strings.OnboardingPremium.dataExport, color: .orange)
                         ],
                         isPro: true
                     )
