@@ -197,7 +197,7 @@ public struct DashboardView: View {
     @ViewBuilder
     private func progressChartSection(data: [DashboardViewModel.ChartDataPointViewModel]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
+            HStack(alignment: .top) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.title2)
                     .foregroundColor(AppColors.brand)
@@ -273,7 +273,7 @@ public struct DashboardView: View {
     @ViewBuilder
     private func weeklyPatternsSection(patterns: DashboardViewModel.WeeklyPatternsViewModel) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 ZStack {
                     Circle()
                         .fill(AppColors.brand.opacity(0.12))

@@ -61,9 +61,6 @@ struct SmartInsightsCard: View {
                 insightsContent
             }
         }
-        .padding(20)
-        // PERFORMANCE: Removed .glassmorphicMaximizedContentStyle() - unnecessary Button wrapper with animation
-        // Card is already wrapped in .simpleCard() in OverviewView
     }
     
     // MARK: - Insights Content

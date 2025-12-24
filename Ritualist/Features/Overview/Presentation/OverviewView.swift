@@ -81,55 +81,9 @@ public struct OverviewView: View {
                         vm.goToToday()
                     }
                 )
-                // PERFORMANCE: Use simpleCard instead of glassmorphicCard for this massive 932-line card
-                // .thinMaterial blur recalculates on every scroll frame = expensive for complex content
-                .simpleCard()
+                .cardStyle()
                 .id("topCard")
-                
-                // Conditional cards based on user state
-                // COMMENTED OUT: QuickActionsCard - Quick Log functionality temporarily disabled
-                /*
-                if vm.shouldShowQuickActions {
-                    QuickActionsCard(
-                        incompleteHabits: vm.incompleteHabits,
-                        completedHabits: vm.completedHabits,
-                        currentSlogan: vm.currentSlogan,
-                        timeOfDay: vm.currentTimeOfDay,
-                        completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
-                        viewingDate: vm.viewingDate,
-                        onHabitComplete: { habit in
-                            Task {
-                                await vm.completeHabit(habit)
-                            }
-                        },
-                        getProgressSync: { habit in
-                            vm.getProgressSync(for: habit)
-                        },
-                        onNumericHabitUpdate: { habit, newValue in
-                            try await vm.updateNumericHabit(habit, value: newValue)
-                        },
-                        onNumericHabitAction: { habit in
-                            vm.showNumericSheet(for: habit)
-                        },
-                        onDeleteHabitLog: { habit in
-                            Task {
-                                await vm.deleteHabitLog(habit)
-                            }
-                        },
-                        getScheduleStatus: { habit in
-                            vm.getScheduleStatus(for: habit)
-                        },
-                        getValidationMessage: { habit in
-                            await vm.getScheduleValidationMessage(for: habit)
-                        },
-                        getWeeklyProgress: { habit in
-                            vm.getWeeklyProgress(for: habit)
-                        }
-                    )
-                    .glassmorphicCard()
-                }
-                */
-                
+
                 // Monthly Calendar + Streaks - side by side on iPad with equal heights
                 if vm.shouldShowActiveStreaks || vm.isLoading {
                     EqualHeightRow {
@@ -137,9 +91,11 @@ public struct OverviewView: View {
                             monthlyData: vm.monthlyCompletionData,
                             onDateSelect: { date in
                                 vm.goToDate(date)
-                                // Scroll immediately after date selection (which happens after glow effect)
-                                withAnimation(.easeInOut(duration: 0.6)) {
-                                    proxy.scrollTo("topCard", anchor: .top)
+                                // Defer scroll to next run loop so view updates first
+                                DispatchQueue.main.async {
+                                    withAnimation(.easeInOut(duration: 0.6)) {
+                                        proxy.scrollTo("topCard", anchor: .top)
+                                    }
                                 }
                             },
                             timezone: vm.displayTimezone
@@ -162,8 +118,11 @@ public struct OverviewView: View {
                         monthlyData: vm.monthlyCompletionData,
                         onDateSelect: { date in
                             vm.goToDate(date)
-                            withAnimation(.easeInOut(duration: 0.6)) {
-                                proxy.scrollTo("topCard", anchor: .top)
+                            // Defer scroll to next run loop so view updates first
+                            DispatchQueue.main.async {
+                                withAnimation(.easeInOut(duration: 0.6)) {
+                                    proxy.scrollTo("topCard", anchor: .top)
+                                }
                             }
                         },
                         timezone: vm.displayTimezone
@@ -182,7 +141,7 @@ public struct OverviewView: View {
                             vm.openPersonalityAnalysis()
                         }
                     )
-                    .simpleCard()
+                    .cardStyle()
                 }
                 
                 Spacer(minLength: 100) // Tab bar padding

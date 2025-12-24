@@ -23,6 +23,7 @@ struct MonthlyCalendarCard: View {
     /// The timezone used for all date calculations. Should match the timezone used to generate monthlyData keys.
     let timezone: TimeZone
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var currentDate = Date()
     @State private var displayDays: [DayDisplayData] = []
 
@@ -52,16 +53,18 @@ struct MonthlyCalendarCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Header with navigation
-            HStack {
-                Text(seasonIcon)
-                    .font(.title2)
-                    .accessibilityHidden(true) // Decorative season emoji
-                Text(monthString)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .accessibilityAddTraits(.isHeader)
+        VStack(alignment: .leading, spacing: 16) {
+            // Header with navigation - align to top to reduce visual padding from 44pt touch targets
+            HStack(alignment: .top) {
+                HStack(spacing: 4) {
+                    Text(seasonIcon)
+                        .font(.title2)
+                        .accessibilityHidden(true) // Decorative season emoji
+                    Text(monthString)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .accessibilityAddTraits(.isHeader)
+                }
                 Spacer()
 
                 // Navigation controls
@@ -121,8 +124,8 @@ struct MonthlyCalendarCard: View {
             GeometryReader { geometry in
                 Canvas { context, size in
                     let cellSize: CGFloat = 36  // Circle diameter
-                    let verticalSpacing: CGFloat = 6    // Relaxed spacing between rows
-                    let strokePadding: CGFloat = 2  // Padding to prevent border stroke clipping
+                    let verticalSpacing: CGFloat = 4    // Tight spacing between rows
+                    let strokePadding: CGFloat = 0  // No extra padding needed
 
                     // No arrow offset needed - day names use full width now
                     let columnWidth = size.width / 7
@@ -159,10 +162,11 @@ struct MonthlyCalendarCard: View {
             }
             .frame(minHeight: {
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
+                let numRows = maxRow + 1
                 let cellSize: CGFloat = 36
-                let verticalSpacing: CGFloat = 6
-                let strokePadding: CGFloat = 2  // Padding for border stroke (top and bottom)
-                return strokePadding * 2 + CGFloat(maxRow + 1) * (cellSize + verticalSpacing)
+                let verticalSpacing: CGFloat = 4
+                // Height = rows + gaps between rows (no extra padding)
+                return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing
             }())
             // Accessibility: Provide summary for VoiceOver users
             .accessibilityElement(children: .ignore)
@@ -170,9 +174,11 @@ struct MonthlyCalendarCard: View {
             .accessibilityHint("Double-tap to select a date")
             .accessibilityIdentifier("monthly_calendar_grid")
 
-            Spacer(minLength: 0)
+            // Only add spacer on iPad for equal-height matching in side-by-side layout
+            if horizontalSizeClass == .regular {
+                Spacer(minLength: 0)
+            }
         }
-        .padding(20)
         .onAppear {
             computeDisplayDays()
         }
@@ -259,14 +265,13 @@ struct MonthlyCalendarCard: View {
 
     private func handleTap(at location: CGPoint, canvasWidth: CGFloat) {
         let cellSize: CGFloat = 36  // Circle diameter
-        let verticalSpacing: CGFloat = 6    // Spacing between rows
-        let strokePadding: CGFloat = 2  // Padding for border stroke
+        let verticalSpacing: CGFloat = 4    // Tight spacing between rows
 
         // No arrow offset - day names use full width
         let columnWidth = canvasWidth / 7
 
         let col = Int(location.x / columnWidth)
-        let row = Int((location.y - strokePadding) / (cellSize + verticalSpacing))
+        let row = Int(location.y / (cellSize + verticalSpacing))
 
         if let dayData = displayDays.first(where: { $0.row == row && $0.col == col && $0.isCurrentMonth }) {
             onDateSelect(dayData.date)

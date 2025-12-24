@@ -26,6 +26,7 @@ struct StreaksCard: View {
     let onAnimationComplete: () -> Void
     let isLoading: Bool
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var animatingStreakId: String? = nil
     @State private var sheetStreak: StreakInfo? = nil
 
@@ -100,9 +101,11 @@ struct StreaksCard: View {
                     )
                     .accessibilityLabel(StreaksAccessibility.streakCount(streaks.count))
             }
-            
-            // Spacer to center content vertically
-            Spacer(minLength: 0)
+
+            // Only add spacer on iPad for equal-height matching in side-by-side layout
+            if horizontalSizeClass == .regular {
+                Spacer(minLength: 0)
+            }
 
             if isLoading {
                 // Loading state
@@ -142,29 +145,40 @@ struct StreaksCard: View {
                 .accessibilityLabel(StreaksAccessibility.emptyStateLabel)
             } else {
                 // Horizontal Scrolling Grid (horizontal-first filling)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: rowSpacing) {
-                        ForEach(Array(streakRows.enumerated()), id: \.offset) { rowIndex, rowStreaks in
-                            HStack(spacing: itemSpacing) {
-                                ForEach(rowStreaks) { streak in
-                                    streakItem(for: streak)
-                                        .frame(width: 140) // Fixed width for consistent sizing
+                // Use GeometryReader to calculate dynamic item heights
+                GeometryReader { geometry in
+                    let numRows = numberOfRows
+                    let availableHeight = geometry.size.height
+                    // Scale to fill space when 2 rows; keep fixed height for 1 row
+                    let dynamicItemHeight = numRows > 1
+                        ? (availableHeight - CGFloat(numRows - 1) * rowSpacing) / CGFloat(numRows)
+                        : itemHeight
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: rowSpacing) {
+                            ForEach(Array(streakRows.enumerated()), id: \.offset) { _, rowStreaks in
+                                HStack(spacing: itemSpacing) {
+                                    ForEach(rowStreaks) { streak in
+                                        streakItem(for: streak, height: dynamicItemHeight)
+                                            .frame(width: 140) // Fixed width for consistent sizing
+                                    }
                                 }
                             }
                         }
+                        .padding(.trailing, 16)
                     }
-                    .padding(.trailing, 16)
                 }
                 .frame(minHeight: gridHeight) // Minimum height based on row count, can expand
+                // Prevent flash during layout recalculations
+                .transaction { $0.animation = nil }
             }
 
-            // Spacer to center content vertically
-            Spacer(minLength: 0)
+            // Only add spacer on iPad for equal-height matching in side-by-side layout
+            if horizontalSizeClass == .regular {
+                Spacer(minLength: 0)
+            }
         }
-        .padding(20)
         .accessibilityIdentifier("streaks_card")
-        // PERFORMANCE: Removed .glassmorphicMaximizedContentStyle() - unnecessary Button wrapper with animation
-        // Card is already wrapped in .simpleCard() in OverviewView
         .onAppear {
             if shouldAnimateBestStreak {
                 // Find the best streak to animate
@@ -179,7 +193,7 @@ struct StreaksCard: View {
     }
     
     @ViewBuilder
-    private func streakItem(for streak: StreakInfo) -> some View {
+    private func streakItem(for streak: StreakInfo, height: CGFloat) -> some View {
         let streakLevel = streak.flameCount > 0 ? StreakDetailSheet.streakLevelText(for: streak.flameCount) : nil
 
         Button {
@@ -233,7 +247,7 @@ struct StreaksCard: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity)
-            .frame(height: 100)
+            .frame(height: height)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(CardDesign.secondaryBackground)

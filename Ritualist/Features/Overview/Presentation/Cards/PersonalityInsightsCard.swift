@@ -61,12 +61,8 @@ struct PersonalityInsightsCard: View {
                 noInsightsContent
             }
         }
-        .padding(20)
-        // PERFORMANCE: Removed .glassmorphicMaximizedContentStyle() - unnecessary Button wrapper with animation
-        // Card is already wrapped in .simpleCard() in OverviewView
-        // Only the top-right icon should open the analysis sheet
     }
-    
+
     // MARK: - Content Views
 
     @ViewBuilder

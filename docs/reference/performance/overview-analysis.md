@@ -159,7 +159,7 @@ ForEach(Array(summary.completedHabits.dropFirst(2)), id: \.id) { habit in
 
 ### ✅ What's Already Optimized
 1. ✅ MonthlyCalendarCard - Pre-computed properties, Grid layout, conditional shadows
-2. ✅ All cards use `.simpleCard()` (no glassmorphic blur)
+2. ✅ All cards use `.cardStyle()` (consistent styling with bounce animation)
 3. ✅ LazyVStack correctly used (lazy loading)
 4. ✅ 3-color gradient (acceptable performance)
 
@@ -205,7 +205,7 @@ TodaysSummaryCard violates the "dumb view" principle - it has too much logic and
 ## Conclusion
 
 The scroll lag is NOT caused by:
-- ❌ glassmorphic styling (already removed)
+- ❌ card styling (lightweight `.cardStyle()`)
 - ❌ gradient background (acceptable)
 - ❌ MonthlyCalendarCard (already optimized)
 

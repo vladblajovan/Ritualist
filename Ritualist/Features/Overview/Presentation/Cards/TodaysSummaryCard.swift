@@ -356,7 +356,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 loadingView
             }
         }
-        .glassmorphicContentStyle()
         .accessibilityIdentifier(AccessibilityID.Overview.todaysSummaryCard)
         .alert("Remove Log Entry?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {
