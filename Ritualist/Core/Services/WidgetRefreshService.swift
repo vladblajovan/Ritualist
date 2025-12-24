@@ -1,15 +1,13 @@
-// Re-export WidgetRefreshService protocol from RitualistCore
-// Implementation must stay in app layer due to WidgetKit dependency
+// WidgetRefreshService implementation
+// Must stay in app layer due to WidgetKit dependency
+// Protocol re-exported in Services.swift
 import WidgetKit
 import Foundation
 import RitualistCore
 
-// Re-export protocol from RitualistCore
-public typealias WidgetRefreshServiceProtocol = RitualistCore.WidgetRefreshServiceProtocol
-
-// Implementation remains in app layer due to WidgetKit dependency
 /// Service responsible for refreshing widget timelines when app data changes
 /// Ensures widget displays up-to-date habit completion status
+/// Protocol (WidgetRefreshServiceProtocol) is re-exported in Services.swift
 public final class WidgetRefreshService: WidgetRefreshServiceProtocol {
     private let logger: DebugLogger
 

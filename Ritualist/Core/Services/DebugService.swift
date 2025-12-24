@@ -1,5 +1,6 @@
-// Re-export DebugService protocol from RitualistCore
-// Implementation must stay in app layer due to SwiftData model dependencies
+// DebugService implementation
+// Must stay in app layer due to SwiftData model dependencies
+// Protocol re-exported in Services.swift
 import Foundation
 import SwiftData
 import RitualistCore
@@ -7,11 +8,8 @@ import FactoryKit
 
 #if DEBUG
 
-// Re-export protocol from RitualistCore
-public typealias DebugServiceProtocol = RitualistCore.DebugServiceProtocol
-public typealias DebugDatabaseStats = RitualistCore.DebugDatabaseStats
-
-// Implementation remains in app layer due to SwiftData model dependencies
+/// Debug service implementation for database operations
+/// Protocol (DebugServiceProtocol) is re-exported in Services.swift
 public final class DebugService: DebugServiceProtocol {
     private let persistenceContainer: PersistenceContainer
     
