@@ -90,7 +90,7 @@ struct AdvancedSettingsView: View {
 
     private func loadTimezoneData() async {
         do {
-            currentTimezone = timezoneService.getCurrentTimezone()
+            currentTimezone = await timezoneService.getCurrentTimezone()
             homeTimezone = try await timezoneService.getHomeTimezone()
             displayMode = try await timezoneService.getDisplayTimezoneMode()
             travelStatus = try await timezoneService.detectTravelStatus()

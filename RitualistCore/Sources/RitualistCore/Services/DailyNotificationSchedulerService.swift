@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import UserNotifications
 
 /// Service responsible for daily re-scheduling of habit notifications
 /// to ensure only incomplete habits receive notifications
@@ -65,23 +64,9 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             logger.logNotification(event: "Non-premium user - skipping habit notifications")
 
             // Clear any existing habit notifications for non-premium users
-            let center = UNUserNotificationCenter.current()
-            let pendingRequests = await center.pendingNotificationRequests()
-            let habitNotificationIds = pendingRequests.compactMap { request in
-                let id = request.identifier
-                if id.contains("-") && (
-                    id.hasPrefix("today_") ||
-                    id.hasPrefix("rich_") ||
-                    id.hasPrefix("tailored_") ||
-                    UUID(uuidString: id.components(separatedBy: "-").first ?? "") != nil
-                ) {
-                    return id
-                }
-                return nil
-            }
-
+            let habitNotificationIds = await notificationService.getPendingHabitNotificationIds()
             if !habitNotificationIds.isEmpty {
-                center.removePendingNotificationRequests(withIdentifiers: habitNotificationIds)
+                await notificationService.clearHabitNotifications(ids: habitNotificationIds)
                 logger.logNotification(
                     event: "Cleared habit notifications for non-premium user",
                     metadata: ["count": habitNotificationIds.count]
@@ -130,28 +115,13 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             )
         }
 
-        // Clear all existing pending notifications first
-        let center = UNUserNotificationCenter.current()
-        let pendingRequests = await center.pendingNotificationRequests()
-        let habitNotificationIds = pendingRequests.compactMap { request in
-            let id = request.identifier
-            // Only remove habit-related notifications (those with habit IDs or specific prefixes)
-            if id.contains("-") && (
-                id.hasPrefix("today_") ||
-                id.hasPrefix("rich_") ||
-                id.hasPrefix("tailored_") ||
-                UUID(uuidString: id.components(separatedBy: "-").first ?? "") != nil
-            ) {
-                return id
-            }
-            return nil
-        }
-
-        if !habitNotificationIds.isEmpty {
-            center.removePendingNotificationRequests(withIdentifiers: habitNotificationIds)
+        // Clear all existing pending habit notifications first
+        let existingNotificationIds = await notificationService.getPendingHabitNotificationIds()
+        if !existingNotificationIds.isEmpty {
+            await notificationService.clearHabitNotifications(ids: existingNotificationIds)
             logger.logNotification(
                 event: "Cleared existing habit notifications",
-                metadata: ["count": habitNotificationIds.count]
+                metadata: ["count": existingNotificationIds.count]
             )
         }
 
@@ -184,14 +154,10 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
         )
 
         // Log final state for debugging
-        let finalPendingRequests = await center.pendingNotificationRequests()
-        let habitNotifications = finalPendingRequests.filter { request in
-            let id = request.identifier
-            return id.hasPrefix("today_") || id.hasPrefix("rich_") || id.hasPrefix("tailored_")
-        }
+        let finalPendingCount = await notificationService.getPendingHabitNotificationIds().count
         logger.logNotification(
             event: "Final notification state",
-            metadata: ["pending_count": habitNotifications.count]
+            metadata: ["pending_count": finalPendingCount]
         )
     }
 

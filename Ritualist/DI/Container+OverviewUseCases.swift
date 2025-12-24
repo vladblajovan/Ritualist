@@ -46,16 +46,6 @@ extension Container {
         self { DeleteLog(repo: self.logRepository()) }
     }
     
-    var toggleHabitLog: Factory<ToggleHabitLog> {
-        self { 
-            ToggleHabitLog(
-                getLogForDate: self.getLogForDate(),
-                logHabit: self.logHabit(),
-                deleteLog: self.deleteLog()
-            )
-        }
-    }
-    
     // MARK: - Profile Operations
 
     /// Shared profile cache for reducing database reads

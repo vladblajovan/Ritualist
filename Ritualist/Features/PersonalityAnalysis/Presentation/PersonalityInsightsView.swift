@@ -545,8 +545,8 @@ private struct PersonalityProfileView: View {
             
             VStack(spacing: 8) {
                 AnalysisDetailRow(
-                    label: "Date",
-                    value: DateFormatter.mediumDateFormatter.string(from: profile.analysisMetadata.analysisDate)
+                    label: "Generated",
+                    value: profile.analysisMetadata.analysisDate.relativeOrAbsoluteString()
                 )
                 
                 AnalysisDetailRow(

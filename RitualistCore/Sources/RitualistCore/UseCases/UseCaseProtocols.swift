@@ -149,15 +149,6 @@ public protocol GetEarliestLogDateUseCase {
     func execute(for habitID: UUID) async throws -> Date?
 }
 
-public protocol ToggleHabitLogUseCase {
-    func execute(
-        date: Date,
-        habit: Habit,
-        currentLoggedDates: Set<Date>,
-        currentHabitLogValues: [Date: Double]
-    ) async throws -> (loggedDates: Set<Date>, habitLogValues: [Date: Double])
-}
-
 // MARK: - Profile Use Cases  
 
 public protocol LoadProfileUseCase { 

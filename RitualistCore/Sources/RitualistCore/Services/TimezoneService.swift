@@ -53,7 +53,7 @@ public protocol TimezoneService {
 
     /// Get current device timezone (auto-detected)
     /// - Returns: Current device timezone
-    func getCurrentTimezone() -> TimeZone
+    func getCurrentTimezone() async -> TimeZone
 
     /// Get user's home timezone
     /// - Returns: User's home timezone
@@ -143,14 +143,10 @@ public struct TravelStatus: Equatable {
 /// Default implementation of TimezoneService using UserProfile storage
 ///
 /// ## Thread Safety:
-/// This service uses a load-modify-save pattern that is NOT inherently atomic.
-/// However, it is safe in practice because:
-/// 1. All callers are on MainActor (ViewModels, SwiftUI views, App lifecycle)
-/// 2. The underlying ProfileLocalDataSource is a @ModelActor (serialized DB access)
-///
-/// **Important:** Do not call this service from background threads without proper
-/// synchronization. If background access is needed, consider making this an actor.
-public final class DefaultTimezoneService: TimezoneService {
+/// This service is an actor, ensuring all method calls are serialized.
+/// This prevents race conditions in the load-modify-save pattern used by
+/// update methods (updateHomeTimezone, updateDisplayTimezoneMode, etc.).
+public actor DefaultTimezoneService: TimezoneService {
 
     // MARK: - Dependencies
 
@@ -195,7 +191,7 @@ public final class DefaultTimezoneService: TimezoneService {
 
     // MARK: - Getters
 
-    public func getCurrentTimezone() -> TimeZone {
+    public func getCurrentTimezone() async -> TimeZone {
         return TimeZone.current
     }
 

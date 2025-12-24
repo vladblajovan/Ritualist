@@ -364,6 +364,11 @@ extension Container {
         self { DefaultURLValidationService() }
         .singleton
     }
+
+    var importValidationService: Factory<ImportValidationService> {
+        self { DefaultImportValidationService(logger: self.debugLogger()) }
+        .singleton
+    }
     
     // MARK: - Toast Service
 

@@ -22,7 +22,8 @@ extension Container {
             habitRepository: self.habitRepository(),
             logRepository: self.logRepository(),
             getLogForDate: self.getLogForDate(),
-            logHabit: self.logHabit()
+            logHabit: self.logHabit(),
+            timezoneService: self.timezoneService()
         )}
     }
     

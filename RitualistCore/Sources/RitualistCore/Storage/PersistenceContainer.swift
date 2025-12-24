@@ -26,11 +26,20 @@ public final class PersistenceContainer {
     /// - Parameter userDefaults: UserDefaults service for storing schema version.
     ///   Defaults to DefaultUserDefaultsService.
     public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) throws {
-        Self.logger.log(
-            "☁️ iCloud sync enabled (free for all users)",
-            level: .info,
-            category: .system
-        )
+        // Log iCloud availability status and configuration mode
+        if PersistenceConfiguration.isICloudAvailable {
+            Self.logger.log(
+                "☁️ iCloud available - using dual-store configuration (CloudKit + Local)",
+                level: .info,
+                category: .system
+            )
+        } else {
+            Self.logger.log(
+                "📱 iCloud NOT available - using unified local-only storage (single store)",
+                level: .info,
+                category: .system
+            )
+        }
 
         // Get the current schema version for migration tracking and logging
         let currentSchemaVersion = RitualistMigrationPlan.currentSchemaVersion
@@ -100,15 +109,20 @@ public final class PersistenceContainer {
             let schema = Schema(versionedSchema: ActiveSchemaVersion.self)
             Self.logger.log("   Schema version: \(currentVersionString)", level: .debug, category: .system)
 
-            Self.logger.log("🚀 Initializing ModelContainer with dual configurations (CloudKit + Local)", level: .info, category: .system)
-            Self.logger.log("   CloudKit entities: \(PersistenceConfiguration.cloudKitSyncedTypes.map { String(describing: $0) })", level: .debug, category: .system)
-            Self.logger.log("   Local-only entities: \(PersistenceConfiguration.localOnlyTypes.map { String(describing: $0) })", level: .debug, category: .system)
+            // Always dual-store: CloudKit store + Local store
+            // Only difference is whether CloudKit sync is enabled
+            if PersistenceConfiguration.isICloudAvailable {
+                Self.logger.log("🚀 Initializing with CloudKit SYNC enabled", level: .info, category: .system)
+            } else {
+                Self.logger.log("🚀 Initializing with CloudKit sync DISABLED (local-only mode)", level: .info, category: .system)
+            }
+            Self.logger.log("   CloudKit store: \(PersistenceConfiguration.cloudKitSyncedTypes.map { String(describing: $0) })", level: .debug, category: .system)
+            Self.logger.log("   Local store: \(PersistenceConfiguration.localOnlyTypes.map { String(describing: $0) })", level: .debug, category: .system)
 
-            // Use versioned schema with migration plan and dual configurations
-            // CloudKit config: synced entities (habits, logs, categories, user profile, onboarding)
-            //   - Sync always enabled (free for all users)
-            // Local config: privacy-sensitive entities (personality analysis) - always local
-            // See PersistenceConfiguration.swift for entity assignments
+            // Always dual-store configuration:
+            // - CloudKit store: syncable entities (with or without sync depending on iCloud)
+            // - Local store: PersonalityAnalysis (NEVER synced for privacy)
+            // See PersistenceConfiguration.swift for details
             let configurations = PersistenceConfiguration.allConfigurations
             container = try ModelContainer(
                 for: schema,

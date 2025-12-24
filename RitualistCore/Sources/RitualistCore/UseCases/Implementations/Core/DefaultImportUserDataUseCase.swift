@@ -5,6 +5,10 @@
 //  Default implementation for importing user data from JSON
 //  GDPR Article 20 compliance - Right to data portability
 //
+//  PRIVACY NOTE: PersonalityAnalysis data is intentionally NOT imported.
+//  This sensitive psychological data stays on-device only. Any personality
+//  data in old exports is silently ignored to protect user privacy.
+//
 
 import Foundation
 import SwiftData
@@ -14,9 +18,9 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
     private let saveProfile: SaveProfileUseCase
     private let habitRepository: HabitRepository
     private let categoryRepository: CategoryRepository
-    private let personalityRepository: PersonalityAnalysisRepositoryProtocol
     private let logDataSource: LogLocalDataSourceProtocol
     private let updateLastSyncDate: UpdateLastSyncDateUseCase
+    private let validationService: ImportValidationService
     private let modelContext: ModelContext
     private let logger: DebugLogger
 
@@ -25,9 +29,9 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         saveProfile: SaveProfileUseCase,
         habitRepository: HabitRepository,
         categoryRepository: CategoryRepository,
-        personalityRepository: PersonalityAnalysisRepositoryProtocol,
         logDataSource: LogLocalDataSourceProtocol,
         updateLastSyncDate: UpdateLastSyncDateUseCase,
+        validationService: ImportValidationService,
         modelContext: ModelContext,
         logger: DebugLogger
     ) {
@@ -35,14 +39,14 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         self.saveProfile = saveProfile
         self.habitRepository = habitRepository
         self.categoryRepository = categoryRepository
-        self.personalityRepository = personalityRepository
         self.logDataSource = logDataSource
         self.updateLastSyncDate = updateLastSyncDate
+        self.validationService = validationService
         self.modelContext = modelContext
         self.logger = logger
     }
 
-    public func execute(jsonString: String) async throws {
+    public func execute(jsonString: String) async throws -> ImportResult {
         // Parse JSON
         guard let jsonData = jsonString.data(using: .utf8) else {
             throw ImportError.invalidJSON
@@ -78,14 +82,57 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         // Validate data size limits to prevent malicious imports
         try validateDataLimits(importedData)
 
+        // Field-level validation of habits, categories, and logs
+        let habitValidation = validationService.validateHabits(importedData.habits)
+        let categoryErrors = validationService.validateCategories(importedData.categories)
+        let logErrors = validationService.validateHabitLogs(importedData.habitLogs)
+
+        // Combine all validation errors
+        var allErrors: [ImportValidationError] = habitValidation.errors
+        allErrors.append(contentsOf: categoryErrors)
+        allErrors.append(contentsOf: logErrors)
+
+        if !allErrors.isEmpty {
+            logger.log(
+                "Import validation failed",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: [
+                    "totalErrors": allErrors.count,
+                    "habitErrors": habitValidation.errors.count,
+                    "categoryErrors": categoryErrors.count,
+                    "logErrors": logErrors.count
+                ]
+            )
+            throw ImportError.validationFailed(
+                errorCount: allErrors.count,
+                firstError: allErrors.first?.errorDescription ?? "Unknown error"
+            )
+        }
+
+        logger.log(
+            "Import validation passed",
+            level: .info,
+            category: .dataIntegrity,
+            metadata: [
+                "habits": importedData.habits.count,
+                "categories": importedData.categories.count,
+                "logs": importedData.habitLogs.count,
+                "hasLocationConfigs": habitValidation.hasLocationConfigurations
+            ]
+        )
+
         // ============================================================
         // VALIDATION PASSED - Safe to clear existing data
         // ============================================================
-        // Clear existing habits, logs, categories, and personality data
-        // BEFORE importing to ensure we get exactly what's in the JSON.
+        // Clear existing habits, logs, and categories BEFORE importing
+        // to ensure we get exactly what's in the JSON.
         // This prevents merge conflicts and ensures deterministic imports.
-        // NOTE: We keep UserProfile and OnboardingState - profile is updated,
-        // onboarding state should not reset (don't re-show onboarding).
+        //
+        // NOTE: We keep:
+        // - UserProfile: Updated by import (not deleted)
+        // - OnboardingState: Should persist (don't re-show onboarding)
+        // - PersonalityAnalysis: NEVER touched - stays on device for privacy
         // ============================================================
 
         do {
@@ -114,8 +161,9 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             // Import habit logs (with start date validation)
             try await importHabitLogs(importedData.habitLogs, habits: importedData.habits)
 
-            // Import personality data
-            try await importPersonalityData(importedData.personalityData)
+            // NOTE: PersonalityAnalysis is intentionally NOT imported for privacy.
+            // Any personality data in old exports is silently ignored.
+            // The user's existing personality data on this device is preserved.
 
             // Update last sync date if available
             if let lastSynced = importedData.syncMetadata.lastSynced {
@@ -129,7 +177,8 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
                 metadata: [
                     "habits_imported": importedData.habits.count,
                     "logs_imported": importedData.habitLogs.count,
-                    "categories_imported": importedData.categories.count
+                    "categories_imported": importedData.categories.count,
+                    "hasLocationConfigs": habitValidation.hasLocationConfigurations
                 ]
             )
 
@@ -137,7 +186,24 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
             // by the caller (SettingsViewModel) after import completes successfully.
             // This avoids MainActor isolation issues with CLLocationManager.
 
+            return ImportResult(
+                hasLocationConfigurations: habitValidation.hasLocationConfigurations,
+                habitsImported: importedData.habits.count,
+                habitLogsImported: importedData.habitLogs.count,
+                categoriesImported: importedData.categories.count
+            )
+
         } catch {
+            logger.log(
+                "❌ Import failed with error",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: [
+                    "error": error.localizedDescription,
+                    "errorType": String(describing: type(of: error)),
+                    "fullError": String(describing: error)
+                ]
+            )
             throw ImportError.importFailed(underlying: error)
         }
     }
@@ -147,33 +213,46 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
     /// Clears existing user data before import to ensure a clean slate.
     /// This guarantees the imported data exactly matches the JSON file.
     ///
-    /// Clears: Habits, HabitLogs, Categories, PersonalityAnalysis
-    /// Keeps: UserProfile (updated by import), OnboardingState (don't re-show onboarding)
+    /// Clears: Habits, HabitLogs, Categories
+    /// Keeps:
+    /// - UserProfile: Updated by import (not deleted)
+    /// - OnboardingState: Should persist (don't re-show onboarding)
+    /// - PersonalityAnalysis: NEVER touched - stays on device for privacy
     private func clearExistingData() async throws {
         try await MainActor.run {
+            // CRITICAL: Use fetch-and-delete instead of batch delete
+            // Batch delete (modelContext.delete(model:)) doesn't work reliably
+            // across multiple stores. Fetch-and-delete is more reliable.
             // Order matters: delete children before parents to respect relationships
 
             // 1. Delete all habit logs first (child of habits)
-            try modelContext.delete(model: ActiveHabitLogModel.self)
+            let habitLogs = try modelContext.fetch(FetchDescriptor<ActiveHabitLogModel>())
+            for log in habitLogs {
+                modelContext.delete(log)
+            }
 
-            // 2. Delete personality analysis data
-            try modelContext.delete(model: ActivePersonalityAnalysisModel.self)
+            // 2. Delete habits (references categories)
+            let habits = try modelContext.fetch(FetchDescriptor<ActiveHabitModel>())
+            for habit in habits {
+                modelContext.delete(habit)
+            }
 
-            // 3. Delete habits (references categories)
-            try modelContext.delete(model: ActiveHabitModel.self)
+            // 3. Delete categories
+            let categories = try modelContext.fetch(FetchDescriptor<ActiveHabitCategoryModel>())
+            for category in categories {
+                modelContext.delete(category)
+            }
 
-            // 4. Delete categories
-            try modelContext.delete(model: ActiveHabitCategoryModel.self)
-
-            // NOTE: Do NOT delete UserProfile or OnboardingState
-            // - UserProfile will be updated by importProfile()
-            // - OnboardingState should persist (don't re-show onboarding)
+            // NOTE: Do NOT delete:
+            // - UserProfile: Will be updated by importProfile()
+            // - OnboardingState: Should persist (don't re-show onboarding)
+            // - PersonalityAnalysis: Privacy-sensitive, stays on device
 
             // Save deletions
             try modelContext.save()
 
             logger.log(
-                "🗑️ Cleared existing data before import",
+                "🗑️ Cleared existing data before import (personality data preserved)",
                 level: .debug,
                 category: .dataIntegrity
             )
@@ -290,18 +369,6 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
         }
     }
 
-    private func importPersonalityData(_ personalityData: ImportPersonalityData) async throws {
-        // Import current personality profile if available
-        if let currentPersonality = personalityData.currentProfile {
-            try await personalityRepository.savePersonalityProfile(currentPersonality)
-        }
-
-        // Clean slate - import all personality history
-        for profile in personalityData.analysisHistory {
-            try await personalityRepository.savePersonalityProfile(profile)
-        }
-    }
-
     // MARK: - Validation
 
     private func validateDataLimits(_ data: ImportedUserData) throws {
@@ -382,7 +449,7 @@ private struct ImportedUserData: Codable {
     let habits: [Habit]
     let categories: [HabitCategory]
     let habitLogs: [HabitLog]
-    let personalityData: ImportPersonalityData
+    // NOTE: personalityData intentionally removed - never imported for privacy
     let syncMetadata: ImportSyncMetadata
 }
 
@@ -401,11 +468,6 @@ private struct ImportTimezoneChangeData: Codable {
     let fromTimezone: String
     let toTimezone: String
     let changedAt: Date
-}
-
-private struct ImportPersonalityData: Codable {
-    let currentProfile: PersonalityProfile?
-    let analysisHistory: [PersonalityProfile]
 }
 
 private struct ImportSyncMetadata: Codable {

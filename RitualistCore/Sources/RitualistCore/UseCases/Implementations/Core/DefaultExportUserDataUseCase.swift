@@ -3,6 +3,11 @@
 //  RitualistCore
 //
 //  Default implementation for exporting user data
+//  GDPR Article 20 compliance - Right to data portability
+//
+//  PRIVACY NOTE: PersonalityAnalysis data is intentionally NOT exported.
+//  This sensitive psychological data stays on-device only and is never
+//  included in exports to protect user privacy.
 //
 
 import Foundation
@@ -12,7 +17,6 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
     private let getLastSyncDate: GetLastSyncDateUseCase
     private let habitRepository: HabitRepository
     private let categoryRepository: CategoryRepository
-    private let personalityRepository: PersonalityAnalysisRepositoryProtocol
     private let logDataSource: LogLocalDataSourceProtocol
     private let logger: DebugLogger
 
@@ -21,7 +25,6 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
         getLastSyncDate: GetLastSyncDateUseCase,
         habitRepository: HabitRepository,
         categoryRepository: CategoryRepository,
-        personalityRepository: PersonalityAnalysisRepositoryProtocol,
         logDataSource: LogLocalDataSourceProtocol,
         logger: DebugLogger
     ) {
@@ -29,7 +32,6 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
         self.getLastSyncDate = getLastSyncDate
         self.habitRepository = habitRepository
         self.categoryRepository = categoryRepository
-        self.personalityRepository = personalityRepository
         self.logDataSource = logDataSource
         self.logger = logger
     }
@@ -39,41 +41,16 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
         let profile = try await loadProfile.execute()
         let lastSyncDate = await getLastSyncDate.execute()
 
-        // Fetch all user data
+        // Fetch all user data (excluding personality data for privacy)
         let habits = try await habitRepository.fetchAllHabits()
         let categories = try await categoryRepository.getAllCategories()
-
-        // Fetch personality data (non-critical, log failures but continue export)
-        var personalityProfile: PersonalityProfile?
-        var personalityHistory: [PersonalityProfile] = []
-
-        do {
-            personalityProfile = try await personalityRepository.getPersonalityProfile(for: profile.id)
-        } catch {
-            logger.log(
-                "Failed to export personality profile (non-critical)",
-                level: .warning,
-                category: .dataIntegrity,
-                metadata: ["error": error.localizedDescription]
-            )
-        }
-
-        do {
-            personalityHistory = try await personalityRepository.getPersonalityHistory(for: profile.id)
-        } catch {
-            logger.log(
-                "Failed to export personality history (non-critical)",
-                level: .warning,
-                category: .dataIntegrity,
-                metadata: ["error": error.localizedDescription]
-            )
-        }
 
         // Fetch logs for all habits
         let habitIDs = habits.map { $0.id }
         let allLogs = try await logDataSource.logs(for: habitIDs)
 
         // Create export data structure
+        // NOTE: PersonalityAnalysis is intentionally excluded for privacy
         let exportData = ExportedUserData(
             exportedAt: Date(),
             profile: ProfileData(
@@ -96,10 +73,6 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
             habits: habits,
             categories: categories,
             habitLogs: allLogs,
-            personalityData: PersonalityExportData(
-                currentProfile: personalityProfile,
-                analysisHistory: personalityHistory ?? []
-            ),
             syncMetadata: SyncMetadata(
                 lastSynced: lastSyncDate,
                 profileId: profile.id.uuidString
@@ -116,6 +89,17 @@ public final class DefaultExportUserDataUseCase: ExportUserDataUseCase {
         guard let jsonString = String(data: jsonData, encoding: .utf8) else {
             throw ExportError.encodingFailed
         }
+
+        logger.log(
+            "📤 Export completed (personality data excluded for privacy)",
+            level: .info,
+            category: .dataIntegrity,
+            metadata: [
+                "habits": habits.count,
+                "categories": categories.count,
+                "logs": allLogs.count
+            ]
+        )
 
         return jsonString
     }
@@ -139,13 +123,8 @@ private struct ExportedUserData: Codable {
     let habits: [Habit]
     let categories: [HabitCategory]
     let habitLogs: [HabitLog]
-    let personalityData: PersonalityExportData
+    // NOTE: personalityData intentionally removed for privacy
     let syncMetadata: SyncMetadata
-}
-
-private struct PersonalityExportData: Codable {
-    let currentProfile: PersonalityProfile?
-    let analysisHistory: [PersonalityProfile]
 }
 
 private struct ProfileData: Codable {

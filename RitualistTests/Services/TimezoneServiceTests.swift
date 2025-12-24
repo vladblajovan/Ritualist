@@ -131,7 +131,7 @@ struct TimezoneServiceTests {
         let container = try TestModelContainer.create()
         let service = createService(container: container)
 
-        let currentTz = service.getCurrentTimezone()
+        let currentTz = await service.getCurrentTimezone()
 
         #expect(currentTz == TimeZone.current)
     }

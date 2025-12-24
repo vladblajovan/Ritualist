@@ -11,7 +11,10 @@ import RitualistCore
 /// Widget ViewModel that uses main app's Use Cases for proper Clean Architecture
 /// Ensures data consistency between widget and main app
 final class WidgetHabitsViewModel {
-    
+
+    // MARK: - Dependencies
+    private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "widget")
+
     // MARK: - Use Cases (from main app)
     private let getActiveHabits: GetActiveHabitsUseCase
     private let getBatchLogs: GetBatchLogsUseCase
@@ -82,7 +85,7 @@ final class WidgetHabitsViewModel {
             return result
 
         } catch {
-            print("[WIDGET-VM] Error: \(error)")
+            logger.log("Failed to get habits with progress: \(error.localizedDescription)", level: .error, category: .system)
             return []
         }
     }

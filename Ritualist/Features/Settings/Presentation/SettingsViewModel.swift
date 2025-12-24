@@ -68,8 +68,6 @@ public final class SettingsViewModel {
     public var exportedDataJSON: String?
     public var exportedFileURL: URL?
     public private(set) var isImportingData = false
-    public var showImportPicker = false
-    public var showExportPicker = false
 
     #if DEBUG
     public private(set) var isClearingDatabase = false
@@ -662,7 +660,7 @@ public final class SettingsViewModel {
         error = nil
 
         do {
-            try await importUserData.execute(jsonString: jsonString)
+            let importResult = try await importUserData.execute(jsonString: jsonString)
 
             // Reload profile after import
             await load()
@@ -678,15 +676,77 @@ public final class SettingsViewModel {
 
             // CRITICAL: Restore geofences for imported habits with location-based reminders
             // Geofences are device-local and must be re-registered after import
+            if importResult.hasLocationConfigurations {
+                logger.log(
+                    "🌍 Imported data contains location configurations - checking permissions",
+                    level: .info,
+                    category: .location,
+                    metadata: ["habitsWithLocation": importResult.habitsImported]
+                )
+
+                // Check if we have "Always" permission (required for geofencing)
+                let currentAuthStatus = await getLocationAuthStatus.execute()
+                if !currentAuthStatus.canMonitorGeofences {
+                    logger.log(
+                        "📍 Requesting location permission for imported geofences",
+                        level: .info,
+                        category: .location
+                    )
+
+                    // Request "Always" permission for background geofence monitoring
+                    let permissionResult = await requestLocationPermissions.execute(requestAlways: true)
+
+                    switch permissionResult {
+                    case .granted(let status):
+                        locationAuthStatus = status
+                        userActionTracker.track(.locationPermissionGranted(
+                            status: String(describing: status),
+                            context: "import_geofence"
+                        ))
+                    case .denied:
+                        locationAuthStatus = .denied
+                        userActionTracker.track(.locationPermissionDenied(context: "import_geofence"))
+                        logger.log(
+                            "⚠️ Location permission denied - imported geofences will not be active",
+                            level: .warning,
+                            category: .location
+                        )
+                    case .failed(let locationError):
+                        logger.log(
+                            "Failed to request location permission for imported geofences",
+                            level: .error,
+                            category: .location,
+                            metadata: ["error": locationError.localizedDescription]
+                        )
+                    }
+                }
+
+                // Restore geofences (will check permission internally and skip if not granted)
+                logger.log(
+                    "🌍 Restoring geofences after import",
+                    level: .info,
+                    category: .dataIntegrity
+                )
+                try await restoreGeofenceMonitoring.execute()
+            }
+
+            // Track import action
+            userActionTracker.track(.custom(event: "user_data_imported", parameters: [
+                "habits_count": importResult.habitsImported,
+                "logs_count": importResult.habitLogsImported,
+                "has_location_configs": importResult.hasLocationConfigurations
+            ]))
+
+            // CRITICAL: Mark onboarding as complete after successful import
+            // Without this, the app would prompt for onboarding on next launch
+            // because the local onboarding flag isn't set
+            iCloudKeyValueService.setOnboardingCompletedLocally()
+            iCloudKeyValueService.setOnboardingCompleted()
             logger.log(
-                "🌍 Restoring geofences after import",
+                "✅ Marked onboarding as complete after successful import",
                 level: .info,
                 category: .dataIntegrity
             )
-            try await restoreGeofenceMonitoring.execute()
-
-            // Track import action
-            userActionTracker.track(.custom(event: "user_data_imported", parameters: [:]))
         } catch {
             self.error = error
             userActionTracker.trackError(error, context: "import_user_data")

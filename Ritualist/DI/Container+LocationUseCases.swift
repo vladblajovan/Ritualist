@@ -43,6 +43,7 @@ extension Container {
             HandleGeofenceEventUseCaseImpl(
                 habitRepository: self.habitRepository(),
                 notificationService: self.notificationService(),
+                subscriptionService: self.subscriptionService(),
                 habitCompletionCheckService: self.habitCompletionCheckService(),
                 logger: self.debugLogger()
             )
@@ -84,6 +85,7 @@ extension Container {
             RestoreGeofenceMonitoringUseCaseImpl(
                 habitRepository: self.habitRepository(),
                 locationMonitoringService: self.locationMonitoringService(),
+                subscriptionService: self.subscriptionService(),
                 logger: self.debugLogger()
             )
         }

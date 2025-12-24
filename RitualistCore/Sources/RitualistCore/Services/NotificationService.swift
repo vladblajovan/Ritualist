@@ -39,6 +39,10 @@ public protocol NotificationService {
 
     // Location-based notification methods
     func sendLocationTriggeredNotification(for habitID: UUID, habitName: String, event: GeofenceEvent) async throws
+
+    // Pending notification management (for daily rescheduling)
+    func getPendingHabitNotificationIds() async -> [String]
+    func clearHabitNotifications(ids: [String]) async
 }
 
 public final class LocalNotificationService: NSObject, NotificationService {
@@ -185,15 +189,68 @@ public final class LocalNotificationService: NSObject, NotificationService {
                     ]
                 )
             } else {
-                logger.log(
-                    "⏰ Skipping notification - time already passed",
-                    level: .debug,
-                    category: .notifications,
-                    metadata: [
-                        "habit": habitName,
-                        "time": "\(time.hour):\(String(format: "%02d", time.minute))"
-                    ]
+                // Time has passed - check if habit is incomplete and send catch-up notification
+                let shouldNotify = await habitCompletionCheckService.shouldShowNotification(
+                    habitId: habitID,
+                    date: today
                 )
+
+                if shouldNotify {
+                    // Send catch-up notification with short delay (10 seconds)
+                    // Use unique ID per habit to avoid duplicate catch-ups
+                    let catchUpContent = UNMutableNotificationContent()
+                    catchUpContent.title = "Don't forget: \(habitName)"
+                    catchUpContent.body = habitKind == .binary
+                        ? "You haven't completed this habit yet today. Tap to mark as done!"
+                        : "You haven't logged progress yet today. Tap to update!"
+                    catchUpContent.sound = .default
+                    catchUpContent.categoryIdentifier = habitKind == .binary
+                        ? Self.binaryHabitReminderCategory
+                        : Self.numericHabitReminderCategory
+                    catchUpContent.userInfo = [
+                        "habitId": habitID.uuidString,
+                        "habitName": habitName,
+                        "habitKind": habitKind == .binary ? "binary" : "numeric",
+                        "reminderHour": time.hour,
+                        "reminderMinute": time.minute,
+                        "isCatchUp": true
+                    ]
+
+                    // 10 second delay so it doesn't feel jarring when opening the app
+                    let catchUpTrigger = UNTimeIntervalNotificationTrigger(timeInterval: 10, repeats: false)
+                    let catchUpId = "catchup_\(habitID.uuidString)"
+
+                    // Remove any existing catch-up for this habit to avoid duplicates
+                    center.removePendingNotificationRequests(withIdentifiers: [catchUpId])
+
+                    let catchUpRequest = UNNotificationRequest(
+                        identifier: catchUpId,
+                        content: catchUpContent,
+                        trigger: catchUpTrigger
+                    )
+
+                    try await center.add(catchUpRequest)
+                    logger.log(
+                        "🔔 Scheduled catch-up notification",
+                        level: .info,
+                        category: .notifications,
+                        metadata: [
+                            "habit": habitName,
+                            "originalTime": "\(time.hour):\(String(format: "%02d", time.minute))",
+                            "id": catchUpId
+                        ]
+                    )
+                } else {
+                    logger.log(
+                        "⏰ Skipping notification - time passed and habit already completed",
+                        level: .debug,
+                        category: .notifications,
+                        metadata: [
+                            "habit": habitName,
+                            "time": "\(time.hour):\(String(format: "%02d", time.minute))"
+                        ]
+                    )
+                }
             }
         }
         
@@ -564,7 +621,44 @@ public final class LocalNotificationService: NSObject, NotificationService {
             return .denied
         }
     }
-    
+
+    // MARK: - Pending Notification Management
+
+    /// Returns IDs of all pending habit-related notifications
+    /// Identifies habit notifications by UUID prefix or known prefixes (today_, rich_, tailored_, catchup_)
+    public func getPendingHabitNotificationIds() async -> [String] {
+        let center = UNUserNotificationCenter.current()
+        let pendingRequests = await center.pendingNotificationRequests()
+
+        return pendingRequests.compactMap { request in
+            let id = request.identifier
+            // Identify habit notifications by:
+            // 1. Known prefixes for different notification types
+            // 2. UUID format at the start (habitID-based notifications)
+            if id.hasPrefix("today_") ||
+               id.hasPrefix("rich_") ||
+               id.hasPrefix("tailored_") ||
+               id.hasPrefix("catchup_") ||
+               (id.contains("-") && UUID(uuidString: String(id.prefix(36))) != nil) {
+                return id
+            }
+            return nil
+        }
+    }
+
+    /// Clears pending notifications with the specified IDs
+    public func clearHabitNotifications(ids: [String]) async {
+        guard !ids.isEmpty else { return }
+
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+
+        logger.logNotification(
+            event: "Cleared habit notifications",
+            metadata: ["count": ids.count]
+        )
+    }
+
     // MARK: - Private Helpers
     
     /// Executes an async operation with a timeout to prevent blocking the delegate

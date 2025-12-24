@@ -138,6 +138,7 @@ public protocol HandleGeofenceEventUseCase {
 ///
 /// ARCHITECTURE: This UseCase handles ALL business logic for geofence events:
 /// - Fetches authoritative configuration from database (not in-memory state)
+/// - Checks premium status (location notifications are a premium feature)
 /// - Checks trigger type matching and frequency rules
 /// - Sends notifications
 /// - Updates trigger dates in database
@@ -147,17 +148,20 @@ public protocol HandleGeofenceEventUseCase {
 public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
     private let habitRepository: HabitRepository
     private let notificationService: NotificationService
+    private let subscriptionService: SecureSubscriptionService
     private let habitCompletionCheckService: HabitCompletionCheckService?
     private let logger: DebugLogger
 
     public init(
         habitRepository: HabitRepository,
         notificationService: NotificationService,
+        subscriptionService: SecureSubscriptionService,
         habitCompletionCheckService: HabitCompletionCheckService? = nil,
         logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.notificationService = notificationService
+        self.subscriptionService = subscriptionService
         self.habitCompletionCheckService = habitCompletionCheckService
         self.logger = logger
     }
@@ -169,6 +173,17 @@ public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
             category: .location,
             metadata: ["habitId": event.habitId.uuidString, "eventType": String(describing: event.eventType)]
         )
+
+        // Premium check: Location-based notifications are a premium feature
+        guard subscriptionService.isPremiumUser() else {
+            logger.log(
+                "⏭️ Skipping location notification - user is not premium",
+                level: .info,
+                category: .location,
+                metadata: ["habitId": event.habitId.uuidString]
+            )
+            return
+        }
 
         // STEP 1: Fetch habit from database (source of truth)
         guard var habit = try await habitRepository.fetchHabit(by: event.habitId) else {
@@ -354,20 +369,39 @@ public protocol RestoreGeofenceMonitoringUseCase {
 public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUseCase {
     private let habitRepository: HabitRepository
     private let locationMonitoringService: LocationMonitoringService
+    private let subscriptionService: SecureSubscriptionService
     private let logger: DebugLogger
 
     public init(
         habitRepository: HabitRepository,
         locationMonitoringService: LocationMonitoringService,
+        subscriptionService: SecureSubscriptionService,
         logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
         self.locationMonitoringService = locationMonitoringService
+        self.subscriptionService = subscriptionService
         self.logger = logger
     }
 
     public func execute() async throws {
         logger.log("Starting geofence restoration on app launch", level: .info, category: .location)
+
+        // Premium check: Location-based features are premium-only
+        // Skip restoration to save battery and iOS geofence slots
+        guard subscriptionService.isPremiumUser() else {
+            logger.log("Non-premium user - skipping geofence restoration", level: .info, category: .location)
+
+            // Clean up any existing geofences for non-premium users
+            let monitoredHabitIds = await locationMonitoringService.getMonitoredHabitIds()
+            if !monitoredHabitIds.isEmpty {
+                logger.log("Cleaning up \(monitoredHabitIds.count) geofences for non-premium user", level: .info, category: .location)
+                for habitId in monitoredHabitIds {
+                    await locationMonitoringService.stopMonitoring(habitId: habitId)
+                }
+            }
+            return
+        }
 
         // Check if location services are available
         let authStatus = await locationMonitoringService.getAuthorizationStatus()

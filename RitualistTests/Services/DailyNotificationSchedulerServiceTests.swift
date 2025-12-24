@@ -35,26 +35,29 @@ struct DailyNotificationSchedulerServiceTests {
     func createService(
         container: ModelContainer,
         scheduleHabitReminders: ScheduleHabitRemindersUseCase,
-        subscriptionService: SecureSubscriptionService? = nil
-    ) -> DefaultDailyNotificationScheduler {
+        subscriptionService: SecureSubscriptionService? = nil,
+        notificationService: TestNotificationService? = nil
+    ) -> (scheduler: DefaultDailyNotificationScheduler, notificationService: TestNotificationService) {
         // Create REAL data source and repository
         let habitDataSource = HabitLocalDataSource(modelContainer: container)
         let habitRepository = HabitRepositoryImpl(local: habitDataSource)
 
         // Use test implementations for NotificationService (system dependency)
-        let notificationService = TestNotificationService()
+        let testNotificationService = notificationService ?? TestNotificationService()
         let logger = DebugLogger(subsystem: "test", category: "scheduler")
 
         // Default to premium user for existing tests
         let subscription = subscriptionService ?? TestSubscriptionService(isPremium: true)
 
-        return DefaultDailyNotificationScheduler(
+        let scheduler = DefaultDailyNotificationScheduler(
             habitRepository: habitRepository,
             scheduleHabitReminders: scheduleHabitReminders,
-            notificationService: notificationService,
+            notificationService: testNotificationService,
             subscriptionService: subscription,
             logger: logger
         )
+
+        return (scheduler, testNotificationService)
     }
 
     /// Save habits to test container
@@ -105,7 +108,7 @@ struct DailyNotificationSchedulerServiceTests {
             inactiveWithReminders
         ], to: container)
 
-        let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
+        let (service, _) = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
         // Execute
         try await service.rescheduleAllHabitNotifications()
@@ -137,7 +140,7 @@ struct DailyNotificationSchedulerServiceTests {
 
         try await saveHabits([inactive1, inactive2], to: container)
 
-        let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
+        let (service, _) = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
         // Execute
         try await service.rescheduleAllHabitNotifications()
@@ -158,7 +161,7 @@ struct DailyNotificationSchedulerServiceTests {
 
         try await saveHabits([active1, active2], to: container)
 
-        let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
+        let (service, _) = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
         // Execute
         try await service.rescheduleAllHabitNotifications()
@@ -196,7 +199,7 @@ struct DailyNotificationSchedulerServiceTests {
 
         try await saveHabits([habit1, habit2, habit3], to: container)
 
-        let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
+        let (service, _) = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
         // Execute
         try await service.rescheduleAllHabitNotifications()
@@ -237,7 +240,7 @@ struct DailyNotificationSchedulerServiceTests {
         // Configure to fail for habit2
         await scheduleHabitReminders.setHabitsToFailFor([habit2.id])
 
-        let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
+        let (service, _) = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
         // Execute - should not throw
         try await service.rescheduleAllHabitNotifications()
@@ -269,7 +272,7 @@ struct DailyNotificationSchedulerServiceTests {
         // Configure to fail for habits 2 and 4 (indices 1 and 3)
         await scheduleHabitReminders.setHabitsToFailFor([habits[1].id, habits[3].id])
 
-        let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
+        let (service, _) = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
         // Execute - should not throw despite multiple failures
         try await service.rescheduleAllHabitNotifications()
@@ -322,7 +325,7 @@ struct DailyNotificationSchedulerServiceTests {
         let scheduleHabitReminders = TrackingScheduleHabitReminders()
         // Don't save any habits
 
-        let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
+        let (service, _) = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
         // Should not throw
         try await service.rescheduleAllHabitNotifications()
@@ -348,7 +351,7 @@ struct DailyNotificationSchedulerServiceTests {
 
         try await saveHabits([inactiveWithReminders, activeWithoutReminders], to: container)
 
-        let service = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
+        let (service, _) = createService(container: container, scheduleHabitReminders: scheduleHabitReminders)
 
         // Should not throw
         try await service.rescheduleAllHabitNotifications()
@@ -381,7 +384,7 @@ struct DailyNotificationSchedulerServiceTests {
         try await saveHabits([habit1, habit2], to: container)
 
         // Use non-premium subscription service
-        let service = createService(
+        let (service, _) = createService(
             container: container,
             scheduleHabitReminders: scheduleHabitReminders,
             subscriptionService: TestSubscriptionService(isPremium: false)
@@ -416,7 +419,7 @@ struct DailyNotificationSchedulerServiceTests {
         try await saveHabits([habit1, habit2], to: container)
 
         // Explicitly use premium subscription service
-        let service = createService(
+        let (service, _) = createService(
             container: container,
             scheduleHabitReminders: scheduleHabitReminders,
             subscriptionService: TestSubscriptionService(isPremium: true)
@@ -428,6 +431,109 @@ struct DailyNotificationSchedulerServiceTests {
         // Verify: Premium users should have notifications scheduled
         let scheduledHabits = await scheduleHabitReminders.getScheduledHabits()
         #expect(scheduledHabits.count == 2, "Premium users should have notifications scheduled")
+    }
+
+    // MARK: - Non-Premium Notification Clearing Tests
+
+    @Test("Non-premium user with existing notifications gets them cleared")
+    func nonPremiumUserWithExistingNotificationsGetsThemCleared() async throws {
+        let container = try TestModelContainer.create()
+        let scheduleHabitReminders = TrackingScheduleHabitReminders()
+        let notificationService = TestNotificationService()
+
+        // Simulate existing notifications from when user was premium
+        let existingNotificationIds = [
+            "today_\(UUID().uuidString)-09:00",
+            "rich_\(UUID().uuidString)-10:00",
+            "tailored_\(UUID().uuidString)-11:00"
+        ]
+        await notificationService.setPendingNotificationIds(existingNotificationIds)
+
+        // Create service with non-premium subscription
+        let (service, _) = createService(
+            container: container,
+            scheduleHabitReminders: scheduleHabitReminders,
+            subscriptionService: TestSubscriptionService(isPremium: false),
+            notificationService: notificationService
+        )
+
+        // Execute
+        try await service.rescheduleAllHabitNotifications()
+
+        // Verify: All existing notifications should be cleared
+        let clearedIds = await notificationService.getClearedNotificationIds()
+        #expect(clearedIds.count == 3, "All existing habit notifications should be cleared for non-premium user")
+        #expect(Set(clearedIds) == Set(existingNotificationIds), "Cleared IDs should match existing notification IDs")
+
+        // Verify: No new notifications scheduled
+        let scheduledHabits = await scheduleHabitReminders.getScheduledHabits()
+        #expect(scheduledHabits.count == 0, "Non-premium users should not have new notifications scheduled")
+    }
+
+    @Test("Non-premium user with no existing notifications completes without error")
+    func nonPremiumUserWithNoExistingNotificationsCompletesWithoutError() async throws {
+        let container = try TestModelContainer.create()
+        let scheduleHabitReminders = TrackingScheduleHabitReminders()
+        let notificationService = TestNotificationService()
+
+        // No existing notifications
+        await notificationService.setPendingNotificationIds([])
+
+        // Create service with non-premium subscription
+        let (service, _) = createService(
+            container: container,
+            scheduleHabitReminders: scheduleHabitReminders,
+            subscriptionService: TestSubscriptionService(isPremium: false),
+            notificationService: notificationService
+        )
+
+        // Execute - should not throw
+        try await service.rescheduleAllHabitNotifications()
+
+        // Verify: clearHabitNotifications should not be called when there's nothing to clear
+        let clearCount = await notificationService.getClearCallCount()
+        #expect(clearCount == 0, "Should not call clearHabitNotifications when no notifications exist")
+    }
+
+    @Test("Premium to non-premium downgrade clears all habit notifications")
+    func premiumToNonPremiumDowngradeClearsAllHabitNotifications() async throws {
+        let container = try TestModelContainer.create()
+        let scheduleHabitReminders = TrackingScheduleHabitReminders()
+        let notificationService = TestNotificationService()
+
+        // Create habits
+        let habit1 = HabitBuilder.binary(
+            name: "Morning Routine",
+            isActive: true,
+            reminders: [ReminderTime(hour: 9, minute: 0)]
+        )
+        try await saveHabits([habit1], to: container)
+
+        // Simulate notifications that were scheduled when user was premium
+        let habitNotificationIds = [
+            "today_\(habit1.id.uuidString)-09:00",
+            "catchup_\(habit1.id.uuidString)"
+        ]
+        await notificationService.setPendingNotificationIds(habitNotificationIds)
+
+        // Now user is non-premium (subscription expired)
+        let (service, _) = createService(
+            container: container,
+            scheduleHabitReminders: scheduleHabitReminders,
+            subscriptionService: TestSubscriptionService(isPremium: false),
+            notificationService: notificationService
+        )
+
+        // Execute reschedule (triggered by app launch or background refresh)
+        try await service.rescheduleAllHabitNotifications()
+
+        // Verify: All habit notifications cleared
+        let clearedIds = await notificationService.getClearedNotificationIds()
+        #expect(clearedIds.count == 2, "All habit notifications should be cleared after downgrade")
+
+        // Verify: Pending notifications should be empty now
+        let remainingIds = await notificationService.getPendingHabitNotificationIds()
+        #expect(remainingIds.isEmpty, "No habit notifications should remain after downgrade")
     }
 
 }

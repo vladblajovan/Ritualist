@@ -61,9 +61,6 @@ public typealias CompleteOnboarding = RitualistCore.CompleteOnboarding
 public typealias GenerateCalendarDays = RitualistCore.GenerateCalendarDays
 public typealias GenerateCalendarGrid = RitualistCore.GenerateCalendarGrid
 
-// Re-export Habit Logging UseCases
-public typealias ToggleHabitLog = RitualistCore.ToggleHabitLog
-
 // Re-export Service-based UseCases
 public typealias GetCurrentSlogan = RitualistCore.GetCurrentSlogan
 public typealias RequestNotificationPermission = RitualistCore.RequestNotificationPermission

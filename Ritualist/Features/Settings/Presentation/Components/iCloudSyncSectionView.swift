@@ -247,5 +247,7 @@ private struct MockExportUserData: ExportUserDataUseCase {
 }
 
 private struct MockImportUserData: ImportUserDataUseCase {
-    func execute(jsonString: String) async throws {}
+    func execute(jsonString: String) async throws -> ImportResult {
+        ImportResult(hasLocationConfigurations: false, habitsImported: 0, habitLogsImported: 0, categoriesImported: 0)
+    }
 }
