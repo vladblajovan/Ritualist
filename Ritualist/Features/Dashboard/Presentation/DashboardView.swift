@@ -9,6 +9,9 @@ public struct DashboardView: View {
     @Injected(\.debugLogger) private var logger
     @Injected(\.navigationService) private var navigationService
 
+    @State private var showingProgressTrendInfo = false
+    @State private var showingHabitPatternsInfo = false
+
     public init(vm: DashboardViewModel) {
         self.vm = vm
     }
@@ -16,34 +19,57 @@ public struct DashboardView: View {
     public var body: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
-                // Time Period Selector
-                timePeriodSelector
-                
                 // Main Stats Cards
                 if vm.hasHabits {
-                    // Weekly Patterns (moved to top)
-                    if let weeklyPatterns = vm.weeklyPatterns {
-                        weeklyPatternsSection(patterns: weeklyPatterns)
+                    // Time Period Selector - only show when there's data to filter
+                    timePeriodSelector
+
+                    // Row 1: Habit Patterns + Progress Trend (both chart-heavy, equal heights)
+                    if let weeklyPatterns = vm.weeklyPatterns,
+                       let chartData = vm.progressChartData, !chartData.isEmpty {
+                        EqualHeightRow {
+                            weeklyPatternsSection(patterns: weeklyPatterns)
+                        } second: {
+                            progressChartSection(data: chartData)
+                        }
+                    } else {
+                        // Fallback if only one card available
+                        if let weeklyPatterns = vm.weeklyPatterns {
+                            ReadableWidthContainer {
+                                weeklyPatternsSection(patterns: weeklyPatterns)
+                            }
+                        }
+                        if let chartData = vm.progressChartData, !chartData.isEmpty {
+                            ReadableWidthContainer {
+                                progressChartSection(data: chartData)
+                            }
+                        }
                     }
-                    
-                    // Streak Analysis (moved to top)
-                    if let streakAnalysis = vm.streakAnalysis {
-                        streakAnalysisSection(analysis: streakAnalysis)
-                    }
-                    
-                    // Progress Chart
-                    if let chartData = vm.progressChartData, !chartData.isEmpty {
-                        progressChartSection(data: chartData)
-                    }
-                    
-                    // Category Breakdown
-                    if let categoryBreakdown = vm.categoryBreakdown, !categoryBreakdown.isEmpty {
-                        categoryBreakdownSection(categories: categoryBreakdown)
+
+                    // Row 2: Period Streaks + Category Performance (both metric cards, equal heights)
+                    // Only show Period Streaks if there's meaningful data (at least one streak or perfect day)
+                    let hasStreakData = vm.streakAnalysis.map { $0.longestStreak > 0 || $0.daysWithFullCompletion > 0 } ?? false
+                    let hasCategoryData = vm.categoryBreakdown.map { !$0.isEmpty } ?? false
+
+                    if hasStreakData && hasCategoryData {
+                        EqualHeightRow {
+                            streakAnalysisSection(analysis: vm.streakAnalysis!)
+                        } second: {
+                            categoryBreakdownSection(categories: vm.categoryBreakdown!)
+                        }
+                    } else {
+                        // Show individual cards full width when alone
+                        if hasStreakData, let streakAnalysis = vm.streakAnalysis {
+                            streakAnalysisSection(analysis: streakAnalysis)
+                        }
+                        if hasCategoryData, let categoryBreakdown = vm.categoryBreakdown {
+                            categoryBreakdownSection(categories: categoryBreakdown)
+                        }
                     }
                 } else {
                     emptyStateView
                 }
-                
+
                 Spacer(minLength: 100) // Bottom padding for tab bar
             }
             .padding(.horizontal, Spacing.large)
@@ -86,10 +112,36 @@ public struct DashboardView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
+        .sheet(isPresented: $showingProgressTrendInfo) {
+            ChartInfoSheet(
+                title: "Progress Trend",
+                icon: "chart.line.uptrend.xyaxis",
+                description: "Shows your daily habit completion rate over time.",
+                details: [
+                    "Each point represents your completion percentage for a specific date",
+                    "The line shows how your performance changes day by day",
+                    "Use this to spot trends - are you improving or declining over time?"
+                ],
+                example: "If you completed 3 of 5 habits on Dec 20, that day shows as 60%"
+            )
+        }
+        .sheet(isPresented: $showingHabitPatternsInfo) {
+            ChartInfoSheet(
+                title: "Habit Patterns",
+                icon: "chart.bar.fill",
+                description: "Shows your average performance for each day of the week.",
+                details: [
+                    "Each bar represents your average completion rate for that weekday",
+                    "Data is aggregated across the selected time period",
+                    "Helps identify which days you perform best or struggle most"
+                ],
+                example: "If Wednesday shows 80%, it means across all Wednesdays in the period, you averaged 80% completion"
+            )
+        }
     }
-    
+
     // MARK: - Components
-    
+
     @ViewBuilder
     private var timePeriodSelector: some View {
         // Note: .allTime excluded until performance optimization is complete
@@ -114,9 +166,9 @@ public struct DashboardView: View {
                 .font(.body)
                 .foregroundColor(.secondary)
         }
-        .frame(height: 200)
+        .frame(minHeight: 200)
     }
-    
+
     @ViewBuilder
     private var emptyStateView: some View {
         VStack(spacing: 20) {
@@ -136,7 +188,7 @@ public struct DashboardView: View {
                     .multilineTextAlignment(.center)
             }
         }
-        .frame(height: 300)
+        .frame(minHeight: 300)
         .padding(.horizontal, 40)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Strings.Accessibility.dashboardEmptyState)
@@ -149,12 +201,21 @@ public struct DashboardView: View {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.title2)
                     .foregroundColor(AppColors.brand)
-                
+
                 Text("Progress Trend")
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+
                 Spacer()
+
+                Button {
+                    showingProgressTrendInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                }
+                .accessibilityLabel("About Progress Trend")
             }
             
             Chart(data) { point in
@@ -172,7 +233,7 @@ public struct DashboardView: View {
                 .foregroundStyle(GradientTokens.chartAreaFill)
                 .interpolationMethod(.catmullRom)
             }
-            .frame(height: 200)
+            .frame(minHeight: 200)
             .chartYAxis {
                 AxisMarks { value in
                     AxisValueLabel {
@@ -233,6 +294,15 @@ public struct DashboardView: View {
                 }
 
                 Spacer()
+
+                Button {
+                    showingHabitPatternsInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                }
+                .accessibilityLabel("About Habit Patterns")
             }
 
             if patterns.isDataSufficient {
@@ -243,7 +313,7 @@ public struct DashboardView: View {
         }
         .cardStyle()
     }
-    
+
     @ViewBuilder
     private func streakAnalysisSection(analysis: DashboardViewModel.StreakAnalysisViewModel) -> some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -306,17 +376,20 @@ public struct DashboardView: View {
                       analysis.streakTrend == "declining" ? "arrow.down.circle.fill" : "minus.circle.fill")
                     .foregroundColor(analysis.streakTrend == "improving" ? .green :
                                    analysis.streakTrend == "declining" ? .red : .orange)
-                
+
                 Text("Period trend: \(analysis.streakTrend.capitalized)")
                     .font(.subheadline)
                     .foregroundColor(.primary)
-                
+
                 Spacer()
             }
+
+            Spacer(minLength: 0)
         }
+        .frame(maxHeight: .infinity, alignment: .top)
         .cardStyle()
     }
-    
+
     @ViewBuilder
     private func categoryBreakdownSection(categories: [DashboardViewModel.CategoryPerformanceViewModel]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -402,10 +475,13 @@ public struct DashboardView: View {
                 ))
                 .accessibilityHint("Tap to view habits in this category")
             }
+
+            Spacer(minLength: 0)
         }
+        .frame(maxHeight: .infinity, alignment: .top)
         .cardStyle()
     }
-    
+
     // MARK: - Habit Patterns Helpers
     
     @ViewBuilder

@@ -56,7 +56,7 @@
 | 14 | ~~Dashboard/PersonalityAnalysis have local Domain folders~~ | ~~Architecture inconsistency~~ | ~~Feature folders~~ | ✅ FIXED |
 | 15 | OverviewViewModel too large (1633 lines) | SRP violation, hard to maintain | `OverviewViewModel.swift` | |
 | 16 | No skeleton loading for TodaysSummaryCard | Blank screen flash on load | `TodaysSummaryCard.swift` | |
-| 17 | iPad experience needs optimization | Phone layouts on large screens | DashboardView, OverviewView |
+| 17 | ~~iPad experience needs optimization~~ | ~~Phone layouts on large screens~~ | ~~DashboardView, OverviewView~~ | ✅ FIXED |
 
 ---
 
@@ -215,12 +215,12 @@
 
 **Issues:**
 
-| Issue | Priority | Fix Effort |
-|-------|----------|------------|
-| No skeleton views | Medium | 2 hours |
-| iPad needs 2-column layouts | Medium | 4 hours |
-| Hardcoded padding values | Low | 1 hour |
-| Category filter carousel on small screens | Low | 2 hours |
+| Issue | Priority | Fix Effort | Status |
+|-------|----------|------------|--------|
+| No skeleton views | Medium | 2 hours | |
+| ~~iPad needs 2-column layouts~~ | ~~Medium~~ | ~~4 hours~~ | ✅ FIXED |
+| Hardcoded padding values | Low | 1 hour | |
+| Category filter carousel on small screens | Low | 2 hours | |
 
 **Accessibility Audit:**
 - VoiceOver: EXCELLENT
@@ -319,7 +319,7 @@
 - [ ] Add SwiftData indexes for performance ([#126](https://github.com/vladblajovan/Ritualist/issues/126))
 - [ ] Split large ViewModels (OverviewViewModel, SettingsViewModel)
 - [ ] Add skeleton loading states
-- [ ] Optimize iPad layouts
+- [x] ~~Optimize iPad layouts~~ FIXED (AdaptiveGrid component for responsive layouts)
 - [ ] Add ViewModel tests for critical features
 - [x] ~~Migrate Dashboard/PersonalityAnalysis Domain to RitualistCore~~ FIXED (consolidated re-exports)
 - [ ] Eliminate Container.shared.* service locator usage

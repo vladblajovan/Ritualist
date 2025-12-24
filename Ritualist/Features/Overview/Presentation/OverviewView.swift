@@ -130,31 +130,48 @@ public struct OverviewView: View {
                 }
                 */
                 
-                // Monthly calendar section - heavily optimized for scroll performance
-                MonthlyCalendarCard(
-                    monthlyData: vm.monthlyCompletionData,
-                    onDateSelect: { date in
-                        vm.goToDate(date)
-                        // Scroll immediately after date selection (which happens after glow effect)
-                        withAnimation(.easeInOut(duration: 0.6)) {
-                            proxy.scrollTo("topCard", anchor: .top)
-                        }
-                    },
-                    timezone: vm.displayTimezone
-                )
-                .simpleCard()
-                
+                // Monthly Calendar + Streaks - side by side on iPad with equal heights
                 if vm.shouldShowActiveStreaks || vm.isLoading {
-                    StreaksCard(
-                        streaks: vm.activeStreaks,
-                        shouldAnimateBestStreak: false,
-                        onAnimationComplete: {},
-                        isLoading: vm.isLoading
+                    EqualHeightRow {
+                        MonthlyCalendarCard(
+                            monthlyData: vm.monthlyCompletionData,
+                            onDateSelect: { date in
+                                vm.goToDate(date)
+                                // Scroll immediately after date selection (which happens after glow effect)
+                                withAnimation(.easeInOut(duration: 0.6)) {
+                                    proxy.scrollTo("topCard", anchor: .top)
+                                }
+                            },
+                            timezone: vm.displayTimezone
+                        )
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .cardStyle()
+                    } second: {
+                        StreaksCard(
+                            streaks: vm.activeStreaks,
+                            shouldAnimateBestStreak: false,
+                            onAnimationComplete: {},
+                            isLoading: vm.isLoading
+                        )
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .cardStyle()
+                    }
+                } else {
+                    // No streaks - show calendar full width
+                    MonthlyCalendarCard(
+                        monthlyData: vm.monthlyCompletionData,
+                        onDateSelect: { date in
+                            vm.goToDate(date)
+                            withAnimation(.easeInOut(duration: 0.6)) {
+                                proxy.scrollTo("topCard", anchor: .top)
+                            }
+                        },
+                        timezone: vm.displayTimezone
                     )
-                    .simpleCard()
+                    .cardStyle()
                 }
-                
-                // Personality-based insights (separate card)
+
+                // Personality Insights - full width on its own row
                 if vm.shouldShowPersonalityInsights {
                     PersonalityInsightsCard(
                         insights: vm.personalityInsights,

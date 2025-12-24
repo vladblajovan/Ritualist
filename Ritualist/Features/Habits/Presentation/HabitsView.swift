@@ -68,6 +68,13 @@ public struct HabitsRoot: View {
                 await vm.refresh()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .habitsDataDidChange)) { _ in
+            // Refresh when habits are created/updated/deleted from other screens (e.g., AI assistant)
+            guard vm.selectedHabit == nil else { return }
+            Task {
+                await vm.refresh()
+            }
+        }
         .sheet(isPresented: $showingCategoryManagement, onDismiss: {
             Task {
                 await vm.refresh()
@@ -247,13 +254,42 @@ private struct HabitsListView: View {
                                     description: Text("No habits found for the selected category. Try selecting a different category or create a new habit.")
                                 )
                             } else {
-                                ContentUnavailableView {
-                                    Label(Strings.EmptyState.noHabitsYet, systemImage: "plus.circle")
-                                        .foregroundStyle(.secondary)
-                                } description: {
-                                    Text(Strings.EmptyState.tapPlusToCreate)
-                                        .foregroundStyle(.secondary)
+                                // Empty state matching Stats screen style
+                                VStack(spacing: 20) {
+                                    Image(systemName: "checklist")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.secondary.opacity(0.6))
+                                        .accessibilityHidden(true)
+
+                                    VStack(spacing: 8) {
+                                        Text(Strings.EmptyState.noHabitsYet)
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+
+                                        HStack(spacing: 4) {
+                                            Text("Tap")
+                                            Image(systemName: "plus")
+                                                .fontWeight(.medium)
+                                            Text("or")
+                                            Image(systemName: "sparkles")
+                                                .foregroundStyle(
+                                                    LinearGradient(
+                                                        colors: [.blue, .purple],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                            Text("to create your first habit")
+                                        }
+                                        .font(.body)
+                                        .foregroundColor(.secondary)
+                                    }
                                 }
+                                .frame(height: 300)
+                                .frame(maxWidth: .infinity)
+                                .padding(.horizontal, 40)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel("No habits yet. Tap plus or the AI assistant button to create your first habit.")
                             }
                         }
                         .padding(.top, Spacing.large)
@@ -622,6 +658,7 @@ private struct OperationStatusView: View {
 }
 
 private struct DraggableFloatingButton: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Binding var dragOffset: CGSize
     let screenSize: CGSize
     let safeAreaInsets: EdgeInsets
@@ -630,7 +667,10 @@ private struct DraggableFloatingButton: View {
     @GestureState private var temporaryOffset: CGSize = .zero
     @State private var isDragging = false
 
-    private let buttonSize: CGFloat = 60
+    /// Button size adapts for iPad (regular) vs iPhone (compact)
+    private var buttonSize: CGFloat {
+        horizontalSizeClass == .regular ? 72 : 60
+    }
     private let padding: CGFloat = 16
     private let rightEdgeInset: CGFloat = 15 // Visual breathing room when snapped to right edge
 
@@ -642,9 +682,9 @@ private struct DraggableFloatingButton: View {
                 .shadow(color: .blue.opacity(0.3), radius: 12, x: 0, y: 4)
                 .shadow(color: .blue.opacity(0.2), radius: 4, x: 0, y: 2)
 
-            // AI icon with gradient
+            // AI icon with gradient - larger on iPad
             Image(systemName: "sparkles")
-                .font(.title2.weight(.semibold))
+                .font(horizontalSizeClass == .regular ? .title.weight(.semibold) : .title2.weight(.semibold))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.blue, .purple],

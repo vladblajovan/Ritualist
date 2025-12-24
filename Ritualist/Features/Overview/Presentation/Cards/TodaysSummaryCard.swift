@@ -4,6 +4,9 @@ import FactoryKit
 import TipKit
 
 struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
+    // MARK: - Environment
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     // MARK: - Dependencies
     @Injected(\.debugLogger) private var logger
 
@@ -610,168 +613,185 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     // swiftlint:disable:next function_body_length
     private func habitsSection(summary: TodaysSummary) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // TEMPORARY: Commented out "Up Next" header until we find a better UX approach
-            // The habits list is self-explanatory and the header adds visual clutter
-            // if scheduledIncompleteCount > 0 {
-            //     HStack {
-            //         Text("Up Next")
-            //             .font(.system(size: 15, weight: .semibold))
-            //             .foregroundColor(.primary)
-            //             .padding(.leading, 12)
-            //
-            //         Spacer()
-            //
-            //         Text("\(scheduledIncompleteCount)")
-            //             .font(.system(size: 13, weight: .medium, design: .rounded))
-            //             .foregroundColor(AppColors.brand)
-            //             .padding(.horizontal, 8)
-            //             .padding(.vertical, 2)
-            //             .background(
-            //                 RoundedRectangle(cornerRadius: 6)
-            //                     .fill(AppColors.brand.opacity(0.1))
-            //             )
-            //             .padding(.trailing, 8)
-            //     }
-            // }
+        // iPad: 2-column layout (remaining | completed) - only when there are remaining habits
+        // iPhone: stacked layout
+        if horizontalSizeClass == .regular && scheduledIncompleteCount > 0 {
+            HStack(alignment: .top, spacing: 16) {
+                // Left column: Remaining habits
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Remaining")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 12)
+                        .padding(.bottom, 4)
 
-            // Incomplete habits
-            if scheduledIncompleteCount > 0 {
-                VStack(spacing: 8) {
-                    // Show first 3 habits, or all if expanded
-                    // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
-                    ForEach(Array(visibleIncompleteHabits.enumerated()), id: \.element.id) { index, habit in
-                        if index == 0 {
-                            // Use TipView for the first incomplete habit to ensure tip shows
-                            VStack(spacing: 4) {
-                                TipView(tapHabitTip, arrowEdge: .bottom) { action in
-                                    // When first tip is dismissed, trigger second tip eligibility
-                                    TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
-                                    logger.log("First tip dismissed - donated shouldShowCompletedTip event", level: .debug, category: .ui)
-                                }
-                                habitRow(habit: habit, isCompleted: false)
+                    incompleteHabitsContent(summary: summary)
+                }
+                .frame(maxWidth: .infinity, alignment: .top)
+
+                // Right column: Completed habits
+                VStack(alignment: .leading, spacing: 8) {
+                    if !summary.completedHabits.isEmpty {
+                        Text("Completed")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 12)
+                            .padding(.bottom, 4)
+
+                        completedHabitsContent(summary: summary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .top)
+            }
+        } else {
+            // iPhone: Original stacked layout
+            VStack(alignment: .leading, spacing: 8) {
+                incompleteHabitsContent(summary: summary)
+
+                if !summary.completedHabits.isEmpty {
+                    completedHabitsContent(summary: summary)
+                        .padding(.top, scheduledIncompleteCount > 0 ? 12 : 0)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func incompleteHabitsContent(summary: TodaysSummary) -> some View {
+        if scheduledIncompleteCount > 0 {
+            VStack(spacing: 8) {
+                // Show first 3 habits, or all if expanded
+                // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
+                ForEach(Array(visibleIncompleteHabits.enumerated()), id: \.element.id) { index, habit in
+                    if index == 0 {
+                        // Use TipView for the first incomplete habit to ensure tip shows
+                        VStack(spacing: 4) {
+                            TipView(tapHabitTip, arrowEdge: .bottom) { _ in
+                                // When first tip is dismissed, trigger second tip eligibility
+                                TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
+                                logger.log("First tip dismissed - donated shouldShowCompletedTip event", level: .debug, category: .ui)
                             }
-                            .onAppear {
-                                logger.log("First incomplete habit row appeared - tip should show if eligible", level: .debug, category: .ui)
-                            }
-                        } else {
                             habitRow(habit: habit, isCompleted: false)
                         }
-                    }
-
-                    if scheduledIncompleteCount > 3 {
-                        if isRemainingSectionExpanded {
-                            // Collapse button
-                            Button {
-                                isRemainingSectionExpanded = false
-                            } label: {
-                                HStack {
-                                    Text("Show less")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(AppColors.brand)
-
-                                    Image(systemName: "chevron.up")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(AppColors.brand)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .padding(.top, 4)
-                        } else {
-                            // Expand button
-                            Button {
-                                isRemainingSectionExpanded = true
-                            } label: {
-                                HStack {
-                                    Text("+ \(scheduledIncompleteCount - 3) more remaining")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(AppColors.brand)
-
-                                    Image(systemName: "chevron.down")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(AppColors.brand)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .padding(.top, 2)
+                        .onAppear {
+                            logger.log("First incomplete habit row appeared - tip should show if eligible", level: .debug, category: .ui)
                         }
+                    } else {
+                        habitRow(habit: habit, isCompleted: false)
+                    }
+                }
+
+                if scheduledIncompleteCount > 3 {
+                    if isRemainingSectionExpanded {
+                        // Collapse button
+                        Button {
+                            isRemainingSectionExpanded = false
+                        } label: {
+                            HStack {
+                                Text("Show less")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(AppColors.brand)
+
+                                Image(systemName: "chevron.up")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(AppColors.brand)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .padding(.top, 4)
+                    } else {
+                        // Expand button
+                        Button {
+                            isRemainingSectionExpanded = true
+                        } label: {
+                            HStack {
+                                Text("+ \(scheduledIncompleteCount - 3) more remaining")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(AppColors.brand)
+
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(AppColors.brand)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .padding(.top, 2)
                     }
                 }
             }
+        }
+    }
 
-            // Completed habits section (always show if any exist)
-            if !summary.completedHabits.isEmpty {
-                VStack(spacing: 6) {
-                    // Always show first 2 completed habits
-                    ForEach(Array(summary.completedHabits.prefix(2).enumerated()), id: \.element.id) { index, habit in
-                        if index == 0 {
-                            // Use TipView for the first completed habit to ensure tip shows when it becomes eligible
-                            VStack(spacing: 4) {
-                                TipView(tapCompletedHabitTip, arrowEdge: .bottom)
-                                habitRow(habit: habit, isCompleted: true)
-                            }
-                            .onAppear {
-                                logger.log("First completed habit row appeared - tip should show if eligible", level: .debug, category: .ui)
-                            }
-                        } else {
-                            habitRow(habit: habit, isCompleted: true)
-                        }
+    @ViewBuilder
+    private func completedHabitsContent(summary: TodaysSummary) -> some View {
+        VStack(spacing: 6) {
+            // Always show first 2 completed habits
+            ForEach(Array(summary.completedHabits.prefix(2).enumerated()), id: \.element.id) { index, habit in
+                if index == 0 {
+                    // Use TipView for the first completed habit to ensure tip shows when it becomes eligible
+                    VStack(spacing: 4) {
+                        TipView(tapCompletedHabitTip, arrowEdge: .bottom)
+                        habitRow(habit: habit, isCompleted: true)
                     }
-
-                    // Expandable section for additional completed habits
-                    if summary.completedHabits.count > 2 {
-                        if isCompletedSectionExpanded {
-                            // Show all remaining completed habits
-                            // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
-                            ForEach(visibleCompletedHabits, id: \.id) { habit in
-                                habitRow(habit: habit, isCompleted: true)
-                            }
-
-                            // Collapse button
-                            Button {
-                                isCompletedSectionExpanded = false
-                            } label: {
-                                HStack {
-                                    Text("Show less")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.green)
-
-                                    Image(systemName: "chevron.up")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(.green)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .padding(.top, 4)
-                        } else {
-                            // Expand button
-                            Button {
-                                isCompletedSectionExpanded = true
-                            } label: {
-                                HStack {
-                                    Text("+ \(summary.completedHabits.count - 2) more completed")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.green)
-
-                                    Image(systemName: "chevron.down")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(.green)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .padding(.top, 2)
-                        }
+                    .onAppear {
+                        logger.log("First completed habit row appeared - tip should show if eligible", level: .debug, category: .ui)
                     }
+                } else {
+                    habitRow(habit: habit, isCompleted: true)
                 }
-                .padding(.top, summary.incompleteHabits.isEmpty ? 0 : 12)
+            }
+
+            // Expandable section for additional completed habits
+            if summary.completedHabits.count > 2 {
+                if isCompletedSectionExpanded {
+                    // Show all remaining completed habits
+                    // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
+                    ForEach(visibleCompletedHabits, id: \.id) { habit in
+                        habitRow(habit: habit, isCompleted: true)
+                    }
+
+                    // Collapse button
+                    Button {
+                        isCompletedSectionExpanded = false
+                    } label: {
+                        HStack {
+                            Text("Show less")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.green)
+
+                            Image(systemName: "chevron.up")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.green)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.top, 4)
+                } else {
+                    // Expand button
+                    Button {
+                        isCompletedSectionExpanded = true
+                    } label: {
+                        HStack {
+                            Text("+ \(summary.completedHabits.count - 2) more completed")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.green)
+
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.green)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.top, 2)
+                }
             }
         }
     }

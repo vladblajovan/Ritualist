@@ -157,7 +157,7 @@ struct MonthlyCalendarCard: View {
                     handleTap(at: location, canvasWidth: geometry.size.width)
                 }
             }
-            .frame(height: {
+            .frame(minHeight: {
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let cellSize: CGFloat = 36
                 let verticalSpacing: CGFloat = 6
@@ -169,6 +169,8 @@ struct MonthlyCalendarCard: View {
             .accessibilityLabel(calendarAccessibilityLabel)
             .accessibilityHint("Double-tap to select a date")
             .accessibilityIdentifier("monthly_calendar_grid")
+
+            Spacer(minLength: 0)
         }
         .padding(20)
         .onAppear {

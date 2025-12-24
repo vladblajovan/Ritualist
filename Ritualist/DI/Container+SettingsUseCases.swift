@@ -77,7 +77,8 @@ extension Container {
         self {
             DefaultDeleteiCloudDataUseCase(
                 modelContext: self.persistenceContainer().context,
-                iCloudKeyValueService: self.iCloudKeyValueService()
+                iCloudKeyValueService: self.iCloudKeyValueService(),
+                seedPredefinedCategories: self.seedPredefinedCategories()
             )
         }
     }

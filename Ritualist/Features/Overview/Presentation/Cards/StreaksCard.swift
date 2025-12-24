@@ -101,6 +101,9 @@ struct StreaksCard: View {
                     .accessibilityLabel(StreaksAccessibility.streakCount(streaks.count))
             }
             
+            // Spacer to center content vertically
+            Spacer(minLength: 0)
+
             if isLoading {
                 // Loading state
                 VStack(spacing: 12) {
@@ -152,8 +155,11 @@ struct StreaksCard: View {
                     }
                     .padding(.trailing, 16)
                 }
-                .frame(height: gridHeight) // Dynamic height based on row count
+                .frame(minHeight: gridHeight) // Minimum height based on row count, can expand
             }
+
+            // Spacer to center content vertically
+            Spacer(minLength: 0)
         }
         .padding(20)
         .accessibilityIdentifier("streaks_card")

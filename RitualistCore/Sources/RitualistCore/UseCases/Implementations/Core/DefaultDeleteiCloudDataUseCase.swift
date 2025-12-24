@@ -13,17 +13,20 @@ public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
     private let iCloudKeyValueService: iCloudKeyValueService
     private let userDefaults: UserDefaultsService
     private let logger: DebugLogger
+    private let seedPredefinedCategories: SeedPredefinedCategoriesUseCase
 
     public init(
         modelContext: ModelContext,
         iCloudKeyValueService: iCloudKeyValueService,
         userDefaults: UserDefaultsService = DefaultUserDefaultsService(),
-        logger: DebugLogger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "iCloudData")
+        logger: DebugLogger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "iCloudData"),
+        seedPredefinedCategories: SeedPredefinedCategoriesUseCase
     ) {
         self.modelContext = modelContext
         self.iCloudKeyValueService = iCloudKeyValueService
         self.userDefaults = userDefaults
         self.logger = logger
+        self.seedPredefinedCategories = seedPredefinedCategories
     }
 
     public func execute() async throws {
@@ -87,9 +90,15 @@ public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
         // Clear sync metadata from UserDefaults
         userDefaults.removeObject(forKey: UserDefaultsKeys.lastSyncDate)
 
-        // Clear category seeding flag so categories are re-seeded on next launch
+        // Clear category seeding flag so categories can be re-seeded
         userDefaults.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
         logger.log("🗑️ Cleared category seeding flag", level: .info, category: .system)
+
+        // Immediately re-seed categories to keep app in valid state
+        // This also sets categorySeedingCompleted back to true, so it won't run again on next app start
+        logger.log("🌱 Re-seeding predefined categories...", level: .info, category: .system)
+        try await seedPredefinedCategories.execute()
+        logger.log("✅ Predefined categories re-seeded", level: .info, category: .system)
 
         // Clear iCloud KV store onboarding flag so user sees onboarding on reinstall
         logger.log("🗑️ Clearing iCloud KV onboarding flags", level: .info, category: .system)

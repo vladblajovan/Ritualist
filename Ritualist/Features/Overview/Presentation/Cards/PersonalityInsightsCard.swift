@@ -7,7 +7,8 @@ struct PersonalityInsightsCard: View {
     let isDataSufficient: Bool
     let thresholdRequirements: [ThresholdRequirement]
     let onOpenAnalysis: () -> Void
-    
+
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isExpanded = false
     
     var body: some View {
@@ -67,23 +68,26 @@ struct PersonalityInsightsCard: View {
     }
     
     // MARK: - Content Views
-    
+
     @ViewBuilder
     private var insightsContent: some View {
         let initialInsightsCount = 3
+        // On large screens (iPad), show all insights without trimming
+        let showAll = horizontalSizeClass == .regular
+        let visibleCount = showAll || isExpanded ? insights.count : initialInsightsCount
 
         VStack(spacing: 16) {
-            ForEach(Array(insights.prefix(isExpanded ? insights.count : initialInsightsCount).enumerated()), id: \.element.id) { index, insight in
+            ForEach(Array(insights.prefix(visibleCount).enumerated()), id: \.element.id) { index, insight in
                 InsightRow(insight: insight)
 
-                if index < min(insights.count, isExpanded ? insights.count : initialInsightsCount) - 1 {
+                if index < visibleCount - 1 {
                     Divider()
                         .opacity(0.3)
                 }
             }
 
-            // Show more/less indicator if there are additional insights
-            if insights.count > initialInsightsCount {
+            // Show more/less indicator only on compact screens (iPhone) with additional insights
+            if !showAll && insights.count > initialInsightsCount {
                 HStack {
                     Text(isExpanded ? "Show less" : "View \(insights.count - initialInsightsCount) more insights")
                         .font(.caption)
