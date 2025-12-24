@@ -141,6 +141,15 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
                                 if expirationDate > Date() {
                                     return true
                                 }
+                                // Subscription appears expired - check grace period
+                                // This handles users whose payment failed but are still
+                                // within the billing grace period configured in App Store Connect
+                                if await Self.checkGracePeriodStatus() {
+                                    return true
+                                }
+                            } else {
+                                // Non-subscription (no expiry) - valid if not revoked
+                                return true
                             }
                         }
                     }
@@ -189,6 +198,58 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         )
 
         return result
+    }
+
+    // MARK: - Static Grace Period Check
+
+    /// Static helper to check if user is in billing grace period
+    ///
+    /// Used by `verifyPremiumSync` during startup verification when a subscription
+    /// appears expired. This allows users in grace period to retain premium access.
+    ///
+    /// - Returns: `true` if user is in grace period or billing retry, `false` otherwise
+    ///
+    private static func checkGracePeriodStatus() async -> Bool {
+        do {
+            let statuses = try await Product.SubscriptionInfo.status(
+                for: StoreKitProductID.subscriptionGroupID
+            )
+
+            for status in statuses {
+                switch status.state {
+                case .subscribed, .inGracePeriod, .inBillingRetryPeriod:
+                    if status.state == .inGracePeriod {
+                        startupLogger.log(
+                            "🔔 Startup: User in billing grace period - granting premium access",
+                            level: .info,
+                            category: .subscription
+                        )
+                    } else if status.state == .inBillingRetryPeriod {
+                        startupLogger.log(
+                            "🔔 Startup: User in billing retry period - granting premium access",
+                            level: .info,
+                            category: .subscription
+                        )
+                    }
+                    return true
+
+                case .expired, .revoked:
+                    continue
+
+                default:
+                    continue
+                }
+            }
+
+            return false
+        } catch {
+            startupLogger.log(
+                "⚠️ Startup: Failed to check grace period status: \(error.localizedDescription)",
+                level: .warning,
+                category: .subscription
+            )
+            return false
+        }
     }
 
     // MARK: - Initialization
@@ -357,6 +418,11 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     /// - Parameter transaction: The verified transaction to check
     /// - Returns: `true` if transaction grants current entitlement, `false` otherwise
     ///
+    /// **Grace Period Handling:**
+    /// When a subscription appears expired, we also check if the user is in a billing
+    /// grace period. Apple's Billing Grace Period feature gives users extra time to
+    /// fix payment issues while retaining access to premium features.
+    ///
     private func isTransactionValid(_ transaction: Transaction) async -> Bool {
         // Check for revocation
         if transaction.revocationDate != nil {
@@ -366,11 +432,91 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         // For subscriptions, check expiration
         if let expirationDate = transaction.expirationDate {
             // Transaction is valid if not yet expired
-            return expirationDate > Date()
+            if expirationDate > Date() {
+                return true
+            }
+
+            // Subscription appears expired - check if user is in grace period
+            // This handles Apple's Billing Grace Period where payment failed but
+            // user still has access while Apple retries or user updates payment method
+            if await isUserInGracePeriod() {
+                return true
+            }
+
+            return false
         }
 
         // No expiration date means non-subscription purchase - always valid if not revoked
         return true
+    }
+
+    /// Check if the user is currently in a billing grace period
+    ///
+    /// Apple's Billing Grace Period gives subscribers extra time (configured in App Store Connect)
+    /// to fix payment issues without losing access. This method checks the subscription status
+    /// to determine if the user should retain premium access despite an "expired" transaction.
+    ///
+    /// **Subscription States that grant access:**
+    /// - `.subscribed` - Active subscription
+    /// - `.inGracePeriod` - Payment failed, user has time to fix payment method
+    /// - `.inBillingRetryPeriod` - Apple is retrying the payment
+    ///
+    /// - Returns: `true` if user is in grace period or billing retry, `false` otherwise
+    ///
+    private func isUserInGracePeriod() async -> Bool {
+        do {
+            // Query subscription status for our subscription group
+            let statuses = try await Product.SubscriptionInfo.status(
+                for: StoreKitProductID.subscriptionGroupID
+            )
+
+            for status in statuses {
+                switch status.state {
+                case .subscribed:
+                    // Active subscription - should have been caught by expiration check
+                    // but return true just in case
+                    return true
+
+                case .inGracePeriod:
+                    // User's payment failed but they're in grace period
+                    // They should retain access while fixing payment method
+                    Self.startupLogger.log(
+                        "🔔 User in billing grace period - retaining premium access",
+                        level: .info,
+                        category: .subscription
+                    )
+                    return true
+
+                case .inBillingRetryPeriod:
+                    // Apple is retrying the payment - user retains access
+                    Self.startupLogger.log(
+                        "🔔 User in billing retry period - retaining premium access",
+                        level: .info,
+                        category: .subscription
+                    )
+                    return true
+
+                case .expired, .revoked:
+                    // Fully expired or revoked - no access
+                    continue
+
+                default:
+                    // Unknown state - be conservative and continue checking
+                    continue
+                }
+            }
+
+            return false
+        } catch {
+            // If we can't query subscription status, be conservative and deny grace period
+            // The user can still restore purchases if they believe they should have access
+            Self.startupLogger.log(
+                "⚠️ Failed to check subscription status for grace period: \(error.localizedDescription)",
+                level: .warning,
+                category: .subscription
+            )
+            return false
+        }
     }
 
     /// Verifies a transaction using StoreKit's built-in verification
