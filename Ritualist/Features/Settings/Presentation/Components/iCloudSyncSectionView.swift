@@ -156,7 +156,7 @@ struct ICloudSyncSectionView: View {
             syncWithiCloud: MockSyncWithiCloud(),
             checkiCloudStatus: MockCheckiCloudStatus(),
             getLastSyncDate: MockGetLastSyncDate(),
-            deleteiCloudData: MockDeleteiCloudData(),
+            deleteData: MockDeleteData(),
             exportUserData: MockExportUserData(),
             importUserData: MockImportUserData()
         ))
@@ -227,7 +227,7 @@ private struct MockGetLastSyncDate: GetLastSyncDateUseCase {
     }
 }
 
-private struct MockDeleteiCloudData: DeleteiCloudDataUseCase {
+private struct MockDeleteData: DeleteDataUseCase {
     func execute() async throws {}
 }
 

@@ -20,7 +20,7 @@ public final class SettingsViewModel {
     private let syncWithiCloud: SyncWithiCloudUseCase
     private let checkiCloudStatus: CheckiCloudStatusUseCase
     private let getLastSyncDate: GetLastSyncDateUseCase
-    private let deleteiCloudData: DeleteiCloudDataUseCase
+    private let deleteData: DeleteDataUseCase
     private let exportUserData: ExportUserDataUseCase
     private let importUserData: ImportUserDataUseCase
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
@@ -160,7 +160,7 @@ public final class SettingsViewModel {
                 syncWithiCloud: SyncWithiCloudUseCase,
                 checkiCloudStatus: CheckiCloudStatusUseCase,
                 getLastSyncDate: GetLastSyncDateUseCase,
-                deleteiCloudData: DeleteiCloudDataUseCase,
+                deleteData: DeleteDataUseCase,
                 exportUserData: ExportUserDataUseCase,
                 importUserData: ImportUserDataUseCase,
                 populateTestData: (any Any)? = nil) {
@@ -177,7 +177,7 @@ public final class SettingsViewModel {
         self.syncWithiCloud = syncWithiCloud
         self.checkiCloudStatus = checkiCloudStatus
         self.getLastSyncDate = getLastSyncDate
-        self.deleteiCloudData = deleteiCloudData
+        self.deleteData = deleteData
         self.exportUserData = exportUserData
         self.importUserData = importUserData
         #if DEBUG
@@ -601,7 +601,7 @@ public final class SettingsViewModel {
         let shouldWarnAboutSync = iCloudStatus.canSync && !isOnline
 
         do {
-            try await deleteiCloudData.execute()
+            try await deleteData.execute()
 
             // Clear last sync date since there's no data anymore
             lastSyncDate = nil

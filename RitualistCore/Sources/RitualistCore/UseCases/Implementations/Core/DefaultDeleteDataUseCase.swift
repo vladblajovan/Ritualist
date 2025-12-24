@@ -1,14 +1,14 @@
 //
-//  DefaultDeleteiCloudDataUseCase.swift
+//  DefaultDeleteDataUseCase.swift
 //  RitualistCore
 //
-//  Default implementation for deleting iCloud data
+//  Default implementation for deleting all user data
 //
 
 import Foundation
 import SwiftData
 
-public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
+public final class DefaultDeleteDataUseCase: DeleteDataUseCase {
     private let modelContext: ModelContext
     private let iCloudKeyValueService: iCloudKeyValueService
     private let userDefaults: UserDefaultsService
@@ -19,7 +19,7 @@ public final class DefaultDeleteiCloudDataUseCase: DeleteiCloudDataUseCase {
         modelContext: ModelContext,
         iCloudKeyValueService: iCloudKeyValueService,
         userDefaults: UserDefaultsService = DefaultUserDefaultsService(),
-        logger: DebugLogger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "iCloudData"),
+        logger: DebugLogger = DebugLogger(subsystem: "com.vladblajovan.Ritualist", category: "DataDeletion"),
         seedPredefinedCategories: SeedPredefinedCategoriesUseCase
     ) {
         self.modelContext = modelContext

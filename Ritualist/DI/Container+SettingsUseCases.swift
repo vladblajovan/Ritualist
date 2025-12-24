@@ -73,9 +73,9 @@ extension Container {
         self { DefaultUpdateLastSyncDateUseCase() }
     }
 
-    var deleteiCloudData: Factory<DeleteiCloudDataUseCase> {
+    var deleteData: Factory<DeleteDataUseCase> {
         self {
-            DefaultDeleteiCloudDataUseCase(
+            DefaultDeleteDataUseCase(
                 modelContext: self.persistenceContainer().context,
                 iCloudKeyValueService: self.iCloudKeyValueService(),
                 seedPredefinedCategories: self.seedPredefinedCategories()
