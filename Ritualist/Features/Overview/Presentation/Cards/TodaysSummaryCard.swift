@@ -86,21 +86,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             .joined(separator: "|")
     }
 
-    // Date formatters - use instance method to respect timezone parameter
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .full
-        formatter.timeStyle = .none
-        formatter.timeZone = timezone
-        return formatter.string(from: date)
-    }
-
-    private func formatTodayDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMMM yyyy" // e.g., "16 August 2025"
-        formatter.timeZone = timezone
-        return formatter.string(from: date)
-    }
 
     init(summary: TodaysSummary?,
          viewingDate: Date,
@@ -301,7 +286,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     // Date and Title
                     VStack(spacing: 4) {
                         if isViewingToday {
-                            Text("Today, \(formatTodayDate(CalendarUtils.startOfDayLocal(for: Date(), timezone: timezone)))")
+                            Text("Today, \(CalendarUtils.formatCompact(viewingDate, timezone: timezone))")
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
@@ -318,7 +303,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                                 .accessibilityHint(Strings.Accessibility.returnToTodayHint)
                                 .accessibilityIdentifier(AccessibilityID.Overview.todayButton)
 
-                                Text(CalendarUtils.formatForDisplay(viewingDate, style: .full, timezone: timezone))
+                                Text(CalendarUtils.formatCompact(viewingDate, includeDayName: true, timezone: timezone))
                                     .font(.headline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
@@ -591,9 +576,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     @ViewBuilder
     private var noHabitsScheduledView: some View {
-        VStack(spacing: 12) {
+        HStack(spacing: 12) {
             Image(systemName: "calendar.badge.checkmark")
-                .font(.system(size: 36))
+                .font(.system(size: 32))
                 .foregroundStyle(.secondary.opacity(0.6))
                 .accessibilityHidden(true) // Decorative icon
 

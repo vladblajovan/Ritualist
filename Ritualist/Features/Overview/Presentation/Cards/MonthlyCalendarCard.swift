@@ -33,7 +33,7 @@ struct MonthlyCalendarCard: View {
 
     private var monthString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
+        formatter.dateFormat = "MMMM"
         formatter.timeZone = timezone
         return formatter.string(from: currentDate)
     }
@@ -54,8 +54,8 @@ struct MonthlyCalendarCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header with navigation - align to top to reduce visual padding from 44pt touch targets
-            HStack(alignment: .top) {
+            // Header with navigation
+            HStack {
                 HStack(spacing: 4) {
                     Text(seasonIcon)
                         .font(.title2)
@@ -68,16 +68,15 @@ struct MonthlyCalendarCard: View {
                 Spacer()
 
                 // Navigation controls
-                HStack(spacing: 12) {
+                HStack(spacing: 16) {
                     if !isViewingCurrentMonth {
                         Button {
                             currentDate = Date()
                         } label: {
                             Image(systemName: "arrow.uturn.backward")
-                                .font(.body.weight(.medium))
+                                .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
-                        .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
                         .accessibilityLabel("Return to current month")
                         .accessibilityHint("Go back to \(monthString)")
                         .accessibilityIdentifier("calendar_return_to_today")
@@ -87,10 +86,9 @@ struct MonthlyCalendarCard: View {
                         changeMonth(by: -1)
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.body.weight(.medium))
+                            .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.secondary)
                     }
-                    .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
                     .accessibilityLabel("Previous month")
                     .accessibilityHint("Navigate to the previous month")
                     .accessibilityIdentifier("calendar_previous_month")
@@ -99,10 +97,9 @@ struct MonthlyCalendarCard: View {
                         changeMonth(by: 1)
                     } label: {
                         Image(systemName: "chevron.right")
-                            .font(.body.weight(.medium))
+                            .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.secondary)
                     }
-                    .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
                     .accessibilityLabel("Next month")
                     .accessibilityHint("Navigate to the next month")
                     .accessibilityIdentifier("calendar_next_month")

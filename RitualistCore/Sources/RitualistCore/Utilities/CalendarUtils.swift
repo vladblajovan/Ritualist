@@ -480,7 +480,15 @@ public struct CalendarUtils {
     public static func formatForDisplay(_ date: Date, style: DateFormatter.Style = .medium, timezone: TimeZone = .current) -> String {
         return formatInTimezone(date, timezone, style: style)
     }
-    
+
+    /// Format date in compact style for card headers (e.g., "24 Dec" or "Mon, 23 Dec")
+    public static func formatCompact(_ date: Date, includeDayName: Bool = false, timezone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = includeDayName ? "EEE, d MMM" : "d MMM"
+        formatter.timeZone = timezone
+        return formatter.string(from: date)
+    }
+
     /// Format time components in specified timezone
     public static func formatTime(_ date: Date, timezone: TimeZone = .current) -> String {
         let formatter = DateFormatter()
