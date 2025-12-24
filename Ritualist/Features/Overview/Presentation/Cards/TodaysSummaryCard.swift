@@ -354,7 +354,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             }
         } message: {
             if let habit = habitToDelete {
-                Text("This will remove the log entry for \"\(habit.name)\" from \(isViewingToday ? "today" : formatDate(viewingDate)). The habit itself will remain.")
+                Text("This will remove the log entry for \"\(habit.name)\" from \(isViewingToday ? "today" : CalendarUtils.formatCompact(viewingDate, includeDayName: true, timezone: timezone)). The habit itself will remain.")
             }
         }
         .sheet(isPresented: $showingScheduleInfoSheet) {
