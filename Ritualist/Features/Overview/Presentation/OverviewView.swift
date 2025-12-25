@@ -31,7 +31,6 @@ public struct OverviewView: View {
                             }
                         }
                     )
-                    .cardStyle()
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 

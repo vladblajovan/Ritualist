@@ -15,6 +15,15 @@ struct InspirationCarouselView: View {
     @State private var peekOffset: CGFloat = 0
     @State private var hasShownPeekHint: Bool = false
 
+    /// Compute gradient for card background based on time of day and completion
+    private var cardGradient: LinearGradient {
+        let context = InspirationStyleViewLogic.StyleContext(
+            completionPercentage: completionPercentage,
+            timeOfDay: timeOfDay
+        )
+        return InspirationStyleViewLogic.computeStyle(for: context).gradient
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             // Carousel with page indicators inside
@@ -33,12 +42,11 @@ struct InspirationCarouselView: View {
                                 }
                             }
                         )
-                        .padding(.horizontal, 4)
                         .tag(index)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(height: 140)
+                .frame(minHeight: 100)
                 .offset(x: peekOffset)
                 // Reset to valid index when items change (e.g., after dismissal)
                 .onChange(of: items.count) { oldCount, newCount in
@@ -91,6 +99,14 @@ struct InspirationCarouselView: View {
                 .accessibilityIdentifier(AccessibilityID.InspirationCarousel.dismissAllButton)
             }
         }
+        .padding(CardDesign.cardPadding)
+        .background(cardGradient)
+        .cornerRadius(CardDesign.cornerRadius)
+        .overlay(
+            RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+        )
+        .shadow(color: CardDesign.shadowColor, radius: CardDesign.shadowRadius, x: 0, y: 2)
         .accessibilityIdentifier(AccessibilityID.InspirationCarousel.carousel)
     }
 

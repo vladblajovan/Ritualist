@@ -71,12 +71,8 @@ struct InspirationCard: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 20)
-                    .padding(.trailing, 20)
-                    .padding(.top, 20)
 
                     // Show original slogan as subtitle when message and slogan are different
-                    // Extra trailing padding (70pt) creates restricted zone for dismiss button
                     if message != slogan && !slogan.isEmpty {
                         Text(slogan)
                             .font(.subheadline.weight(.medium))
@@ -85,14 +81,12 @@ struct InspirationCard: View {
                             .lineLimit(2)
                             .italic()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, 20)
-                            .padding(.trailing, 70) // Restricted zone for dismiss button
-                            .padding(.top, 12)
+                            .padding(.trailing, 50) // Space for dismiss button
+                            .padding(.top, 8)
                     }
 
-                    Spacer(minLength: 16)
+                    Spacer(minLength: 0)
                 }
-                .padding(.bottom, 20)
 
                 // Acknowledgement button in bottom-right
                 Button(action: onDismiss) {
@@ -106,15 +100,9 @@ struct InspirationCard: View {
                         )
                 }
                 .buttonStyle(PlainButtonStyle())
-                .padding(.trailing, 16)
-                .padding(.bottom, 16)
                 .accessibilityLabel("Dismiss inspiration card")
                 .accessibilityIdentifier(AccessibilityID.InspirationCarousel.cardDismissButton)
             }
-            .background(
-                style.gradient
-            )
-            .clipShape(RoundedRectangle(cornerRadius: CardDesign.cornerRadius))
             // PERFORMANCE: Reactive cache updates - only when dependencies change
             .onAppear {
                 updateCachedStyle()
