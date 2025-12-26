@@ -19,12 +19,14 @@ struct RemainingHabitsProvider: TimelineProvider {
     @Injected(\.widgetDateNavigationService) private var navigationService
     
     func placeholder(in context: Context) -> Entry {
+        // Placeholder is synchronous, so we use device timezone as fallback
+        // Real data will use the user's display timezone preference
         let selectedDate = navigationService.currentDate
         let placeholderHabits = createPlaceholderHabits()
         let habitDisplayInfo = placeholderHabits.map { habit in
             HabitDisplayInfo(habit: habit, currentProgress: 0, isCompleted: false)
         }
-        let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
+        let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate, timezone: .current)
 
         return Entry(
             date: Date(),
@@ -36,33 +38,37 @@ struct RemainingHabitsProvider: TimelineProvider {
     
     func getSnapshot(in context: Context, completion: @escaping (Entry) -> Void) {
         Task {
+            let timezone = await viewModel.getDisplayTimezone()
             let selectedDate = navigationService.currentDate
-            let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate)
-            let percentage = await viewModel.getCompletionPercentage(for: selectedDate)
+            let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate, timezone: timezone)
+            let percentage = await viewModel.getCompletionPercentage(for: selectedDate, timezone: timezone)
 
             let entry = Entry(
                 date: Date(),
                 habitsWithProgress: habitsWithProgress,
                 completionPercentage: percentage,
-                selectedDate: selectedDate
+                selectedDate: selectedDate,
+                timezone: timezone
             )
             completion(entry)
         }
     }
-    
+
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
         Task {
+            let timezone = await viewModel.getDisplayTimezone()
             let selectedDate = navigationService.currentDate
             let actualToday = Date()
-            let isToday = CalendarUtils.areSameDayLocal(selectedDate, actualToday)
+            let isToday = CalendarUtils.areSameDayLocal(selectedDate, actualToday, timezone: timezone)
 
-            let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate)
-            let percentage = await viewModel.getCompletionPercentage(for: selectedDate)
+            let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate, timezone: timezone)
+            let percentage = await viewModel.getCompletionPercentage(for: selectedDate, timezone: timezone)
 
             let timeline = generateOptimizedTimeline(
                 habitsWithProgress: habitsWithProgress,
                 percentage: percentage,
                 selectedDate: selectedDate,
+                timezone: timezone,
                 isViewingToday: isToday
             )
 
@@ -77,11 +83,12 @@ struct RemainingHabitsProvider: TimelineProvider {
         habitsWithProgress: [(habit: Habit, currentProgress: Int, isCompleted: Bool)],
         percentage: Double,
         selectedDate: Date,
+        timezone: TimeZone,
         isViewingToday: Bool
     ) -> Timeline<Entry> {
         var entries: [Entry] = []
         let currentDate = Date()
-        
+
         // Create value objects once and reuse across all entries (major performance optimization)
         let habitDisplayInfo = habitsWithProgress.map { data in
             HabitDisplayInfo(
@@ -90,7 +97,7 @@ struct RemainingHabitsProvider: TimelineProvider {
                 isCompleted: data.isCompleted
             )
         }
-        let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
+        let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate, timezone: timezone)
         
         // Different timeline strategies based on viewing context
         if isViewingToday {
@@ -153,8 +160,9 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
     
     private func createFallbackEntry() -> Entry {
+        // Fallback uses device timezone as we can't access async timezone service
         let selectedDate = navigationService.currentDate
-        let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
+        let navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate, timezone: .current)
         return Entry(
             date: Date(),
             habitDisplayInfo: [],
@@ -190,20 +198,26 @@ public struct WidgetNavigationInfo {
     let canGoForward: Bool
     let isViewingToday: Bool
     let daysDifference: Int
-    
+
+    /// Convenience initializer with default timezone for previews
     init(selectedDate: Date) {
-        // Use consistent calendar and date references to avoid midnight/timezone edge cases
-        let calendar = CalendarUtils.currentLocalCalendar
+        self.init(selectedDate: selectedDate, timezone: .current)
+    }
+
+    init(selectedDate: Date, timezone: TimeZone) {
+        // Use display timezone for all date calculations (same as main app)
+        var calendar = Calendar.current
+        calendar.timeZone = timezone
         let now = Date() // Single Date() call for consistency
-        let today = calendar.startOfDay(for: now)
-        let normalizedDate = calendar.startOfDay(for: selectedDate)
+        let today = CalendarUtils.startOfDayLocal(for: now, timezone: timezone)
+        let normalizedDate = CalendarUtils.startOfDayLocal(for: selectedDate, timezone: timezone)
         let maxHistoryDays = 30
-        let earliestAllowed = CalendarUtils.addDaysLocal(-maxHistoryDays, to: today, timezone: .current)
+        let earliestAllowed = CalendarUtils.addDaysLocal(-maxHistoryDays, to: today, timezone: timezone)
 
         self.selectedDate = normalizedDate
         self.canGoBack = normalizedDate > earliestAllowed
         self.canGoForward = normalizedDate < today
-        self.isViewingToday = CalendarUtils.areSameDayLocal(normalizedDate, now)
+        self.isViewingToday = CalendarUtils.areSameDayLocal(normalizedDate, now, timezone: timezone)
         self.daysDifference = calendar.dateComponents([.day], from: today, to: normalizedDate).day ?? 0
         self.dateDisplayText = Self.formatDateForDisplay(normalizedDate, referenceToday: today, calendar: calendar)
     }
@@ -219,8 +233,8 @@ public struct WidgetNavigationInfo {
             return "Today"
         }
 
-        // Yesterday
-        let yesterday = CalendarUtils.addDaysLocal(-1, to: referenceToday, timezone: .current)
+        // Yesterday (use the calendar's timezone)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: referenceToday) ?? referenceToday
         let isYesterday = calendar.isDate(normalizedDate, inSameDayAs: yesterday)
         if isYesterday {
             return "Yesterday"
@@ -247,13 +261,6 @@ public struct WidgetNavigationInfo {
         return dateFormatter.string(from: normalizedDate)
     }
     
-    /// Legacy formatDateForDisplay method for backward compatibility
-    /// Redirects to the consistent version using current date/calendar
-    private static func formatDateForDisplay(_ date: Date) -> String {
-        let calendar = CalendarUtils.currentLocalCalendar
-        let today = calendar.startOfDay(for: Date())
-        return formatDateForDisplay(date, referenceToday: today, calendar: calendar)
-    }
 }
 
 // MARK: - Timeline Entry
@@ -284,7 +291,8 @@ struct RemainingHabitsEntry: TimelineEntry {
         date: Date,
         habitsWithProgress: [(habit: Habit, currentProgress: Int, isCompleted: Bool)],
         completionPercentage: Double,
-        selectedDate: Date
+        selectedDate: Date,
+        timezone: TimeZone
     ) {
         self.date = date
         self.habitDisplayInfo = habitsWithProgress.map { data in
@@ -295,9 +303,9 @@ struct RemainingHabitsEntry: TimelineEntry {
             )
         }
         self.completionPercentage = completionPercentage
-        self.navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate)
+        self.navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate, timezone: timezone)
     }
-    
+
     /// Legacy initializer for backward compatibility
     init(
         date: Date,
@@ -305,7 +313,8 @@ struct RemainingHabitsEntry: TimelineEntry {
         habitProgress: [UUID: Int],
         habitCompletionStatus: [UUID: Bool],
         completionPercentage: Double,
-        selectedDate: Date
+        selectedDate: Date,
+        timezone: TimeZone = .current
     ) {
         let habitsWithProgress = habits.map { habit in
             (habit: habit, currentProgress: habitProgress[habit.id] ?? 0, isCompleted: habitCompletionStatus[habit.id] ?? false)
@@ -314,7 +323,8 @@ struct RemainingHabitsEntry: TimelineEntry {
             date: date,
             habitsWithProgress: habitsWithProgress,
             completionPercentage: completionPercentage,
-            selectedDate: selectedDate
+            selectedDate: selectedDate,
+            timezone: timezone
         )
     }
 }

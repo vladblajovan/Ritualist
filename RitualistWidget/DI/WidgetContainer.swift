@@ -49,13 +49,21 @@ extension Container {
     }
     
     var logDataSource: Factory<LogLocalDataSourceProtocol> {
-        self { 
+        self {
             let container = self.persistenceContainer().container
             return RitualistCore.LogLocalDataSource(modelContainer: container)
         }
         .singleton
     }
-    
+
+    var profileDataSource: Factory<ProfileLocalDataSourceProtocol> {
+        self {
+            let container = self.persistenceContainer().container
+            return RitualistCore.ProfileLocalDataSource(modelContainer: container)
+        }
+        .singleton
+    }
+
     // MARK: - Shared Repositories (same as main app)
     
     var habitRepository: Factory<HabitRepository> {
@@ -67,14 +75,40 @@ extension Container {
         self { LogRepositoryImpl(local: self.logDataSource()) }
             .singleton
     }
-    
+
+    var profileRepository: Factory<ProfileRepository> {
+        self { ProfileRepositoryImpl(local: self.profileDataSource()) }
+            .singleton
+    }
+
+    // MARK: - Shared Use Cases for Timezone
+
+    var loadProfile: Factory<LoadProfileUseCase> {
+        self { LoadProfile(repo: self.profileRepository()) }
+    }
+
+    var saveProfile: Factory<SaveProfileUseCase> {
+        self { SaveProfile(repo: self.profileRepository()) }
+    }
+
     // MARK: - Shared Services (same as main app)
     
     var habitCompletionService: Factory<HabitCompletionService> {
         self { DefaultHabitCompletionService() }
             .singleton
     }
-    
+
+    var timezoneService: Factory<TimezoneService> {
+        self {
+            DefaultTimezoneService(
+                loadProfile: self.loadProfile(),
+                saveProfile: self.saveProfile(),
+                logger: DebugLogger(subsystem: WidgetConstants.loggerSubsystem, category: "timezone")
+            )
+        }
+        .singleton
+    }
+
     // MARK: - Shared Use Cases (same as main app)
     
     var getActiveHabits: Factory<GetActiveHabitsUseCase> {
@@ -116,7 +150,8 @@ extension Container {
             WidgetHabitsViewModel(
                 getActiveHabits: self.getActiveHabits(),
                 getBatchLogs: self.getBatchLogs(),
-                habitCompletionService: self.habitCompletionService()
+                habitCompletionService: self.habitCompletionService(),
+                timezoneService: self.timezoneService()
             )
         }
     }
