@@ -32,7 +32,7 @@ import SwiftData
 /// - Legacy homeTimezone: Migrated to homeTimezoneIdentifier if present
 /// - Legacy displayTimezoneMode: Migrated with enum conversion
 public enum SchemaV9: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(9, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(9, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

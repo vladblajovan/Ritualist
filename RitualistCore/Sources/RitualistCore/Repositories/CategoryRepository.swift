@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol CategoryRepository {
+public protocol CategoryRepository: Sendable {
     func getAllCategories() async throws -> [HabitCategory]
     func getCategory(by id: String) async throws -> HabitCategory?
     func getActiveCategories() async throws -> [HabitCategory]

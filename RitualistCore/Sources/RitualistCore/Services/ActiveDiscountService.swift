@@ -149,7 +149,7 @@ public protocol ActiveDiscountService {
 /// - Format: JSON-encoded ActiveDiscount
 /// - Expiration: Checked on retrieval
 ///
-public final class MockActiveDiscountService: ActiveDiscountService {
+public final class MockActiveDiscountService: ActiveDiscountService, @unchecked Sendable {
 
     // MARK: - Constants
 

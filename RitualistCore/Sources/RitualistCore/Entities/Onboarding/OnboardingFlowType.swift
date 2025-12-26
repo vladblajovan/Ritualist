@@ -10,7 +10,7 @@
 import Foundation
 
 /// The type of onboarding flow to show the user
-public enum OnboardingFlowType: Equatable {
+public enum OnboardingFlowType: Equatable, Sendable {
     /// New user - show full onboarding (name, avatar, habits, permissions)
     case newUser
 
@@ -19,7 +19,7 @@ public enum OnboardingFlowType: Equatable {
 }
 
 /// Summary of data synced from iCloud for returning user display
-public struct SyncedDataSummary: Equatable {
+public struct SyncedDataSummary: Equatable, Sendable {
     /// Number of habits synced from iCloud
     public let habitsCount: Int
 

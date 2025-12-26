@@ -9,7 +9,7 @@
 
 import Foundation
 
-public enum LocationError: Error, Equatable {
+public enum LocationError: Error, Equatable, Sendable {
     /// Location services are disabled on the device
     case locationServicesDisabled
 

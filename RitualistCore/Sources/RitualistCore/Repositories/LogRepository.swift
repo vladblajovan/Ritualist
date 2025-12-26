@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol LogRepository {
+public protocol LogRepository: Sendable {
     func logs(for habitID: UUID) async throws -> [HabitLog]
     func logs(for habitIDs: [UUID]) async throws -> [HabitLog]
     func upsert(_ log: HabitLog) async throws

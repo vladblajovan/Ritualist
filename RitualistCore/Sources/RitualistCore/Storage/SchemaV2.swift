@@ -16,7 +16,7 @@ import SwiftData
 /// This schema matches the existing database structure before adding isPinned.
 /// V3 will add the isPinned property with lightweight migration.
 public enum SchemaV2: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(2, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(2, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

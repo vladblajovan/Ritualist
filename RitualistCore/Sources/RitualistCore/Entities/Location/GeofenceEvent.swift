@@ -11,7 +11,7 @@ import Foundation
 import CoreLocation
 
 /// Type of geofence event that occurred
-public enum GeofenceEventType: String, Codable, Equatable {
+public enum GeofenceEventType: String, Codable, Equatable, Sendable {
     /// User entered the geofenced region
     case entry
 
@@ -25,7 +25,7 @@ public enum GeofenceEventType: String, Codable, Equatable {
 /// The configuration is optional because the service should be a pass-through layer -
 /// all business logic (frequency checks, etc.) should use the authoritative
 /// configuration from the database via the UseCase layer.
-public struct GeofenceEvent {
+public struct GeofenceEvent: Sendable {
     /// The habit ID associated with this geofence
     public let habitId: UUID
 
@@ -90,7 +90,7 @@ public struct GeofenceEvent {
 }
 
 /// Authorization status for location services
-public enum LocationAuthorizationStatus: Equatable {
+public enum LocationAuthorizationStatus: Equatable, Sendable {
     /// User has not yet been asked for location permission
     case notDetermined
 

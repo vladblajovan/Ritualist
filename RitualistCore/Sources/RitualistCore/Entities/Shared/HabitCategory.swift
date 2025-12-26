@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct HabitCategory: Identifiable, Hashable, Codable {
+public struct HabitCategory: Identifiable, Hashable, Codable, Sendable {
     public let id: String
     public let name: String
     public let displayName: String

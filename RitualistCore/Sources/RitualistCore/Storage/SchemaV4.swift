@@ -18,7 +18,7 @@ import SwiftData
 /// - HabitModel: Added `notes: String?` property for habit notes
 /// - Migration: Lightweight migration (property removal + addition)
 public enum SchemaV4: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(4, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(4, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

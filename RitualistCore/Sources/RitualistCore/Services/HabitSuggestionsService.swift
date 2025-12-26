@@ -8,7 +8,7 @@
 import Foundation
 
 /// Service for retrieving habit suggestions and recommendations
-public protocol HabitSuggestionsService {
+public protocol HabitSuggestionsService: Sendable {
     /// Get all available habit suggestions
     func getSuggestions() -> [HabitSuggestion]
     

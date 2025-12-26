@@ -33,7 +33,7 @@ public protocol UserService {
 
 @available(*, deprecated, message: "Use MockUserBusinessService instead")
 @Observable
-public final class MockUserService: UserService {
+public final class MockUserService: UserService, @unchecked Sendable {
     private var _currentProfile = UserProfile()
     private let loadProfile: LoadProfileUseCase?
     private let saveProfile: SaveProfileUseCase?

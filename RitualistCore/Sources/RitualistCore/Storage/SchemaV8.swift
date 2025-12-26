@@ -19,7 +19,7 @@ import SwiftData
 /// - Migration: Lightweight migration (removing optional properties)
 /// - Rationale: Subscription status now managed by SubscriptionService (single source of truth)
 public enum SchemaV8: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(8, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(8, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

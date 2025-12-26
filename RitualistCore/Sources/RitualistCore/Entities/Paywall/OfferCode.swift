@@ -29,7 +29,7 @@ import Foundation
 /// }
 /// ```
 ///
-public struct OfferCode: Identifiable, Codable, Equatable {
+public struct OfferCode: Identifiable, Codable, Equatable, Sendable {
 
     // MARK: - Properties
 
@@ -79,7 +79,7 @@ public struct OfferCode: Identifiable, Codable, Equatable {
     // MARK: - Nested Types
 
     /// Type of promotional offer
-    public enum OfferType: String, Codable, Equatable {
+    public enum OfferType: String, Codable, Equatable, Sendable {
         /// Free trial period (e.g., 7 days, 14 days)
         case freeTrial
 
@@ -91,7 +91,7 @@ public struct OfferCode: Identifiable, Codable, Equatable {
     }
 
     /// Discount configuration for offer codes
-    public struct OfferDiscount: Codable, Equatable {
+    public struct OfferDiscount: Codable, Equatable, Sendable {
         /// Type of discount (percentage or fixed amount)
         public let type: DiscountType
 
@@ -105,7 +105,7 @@ public struct OfferCode: Identifiable, Codable, Equatable {
         public let duration: Int?
 
         /// Type of discount
-        public enum DiscountType: String, Codable, Equatable {
+        public enum DiscountType: String, Codable, Equatable, Sendable {
             /// Percentage discount (0-100)
             case percentage
 

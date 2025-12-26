@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents personality trait coefficients for habits, categories, or behaviors
-public struct PersonalityIndicator: Codable, Hashable {
+public struct PersonalityIndicator: Codable, Hashable, Sendable {
     /// Trait weights mapping (-1.0 to 1.0)
     /// Positive values indicate the behavior increases the trait
     /// Negative values indicate the behavior decreases the trait
@@ -57,7 +57,7 @@ public struct PersonalityIndicator: Codable, Hashable {
 }
 
 /// Category of personality indicator for organization and analysis
-public enum IndicatorCategory: String, CaseIterable, Codable {
+public enum IndicatorCategory: String, CaseIterable, Codable, Sendable {
     case habitType = "habit_type"
     case habitSchedule = "habit_schedule"
     case categoryPreference = "category_preference"

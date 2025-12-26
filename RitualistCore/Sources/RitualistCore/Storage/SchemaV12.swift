@@ -1,37 +1,37 @@
 //
-//  SchemaV10.swift
+//  SchemaV12.swift
 //  RitualistCore
 //
-//  Created by Claude on 23.11.2025.
+//  Created by Claude on 26.12.2025.
 //
-//  Schema Version 10: CloudKit Compatibility
+//  Schema Version 12: Database Performance Indexes
 //
-//  Changes from V9:
-//  - ALL MODELS: Removed @Attribute(.unique) constraint (CloudKit incompatible)
-//  - HabitModel: Changed logs relationship from [HabitLogModel] = [] to [HabitLogModel]? (CloudKit requires optional)
-//  - HabitCategoryModel: Changed habits relationship from [HabitModel] = [] to [HabitModel]? (CloudKit requires optional)
-//  - PersonalityAnalysisModel: Added default values to all non-optional fields (CloudKit requires defaults)
-//  - Migration: Lightweight migration - no data transformation needed
-//  - Rationale: Enable full iCloud CloudKit sync for all models
+//  Changes from V11:
+//  - HabitLogModel: Added @Index on habitID for faster log lookups
+//  - HabitCategoryModel: Added @Index on isActive and isPredefined for filtering
+//  - PersonalityAnalysisModel: Added @Index on userId and analysisDate for analysis queries
+//  - Migration: Lightweight migration - index creation is automatic
+//  - Rationale: Optimize query performance for common access patterns
 //
 
 import Foundation
 import SwiftData
 
-/// Schema V10: CloudKit Compatibility
+/// Schema V12: Database Performance Indexes
 ///
-/// This schema makes all models compatible with CloudKit sync by addressing:
-/// 1. Removing unique constraints (CloudKit doesn't support them)
-/// 2. Making relationship arrays optional (CloudKit requirement)
-/// 3. Adding default values to all required fields (CloudKit requirement)
+/// This schema adds database indexes for query optimization:
+/// 1. HabitLogModel.habitID - Faster log lookups by habit
+/// 2. HabitCategoryModel.isActive - Faster active category filtering
+/// 3. HabitCategoryModel.isPredefined - Faster predefined category queries
+/// 4. PersonalityAnalysisModel.userId - Faster user analysis lookups
+/// 5. PersonalityAnalysisModel.analysisDate - Faster date-based queries
 ///
 /// Migration Strategy:
-/// - Lightweight migration from V9 to V10
+/// - Lightweight migration from V11 to V12
 /// - No data loss or transformation
-/// - All existing data preserved
-/// - Relationships maintain cascade delete behavior
-public enum SchemaV10: VersionedSchema {
-    public static let versionIdentifier: Schema.Version = Schema.Version(10, 0, 0)
+/// - Indexes created automatically by SwiftData
+public enum SchemaV12: VersionedSchema {
+    public static let versionIdentifier: Schema.Version = Schema.Version(12, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [
@@ -44,12 +44,12 @@ public enum SchemaV10: VersionedSchema {
         ]
     }
 
-    // MARK: - HabitModel V10
-    // UPDATED: Removed @Attribute(.unique), made logs relationship optional
+    // MARK: - HabitModel V12
+    // No changes from V11
 
     @Model
     public final class HabitModel {
-        public var id: UUID = UUID()  // ✅ Added default value for CloudKit
+        public var id: UUID = UUID()
         public var name: String = ""
         public var colorHex: String = "#007AFF"
         public var emoji: String?
@@ -71,9 +71,9 @@ public enum SchemaV10: VersionedSchema {
 
         // MARK: - Relationships
         @Relationship(deleteRule: .cascade, inverse: \HabitLogModel.habit)
-        public var logs: [HabitLogModel]?  // ✅ Made optional for CloudKit
+        public var logs: [HabitLogModel]?
 
-        public var category: SchemaV10.HabitCategoryModel?
+        public var category: SchemaV12.HabitCategoryModel?
 
         public init(
             id: UUID,
@@ -120,12 +120,15 @@ public enum SchemaV10: VersionedSchema {
         }
     }
 
-    // MARK: - HabitLogModel V10
-    // UPDATED: Removed @Attribute(.unique)
+    // MARK: - HabitLogModel V12
+    // ADDED: Index on habitID for faster log lookups
 
     @Model
     public final class HabitLogModel {
-        public var id: UUID = UUID()  // ✅ Added default value for CloudKit
+        // NEW in V12: Compound index for faster habit log queries
+        #Index<HabitLogModel>([\.habitID])
+
+        public var id: UUID = UUID()
         public var habitID: UUID = UUID()
         @Relationship var habit: HabitModel?
         public var date: Date = Date()
@@ -135,7 +138,7 @@ public enum SchemaV10: VersionedSchema {
         public init(
             id: UUID,
             habitID: UUID,
-            habit: HabitModelV10?,
+            habit: HabitModelV12?,
             date: Date,
             value: Double?,
             timezone: String = "UTC"
@@ -149,12 +152,15 @@ public enum SchemaV10: VersionedSchema {
         }
     }
 
-    // MARK: - HabitCategoryModel V10
-    // UPDATED: Removed @Attribute(.unique), made habits relationship optional
+    // MARK: - HabitCategoryModel V12
+    // ADDED: Indexes on isActive and isPredefined for faster filtering
 
     @Model
     public final class HabitCategoryModel {
-        public var id: String = ""  // ✅ Added default value for CloudKit
+        // NEW in V12: Indexes for faster category filtering
+        #Index<HabitCategoryModel>([\.isActive], [\.isPredefined])
+
+        public var id: String = ""
         public var name: String = ""
         public var displayName: String = ""
         public var emoji: String = "📂"
@@ -164,7 +170,7 @@ public enum SchemaV10: VersionedSchema {
 
         // MARK: - Relationships
         @Relationship(deleteRule: .nullify, inverse: \HabitModel.category)
-        public var habits: [HabitModel]?  // ✅ Made optional for CloudKit
+        public var habits: [HabitModel]?
 
         public init(
             id: String,
@@ -185,30 +191,25 @@ public enum SchemaV10: VersionedSchema {
         }
     }
 
-    // MARK: - UserProfileModel V10
-    // UPDATED: Removed @Attribute(.unique)
+    // MARK: - UserProfileModel V12
+    // No changes from V11
 
     @Model
     public final class UserProfileModel {
-        public var id: String = ""  // ✅ Added default value for CloudKit
+        public var id: String = ""
         public var name: String = ""
         public var avatarImageData: Data?
         public var appearance: String = "followSystem"
 
         // TIMEZONE TRINITY (from V9)
-        /// Device's current timezone identifier (auto-detected, informational)
         public var currentTimezoneIdentifier: String = TimeZone.current.identifier
-
-        /// User's designated home timezone identifier (user-defined, stable)
         public var homeTimezoneIdentifier: String = TimeZone.current.identifier
-
-        /// Display timezone mode encoded as JSON (current/home/custom)
-        /// Stores DisplayTimezoneMode enum in JSON format for SwiftData compatibility
         public var displayTimezoneModeData: Data = Data()
-
-        /// Historical timezone change events encoded as JSON
-        /// Stores [TimezoneChange] array for analytics and debugging
         public var timezoneChangeHistoryData: Data = Data()
+
+        // DEMOGRAPHICS (from V11)
+        public var gender: String?
+        public var ageGroup: String?
 
         public var createdAt: Date = Date()
         public var updatedAt: Date = Date()
@@ -222,6 +223,8 @@ public enum SchemaV10: VersionedSchema {
             homeTimezoneIdentifier: String = TimeZone.current.identifier,
             displayTimezoneModeData: Data = Data(),
             timezoneChangeHistoryData: Data = Data(),
+            gender: String? = nil,
+            ageGroup: String? = nil,
             createdAt: Date = Date(),
             updatedAt: Date = Date()
         ) {
@@ -233,17 +236,19 @@ public enum SchemaV10: VersionedSchema {
             self.homeTimezoneIdentifier = homeTimezoneIdentifier
             self.displayTimezoneModeData = displayTimezoneModeData
             self.timezoneChangeHistoryData = timezoneChangeHistoryData
+            self.gender = gender
+            self.ageGroup = ageGroup
             self.createdAt = createdAt
             self.updatedAt = updatedAt
         }
     }
 
-    // MARK: - OnboardingStateModel V10
-    // UPDATED: Removed @Attribute(.unique)
+    // MARK: - OnboardingStateModel V12
+    // No changes from V11
 
     @Model
     public final class OnboardingStateModel {
-        public var id: UUID = UUID()  // ✅ Added default value for CloudKit
+        public var id: UUID = UUID()
         public var isCompleted: Bool = false
         public var completedDate: Date?
         public var userName: String?
@@ -264,24 +269,27 @@ public enum SchemaV10: VersionedSchema {
         }
     }
 
-    // MARK: - PersonalityAnalysisModel V10
-    // UPDATED: Removed @Attribute(.unique), added default values to all fields
+    // MARK: - PersonalityAnalysisModel V12
+    // ADDED: Indexes on userId and analysisDate for faster queries
 
     @Model
     public final class PersonalityAnalysisModel {
-        public var id: String = ""  // ✅ Added default value for CloudKit
-        public var userId: String = ""  // ✅ Added default value for CloudKit
-        public var analysisDate: Date = Date()  // ✅ Added default value for CloudKit
-        public var dominantTraitRawValue: String = ""  // ✅ Added default value for CloudKit
-        public var confidenceRawValue: String = ""  // ✅ Added default value for CloudKit
-        public var version: String = ""  // ✅ Added default value for CloudKit
-        public var dataPointsAnalyzed: Int = 0  // ✅ Added default value for CloudKit
-        public var timeRangeAnalyzed: Int = 0  // ✅ Added default value for CloudKit
-        public var opennessScore: Double = 0.5  // ✅ Added default value for CloudKit
-        public var conscientiousnessScore: Double = 0.5  // ✅ Added default value for CloudKit
-        public var extraversionScore: Double = 0.5  // ✅ Added default value for CloudKit
-        public var agreeablenessScore: Double = 0.5  // ✅ Added default value for CloudKit
-        public var neuroticismScore: Double = 0.5  // ✅ Added default value for CloudKit
+        // NEW in V12: Indexes for faster personality analysis queries
+        #Index<PersonalityAnalysisModel>([\.userId], [\.analysisDate])
+
+        public var id: String = ""
+        public var userId: String = ""
+        public var analysisDate: Date = Date()
+        public var dominantTraitRawValue: String = ""
+        public var confidenceRawValue: String = ""
+        public var version: String = ""
+        public var dataPointsAnalyzed: Int = 0
+        public var timeRangeAnalyzed: Int = 0
+        public var opennessScore: Double = 0.5
+        public var conscientiousnessScore: Double = 0.5
+        public var extraversionScore: Double = 0.5
+        public var agreeablenessScore: Double = 0.5
+        public var neuroticismScore: Double = 0.5
 
         public init(
             id: String,
@@ -318,18 +326,18 @@ public enum SchemaV10: VersionedSchema {
 // MARK: - Migration Type Aliases
 
 /// Type aliases for easier migration mapping between schema versions
-public typealias HabitModelV10 = SchemaV10.HabitModel
-public typealias HabitLogModelV10 = SchemaV10.HabitLogModel
-public typealias HabitCategoryModelV10 = SchemaV10.HabitCategoryModel
-public typealias UserProfileModelV10 = SchemaV10.UserProfileModel
-public typealias OnboardingStateModelV10 = SchemaV10.OnboardingStateModel
-public typealias PersonalityAnalysisModelV10 = SchemaV10.PersonalityAnalysisModel
+public typealias HabitModelV12 = SchemaV12.HabitModel
+public typealias HabitLogModelV12 = SchemaV12.HabitLogModel
+public typealias HabitCategoryModelV12 = SchemaV12.HabitCategoryModel
+public typealias UserProfileModelV12 = SchemaV12.UserProfileModel
+public typealias OnboardingStateModelV12 = SchemaV12.OnboardingStateModel
+public typealias PersonalityAnalysisModelV12 = SchemaV12.PersonalityAnalysisModel
 
 // MARK: - Domain Entity Conversions
 
-/// Extensions to convert between SchemaV10 models and domain entities
+/// Extensions to convert between SchemaV12 models and domain entities
 
-extension SchemaV10.HabitModel {
+extension SchemaV12.HabitModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() throws -> Habit {
         let schedule = try JSONDecoder().decode(HabitSchedule.self, from: scheduleData)
@@ -362,7 +370,7 @@ extension SchemaV10.HabitModel {
             displayOrder: displayOrder,
             categoryId: category?.id,
             suggestionId: suggestionId,
-            isPinned: false,  // Default to false since property removed in V4
+            isPinned: false,
             notes: notes,
             lastCompletedDate: lastCompletedDate,
             archivedDate: archivedDate,
@@ -371,7 +379,7 @@ extension SchemaV10.HabitModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ habit: Habit, context: ModelContext? = nil) throws -> HabitModelV10 {
+    public static func fromEntity(_ habit: Habit, context: ModelContext? = nil) throws -> HabitModelV12 {
         let schedule = try JSONEncoder().encode(habit.schedule)
         let reminders = try JSONEncoder().encode(habit.reminders)
         let kindRaw = (habit.kind == .binary) ? 0 : 1
@@ -385,13 +393,13 @@ extension SchemaV10.HabitModel {
         }
 
         // Set relationship from domain entity categoryId
-        var category: SchemaV10.HabitCategoryModel?
+        var category: SchemaV12.HabitCategoryModel?
         if let categoryId = habit.categoryId, let context = context {
-            let descriptor = FetchDescriptor<SchemaV10.HabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
+            let descriptor = FetchDescriptor<SchemaV12.HabitCategoryModel>(predicate: #Predicate { $0.id == categoryId })
             category = try? context.fetch(descriptor).first
         }
 
-        return SchemaV10.HabitModel(
+        return SchemaV12.HabitModel(
             id: habit.id,
             name: habit.name,
             colorHex: habit.colorHex,
@@ -416,7 +424,6 @@ extension SchemaV10.HabitModel {
     }
 
     /// Update existing SwiftData model from domain entity
-    /// Eliminates duplicate mapping logic in HabitLocalDataSource.upsert()
     public func updateFromEntity(_ habit: Habit, context: ModelContext, logger: DebugLogger) throws {
         // Update basic properties
         self.name = habit.name
@@ -438,13 +445,12 @@ extension SchemaV10.HabitModel {
 
         // Update category relationship with proper error handling
         if let categoryId = habit.categoryId {
-            let categoryDescriptor = FetchDescriptor<SchemaV10.HabitCategoryModel>(
+            let categoryDescriptor = FetchDescriptor<SchemaV12.HabitCategoryModel>(
                 predicate: #Predicate { $0.id == categoryId }
             )
             if let fetchedCategory = try? context.fetch(categoryDescriptor).first {
                 self.category = fetchedCategory
             } else {
-                // Log warning but don't fail - category might be deleted
                 logger.log("Category \(categoryId) not found for habit \(habit.id)", level: .warning, category: .dataIntegrity)
                 self.category = nil
             }
@@ -458,7 +464,6 @@ extension SchemaV10.HabitModel {
                 self.locationConfigData = try JSONEncoder().encode(locationConfig)
                 self.lastGeofenceTriggerDate = locationConfig.lastTriggerDate
             } catch {
-                // Log error and rethrow - data integrity is critical
                 logger.log("Error encoding location configuration for habit \(habit.id): \(error)", level: .error, category: .dataIntegrity)
                 throw error
             }
@@ -469,24 +474,24 @@ extension SchemaV10.HabitModel {
     }
 }
 
-extension SchemaV10.HabitLogModel {
+extension SchemaV12.HabitLogModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> HabitLog {
         return HabitLog(id: id, habitID: habitID, date: date, value: value, timezone: timezone)
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ log: HabitLog, context: ModelContext? = nil) -> HabitLogModelV10 {
-        var habit: HabitModelV10?
+    public static func fromEntity(_ log: HabitLog, context: ModelContext? = nil) -> HabitLogModelV12 {
+        var habit: HabitModelV12?
         if let context = context {
-            let descriptor = FetchDescriptor<SchemaV10.HabitModel>(predicate: #Predicate { $0.id == log.habitID })
+            let descriptor = FetchDescriptor<SchemaV12.HabitModel>(predicate: #Predicate { $0.id == log.habitID })
             habit = try? context.fetch(descriptor).first
         }
-        return SchemaV10.HabitLogModel(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value, timezone: log.timezone)
+        return SchemaV12.HabitLogModel(id: log.id, habitID: log.habitID, habit: habit, date: log.date, value: log.value, timezone: log.timezone)
     }
 }
 
-extension SchemaV10.HabitCategoryModel {
+extension SchemaV12.HabitCategoryModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> HabitCategory {
         HabitCategory(
@@ -501,8 +506,8 @@ extension SchemaV10.HabitCategoryModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModelV10 {
-        HabitCategoryModelV10(
+    public static func fromEntity(_ category: HabitCategory) -> HabitCategoryModelV12 {
+        HabitCategoryModelV12(
             id: category.id,
             name: category.name,
             displayName: category.displayName,
@@ -514,7 +519,7 @@ extension SchemaV10.HabitCategoryModel {
     }
 }
 
-extension SchemaV10.UserProfileModel {
+extension SchemaV12.UserProfileModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> UserProfile {
         let id = UUID(uuidString: self.id) ?? UUID()
@@ -545,20 +550,22 @@ extension SchemaV10.UserProfileModel {
             homeTimezoneIdentifier: homeTimezoneIdentifier,
             displayTimezoneMode: displayMode,
             timezoneChangeHistory: changeHistory,
+            gender: gender,
+            ageGroup: ageGroup,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV10 {
+    public static func fromEntity(_ profile: UserProfile) -> UserProfileModelV12 {
         // Encode DisplayTimezoneMode to JSON
         let displayModeData = (try? JSONEncoder().encode(profile.displayTimezoneMode)) ?? Data()
 
         // Encode timezone change history to JSON
         let historyData = (try? JSONEncoder().encode(profile.timezoneChangeHistory)) ?? Data()
 
-        return SchemaV10.UserProfileModel(
+        return SchemaV12.UserProfileModel(
             id: profile.id.uuidString,
             name: profile.name,
             avatarImageData: profile.avatarImageData,
@@ -567,13 +574,15 @@ extension SchemaV10.UserProfileModel {
             homeTimezoneIdentifier: profile.homeTimezoneIdentifier,
             displayTimezoneModeData: displayModeData,
             timezoneChangeHistoryData: historyData,
+            gender: profile.gender,
+            ageGroup: profile.ageGroup,
             createdAt: profile.createdAt,
             updatedAt: profile.updatedAt
         )
     }
 }
 
-extension SchemaV10.OnboardingStateModel {
+extension SchemaV12.OnboardingStateModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> OnboardingState {
         return OnboardingState(
@@ -585,8 +594,8 @@ extension SchemaV10.OnboardingStateModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ state: OnboardingState) -> OnboardingStateModelV10 {
-        return SchemaV10.OnboardingStateModel(
+    public static func fromEntity(_ state: OnboardingState) -> OnboardingStateModelV12 {
+        return SchemaV12.OnboardingStateModel(
             isCompleted: state.isCompleted,
             completedDate: state.completedDate,
             userName: state.userName,
@@ -595,7 +604,7 @@ extension SchemaV10.OnboardingStateModel {
     }
 }
 
-extension SchemaV10.PersonalityAnalysisModel {
+extension SchemaV12.PersonalityAnalysisModel {
     /// Convert SwiftData model to domain entity
     public func toEntity() -> PersonalityProfile? {
         guard let dominantTrait = PersonalityTrait(rawValue: dominantTraitRawValue),
@@ -629,8 +638,8 @@ extension SchemaV10.PersonalityAnalysisModel {
     }
 
     /// Create SwiftData model from domain entity
-    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityAnalysisModelV10 {
-        PersonalityAnalysisModelV10(
+    public static func fromEntity(_ entity: PersonalityProfile) -> PersonalityAnalysisModelV12 {
+        PersonalityAnalysisModelV12(
             id: entity.id.uuidString,
             userId: entity.userId.uuidString,
             analysisDate: entity.analysisMetadata.analysisDate,

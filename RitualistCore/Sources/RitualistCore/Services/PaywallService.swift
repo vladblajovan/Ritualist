@@ -271,8 +271,9 @@ public final class MockPaywallService: PaywallService {
     }
     
     public func clearPurchases() {
-        Task {
-            try await subscriptionService.clearPurchases()
+        let service = subscriptionService
+        Task { @Sendable in
+            try await service.clearPurchases()
         }
         purchaseState = .idle
     }
@@ -288,8 +289,9 @@ public final class MockPaywallService: PaywallService {
     
     /// Simulate purchasing a specific product (for testing)
     public func simulatePurchase(productId: String) {
-        Task {
-            try await subscriptionService.registerPurchase(productId)
+        let service = subscriptionService
+        Task { @Sendable in
+            try await service.registerPurchase(productId)
         }
     }
     

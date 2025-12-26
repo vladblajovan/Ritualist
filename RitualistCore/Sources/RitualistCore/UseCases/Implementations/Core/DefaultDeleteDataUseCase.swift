@@ -8,7 +8,7 @@
 import Foundation
 import SwiftData
 
-public final class DefaultDeleteDataUseCase: DeleteDataUseCase {
+public final class DefaultDeleteDataUseCase: DeleteDataUseCase, @unchecked Sendable {
     private let modelContext: ModelContext
     private let iCloudKeyValueService: iCloudKeyValueService
     private let userDefaults: UserDefaultsService

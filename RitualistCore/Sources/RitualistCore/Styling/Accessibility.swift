@@ -56,7 +56,7 @@ private struct AccessibilityLayoutModeKey: EnvironmentKey {
     static let defaultValue: AccessibilityLayoutMode = .standard
 }
 
-public enum AccessibilityLayoutMode {
+public enum AccessibilityLayoutMode: Sendable {
     case standard
     case accessible  // For larger accessibility text sizes
 }
@@ -348,6 +348,7 @@ public enum AccessibilityAnnouncement {
     }
 
     /// Announce layout change
+    @MainActor
     public static func layoutChanged(focus element: Any? = nil) {
         UIAccessibility.post(notification: .layoutChanged, argument: element)
     }

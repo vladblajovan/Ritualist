@@ -47,7 +47,7 @@ public enum TimezoneError: Error, LocalizedError {
 ///     // Show notification
 /// }
 /// ```
-public protocol TimezoneService {
+public protocol TimezoneService: Sendable {
 
     // MARK: - Getters
 
@@ -103,7 +103,7 @@ public protocol TimezoneService {
 // MARK: - Supporting Types
 
 /// Represents detection of a timezone change
-public struct TimezoneChangeDetection: Equatable {
+public struct TimezoneChangeDetection: Equatable, Sendable {
     /// Previous timezone identifier
     public let previousTimezone: String
 
@@ -121,7 +121,7 @@ public struct TimezoneChangeDetection: Equatable {
 }
 
 /// Represents current travel status (Current vs Home timezone)
-public struct TravelStatus: Equatable {
+public struct TravelStatus: Equatable, Sendable {
     /// Current device timezone
     public let currentTimezone: TimeZone
 

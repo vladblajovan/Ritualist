@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct UserProfile: Identifiable, Codable, Hashable {
+public struct UserProfile: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID
     public var name: String
     public var avatarImageData: Data?

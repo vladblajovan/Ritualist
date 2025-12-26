@@ -12,7 +12,8 @@ import Foundation
 import CoreLocation
 
 /// Protocol for location monitoring operations
-public protocol LocationMonitoringService: AnyObject {
+@MainActor
+public protocol LocationMonitoringService: AnyObject, Sendable {
     /// Start monitoring a geofence for a specific habit
     func startMonitoring(habitId: UUID, configuration: LocationConfiguration) async throws
 
@@ -351,14 +352,18 @@ extension DefaultLocationMonitoringService: CLLocationManagerDelegate {
         monitoringDidFailFor region: CLRegion?,
         withError error: Error
     ) {
+        // Extract values before entering Task to avoid data race with non-Sendable CLRegion
+        let regionIdentifier = region?.identifier ?? "unknown"
+        let errorDescription = error.localizedDescription
+
         Task { @MainActor in
             logger.log(
                 "❌ Geofence monitoring failed",
                 level: .error,
                 category: .location,
                 metadata: [
-                    "region": region?.identifier ?? "unknown",
-                    "error": error.localizedDescription
+                    "region": regionIdentifier,
+                    "error": errorDescription
                 ]
             )
         }
@@ -377,12 +382,15 @@ extension DefaultLocationMonitoringService: CLLocationManagerDelegate {
         _ manager: CLLocationManager,
         didStartMonitoringFor region: CLRegion
     ) {
+        // Extract value before entering Task to avoid data race with non-Sendable CLRegion
+        let regionIdentifier = region.identifier
+
         Task { @MainActor in
             logger.log(
                 "✅ Geofence monitoring started",
                 level: .info,
                 category: .location,
-                metadata: ["region": region.identifier]
+                metadata: ["region": regionIdentifier]
             )
         }
     }
@@ -432,12 +440,16 @@ extension DefaultLocationMonitoringService: CLLocationManagerDelegate {
             stateLevel = .warning
         }
 
+        // Extract values before entering Task to avoid data race with non-Sendable CLRegion
+        let regionIdentifier = region.identifier
+        let stateRawValue = state.rawValue
+
         Task { @MainActor in
             logger.log(
                 stateDescription,
                 level: stateLevel,
                 category: .location,
-                metadata: ["region": region.identifier, "state": state.rawValue]
+                metadata: ["region": regionIdentifier, "state": stateRawValue]
             )
         }
     }

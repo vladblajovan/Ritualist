@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Habit: Identifiable, Codable, Hashable {
+public struct Habit: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID
     public var name: String
     public var colorHex: String

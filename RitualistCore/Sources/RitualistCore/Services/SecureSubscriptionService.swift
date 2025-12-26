@@ -10,7 +10,7 @@ import Foundation
 /// Protocol for secure subscription validation and management
 /// Designed to be implemented with mock services during development
 /// and real App Store receipt validation in production
-public protocol SecureSubscriptionService {
+public protocol SecureSubscriptionService: Sendable {
     /// Validate if a specific product is purchased and valid
     func validatePurchase(_ productId: String) async -> Bool
     

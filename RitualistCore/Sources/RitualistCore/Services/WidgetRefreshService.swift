@@ -8,7 +8,7 @@
 import Foundation
 
 /// Protocol for widget refresh service to enable proper dependency injection and testing
-public protocol WidgetRefreshServiceProtocol {
+public protocol WidgetRefreshServiceProtocol: Sendable {
     /// Refresh all Ritualist widgets after habit completion or data changes
     func refreshWidgets()
     

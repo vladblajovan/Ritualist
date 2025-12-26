@@ -8,7 +8,7 @@
 import Foundation
 
 /// Protocol for local habit log data source operations
-public protocol LogLocalDataSourceProtocol {
+public protocol LogLocalDataSourceProtocol: Sendable {
     /// Retrieve all logs for a specific habit
     func logs(for habitID: UUID) async throws -> [HabitLog]
     

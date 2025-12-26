@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct ReminderTime: Codable, Hashable {
+public struct ReminderTime: Codable, Hashable, Sendable {
     public var hour: Int; public var minute: Int
     public init(hour: Int, minute: Int) { self.hour = hour; self.minute = minute }
 }

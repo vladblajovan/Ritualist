@@ -52,7 +52,7 @@ public final class DisabledCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
     }
 }
 
-public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
+public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase, @unchecked Sendable {
     private let syncErrorHandler: CloudSyncErrorHandler
     private let logger: DebugLogger
 
@@ -73,8 +73,8 @@ public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
 
         return await withTimeout(
             seconds: timeout,
-            operation: { [self] in
-                await performStatusCheck()
+            operation: {
+                await self.performStatusCheck()
             },
             onTimeout: {
                 logger.log(
@@ -139,7 +139,7 @@ public final class DefaultCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
 
 // MARK: - iCloud Sync Status
 
-public enum iCloudSyncStatus: Equatable {
+public enum iCloudSyncStatus: Equatable, Sendable {
     case available
     case notSignedIn
     case restricted

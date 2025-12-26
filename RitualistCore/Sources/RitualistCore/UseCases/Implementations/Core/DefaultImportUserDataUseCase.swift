@@ -13,7 +13,7 @@
 import Foundation
 import SwiftData
 
-public final class DefaultImportUserDataUseCase: ImportUserDataUseCase {
+public final class DefaultImportUserDataUseCase: ImportUserDataUseCase, @unchecked Sendable {
     private let loadProfile: LoadProfileUseCase
     private let saveProfile: SaveProfileUseCase
     private let habitRepository: HabitRepository

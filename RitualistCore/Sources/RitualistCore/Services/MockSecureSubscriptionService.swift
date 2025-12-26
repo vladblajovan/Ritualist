@@ -10,7 +10,7 @@ import Foundation
 /// Development-safe mock implementation that cannot be bypassed via UserDefaults
 /// Uses in-memory storage during development, designed for easy migration to
 /// App Store receipt validation or RevenueCat when external services are available
-public final class MockSecureSubscriptionService: SecureSubscriptionService {
+public final class MockSecureSubscriptionService: SecureSubscriptionService, @unchecked Sendable {
 
     // MARK: - Private Properties
 

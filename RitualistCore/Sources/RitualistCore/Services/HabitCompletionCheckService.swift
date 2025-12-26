@@ -12,7 +12,7 @@ import Foundation
 /// 
 /// This service has a single responsibility: notification visibility logic.
 /// It uses existing completion logic from HabitCompletionService to make decisions.
-public protocol HabitCompletionCheckService {
+public protocol HabitCompletionCheckService: Sendable {
     /// Determines if a notification should be shown for a habit on a specific date
     /// 
     /// - Parameters:

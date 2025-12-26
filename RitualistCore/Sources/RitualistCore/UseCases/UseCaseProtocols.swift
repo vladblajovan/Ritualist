@@ -3,6 +3,7 @@ import Foundation
 // MARK: - Migration Use Cases
 
 /// UseCase for checking if a migration is currently in progress
+@MainActor
 public protocol GetMigrationStatusUseCase {
     var isMigrating: Bool { get }
     var migrationDetails: MigrationDetails? { get }
@@ -104,7 +105,7 @@ public protocol GetLogsUseCase {
     func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog]
 }
 
-public protocol GetBatchLogsUseCase {
+public protocol GetBatchLogsUseCase: Sendable {
     /// Get batch logs with explicit timezone for date filtering
     func execute(for habitIDs: [UUID], since: Date?, until: Date?, timezone: TimeZone) async throws -> [UUID: [HabitLog]]
 
@@ -151,11 +152,11 @@ public protocol GetEarliestLogDateUseCase {
 
 // MARK: - Profile Use Cases  
 
-public protocol LoadProfileUseCase { 
-    func execute() async throws -> UserProfile 
+public protocol LoadProfileUseCase: Sendable {
+    func execute() async throws -> UserProfile
 }
 
-public protocol SaveProfileUseCase {
+public protocol SaveProfileUseCase: Sendable {
     func execute(_ profile: UserProfile) async throws
 }
 
@@ -438,7 +439,7 @@ public extension CalculateStreakAnalysisUseCase {
 
 // MARK: - Personality Analysis Use Cases
 
-public protocol AnalyzePersonalityUseCase {
+public protocol AnalyzePersonalityUseCase: Sendable {
     func execute(for userId: UUID) async throws -> PersonalityProfile
 }
 
@@ -461,7 +462,7 @@ public protocol UpdatePersonalityAnalysisUseCase {
     func shouldUpdateAnalysis(for userId: UUID) async throws -> Bool
 }
 
-public protocol ValidateAnalysisDataUseCase {
+public protocol ValidateAnalysisDataUseCase: Sendable {
     func execute(for userId: UUID) async throws -> AnalysisEligibility
     func getProgressDetails(for userId: UUID) async throws -> [ThresholdRequirement]
     func getEstimatedDaysToEligibility(for userId: UUID) async throws -> Int?
@@ -505,11 +506,11 @@ public protocol ForceManualAnalysisUseCase {
 
 // MARK: - Personality Analysis Data Use Cases
 
-public protocol GetHabitAnalysisInputUseCase {
+public protocol GetHabitAnalysisInputUseCase: Sendable {
     func execute(for userId: UUID) async throws -> HabitAnalysisInput
 }
 
-public protocol GetSelectedHabitSuggestionsUseCase {
+public protocol GetSelectedHabitSuggestionsUseCase: Sendable {
     func execute(from habits: [Habit]) async throws -> [HabitSuggestion]
 }
 

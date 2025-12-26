@@ -15,7 +15,7 @@ import UIKit
 #endif
 
 /// Result of a permission request
-public enum LocationPermissionResult {
+public enum LocationPermissionResult: Sendable {
     /// Permission granted
     case granted(LocationAuthorizationStatus)
 
@@ -27,7 +27,8 @@ public enum LocationPermissionResult {
 }
 
 /// Protocol for location permission operations
-public protocol LocationPermissionService {
+@MainActor
+public protocol LocationPermissionService: Sendable {
     /// Request "When In Use" location permission
     func requestWhenInUsePermission() async -> LocationPermissionResult
 
@@ -202,8 +203,11 @@ public final class DefaultLocationPermissionService: NSObject, LocationPermissio
 
 extension DefaultLocationPermissionService: CLLocationManagerDelegate {
     nonisolated public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        // Extract value before entering Task to avoid data race with non-Sendable CLLocationManager
+        let status = manager.authorizationStatus
+
         Task {
-            await handleAuthorizationChange(manager.authorizationStatus)
+            await handleAuthorizationChange(status)
         }
     }
 

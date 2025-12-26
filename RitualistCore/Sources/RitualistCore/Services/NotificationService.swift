@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import UserNotifications
+@preconcurrency import UserNotifications
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -19,7 +19,7 @@ public enum NotificationAuthorizationStatus {
     case ephemeral
 }
 
-public protocol NotificationService {
+public protocol NotificationService: Sendable {
     func requestAuthorizationIfNeeded() async throws -> Bool
     func checkAuthorizationStatus() async -> Bool
     func schedule(for habitID: UUID, times: [ReminderTime]) async throws
@@ -45,7 +45,7 @@ public protocol NotificationService {
     func clearHabitNotifications(ids: [String]) async
 }
 
-public final class LocalNotificationService: NSObject, NotificationService {
+public final class LocalNotificationService: NSObject, NotificationService, @unchecked Sendable {
     private static let habitReminderCategory = "HABIT_REMINDER"
     private static let binaryHabitReminderCategory = "BINARY_HABIT_REMINDER"
     private static let numericHabitReminderCategory = "NUMERIC_HABIT_REMINDER"
@@ -662,7 +662,7 @@ public final class LocalNotificationService: NSObject, NotificationService {
     // MARK: - Private Helpers
     
     /// Executes an async operation with a timeout to prevent blocking the delegate
-    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async -> T) async throws -> T {
+    private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async -> T) async throws -> T {
         try await withThrowingTaskGroup(of: T.self) { group in
             // Add the actual operation
             group.addTask {
@@ -740,38 +740,46 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         )
 
         // Use async completion checking with timeout to avoid blocking the delegate
-        Task {
+        // Capture service to avoid capturing self in @Sendable closure
+        let completionCheckService = self.habitCompletionCheckService
+        // Use nonisolated(unsafe) for the completion handler since it comes from Objective-C
+        // and we know it's safe to call from any context
+        nonisolated(unsafe) let unsafeCompletionHandler = completionHandler
+        let loggerRef = self.logger
+        let habitIdStr = habitId.uuidString
+
+        Task { @MainActor @Sendable in
             do {
                 let shouldShow = try await withTimeout(seconds: 0.5) {
-                    await self.habitCompletionCheckService.shouldShowNotification(habitId: habitId, date: Date())
+                    await completionCheckService.shouldShowNotification(habitId: habitId, date: Date())
                 }
 
                 if shouldShow {
-                    logger.log(
+                    loggerRef.log(
                         "✅ Showing notification - habit not completed",
                         level: .info,
                         category: .notifications,
-                        metadata: ["habitId": habitId.uuidString]
+                        metadata: ["habitId": habitIdStr]
                     )
-                    completionHandler([.banner, .sound, .badge])
+                    unsafeCompletionHandler([.banner, .sound, .badge])
                 } else {
-                    logger.log(
+                    loggerRef.log(
                         "🚫 Suppressing notification - habit already completed",
                         level: .info,
                         category: .notifications,
-                        metadata: ["habitId": habitId.uuidString]
+                        metadata: ["habitId": habitIdStr]
                     )
-                    completionHandler([]) // Suppress notification
+                    unsafeCompletionHandler([]) // Suppress notification
                 }
             } catch {
-                logger.log(
+                loggerRef.log(
                     "⚠️ Error checking completion - showing notification as fallback",
                     level: .warning,
                     category: .notifications,
-                    metadata: ["error": String(describing: error), "habitId": habitId.uuidString]
+                    metadata: ["error": String(describing: error), "habitId": habitIdStr]
                 )
                 // Fail-safe: show notification on any error
-                completionHandler([.banner, .sound, .badge])
+                unsafeCompletionHandler([.banner, .sound, .badge])
             }
         }
     }
@@ -801,17 +809,21 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         )
         
         // Handle notification response on main thread
+        // Use nonisolated(unsafe) for Objective-C delegate parameters that are safe to use across isolation boundaries
+        nonisolated(unsafe) let unsafeResponse = response
+        nonisolated(unsafe) let unsafeCompletionHandler = completionHandler
+
         #if canImport(UIKit)
         DispatchQueue.main.async {
             Task {
-                await self.handleNotificationResponse(response)
-                completionHandler()
+                await self.handleNotificationResponse(unsafeResponse)
+                unsafeCompletionHandler()
             }
         }
         #else
         Task {
-            await self.handleNotificationResponse(response)
-            completionHandler()
+            await self.handleNotificationResponse(unsafeResponse)
+            unsafeCompletionHandler()
         }
         #endif
     }
@@ -908,7 +920,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
     
     // MARK: - Notification Response Handling
 
-    private func handleNotificationResponse(_ response: UNNotificationResponse) async {
+    private func handleNotificationResponse(_ response: sending UNNotificationResponse) async {
         // Clear app badge when any notification is tapped
         await MainActor.run {
             UNUserNotificationCenter.current().setBadgeCount(0)
@@ -1067,7 +1079,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
 
     /// Handle personality analysis notification responses
     @MainActor
-    private func handlePersonalityNotificationResponse(_ response: UNNotificationResponse) async {
+    private func handlePersonalityNotificationResponse(_ response: sending UNNotificationResponse) async {
         logger.log(
             "🧠 Handling personality notification response",
             level: .debug,

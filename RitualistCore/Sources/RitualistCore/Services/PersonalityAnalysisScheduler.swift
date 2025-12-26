@@ -51,7 +51,7 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         self.errorHandler = errorHandler
         self.logger = logger
 
-        loadSchedulerState()
+        Task { await self.loadSchedulerState() }
     }
     
     // MARK: - Public Methods

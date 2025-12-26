@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Build Configuration Detection
 
 /// Defines the build-time configuration for subscription features
-public enum BuildConfiguration {
+public enum BuildConfiguration: Sendable {
     /// All features are enabled for all users (no subscription gating)
     case allFeaturesEnabled
     /// Subscription-based feature gating is active

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct HabitSuggestion: Identifiable, Hashable {
+public struct HabitSuggestion: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let emoji: String

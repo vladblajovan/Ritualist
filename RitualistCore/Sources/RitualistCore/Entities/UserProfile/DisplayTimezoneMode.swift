@@ -26,7 +26,7 @@ import Foundation
 /// - Legacy mode "original" (show logs in their recorded timezone) is intentionally removed
 /// - All calculations now use a single consistent timezone (Display mode)
 /// - Original timezone is preserved in HabitLog.timezone for historical context
-public enum DisplayTimezoneMode: Codable, Equatable, Hashable {
+public enum DisplayTimezoneMode: Codable, Equatable, Hashable, Sendable {
     /// Follow the device's current timezone (auto-updates when user travels)
     /// Best for: Users who want their habit tracking to adapt to travel
     case current
@@ -133,7 +133,7 @@ public enum DisplayTimezoneMode: Codable, Equatable, Hashable {
 // MARK: - Timezone Change Tracking
 
 /// Represents a historical timezone change event for analytics and debugging
-public struct TimezoneChange: Codable, Equatable, Hashable {
+public struct TimezoneChange: Codable, Equatable, Hashable, Sendable {
     /// When the timezone change occurred
     public let timestamp: Date
 
@@ -154,7 +154,7 @@ public struct TimezoneChange: Codable, Equatable, Hashable {
     }
 
     /// What triggered this timezone change
-    public enum ChangeTrigger: String, Codable {
+    public enum ChangeTrigger: String, Codable, Sendable {
         /// Device timezone changed (user traveled or changed system settings)
         case deviceChange = "device_change"
 

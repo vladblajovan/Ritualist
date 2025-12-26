@@ -42,8 +42,13 @@ public struct RitualistGradientBackground: View {
 
 public struct GlassmorphicCard<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
+    var cornerRadius: CGFloat
     @ViewBuilder var content: () -> Content
-    var cornerRadius: CGFloat = 20
+
+    public init(cornerRadius: CGFloat = 20, @ViewBuilder content: @escaping () -> Content) {
+        self.cornerRadius = cornerRadius
+        self.content = content
+    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {

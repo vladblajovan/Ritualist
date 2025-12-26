@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct HabitLog: Identifiable, Codable, Hashable {
+public struct HabitLog: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID
     public var habitID: UUID
     public var date: Date  // Always stored as UTC timestamp

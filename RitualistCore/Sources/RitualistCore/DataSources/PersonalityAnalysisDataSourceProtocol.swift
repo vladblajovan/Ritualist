@@ -9,7 +9,7 @@
 import Foundation
 
 /// Data source for personality analysis SwiftData operations
-public protocol PersonalityAnalysisDataSourceProtocol {
+public protocol PersonalityAnalysisDataSourceProtocol: Sendable {
     /// Get the latest personality profile for a user
     func getLatestProfile(for userId: UUID) async throws -> PersonalityProfile?
     

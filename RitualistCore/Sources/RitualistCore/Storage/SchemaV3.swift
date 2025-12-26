@@ -17,7 +17,7 @@ import SwiftData
 /// - HabitModel: Added `isPinned: Bool` property with default value `false`
 /// - Migration: Lightweight migration (new property with default value)
 public enum SchemaV3: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(3, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(3, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

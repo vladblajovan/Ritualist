@@ -20,7 +20,7 @@ import Foundation
 /// // ... perform migration ...
 /// logger.logMigrationSuccess(from: "1.0.0", to: "2.0.0", duration: 1.5)
 /// ```
-public final class MigrationLogger {
+public final class MigrationLogger: @unchecked Sendable {
 
     // MARK: - Singleton
 

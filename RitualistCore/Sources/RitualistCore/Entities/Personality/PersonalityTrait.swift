@@ -8,7 +8,7 @@
 import Foundation
 
 /// The Big Five personality traits (OCEAN model)
-public enum PersonalityTrait: String, CaseIterable, Codable, Hashable {
+public enum PersonalityTrait: String, CaseIterable, Codable, Hashable, Sendable {
     case openness = "openness"
     case conscientiousness = "conscientiousness" 
     case extraversion = "extraversion"
@@ -113,7 +113,7 @@ public enum PersonalityTrait: String, CaseIterable, Codable, Hashable {
 }
 
 /// Confidence level for personality analysis
-public enum ConfidenceLevel: String, CaseIterable, Codable {
+public enum ConfidenceLevel: String, CaseIterable, Codable, Sendable {
     case insufficient, low, medium, high, veryHigh
     
     /// Numeric confidence score (0.0 - 1.0)

@@ -10,7 +10,7 @@ import NaturalLanguage
 
 /// Service responsible for personality calculation utilities
 /// Business operations moved to AnalyzePersonalityUseCase
-public protocol PersonalityAnalysisService {
+public protocol PersonalityAnalysisService: Sendable {
     /// Calculate personality scores from habit analysis input
     func calculatePersonalityScores(from input: HabitAnalysisInput) -> [PersonalityTrait: Double]
     
