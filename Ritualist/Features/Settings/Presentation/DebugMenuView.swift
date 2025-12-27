@@ -33,7 +33,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
     @State private var backupCount: Int = 0
     @State private var migrationHistoryCount: Int = 0
     
-    // swiftlint:disable:next function_body_length
     var body: some View {
         formContent
             .navigationTitle("Debug Menu")
@@ -933,19 +932,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                         #endif
                     }
 
-                    HStack {
-                        Text("Subscription Enabled:")
-                        Spacer()
-                        #if SUBSCRIPTION_ENABLED
-                        Text("Yes")
-                            .fontWeight(.medium)
-                            .foregroundColor(.green)
-                        #else
-                        Text("No")
-                            .fontWeight(.medium)
-                            .foregroundColor(.red)
-                        #endif
-                    }
                 }
                 .font(.subheadline)
                 .padding(.vertical, 4)

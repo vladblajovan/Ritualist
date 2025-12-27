@@ -268,9 +268,8 @@ extension Container {
         self {
             // Build flag logic:
             // - ALL_FEATURES_ENABLED: Mock with premium always on (Ritualist-AllFeatures scheme)
-            // - SUBSCRIPTION_ENABLED: Mock for testing paywall UI (Ritualist-Subscription scheme)
             // - No flags (default): Real StoreKit2 for production (Ritualist scheme)
-            #if ALL_FEATURES_ENABLED || SUBSCRIPTION_ENABLED
+            #if ALL_FEATURES_ENABLED
             return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
             #else
             return StoreKitSubscriptionService(errorHandler: self.errorHandler())
