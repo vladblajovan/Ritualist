@@ -1233,8 +1233,8 @@ struct TimezoneServiceTests {
 
         // Simulate travel: Update current timezone to Tokyo
         try await service.updateHomeTimezone(homeTimezone) // Keep home as NY
-        var profileData = ProfileLocalDataSource(modelContainer: container)
-        var profileRepo = ProfileRepositoryImpl(local: profileData)
+        let profileData = ProfileLocalDataSource(modelContainer: container)
+        let profileRepo = ProfileRepositoryImpl(local: profileData)
         var travelProfile = try await profileRepo.loadProfile()
 
         // Manually update current timezone to simulate device detecting new timezone

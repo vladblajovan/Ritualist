@@ -10,10 +10,9 @@ import RitualistCore
 
 /// Base class for Ritualist UI tests
 /// Provides common setup, teardown, and helper methods
-@MainActor
 class RitualistUITestCase: XCTestCase {
 
-    var app: XCUIApplication!
+    nonisolated(unsafe) var app: XCUIApplication!
 
     override func setUpWithError() throws {
         continueAfterFailure = false

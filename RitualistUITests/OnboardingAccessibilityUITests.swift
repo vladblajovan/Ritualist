@@ -11,10 +11,9 @@
 
 import XCTest
 
-@MainActor
 final class OnboardingAccessibilityUITests: XCTestCase {
 
-    var app: XCUIApplication!
+    nonisolated(unsafe) var app: XCUIApplication!
 
     override func setUp() {
         super.setUp()

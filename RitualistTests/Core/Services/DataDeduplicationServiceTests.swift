@@ -117,13 +117,13 @@ struct ProfileDeduplicationTests {
         let context = ModelContext(container)
 
         let avatarData = Data([0x00, 0x01, 0x02])
-        var profileWithAvatar = UserProfile(
+        let profileWithAvatar = UserProfile(
             id: UUID(),
             name: "User",
             avatarImageData: avatarData,
             appearance: 0
         )
-        var profileWithoutAvatar = UserProfile(
+        let profileWithoutAvatar = UserProfile(
             id: UUID(),
             name: "User",
             avatarImageData: nil,
