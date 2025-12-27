@@ -94,8 +94,8 @@ struct TimezoneServiceTests {
         // Should create default profile and return display timezone
         let displayTz = try await service.getDisplayTimezone()
 
-        // Verify it returned a valid timezone
-        #expect(displayTz != nil)
+        // Verify it returned the current timezone (default for new profiles)
+        #expect(displayTz.identifier == TimeZone.current.identifier)
 
         // Verify default profile was created
         let profileDataSource = ProfileLocalDataSource(modelContainer: container)
