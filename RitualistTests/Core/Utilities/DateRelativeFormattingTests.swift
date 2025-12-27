@@ -7,6 +7,7 @@ import Testing
 /// These tests verify that `relativeString()` and `relativeOrAbsoluteString()`
 /// correctly format dates relative to now in human-readable format.
 @Suite("Date - Relative Formatting")
+@MainActor
 struct DateRelativeFormattingTests {
 
     // MARK: - relativeString Tests

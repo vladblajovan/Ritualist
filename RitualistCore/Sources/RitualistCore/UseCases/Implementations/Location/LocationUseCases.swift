@@ -13,7 +13,7 @@ import Foundation
 // MARK: - Configure Habit Location UseCase
 
 /// Configure location settings for a habit
-public protocol ConfigureHabitLocationUseCase {
+public protocol ConfigureHabitLocationUseCase: Sendable {
     func execute(habitId: UUID, configuration: LocationConfiguration?) async throws
 }
 
@@ -300,7 +300,7 @@ public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
 // MARK: - Request Location Permissions UseCase
 
 /// Request location permissions with appropriate level
-public protocol RequestLocationPermissionsUseCase {
+public protocol RequestLocationPermissionsUseCase: Sendable {
     func execute(requestAlways: Bool) async -> LocationPermissionResult
 }
 
@@ -323,11 +323,11 @@ public struct RequestLocationPermissionsUseCaseImpl: RequestLocationPermissionsU
 // MARK: - Get Location Authorization Status UseCase
 
 /// Get current location authorization status
-public protocol GetLocationAuthStatusUseCase {
+public protocol GetLocationAuthStatusUseCase: Sendable {
     func execute() async -> LocationAuthorizationStatus
 }
 
-public struct GetLocationAuthStatusUseCaseImpl: GetLocationAuthStatusUseCase {
+public struct GetLocationAuthStatusUseCaseImpl: GetLocationAuthStatusUseCase, Sendable {
     private let locationPermissionService: LocationPermissionService
 
     public init(locationPermissionService: LocationPermissionService) {
@@ -362,7 +362,7 @@ public struct GetMonitoredHabitsUseCaseImpl: GetMonitoredHabitsUseCase {
 
 /// Restore geofence monitoring for all habits with enabled location configurations
 /// This should be called on app launch to restore geofences after app restart/kill
-public protocol RestoreGeofenceMonitoringUseCase {
+public protocol RestoreGeofenceMonitoringUseCase: Sendable {
     func execute() async throws
 }
 

@@ -12,11 +12,8 @@ import Foundation
 import SwiftData
 @testable import RitualistCore
 
-#if swift(>=6.1)
 @Suite("SchemaV12 Tests", .tags(.database, .fast))
-#else
-@Suite("SchemaV12 Tests")
-#endif
+@MainActor
 struct SchemaV12Tests {
 
     // MARK: - Schema Version Tests
@@ -168,11 +165,8 @@ struct SchemaV12Tests {
 
 // MARK: - Schema Migration Chain Tests
 
-#if swift(>=6.1)
 @Suite("Schema Migration Chain Tests", .tags(.database, .fast))
-#else
-@Suite("Schema Migration Chain Tests")
-#endif
+@MainActor
 struct SchemaMigrationChainTests {
 
     @Test("Migration chain is complete from V2 to V12")

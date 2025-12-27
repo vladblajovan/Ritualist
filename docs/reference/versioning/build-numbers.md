@@ -49,31 +49,6 @@ cp Scripts/pre-commit-hook.sh .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 ```
 
-## Xcode Build Phase (Optional)
-
-For extra safety, you can also add a build phase in Xcode. This is optional since the pre-commit hook handles it.
-
-### Add Build Phase
-
-1. Open Xcode, select Ritualist project
-2. Select Ritualist target
-3. Go to Build Phases tab
-4. Click (+) → "New Run Script Phase"
-5. Rename to "Auto Build Number"
-6. Drag to top (before "Compile Sources")
-7. Add script:
-   ```bash
-   ${SOURCE_ROOT}/Scripts/set-build-number.sh
-   ```
-
-### Build Log Output
-
-When working:
-```
-🔢 Auto Build Number: 217 (from /Users/.../Ritualist)
-✅ Updated Info.plist CFBundleVersion to 217
-```
-
 ## Troubleshooting
 
 ### Build number doesn't increment
@@ -114,16 +89,6 @@ This shouldn't happen with the new system. But if you see old build numbers:
 3. The BUILD_NUMBER file from main will be merged in
 4. Next commit will increment from the higher value
 
-### Script not found error
-
-**Error:** `Scripts/set-build-number.sh: No such file or directory`
-
-**Fix:** Verify the script exists:
-```bash
-ls Scripts/set-build-number.sh
-chmod +x Scripts/set-build-number.sh
-```
-
 ## Manual Update
 
 If you need to force a specific build number:
@@ -156,7 +121,6 @@ The widget extension (RitualistWidgetExtension) uses the same `CURRENT_PROJECT_V
 BUILD_NUMBER                           # Source of truth (e.g., "216")
 .git/hooks/pre-commit                  # Increments on commit
 Scripts/pre-commit-hook.sh             # Reference copy of hook
-Scripts/set-build-number.sh            # Optional Xcode build phase
 Ritualist.xcodeproj/project.pbxproj    # CURRENT_PROJECT_VERSION entries
 ```
 

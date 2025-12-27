@@ -240,26 +240,28 @@ public struct MapLocationPickerView: View {
     private func handleSearch(_ query: String) {
         searchError = nil
         let geocoder = CLGeocoder()
-        geocoder.geocodeAddressString(query) { placemarks, error in
-            if error != nil {
-                searchError = "Could not find location. Please try a different search."
-                return
-            }
+        geocoder.geocodeAddressString(query) { [self] placemarks, error in
+            Task { @MainActor in
+                if error != nil {
+                    searchError = "Could not find location. Please try a different search."
+                    return
+                }
 
-            guard let placemark = placemarks?.first, let location = placemark.location else {
-                searchError = "No results found for \"\(query)\""
-                return
-            }
+                guard let placemark = placemarks?.first, let location = placemark.location else {
+                    searchError = "No results found for \"\(query)\""
+                    return
+                }
 
-            selectedCoordinate = location.coordinate
-            position = .region(MKCoordinateRegion(
-                center: location.coordinate,
-                span: MKCoordinateSpan(
-                    latitudeDelta: MapConstants.defaultSpanDelta,
-                    longitudeDelta: MapConstants.defaultSpanDelta
-                )
-            ))
-            handleLocationSelected(location.coordinate)
+                selectedCoordinate = location.coordinate
+                position = .region(MKCoordinateRegion(
+                    center: location.coordinate,
+                    span: MKCoordinateSpan(
+                        latitudeDelta: MapConstants.defaultSpanDelta,
+                        longitudeDelta: MapConstants.defaultSpanDelta
+                    )
+                ))
+                handleLocationSelected(location.coordinate)
+            }
         }
     }
 

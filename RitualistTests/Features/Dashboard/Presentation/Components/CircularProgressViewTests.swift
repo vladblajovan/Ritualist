@@ -13,6 +13,7 @@ import SwiftUI
 
 /// Tests for CircularProgressView adaptive gradient logic
 @Suite("CircularProgressView - Adaptive Gradients")
+@MainActor
 struct CircularProgressViewGradientTests {
 
     // MARK: - Color Threshold Tests

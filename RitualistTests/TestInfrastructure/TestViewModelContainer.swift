@@ -14,7 +14,7 @@ import Foundation
 
 /// Mock implementation of GetEarliestLogDateUseCase
 /// Use this to test start date validation without database queries
-public final class MockGetEarliestLogDate: GetEarliestLogDateUseCase {
+public final class MockGetEarliestLogDate: GetEarliestLogDateUseCase, @unchecked Sendable {
     public var dateToReturn: Date?
     public var shouldFail = false
     public var failureError: Error = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Mock error"])
@@ -43,7 +43,7 @@ public final class MockGetEarliestLogDate: GetEarliestLogDateUseCase {
 
 /// Mock implementation of ValidateHabitUniquenessUseCase
 /// Use this to test duplicate habit validation
-public final class MockValidateHabitUniqueness: ValidateHabitUniquenessUseCase {
+public final class MockValidateHabitUniqueness: ValidateHabitUniquenessUseCase, @unchecked Sendable {
     public var isUnique = true
     public var shouldFail = false
     public var failureError: Error = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Mock error"])
@@ -68,7 +68,7 @@ public final class MockValidateHabitUniqueness: ValidateHabitUniquenessUseCase {
 
 /// Mock implementation of GetActiveCategoriesUseCase
 /// Use this to provide test categories without database queries
-public final class MockGetActiveCategories: GetActiveCategoriesUseCase {
+public final class MockGetActiveCategories: GetActiveCategoriesUseCase, @unchecked Sendable {
     public var categories: [HabitCategory] = []
     public var shouldFail = false
     public var failureError: Error = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Mock error"])
@@ -87,20 +87,42 @@ public final class MockGetActiveCategories: GetActiveCategoriesUseCase {
     }
 }
 
-/// Mock implementation of GetLocationAuthStatusUseCase for HabitDetail testing
-/// Use this to simulate location permission states
-public final class MockGetLocationAuthStatusForHabitDetail: GetLocationAuthStatusUseCase {
-    public var statusToReturn: LocationAuthorizationStatus = .notDetermined
-    public private(set) var executeCallCount = 0
+/// Mock implementation of PermissionCoordinatorProtocol for HabitDetail testing
+/// Use this to simulate permission states and requests
+public final class MockPermissionCoordinatorForHabitDetail: PermissionCoordinatorProtocol, @unchecked Sendable {
+    public var locationStatus: LocationAuthorizationStatus = .notDetermined
+    public var notificationGranted = false
+    public private(set) var checkLocationStatusCallCount = 0
+    public private(set) var requestLocationPermissionCallCount = 0
 
-    public init(status: LocationAuthorizationStatus = .notDetermined) {
-        self.statusToReturn = status
+    public init(locationStatus: LocationAuthorizationStatus = .notDetermined) {
+        self.locationStatus = locationStatus
     }
 
-    public func execute() async -> LocationAuthorizationStatus {
-        executeCallCount += 1
-        return statusToReturn
+    public func requestNotificationPermission() async -> NotificationPermissionOutcome {
+        .success(notificationGranted)
     }
+
+    public func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionOutcome {
+        requestLocationPermissionCallCount += 1
+        return .success(locationStatus)
+    }
+
+    public func checkNotificationStatus() async -> Bool {
+        notificationGranted
+    }
+
+    public func checkLocationStatus() async -> LocationAuthorizationStatus {
+        checkLocationStatusCallCount += 1
+        return locationStatus
+    }
+
+    public func checkAllPermissions() async -> (notifications: Bool, location: LocationAuthorizationStatus) {
+        (notificationGranted, locationStatus)
+    }
+
+    public func scheduleAllNotifications() async throws {}
+    public func restoreAllGeofences() async throws {}
 }
 
 // MARK: - Test ViewModel Container
@@ -140,7 +162,7 @@ public enum TestViewModelContainer {
         public let getEarliestLogDate: MockGetEarliestLogDate
         public let validateHabitUniqueness: MockValidateHabitUniqueness
         public let getActiveCategories: MockGetActiveCategories
-        public let getLocationAuthStatus: MockGetLocationAuthStatusForHabitDetail
+        public let permissionCoordinator: MockPermissionCoordinatorForHabitDetail
     }
 
     // MARK: - HabitDetailViewModel Factory
@@ -165,21 +187,21 @@ public enum TestViewModelContainer {
         let mockGetEarliestLogDate = MockGetEarliestLogDate(dateToReturn: earliestLogDate)
         let mockValidateUniqueness = MockValidateHabitUniqueness(isUnique: isUnique)
         let mockGetCategories = MockGetActiveCategories(categories: categories)
-        let mockGetLocationAuth = MockGetLocationAuthStatusForHabitDetail(status: locationAuthStatus)
+        let mockPermissionCoordinator = MockPermissionCoordinatorForHabitDetail(locationStatus: locationAuthStatus)
 
         let viewModel = HabitDetailViewModel(
             habit: habit,
             getEarliestLogDate: mockGetEarliestLogDate,
             validateHabitUniqueness: mockValidateUniqueness,
             getActiveCategories: mockGetCategories,
-            getLocationAuthStatus: mockGetLocationAuth
+            permissionCoordinator: mockPermissionCoordinator
         )
 
         let mocks = HabitDetailMocks(
             getEarliestLogDate: mockGetEarliestLogDate,
             validateHabitUniqueness: mockValidateUniqueness,
             getActiveCategories: mockGetCategories,
-            getLocationAuthStatus: mockGetLocationAuth
+            permissionCoordinator: mockPermissionCoordinator
         )
 
         return (viewModel, mocks)
@@ -198,7 +220,7 @@ public enum TestViewModelContainer {
             getEarliestLogDate: mocks.getEarliestLogDate,
             validateHabitUniqueness: mocks.validateHabitUniqueness,
             getActiveCategories: mocks.getActiveCategories,
-            getLocationAuthStatus: mocks.getLocationAuthStatus
+            permissionCoordinator: mocks.permissionCoordinator
         )
     }
 }

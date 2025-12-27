@@ -3,6 +3,7 @@ import Testing
 
 /// Tests for StreaksLayoutViewLogic - demonstrates testable layout calculation pattern
 @Suite("StreaksLayoutViewLogic Tests")
+@MainActor
 struct StreaksLayoutViewLogicTests {
 
     // MARK: - Number of Rows Tests

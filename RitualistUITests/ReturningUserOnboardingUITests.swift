@@ -10,6 +10,7 @@
 
 import XCTest
 
+@MainActor
 final class ReturningUserOnboardingUITests: XCTestCase {
 
     var app: XCUIApplication!

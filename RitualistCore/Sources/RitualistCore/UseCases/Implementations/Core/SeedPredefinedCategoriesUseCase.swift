@@ -9,11 +9,11 @@ import Foundation
 
 /// Seeds predefined categories into the database if they don't already exist
 /// This ensures that category relationships work properly for habits from suggestions
-public protocol SeedPredefinedCategoriesUseCase {
+public protocol SeedPredefinedCategoriesUseCase: Sendable {
     func execute() async throws
 }
 
-public final class SeedPredefinedCategories: SeedPredefinedCategoriesUseCase {
+public final class SeedPredefinedCategories: SeedPredefinedCategoriesUseCase, @unchecked Sendable {
     private let categoryRepository: CategoryRepository
     private let categoryDefinitionsService: CategoryDefinitionsServiceProtocol
     private let habitRepository: HabitRepository

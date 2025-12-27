@@ -205,8 +205,7 @@ Ritualist/
 │   └── project.pbxproj             # MARKETING_VERSION + CURRENT_PROJECT_VERSION
 ├── Scripts/
 │   ├── bump-version.sh             # Automated version bumping
-│   ├── pre-commit-hook.sh          # Build number auto-increment
-│   └── set-build-number.sh         # Legacy (optional Xcode build phase)
+│   └── pre-commit-hook.sh          # Build number auto-increment
 ├── .git/hooks/
 │   └── pre-commit                  # Active hook (copies pre-commit-hook.sh)
 ├── .github/workflows/

@@ -12,9 +12,10 @@ import RitualistCore
 
 // MARK: - Timeline Provider
 
+@MainActor
 struct RemainingHabitsProvider: TimelineProvider {
     typealias Entry = RemainingHabitsEntry
-    
+
     @Injected(\.widgetHabitsViewModel) private var viewModel
     @Injected(\.widgetDateNavigationService) private var navigationService
     
@@ -37,9 +38,10 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
     
     func getSnapshot(in context: Context, completion: @escaping (Entry) -> Void) {
+        let viewModel = self.viewModel
+        let selectedDate = navigationService.currentDate
         Task {
             let timezone = await viewModel.getDisplayTimezone()
-            let selectedDate = navigationService.currentDate
             let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate, timezone: timezone)
             let percentage = await viewModel.getCompletionPercentage(for: selectedDate, timezone: timezone)
 
@@ -55,16 +57,17 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
+        let viewModel = self.viewModel
+        let selectedDate = navigationService.currentDate
         Task {
             let timezone = await viewModel.getDisplayTimezone()
-            let selectedDate = navigationService.currentDate
             let actualToday = Date()
             let isToday = CalendarUtils.areSameDayLocal(selectedDate, actualToday, timezone: timezone)
 
             let habitsWithProgress = await viewModel.getHabitsWithProgress(for: selectedDate, timezone: timezone)
             let percentage = await viewModel.getCompletionPercentage(for: selectedDate, timezone: timezone)
 
-            let timeline = generateOptimizedTimeline(
+            let timeline = self.generateOptimizedTimeline(
                 habitsWithProgress: habitsWithProgress,
                 percentage: percentage,
                 selectedDate: selectedDate,

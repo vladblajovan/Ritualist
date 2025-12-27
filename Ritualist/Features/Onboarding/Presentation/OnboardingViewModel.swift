@@ -10,14 +10,9 @@ public final class OnboardingViewModel {
     private let getOnboardingState: GetOnboardingState
     private let saveOnboardingState: SaveOnboardingState
     private let completeOnboarding: CompleteOnboarding
-    private let requestNotificationPermission: RequestNotificationPermissionUseCase
-    private let checkNotificationStatus: CheckNotificationStatusUseCase
-    private let requestLocationPermissions: RequestLocationPermissionsUseCase
-    private let getLocationAuthStatus: GetLocationAuthStatusUseCase
+    private let permissionCoordinator: PermissionCoordinatorProtocol
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.debugLogger) var logger
-    @ObservationIgnored @Injected(\.dailyNotificationScheduler) var dailyNotificationScheduler
-    @ObservationIgnored @Injected(\.restoreGeofenceMonitoring) var restoreGeofenceMonitoring
 
     // Current state
     public var currentPage: Int = 0
@@ -39,23 +34,19 @@ public final class OnboardingViewModel {
     public var errorMessage: String?
 
     // Constants
-    public static let maxNameLength = 50
+    nonisolated public static let maxNameLength = 50
     public let totalPages = 6
-    
-    public init(getOnboardingState: GetOnboardingState,
-                saveOnboardingState: SaveOnboardingState,
-                completeOnboarding: CompleteOnboarding,
-                requestNotificationPermission: RequestNotificationPermissionUseCase,
-                checkNotificationStatus: CheckNotificationStatusUseCase,
-                requestLocationPermissions: RequestLocationPermissionsUseCase,
-                getLocationAuthStatus: GetLocationAuthStatusUseCase) {
+
+    public init(
+        getOnboardingState: GetOnboardingState,
+        saveOnboardingState: SaveOnboardingState,
+        completeOnboarding: CompleteOnboarding,
+        permissionCoordinator: PermissionCoordinatorProtocol
+    ) {
         self.getOnboardingState = getOnboardingState
         self.saveOnboardingState = saveOnboardingState
         self.completeOnboarding = completeOnboarding
-        self.requestNotificationPermission = requestNotificationPermission
-        self.checkNotificationStatus = checkNotificationStatus
-        self.requestLocationPermissions = requestLocationPermissions
-        self.getLocationAuthStatus = getLocationAuthStatus
+        self.permissionCoordinator = permissionCoordinator
     }
     
     public func loadOnboardingState() async {
@@ -116,88 +107,38 @@ public final class OnboardingViewModel {
     }
     
     public func checkPermissions() async {
-        // Check current permission status (for when page loads with existing permissions)
-        // Use async let for parallel execution to improve performance
-        async let notificationStatus = checkNotificationStatus.execute()
-        async let locationStatus = getLocationAuthStatus.execute()
-
-        hasGrantedNotifications = await notificationStatus
-        let location = await locationStatus
-        hasGrantedLocation = (location == .authorizedAlways || location == .authorizedWhenInUse)
+        let permissions = await permissionCoordinator.checkAllPermissions()
+        hasGrantedNotifications = permissions.notifications
+        hasGrantedLocation = permissions.location.hasAnyAuthorization
     }
 
     public func requestNotificationPermission() async {
-        // Track permission request
         userActionTracker.track(.onboardingNotificationPermissionRequested)
 
-        do {
-            let granted = try await requestNotificationPermission.execute()
-            hasGrantedNotifications = granted
+        let result = await permissionCoordinator.requestNotificationPermission()
+        hasGrantedNotifications = result.granted
 
-            // Track permission result
-            if granted {
-                userActionTracker.track(.onboardingNotificationPermissionGranted)
-
-                // CRITICAL: If permission was just granted, schedule notifications for any existing habits
-                // This handles the case where user created habits before granting notification permission
-                logger.log(
-                    "📅 Scheduling notifications after onboarding permission granted",
-                    level: .info,
-                    category: .notifications
-                )
-                try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
-            } else {
-                userActionTracker.track(.onboardingNotificationPermissionDenied)
-            }
-        } catch {
-            logger.log(
-                "Failed to request notification permission",
-                level: .error,
-                category: .notifications,
-                metadata: ["error": error.localizedDescription]
-            )
+        if result.granted {
+            userActionTracker.track(.onboardingNotificationPermissionGranted)
+        } else if result.error != nil {
             errorMessage = "Failed to request notification permission"
-            hasGrantedNotifications = false
-            // Track as failed (not denied) - these are different scenarios
             userActionTracker.track(.onboardingNotificationPermissionFailed)
+        } else {
+            userActionTracker.track(.onboardingNotificationPermissionDenied)
         }
     }
 
     public func requestLocationPermission() async {
-        // Track permission request
         userActionTracker.track(.onboardingLocationPermissionRequested)
 
-        // Request "Always" permission during onboarding.
-        // This pre-authorizes location for habits synced from iCloud that may have
-        // location-based reminders. Also enables geofence monitoring for new habits.
-        _ = await requestLocationPermissions.execute(requestAlways: true)
+        // Request "Always" permission during onboarding for geofence monitoring
+        let result = await permissionCoordinator.requestLocationPermission(requestAlways: true)
+        hasGrantedLocation = result.isAuthorized
 
-        // Check status after request
-        let locationStatus = await getLocationAuthStatus.execute()
-        hasGrantedLocation = (locationStatus == .authorizedAlways || locationStatus == .authorizedWhenInUse)
-
-        // Track permission result
-        if hasGrantedLocation {
-            userActionTracker.track(.onboardingLocationPermissionGranted(status: String(describing: locationStatus)))
-
-            // CRITICAL: If permission was just granted, restore geofences for any existing habits
-            // This handles the case where user created location-based habits before granting permission
-            logger.log(
-                "🌍 Restoring geofences after onboarding location permission granted",
-                level: .info,
-                category: .location
-            )
-            do {
-                try await restoreGeofenceMonitoring.execute()
-            } catch {
-                logger.log(
-                    "Failed to restore geofences after onboarding location permission granted",
-                    level: .error,
-                    category: .location,
-                    metadata: ["error": error.localizedDescription]
-                )
-                userActionTracker.track(.onboardingLocationPermissionFailed)
-            }
+        if result.isAuthorized {
+            userActionTracker.track(.onboardingLocationPermissionGranted(status: String(describing: result.status)))
+        } else if result.error != nil {
+            userActionTracker.track(.onboardingLocationPermissionFailed)
         } else {
             userActionTracker.track(.onboardingLocationPermissionDenied)
         }
@@ -287,7 +228,11 @@ public final class OnboardingViewModel {
             return false
         }
     }
-    
+}
+
+// MARK: - Computed Properties
+
+extension OnboardingViewModel {
     public var canProceedFromCurrentPage: Bool {
         switch currentPage {
         case 0: // Name input page - reject empty or whitespace-only names
@@ -298,15 +243,19 @@ public final class OnboardingViewModel {
             return true
         }
     }
-    
+
     public var isFirstPage: Bool {
         currentPage == 0
     }
-    
+
     public var isLastPage: Bool {
         currentPage == totalPages - 1
     }
-    
+}
+
+// MARK: - State Management
+
+extension OnboardingViewModel {
     public func dismissError() {
         errorMessage = nil
     }
@@ -324,9 +273,11 @@ public final class OnboardingViewModel {
         isLoading = false
         errorMessage = nil
     }
+}
 
-    // MARK: - Private Helpers
-    
+// MARK: - Private Helpers
+
+extension OnboardingViewModel {
     private func pageNameFor(_ page: Int) -> String {
         switch page {
         case 0: return "welcome_name"

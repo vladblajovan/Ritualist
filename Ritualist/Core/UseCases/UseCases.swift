@@ -76,8 +76,6 @@ public typealias LoadPaywallProducts = RitualistCore.LoadPaywallProducts
 public typealias PurchaseProduct = RitualistCore.PurchaseProduct
 public typealias RestorePurchases = RitualistCore.RestorePurchases
 public typealias CheckProductPurchased = RitualistCore.CheckProductPurchased
-public typealias ResetPurchaseState = RitualistCore.ResetPurchaseState
-public typealias GetPurchaseState = RitualistCore.GetPurchaseState
 
 // Re-export Habit Suggestion UseCases
 public typealias CreateHabitFromSuggestion = RitualistCore.CreateHabitFromSuggestion

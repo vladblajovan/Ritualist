@@ -13,6 +13,7 @@ import SwiftData
 // MARK: - Profile Deduplication Tests
 
 @Suite("DataDeduplicationService - Profile Deduplication")
+@MainActor
 struct ProfileDeduplicationTests {
 
     // MARK: - Zero/One Profile Tests
@@ -217,6 +218,7 @@ struct ProfileDeduplicationTests {
 // MARK: - Habit Deduplication Tests
 
 @Suite("DataDeduplicationService - Habit Deduplication")
+@MainActor
 struct HabitDeduplicationTests {
 
     @Test("Returns 0 when no habits exist")
@@ -352,6 +354,7 @@ struct HabitDeduplicationTests {
 // MARK: - Category Deduplication Tests
 
 @Suite("DataDeduplicationService - Category Deduplication")
+@MainActor
 struct CategoryDeduplicationTests {
 
     @Test("Returns 0 when no categories exist")
@@ -410,6 +413,7 @@ struct CategoryDeduplicationTests {
 // MARK: - Habit Log Deduplication Tests
 
 @Suite("DataDeduplicationService - HabitLog Deduplication")
+@MainActor
 struct HabitLogDeduplicationTests {
 
     @Test("Returns 0 when no logs exist")
@@ -541,6 +545,7 @@ struct HabitLogDeduplicationTests {
 // MARK: - DeduplicationResult Tests
 
 @Suite("DeduplicationResult - Properties")
+@MainActor
 struct DeduplicationResultTests {
 
     @Test("hadDuplicates returns true when any duplicates removed")
@@ -614,6 +619,7 @@ struct DeduplicationResultTests {
 // MARK: - Initial Sync Completion Detection Tests
 
 @Suite("DeduplicationResult - Initial Sync Completion Detection")
+@MainActor
 struct InitialSyncCompletionTests {
 
     /// Tests the condition used to determine if initial sync has settled:
@@ -705,6 +711,7 @@ struct InitialSyncCompletionTests {
 }
 
 @Suite("DataDeduplicationService - DeduplicateAll")
+@MainActor
 struct DeduplicateAllTests {
 
     @Test("deduplicateAll returns correct totals for all model types")

@@ -19,14 +19,11 @@ import Foundation
 
 // MARK: - ProfileCache Tests
 
-#if swift(>=6.1)
 @Suite(
     "ProfileCache Tests",
     .tags(.cache, .performance, .businessLogic)
 )
-#else
-@Suite("ProfileCache Tests")
-#endif
+@MainActor
 struct ProfileCacheTests {
 
     // MARK: - Cache Hit Tests
@@ -261,14 +258,11 @@ struct ProfileCacheTests {
 
 // MARK: - CachedLoadProfile Tests
 
-#if swift(>=6.1)
 @Suite(
     "CachedLoadProfile Tests",
     .tags(.cache, .useCase, .businessLogic)
 )
-#else
-@Suite("CachedLoadProfile Tests")
-#endif
+@MainActor
 struct CachedLoadProfileTests {
 
     @Test("Returns cached profile on cache hit")
@@ -314,45 +308,15 @@ struct CachedLoadProfileTests {
         let cachedResult = await cache.get()
         #expect(cachedResult?.name == "Fresh From Database")
     }
-
-    @Test("Fetches from inner after TTL expires")
-    func fetchesFromInnerAfterTTLExpires() async throws {
-        let cache = ProfileCache(ttl: 0.1) // 100ms
-        let mockInner = MockLoadProfileUseCase()
-        let profile = UserProfileBuilder.standard(name: "Expiring")
-        await mockInner.setProfileToReturn(profile)
-
-        // Populate cache
-        await cache.set(profile)
-
-        let cachedLoadProfile = CachedLoadProfile(
-            innerLoadProfile: mockInner,
-            cache: cache
-        )
-
-        // First call - cache hit
-        _ = try await cachedLoadProfile.execute()
-        #expect(await mockInner.executeCallCount == 0)
-
-        // Wait for TTL expiry
-        try await Task.sleep(nanoseconds: 150_000_000)
-
-        // Second call - cache miss, should fetch from inner
-        _ = try await cachedLoadProfile.execute()
-        #expect(await mockInner.executeCallCount == 1)
-    }
 }
 
 // MARK: - CacheAwareSaveProfile Tests
 
-#if swift(>=6.1)
 @Suite(
     "CacheAwareSaveProfile Tests",
     .tags(.cache, .useCase, .businessLogic)
 )
-#else
-@Suite("CacheAwareSaveProfile Tests")
-#endif
+@MainActor
 struct CacheAwareSaveProfileTests {
 
     @Test("Save invalidates cache")

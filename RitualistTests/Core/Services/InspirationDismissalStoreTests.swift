@@ -12,6 +12,7 @@ import Foundation
 // MARK: - Load/Save Tests
 
 @Suite("InspirationDismissalStore - Persistence")
+@MainActor
 struct InspirationDismissalStorePersistenceTests {
 
     @Test("Loads empty set when no data stored")
@@ -80,6 +81,7 @@ struct InspirationDismissalStorePersistenceTests {
 // MARK: - Reset If New Day Tests
 
 @Suite("InspirationDismissalStore - Day Reset")
+@MainActor
 struct InspirationDismissalStoreDayResetTests {
 
     @Test("First call sets reset date and returns false")

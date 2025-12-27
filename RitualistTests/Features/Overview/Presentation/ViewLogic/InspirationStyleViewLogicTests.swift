@@ -4,6 +4,7 @@ import SwiftUI
 
 /// Tests for InspirationStyleViewLogic - demonstrates testable style computation pattern
 @Suite("InspirationStyleViewLogic Tests")
+@MainActor
 struct InspirationStyleViewLogicTests {
 
     // MARK: - Perfect Day Tests (100% Completion)

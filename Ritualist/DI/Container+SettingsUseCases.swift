@@ -126,7 +126,7 @@ extension Container {
     // MARK: - Development Operations
 
     var clearPurchases: Factory<ClearPurchases> {
-        self { ClearPurchases(paywallService: self.paywallService()) }
+        self { ClearPurchases(subscriptionService: self.subscriptionService()) }
     }
 
     #if DEBUG

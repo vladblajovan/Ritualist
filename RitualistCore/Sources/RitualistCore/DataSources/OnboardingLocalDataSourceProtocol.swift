@@ -8,7 +8,7 @@
 import Foundation
 
 /// Protocol for local onboarding state data source operations
-public protocol OnboardingLocalDataSourceProtocol {
+public protocol OnboardingLocalDataSourceProtocol: Sendable {
     /// Load the onboarding state from local storage
     func load() async throws -> OnboardingState?
     

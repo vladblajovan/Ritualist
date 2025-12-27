@@ -190,7 +190,7 @@ extension ToastView {
 // MARK: - Toast View Modifier
 
 /// Configuration for toast presentation
-struct ToastConfiguration {
+struct ToastConfiguration: @unchecked Sendable {
     var alignment: Alignment = .top
     var padding: CGFloat = 4
     var transition: AnyTransition = .move(edge: .top).combined(with: .opacity)

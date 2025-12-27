@@ -11,11 +11,8 @@ import Testing
 import Foundation
 @testable import RitualistCore
 
-#if swift(>=6.1)
 @Suite("UserActionEventMapper Tests", .tags(.isolated, .fast))
-#else
-@Suite("UserActionEventMapper Tests")
-#endif
+@MainActor
 struct UserActionEventMapperTests {
 
     let mapper = UserActionEventMapper()

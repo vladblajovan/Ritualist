@@ -2,8 +2,6 @@ import Testing
 
 /// Centralized test tags for organizing and running test suites by flow/feature
 ///
-/// **Note:** Tags require Swift 6.1+ (Xcode 26+). On Xcode 16.x (Swift 6.0), tags are
-/// disabled via `#if swift(>=6.1)` guards since the @Tag macro was introduced in Swift 6.1.
 ///
 /// **Usage:**
 /// ```swift
@@ -28,8 +26,6 @@ import Testing
 /// xcodebuild test -only-testing-tags timezone -scheme MyScheme -destination '...'
 /// xcodebuild test -skip-testing-tags integrationTests,slow -scheme MyScheme -destination '...'
 /// ```
-
-#if swift(>=6.1)
 
 extension Tag {
 
@@ -63,9 +59,6 @@ extension Tag {
 
     /// Tests related to historical date validation
     @Tag static var history: Self
-
-    /// Tests related to offer codes and discounts
-    @Tag static var offerCodes: Self
 
     /// Tests related to onboarding flow
     @Tag static var onboarding: Self
@@ -121,6 +114,23 @@ extension Tag {
     /// Slow tests (> 1s) - run less frequently
     @Tag static var slow: Self
 
+    /// Performance-related tests
+    @Tag static var performance: Self
+
+    // MARK: - Technical Categories
+
+    /// Cache-related tests
+    @Tag static var cache: Self
+
+    /// Use case tests
+    @Tag static var useCase: Self
+
+    /// Async operation tests
+    @Tag static var async: Self
+
+    /// UI-related tests
+    @Tag static var ui: Self
+
     // MARK: - Dependencies
 
     /// Tests that use SwiftData/database
@@ -166,5 +176,3 @@ extension Tag {
 //   swift test --filter '.fast && .isolated'     # Pre-commit checks
 //   swift test --filter '.timezone || .travel'   # Timezone flow
 //   swift test --filter '.notifications'         # Notification flow
-
-#endif

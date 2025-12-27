@@ -14,6 +14,7 @@ import Testing
 /// These tests verify that the date boundary calculations are hoisted correctly
 /// and that logs are filtered properly across different timezones.
 @Suite("LogUseCases - Timezone Date Filtering")
+@MainActor
 struct LogUseCasesTimezoneDateFilteringTests {
 
     // MARK: - Date Boundary Calculation Tests
@@ -170,6 +171,7 @@ struct LogUseCasesTimezoneDateFilteringTests {
 
 /// Tests for DST transition handling in log filtering
 @Suite("LogUseCases - DST Transition Handling")
+@MainActor
 struct LogUseCasesDSTTransitionTests {
 
     @Test("Spring forward DST transition calculates correct day boundaries")
@@ -247,6 +249,7 @@ struct LogUseCasesDSTTransitionTests {
 
 /// Tests for midnight boundary edge cases
 @Suite("LogUseCases - Midnight Boundary Edge Cases")
+@MainActor
 struct LogUseCasesMidnightBoundaryTests {
 
     @Test("Log at 23:59:59 is same day as log at 00:00:00")
@@ -315,6 +318,7 @@ struct LogUseCasesMidnightBoundaryTests {
 
 /// Tests for batch filtering performance optimization
 @Suite("LogUseCases - Batch Filtering Optimization")
+@MainActor
 struct LogUseCasesBatchFilteringOptimizationTests {
 
     @Test("Since and until boundaries are consistent across all logs")

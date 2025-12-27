@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum SubscriptionPlan: String, Codable, CaseIterable {
+public enum SubscriptionPlan: String, Codable, CaseIterable, Sendable {
     case free
     case weekly
     case monthly

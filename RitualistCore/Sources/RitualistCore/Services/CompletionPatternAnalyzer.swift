@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - CompletionPatternAnalyzer Protocol
 
-public protocol CompletionPatternAnalyzerProtocol {
+public protocol CompletionPatternAnalyzerProtocol: Sendable {
     /// Check if current completion represents a "comeback story"
     /// Returns true if today's completion significantly exceeds yesterday's poor performance
     func checkComebackStory(

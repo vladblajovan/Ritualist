@@ -6,6 +6,7 @@ import Foundation
 /// Tests for navigation cache behavior - verifies all navigation methods use cache consistently
 /// Tests goToPreviousDay, goToNextDay, goToToday, and goToDate cache behavior
 @Suite("Navigation Cache Behavior Tests")
+@MainActor
 struct NavigationCacheTests {
 
     // MARK: - Date Navigation Cache Logic Tests

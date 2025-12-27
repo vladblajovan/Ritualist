@@ -4,6 +4,7 @@ import SwiftUI
 
 /// Tests for ProgressColorViewLogic - demonstrates testable progress color pattern
 @Suite("ProgressColorViewLogic Tests")
+@MainActor
 struct ProgressColorViewLogicTests {
 
     // MARK: - High Completion Tests (80-100%) - Green

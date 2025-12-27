@@ -3,6 +3,7 @@ import Testing
 
 /// Tests for NumericHabitLogViewLogic - demonstrates testable numeric habit logic
 @Suite("NumericHabitLogViewLogic Tests")
+@MainActor
 struct NumericHabitLogViewLogicTests {
 
     // MARK: - Effective Daily Target Tests

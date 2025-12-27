@@ -35,7 +35,7 @@ public enum BuildConfiguration: Sendable {
 // MARK: - Build Configuration Service Protocol
 
 /// Service for detecting and working with build-time configuration
-public protocol BuildConfigurationService {
+public protocol BuildConfigurationService: Sendable {
     /// Current build configuration
     var buildConfiguration: BuildConfiguration { get }
     
@@ -51,7 +51,7 @@ public protocol BuildConfigurationService {
 
 // MARK: - Default Implementation
 
-public final class DefaultBuildConfigurationService: BuildConfigurationService {
+public final class DefaultBuildConfigurationService: BuildConfigurationService, Sendable {
     
     public init() {}
     

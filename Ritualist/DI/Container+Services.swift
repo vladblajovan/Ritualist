@@ -154,8 +154,9 @@ extension Container {
             .singleton
     }
     
+    @MainActor
     var widgetRefreshService: Factory<WidgetRefreshServiceProtocol> {
-        self { WidgetRefreshService(logger: self.debugLogger()) }
+        self { @MainActor in WidgetRefreshService(logger: self.debugLogger()) }
             .singleton
     }
 
@@ -288,23 +289,15 @@ extension Container {
     var paywallService: Factory<PaywallService> {
         self {
             // Build flag logic:
-            // - ALL_FEATURES_ENABLED: Mock with premium always on (Ritualist-AllFeatures scheme)
-            // - SUBSCRIPTION_ENABLED: Mock for testing paywall UI (Ritualist-Subscription scheme)
-            // - No flags (default): Real StoreKit2 for production (Ritualist scheme)
-            #if ALL_FEATURES_ENABLED || SUBSCRIPTION_ENABLED
-            let mockPaywall = MockPaywallService(
-                subscriptionService: self.secureSubscriptionService(),
-                testingScenario: .randomResults
-            )
-            mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
-            return mockPaywall
+            // - ALL_FEATURES_ENABLED: NoOp paywall (all features unlocked)
+            // - Default: Real StoreKit2 for production
+            #if ALL_FEATURES_ENABLED
+            return NoOpPaywallService()
             #else
-            return MainActor.assumeIsolated {
-                StoreKitPaywallService(
-                    subscriptionService: self.secureSubscriptionService(),
-                    logger: self.debugLogger()
-                )
-            }
+            return StoreKitPaywallService(
+                subscriptionService: self.secureSubscriptionService(),
+                logger: self.debugLogger()
+            )
             #endif
         }
         .singleton
@@ -354,6 +347,22 @@ extension Container {
     var quickActionCoordinator: Factory<QuickActionCoordinator> {
         self { @MainActor in
             QuickActionCoordinator(logger: self.debugLogger())
+        }
+        .singleton
+    }
+
+    @MainActor
+    var permissionCoordinator: Factory<PermissionCoordinatorProtocol> {
+        self { @MainActor in
+            PermissionCoordinator(
+                requestNotificationPermission: self.requestNotificationPermission(),
+                checkNotificationStatus: self.checkNotificationStatus(),
+                requestLocationPermissions: self.requestLocationPermissions(),
+                getLocationAuthStatus: self.getLocationAuthStatus(),
+                dailyNotificationScheduler: self.dailyNotificationScheduler(),
+                restoreGeofenceMonitoring: self.restoreGeofenceMonitoring(),
+                logger: self.debugLogger()
+            )
         }
         .singleton
     }

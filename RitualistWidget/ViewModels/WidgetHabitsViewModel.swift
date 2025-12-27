@@ -10,7 +10,7 @@ import RitualistCore
 
 /// Widget ViewModel that uses main app's Use Cases for proper Clean Architecture
 /// Ensures data consistency between widget and main app
-final class WidgetHabitsViewModel {
+final class WidgetHabitsViewModel: Sendable {
 
     // MARK: - Dependencies
     private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "widget")

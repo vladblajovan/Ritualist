@@ -34,6 +34,7 @@ import Foundation
 ///
 /// Uses MockUserDefaultsService for test isolation - no shared state between tests.
 @Suite("CloudKitCleanupService - Completion Flag Behavior")
+@MainActor
 struct CloudKitCleanupCompletionFlagTests {
 
     @Test("Cleanup skips when already completed")
@@ -75,6 +76,7 @@ struct CloudKitCleanupCompletionFlagTests {
 // MARK: - CloudKit Cleanup Error Tests
 
 @Suite("CloudKitCleanupError - Error Descriptions")
+@MainActor
 struct CloudKitCleanupErrorTests {
 
     @Test("Partial failure error description includes counts")
@@ -100,6 +102,7 @@ struct CloudKitCleanupErrorTests {
 // MARK: - PersistenceConfiguration Tests
 
 @Suite("PersistenceConfiguration - Entity Assignment")
+@MainActor
 struct PersistenceConfigurationTests {
 
     @Test("PersonalityAnalysis is in local-only configuration")
@@ -178,6 +181,7 @@ struct PersistenceConfigurationTests {
 // MARK: - CD_ Prefix Documentation Verification
 
 @Suite("CloudKit Record Type Naming")
+@MainActor
 struct CloudKitRecordTypeNamingTests {
 
     @Test("SwiftData CloudKit record type uses CD_ prefix convention")

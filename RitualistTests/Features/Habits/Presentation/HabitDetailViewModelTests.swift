@@ -17,11 +17,8 @@ import CoreLocation
 
 // MARK: - Start Date Validation Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Start Date Validation", .tags(.habits, .habitEditing, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Start Date Validation")
-#endif
+@MainActor
 struct HabitDetailViewModelStartDateTests {
 
     @Test("Start date is valid when no logs exist")
@@ -136,11 +133,8 @@ struct HabitDetailViewModelStartDateTests {
 
 // MARK: - Form Validity with Error States Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Form Validity Error States", .tags(.habits, .habitEditing, .errorHandling, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Form Validity Error States")
-#endif
+@MainActor
 struct HabitDetailViewModelFormValidityTests {
 
     @Test("Form is invalid when earliest log date load failed")
@@ -260,11 +254,8 @@ struct HabitDetailViewModelFormValidityTests {
 
 // MARK: - Retry Functionality Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Retry Functionality", .tags(.habits, .habitEditing, .errorHandling, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Retry Functionality")
-#endif
+@MainActor
 struct HabitDetailViewModelRetryTests {
 
     @Test("loadEarliestLogDate can be retried after failure")
@@ -353,11 +344,8 @@ struct HabitDetailViewModelRetryTests {
 
 // MARK: - Edge Cases
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Edge Cases", .tags(.habits, .habitEditing, .edgeCases, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Edge Cases")
-#endif
+@MainActor
 struct HabitDetailViewModelEdgeCaseTests {
 
     @Test("New habit (no edit mode) does not load earliest log date")
@@ -403,11 +391,8 @@ struct HabitDetailViewModelEdgeCaseTests {
 
 // MARK: - Individual Validation Properties Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Validation Properties", .tags(.habits, .habitCreation, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Validation Properties")
-#endif
+@MainActor
 struct HabitDetailViewModelValidationPropertiesTests {
 
     // MARK: - isNameValid
@@ -571,11 +556,8 @@ struct HabitDetailViewModelValidationPropertiesTests {
 
 // MARK: - Form Validity for Numeric Habits
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Numeric Habit Validation", .tags(.habits, .habitCreation, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Numeric Habit Validation")
-#endif
+@MainActor
 struct HabitDetailViewModelNumericHabitTests {
 
     @Test("Form invalid for numeric habit with zero daily target")
@@ -645,11 +627,8 @@ struct HabitDetailViewModelNumericHabitTests {
 
 // MARK: - Reminder Management Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Reminder Management", .tags(.habits, .habitEditing, .notifications, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Reminder Management")
-#endif
+@MainActor
 struct HabitDetailViewModelReminderTests {
 
     @Test("addReminder adds new reminder")
@@ -774,11 +753,8 @@ struct HabitDetailViewModelReminderTests {
 
 // MARK: - Category Management Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Category Management", .tags(.habits, .categories, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Category Management")
-#endif
+@MainActor
 struct HabitDetailViewModelCategoryTests {
 
     @Test("loadCategories populates categories list")
@@ -893,11 +869,8 @@ struct HabitDetailViewModelCategoryTests {
 
 // MARK: - Habit Data Loading Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Habit Data Loading", .tags(.habits, .habitEditing, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Habit Data Loading")
-#endif
+@MainActor
 struct HabitDetailViewModelDataLoadingTests {
 
     @Test("Edit mode loads habit data correctly")
@@ -1023,11 +996,8 @@ struct HabitDetailViewModelDataLoadingTests {
 
 // MARK: - Location Auth Status Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Location Auth Status", .tags(.habits, .system, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Location Auth Status")
-#endif
+@MainActor
 struct HabitDetailViewModelLocationAuthTests {
 
     @Test("checkLocationAuthStatus updates status")
@@ -1040,7 +1010,7 @@ struct HabitDetailViewModelLocationAuthTests {
         await viewModel.loadInitialData()
 
         #expect(viewModel.locationAuthStatus == .authorizedAlways)
-        #expect(mocks.getLocationAuthStatus.executeCallCount >= 1)
+        #expect(mocks.permissionCoordinator.checkLocationStatusCallCount >= 1)
     }
 
     @Test("checkLocationAuthStatus sets loading state")
@@ -1057,11 +1027,8 @@ struct HabitDetailViewModelLocationAuthTests {
 
 // MARK: - Map Picker Dismiss Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Map Picker Dismiss", .tags(.habits, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Map Picker Dismiss")
-#endif
+@MainActor
 struct HabitDetailViewModelMapPickerDismissTests {
 
     @Test("handleMapPickerDismiss clears placeholder config")
@@ -1123,11 +1090,8 @@ struct HabitDetailViewModelMapPickerDismissTests {
 
 // MARK: - Update Location Configuration Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Location Configuration", .tags(.habits, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Location Configuration")
-#endif
+@MainActor
 struct HabitDetailViewModelLocationConfigTests {
 
     @Test("updateLocationConfiguration sets config")
@@ -1222,11 +1186,8 @@ struct HabitDetailViewModelLocationConfigTests {
 
 // MARK: - Retry and Error Clearing Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Error Handling", .tags(.habits, .errorHandling, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Error Handling")
-#endif
+@MainActor
 struct HabitDetailViewModelErrorHandlingTests {
 
     @Test("retry clears error state")
@@ -1255,11 +1216,8 @@ struct HabitDetailViewModelErrorHandlingTests {
 
 // MARK: - Fire-and-Forget Task Tests
 
-#if swift(>=6.1)
 @Suite("HabitDetailViewModel - Async Task Behavior", .tags(.habits, .async, .isolated, .fast))
-#else
-@Suite("HabitDetailViewModel - Async Task Behavior")
-#endif
+@MainActor
 struct HabitDetailViewModelAsyncTaskTests {
 
     // MARK: - selectCategory() Tests
@@ -1376,7 +1334,7 @@ struct HabitDetailViewModelAsyncTaskTests {
 
         await viewModel.loadInitialData()
 
-        let initialCheckCount = mocks.getLocationAuthStatus.executeCallCount
+        let initialCheckCount = mocks.permissionCoordinator.checkLocationStatusCallCount
         viewModel.locationConfiguration = nil
 
         // Act
@@ -1386,7 +1344,7 @@ struct HabitDetailViewModelAsyncTaskTests {
         await viewModel.checkLocationAuthStatus()
 
         // Assert - permission check was triggered (at least once more)
-        #expect(mocks.getLocationAuthStatus.executeCallCount > initialCheckCount)
+        #expect(mocks.permissionCoordinator.checkLocationStatusCallCount > initialCheckCount)
     }
 
     @Test("toggleLocationEnabled(false) clears config synchronously")

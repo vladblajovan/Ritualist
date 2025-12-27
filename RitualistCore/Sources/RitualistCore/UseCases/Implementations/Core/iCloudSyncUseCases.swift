@@ -10,7 +10,7 @@ import CloudKit
 
 // MARK: - Sync with iCloud UseCase
 
-public protocol SyncWithiCloudUseCase {
+public protocol SyncWithiCloudUseCase: Sendable {
     func execute() async throws
 }
 
@@ -38,12 +38,12 @@ public final class DefaultSyncWithiCloudUseCase: SyncWithiCloudUseCase {
 
 // MARK: - Check iCloud Status UseCase
 
-public protocol CheckiCloudStatusUseCase {
+public protocol CheckiCloudStatusUseCase: Sendable {
     func execute() async -> iCloudSyncStatus
 }
 
 /// Mock implementation that returns .unknown when CloudKit is disabled
-public final class DisabledCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
+public final class DisabledCheckiCloudStatusUseCase: CheckiCloudStatusUseCase, Sendable {
     public init() {}
 
     public func execute() async -> iCloudSyncStatus {
@@ -177,11 +177,11 @@ public enum iCloudSyncStatus: Equatable, Sendable {
 
 // MARK: - Get Last Sync Date UseCase
 
-public protocol GetLastSyncDateUseCase {
+public protocol GetLastSyncDateUseCase: Sendable {
     func execute() async -> Date?
 }
 
-public final class DefaultGetLastSyncDateUseCase: GetLastSyncDateUseCase {
+public final class DefaultGetLastSyncDateUseCase: GetLastSyncDateUseCase, Sendable {
     private let userDefaults: UserDefaultsService
 
     public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
@@ -208,7 +208,7 @@ public enum iCloudSyncError: LocalizedError {
 
 // MARK: - Update Last Sync Date UseCase
 
-public protocol UpdateLastSyncDateUseCase {
+public protocol UpdateLastSyncDateUseCase: Sendable {
     func execute(_ date: Date) async
 }
 

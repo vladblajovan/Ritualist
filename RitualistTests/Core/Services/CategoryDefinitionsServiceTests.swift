@@ -9,6 +9,7 @@ import Testing
 @testable import RitualistCore
 
 @Suite("CategoryDefinitionsService Tests")
+@MainActor
 struct CategoryDefinitionsServiceTests {
 
     // MARK: - Test Setup

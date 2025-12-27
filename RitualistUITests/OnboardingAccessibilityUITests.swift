@@ -11,6 +11,7 @@
 
 import XCTest
 
+@MainActor
 final class OnboardingAccessibilityUITests: XCTestCase {
 
     var app: XCUIApplication!

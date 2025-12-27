@@ -17,7 +17,7 @@ public enum SheetSizing {
 }
 
 /// Configuration for scroll behavior within sheets
-public struct ScrollConfiguration {
+public struct ScrollConfiguration: Sendable {
     let isEnabled: Bool
     let showsIndicators: Bool
     let dismissOnDrag: Bool
@@ -421,7 +421,7 @@ public struct BaseSheet<Content: View>: View {
 
 // MARK: - Supporting Types
 
-public struct DismissButtonPresets {
+public struct DismissButtonPresets: Sendable {
     public static let done = BaseSheet<AnyView>.DismissButton(title: "Done")
     public static let cancel = BaseSheet<AnyView>.DismissButton(title: "Cancel")
     public static let close = BaseSheet<AnyView>.DismissButton(title: "Close")
@@ -436,7 +436,7 @@ public extension BaseSheet {
         case fullScreen  // Full screen with custom navigation
     }
 
-    struct DismissButton: Equatable {
+    struct DismissButton: Equatable, Sendable {
         let title: String
 
         public init(title: String) {
@@ -576,6 +576,7 @@ private struct ResponsiveSizingModifier: ViewModifier {
 // MARK: - Device Capability Detection
 
 /// Helper for detecting device capabilities and screen characteristics
+@MainActor
 public struct DeviceCapabilities {
     
     // MARK: - Screen Size Detection

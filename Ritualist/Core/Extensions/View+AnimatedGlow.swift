@@ -16,6 +16,7 @@ import RitualistCore
 // MARK: - Reduce Motion Support
 
 /// Checks if reduce motion should be enabled, respecting both system settings and test overrides.
+@MainActor
 private var shouldReduceMotion: Bool {
     #if DEBUG
     if LaunchArgument.reduceMotion.isActive {

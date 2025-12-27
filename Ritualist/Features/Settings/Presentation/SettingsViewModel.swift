@@ -9,9 +9,8 @@ import StoreKit
 public final class SettingsViewModel {
     private let loadProfile: LoadProfileUseCase
     private let saveProfile: SaveProfileUseCase
-    private let requestNotificationPermission: RequestNotificationPermissionUseCase
+    private let permissionCoordinator: PermissionCoordinatorProtocol
     private let checkNotificationStatus: CheckNotificationStatusUseCase
-    private let requestLocationPermissions: RequestLocationPermissionsUseCase
     private let getLocationAuthStatus: GetLocationAuthStatusUseCase
     private let clearPurchases: ClearPurchasesUseCase
     private let checkPremiumStatus: CheckPremiumStatusUseCase
@@ -29,8 +28,6 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.subscriptionService) var subscriptionService
     @ObservationIgnored @Injected(\.paywallService) var paywallService
     @ObservationIgnored @Injected(\.debugLogger) var logger
-    @ObservationIgnored @Injected(\.restoreGeofenceMonitoring) var restoreGeofenceMonitoring
-    @ObservationIgnored @Injected(\.dailyNotificationScheduler) var dailyNotificationScheduler
     @ObservationIgnored @Injected(\.toastService) var toastService
     @ObservationIgnored @Injected(\.onboardingViewModel) var onboardingViewModel
     @ObservationIgnored @Injected(\.deduplicateData) var deduplicateData
@@ -149,9 +146,8 @@ public final class SettingsViewModel {
 
     public init(loadProfile: LoadProfileUseCase,
                 saveProfile: SaveProfileUseCase,
-                requestNotificationPermission: RequestNotificationPermissionUseCase,
+                permissionCoordinator: PermissionCoordinatorProtocol,
                 checkNotificationStatus: CheckNotificationStatusUseCase,
-                requestLocationPermissions: RequestLocationPermissionsUseCase,
                 getLocationAuthStatus: GetLocationAuthStatusUseCase,
                 clearPurchases: ClearPurchasesUseCase,
                 checkPremiumStatus: CheckPremiumStatusUseCase,
@@ -166,9 +162,8 @@ public final class SettingsViewModel {
                 populateTestData: (any Any)? = nil) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
-        self.requestNotificationPermission = requestNotificationPermission
+        self.permissionCoordinator = permissionCoordinator
         self.checkNotificationStatus = checkNotificationStatus
-        self.requestLocationPermissions = requestLocationPermissions
         self.getLocationAuthStatus = getLocationAuthStatus
         self.clearPurchases = clearPurchases
         self.checkPremiumStatus = checkPremiumStatus
@@ -347,29 +342,18 @@ public final class SettingsViewModel {
         isRequestingNotifications = true
         error = nil
 
-        do {
-            let granted = try await requestNotificationPermission.execute()
-            hasNotificationPermission = granted
+        let result = await permissionCoordinator.requestNotificationPermission()
+        hasNotificationPermission = result.granted
 
-            // CRITICAL: If permission was just granted, schedule notifications for existing habits
-            // This handles the case where user had habits but denied notifications initially
-            if granted {
-                logger.log(
-                    "📅 Scheduling notifications after permission granted",
-                    level: .info,
-                    category: .notifications
-                )
-                try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
-            }
-
-            // Track notification settings change
-            userActionTracker.track(.notificationSettingsChanged(enabled: granted))
-        } catch {
-            self.error = error
-            userActionTracker.trackError(error, context: "notification_permission_request")
+        if let permissionError = result.error {
+            self.error = permissionError
+            userActionTracker.trackError(permissionError, context: "notification_permission_request")
             hasNotificationPermission = await checkNotificationStatus.execute()
+        } else {
+            // Track notification settings change
+            userActionTracker.track(.notificationSettingsChanged(enabled: result.granted))
         }
-        
+
         isRequestingNotifications = false
     }
     
@@ -384,45 +368,19 @@ public final class SettingsViewModel {
         // Track permission request
         userActionTracker.track(.locationPermissionRequested(context: "settings"))
 
-        let result = await requestLocationPermissions.execute(requestAlways: true)
+        let result = await permissionCoordinator.requestLocationPermission(requestAlways: true)
+        locationAuthStatus = result.status
 
-        switch result {
-        case .granted(let status):
-            locationAuthStatus = status
+        if let permissionError = result.error {
+            self.error = permissionError
+            userActionTracker.trackError(permissionError, context: "location_permission_request")
+        } else if result.isAuthorized {
             // Track location permission granted
-            userActionTracker.track(.locationPermissionGranted(status: String(describing: status), context: "settings"))
+            userActionTracker.track(.locationPermissionGranted(status: String(describing: result.status), context: "settings"))
             userActionTracker.track(.profileUpdated(field: "location_permission"))
-
-            // CRITICAL: If permission was just granted, restore geofences for existing habits
-            // This handles the case where user had location-based habits but denied permission initially
-            logger.log(
-                "🌍 Restoring geofences after location permission granted",
-                level: .info,
-                category: .location
-            )
-            do {
-                try await restoreGeofenceMonitoring.execute()
-            } catch {
-                logger.log(
-                    "Failed to restore geofences after permission granted",
-                    level: .error,
-                    category: .location,
-                    metadata: ["error": error.localizedDescription]
-                )
-                userActionTracker.trackError(error, context: "geofence_restore_after_permission")
-                #if DEBUG
-                toastService.warning(Strings.Location.geofenceRestoreFailed)
-                #endif
-            }
-
-        case .denied:
-            locationAuthStatus = .denied
+        } else {
             // Track location permission denied
             userActionTracker.track(.locationPermissionDenied(context: "settings"))
-        case .failed(let locationError):
-            self.error = locationError
-            userActionTracker.trackError(locationError, context: "location_permission_request")
-            locationAuthStatus = await getLocationAuthStatus.execute()
         }
 
         isRequestingLocationPermission = false
@@ -479,7 +437,11 @@ public final class SettingsViewModel {
         // Clear any stored purchases
         // NOTE: Subscription cancellation now happens entirely through StoreKit/App Store
         // The SecureSubscriptionService automatically reflects the cancellation status
-        clearPurchases.execute()
+        do {
+            try await clearPurchases.execute()
+        } catch {
+            logger.log("Failed to clear purchases: \(error)", level: .error, category: .subscription)
+        }
 
         isCancellingSubscription = false
     }
@@ -665,17 +627,10 @@ public final class SettingsViewModel {
             // Reload profile after import
             await load()
 
-            // CRITICAL: Reschedule notifications for imported habits
-            // Import happens after app launch, so initial scheduling missed the imported data
-            logger.log(
-                "📅 Rescheduling notifications after import",
-                level: .info,
-                category: .dataIntegrity
-            )
-            try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
+            // Schedule notifications for imported habits
+            try await permissionCoordinator.scheduleAllNotifications()
 
-            // CRITICAL: Restore geofences for imported habits with location-based reminders
-            // Geofences are device-local and must be re-registered after import
+            // Handle location-based reminders if present
             if importResult.hasLocationConfigurations {
                 logger.log(
                     "🌍 Imported data contains location configurations - checking permissions",
@@ -684,7 +639,7 @@ public final class SettingsViewModel {
                     metadata: ["habitsWithLocation": importResult.habitsImported]
                 )
 
-                // Check if we have "Always" permission (required for geofencing)
+                // Check if we need to request location permission
                 let currentAuthStatus = await getLocationAuthStatus.execute()
                 if !currentAuthStatus.canMonitorGeofences {
                     logger.log(
@@ -693,41 +648,27 @@ public final class SettingsViewModel {
                         category: .location
                     )
 
-                    // Request "Always" permission for background geofence monitoring
-                    let permissionResult = await requestLocationPermissions.execute(requestAlways: true)
+                    // Request permission - coordinator handles geofence restoration on grant
+                    let permissionResult = await permissionCoordinator.requestLocationPermission(requestAlways: true)
+                    locationAuthStatus = permissionResult.status
 
-                    switch permissionResult {
-                    case .granted(let status):
-                        locationAuthStatus = status
+                    if permissionResult.isAuthorized {
                         userActionTracker.track(.locationPermissionGranted(
-                            status: String(describing: status),
+                            status: String(describing: permissionResult.status),
                             context: "import_geofence"
                         ))
-                    case .denied:
-                        locationAuthStatus = .denied
+                    } else {
                         userActionTracker.track(.locationPermissionDenied(context: "import_geofence"))
                         logger.log(
                             "⚠️ Location permission denied - imported geofences will not be active",
                             level: .warning,
                             category: .location
                         )
-                    case .failed(let locationError):
-                        logger.log(
-                            "Failed to request location permission for imported geofences",
-                            level: .error,
-                            category: .location,
-                            metadata: ["error": locationError.localizedDescription]
-                        )
                     }
+                } else {
+                    // Already have permission - restore geofences
+                    try await permissionCoordinator.restoreAllGeofences()
                 }
-
-                // Restore geofences (will check permission internally and skip if not granted)
-                logger.log(
-                    "🌍 Restoring geofences after import",
-                    level: .info,
-                    category: .dataIntegrity
-                )
-                try await restoreGeofenceMonitoring.execute()
             }
 
             // Track import action

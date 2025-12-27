@@ -9,7 +9,7 @@
 import Foundation
 
 /// Protocol for scheduling automatic personality analysis based on user preferences
-public protocol PersonalityAnalysisSchedulerProtocol {
+public protocol PersonalityAnalysisSchedulerProtocol: Sendable {
     
     /// Starts the scheduler to monitor for automatic analysis triggers
     func startScheduling(for userId: UUID) async

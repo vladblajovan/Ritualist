@@ -7,6 +7,7 @@ import Testing
 /// These tests verify the timeout behavior for async operations that may not
 /// respect Swift's cooperative cancellation (e.g., CloudKit, CoreLocation).
 @Suite("AsyncTimeout - Timeout Behavior")
+@MainActor
 struct AsyncTimeoutTests {
 
     // MARK: - Non-Throwing Variant Tests

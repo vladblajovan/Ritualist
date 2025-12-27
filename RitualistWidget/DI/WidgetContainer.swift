@@ -133,8 +133,9 @@ extension Container {
     
     // MARK: - Widget Services
     
+    @MainActor
     var widgetRefreshService: Factory<WidgetRefreshServiceProtocol> {
-        self { WidgetRefreshService() }
+        self { @MainActor in WidgetRefreshService() }
             .singleton
     }
     

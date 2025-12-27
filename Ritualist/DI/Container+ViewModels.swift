@@ -105,9 +105,8 @@ extension Container {
             SettingsViewModel(
                 loadProfile: self.loadProfile(),
                 saveProfile: self.saveProfile(),
-                requestNotificationPermission: self.requestNotificationPermission(),
+                permissionCoordinator: self.permissionCoordinator(),
                 checkNotificationStatus: self.checkNotificationStatus(),
-                requestLocationPermissions: self.requestLocationPermissions(),
                 getLocationAuthStatus: self.getLocationAuthStatus(),
                 clearPurchases: self.clearPurchases(),
                 checkPremiumStatus: self.checkPremiumStatus(),
@@ -138,10 +137,7 @@ extension Container {
                 getOnboardingState: self.getOnboardingState(),
                 saveOnboardingState: self.saveOnboardingState(),
                 completeOnboarding: self.completeOnboarding(),
-                requestNotificationPermission: self.requestNotificationPermission(),
-                checkNotificationStatus: self.checkNotificationStatus(),
-                requestLocationPermissions: self.requestLocationPermissions(),
-                getLocationAuthStatus: self.getLocationAuthStatus()
+                permissionCoordinator: self.permissionCoordinator()
             )
         }
         .singleton

@@ -1,10 +1,10 @@
 import Foundation
 import SwiftUI
 
-/// Centralized localized strings using String Catalogs (.xcstrings)
-/// This provides type-safe access to all localized strings in the app
 // swiftlint:disable:next type_body_length
 public enum Strings {
+    /// Centralized localized strings using String Catalogs (.xcstrings)
+    /// This provides type-safe access to all localized strings in the app
     
     // MARK: - App
     public enum App {

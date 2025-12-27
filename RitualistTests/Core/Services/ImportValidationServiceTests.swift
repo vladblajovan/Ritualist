@@ -12,6 +12,7 @@ import Foundation
 // MARK: - Habit Validation Tests
 
 @Suite("ImportValidationService - Habit Validation")
+@MainActor
 struct HabitValidationTests {
 
     // MARK: - Name Validation
@@ -213,6 +214,7 @@ struct HabitValidationTests {
 // MARK: - Reminder Validation Tests
 
 @Suite("ImportValidationService - Reminder Validation")
+@MainActor
 struct ReminderValidationTests {
 
     @Test("Valid reminders pass validation")
@@ -309,6 +311,7 @@ struct ReminderValidationTests {
 // MARK: - Location Configuration Validation Tests
 
 @Suite("ImportValidationService - Location Configuration Validation")
+@MainActor
 struct LocationConfigurationValidationTests {
 
     // MARK: - Latitude Validation
@@ -540,6 +543,7 @@ struct LocationConfigurationValidationTests {
 // MARK: - Category Validation Tests
 
 @Suite("ImportValidationService - Category Validation")
+@MainActor
 struct CategoryValidationTests {
 
     @Test("Valid category passes validation")
@@ -632,6 +636,7 @@ struct CategoryValidationTests {
 // MARK: - Habit Log Validation Tests
 
 @Suite("ImportValidationService - Habit Log Validation")
+@MainActor
 struct HabitLogValidationTests {
 
     @Test("Valid habit log passes validation")
@@ -716,6 +721,7 @@ struct HabitLogValidationTests {
 // MARK: - Multiple Error Aggregation Tests
 
 @Suite("ImportValidationService - Error Aggregation")
+@MainActor
 struct ErrorAggregationTests {
 
     @Test("Multiple errors are collected for single habit")

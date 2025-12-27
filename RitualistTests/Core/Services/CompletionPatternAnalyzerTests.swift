@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: - Mock Use Cases
 
-private final class MockGetActiveHabitsUseCase: GetActiveHabitsUseCase {
+private final class MockGetActiveHabitsUseCase: GetActiveHabitsUseCase, @unchecked Sendable {
     var habits: [Habit] = []
     var shouldThrow = false
 
@@ -23,7 +23,7 @@ private final class MockGetActiveHabitsUseCase: GetActiveHabitsUseCase {
     }
 }
 
-private final class MockGetLogsUseCase: GetLogsUseCase {
+private final class MockGetLogsUseCase: GetLogsUseCase, @unchecked Sendable {
     var logsByHabit: [UUID: [HabitLog]] = [:]
     var shouldThrow = false
 
@@ -43,6 +43,7 @@ private final class MockGetLogsUseCase: GetLogsUseCase {
 // MARK: - Analyze Pattern Tests
 
 @Suite("CompletionPatternAnalyzer - Pattern Analysis")
+@MainActor
 struct CompletionPatternAnalyzerPatternTests {
 
     @Test("Returns consistent for 80%+ completion")
@@ -140,6 +141,7 @@ struct CompletionPatternAnalyzerPatternTests {
 // MARK: - Comeback Story Tests
 
 @Suite("CompletionPatternAnalyzer - Comeback Story Detection")
+@MainActor
 struct CompletionPatternAnalyzerComebackTests {
 
     @Test("No comeback when no habits")

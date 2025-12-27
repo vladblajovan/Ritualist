@@ -36,7 +36,7 @@ public struct ImportResult {
 }
 
 /// Use case for importing user data from JSON export
-public protocol ImportUserDataUseCase {
+public protocol ImportUserDataUseCase: Sendable {
     /// Imports user data from a JSON string
     /// - Parameter jsonString: The JSON string containing exported user data
     /// - Returns: Import result containing metadata about what was imported

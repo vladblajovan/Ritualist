@@ -727,39 +727,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     .foregroundColor(.secondary)
             }
 
-            Section("Offer Codes Testing") {
-                #if !ALL_FEATURES_ENABLED
-                NavigationLink {
-                    DebugOfferCodesView(
-                        paywallService: vm.paywallService,
-                        subscriptionService: vm.subscriptionService
-                    )
-                } label: {
-                    HStack {
-                        Image(systemName: "giftcard")
-                            .foregroundColor(.purple)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Manage Offer Codes")
-                                .fontWeight(.medium)
-
-                            Text("Create and test promotional codes")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-
-                Text("Create custom offer codes with discounts, free trials, and eligibility rules for testing")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                #else
-                Text("Offer code testing is not available in AllFeatures mode")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                #endif
-            }
-
             Section("iCloud Sync Diagnostics") {
                 // CloudKit Container Info
                 VStack(alignment: .leading, spacing: 8) {

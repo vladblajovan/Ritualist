@@ -10,6 +10,7 @@ import Foundation
 @testable import RitualistCore
 
 @Suite("HabitScheduleAnalyzer - Core Functionality")
+@MainActor
 struct HabitScheduleAnalyzerTests {
 
     // MARK: - Test Setup
@@ -300,6 +301,7 @@ struct HabitScheduleAnalyzerTests {
 // MARK: - Timezone Edge Cases
 
 @Suite("HabitScheduleAnalyzer - Timezone Edge Cases")
+@MainActor
 struct HabitScheduleAnalyzerTimezoneTests {
 
     let analyzer = HabitScheduleAnalyzer()
@@ -544,6 +546,7 @@ struct HabitScheduleAnalyzerTimezoneTests {
 // MARK: - Error Path Tests
 
 @Suite("HabitScheduleAnalyzer - Error Paths")
+@MainActor
 struct HabitScheduleAnalyzerErrorTests {
 
     let analyzer = HabitScheduleAnalyzer()

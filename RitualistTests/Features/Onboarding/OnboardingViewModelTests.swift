@@ -18,11 +18,8 @@ import Foundation
 
 // MARK: - UserGender Enum Tests
 
-#if swift(>=6.1)
 @Suite("UserGender Enum Tests", .tags(.isolated, .fast))
-#else
-@Suite("UserGender Enum Tests")
-#endif
+@MainActor
 struct UserGenderTests {
 
     @Test("All cases have correct raw values")
@@ -60,11 +57,8 @@ struct UserGenderTests {
 
 // MARK: - UserAgeGroup Enum Tests
 
-#if swift(>=6.1)
 @Suite("UserAgeGroup Enum Tests", .tags(.isolated, .fast))
-#else
-@Suite("UserAgeGroup Enum Tests")
-#endif
+@MainActor
 struct UserAgeGroupTests {
 
     @Test("All cases have correct raw values")
@@ -104,11 +98,8 @@ struct UserAgeGroupTests {
 
 // MARK: - OnboardingViewModel Tests
 
-#if swift(>=6.1)
 @Suite("OnboardingViewModel Tests", .tags(.isolated, .fast, .ui))
-#else
-@Suite("OnboardingViewModel Tests")
-#endif
+@MainActor
 struct OnboardingViewModelTests {
 
     // MARK: - Test Setup
@@ -142,10 +133,7 @@ struct OnboardingViewModelTests {
             getOnboardingState: getOnboardingState,
             saveOnboardingState: saveOnboardingState,
             completeOnboarding: completeOnboarding,
-            requestNotificationPermission: MockRequestNotificationPermission(),
-            checkNotificationStatus: MockCheckNotificationStatus(),
-            requestLocationPermissions: MockRequestLocationPermissions(),
-            getLocationAuthStatus: MockGetLocationAuthStatus()
+            permissionCoordinator: MockPermissionCoordinator()
         )
     }
 
@@ -503,10 +491,7 @@ struct OnboardingViewModelTests {
             getOnboardingState: getOnboardingState,
             saveOnboardingState: saveOnboardingState,
             completeOnboarding: completeOnboarding,
-            requestNotificationPermission: MockRequestNotificationPermission(),
-            checkNotificationStatus: MockCheckNotificationStatus(),
-            requestLocationPermissions: MockRequestLocationPermissions(),
-            getLocationAuthStatus: MockGetLocationAuthStatus()
+            permissionCoordinator: MockPermissionCoordinator()
         )
 
         viewModel.userName = "Test User"
@@ -540,10 +525,7 @@ struct OnboardingViewModelTests {
             getOnboardingState: getOnboardingState,
             saveOnboardingState: saveOnboardingState,
             completeOnboarding: completeOnboarding,
-            requestNotificationPermission: MockRequestNotificationPermission(),
-            checkNotificationStatus: MockCheckNotificationStatus(),
-            requestLocationPermissions: MockRequestLocationPermissions(),
-            getLocationAuthStatus: MockGetLocationAuthStatus()
+            permissionCoordinator: MockPermissionCoordinator()
         )
 
         viewModel.userName = "Test User"
@@ -579,10 +561,7 @@ struct OnboardingViewModelTests {
             getOnboardingState: getOnboardingState,
             saveOnboardingState: saveOnboardingState,
             completeOnboarding: completeOnboarding,
-            requestNotificationPermission: MockRequestNotificationPermission(),
-            checkNotificationStatus: MockCheckNotificationStatus(),
-            requestLocationPermissions: MockRequestLocationPermissions(),
-            getLocationAuthStatus: MockGetLocationAuthStatus()
+            permissionCoordinator: MockPermissionCoordinator()
         )
 
         let result = await viewModel.skipOnboarding()
@@ -643,11 +622,8 @@ struct OnboardingViewModelTests {
 
 // MARK: - SyncedDataSummary Tests
 
-#if swift(>=6.1)
 @Suite("SyncedDataSummary Tests", .tags(.isolated, .fast))
-#else
-@Suite("SyncedDataSummary Tests")
-#endif
+@MainActor
 struct SyncedDataSummaryTests {
 
     @Test("needsProfileCompletion returns false when name is nil but demographics present")
@@ -860,40 +836,40 @@ final class MockiCloudKeyValueServiceForOnboarding: iCloudKeyValueService, @unch
     func resetLocalOnboardingFlag() { localOnboardingCompleted = false }
 }
 
-// MARK: - Mock Use Cases (for notification/location)
+// MARK: - Mock Permission Coordinator
 
-final class MockRequestNotificationPermission: RequestNotificationPermissionUseCase, @unchecked Sendable {
-    var shouldGrant = true
-    var shouldFail = false
+final class MockPermissionCoordinator: PermissionCoordinatorProtocol, @unchecked Sendable {
+    var notificationGranted = false
+    var notificationError: Error?
+    var locationStatus: LocationAuthorizationStatus = .notDetermined
+    var locationError: Error?
 
-    func execute() async throws -> Bool {
-        if shouldFail {
-            throw NSError(domain: "test", code: 1, userInfo: nil)
+    func requestNotificationPermission() async -> NotificationPermissionOutcome {
+        if let error = notificationError {
+            return .failure(error)
         }
-        return shouldGrant
+        return .success(notificationGranted)
     }
-}
 
-final class MockCheckNotificationStatus: CheckNotificationStatusUseCase, @unchecked Sendable {
-    var isGranted = false
-
-    func execute() async -> Bool {
-        return isGranted
+    func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionOutcome {
+        if let error = locationError {
+            return .failure(error, fallbackStatus: locationStatus)
+        }
+        return .success(locationStatus)
     }
-}
 
-final class MockRequestLocationPermissions: RequestLocationPermissionsUseCase, @unchecked Sendable {
-    var resultToReturn: LocationPermissionResult = .granted(.authorizedWhenInUse)
-
-    func execute(requestAlways: Bool) async -> LocationPermissionResult {
-        return resultToReturn
+    func checkNotificationStatus() async -> Bool {
+        notificationGranted
     }
-}
 
-final class MockGetLocationAuthStatus: GetLocationAuthStatusUseCase, @unchecked Sendable {
-    var statusToReturn: LocationAuthorizationStatus = .notDetermined
-
-    func execute() async -> LocationAuthorizationStatus {
-        return statusToReturn
+    func checkLocationStatus() async -> LocationAuthorizationStatus {
+        locationStatus
     }
+
+    func checkAllPermissions() async -> (notifications: Bool, location: LocationAuthorizationStatus) {
+        (notificationGranted, locationStatus)
+    }
+
+    func scheduleAllNotifications() async throws {}
+    func restoreAllGeofences() async throws {}
 }

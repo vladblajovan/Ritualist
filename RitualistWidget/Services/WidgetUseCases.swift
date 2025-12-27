@@ -12,7 +12,7 @@ import RitualistCore
 
 /// Widget implementation of habit schedule validation
 /// Uses WidgetHabitCompletionService for schedule checking
-final class WidgetValidateHabitSchedule: ValidateHabitScheduleUseCase {
+final class WidgetValidateHabitSchedule: ValidateHabitScheduleUseCase, Sendable {
     private let habitCompletionService: HabitCompletionService
     
     init(habitCompletionService: HabitCompletionService) {
@@ -76,7 +76,7 @@ final class WidgetValidateHabitSchedule: ValidateHabitScheduleUseCase {
 
 /// Widget implementation of habit logging functionality
 /// Provides same validation logic as main app but available to widget target
-final class WidgetLogHabit: LogHabitUseCase {
+final class WidgetLogHabit: LogHabitUseCase, Sendable {
     private let logRepository: LogRepository
     private let habitRepository: HabitRepository
     private let validateSchedule: ValidateHabitScheduleUseCase

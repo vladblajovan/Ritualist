@@ -269,9 +269,8 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
     let vm = SettingsViewModel(
         loadProfile: MockLoadProfile(profile: profile),
         saveProfile: MockSaveProfile(),
-        requestNotificationPermission: MockRequestNotificationPermission(),
+        permissionCoordinator: MockPermissionCoordinator(),
         checkNotificationStatus: MockCheckNotificationStatus(),
-        requestLocationPermissions: MockRequestLocationPermissions(),
         getLocationAuthStatus: MockGetLocationAuthStatus(),
         clearPurchases: MockClearPurchases(),
         checkPremiumStatus: MockCheckPremiumStatus(isPremium: plan.isPremium),
@@ -302,18 +301,18 @@ private struct MockSaveProfile: SaveProfileUseCase {
     func execute(_ profile: UserProfile) async throws {}
 }
 
-private struct MockRequestNotificationPermission: RequestNotificationPermissionUseCase {
-    func execute() async throws -> Bool { true }
+private struct MockPermissionCoordinator: PermissionCoordinatorProtocol {
+    func requestNotificationPermission() async -> NotificationPermissionOutcome { .success(true) }
+    func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionOutcome { .success(.authorizedWhenInUse) }
+    func checkNotificationStatus() async -> Bool { true }
+    func checkLocationStatus() async -> LocationAuthorizationStatus { .authorizedWhenInUse }
+    func checkAllPermissions() async -> (notifications: Bool, location: LocationAuthorizationStatus) { (true, .authorizedWhenInUse) }
+    func scheduleAllNotifications() async throws {}
+    func restoreAllGeofences() async throws {}
 }
 
 private struct MockCheckNotificationStatus: CheckNotificationStatusUseCase {
     func execute() async -> Bool { true }
-}
-
-private struct MockRequestLocationPermissions: RequestLocationPermissionsUseCase {
-    func execute(requestAlways: Bool) async -> LocationPermissionResult {
-        .granted(.authorizedWhenInUse)
-    }
 }
 
 private struct MockGetLocationAuthStatus: GetLocationAuthStatusUseCase {
@@ -323,7 +322,7 @@ private struct MockGetLocationAuthStatus: GetLocationAuthStatusUseCase {
 }
 
 private struct MockClearPurchases: ClearPurchasesUseCase {
-    func execute() {}
+    func execute() async throws {}
 }
 
 private struct MockCheckPremiumStatus: CheckPremiumStatusUseCase {

@@ -6,6 +6,7 @@ import Foundation
 /// Tests for cache sync logic - verifies cache update, removal, and range detection
 /// Uses REAL entities (no mocks) to test actual cache behavior
 @Suite("Cache Sync Logic Tests")
+@MainActor
 struct CacheSyncLogicTests {
 
     // MARK: - OverviewData Helper Tests

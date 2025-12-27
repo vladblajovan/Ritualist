@@ -38,8 +38,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @State private var habitToDelete: Habit?
     @State private var showingScheduleInfoSheet = false
     @State private var habitToUncomplete: Habit?
-    @State private var animatingHabitId: UUID? = nil
-    @State private var glowingHabitId: UUID? = nil
+    @State private var animatingHabitId: UUID?
+    @State private var glowingHabitId: UUID?
     @State private var animatingProgress: Double = 0.0
     @State private var isAnimatingCompletion = false
     @State private var showProgressGlow = false
@@ -85,7 +85,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             .map { "\($0.id.uuidString)-\(getProgress($0))" }
             .joined(separator: "|")
     }
-
 
     init(summary: TodaysSummary?,
          viewingDate: Date,
@@ -459,7 +458,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     /// Calculate gradient colors based on completion percentage
     /// Delegates to CircularProgressView.adaptiveProgressColors to maintain consistency
     private func progressGradientColors(for completion: Double) -> [Color] {
-        return CircularProgressView.adaptiveProgressColors(for: completion)
+        CircularProgressView.adaptiveProgressColors(for: completion)
     }
 
     @ViewBuilder

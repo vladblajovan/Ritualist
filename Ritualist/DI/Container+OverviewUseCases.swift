@@ -116,8 +116,9 @@ extension Container {
         self { TrackHabitLogged(userActionTracker: self.userActionTracker()) }
     }
     
+    @MainActor
     var refreshWidget: Factory<RefreshWidget> {
-        self { RefreshWidget(widgetRefreshService: self.widgetRefreshService()) }
+        self { @MainActor in RefreshWidget(widgetRefreshService: self.widgetRefreshService()) }
     }
     
     var checkFeatureAccess: Factory<CheckFeatureAccess> {

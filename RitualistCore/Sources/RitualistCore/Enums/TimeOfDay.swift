@@ -8,7 +8,7 @@
 
 import Foundation
 
-public enum TimeOfDay: CaseIterable {
+public enum TimeOfDay: CaseIterable, Sendable {
     case morning    // Until 11:00
     case noon       // Between 11:00 and 16:00
     case evening    // After 16:00

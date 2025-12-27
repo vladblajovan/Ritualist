@@ -9,7 +9,7 @@ import Foundation
 
 /// Service responsible for daily re-scheduling of habit notifications
 /// to ensure only incomplete habits receive notifications
-public protocol DailyNotificationSchedulerService {
+public protocol DailyNotificationSchedulerService: Sendable {
     /// Re-schedules notifications for all active habits, checking completion status
     func rescheduleAllHabitNotifications() async throws
 }

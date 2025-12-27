@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol FeatureGatingService {
+public protocol FeatureGatingService: Sendable {
     /// Maximum number of habits allowed for the current user
     var maxHabitsAllowed: Int { get }
     

@@ -11,11 +11,7 @@ import Testing
 import Foundation
 @testable import RitualistCore
 
-#if swift(>=6.1)
 @Suite("MigrationStatusService Tests", .tags(.isolated, .fast), .serialized)
-#else
-@Suite("MigrationStatusService Tests", .serialized)
-#endif
 struct MigrationStatusServiceTests {
 
     // MARK: - Initial State Tests
@@ -138,11 +134,7 @@ struct MigrationStatusServiceTests {
 
 // MARK: - MigrationDetails Tests
 
-#if swift(>=6.1)
 @Suite("MigrationDetails Tests", .tags(.isolated, .fast))
-#else
-@Suite("MigrationDetails Tests")
-#endif
 struct MigrationDetailsTests {
 
     @Test("MigrationDetails stores correct values")

@@ -17,6 +17,7 @@ import UserNotifications
 /// These are NOT unit tests of production code - they test our test infrastructure.
 /// Think of them as "meta-tests" that give us confidence the tools we built for testing are reliable.
 @Suite("Infrastructure Validation Tests")
+@MainActor
 struct InfrastructureValidationTests {
 
     // MARK: - NotificationCenterProtocol Validation

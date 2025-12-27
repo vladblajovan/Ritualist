@@ -10,6 +10,7 @@ import Foundation
 @testable import RitualistCore
 
 @Suite("InspirationTriggerEvaluator - Trigger Evaluation")
+@MainActor
 struct InspirationTriggerEvaluatorTests {
 
     // MARK: - Edge Cases

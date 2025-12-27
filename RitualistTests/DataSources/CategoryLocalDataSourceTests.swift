@@ -21,6 +21,7 @@ import SwiftData
 /// - Custom Categories: Verify custom category CRUD operations (3 tests)
 /// - Category Existence: Verify existence checks work after seeding (2 tests)
 @Suite("CategoryLocalDataSource Integration Tests")
+@MainActor
 struct CategoryLocalDataSourceTests {
 
     // MARK: - Test Helpers

@@ -12,6 +12,7 @@ import XCTest
 
 /// Tests for habit start date editing functionality
 /// Verifies the retroactive logging feature works correctly
+@MainActor
 final class HabitStartDateUITests: RitualistUITestCase {
 
     // MARK: - Setup

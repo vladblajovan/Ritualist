@@ -20,10 +20,6 @@ public struct PaywallView: View {
     @Bindable var vm: PaywallViewModel
     @State private var showingError = false
     @State private var showingOfferCodeSheet = false
-    @State private var showingOfferCodeSuccess = false
-    @State private var showingOfferCodeError = false
-    @State private var offerCodeSuccessMessage: String?
-    @State private var offerCodeErrorMessage: String?
     @State private var showingProductsUnavailableAlert = false
 
     public init(vm: PaywallViewModel) {
@@ -58,15 +54,8 @@ public struct PaywallView: View {
                             // Pricing Plans
                             pricingSection
 
-                            // Discount Banner (shows when active discount exists for selected product)
-                            if vm.hasActiveDiscountForSelectedProduct {
-                                discountBannerSection
-                            }
-
                             // Offer Code Section
-                            if vm.isOfferCodeRedemptionAvailable {
-                                offerCodeSection
-                            }
+                            offerCodeSection
 
                             // Purchase Button
                             purchaseSection
@@ -122,25 +111,6 @@ public struct PaywallView: View {
             }
         }
         .offerCodeRedemption(isPresented: $showingOfferCodeSheet)
-        .onChange(of: vm.offerCodeRedemptionState) { _, state in
-            handleOfferCodeStateChange(state)
-        }
-        .alert("Offer Code Redeemed!", isPresented: $showingOfferCodeSuccess) {
-            Button("Great!") {
-                offerCodeSuccessMessage = nil
-                // Dismiss paywall after successful redemption
-                dismiss()
-            }
-        } message: {
-            Text(offerCodeSuccessMessage ?? "Your subscription is now active")
-        }
-        .alert("Redemption Failed", isPresented: $showingOfferCodeError) {
-            Button("OK") {
-                offerCodeErrorMessage = nil
-            }
-        } message: {
-            Text(offerCodeErrorMessage ?? "Unable to redeem offer code. Please try again.")
-        }
         .alert("Unable to Load Subscriptions", isPresented: $showingProductsUnavailableAlert) {
             Button("OK") {
                 dismiss()
@@ -231,22 +201,10 @@ public struct PaywallView: View {
                         PricingCard(
                             product: product,
                             isSelected: vm.isSelected(product),
-                            activeDiscount: vm.getActiveDiscount(for: product),
-                            discountedPrice: vm.getDiscountedPrice(for: product),
                             onTap: { vm.selectProduct(product) }
                         )
                     }
                 }
-            }
-        }
-    }
-    
-    // MARK: - Discount Banner Section
-
-    private var discountBannerSection: some View {
-        Group {
-            if let discount = vm.activeDiscountForSelectedProduct {
-                DiscountBannerCard(discount: discount)
             }
         }
     }
@@ -260,7 +218,6 @@ public struct PaywallView: View {
 
             Button {
                 showingOfferCodeSheet = true
-                vm.presentOfferCodeSheet()
             } label: {
                 HStack(spacing: 12) {
                     // Icon
@@ -354,52 +311,10 @@ public struct PaywallView: View {
             }
         }
     }
-    
-    // MARK: - Offer Code Handlers
-
-    /// Handle changes to offer code redemption state
-    private func handleOfferCodeStateChange(_ state: OfferCodeRedemptionState) {
-        switch state {
-        case .success(let code, let productId):
-            // Show success message
-            offerCodeSuccessMessage = "Successfully redeemed code for \(productId)"
-            showingOfferCodeSuccess = true
-            // Reset sheet state
-            showingOfferCodeSheet = false
-
-        case .failed(let message):
-            // Show error in dedicated offer code error alert
-            offerCodeErrorMessage = message
-            showingOfferCodeError = true
-            // Reset sheet state
-            showingOfferCodeSheet = false
-
-        case .idle, .validating, .redeeming:
-            // No action needed for these states
-            break
-        }
-    }
-
     // MARK: - Helper Properties
 
     private var purchaseButtonText: String {
         guard let selectedProduct = vm.selectedProduct else { return "Purchase" }
-
-        // Check if there's an active discount for the selected product
-        if let discountedPrice = vm.getDiscountedPrice(for: selectedProduct) {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .currency
-            formatter.currencyCode = "USD"
-            let priceString = formatter.string(from: NSNumber(value: discountedPrice)) ?? "$\(String(format: "%.2f", discountedPrice))"
-
-            if selectedProduct.duration == .annual {
-                return "Start Free Trial - \(priceString) after"
-            } else {
-                return "Get \(selectedProduct.duration.rawValue.capitalized) - \(priceString)"
-            }
-        }
-
-        // No discount - use standard text
         return selectedProduct.duration == .annual ? "Start Free Trial" : "Purchase"
     }
     
@@ -435,107 +350,6 @@ public struct PaywallView: View {
         .font(.subheadline)
         .foregroundColor(.blue)
         .padding(.bottom, 20)
-    }
-}
-
-// MARK: - Discount Badge
-
-private struct DiscountBadge: View {
-    let discount: ActiveDiscount
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "tag.fill")
-                .font(.caption)
-                .foregroundColor(.white)
-
-            Text(discountText)
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(
-            LinearGradient(
-                colors: [.green, .mint],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(Capsule())
-        .shadow(color: .green.opacity(0.3), radius: 4, y: 2)
-    }
-
-    private var discountText: String {
-        let value = Int(discount.discountValue)
-        switch discount.discountType {
-        case .percentage:
-            return String(format: NSLocalizedString("%lld%% OFF", comment: "Percentage discount badge"), value)
-        case .fixed:
-            return String(format: NSLocalizedString("$%lld OFF", comment: "Fixed amount discount badge"), value)
-        }
-    }
-}
-
-// MARK: - Discount Banner Card
-
-private struct DiscountBannerCard: View {
-    let discount: ActiveDiscount
-
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                // Celebration icon
-                Image(systemName: "party.popper.fill")
-                    .font(.title2)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.green, .mint],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-
-                // Discount info
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text("Discount Applied!")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-
-                        DiscountBadge(discount: discount)
-                    }
-
-                    Text(String(format: NSLocalizedString("Code: %@", comment: "Discount code label"), discount.codeId.uppercased()))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-            }
-            .padding(16)
-            .background(
-                LinearGradient(
-                    colors: [.green.opacity(0.1), .mint.opacity(0.1)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: RoundedRectangle(cornerRadius: CornerRadius.large)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.large)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.green, .mint],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 2
-                    )
-            )
-            .shadow(color: .green.opacity(0.2), radius: 8, y: 4)
-        }
     }
 }
 
@@ -583,8 +397,6 @@ private struct BenefitCard: View {
 private struct PricingCard: View {
     let product: Product
     let isSelected: Bool
-    let activeDiscount: ActiveDiscount?
-    let discountedPrice: Double?
     let onTap: () -> Void
 
     var body: some View {
@@ -607,11 +419,6 @@ private struct PricingCard: View {
                                     .background(.orange)
                                     .foregroundColor(.white)
                                     .clipShape(Capsule())
-                            }
-
-                            // Show discount badge if active
-                            if let discount = activeDiscount {
-                                DiscountBadge(discount: discount)
                             }
 
                             Spacer()
@@ -646,39 +453,15 @@ private struct PricingCard: View {
                 HStack {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
-                        // Show discounted price if available
-                        if let discountedPrice = discountedPrice {
-                            // Original price with strike-through
-                            Text(product.localizedPrice)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .strikethrough(true, color: .red)
+                        Text(product.localizedPrice)
+                            .font(.title3)
+                            .fontWeight(.bold)
 
-                            // Discounted price
-                            Text(formattedDiscountedPrice(discountedPrice))
-                                .font(.title3)
-                                .fontWeight(.bold)
+                        if let discount = product.discount {
+                            Text(discount)
+                                .font(.caption)
+                                .fontWeight(.medium)
                                 .foregroundColor(.green)
-
-                            // Savings amount
-                            if let savings = calculateSavings(discountedPrice) {
-                                Text(String(format: NSLocalizedString("Save %@", comment: "Savings amount label"), savings))
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.green)
-                            }
-                        } else {
-                            // Regular price display
-                            Text(product.localizedPrice)
-                                .font(.title3)
-                                .fontWeight(.bold)
-
-                            if let discount = product.discount {
-                                Text(discount)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.green)
-                            }
                         }
                     }
                 }
@@ -708,21 +491,6 @@ private struct PricingCard: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
-    }
-
-    // MARK: - Helper Methods
-
-    private func formattedDiscountedPrice(_ price: Double) -> String {
-        price.asCurrency()
-    }
-
-    private func calculateSavings(_ discountedPrice: Double) -> String? {
-        guard let originalPrice = product.numericPrice else { return nil }
-
-        let savings = originalPrice - discountedPrice
-        guard savings > 0 else { return nil }
-
-        return savings.asCurrency()
     }
 }
 
