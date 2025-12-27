@@ -237,8 +237,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     y: 0
                 )
 
-                if let summary = summary {
-                    // Main Progress Section - Full Width
+                if summary != nil {
+                    // Main Progress Section
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
@@ -594,7 +594,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     // MARK: - Enhanced Habits Section
 
     @ViewBuilder
-    // swiftlint:disable:next function_body_length
     private func habitsSection(summary: TodaysSummary) -> some View {
         // iPad: 2-column layout (remaining | completed) - only when there are remaining habits
         // iPhone: stacked layout

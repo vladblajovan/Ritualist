@@ -931,7 +931,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                             .foregroundColor(.red)
                         #endif
                     }
-
                 }
                 .font(.subheadline)
                 .padding(.vertical, 4)
