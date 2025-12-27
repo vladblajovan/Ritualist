@@ -73,8 +73,8 @@ struct TimezoneServiceTests {
         // Should create default profile and return home timezone
         let homeTz = try await service.getHomeTimezone()
 
-        // Verify it returned a valid timezone
-        #expect(homeTz != nil)
+        // Verify it returned the current timezone (default for new profiles)
+        #expect(homeTz.identifier == TimeZone.current.identifier)
 
         // Verify default profile was created in database
         let profileDataSource = ProfileLocalDataSource(modelContainer: container)
