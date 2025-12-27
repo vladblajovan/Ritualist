@@ -806,7 +806,7 @@ struct SyncedDataSummaryTests {
 
 // MARK: - Mock Repositories
 
-final class MockOnboardingRepository: OnboardingRepository {
+final class MockOnboardingRepository: OnboardingRepository, @unchecked Sendable {
     var savedState: OnboardingState?
     var stateToReturn: OnboardingState?
     var shouldFail = false
@@ -826,7 +826,7 @@ final class MockOnboardingRepository: OnboardingRepository {
     }
 }
 
-final class MockProfileRepositoryForOnboarding: ProfileRepository {
+final class MockProfileRepositoryForOnboarding: ProfileRepository, @unchecked Sendable {
     var savedProfile: UserProfile?
     var profileToReturn: UserProfile?
     var shouldFail = false
@@ -846,7 +846,7 @@ final class MockProfileRepositoryForOnboarding: ProfileRepository {
     }
 }
 
-final class MockiCloudKeyValueServiceForOnboarding: iCloudKeyValueService {
+final class MockiCloudKeyValueServiceForOnboarding: iCloudKeyValueService, @unchecked Sendable {
     var iCloudOnboardingCompleted = false
     var localOnboardingCompleted = false
 
@@ -862,7 +862,7 @@ final class MockiCloudKeyValueServiceForOnboarding: iCloudKeyValueService {
 
 // MARK: - Mock Use Cases (for notification/location)
 
-final class MockRequestNotificationPermission: RequestNotificationPermissionUseCase {
+final class MockRequestNotificationPermission: RequestNotificationPermissionUseCase, @unchecked Sendable {
     var shouldGrant = true
     var shouldFail = false
 
@@ -874,7 +874,7 @@ final class MockRequestNotificationPermission: RequestNotificationPermissionUseC
     }
 }
 
-final class MockCheckNotificationStatus: CheckNotificationStatusUseCase {
+final class MockCheckNotificationStatus: CheckNotificationStatusUseCase, @unchecked Sendable {
     var isGranted = false
 
     func execute() async -> Bool {
@@ -882,7 +882,7 @@ final class MockCheckNotificationStatus: CheckNotificationStatusUseCase {
     }
 }
 
-final class MockRequestLocationPermissions: RequestLocationPermissionsUseCase {
+final class MockRequestLocationPermissions: RequestLocationPermissionsUseCase, @unchecked Sendable {
     var resultToReturn: LocationPermissionResult = .granted(.authorizedWhenInUse)
 
     func execute(requestAlways: Bool) async -> LocationPermissionResult {
@@ -890,7 +890,7 @@ final class MockRequestLocationPermissions: RequestLocationPermissionsUseCase {
     }
 }
 
-final class MockGetLocationAuthStatus: GetLocationAuthStatusUseCase {
+final class MockGetLocationAuthStatus: GetLocationAuthStatusUseCase, @unchecked Sendable {
     var statusToReturn: LocationAuthorizationStatus = .notDetermined
 
     func execute() async -> LocationAuthorizationStatus {
