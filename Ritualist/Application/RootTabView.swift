@@ -94,35 +94,43 @@ public struct RootTabView: View {
                 viewModel.showSyncingDataToast()
             }
         }
-        .fullScreenCover(isPresented: $showOnboarding, onDismiss: {
-            // Handle post-onboarding after the fullScreenCover has actually dismissed
-            Task {
-                await handlePostOnboarding()
-            }
-        }) {
-            // Show new user onboarding flow
-            OnboardingFlowView(onComplete: {
-                showOnboarding = false
-            })
-        }
-        // Returning user welcome - shown as sheet AFTER app loads and data syncs
-        .fullScreenCover(isPresented: Binding(
-            get: { viewModel.showReturningUserWelcome },
-            set: { if !$0 { viewModel.dismissReturningUserWelcome() } }
-        ), onDismiss: {
-            // Check for iCloud sync toast after welcome screen dismissed
-            handleFirstiCloudSync()
-        }) {
-            if let summary = viewModel.syncedDataSummary {
-                ReturningUserOnboardingView(summary: summary, onComplete: {
-                    viewModel.dismissReturningUserWelcome()
+        .fullScreenCover(
+            isPresented: $showOnboarding,
+            onDismiss: {
+                // Handle post-onboarding after the fullScreenCover has actually dismissed
+                Task {
+                    await handlePostOnboarding()
+                }
+            },
+            content: {
+                // Show new user onboarding flow
+                OnboardingFlowView(onComplete: {
+                    showOnboarding = false
                 })
-                .onAppear {
-                    // Dismiss syncing toast exactly when returning user welcome appears
-                    viewModel.dismissSyncingDataToast()
+            }
+        )
+        // Returning user welcome - shown as sheet AFTER app loads and data syncs
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { viewModel.showReturningUserWelcome },
+                set: { if !$0 { viewModel.dismissReturningUserWelcome() } }
+            ),
+            onDismiss: {
+                // Check for iCloud sync toast after welcome screen dismissed
+                handleFirstiCloudSync()
+            },
+            content: {
+                if let summary = viewModel.syncedDataSummary {
+                    ReturningUserOnboardingView(summary: summary, onComplete: {
+                        viewModel.dismissReturningUserWelcome()
+                    })
+                    .onAppear {
+                        // Dismiss syncing toast exactly when returning user welcome appears
+                        viewModel.dismissSyncingDataToast()
+                    }
                 }
             }
-        }
+        )
         .habitsAssistantSheet(
             isPresented: $showingPostOnboardingAssistant,
             existingHabits: existingHabits,
@@ -219,29 +227,33 @@ public struct RootTabView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingPersonalityAnalysis, onDismiss: {
-            // Check if we need to re-show the sheet (dismiss-then-reshow pattern)
-            // onDismiss is called after dismiss animation completes, so we can set state directly
-            if pendingPersonalitySheetReshow {
-                pendingPersonalitySheetReshow = false
-                logger.logPersonalitySheet(state: "Re-showing personality sheet after dismiss")
-                showingPersonalityAnalysis = true
-                vm.personalityDeepLinkCoordinator.resetAnalysisState()
-            }
-        }) {
-            logger.logPersonalitySheet(state: "Sheet is being presented")
+        .sheet(
+            isPresented: $showingPersonalityAnalysis,
+            onDismiss: {
+                // Check if we need to re-show the sheet (dismiss-then-reshow pattern)
+                // onDismiss is called after dismiss animation completes, so we can set state directly
+                if pendingPersonalitySheetReshow {
+                    pendingPersonalitySheetReshow = false
+                    logger.logPersonalitySheet(state: "Re-showing personality sheet after dismiss")
+                    showingPersonalityAnalysis = true
+                    vm.personalityDeepLinkCoordinator.resetAnalysisState()
+                }
+            },
+            content: {
+                logger.logPersonalitySheet(state: "Sheet is being presented")
 
-            return PersonalityAnalysisDeepLinkSheet(
-                action: vm.personalityDeepLinkCoordinator.pendingNotificationAction
-            ) {
-                logger.logPersonalitySheet(state: "Sheet dismissed by user")
+                return PersonalityAnalysisDeepLinkSheet(
+                    action: vm.personalityDeepLinkCoordinator.pendingNotificationAction
+                ) {
+                    logger.logPersonalitySheet(state: "Sheet dismissed by user")
 
-                // Only clear the notification action on dismissal
-                vm.personalityDeepLinkCoordinator.pendingNotificationAction = nil
-                showingPersonalityAnalysis = false
+                    // Only clear the notification action on dismissal
+                    vm.personalityDeepLinkCoordinator.pendingNotificationAction = nil
+                    showingPersonalityAnalysis = false
+                }
+                .accessibilityIdentifier(AccessibilityID.PersonalityAnalysis.sheet)
             }
-            .accessibilityIdentifier(AccessibilityID.PersonalityAnalysis.sheet)
-        }
+        )
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             // Check for pending navigation when app enters foreground
             if vm.personalityDeepLinkCoordinator.processPendingNavigation() {
@@ -353,26 +365,30 @@ public struct RootTabView: View {
                 quickActionCoordinator.resetTriggers()
             }
         }
-        .sheet(isPresented: $showingQuickActionAddHabit, onDismiss: {
-            Task {
-                await loadCurrentHabits()
+        .sheet(
+            isPresented: $showingQuickActionAddHabit,
+            onDismiss: {
+                Task {
+                    await loadCurrentHabits()
+                }
+                // Check if we need to re-show this sheet or show a different one
+                // onDismiss is called after dismiss animation completes, so we can set state directly
+                if pendingQuickActionAddHabitReshow {
+                    pendingQuickActionAddHabitReshow = false
+                    logger.log("Quick Action: Re-showing Add Habit sheet after dismiss", level: .info, category: .ui)
+                    showingQuickActionAddHabit = true
+                } else if pendingQuickActionHabitsAssistantReshow {
+                    pendingQuickActionHabitsAssistantReshow = false
+                    logger.log("Quick Action: Showing Habits Assistant sheet after Add Habit dismiss", level: .info, category: .ui)
+                    showingQuickActionHabitsAssistant = true
+                }
+            },
+            content: {
+                let detailVM = HabitDetailViewModel(habit: nil)
+                HabitDetailView(vm: detailVM)
+                    .accessibilityIdentifier(AccessibilityID.HabitDetail.sheet)
             }
-            // Check if we need to re-show this sheet or show a different one
-            // onDismiss is called after dismiss animation completes, so we can set state directly
-            if pendingQuickActionAddHabitReshow {
-                pendingQuickActionAddHabitReshow = false
-                logger.log("Quick Action: Re-showing Add Habit sheet after dismiss", level: .info, category: .ui)
-                showingQuickActionAddHabit = true
-            } else if pendingQuickActionHabitsAssistantReshow {
-                pendingQuickActionHabitsAssistantReshow = false
-                logger.log("Quick Action: Showing Habits Assistant sheet after Add Habit dismiss", level: .info, category: .ui)
-                showingQuickActionHabitsAssistant = true
-            }
-        }) {
-            let detailVM = HabitDetailViewModel(habit: nil)
-            HabitDetailView(vm: detailVM)
-                .accessibilityIdentifier(AccessibilityID.HabitDetail.sheet)
-        }
+        )
         .habitsAssistantSheet(
             isPresented: $showingQuickActionHabitsAssistant,
             existingHabits: existingHabits,
