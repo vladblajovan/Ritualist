@@ -55,7 +55,7 @@
 | 12 | ~~Missing non-premium notification tests~~ | ~~Coverage gap for critical feature~~ | ~~`DailyNotificationSchedulerServiceTests.swift`~~ | ✅ FIXED |
 | 13 | ~~No SwiftData indexes defined~~ | ~~20-40% slower queries for large datasets~~ | ~~Model files~~ | ✅ FIXED (SchemaV12) |
 | 14 | ~~Dashboard/PersonalityAnalysis have local Domain folders~~ | ~~Architecture inconsistency~~ | ~~Feature folders~~ | ✅ FIXED |
-| 15 | OverviewViewModel too large (1633 lines) | SRP violation, hard to maintain | `OverviewViewModel.swift` | |
+| 15 | ~~OverviewViewModel too large (1633 lines)~~ | ~~SRP violation, hard to maintain~~ | ~~`OverviewViewModel.swift`~~ | ✅ FIXED (extracted TodaysSummaryCardViewModel, InspirationCardViewModel) |
 | 16 | No skeleton loading for TodaysSummaryCard | Blank screen flash on load | `TodaysSummaryCard.swift` | |
 | 17 | ~~iPad experience needs optimization~~ | ~~Phone layouts on large screens~~ | ~~DashboardView, OverviewView~~ | ✅ FIXED |
 
@@ -318,7 +318,7 @@
 ### Ongoing Improvements
 
 - [x] ~~Add SwiftData indexes for performance~~ FIXED (SchemaV12 with indexes on habitID, date, isActive, isPredefined, userId, analysisDate)
-- [ ] Split large ViewModels (OverviewViewModel, SettingsViewModel)
+- [x] ~~Split large ViewModels (OverviewViewModel, SettingsViewModel)~~ FIXED (extracted TodaysSummaryCardViewModel, InspirationCardViewModel from OverviewViewModel)
 - [ ] Add skeleton loading states
 - [x] ~~Optimize iPad layouts~~ FIXED (AdaptiveGrid component for responsive layouts)
 - [ ] Add ViewModel tests for critical features
@@ -339,7 +339,7 @@
 | ~~`Ritualist/.../SettingsViewModel.swift`~~ | ~~Onboarding after import~~ | ~~P1~~ | ✅ FIXED |
 | ~~`RitualistCore/.../TimezoneService.swift`~~ | ~~Race condition~~ | ~~P1~~ | ✅ FIXED |
 | ~~`RitualistCore/.../NotificationService.swift`~~ | ~~Passed time scheduling~~ | ~~P1~~ | ✅ FIXED |
-| `Ritualist/.../StoreKitSubscriptionService.swift` | Grace period | P2 | |
+| ~~`Ritualist/.../StoreKitSubscriptionService.swift`~~ | ~~Grace period~~ | ~~P2~~ | ✅ FIXED |
 | `RitualistWidget/RitualistWidget.swift` | ~~Widget timezone~~ | ~~P2~~ | ✅ FIXED |
 
 ---

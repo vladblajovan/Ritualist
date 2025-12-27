@@ -101,28 +101,28 @@ App Startup
 
 ## Testing Checklist
 
-### Ritualist-AllFeatures Scheme
-- [x] `is_premium: true` at startup
-- [x] iCloud sync toggle visible in Settings
-- [x] Toggle OFF → restart → local-only (no sync)
-- [x] Toggle ON → restart → sync active
-- [x] Data persists when toggling (same store file)
-
-### Ritualist-Subscription Scheme (Free User)
+### Ritualist Scheme (Production - Free User)
 - [x] `is_premium: false` at startup
 - [x] No sync toast shown
 - [x] No auto-sync on launch
 - [x] "Upgrade to Pro" message in iCloud section
 - [x] iCloud KV flag detection skipped (treated as new user)
 
-### Ritualist-Subscription Scheme (After Purchase)
-- [x] Buy mock product → toggle appears (OFF by default)
+### Ritualist Scheme (After Purchase via StoreKit)
+- [x] Purchase subscription → toggle appears (OFF by default)
 - [x] Toggle ON → restart alert shown
 - [x] Restart → sync active, data merges with iCloud
 - [x] Profile/habits merge correctly
 
-### Subscription Expiry / Clear Purchase
-- [x] Clear mock purchase → restart → `is_premium: false`
+### Ritualist-AllFeatures Scheme (Development)
+- [x] `is_premium: true` at startup (ALL_FEATURES_ENABLED flag)
+- [x] iCloud sync toggle visible in Settings
+- [x] Toggle OFF → restart → local-only (no sync)
+- [x] Toggle ON → restart → sync active
+- [x] Data persists when toggling (same store file)
+
+### Subscription Expiry
+- [x] Subscription expires → restart → `is_premium: false`
 - [x] Local data remains intact (same store file)
 - [x] User loses sync capability but keeps their data
 - [x] Toggle hidden (free user UI shown)
