@@ -176,63 +176,115 @@ public struct CategoryManagementView: View {
     }
     
     private var bottomToolbar: some View {
+        CategoryBatchToolbar(
+            selectedCategoryIds: selectedCategoryIds,
+            categories: vm.categories,
+            onActivate: { await activateSelectedCategories() },
+            onDeactivate: {
+                categoriesToDeactivate = selectedCategoryIds
+                showingDeactivateConfirmation = true
+            },
+            onDelete: {
+                categoriesToDelete = selectedCategoryIds
+                showingDeleteConfirmation = true
+            }
+        )
+    }
+
+    private var deleteConfirmationMessage: String {
+        let categoriesToCount = categoriesToDelete.isEmpty ? selectedCategoryIds : categoriesToDelete
+        let customCategories = vm.categories.filter { categoriesToCount.contains($0.id) && !$0.isPredefined }
+
+        if customCategories.count == 1 {
+            return "Are you sure you want to delete \"\(customCategories.first!.displayName)\"? This action cannot be undone."
+        } else {
+            return "Are you sure you want to delete \(customCategories.count) categories? This action cannot be undone."
+        }
+    }
+
+    private var deactivateConfirmationMessage: String {
+        let categoriesToCount = categoriesToDeactivate.isEmpty ? selectedCategoryIds : categoriesToDeactivate
+        let customCategories = vm.categories.filter { categoriesToCount.contains($0.id) && !$0.isPredefined && $0.isActive }
+
+        if customCategories.count == 1 {
+            return "Are you sure you want to deactivate \"\(customCategories.first!.displayName)\"? It will be hidden from habit creation but existing habits will remain."
+        } else {
+            return "Are you sure you want to deactivate \(customCategories.count) categories? They will be hidden from habit creation but existing habits will remain."
+        }
+    }
+
+    private func activateSelectedCategories() async {
+        for categoryId in selectedCategoryIds {
+            if let category = vm.categories.first(where: { $0.id == categoryId }) {
+                await vm.updateCategory(category.withActiveStatus(true))
+            }
+        }
+        selectedCategoryIds.removeAll()
+    }
+
+    private func deactivateSelectedCategories() async {
+        for categoryId in categoriesToDeactivate {
+            if let category = vm.categories.first(where: { $0.id == categoryId }) {
+                await vm.updateCategory(category.withActiveStatus(false))
+            }
+        }
+        selectedCategoryIds.removeAll()
+    }
+
+    private func deleteSelectedCategories() async {
+        let customCategories = vm.categories.filter { categoriesToDelete.contains($0.id) && !$0.isPredefined }
+        for category in customCategories {
+            await vm.deleteCategory(category.id)
+        }
+        selectedCategoryIds.removeAll()
+    }
+}
+
+// MARK: - Category Batch Toolbar
+
+private struct CategoryBatchToolbar: View {
+    let selectedCategoryIds: Set<String>
+    let categories: [HabitCategory]
+    let onActivate: () async -> Void
+    let onDeactivate: () -> Void
+    let onDelete: () -> Void
+
+    private var hasActiveSelected: Bool {
+        categories.filter { selectedCategoryIds.contains($0.id) }.contains { $0.isActive }
+    }
+
+    private var hasInactiveSelected: Bool {
+        categories.filter { selectedCategoryIds.contains($0.id) }.contains { !$0.isActive }
+    }
+
+    private var selectedArePredefined: Bool {
+        categories.filter { selectedCategoryIds.contains($0.id) }.contains { $0.isPredefined }
+    }
+
+    var body: some View {
         VStack(spacing: 0) {
             Divider()
-            
+
             HStack {
                 Text("\(selectedCategoryIds.count) selected")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
-                
+
                 HStack(spacing: Spacing.large) {
-                    // Activate button (only show if inactive categories are selected)
-                    if hasInactiveSelectedCategories {
-                        Button {
-                            Task {
-                                await activateSelectedCategories()
-                            }
-                        } label: {
-                            VStack(spacing: 2) {
-                                Image(systemName: "play.circle")
-                                    .font(.title2)
-                                Text("Activate")
-                                    .font(.caption2)
-                            }
-                        }
-                        .foregroundColor(.green)
-                    }
-                    
-                    // Deactivate button (only show if active categories are selected)
-                    if hasActiveSelectedCategories {
-                        Button {
-                            categoriesToDeactivate = selectedCategoryIds
-                            showingDeactivateConfirmation = true
-                        } label: {
-                            VStack(spacing: 2) {
-                                Image(systemName: "pause.circle")
-                                    .font(.title2)
-                                Text("Deactivate")
-                                    .font(.caption2)
-                            }
+                    if hasInactiveSelected {
+                        toolbarButton(icon: "play.circle", label: "Activate", color: .green) {
+                            Task { await onActivate() }
                         }
                     }
-                    
-                    // Delete button
-                    Button {
-                        categoriesToDelete = selectedCategoryIds
-                        showingDeleteConfirmation = true
-                    } label: {
-                        VStack(spacing: 2) {
-                            Image(systemName: "trash")
-                                .font(.title2)
-                            Text("Delete")
-                                .font(.caption2)
-                        }
+
+                    if hasActiveSelected {
+                        toolbarButton(icon: "pause.circle", label: "Deactivate", color: .primary, action: onDeactivate)
                     }
-                    .foregroundColor(.red)
-                    .disabled(selectedCategoriesArePredefined)
+
+                    toolbarButton(icon: "trash", label: "Delete", color: .red, action: onDelete)
+                        .disabled(selectedArePredefined)
                 }
             }
             .padding(.horizontal, Spacing.large)
@@ -240,94 +292,15 @@ public struct CategoryManagementView: View {
             .background(.regularMaterial)
         }
     }
-    
-    private var selectedCategoriesArePredefined: Bool {
-        let selectedCategories = vm.categories.filter { selectedCategoryIds.contains($0.id) }
-        return selectedCategories.contains { $0.isPredefined }
-    }
-    
-    private var deleteConfirmationMessage: String {
-        // Use the live selection for counting, but filter to get actual categories to delete
-        let categoriesToCount = categoriesToDelete.isEmpty ? selectedCategoryIds : categoriesToDelete
-        let selectedCategories = vm.categories.filter { categoriesToCount.contains($0.id) }
-        let customCategories = selectedCategories.filter { !$0.isPredefined }
-        
-        if customCategories.count == 1 {
-            return "Are you sure you want to delete \"\(customCategories.first!.displayName)\"? This action cannot be undone."
-        } else {
-            return "Are you sure you want to delete \(customCategories.count) categories? This action cannot be undone."
-        }
-    }
-    
-    private var deactivateConfirmationMessage: String {
-        // Use the live selection for counting, but filter to get actual categories to deactivate
-        let categoriesToCount = categoriesToDeactivate.isEmpty ? selectedCategoryIds : categoriesToDeactivate
-        let selectedCategories = vm.categories.filter { categoriesToCount.contains($0.id) }
-        let customCategories = selectedCategories.filter { !$0.isPredefined && $0.isActive }
-        
-        if customCategories.count == 1 {
-            return "Are you sure you want to deactivate \"\(customCategories.first!.displayName)\"? It will be hidden from habit creation but existing habits will remain."
-        } else {
-            return "Are you sure you want to deactivate \(customCategories.count) categories? They will be hidden from habit creation but existing habits will remain."
-        }
-    }
-    
-    private var hasActiveSelectedCategories: Bool {
-        let selectedCategories = vm.categories.filter { selectedCategoryIds.contains($0.id) }
-        return selectedCategories.contains { $0.isActive }
-    }
-    
-    private var hasInactiveSelectedCategories: Bool {
-        let selectedCategories = vm.categories.filter { selectedCategoryIds.contains($0.id) }
-        return selectedCategories.contains { !$0.isActive }
-    }
-    
-    private func activateSelectedCategories() async {
-        for categoryId in selectedCategoryIds {
-            if let category = vm.categories.first(where: { $0.id == categoryId }) {
-                let updatedCategory = HabitCategory(
-                    id: category.id,
-                    name: category.name,
-                    displayName: category.displayName,
-                    emoji: category.emoji,
-                    order: category.order,
-                    isActive: true,
-                    isPredefined: category.isPredefined,
-                    personalityWeights: category.personalityWeights
-                )
-                await vm.updateCategory(updatedCategory)
-            }
-        }
-        selectedCategoryIds.removeAll()
-    }
-    
-    private func deactivateSelectedCategories() async {
-        for categoryId in categoriesToDeactivate {
-            if let category = vm.categories.first(where: { $0.id == categoryId }) {
-                let updatedCategory = HabitCategory(
-                    id: category.id,
-                    name: category.name,
-                    displayName: category.displayName,
-                    emoji: category.emoji,
-                    order: category.order,
-                    isActive: false,
-                    isPredefined: category.isPredefined,
-                    personalityWeights: category.personalityWeights
-                )
-                await vm.updateCategory(updatedCategory)
-            }
-        }
-        selectedCategoryIds.removeAll()
-    }
-    
-    private func deleteSelectedCategories() async {
-        let selectedCategories = vm.categories.filter { categoriesToDelete.contains($0.id) }
-        let customCategories = selectedCategories.filter { !$0.isPredefined }
 
-        for category in customCategories {
-            await vm.deleteCategory(category.id)
+    private func toolbarButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 2) {
+                Image(systemName: icon).font(.title2)
+                Text(label).font(.caption2)
+            }
         }
-        selectedCategoryIds.removeAll()
+        .foregroundColor(color)
     }
 }
 

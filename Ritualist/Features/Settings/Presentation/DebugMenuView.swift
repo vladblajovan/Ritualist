@@ -921,7 +921,7 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
                     }
                 }
 
-                Text("Sync flow: Push Received → Store Changes. If 'Registered' is No, check Push Notifications capability. If pushes come but no store changes, check CloudKit Dashboard schema deployment.")
+                Text("Sync flow: Push Received → Store Changes. If 'Registered' is No, check Push Notifications capability. If pushes come but no store changes, check CloudKit Stats schema deployment.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -1178,9 +1178,6 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
         CalendarUtils.areSameDayUTC(date1, date2)
     }
 }
-
-// MARK: - Migration History View
-
 
 // MARK: - Backup List View
 

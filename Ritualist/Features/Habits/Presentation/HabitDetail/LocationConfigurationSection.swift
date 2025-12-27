@@ -91,20 +91,21 @@ public struct LocationConfigurationSection: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 8)
                 }
-                .sheet(isPresented: $vm.showMapPicker, onDismiss: {
-                    // Handle swipe-to-dismiss: if user didn't save a location, clear placeholder
-                    vm.handleMapPickerDismiss()
-                }) {
-                    MapLocationPickerView(vm: vm)
-                }
+                .sheet(
+                    isPresented: $vm.showMapPicker,
+                    onDismiss: {
+                        vm.handleMapPickerDismiss()
+                    },
+                    content: {
+                        MapLocationPickerView(vm: vm)
+                    }
+                )
             } else if vm.locationConfiguration == nil || vm.locationConfiguration?.isEnabled == false {
-                // Show explanation when disabled
                 Text("Get reminded when you arrive at or leave a specific location")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
-            // Show permission status if needed
             if vm.locationConfiguration?.isEnabled == true {
                 LocationPermissionStatus(vm: vm)
             }

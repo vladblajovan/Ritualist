@@ -321,8 +321,8 @@ private struct RadiusControl: View {
         return CGFloat(percentage) * width
     }
 
-    private func updateRadius(from x: CGFloat, in width: CGFloat) {
-        let percentage = max(0, min(1, x / width))
+    private func updateRadius(from xPosition: CGFloat, in width: CGFloat) {
+        let percentage = max(0, min(1, xPosition / width))
         let range = LocationConfiguration.maximumRadius - LocationConfiguration.minimumRadius
         let newValue = LocationConfiguration.minimumRadius + (range * Double(percentage))
         let snapped = (newValue / 10).rounded() * 10 // Snap to 10m increments

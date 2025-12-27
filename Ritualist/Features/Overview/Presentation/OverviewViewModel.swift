@@ -862,7 +862,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// Update cache after successful database write
     /// This eliminates the need for full database reload
     private func updateCachedLog(_ log: HabitLog) {
-        guard var data = overviewData else {
+        guard let data = overviewData else {
             logger.log(
                 "Cache miss - no cache available",
                 level: .debug,
@@ -908,7 +908,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     /// Remove logs from cache after successful database delete
     private func removeCachedLogs(habitId: UUID, on date: Date) {
-        guard var data = overviewData else {
+        guard let data = overviewData else {
             logger.log(
                 "Cache miss - no cache available for delete",
                 level: .debug,

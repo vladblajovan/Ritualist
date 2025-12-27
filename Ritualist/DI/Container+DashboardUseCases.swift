@@ -1,5 +1,5 @@
 //
-//  Container+DashboardUseCases.swift
+//  Container+StatsUserCases.swift
 //  Ritualist
 //
 //  Created by Claude on 07.08.2025.
@@ -11,7 +11,7 @@ import RitualistCore
 
 extension Container {
     
-    // MARK: - Dashboard Services
+    // MARK: - Stats Services
     
     var habitScheduleAnalyzer: Factory<HabitScheduleAnalyzerProtocol> {
         self { HabitScheduleAnalyzer() }
@@ -27,38 +27,6 @@ extension Container {
         .singleton
     }
     
-    // MARK: - Basic Analytics UseCases
-    
-    var getHabitLogsForAnalytics: Factory<GetHabitLogsForAnalytics> {
-        self {
-            GetHabitLogsForAnalytics(
-                habitRepository: self.habitRepository(),
-                getBatchLogs: self.getBatchLogs()
-            )
-        }
-    }
-    
-    var getHabitCompletionStats: Factory<GetHabitCompletionStats> {
-        self {
-            GetHabitCompletionStats(
-                habitRepository: self.habitRepository(),
-                scheduleAnalyzer: self.habitScheduleAnalyzer(),
-                getBatchLogs: self.getBatchLogs(),
-                timezoneService: self.timezoneService()
-            )
-        }
-    }
-
-    var calculateStreakAnalysis: Factory<CalculateStreakAnalysis> {
-        self {
-            CalculateStreakAnalysis(
-                performanceAnalysisService: self.performanceAnalysisService()
-            )
-        }
-    }
-
-    // MARK: - Dashboard UseCases
-
     var calculateHabitPerformanceUseCase: Factory<CalculateHabitPerformanceUseCaseProtocol> {
         self {
             CalculateHabitPerformanceUseCase(
@@ -87,6 +55,36 @@ extension Container {
                 getHabitLogsUseCase: self.getHabitLogsForAnalytics(),
                 performanceAnalysisService: self.performanceAnalysisService(),
                 timezoneService: self.timezoneService()
+            )
+        }
+    }
+    
+    // MARK: - Basic Analytics UseCases
+    
+    var getHabitLogsForAnalytics: Factory<GetHabitLogsForAnalytics> {
+        self {
+            GetHabitLogsForAnalytics(
+                habitRepository: self.habitRepository(),
+                getBatchLogs: self.getBatchLogs()
+            )
+        }
+    }
+    
+    var getHabitCompletionStats: Factory<GetHabitCompletionStats> {
+        self {
+            GetHabitCompletionStats(
+                habitRepository: self.habitRepository(),
+                scheduleAnalyzer: self.habitScheduleAnalyzer(),
+                getBatchLogs: self.getBatchLogs(),
+                timezoneService: self.timezoneService()
+            )
+        }
+    }
+
+    var calculateStreakAnalysis: Factory<CalculateStreakAnalysis> {
+        self {
+            CalculateStreakAnalysis(
+                performanceAnalysisService: self.performanceAnalysisService()
             )
         }
     }

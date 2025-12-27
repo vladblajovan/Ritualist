@@ -188,20 +188,20 @@ public protocol GenerateCalendarGridUseCase {
 
 // MARK: - Tip Use Cases
 
-public protocol GetAllTipsUseCase { 
-    func execute() async throws -> [Tip] 
+public protocol GetAllTipsUseCase: Sendable {
+    func execute() async throws -> [Tip]
 }
 
-public protocol GetFeaturedTipsUseCase { 
-    func execute() async throws -> [Tip] 
+public protocol GetFeaturedTipsUseCase: Sendable {
+    func execute() async throws -> [Tip]
 }
 
-public protocol GetTipByIdUseCase { 
-    func execute(id: UUID) async throws -> Tip? 
+public protocol GetTipByIdUseCase: Sendable {
+    func execute(id: UUID) async throws -> Tip?
 }
 
-public protocol GetTipsByCategoryUseCase { 
-    func execute(category: TipCategory) async throws -> [Tip] 
+public protocol GetTipsByCategoryUseCase: Sendable {
+    func execute(category: TipCategory) async throws -> [Tip]
 }
 
 // MARK: - Category Use Cases
@@ -402,7 +402,7 @@ public protocol RefreshWidgetUseCase {
 }
 
 
-// MARK: - Dashboard Analytics Use Cases
+// MARK: - Stats Analytics Use Cases
 
 public protocol GetHabitLogsForAnalyticsUseCase {
     func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog]

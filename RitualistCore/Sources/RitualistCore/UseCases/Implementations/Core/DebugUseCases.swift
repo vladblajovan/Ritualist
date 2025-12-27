@@ -5,11 +5,11 @@ import Foundation
 
 public final class GetDatabaseStats: GetDatabaseStatsUseCase {
     private let debugService: DebugServiceProtocol
-    
+
     public init(debugService: DebugServiceProtocol) {
         self.debugService = debugService
     }
-    
+
     public func execute() async throws -> DebugDatabaseStats {
         try await debugService.getDatabaseStats()
     }
@@ -17,11 +17,11 @@ public final class GetDatabaseStats: GetDatabaseStatsUseCase {
 
 public final class ClearDatabase: ClearDatabaseUseCase {
     private let debugService: DebugServiceProtocol
-    
+
     public init(debugService: DebugServiceProtocol) {
         self.debugService = debugService
     }
-    
+
     public func execute() async throws {
         try await debugService.clearDatabase()
     }

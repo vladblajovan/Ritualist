@@ -669,31 +669,32 @@ private struct ConfidenceBadge: View {
     }
     
     var body: some View {
-        Button(action: {
-            onInfoTap?()
-        }) {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.seal.fill")
-                    .foregroundColor(confidence.color)
-                
-                Text("Confidence level: \(confidence.displayName)")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-                
-                if onInfoTap != nil {
-                    Image(systemName: "info.circle.fill")
-                        .font(.caption2)
+        Button(
+            action: { onInfoTap?() },
+            label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.seal.fill")
                         .foregroundColor(confidence.color)
+
+                    Text("Confidence level: \(confidence.displayName)")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+
+                    if onInfoTap != nil {
+                        Image(systemName: "info.circle.fill")
+                            .font(.caption2)
+                            .foregroundColor(confidence.color)
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(confidence.color.opacity(0.2))
+                )
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(confidence.color.opacity(0.2))
-            )
-        }
+        )
         .buttonStyle(.plain)
         .disabled(onInfoTap == nil)
     }

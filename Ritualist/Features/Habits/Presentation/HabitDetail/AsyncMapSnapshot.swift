@@ -133,7 +133,7 @@ struct AsyncMapSnapshot: View {
 
     /// Draws the pin and radius circle on the snapshot image
     private func drawAnnotations(on image: UIImage, snapshot: MKMapSnapshotter.Snapshot) async -> UIImage {
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             // Use image renderer to draw annotations
             let format = UIGraphicsImageRendererFormat()
             format.scale = image.scale

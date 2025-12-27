@@ -189,7 +189,7 @@ public struct CircularProgressView: View {
 
     /// Returns adaptive gradient based on completion percentage
     public static func adaptiveProgressGradient(for completion: Double) -> LinearGradient {
-        return LinearGradient(
+        LinearGradient(
             colors: adaptiveProgressColors(for: completion),
             startPoint: .leading,
             endPoint: .trailing

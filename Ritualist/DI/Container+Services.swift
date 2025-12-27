@@ -244,9 +244,8 @@ extension Container {
         .singleton
     }
     
-    // MARK: - Legacy User Service
-    
-    @available(*, deprecated, message: "Use userUIService instead")
+    // MARK: - User Service
+
     var userService: Factory<UserService> {
         self {
             #if DEBUG
@@ -325,9 +324,8 @@ extension Container {
             .singleton
     }
 
-    // MARK: - Legacy Feature Gating Service
-    
-    @available(*, deprecated, message: "Use featureGatingUIService instead")
+    // MARK: - Feature Gating Service
+
     var featureGatingService: Factory<FeatureGatingService> {
         self {
             #if ALL_FEATURES_ENABLED
@@ -405,9 +403,11 @@ extension Container {
 
     #if DEBUG
     var debugService: Factory<DebugServiceProtocol> {
-        self { 
-            let container = self.persistenceContainer()
-            return DebugService(persistenceContainer: container)
+        self {
+            MainActor.assumeIsolated {
+                let container = self.persistenceContainer()
+                return DebugService(persistenceContainer: container)
+            }
         }
         .singleton
     }

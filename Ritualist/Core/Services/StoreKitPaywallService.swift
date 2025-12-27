@@ -44,7 +44,8 @@ public final class StoreKitPaywallService: PaywallService {
     private var storeProducts: [StoreKit.Product] = []
 
     /// Background task listening for transaction updates
-    nonisolated(unsafe) private var updateListenerTask: Task<Void, Never>?
+    /// Note: nonisolated(unsafe) required for deinit access
+    private nonisolated(unsafe) var updateListenerTask: Task<Void, Never>?
 
     /// Subscription service for purchase validation
     private let subscriptionService: SecureSubscriptionService

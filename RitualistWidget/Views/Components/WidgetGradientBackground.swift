@@ -25,16 +25,14 @@ struct WidgetGradientBackground: View {
         if colorScheme == .dark {
             return [
                 .init(color: .ritualistDarkNavy, location: 0.0),
-                .init(color: .ritualistDarkPurple, location: 0.5),
-                .init(color: .ritualistDarkTeal, location: 1.0)
+                .init(color: .ritualistDeepNavy, location: 0.5),
+                .init(color: .ritualistDarkNavy, location: 1.0)
             ]
         } else {
             return [
-                .init(color: .ritualistWarmPeach, location: 0.0),
-                .init(color: .ritualistSoftRose, location: 0.25),
-                .init(color: .ritualistLilacMist, location: 0.55),
-                .init(color: .ritualistSkyAqua, location: 0.80),
-                .init(color: .ritualistMintGlow, location: 1.0)
+                .init(color: .ritualistCyan, location: 0.0),
+                .init(color: .ritualistBlue.opacity(0.8), location: 0.5),
+                .init(color: .ritualistCyan, location: 1.0)
             ]
         }
     }

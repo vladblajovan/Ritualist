@@ -11,13 +11,12 @@ import Foundation
 
 /// Service for debug operations like database clearing
 /// Only available in debug builds
-@MainActor
-public protocol DebugServiceProtocol {
+public protocol DebugServiceProtocol: Sendable {
     /// Clear all data from the database
     func clearDatabase() async throws
 
     /// Get database statistics
-    func getDatabaseStats() throws -> DebugDatabaseStats
+    func getDatabaseStats() async throws -> DebugDatabaseStats
 }
 
 #endif

@@ -6,7 +6,7 @@ import RitualistCore
 // swiftlint:disable type_body_length
 @MainActor
 @Observable
-public final class DashboardViewModel {
+public final class StatsViewModel {
     public var selectedTimePeriod: TimePeriod = .thisWeek {
         didSet {
             if oldValue != selectedTimePeriod {

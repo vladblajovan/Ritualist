@@ -24,18 +24,10 @@ struct CompleteHabitIntent: AppIntent {
         print("[WIDGET-INTENT-DEBUG] CompleteHabitIntent.perform() STARTED")
         print("[WIDGET-INTENT-DEBUG] Habit ID: \(habitId)")
         print("[WIDGET-INTENT-DEBUG] Current date: \(Date())")
-        
-        // Test dependency injection first
-        do {
-            @Injected(\.logHabitUseCase) var logHabitUseCase
-            print("[WIDGET-INTENT-DEBUG] ✅ Dependency injection successful: logHabitUseCase injected")
-        } catch {
-            print("[WIDGET-INTENT-DEBUG] ❌ Dependency injection FAILED: \(error)")
-            return .result()
-        }
-        
+
         @Injected(\.logHabitUseCase) var logHabitUseCase
-        
+        print("[WIDGET-INTENT-DEBUG] ✅ Dependency injection successful: logHabitUseCase injected")
+
         print("[WIDGET-INTENT] Attempting to complete habit with ID: \(habitId)")
         
         // Convert string ID to UUID

@@ -27,8 +27,8 @@ struct StreaksCard: View {
     let isLoading: Bool
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var animatingStreakId: String? = nil
-    @State private var sheetStreak: StreakInfo? = nil
+    @State private var animatingStreakId: String?
+    @State private var sheetStreak: StreakInfo?
 
     // MARK: - Layout Configuration
 

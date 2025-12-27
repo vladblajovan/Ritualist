@@ -160,7 +160,6 @@ struct DataManagementSectionView: View {
             }
             .disabled(vm.isDeletingCloudData || vm.isExportingData || vm.isImportingData)
             .opacity(vm.isDeletingCloudData ? 0.5 : 1.0)
-
         } header: {
             Text("Data Management")
         } footer: {

@@ -56,7 +56,7 @@ public struct RootTabView: View {
 
                         Tab(Strings.Navigation.stats, systemImage: "chart.bar.fill", value: Pages.stats) {
                             NavigationStack {
-                                DashboardRoot()
+                                StatsRoot()
                             }
                             .accessibilityIdentifier(AccessibilityID.Stats.root)
                         }
@@ -486,75 +486,66 @@ public struct RootTabView: View {
         guard viewModel.pendingReturningUserWelcome else { return }
 
         Task {
-            // Load actual data from repositories
             await loadCurrentHabits()
-            let profile: UserProfile?
-            do {
-                profile = try await loadProfile.execute()
-            } catch {
-                logger.log(
-                    "Failed to load profile for returning user check",
-                    level: .warning,
-                    category: .system,
-                    metadata: ["error": error.localizedDescription]
-                )
-                profile = nil
-            }
+            let profile = await loadProfileSafely()
 
             // Check if we have complete data (profile with gender/ageGroup set)
-            // We don't require habits or name - user may have skipped those during onboarding
-            let hasCompleteData = profile != nil
-                && profile?.gender != nil
-                && profile?.ageGroup != nil
+            let hasCompleteData = profile != nil && profile?.gender != nil && profile?.ageGroup != nil
 
             if hasCompleteData {
-                // Show welcome with actual synced data
                 await MainActor.run {
                     viewModel.showReturningUserWelcomeIfNeeded(habits: existingHabits, profile: profile)
                 }
             } else {
-                // Data not complete yet - retry up to 5 minutes
-                // This doesn't block the app - user can use it normally while we wait
-                // CloudKit profile/avatar may take longer to sync on slow networks
-                if retryCount < SyncConstants.maxRetries {
-                    logger.log(
-                        "☁️ Returning user data incomplete - will retry",
-                        level: .debug,
-                        category: .system,
-                        metadata: [
-                            "retry_count": retryCount + 1,
-                            "max_retries": SyncConstants.maxRetries,
-                            "has_profile": profile != nil,
-                            "has_gender": profile?.gender != nil,
-                            "has_ageGroup": profile?.ageGroup != nil
-                        ]
-                    )
-                    try? await Task.sleep(for: .seconds(SyncConstants.retryIntervalSeconds))
-                    await MainActor.run {
-                        handleReturningUserWelcome(retryCount: retryCount + 1)
-                    }
-                } else {
-                    // Gave up waiting - inform user that sync is still in progress
-                    // User can still use the app, data will appear when sync completes
-                    logger.log(
-                        "☁️ Returning user data still incomplete after retries - showing info toast",
-                        level: .warning,
-                        category: .system,
-                        metadata: [
-                            "has_profile": profile != nil,
-                            "has_gender": profile?.gender != nil,
-                            "has_ageGroup": profile?.ageGroup != nil
-                        ]
-                    )
-                    await MainActor.run {
-                        // Dismiss the syncing toast since we're giving up
-                        viewModel.dismissSyncingDataToast()
-                        // Mark as no longer pending so we don't keep trying
-                        viewModel.pendingReturningUserWelcome = false
-                        // Show informative toast after state update
-                        viewModel.showStillSyncingToast()
-                    }
-                }
+                await handleIncompleteReturningUserData(profile: profile, retryCount: retryCount)
+            }
+        }
+    }
+
+    private func loadProfileSafely() async -> UserProfile? {
+        do {
+            return try await loadProfile.execute()
+        } catch {
+            logger.log(
+                "Failed to load profile for returning user check",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
+            return nil
+        }
+    }
+
+    private func handleIncompleteReturningUserData(profile: UserProfile?, retryCount: Int) async {
+        // Retry up to 5 minutes - CloudKit profile/avatar may take longer on slow networks
+        if retryCount < SyncConstants.maxRetries {
+            logger.log(
+                "☁️ Returning user data incomplete - will retry",
+                level: .debug,
+                category: .system,
+                metadata: [
+                    "retry_count": retryCount + 1,
+                    "max_retries": SyncConstants.maxRetries,
+                    "has_profile": profile != nil,
+                    "has_gender": profile?.gender != nil,
+                    "has_ageGroup": profile?.ageGroup != nil
+                ]
+            )
+            try? await Task.sleep(for: .seconds(SyncConstants.retryIntervalSeconds))
+            await MainActor.run {
+                handleReturningUserWelcome(retryCount: retryCount + 1)
+            }
+        } else {
+            logger.log(
+                "☁️ Returning user data still incomplete after retries - showing info toast",
+                level: .warning,
+                category: .system,
+                metadata: ["has_profile": profile != nil, "has_gender": profile?.gender != nil, "has_ageGroup": profile?.ageGroup != nil]
+            )
+            await MainActor.run {
+                viewModel.dismissSyncingDataToast()
+                viewModel.pendingReturningUserWelcome = false
+                viewModel.showStillSyncingToast()
             }
         }
     }
@@ -564,87 +555,72 @@ public struct RootTabView: View {
     /// Note: Only shown in DEBUG builds - users don't need this, it's a developer sanity check
     private func handleFirstiCloudSync(retryCount: Int = 0) {
         #if !DEBUG
-        // Skip in release builds - users don't need "your data synced" notifications
         return
         #endif
 
-        // Check if we've already shown this toast (check BEFORE spawning async work)
-        guard !userDefaults.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else {
+        guard !userDefaults.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else { return }
+        guard !showOnboarding && !isCheckingOnboarding && !showingPostOnboardingAssistant else {
+            logModalActiveForSync()
             return
         }
 
-        // Don't show toast during onboarding or while assistant sheet is open
-        // It would appear behind the fullScreenCover/sheet
-        guard !showOnboarding && !isCheckingOnboarding && !showingPostOnboardingAssistant else {
+        Task {
+            await performFirstiCloudSyncCheck(retryCount: retryCount)
+        }
+    }
+
+    private func logModalActiveForSync() {
+        logger.log(
+            "☁️ iCloud sync detected but modal active - deferring toast",
+            level: .debug,
+            category: .system,
+            metadata: [
+                "showOnboarding": showOnboarding,
+                "isCheckingOnboarding": isCheckingOnboarding,
+                "showingAssistant": showingPostOnboardingAssistant
+            ]
+        )
+    }
+
+    private func performFirstiCloudSyncCheck(retryCount: Int) async {
+        guard !userDefaults.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else { return }
+
+        guard await PersistenceContainer.isICloudAvailable() else {
+            logger.log("☁️ iCloud not available - skipping sync toast", level: .debug, category: .system)
+            return
+        }
+
+        await loadCurrentHabits()
+
+        guard !existingHabits.isEmpty else {
+            await retryFirstiCloudSyncIfNeeded(retryCount: retryCount)
+            return
+        }
+
+        userDefaults.set(true, forKey: UserDefaultsKeys.hasShownFirstSyncToast)
+        logger.log(
+            "☁️ First iCloud sync with data - showing welcome toast",
+            level: .info,
+            category: .system,
+            metadata: ["habits_count": existingHabits.count]
+        )
+        await MainActor.run {
+            viewModel.showSyncedToast()
+        }
+    }
+
+    private func retryFirstiCloudSyncIfNeeded(retryCount: Int) async {
+        if retryCount < 3 {
             logger.log(
-                "☁️ iCloud sync detected but modal active - deferring toast",
+                "☁️ iCloud sync detected but no habits found yet - will retry",
                 level: .debug,
                 category: .system,
-                metadata: [
-                    "showOnboarding": showOnboarding,
-                    "isCheckingOnboarding": isCheckingOnboarding,
-                    "showingAssistant": showingPostOnboardingAssistant
-                ]
+                metadata: ["retry_count": retryCount + 1]
             )
-            return
-        }
-
-        // Load habits to check if data actually synced
-        Task {
-            // Double-check flag inside Task to prevent race conditions from multiple notifications
-            guard !userDefaults.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else {
-                return
-            }
-
-            // Check if iCloud is actually signed in - don't show toast if not
-            guard await PersistenceContainer.isICloudAvailable() else {
-                logger.log(
-                    "☁️ iCloud not available - skipping sync toast",
-                    level: .debug,
-                    category: .system
-                )
-                return
-            }
-
-            await loadCurrentHabits()
-
-            // Only show toast if we actually have habits from iCloud
-            guard !existingHabits.isEmpty else {
-                // Retry up to 3 times with increasing delays (1s, 2s, 3s)
-                // CloudKit data may take a moment to fully sync and become available
-                if retryCount < 3 {
-                    logger.log(
-                        "☁️ iCloud sync detected but no habits found yet - will retry",
-                        level: .debug,
-                        category: .system,
-                        metadata: ["retry_count": retryCount + 1]
-                    )
-                    try? await Task.sleep(for: .seconds(Double(retryCount + 1)))
-                    handleFirstiCloudSync(retryCount: retryCount + 1)
-                } else {
-                    logger.log(
-                        "☁️ iCloud sync detected but no habits found after retries - skipping toast",
-                        level: .debug,
-                        category: .system
-                    )
-                }
-                return
-            }
-
-            // Mark as shown IMMEDIATELY to prevent race conditions
-            userDefaults.set(true, forKey: UserDefaultsKeys.hasShownFirstSyncToast)
-
-            logger.log(
-                "☁️ First iCloud sync with data - showing welcome toast",
-                level: .info,
-                category: .system,
-                metadata: ["habits_count": existingHabits.count]
-            )
-
-            // Show the toast (auto-dismisses via ToastView's internal timer)
-            await MainActor.run {
-                viewModel.showSyncedToast()
-            }
+            try? await Task.sleep(for: .seconds(Double(retryCount + 1)))
+            handleFirstiCloudSync(retryCount: retryCount + 1)
+        } else {
+            logger.log("☁️ iCloud sync detected but no habits found after retries - skipping toast", level: .debug, category: .system)
         }
     }
 

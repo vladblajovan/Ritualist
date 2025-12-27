@@ -241,7 +241,7 @@ public struct MapLocationPickerView: View {
         searchError = nil
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString(query) { placemarks, error in
-            if let error = error {
+            if error != nil {
                 searchError = "Could not find location. Please try a different search."
                 return
             }

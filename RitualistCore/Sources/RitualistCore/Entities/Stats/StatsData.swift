@@ -5,7 +5,7 @@ import Foundation
 /// Single source of truth data structure for Dashboard analytics
 /// Replaces multiple independent data loading methods to eliminate N+1 queries
 /// Expected to reduce database queries from 471+ to 3 for annual views
-public struct DashboardData {
+public struct StatsData {
     public let habits: [Habit]
     public let categories: [HabitCategory]
     public let habitLogs: [UUID: [HabitLog]]  // Indexed by habitId for O(1) access

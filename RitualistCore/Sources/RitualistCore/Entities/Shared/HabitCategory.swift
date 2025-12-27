@@ -39,4 +39,17 @@ public struct HabitCategory: Identifiable, Hashable, Codable, Sendable {
         self.isPredefined = isPredefined
         self.personalityWeights = personalityWeights
     }
+
+    public func withActiveStatus(_ isActive: Bool) -> HabitCategory {
+        HabitCategory(
+            id: id,
+            name: name,
+            displayName: displayName,
+            emoji: emoji,
+            order: order,
+            isActive: isActive,
+            isPredefined: isPredefined,
+            personalityWeights: personalityWeights
+        )
+    }
 }

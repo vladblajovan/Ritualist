@@ -11,7 +11,6 @@ import Observation
 /// Simplified user service that manages the single UserProfile entity
 /// No authentication required - designed for iCloud sync
 /// Acts as a bridge between local ProfileRepository and cloud storage
-@available(*, deprecated, message: "Use UserBusinessService instead for better separation of concerns")
 public protocol UserService {
     /// Current user profile (includes subscription info) - delegates to ProfileRepository
     var currentProfile: UserProfile { get }
@@ -29,9 +28,8 @@ public protocol UserService {
     func syncWithiCloud() async throws
 }
 
-// MARK: - Deprecated Implementations
+// MARK: - Implementations
 
-@available(*, deprecated, message: "Use MockUserBusinessService instead")
 @Observable
 public final class MockUserService: UserService, @unchecked Sendable {
     private var _currentProfile = UserProfile()
@@ -143,7 +141,6 @@ public final class MockUserService: UserService, @unchecked Sendable {
     }
 }
 
-@available(*, deprecated, message: "Use ICloudUserBusinessService instead")
 @Observable
 public final class ICloudUserService: UserService {
     private var _currentProfile = UserProfile()
@@ -196,7 +193,6 @@ public final class ICloudUserService: UserService {
     }
 }
 
-@available(*, deprecated, message: "Use appropriate UserBusinessService implementation instead")
 @Observable
 public final class NoOpUserService: UserService {
     public let currentProfile = UserProfile()

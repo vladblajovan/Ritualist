@@ -75,15 +75,19 @@ public struct HabitsRoot: View {
                 await vm.refresh()
             }
         }
-        .sheet(isPresented: $showingCategoryManagement, onDismiss: {
-            Task {
-                await vm.refresh()
+        .sheet(
+            isPresented: $showingCategoryManagement,
+            onDismiss: {
+                Task {
+                    await vm.refresh()
+                }
+            },
+            content: {
+                NavigationStack {
+                    CategoryManagementView(vm: categoryManagementVM)
+                }
             }
-        }) {
-            NavigationStack {
-                CategoryManagementView(vm: categoryManagementVM)
-            }
-        }
+        )
     }
 }
 
@@ -110,7 +114,7 @@ private struct HabitsContentView: View {
 
     var body: some View {
         ZStack {
-            GeometryReader { geometry in
+            GeometryReader { _ in
                 HabitsListView(
                     vm: vm,
                     showingCategoryManagement: $showingCategoryManagement
@@ -557,7 +561,7 @@ private struct HabitsListView: View {
     
     private func activateSelectedHabits() async {
         for habitId in selection {
-            await vm.toggleActiveStatus(id: habitId)
+            _ = await vm.toggleActiveStatus(id: habitId)
         }
         selection.removeAll()
     }
@@ -573,11 +577,11 @@ private struct HabitsListView: View {
             ]
         )
         for habitId in habitsToDeactivate {
-            await vm.toggleActiveStatus(id: habitId)
+            _ = await vm.toggleActiveStatus(id: habitId)
         }
         selection.removeAll()
     }
-    
+
     private func deleteSelectedHabits() async {
         logger.log(
             "🗑️ Deleting habits",
@@ -589,7 +593,7 @@ private struct HabitsListView: View {
             ]
         )
         for habitId in habitsToDelete {
-            await vm.delete(id: habitId)
+            _ = await vm.delete(id: habitId)
         }
         selection.removeAll()
     }

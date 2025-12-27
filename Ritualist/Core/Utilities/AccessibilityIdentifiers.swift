@@ -105,7 +105,7 @@ public enum AccessibilityID {
         public static let sendButton = "habitsAssistant.send"
     }
 
-    // MARK: - Stats Tab (Dashboard)
+    // MARK: - Stats Tab
 
     public enum Stats {
         public static let root = "stats.root"

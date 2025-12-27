@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum TipCategory: String, Codable, CaseIterable {
+public enum TipCategory: String, Codable, CaseIterable, Sendable {
     case gettingStarted = "getting_started"
     case tracking
     case motivation

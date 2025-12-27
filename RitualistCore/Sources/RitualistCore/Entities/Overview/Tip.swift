@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Tip: Identifiable, Codable, Hashable {
+public struct Tip: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID
     public var title: String
     public var description: String // Short description for carousel

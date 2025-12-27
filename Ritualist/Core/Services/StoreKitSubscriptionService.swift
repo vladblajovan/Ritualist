@@ -77,7 +77,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     /// **Timeout:** Returns cached value if StoreKit doesn't respond within 5 seconds.
     ///
     public static func verifyPremiumAsync(forceVerification: Bool = false) async -> Bool {
-        return await verifyPremiumSync(timeout: 5.0, forceVerification: forceVerification)
+        await verifyPremiumSync(timeout: 5.0, forceVerification: forceVerification)
     }
 
     /// Verify premium status with configurable timeout.
@@ -94,26 +94,38 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     public static func verifyPremiumSync(timeout: Double, forceVerification: Bool = false) async -> Bool {
         let startTime = Date()
 
-        // Check if we can skip verification using cached value
-        if !forceVerification && SecurePremiumCache.shared.canSkipVerification() {
-            let cachedStatus = SecurePremiumCache.shared.getCachedPremiumStatus()
-            let cacheAge = SecurePremiumCache.shared.getCacheAge() ?? 0
-
-            startupLogger.log(
-                "✅ Using cached premium status (cache fresh)",
-                level: .info,
-                category: .subscription,
-                metadata: [
-                    "cached_premium": cachedStatus,
-                    "cache_age_hours": String(format: "%.1f", cacheAge / 3600),
-                    "verification_skipped": true
-                ]
-            )
-
-            return cachedStatus
+        if let cachedResult = checkCachedPremiumStatus(forceVerification: forceVerification) {
+            return cachedResult
         }
 
-        // Cache is stale or doesn't exist - query StoreKit
+        logStoreKitQueryStart(forceVerification: forceVerification)
+        let result = await queryStoreKitWithTimeout(timeout: timeout)
+        logVerificationCompleted(result: result, startTime: startTime, timeout: timeout)
+        return result
+    }
+
+    private static func checkCachedPremiumStatus(forceVerification: Bool) -> Bool? {
+        guard !forceVerification && SecurePremiumCache.shared.canSkipVerification() else {
+            return nil
+        }
+
+        let cachedStatus = SecurePremiumCache.shared.getCachedPremiumStatus()
+        let cacheAge = SecurePremiumCache.shared.getCacheAge() ?? 0
+
+        startupLogger.log(
+            "✅ Using cached premium status (cache fresh)",
+            level: .info,
+            category: .subscription,
+            metadata: [
+                "cached_premium": cachedStatus,
+                "cache_age_hours": String(format: "%.1f", cacheAge / 3600),
+                "verification_skipped": true
+            ]
+        )
+        return cachedStatus
+    }
+
+    private static func logStoreKitQueryStart(forceVerification: Bool) {
         let cacheAge = SecurePremiumCache.shared.getCacheAge()
         startupLogger.log(
             "🔐 Querying StoreKit for premium status",
@@ -124,67 +136,53 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
                 "cache_age_hours": cacheAge.map { String(format: "%.1f", $0 / 3600) } ?? "none"
             ]
         )
+    }
 
-        // Use withTaskGroup to implement timeout - if StoreKit hangs, fall back to cache
-        let timeoutSeconds: UInt64 = UInt64(timeout)
+    private static func queryStoreKitWithTimeout(timeout: Double) async -> Bool {
+        let timeoutNanoseconds = UInt64(timeout) * 1_000_000_000
 
-        let result = await withTaskGroup(of: Bool?.self) { group in
-            // Task 1: Query StoreKit
+        return await withTaskGroup(of: Bool?.self) { group in
+            group.addTask { await queryCurrentEntitlements() }
             group.addTask {
-                for await result in Transaction.currentEntitlements {
-                    // Only count verified transactions
-                    if case .verified(let transaction) = result {
-                        // Check not revoked
-                        if transaction.revocationDate == nil {
-                            // Check not expired (for subscriptions)
-                            if let expirationDate = transaction.expirationDate {
-                                if expirationDate > Date() {
-                                    return true
-                                }
-                                // Subscription appears expired - check grace period
-                                // This handles users whose payment failed but are still
-                                // within the billing grace period configured in App Store Connect
-                                if await Self.checkGracePeriodStatus() {
-                                    return true
-                                }
-                            } else {
-                                // Non-subscription (no expiry) - valid if not revoked
-                                return true
-                            }
-                        }
-                    }
-                }
-                return false
+                try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+                return nil
             }
 
-            // Task 2: Timeout after specified seconds
-            group.addTask {
-                try? await Task.sleep(nanoseconds: timeoutSeconds * 1_000_000_000)
-                return nil // Signal timeout
-            }
-
-            // Return first result (either StoreKit response or timeout)
             if let queryResult = await group.next() {
                 group.cancelAll()
                 if let value = queryResult {
-                    // StoreKit responded - update cache with fresh value
                     SecurePremiumCache.shared.updateCache(isPremium: value)
                     return value
                 } else {
-                    // Timeout occurred - fall back to cached value
                     startupLogger.log(
-                        "⚠️ StoreKit verification timed out after \(timeoutSeconds)s - using cached value",
+                        "⚠️ StoreKit verification timed out after \(Int(timeout))s - using cached value",
                         level: .warning,
                         category: .subscription
                     )
                     return SecurePremiumCache.shared.getCachedPremiumStatus()
                 }
             }
-
             return false
         }
+    }
 
-        // Log verification timing for performance monitoring
+    private static func queryCurrentEntitlements() async -> Bool {
+        for await result in Transaction.currentEntitlements {
+            if case .verified(let transaction) = result {
+                if transaction.revocationDate == nil {
+                    if let expirationDate = transaction.expirationDate {
+                        if expirationDate > Date() { return true }
+                        if await checkGracePeriodStatus() { return true }
+                    } else {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
+    private static func logVerificationCompleted(result: Bool, startTime: Date, timeout: Double) {
         let duration = Date().timeIntervalSince(startTime)
         startupLogger.log(
             "🔐 StoreKit verification completed",
@@ -196,8 +194,6 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
                 "timed_out": duration >= timeout
             ]
         )
-
-        return result
     }
 
     // MARK: - Static Grace Period Check
@@ -289,7 +285,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     }
 
     public func getValidPurchases() -> [String] {
-        return Array(cachedValidPurchases)
+        Array(cachedValidPurchases)
     }
 
     public func registerPurchase(_ productId: String) async throws {

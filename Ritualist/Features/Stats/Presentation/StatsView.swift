@@ -4,15 +4,15 @@ import RitualistCore
 import FactoryKit
 
 // swiftlint:disable type_body_length
-public struct DashboardView: View {
-    @Bindable var vm: DashboardViewModel
+public struct StatsView: View {
+    @Bindable var vm: StatsViewModel
     @Injected(\.debugLogger) private var logger
     @Injected(\.navigationService) private var navigationService
 
     @State private var showingProgressTrendInfo = false
     @State private var showingHabitPatternsInfo = false
 
-    public init(vm: DashboardViewModel) {
+    public init(vm: StatsViewModel) {
         self.vm = vm
     }
     
@@ -195,7 +195,7 @@ public struct DashboardView: View {
     }
     
     @ViewBuilder
-    private func progressChartSection(data: [DashboardViewModel.ChartDataPointViewModel]) -> some View {
+    private func progressChartSection(data: [StatsViewModel.ChartDataPointViewModel]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
@@ -261,7 +261,7 @@ public struct DashboardView: View {
         .cardStyle()
     }
 
-    private func chartAccessibilityDescription(data: [DashboardViewModel.ChartDataPointViewModel]) -> String {
+    private func chartAccessibilityDescription(data: [StatsViewModel.ChartDataPointViewModel]) -> String {
         guard !data.isEmpty else { return Strings.Accessibility.chartNoData }
         let avgCompletion = data.map { $0.completionRate }.reduce(0, +) / Double(data.count)
         let firstRate = data.first?.completionRate ?? 0
@@ -271,7 +271,7 @@ public struct DashboardView: View {
     }
     
     @ViewBuilder
-    private func weeklyPatternsSection(patterns: DashboardViewModel.WeeklyPatternsViewModel) -> some View {
+    private func weeklyPatternsSection(patterns: StatsViewModel.WeeklyPatternsViewModel) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
                 ZStack {
@@ -315,7 +315,7 @@ public struct DashboardView: View {
     }
 
     @ViewBuilder
-    private func streakAnalysisSection(analysis: DashboardViewModel.StreakAnalysisViewModel) -> some View {
+    private func streakAnalysisSection(analysis: StatsViewModel.StreakAnalysisViewModel) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "flame.fill")
@@ -391,7 +391,7 @@ public struct DashboardView: View {
     }
 
     @ViewBuilder
-    private func categoryBreakdownSection(categories: [DashboardViewModel.CategoryPerformanceViewModel]) -> some View {
+    private func categoryBreakdownSection(categories: [StatsViewModel.CategoryPerformanceViewModel]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "square.grid.3x3.fill")
@@ -418,7 +418,7 @@ public struct DashboardView: View {
                                     .accessibilityHidden(true) // Decorative emoji
                             } else {
                                 RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color(hex: category.color) ?? AppColors.brand)
+                                    .fill(Color(hex: category.color))
                                     .frame(width: 16, height: 16)
                                     .accessibilityHidden(true) // Decorative color indicator
                             }
@@ -485,7 +485,7 @@ public struct DashboardView: View {
     // MARK: - Habit Patterns Helpers
     
     @ViewBuilder
-    private func thresholdRequirementsContent(requirements: [DashboardViewModel.ThresholdRequirement]) -> some View {
+    private func thresholdRequirementsContent(requirements: [StatsViewModel.ThresholdRequirement]) -> some View {
         VStack(spacing: 16) {
             // Header message
             HStack(spacing: 12) {
@@ -563,7 +563,7 @@ public struct DashboardView: View {
     
     @ViewBuilder
     // swiftlint:disable:next function_body_length
-    private func scheduleOptimizationContent(patterns: DashboardViewModel.WeeklyPatternsViewModel) -> some View {
+    private func scheduleOptimizationContent(patterns: StatsViewModel.WeeklyPatternsViewModel) -> some View {
         VStack(spacing: 16) {
             // Schedule insights based on data
             VStack(alignment: .leading, spacing: 12) {
@@ -690,6 +690,6 @@ public struct DashboardView: View {
 
 #Preview {
     NavigationStack {
-        DashboardView(vm: DashboardViewModel(logger: DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "ui")))
+        StatsView(vm: StatsViewModel(logger: DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "ui")))
     }
 }

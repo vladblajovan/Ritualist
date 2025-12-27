@@ -8,11 +8,10 @@
 import Foundation
 import SwiftData
 
-public final class TipStaticDataSource: TipLocalDataSourceProtocol {
+public final class TipStaticDataSource: TipLocalDataSourceProtocol, Sendable {
     public init() {}
-    
-    private lazy var predefinedTips: [Tip] = {
-        [
+
+    private let predefinedTips: [Tip] = [
             // Featured carousel tips
             Tip(
                 id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
@@ -121,7 +120,6 @@ public final class TipStaticDataSource: TipLocalDataSourceProtocol {
                 icon: "timer"
             )
         ]
-    }()
     
     public func getAllTips() async throws -> [Tip] {
         predefinedTips

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol TipRepository {
+public protocol TipRepository: Sendable {
     func getAllTips() async throws -> [Tip]
     func getFeaturedTips() async throws -> [Tip]
     func getTip(by id: UUID) async throws -> Tip?

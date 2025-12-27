@@ -129,10 +129,10 @@ struct MonthlyCalendarCard: View {
 
                     for dayData in displayDays where dayData.isCurrentMonth {
                         // Center circle in column (matching day name alignment)
-                        let x = CGFloat(dayData.col) * columnWidth + columnWidth / 2
-                        let y = strokePadding + CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
+                        let centerX = CGFloat(dayData.col) * columnWidth + columnWidth / 2
+                        let centerY = strokePadding + CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
 
-                        let center = CGPoint(x: x, y: y)
+                        let center = CGPoint(x: centerX, y: centerY)
                         let radius: CGFloat = 18
 
                         // Draw background circle

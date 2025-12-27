@@ -30,15 +30,19 @@ public struct HabitDetailView: View {
             }
             .navigationTitle(vm.isEditMode ? Strings.Navigation.editHabit : Strings.Navigation.newHabit)
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingCategoryManagement, onDismiss: {
-                Task {
-                    await vm.loadCategories()
+            .sheet(
+                isPresented: $showingCategoryManagement,
+                onDismiss: {
+                    Task {
+                        await vm.loadCategories()
+                    }
+                },
+                content: {
+                    NavigationStack {
+                        CategoryManagementView(vm: categoryManagementVM)
+                    }
                 }
-            }) {
-                NavigationStack {
-                    CategoryManagementView(vm: categoryManagementVM)
-                }
-            }
+            )
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(Strings.Button.cancel) {

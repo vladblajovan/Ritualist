@@ -215,7 +215,7 @@ private struct RequirementRowView: View {
     }
 }
 
-#Preview {
+#Preview(traits: .sizeThatFitsLayout) {
     let sampleRequirements = [
         ThresholdRequirement(
             name: "Active Habits",
@@ -239,11 +239,10 @@ private struct RequirementRowView: View {
             category: .customization
         )
     ]
-    
+
     PersonalityAnalysisInsuficientDataView(
         requirements: sampleRequirements,
         estimatedDays: 5
     )
     .padding()
-    .previewLayout(.sizeThatFits)
 }

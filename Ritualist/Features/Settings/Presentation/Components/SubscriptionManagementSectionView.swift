@@ -233,7 +233,6 @@ struct SubscriptionManagementSectionView: View {
             }
 
             showingRestoreAlert = true
-
         } catch {
             restoreAlertMessage = "Failed to restore purchases. Please try again later."
             showingRestoreAlert = true

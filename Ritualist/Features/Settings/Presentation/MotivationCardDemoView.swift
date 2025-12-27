@@ -163,7 +163,7 @@ struct MotivationCardDemoView: View {
                         .padding(.top, 8)
 
                     // Demo cards
-                    ForEach(Array(demoScenarios.enumerated()), id: \.offset) { index, scenario in
+                    ForEach(Array(demoScenarios.enumerated()), id: \.offset) { _, scenario in
                         VStack(alignment: .leading, spacing: 12) {
                             // Scenario label
                             HStack {
@@ -263,64 +263,44 @@ struct MotivationCardDemoView: View {
 
     // MARK: - Helper Methods
 
+    private let triggerMessages: [InspirationTrigger: String] = [
+        .sessionStart: "Time to execute your daily plan with precision.",
+        .morningMotivation: "Good morning! Ready to make today incredible?",
+        .firstHabitComplete: "Yes! First win of the day. Momentum is building!",
+        .halfwayPoint: "Halfway there! Your consistency is paying off.",
+        .strugglingMidDay: "One step at a time. You've got this.",
+        .afternoonPush: "Final push time! You're almost there.",
+        .strongFinish: "Incredible progress! 75% complete and climbing!",
+        .perfectDay: "Perfect day achieved! You've shown incredible dedication!",
+        .eveningReflection: "Great day! You completed 70% of your habits.",
+        .weekendMotivation: "Weekend habits count too. Keep the momentum going!",
+        .comebackStory: "Today's better than yesterday. That's real progress!",
+        .emptyDay: "No habits scheduled today. A perfect time to plan ahead."
+    ]
+
+    private let triggerSlogans: [InspirationTrigger: String] = [
+        .sessionStart: "Your morning sets the entire tone.",
+        .morningMotivation: "Rise with purpose, rule your day.",
+        .firstHabitComplete: "First step creates unstoppable momentum.",
+        .halfwayPoint: "Midday momentum, unstoppable force.",
+        .strugglingMidDay: "Progress happens one habit at a time.",
+        .afternoonPush: "Finish strong, tomorrow starts now.",
+        .strongFinish: "Excellence becomes your standard.",
+        .perfectDay: "Consistency creates extraordinary results.",
+        .eveningReflection: "End strong, dream bigger.",
+        .weekendMotivation: "Weekend winners become champions.",
+        .comebackStory: "Every improvement counts forward.",
+        .emptyDay: "Rest and reflection build momentum."
+    ]
+
     /// Generate representative message for each trigger type
     private func generateMessage(for trigger: InspirationTrigger) -> String {
-        switch trigger {
-        case .sessionStart:
-            return "Time to execute your daily plan with precision."
-        case .morningMotivation:
-            return "Good morning! Ready to make today incredible?"
-        case .firstHabitComplete:
-            return "Yes! First win of the day. Momentum is building!"
-        case .halfwayPoint:
-            return "Halfway there! Your consistency is paying off."
-        case .strugglingMidDay:
-            return "One step at a time. You've got this."
-        case .afternoonPush:
-            return "Final push time! You're almost there."
-        case .strongFinish:
-            return "Incredible progress! 75% complete and climbing!"
-        case .perfectDay:
-            return "Perfect day achieved! You've shown incredible dedication!"
-        case .eveningReflection:
-            return "Great day! You completed 70% of your habits."
-        case .weekendMotivation:
-            return "Weekend habits count too. Keep the momentum going!"
-        case .comebackStory:
-            return "Today's better than yesterday. That's real progress!"
-        case .emptyDay:
-            return "No habits scheduled today. A perfect time to plan ahead."
-        }
+        triggerMessages[trigger] ?? "Keep going!"
     }
 
     /// Generate slogan for each trigger type
     private func generateSlogan(for trigger: InspirationTrigger) -> String {
-        switch trigger {
-        case .sessionStart:
-            return "Your morning sets the entire tone."
-        case .morningMotivation:
-            return "Rise with purpose, rule your day."
-        case .firstHabitComplete:
-            return "First step creates unstoppable momentum."
-        case .halfwayPoint:
-            return "Midday momentum, unstoppable force."
-        case .strugglingMidDay:
-            return "Progress happens one habit at a time."
-        case .afternoonPush:
-            return "Finish strong, tomorrow starts now."
-        case .strongFinish:
-            return "Excellence becomes your standard."
-        case .perfectDay:
-            return "Consistency creates extraordinary results."
-        case .eveningReflection:
-            return "End strong, dream bigger."
-        case .weekendMotivation:
-            return "Weekend winners become champions."
-        case .comebackStory:
-            return "Every improvement counts forward."
-        case .emptyDay:
-            return "Rest and reflection build momentum."
-        }
+        triggerSlogans[trigger] ?? "Progress is progress."
     }
 }
 

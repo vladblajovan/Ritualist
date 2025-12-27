@@ -10,8 +10,9 @@ import FactoryKit
 
 /// Debug service implementation for database operations
 /// Protocol (DebugServiceProtocol) is re-exported in Services.swift
+/// Note: @unchecked Sendable is safe because all access goes through MainActor
 @MainActor
-public final class DebugService: DebugServiceProtocol {
+public final class DebugService: DebugServiceProtocol, @unchecked Sendable {
     private let persistenceContainer: PersistenceContainer
 
     public init(persistenceContainer: PersistenceContainer) {
@@ -68,7 +69,7 @@ public final class DebugService: DebugServiceProtocol {
         try await Task.sleep(for: .milliseconds(100))
     }
 
-    public func getDatabaseStats() throws -> DebugDatabaseStats {
+    public func getDatabaseStats() async throws -> DebugDatabaseStats {
         // CRITICAL: Use Active* type aliases to work with current schema version
         let context = persistenceContainer.context
         let habitsCount = try context.fetchCount(FetchDescriptor<ActiveHabitModel>())

@@ -17,12 +17,12 @@ private extension DateFormatter {
 }
 import FactoryKit
 
-extension DashboardViewModel {
+extension StatsViewModel {
     
     /// Load unified dashboard data in a single batch operation
     /// Replaces 5 separate UseCase calls with 1 unified data load + extraction
     /// Expected to reduce queries from 471+ to 3 for annual views
-    func loadUnifiedDashboardData() async throws -> DashboardData {
+    func loadUnifiedDashboardData() async throws -> StatsData {
         let range = selectedTimePeriod.dateRange
         
         // PHASE 2: Single batch data loading (3 queries total)
@@ -45,7 +45,7 @@ extension DashboardViewModel {
         
         // Create unified data structure with pre-calculated daily completions using UseCases
         // Pass the display timezone to ensure all date calculations use the user's preferred timezone
-        return DashboardData(
+        return StatsData(
             habits: habits,
             categories: categories,
             habitLogs: habitLogs,
@@ -61,14 +61,14 @@ extension DashboardViewModel {
 
     /// Extract habit performance data from unified dashboard data
     /// O(n) operation using pre-calculated data - no additional queries
-    func extractHabitPerformanceData(from dashboardData: DashboardData) -> [HabitPerformanceViewModel] {
+    func extractHabitPerformanceData(from dashboardData: StatsData) -> [HabitPerformanceViewModel] {
         let domainResults = dashboardData.habitPerformanceData(using: scheduleAnalyzer)
         return domainResults.map(HabitPerformanceViewModel.init)
     }
     
     /// Extract progress chart data from unified dashboard data
     /// O(n) operation using pre-calculated data - no additional queries
-    func extractProgressChartData(from dashboardData: DashboardData) -> [ChartDataPointViewModel] {
+    func extractProgressChartData(from dashboardData: StatsData) -> [ChartDataPointViewModel] {
         let domainResults = dashboardData.chartDataPoints()
         let viewModels = domainResults.map(ChartDataPointViewModel.init)
 
@@ -89,7 +89,7 @@ extension DashboardViewModel {
     
     /// Extract weekly patterns from unified dashboard data
     /// Uses pre-loaded logs without additional queries
-    func extractWeeklyPatterns(from dashboardData: DashboardData) -> WeeklyPatternsViewModel? {
+    func extractWeeklyPatterns(from dashboardData: StatsData) -> WeeklyPatternsViewModel? {
         // Calculate weekly patterns from dashboard data
         let habits = dashboardData.habits
         let dateRange = dashboardData.dateRange
@@ -173,8 +173,6 @@ extension DashboardViewModel {
             averageWeeklyCompletion: averageRate
         )
         
-        let performanceSpread = bestDayRate - worstDayRate
-        
         return WeeklyPatternsViewModel(from: weeklyPatternsResult, daysWithData: daysWithData, averageRate: averageRate, habitCount: habits.count, timePeriod: self.selectedTimePeriod, logger: self.logger)
     }
     
@@ -185,7 +183,7 @@ extension DashboardViewModel {
     }
     
     private func analyzeDayByDayData(
-        dashboardData: DashboardData,
+        dashboardData: StatsData,
         dateRange: ClosedRange<Date>,
         calendar: Calendar,
         initialStats: [Int: (completed: Int, total: Int)]
@@ -248,7 +246,7 @@ extension DashboardViewModel {
     
     /// Extract streak analysis from unified dashboard data
     /// Uses existing CalculateStreakAnalysisUseCase for system-wide streak calculation
-    func extractStreakAnalysis(from dashboardData: DashboardData) -> StreakAnalysisViewModel? {
+    func extractStreakAnalysis(from dashboardData: StatsData) -> StreakAnalysisViewModel? {
         let habits = dashboardData.habits
         let dateRange = dashboardData.dateRange
         guard !habits.isEmpty else { return nil }
@@ -271,7 +269,7 @@ extension DashboardViewModel {
     
     /// Extract category breakdown from unified dashboard data
     /// Uses DashboardData's pre-calculated category performance data
-    func extractCategoryBreakdown(from dashboardData: DashboardData) -> [CategoryPerformanceViewModel] {
+    func extractCategoryBreakdown(from dashboardData: StatsData) -> [CategoryPerformanceViewModel] {
         let domainResults = dashboardData.categoryPerformanceData()
         return domainResults.map(CategoryPerformanceViewModel.init)
     }

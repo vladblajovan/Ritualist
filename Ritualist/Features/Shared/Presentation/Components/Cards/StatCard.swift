@@ -245,7 +245,7 @@ public struct StatCard: View {
             Image(systemName: trend.iconName)
                 .font(.caption)
             
-            if let percentage = trend.percentage {
+            if trend.percentage != nil {
                 Text(trend.formattedPercentage)
                     .font(.caption)
                     .fontWeight(.medium)

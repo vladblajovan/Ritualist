@@ -147,12 +147,12 @@ extension Container {
         .singleton
     }
     
-    // MARK: - Dashboard ViewModels
+    // MARK: - Stats ViewModels
     
     @MainActor
-    var dashboardViewModel: Factory<DashboardViewModel> {
+    var statsViewModel: Factory<StatsViewModel> {
         self { @MainActor in
-            DashboardViewModel(logger: self.debugLogger())
+            StatsViewModel(logger: self.debugLogger())
         }
         .singleton
     }
