@@ -9,46 +9,36 @@ import RitualistCore
 @MainActor
 @Observable
 public final class OverviewViewModel { // swiftlint:disable:this type_body_length
+    // MARK: - Child ViewModels (SRP Extraction)
+
+    /// Handles inspiration card display and trigger evaluation
+    public let inspirationVM = InspirationCardViewModel()
+
+    /// Handles personality insights and premium feature management
+    public let personalityVM = PersonalityInsightsCardViewModel()
+
     // MARK: - Observable Properties
     public var todaysSummary: TodaysSummary?
     public var activeStreaks: [StreakInfo] = []
-    public var personalityInsights: [OverviewPersonalityInsight] = []
-    public var shouldShowPersonalityInsights = true // Always show the card
-    public var isPersonalityDataSufficient = false // Track if data is sufficient for new analysis
-    public var personalityThresholdRequirements: [ThresholdRequirement] = [] // Current requirements status
-    public var dominantPersonalityTrait: String? = nil
     public var selectedDate = Date()
     public var viewingDate = CalendarUtils.startOfDayLocal(for: Date()) // The date being viewed in Today's Progress card
-    public var showInspirationCard: Bool = false
 
-    /// Multiple inspiration items for carousel display, sorted by priority
-    public var inspirationItems: [InspirationItem] = []
-
-    // Inspiration card tracking
-    @ObservationIgnored private var lastShownInspirationTrigger: InspirationTrigger?
-    @ObservationIgnored private var sessionStartTime = Date()
-    @ObservationIgnored private var dismissedTriggersToday: Set<InspirationTrigger> = []
-    @ObservationIgnored private var cachedInspirationMessage: String?
-
-    /// Tracks the last set of triggers shown in the carousel to prevent unnecessary rebuilds
-    @ObservationIgnored private var lastEvaluatedTriggerSet: Set<InspirationTrigger> = []
-    
     public var isLoading: Bool = false
     public var error: Error?
-    
+
     // Shared sheet state
     public var selectedHabitForSheet: Habit?
     public var showingNumericSheet = false
-    
+
     // Notification-triggered sheet state
     public var pendingNumericHabitFromNotification: Habit?
-    
+
     // Track if pending habit has been processed to prevent double-processing
     @ObservationIgnored private var hasPendingHabitBeenProcessed: Bool = false
-    
+
     // Track view visibility to handle immediate processing when habit is set
     public var isViewVisible: Bool = false
-    
+
     // Single source of truth for all overview data
     public var overviewData: OverviewData?
 
@@ -87,11 +77,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public var incompleteHabits: [Habit] {
         todaysSummary?.incompleteHabits ?? []
     }
-    
+
     public var completedHabits: [Habit] {
         todaysSummary?.completedHabits ?? []
     }
-    
+
     public var shouldShowQuickActions: Bool {
         // Only show QuickActions when there are incomplete habits (completed habits now shown in Today's card)
         !incompleteHabits.isEmpty
@@ -119,24 +109,53 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public var isViewingToday: Bool {
         CalendarUtils.areSameDayLocal(viewingDate, Date(), timezone: displayTimezone)
     }
-    
+
     public var currentSlogan: String {
         getCurrentSlogan.execute()
     }
-    
+
     public var currentTimeOfDay: TimeOfDay {
         TimeOfDay.current()
     }
-    
-    public var shouldShowInspirationCard: Bool {
-        guard isViewingToday else { return false }
-        return showInspirationCard
-    }
-    
-    // InspirationTrigger moved to RitualistCore/Enums/MotivationEnums.swift
-    private typealias InspirationTrigger = RitualistCore.InspirationTrigger
-    
+
     public var monthlyCompletionData: [Date: Double] = [:]
+
+    // MARK: - Child ViewModel Accessors (Convenience)
+
+    /// Whether to show the inspiration card (delegates to child VM)
+    public var shouldShowInspirationCard: Bool {
+        inspirationVM.shouldShowInspirationCard
+    }
+
+    /// Inspiration items for carousel (delegates to child VM)
+    public var inspirationItems: [InspirationItem] {
+        inspirationVM.inspirationItems
+    }
+
+    /// Whether to show personality insights card (delegates to child VM)
+    public var shouldShowPersonalityInsights: Bool {
+        personalityVM.shouldShowPersonalityInsights
+    }
+
+    /// Personality insights (delegates to child VM)
+    public var personalityInsights: [OverviewPersonalityInsight] {
+        personalityVM.personalityInsights
+    }
+
+    /// Dominant personality trait (delegates to child VM)
+    public var dominantPersonalityTrait: String? {
+        personalityVM.dominantPersonalityTrait
+    }
+
+    /// Is personality data sufficient (delegates to child VM)
+    public var isPersonalityDataSufficient: Bool {
+        personalityVM.isPersonalityDataSufficient
+    }
+
+    /// Personality threshold requirements (delegates to child VM)
+    public var personalityThresholdRequirements: [ThresholdRequirement] {
+        personalityVM.personalityThresholdRequirements
+    }
 
     // MARK: - Migration State (exposed via UseCase)
 
@@ -160,23 +179,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     @ObservationIgnored @Injected(\.getCurrentUserProfile) private var getCurrentUserProfile
     @ObservationIgnored @Injected(\.calculateCurrentStreak) private var calculateCurrentStreakUseCase
     @ObservationIgnored @Injected(\.getStreakStatus) private var getStreakStatusUseCase
-    @ObservationIgnored @Injected(\.getPersonalityProfileUseCase) private var getPersonalityProfileUseCase
-    @ObservationIgnored @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
-    @ObservationIgnored @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
-    @ObservationIgnored @Injected(\.validateAnalysisDataUseCase) private var validateAnalysisDataUseCase
-    @ObservationIgnored @Injected(\.isPersonalityAnalysisEnabledUseCase) private var isPersonalityAnalysisEnabledUseCase
-    @ObservationIgnored @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     @ObservationIgnored @Injected(\.isHabitCompleted) private var isHabitCompleted
     @ObservationIgnored @Injected(\.calculateDailyProgress) private var calculateDailyProgress
     @ObservationIgnored @Injected(\.isScheduledDay) private var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     @ObservationIgnored @Injected(\.refreshWidget) private var refreshWidget
-    @ObservationIgnored @Injected(\.personalizedMessageGenerator) private var personalizedMessageGenerator
     @ObservationIgnored @Injected(\.getMigrationStatus) private var getMigrationStatus
     @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
-    @ObservationIgnored @Injected(\.checkPremiumStatus) private var checkPremiumStatus
     @ObservationIgnored @Injected(\.debugLogger) private var logger
-    @ObservationIgnored @Injected(\.userDefaultsService) private var userDefaults
 
     /// Cached display timezone for use in synchronous calculations.
     /// Updated on loadData() and when timezone settings change.
@@ -189,12 +199,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     private func getUserId() async -> UUID {
         await getCurrentUserProfile.execute().id
     }
-    
+
     public init() {
-        // Initialize dismissed triggers for the current day
-        resetDismissedTriggersIfNewDay()
+        // Child VMs handle their own initialization
     }
-    
+
     // MARK: - Public Methods
 
     // swiftlint:disable:next function_body_length
@@ -223,8 +232,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         }
 
         // DAY CHANGE CHECK: Reset dismissed triggers if midnight passed while app was open
-        // This handles the case where user leaves app open overnight
-        resetDismissedTriggersIfNewDay()
+        inspirationVM.resetDismissedTriggersIfNewDay()
 
         // MIGRATION CHECK: Detect completion and invalidate cache if needed
         if checkMigrationAndInvalidateCache() {
@@ -294,7 +302,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             )
 
             // Cache user name for synchronous message generation
-            cachedUserName = await getUserName()
+            let userName = await getUserName()
 
             // Load unified data once instead of multiple parallel operations
             let overviewData = try await loadOverviewData()
@@ -315,15 +323,17 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             self.todaysSummary = extractTodaysSummary(from: overviewData)
             self.activeStreaks = extractActiveStreaks(from: overviewData)
             self.monthlyCompletionData = extractMonthlyData(from: overviewData)
-            
+
+            // Configure child VMs with context
+            configureChildViewModels(userName: userName)
+
             // Load personality insights separately (non-blocking)
-            // Note: loadPersonalityInsights() handles errors internally with logging
             Task { @MainActor in
-                await loadPersonalityInsights()
+                await personalityVM.loadPersonalityInsights()
             }
-            
+
             // Check if we should show inspiration card contextually
-            self.checkAndShowInspirationCard()
+            inspirationVM.checkAndShowInspirationCard()
         } catch {
             self.error = error
             logger.log(
@@ -387,14 +397,26 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         }
     }
 
+    // MARK: - Child ViewModel Delegation Methods
+
     public func openPersonalityAnalysis() {
-        personalityDeepLinkCoordinator.showPersonalityAnalysisDirectly()
+        personalityVM.openPersonalityAnalysis()
     }
-    
+
     public func refreshPersonalityInsights() async {
-        await loadPersonalityInsights()
+        await personalityVM.refreshPersonalityInsights()
     }
-    
+
+    public func dismissInspirationItem(_ item: InspirationItem) {
+        inspirationVM.dismissInspirationItem(item)
+    }
+
+    public func dismissAllInspirationItems() {
+        inspirationVM.dismissAllInspirationItems()
+    }
+
+    // MARK: - Habit Interaction Methods
+
     public func completeHabit(_ habit: Habit) async {
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -458,7 +480,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             )
         }
     }
-    
+
     public func getCurrentProgress(for habit: Habit) async -> Double {
         do {
             // Use display timezone for date filtering
@@ -488,7 +510,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             return 0.0
         }
     }
-    
+
     public func updateNumericHabit(_ habit: Habit, value: Double) async throws {
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -566,18 +588,18 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         guard let data = overviewData else {
             return 0.0
         }
-        
+
         let logs = data.logs(for: habit.id, on: viewingDate)
-        
+
         if habit.kind == .binary {
             return logs.isEmpty ? 0.0 : 1.0
         } else {
             return logs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
         }
     }
-    
+
     // MARK: - Schedule Status and Validation Methods
-    
+
     public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
         // Use display timezone for consistent schedule status across timezone changes
         HabitScheduleStatus.forHabit(habit, date: viewingDate, isScheduledDay: isScheduledDay, timezone: displayTimezone)
@@ -594,33 +616,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         // Use data's timezone (display timezone) for consistent streak calculation
         return getStreakStatusUseCase.execute(habit: habit, logs: logs, asOf: viewingDate, timezone: data.timezone)
     }
-    
-//    public func getWeeklyProgress(for habit: Habit) -> (completed: Int, target: Int) {
-//        guard case .timesPerWeek = habit.schedule else {
-//            return (completed: 0, target: 0)
-//        }
-//        
-//        do {
-//            // Get logs for the current week
-//            let weekStart = CalendarUtils.startOfWeekUTC(for: viewingDate)
-//            let weekEnd = CalendarUtils.endOfWeekUTC(for: viewingDate)
-//            let logs = try loadLogsSynchronously(for: habit.id, from: weekStart, to: weekEnd)
-//            
-//            // Calculate weekly progress using business logic
-//            guard case .timesPerWeek(let weeklyTarget) = habit.schedule else { return (0, 0) }
-//            let filteredLogs = logs.filter { log in
-//                log.habitID == habit.id && log.value != nil && log.value! > 0
-//            }
-//            let uniqueDays = Set(filteredLogs.map { log in
-//                CalendarUtils.startOfDayUTC(for: log.date)
-//            })
-//            
-//            return (uniqueDays.count, weeklyTarget)
-//        } catch {
-//            return (completed: 0, target: 0)
-//        }
-//    }
-    
+
     private func loadLogsSynchronously(for habitId: UUID, from startDate: Date, to endDate: Date) throws -> [HabitLog] {
         // This is a simplified synchronous version - in production you'd want to cache this data
         // For now, we'll use cached data from overviewData if available
@@ -630,7 +626,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             log.date >= startDate && log.date <= endDate
         }
     }
-    
+
     public func getScheduleValidationMessage(for habit: Habit) async -> String? {
         do {
             _ = try await validateHabitScheduleUseCase.execute(habit: habit, date: viewingDate)
@@ -641,44 +637,44 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             return "Unable to validate habit schedule"
         }
     }
-    
+
     public func showNumericSheet(for habit: Habit) {
         selectedHabitForSheet = habit
         showingNumericSheet = true
     }
-    
+
     public func setPendingNumericHabit(_ habit: Habit) {
         pendingNumericHabitFromNotification = habit
         hasPendingHabitBeenProcessed = false // Reset processing flag when new habit is set
-        
+
         // RACE CONDITION FIX: If view is visible and ready, process immediately instead of waiting for onAppear
         if isViewVisible {
             processPendingNumericHabit()
         }
     }
-    
+
     public var isPendingHabitProcessed: Bool {
         hasPendingHabitBeenProcessed
     }
-    
+
     public func setViewVisible(_ visible: Bool) {
         isViewVisible = visible
     }
-    
+
     public func processPendingNumericHabit() {
         // Prevent double-processing if already handled
         guard !hasPendingHabitBeenProcessed,
               let habit = pendingNumericHabitFromNotification else {
             return
         }
-        
+
         showNumericSheet(for: habit)
-        
+
         // Clean up state after processing
         pendingNumericHabitFromNotification = nil
         hasPendingHabitBeenProcessed = true
     }
-    
+
     public func deleteHabitLog(_ habit: Habit) async {
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
@@ -711,7 +707,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             )
         }
     }
-    
+
     public func goToPreviousDay() {
         guard canGoToPreviousDay else { return }
 
@@ -791,555 +787,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             refreshUIState(with: data)
         }
     }
-    
-    public func showInspiration() {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-            showInspirationCard = true
-        }
-    }
-    
-    public func triggerMotivation() {
-        // Manual motivation trigger - can be called from UI buttons or gestures
-        let trigger: InspirationTrigger = {
-            guard let summary = todaysSummary else { return .morningMotivation }
-            
-            let completionRate = summary.completionPercentage
-            let timeOfDay = currentTimeOfDay
-            
-            if completionRate >= 1.0 {
-                return .perfectDay
-            } else if completionRate >= 0.75 {
-                return .strongFinish
-            } else if completionRate >= 0.5 {
-                return .halfwayPoint
-            } else {
-                switch timeOfDay {
-                case .morning: return .morningMotivation
-                case .noon: return .strugglingMidDay
-                case .evening: return .eveningReflection
-                }
-            }
-        }()
-        
-        showInspirationWithTrigger(trigger)
-    }
-    
-    private func checkForComebackStory(currentCompletion: Double) async -> Bool {
-        // Check if today's progress is significantly better than yesterday
-        let yesterday = CalendarUtils.addDaysLocal(-1, to: Date(), timezone: displayTimezone)
 
-        do {
-            let yesterdayHabits = try await getActiveHabits.execute()
-            var yesterdayCompletedCount = 0
-
-            for habit in yesterdayHabits {
-                // Use display timezone for date filtering
-                let logs = try await getLogs.execute(for: habit.id, since: yesterday, until: yesterday, timezone: displayTimezone)
-                // Use cross-timezone comparison: log's calendar day (in its stored timezone) vs yesterday (in display timezone)
-                if logs.contains(where: { log in
-                    let logTimezone = log.resolvedTimezone(fallback: displayTimezone)
-                    return CalendarUtils.areSameDayAcrossTimezones(
-                        log.date,
-                        timezone1: logTimezone,
-                        yesterday,
-                        timezone2: displayTimezone
-                    )
-                }) {
-                    yesterdayCompletedCount += 1
-                }
-            }
-            
-            let yesterdayCompletion = yesterdayHabits.isEmpty ? 0.0 : Double(yesterdayCompletedCount) / Double(yesterdayHabits.count)
-            
-            // If today is 25%+ better than yesterday, it's a comeback story
-            return currentCompletion > yesterdayCompletion + 0.25 && yesterdayCompletion < 0.6
-        } catch {
-            // Log error but gracefully degrade - comeback detection is non-critical
-            logger.log(
-                "Comeback story detection failed - falling back to false",
-                level: .warning,
-                category: .dataIntegrity,
-                metadata: ["error": error.localizedDescription]
-            )
-            return false
-        }
-    }
-    
-    public func hideInspiration() {
-        // Mark current trigger as dismissed for today
-        if let currentTrigger = lastShownInspirationTrigger {
-            dismissedTriggersToday.insert(currentTrigger)
-            saveDismissedTriggers()
-        }
-        showInspirationCard = false
-        inspirationItems = []
-    }
-
-    /// Dismiss a single inspiration item from the carousel
-    public func dismissInspirationItem(_ item: InspirationItem) {
-        // Mark the trigger as dismissed
-        dismissedTriggersToday.insert(item.trigger)
-        saveDismissedTriggers()
-
-        // Remove from items
-        inspirationItems.removeAll { $0.id == item.id }
-
-        // Update trigger cache to reflect dismissal
-        lastEvaluatedTriggerSet.remove(item.trigger)
-
-        // Update cached message if needed
-        if inspirationItems.isEmpty {
-            showInspirationCard = false
-            cachedInspirationMessage = nil
-            lastEvaluatedTriggerSet = []
-        } else {
-            cachedInspirationMessage = inspirationItems.first?.message
-        }
-
-        logger.log(
-            "Dismissed inspiration item",
-            level: .debug,
-            category: .ui,
-            metadata: [
-                "trigger": item.trigger.displayName,
-                "remaining_count": inspirationItems.count
-            ]
-        )
-    }
-
-    /// Dismiss all inspiration items in the carousel
-    public func dismissAllInspirationItems() {
-        // Mark all triggers as dismissed
-        for item in inspirationItems {
-            dismissedTriggersToday.insert(item.trigger)
-        }
-        saveDismissedTriggers()
-
-        // Clear trigger cache since all items are dismissed
-        lastEvaluatedTriggerSet = []
-
-        // Hide the carousel first (triggers slide-up animation on container)
-        showInspirationCard = false
-        cachedInspirationMessage = nil
-
-        // Clear items synchronously since carousel is already hidden
-        // Previous implementation used a delayed Task which could leak if called rapidly
-        inspirationItems = []
-
-        logger.log(
-            "Dismissed all inspiration items",
-            level: .debug,
-            category: .ui,
-            metadata: ["dismissed_count": dismissedTriggersToday.count]
-        )
-    }
-    
-    private func checkAndShowInspirationCard() {
-        guard isViewingToday, let summary = todaysSummary else {
-            logger.log(
-                "Skipping inspiration check",
-                level: .debug,
-                category: .ui,
-                metadata: [
-                    "is_viewing_today": isViewingToday,
-                    "has_summary": todaysSummary != nil
-                ]
-            )
-            return
-        }
-
-        // Skip inspiration entirely if user has no habits at all (new user)
-        let totalHabitsCount = overviewData?.habits.count ?? 0
-        guard totalHabitsCount > 0 else {
-            logger.log(
-                "Skipping inspiration - user has no habits",
-                level: .debug,
-                category: .ui
-            )
-            return
-        }
-
-        logger.log(
-            "Evaluating inspiration triggers",
-            level: .debug,
-            category: .ui,
-            metadata: ["completion": summary.completionPercentage]
-        )
-
-        Task {
-            let triggers = await evaluateInspirationTriggers(summary: summary, totalHabitsCount: totalHabitsCount)
-            logger.log(
-                "Evaluated inspiration triggers",
-                level: .debug,
-                category: .ui,
-                metadata: [
-                    "trigger_count": triggers.count,
-                    "triggers": triggers.map { $0.displayName }.joined(separator: ", ")
-                ]
-            )
-
-            // Get all available triggers (filtered and sorted by priority)
-            let availableTriggers = selectAvailableTriggers(from: triggers)
-
-            if !availableTriggers.isEmpty {
-                // Check if triggers have actually changed to prevent unnecessary carousel rebuilds
-                let newTriggerSet = Set(availableTriggers)
-                if newTriggerSet == lastEvaluatedTriggerSet && showInspirationCard && !inspirationItems.isEmpty {
-                    logger.log(
-                        "Skipping carousel rebuild - triggers unchanged",
-                        level: .debug,
-                        category: .ui,
-                        metadata: ["trigger_count": availableTriggers.count]
-                    )
-                    return
-                }
-
-                logger.log(
-                    "Showing inspiration carousel",
-                    level: .debug,
-                    category: .ui,
-                    metadata: [
-                        "trigger_count": availableTriggers.count,
-                        "triggers": availableTriggers.map { $0.displayName }.joined(separator: ", "),
-                        "triggers_changed": newTriggerSet != lastEvaluatedTriggerSet
-                    ]
-                )
-
-                lastEvaluatedTriggerSet = newTriggerSet
-                await showInspirationWithTriggers(availableTriggers)
-            } else {
-                logger.log(
-                    "No inspiration trigger selected",
-                    level: .debug,
-                    category: .ui,
-                    metadata: ["reason": "All triggers filtered or empty"]
-                )
-                // Clear the cached trigger set when no triggers available
-                lastEvaluatedTriggerSet = []
-            }
-        }
-    }
-    
-    // MARK: - Trigger Evaluation System
-    //
-    // The inspiration trigger system uses category-based selection to show relevant,
-    // non-redundant messages. Each category allows at most ONE trigger to avoid
-    // showing multiple cards that say essentially the same thing.
-    //
-    // ## Categories (max 1 trigger per category):
-    //
-    // 1. **Progress** - Based on completion percentage (mutually exclusive):
-    //    - `perfectDay` (100%) - Highest priority, celebration
-    //    - `strongFinish` (75%+) - Almost there
-    //    - `halfwayPoint` (50%+) - Good progress
-    //    - `firstHabitComplete` (>0%, 1 habit) - Just getting started
-    //
-    // 2. **Time-of-Day** - Based on current time period (mutually exclusive):
-    //    - `morningMotivation` (morning, 0% done) - Start the day
-    //    - `strugglingMidDay` (noon, <40%) - Behind at midday
-    //    - `afternoonPush` (3-4:59 PM, <60%) - Afternoon encouragement
-    //    - `eveningReflection` (evening, 60%+) - End of day reflection
-    //
-    // 3. **Special Context** - Situational triggers (mutually exclusive):
-    //    - `weekendMotivation` (weekend) - Weekend dedication
-    //    - `comebackStory` (improved from yesterday) - Recovery celebration
-    //
-    // 4. **Edge Cases** (shown alone):
-    //    - `emptyDay` - No habits scheduled today
-    //
-    // ## Valid Combinations (1-3 cards):
-    // - Progress + Time + Special (e.g., `halfwayPoint` + `afternoonPush` + `comebackStory`)
-    // - Progress + Special (e.g., `strongFinish` + `weekendMotivation`)
-    // - Progress alone (e.g., `perfectDay` - celebration is enough)
-    // - Time alone (e.g., `morningMotivation` when no progress yet)
-    //
-    // ## Invalid Combinations (avoided by design):
-    // - Multiple progress triggers (e.g., `halfwayPoint` + `strongFinish`)
-    // - Multiple time triggers (e.g., `morningMotivation` + `afternoonPush`)
-    // - Multiple special triggers (e.g., `weekendMotivation` + `comebackStory`)
-    //
-    // ## Edge Case Triggers (shown alone):
-    // - `sessionStart` - User has no habits created yet (welcome/onboarding)
-    // - `emptyDay` - User has habits but none scheduled today
-
-    private func evaluateInspirationTriggers(summary: TodaysSummary, totalHabitsCount: Int) async -> [InspirationTrigger] {
-        var triggers: [InspirationTrigger] = []
-        let completionRate = summary.completionPercentage
-        let now = Date()
-        let hour = CalendarUtils.hourComponentLocal(from: now)
-        let isWeekend = [1, 7].contains(CalendarUtils.weekdayComponentLocal(from: now))
-
-        // EDGE CASE: No habits created yet (brand new user)
-        // Shows sessionStart as welcome/onboarding message
-        if totalHabitsCount == 0 {
-            return [.sessionStart]
-        }
-
-        // EDGE CASE: Empty Day (no habits scheduled today but has habits on other days)
-        // Shows alone - other triggers don't make sense without scheduled habits
-        if summary.totalHabits == 0 {
-            return [.emptyDay]
-        }
-
-        // CATEGORY 1: Progress-based (pick highest applicable, mutually exclusive)
-        let progressTrigger = evaluateProgressTrigger(
-            completionRate: completionRate,
-            completedCount: summary.completedHabitsCount
-        )
-        if let trigger = progressTrigger {
-            triggers.append(trigger)
-        }
-
-        // CATEGORY 2: Time-of-day (pick one based on current time, mutually exclusive)
-        let timeTrigger = evaluateTimeTrigger(
-            completionRate: completionRate,
-            hour: hour
-        )
-        if let trigger = timeTrigger {
-            triggers.append(trigger)
-        }
-
-        // CATEGORY 3: Special context (pick one if applicable, mutually exclusive)
-        let specialTrigger = await evaluateSpecialTrigger(
-            completionRate: completionRate,
-            isWeekend: isWeekend
-        )
-        if let trigger = specialTrigger {
-            triggers.append(trigger)
-        }
-
-        return triggers
-    }
-
-    /// Evaluates progress-based triggers (Category 1)
-    /// Returns at most ONE trigger based on completion percentage
-    /// Priority: perfectDay > strongFinish > halfwayPoint > firstHabitComplete
-    private func evaluateProgressTrigger(completionRate: Double, completedCount: Int) -> InspirationTrigger? {
-        if completionRate >= 1.0 {
-            return .perfectDay
-        } else if completionRate >= 0.75 {
-            return .strongFinish
-        } else if completionRate >= 0.5 {
-            return .halfwayPoint
-        } else if completionRate > 0.0 && completedCount == 1 {
-            return .firstHabitComplete
-        }
-        return nil
-    }
-
-    /// Evaluates time-of-day triggers (Category 2)
-    /// Returns at most ONE trigger based on current time and progress
-    /// Triggers are mutually exclusive by time period
-    private func evaluateTimeTrigger(completionRate: Double, hour: Int) -> InspirationTrigger? {
-        let timeOfDay = currentTimeOfDay
-
-        switch timeOfDay {
-        case .morning:
-            // Morning motivation only when no progress yet
-            if completionRate == 0.0 {
-                return .morningMotivation
-            }
-        case .noon:
-            // Struggling mid-day when significantly behind
-            if completionRate < 0.4 {
-                return .strugglingMidDay
-            }
-            // Afternoon push (3-4:59 PM) when moderately behind
-            // Note: This can fire during "noon" period if hour is 15-16
-            if hour >= 15 && hour < 17 && completionRate < 0.6 {
-                return .afternoonPush
-            }
-        case .evening:
-            // Evening reflection when good progress made
-            if completionRate >= 0.6 {
-                return .eveningReflection
-            }
-        }
-
-        return nil
-    }
-
-    /// Evaluates special context triggers (Category 3)
-    /// Returns at most ONE trigger based on situational context
-    /// Priority: comebackStory > weekendMotivation (comeback is more specific)
-    private func evaluateSpecialTrigger(completionRate: Double, isWeekend: Bool) async -> InspirationTrigger? {
-        // Comeback story takes priority (more specific achievement)
-        if await checkForComebackStory(currentCompletion: completionRate) {
-            return .comebackStory
-        }
-
-        // Weekend motivation as fallback special context
-        if isWeekend {
-            return .weekendMotivation
-        }
-
-        return nil
-    }
-    
-    /// Returns all available triggers sorted by priority (highest first), limited to BusinessConstants.maxInspirationCarouselItems
-    private func selectAvailableTriggers(from triggers: [InspirationTrigger]) -> [InspirationTrigger] {
-        logger.log(
-            "Filtering dismissed triggers",
-            level: .debug,
-            category: .ui,
-            metadata: [
-                "dismissed_today": dismissedTriggersToday.map { $0.displayName }.joined(separator: ", ")
-            ]
-        )
-
-        // Filter out triggers that are dismissed today
-        let filteredTriggers = triggers.filter { trigger in
-            // Skip if already dismissed today
-            if dismissedTriggersToday.contains(trigger) {
-                logger.log(
-                    "Skipping trigger",
-                    level: .debug,
-                    category: .ui,
-                    metadata: [
-                        "trigger": trigger.displayName,
-                        "reason": "Already dismissed today"
-                    ]
-                )
-                return false
-            }
-            return true
-        }
-
-        // Sort by priority and limit to max items
-        let sorted = filteredTriggers.sorted { $0.priority > $1.priority }
-        return Array(sorted.prefix(BusinessConstants.maxInspirationCarouselItems))
-    }
-    
-    private func showInspirationWithTrigger(_ trigger: InspirationTrigger) {
-        let delay: Int = {
-            switch trigger {
-            case .perfectDay:
-                return 1200  // Celebrate immediately but with dramatic pause
-            case .firstHabitComplete, .halfwayPoint, .strongFinish:
-                return 800   // Quick positive reinforcement
-            case .sessionStart:
-                return 2000  // Let user settle in first
-            case .emptyDay:
-                return 1500  // Standard timing - gentle reminder
-            default:
-                return 1500  // Standard timing
-            }
-        }()
-
-        logger.log(
-            "Showing inspiration trigger",
-            level: .debug,
-            category: .ui,
-            metadata: [
-                "trigger": trigger.displayName,
-                "delay_ms": delay
-            ]
-        )
-
-        Task {
-            try? await Task.sleep(for: .milliseconds(delay))
-
-            // Generate and cache personalized message before showing card
-            let message = await getPersonalizedMessage(for: trigger)
-            self.cachedInspirationMessage = message
-
-            logger.log(
-                "Activating inspiration card",
-                level: .debug,
-                category: .ui,
-                metadata: ["trigger": trigger.displayName]
-            )
-            self.lastShownInspirationTrigger = trigger
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                self.showInspirationCard = true
-            }
-        }
-    }
-
-    /// Shows multiple inspiration cards in the carousel
-    private func showInspirationWithTriggers(_ triggers: [InspirationTrigger]) async {
-        // Safe unwrap - defensive programming even though we check isEmpty
-        guard let primaryTrigger = triggers.first else { return }
-        let delay: Int = {
-            switch primaryTrigger {
-            case .perfectDay:
-                return 1200
-            case .firstHabitComplete, .halfwayPoint, .strongFinish:
-                return 800
-            case .sessionStart:
-                return 2000
-            default:
-                return 1500
-            }
-        }()
-
-        try? await Task.sleep(for: .milliseconds(delay))
-
-        // Generate personalized messages for all triggers
-        var items: [InspirationItem] = []
-
-        // Get unique slogans for each card (one per trigger)
-        let uniqueSlogans = getCurrentSlogan.getUniqueSlogans(count: triggers.count, for: currentTimeOfDay)
-
-        // Track seen messages to prevent duplicates
-        var seenMessages: Set<String> = []
-        var sloganIndex = 0
-
-        for trigger in triggers {
-            let message = await getPersonalizedMessage(for: trigger)
-
-            // Skip if we already have this exact message (prevents duplicate cards)
-            guard !seenMessages.contains(message) else {
-                logger.log(
-                    "Skipping duplicate message",
-                    level: .debug,
-                    category: .ui,
-                    metadata: ["trigger": trigger.displayName, "message": message]
-                )
-                continue
-            }
-            seenMessages.insert(message)
-
-            // Use unique slogan for each card
-            let slogan = sloganIndex < uniqueSlogans.count
-                ? uniqueSlogans[sloganIndex]
-                : getCurrentSlogan.execute()
-            sloganIndex += 1
-
-            if let item = InspirationItem(
-                trigger: trigger,
-                message: message,
-                slogan: slogan
-            ) {
-                items.append(item)
-            }
-        }
-
-        logger.log(
-            "Activating inspiration carousel",
-            level: .debug,
-            category: .ui,
-            metadata: [
-                "item_count": items.count,
-                "triggers": triggers.map { $0.displayName }.joined(separator: ", "),
-                "duplicates_filtered": triggers.count - items.count
-            ]
-        )
-
-        // Update state with animation for smooth entrance
-        self.inspirationItems = items
-        self.cachedInspirationMessage = items.first?.message
-        self.lastShownInspirationTrigger = primaryTrigger
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-            self.showInspirationCard = true
-        }
-    }
-
-    public var currentInspirationMessage: String {
-        // Use cached message if available, otherwise fallback to slogan
-        cachedInspirationMessage ?? getCurrentSlogan.execute()
-    }
-    
     // MARK: - Private Methods
 
     /// Load overview data from database using the display timezone
@@ -1368,6 +816,18 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             habitLogs: habitLogs,
             dateRange: startDate...today,
             timezone: displayTimezone
+        )
+    }
+
+    /// Configure child ViewModels with current context
+    private func configureChildViewModels(userName: String?) {
+        inspirationVM.configure(
+            activeStreaks: activeStreaks,
+            todaysSummary: todaysSummary,
+            displayTimezone: displayTimezone,
+            isViewingToday: isViewingToday,
+            totalHabitsCount: overviewData?.habits.count ?? 0,
+            userName: userName
         )
     }
 
@@ -1501,7 +961,13 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         self.todaysSummary = extractTodaysSummary(from: data)
         self.activeStreaks = extractActiveStreaks(from: data)
         self.monthlyCompletionData = extractMonthlyData(from: data)
-        self.checkAndShowInspirationCard()
+
+        // Update child VM context
+        Task { @MainActor in
+            let userName = await getUserName()
+            configureChildViewModels(userName: userName)
+            inspirationVM.checkAndShowInspirationCard()
+        }
     }
 
     /// Check if date requires database reload (outside cached range)
@@ -1535,7 +1001,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     }
 
     // MARK: - Data Extraction Methods
-    
+
     /// Extract TodaysSummary from overview data
     internal func extractTodaysSummary(from data: OverviewData) -> TodaysSummary {
         // CRITICAL: Use display timezone to get start of day for viewingDate
@@ -1579,19 +1045,19 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 }.joined(separator: "; ")
             ]
         )
-        
+
         var allTargetDateLogs: [HabitLog] = []
         var incompleteHabits: [Habit] = []
         var completedHabits: [Habit] = []
-        
+
         for habit in habits {
             let logs = data.logs(for: habit.id, on: targetDate)
             allTargetDateLogs.append(contentsOf: logs)
-            
+
             // Use centralized completion service for consistent calculation
             // IMPORTANT: Pass display timezone to ensure correct day comparison
             let isCompleted = isHabitCompleted.execute(habit: habit, on: targetDate, logs: logs, timezone: data.timezone)
-            
+
             // Only show as incomplete if not completed AND not a future date
             if targetDate > Date() {
                 // Don't add future dates to incomplete list
@@ -1607,7 +1073,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 }
             }
         }
-        
+
         // Sort completed habits by latest log time (most recent first)
         completedHabits.sort { habit1, habit2 in
             let habit1Logs = allTargetDateLogs.filter { $0.habitID == habit1.id }
@@ -1616,9 +1082,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             let habit2LatestTime = habit2Logs.map { $0.date }.max() ?? Date.distantPast
             return habit1LatestTime > habit2LatestTime  // Most recent first
         }
-        
-        let completionPercentage = habits.isEmpty ? 0.0 : Double(completedHabits.count) / Double(habits.count)
-        
+
         return TodaysSummary(
             completedHabitsCount: completedHabits.count,
             completedHabits: completedHabits,
@@ -1626,7 +1090,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             incompleteHabits: incompleteHabits
         )
     }
-    
+
     /// Extract monthly completion data from overview data using the data's timezone
     private func extractMonthlyData(from data: OverviewData) -> [Date: Double] {
         var result: [Date: Double] = [:]
@@ -1651,7 +1115,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         return result
     }
-    
+
     /// Extract active streaks from overview data (with grace period support) using data's timezone
     private func extractActiveStreaks(from data: OverviewData) -> [StreakInfo] {
         var streaks: [StreakInfo] = []
@@ -1684,245 +1148,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         return sortedStreaks
     }
 
-    private func loadPersonalityInsights() async {
-        do {
-            // Check if user is premium - personality insights is a premium feature
-            let isPremium = await checkPremiumStatus.execute()
-            guard isPremium else {
-                // Non-premium users should not see the personality insights card
-                shouldShowPersonalityInsights = false
-                personalityInsights = []
-                dominantPersonalityTrait = nil
-                isPersonalityDataSufficient = false
-                personalityThresholdRequirements = []
-                return
-            }
-
-            // Always get eligibility and requirements info using the UseCase
-            let userId = await getUserId()
-            let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
-            let requirements = try await validateAnalysisDataUseCase.getProgressDetails(for: userId)
-
-            // Update state with eligibility info
-            isPersonalityDataSufficient = eligibility.isEligible
-            personalityThresholdRequirements = requirements
-
-            // Show the card for premium users - it will handle different states internally
-            shouldShowPersonalityInsights = true
-            
-            // Get existing personality profile
-            var personalityProfile = try await getPersonalityProfileUseCase.execute(for: userId)
-            
-            // If user is eligible but no profile exists, attempt to create one
-            if eligibility.isEligible && personalityProfile == nil {
-                do {
-                    let newProfile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
-                    personalityProfile = newProfile
-                } catch {
-                    // Log the error - analysis creation failures shouldn't crash the app
-                    logger.log("Failed to create personality analysis: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
-                    // If analysis fails, we still show the card but with error state
-                    personalityInsights = []
-                    dominantPersonalityTrait = nil
-                    return
-                }
-            }
-            
-            // If we have a profile, get insights from it
-            if let profile = personalityProfile {
-                let insights = getPersonalityInsightsUseCase.getAllInsights(for: profile)
-                
-                // Convert to OverviewPersonalityInsight format for the new card
-                var cardInsights: [OverviewPersonalityInsight] = []
-                
-                // Add pattern insights
-                for insight in insights.patternInsights.prefix(2) {
-                    cardInsights.append(OverviewPersonalityInsight(
-                        title: insight.title,
-                        message: insight.description,
-                        type: .pattern
-                    ))
-                }
-                
-                // Add habit recommendations
-                for insight in insights.habitRecommendations.prefix(2) {
-                    cardInsights.append(OverviewPersonalityInsight(
-                        title: insight.title,
-                        message: insight.actionable,
-                        type: .recommendation
-                    ))
-                }
-                
-                // Add one motivational insight
-                if let motivationalInsight = insights.motivationalInsights.first {
-                    cardInsights.append(OverviewPersonalityInsight(
-                        title: motivationalInsight.title,
-                        message: motivationalInsight.actionable,
-                        type: .motivation
-                    ))
-                }
-                
-                personalityInsights = cardInsights
-                dominantPersonalityTrait = profile.dominantTrait.displayName
-            } else {
-                // No profile available (either data insufficient or analysis failed)
-                personalityInsights = []
-                dominantPersonalityTrait = nil
-            }
-        } catch {
-            // Log the error for debugging - personality analysis failures shouldn't crash the app
-            logger.log("Failed to load personality insights: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
-            // Even on error, show the card but with empty state
-            personalityInsights = []
-            dominantPersonalityTrait = nil
-            isPersonalityDataSufficient = false
-            personalityThresholdRequirements = []
-        }
-    }
-    
-    private func checkPersonalityAnalysisEligibility() async throws -> Bool {
-        // Use proper UseCases instead of direct repository access
-        do {
-            let userId = await getUserId()
-            // Check if personality analysis service is enabled for this user
-            let isEnabled = try await isPersonalityAnalysisEnabledUseCase.execute(for: userId)
-            
-            guard isEnabled else {
-                return false
-            }
-            
-            // Use the proper eligibility validation UseCase
-            let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
-            return eligibility.isEligible
-        } catch {
-            return false
-        }
-    }
-
-    private func resetDismissedTriggersIfNewDay() {
-        let today = Date()
-
-        // Check if we've moved to a new day since last session
-        // Use display timezone for day boundary comparison
-        if let lastResetDate = userDefaults.date(forKey: UserDefaultsKeys.lastInspirationResetDate) {
-            if !CalendarUtils.areSameDayLocal(lastResetDate, today, timezone: displayTimezone) {
-                // New day - reset all inspiration state
-                dismissedTriggersToday.removeAll()
-                lastEvaluatedTriggerSet = []
-                userDefaults.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
-            } else {
-                // Load dismissed triggers for today from UserDefaults
-                if let dismissedData = userDefaults.data(forKey: UserDefaultsKeys.dismissedTriggersToday) {
-                    do {
-                        let dismissedArray = try JSONDecoder().decode([String].self, from: dismissedData)
-                        dismissedTriggersToday = Set(dismissedArray.compactMap { triggerString in
-                            InspirationTrigger.allCases.first { "\($0)" == triggerString }
-                        })
-                    } catch {
-                        logger.log(
-                            "Failed to decode dismissed triggers - resetting to empty",
-                            level: .warning,
-                            category: .dataIntegrity,
-                            metadata: ["error": error.localizedDescription]
-                        )
-                        dismissedTriggersToday = []
-                    }
-                }
-            }
-        } else {
-            // First time - set today as reset date
-            userDefaults.set(today, forKey: UserDefaultsKeys.lastInspirationResetDate)
-        }
-    }
-
-    private func saveDismissedTriggers() {
-        let dismissedArray = dismissedTriggersToday.map { "\($0)" }
-        do {
-            let data = try JSONEncoder().encode(dismissedArray)
-            userDefaults.set(data, forKey: UserDefaultsKeys.dismissedTriggersToday)
-        } catch {
-            logger.log(
-                "Failed to encode dismissed triggers",
-                level: .warning,
-                category: .dataIntegrity,
-                metadata: ["error": error.localizedDescription]
-            )
-        }
-    }
-    
-    // MARK: - Personalized Inspiration Messages
-
-    private func getPersonalizedMessage(for trigger: InspirationTrigger) async -> String {
-        // Load personality profile
-        let personalityProfile = await loadPersonalityProfileForMessage()
-
-        // Get current streak (longest streak from activeStreaks, or 0)
-        let currentStreakValue = activeStreaks.first?.currentStreak ?? 0
-
-        // Build message context
-        let context = MessageContext(
-            trigger: trigger,
-            personality: personalityProfile,
-            completionPercentage: todaysSummary?.completionPercentage ?? 0.0,
-            timeOfDay: currentTimeOfDay,
-            userName: userName,
-            currentStreak: currentStreakValue,
-            recentPattern: analyzeRecentPattern()
-        )
-
-        // Generate personalized message
-        let message = await personalizedMessageGenerator.generateMessage(for: context)
-        return message.content
-    }
-
-    private func loadPersonalityProfileForMessage() async -> PersonalityProfile? {
-        // Get user ID
-        let userId = await getUserId()
-
-        do {
-            // Check if personality analysis is enabled and available
-            let isEnabled = try await isPersonalityAnalysisEnabledUseCase.execute(for: userId)
-            guard isEnabled else { return nil }
-
-            // Get current personality profile
-            return try await getPersonalityProfileUseCase.execute(for: userId)
-        } catch {
-            // Log error but gracefully degrade to generic messages
-            logger.log(
-                "Failed to load personality profile for message generation",
-                level: .warning,
-                category: .dataIntegrity,
-                metadata: ["error": error.localizedDescription, "userId": userId]
-            )
-            return nil
-        }
-    }
-
-    private func analyzeRecentPattern() -> CompletionPattern {
-        // For Phase 1, return a basic pattern
-        // Phase 2 will implement more sophisticated pattern analysis
-        guard let completionPercentage = todaysSummary?.completionPercentage else {
-            return .insufficient
-        }
-
-        // Simple heuristic based on current completion
-        if completionPercentage >= 0.8 {
-            return .consistent
-        } else if completionPercentage >= 0.5 {
-            return .improving
-        } else if completionPercentage > 0 {
-            return .declining
-        } else {
-            return .insufficient
-        }
-    }
-    
-    private var cachedUserName: String? = nil
-
     private func getUserName() async -> String? {
         let profile = await getCurrentUserProfile.execute()
         return profile.name.isEmpty ? nil : profile.name
     }
-
-    private var userName: String? { cachedUserName }
 }

@@ -378,6 +378,29 @@ extension Container {
             .singleton
     }
 
+    // MARK: - Inspiration Services
+
+    var inspirationDismissalStore: Factory<InspirationDismissalStoreProtocol> {
+        self {
+            InspirationDismissalStore(
+                userDefaults: self.userDefaultsService(),
+                logger: self.debugLogger()
+            )
+        }
+        .singleton
+    }
+
+    var completionPatternAnalyzer: Factory<CompletionPatternAnalyzerProtocol> {
+        self {
+            CompletionPatternAnalyzer(
+                getActiveHabits: self.getActiveHabits(),
+                getLogs: self.getLogs(),
+                logger: self.debugLogger()
+            )
+        }
+        .singleton
+    }
+
     // MARK: - Debug Services
 
     #if DEBUG
