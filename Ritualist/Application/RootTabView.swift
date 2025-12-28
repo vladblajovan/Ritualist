@@ -552,12 +552,7 @@ public struct RootTabView: View {
 
     /// Handle first iCloud sync - show toast only once per device lifetime
     /// Uses retry logic because data may not be available immediately when notification fires
-    /// Note: Only shown in DEBUG builds - users don't need this, it's a developer sanity check
     private func handleFirstiCloudSync(retryCount: Int = 0) {
-        #if !DEBUG
-        return
-        #endif
-
         guard !userDefaults.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else { return }
         guard !showOnboarding && !isCheckingOnboarding && !showingPostOnboardingAssistant else {
             logModalActiveForSync()
