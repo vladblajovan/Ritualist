@@ -3,6 +3,53 @@ import Foundation
 import FactoryKit
 import RitualistCore
 
+// MARK: - WeeklyPatterns Helper Types
+
+/// Internal validation result for weekly patterns data quality checks
+private struct WeeklyPatternsValidationResult {
+    let isDataSufficient: Bool
+    let isOptimizationMeaningful: Bool
+    let isConsistentExcellence: Bool
+    let isConsistentPerformance: Bool
+    let optimizationMessage: String
+    let requirements: [StatsViewModel.ThresholdRequirement]
+}
+
+/// Input for weekly patterns data quality validation
+private struct WeeklyPatternsValidationInput {
+    let domain: WeeklyPatternsResult
+    let daysWithData: Int
+    let averageRate: Double
+    let habitCount: Int
+    let timePeriod: TimePeriod
+    let bestDayRate: Double
+    let worstDayRate: Double
+}
+
+/// Input for building optimization messages
+private struct WeeklyPatternsOptimizationMessageInput {
+    let isOptimizationMeaningful: Bool
+    let hasMeaningfulGap: Bool
+    let bestDayNotPerfect: Bool
+    let performanceGap: Double
+    let bestDay: String
+    let worstDay: String
+}
+
+/// Input for building threshold requirements list
+private struct WeeklyPatternsRequirementsInput {
+    let timePeriod: TimePeriod
+    let daysWithData: Int
+    let minDaysRequired: Int
+    let averageRate: Double
+    let habitCount: Int
+    let performanceSpread: Double
+    let hasEnoughDays: Bool
+    let hasEnoughCompletion: Bool
+    let hasEnoughHabits: Bool
+    let hasVariation: Bool
+}
+
 // swiftlint:disable type_body_length
 @MainActor
 @Observable
@@ -170,114 +217,146 @@ public final class StatsViewModel {
             self.worstDay = domain.worstDay
             self.averageWeeklyCompletion = domain.averageWeeklyCompletion
 
-            // Create lookup dictionary for O(1) access instead of O(n) searches
+            let rates = Self.extractCompletionRates(from: domain, logger: logger)
+            self.bestDayCompletionRate = rates.best
+            self.worstDayCompletionRate = rates.worst
+
+            let validation = Self.validateDataQuality(input: WeeklyPatternsValidationInput(
+                domain: domain, daysWithData: daysWithData, averageRate: averageRate,
+                habitCount: habitCount, timePeriod: timePeriod,
+                bestDayRate: rates.best, worstDayRate: rates.worst
+            ))
+
+            self.isDataSufficient = validation.isDataSufficient
+            self.isOptimizationMeaningful = validation.isOptimizationMeaningful
+            self.isConsistentExcellence = validation.isConsistentExcellence
+            self.isConsistentPerformance = validation.isConsistentPerformance
+            self.optimizationMessage = validation.optimizationMessage
+            self.thresholdRequirements = validation.requirements
+        }
+
+        private static func extractCompletionRates(
+            from domain: WeeklyPatternsResult,
+            logger: DebugLogger?
+        ) -> (best: Double, worst: Double) {
             let performanceByDay = Dictionary(
                 uniqueKeysWithValues: domain.dayOfWeekPerformance.map { ($0.dayName, $0.completionRate) }
             )
 
-            // Edge case: bestDay/worstDay should always exist in performance data since they come from the same source.
-            // Defaulting to 0 is safe - if this occurs, it indicates a data integrity issue upstream
-            // (e.g., WeeklyPatternsResult.bestDay doesn't match any dayName in dayOfWeekPerformance).
-            // The ?? 0 fallback ensures the app doesn't crash, and isDataSufficient validation will catch
-            // this scenario (0% completion won't meet minimum thresholds).
-            self.bestDayCompletionRate = performanceByDay[domain.bestDay] ?? {
+            let bestRate = performanceByDay[domain.bestDay] ?? {
                 logger?.log(
-                    "Edge case triggered: bestDay '\(domain.bestDay)' not found in performance data. Available days: \(performanceByDay.keys.joined(separator: ", ")). Defaulting to 0.",
-                    level: .warning,
-                    category: .dataIntegrity
-                )
-                return 0.0
-            }()
-            self.worstDayCompletionRate = performanceByDay[domain.worstDay] ?? {
-                logger?.log(
-                    "Edge case triggered: worstDay '\(domain.worstDay)' not found in performance data. Available days: \(performanceByDay.keys.joined(separator: ", ")). Defaulting to 0.",
-                    level: .warning,
-                    category: .dataIntegrity
+                    "Edge case: bestDay '\(domain.bestDay)' not found. Defaulting to 0.",
+                    level: .warning, category: .dataIntegrity
                 )
                 return 0.0
             }()
 
-            // Calculate period-aware data quality requirements
-            let minDaysRequired = Self.calculateMinDaysRequired(for: timePeriod)
-            let minCompletionRate = Self.minimumCompletionRateForOptimization
-            let minHabitsRequired = Self.minimumHabitsRequired
-            // Only calculate spread from days with actual data (not 0%)
+            let worstRate = performanceByDay[domain.worstDay] ?? {
+                logger?.log(
+                    "Edge case: worstDay '\(domain.worstDay)' not found. Defaulting to 0.",
+                    level: .warning, category: .dataIntegrity
+                )
+                return 0.0
+            }()
+
+            return (bestRate, worstRate)
+        }
+
+        private static func validateDataQuality(input: WeeklyPatternsValidationInput) -> WeeklyPatternsValidationResult {
+            let domain = input.domain
+            let daysWithData = input.daysWithData
+            let averageRate = input.averageRate
+            let habitCount = input.habitCount
+            let timePeriod = input.timePeriod
+            let bestDayRate = input.bestDayRate
+            let worstDayRate = input.worstDayRate
+            let minDaysRequired = calculateMinDaysRequired(for: timePeriod)
             let daysWithPerformanceData = domain.dayOfWeekPerformance.filter { $0.completionRate > 0 }
             let performanceSpread = daysWithPerformanceData.isEmpty ? 0.0 :
                 (daysWithPerformanceData.max(by: { $0.completionRate < $1.completionRate })?.completionRate ?? 0) -
                 (daysWithPerformanceData.min(by: { $0.completionRate < $1.completionRate })?.completionRate ?? 0)
 
             let hasEnoughDays = daysWithData >= minDaysRequired
-            let hasEnoughCompletion = averageRate >= minCompletionRate
-            let hasEnoughHabits = habitCount >= minHabitsRequired
-            let hasVariation = performanceSpread > Self.minimumPerformanceSpread
+            let hasEnoughCompletion = averageRate >= minimumCompletionRateForOptimization
+            let hasEnoughHabits = habitCount >= minimumHabitsRequired
+            let hasVariation = performanceSpread > minimumPerformanceSpread
 
-            self.isDataSufficient = hasEnoughDays && hasEnoughCompletion && hasEnoughHabits && hasVariation
+            let isDataSufficient = hasEnoughDays && hasEnoughCompletion && hasEnoughHabits && hasVariation
 
-            // Fix #3: Validation - Check if optimization is meaningful
-            let performanceGap = self.bestDayCompletionRate - self.worstDayCompletionRate
-            let hasMeaningfulGap = performanceGap >= Self.minimumMeaningfulPerformanceGap
-            let bestDayNotPerfect = self.bestDayCompletionRate < Self.nearPerfectCompletionThreshold
-            self.isOptimizationMeaningful = self.isDataSufficient && hasMeaningfulGap && bestDayNotPerfect
+            let performanceGap = bestDayRate - worstDayRate
+            let hasMeaningfulGap = performanceGap >= minimumMeaningfulPerformanceGap
+            let bestDayNotPerfect = bestDayRate < nearPerfectCompletionThreshold
 
-            // Determine consistent performance states for UI
-            self.isConsistentExcellence = !hasMeaningfulGap && !bestDayNotPerfect
-            self.isConsistentPerformance = !hasMeaningfulGap && bestDayNotPerfect
+            let isOptimizationMeaningful = isDataSufficient && hasMeaningfulGap && bestDayNotPerfect
+            let isConsistentExcellence = !hasMeaningfulGap && !bestDayNotPerfect
+            let isConsistentPerformance = !hasMeaningfulGap && bestDayNotPerfect
 
-            // Fix #4: Smart messaging based on actual performance (localized)
-            if !self.isOptimizationMeaningful {
-                if !hasMeaningfulGap {
-                    self.optimizationMessage = Strings.Dashboard.optimizationConsistentPerformance
-                } else if !bestDayNotPerfect {
-                    self.optimizationMessage = Strings.Dashboard.optimizationNearPerfect
+            let message = buildOptimizationMessage(input: WeeklyPatternsOptimizationMessageInput(
+                isOptimizationMeaningful: isOptimizationMeaningful,
+                hasMeaningfulGap: hasMeaningfulGap,
+                bestDayNotPerfect: bestDayNotPerfect,
+                performanceGap: performanceGap,
+                bestDay: domain.bestDay,
+                worstDay: domain.worstDay
+            ))
+
+            let requirements = buildRequirements(from: WeeklyPatternsRequirementsInput(
+                timePeriod: timePeriod, daysWithData: daysWithData, minDaysRequired: minDaysRequired,
+                averageRate: averageRate, habitCount: habitCount, performanceSpread: performanceSpread,
+                hasEnoughDays: hasEnoughDays, hasEnoughCompletion: hasEnoughCompletion,
+                hasEnoughHabits: hasEnoughHabits, hasVariation: hasVariation
+            ))
+
+            return WeeklyPatternsValidationResult(
+                isDataSufficient: isDataSufficient,
+                isOptimizationMeaningful: isOptimizationMeaningful,
+                isConsistentExcellence: isConsistentExcellence,
+                isConsistentPerformance: isConsistentPerformance,
+                optimizationMessage: message,
+                requirements: requirements
+            )
+        }
+
+        private static func buildOptimizationMessage(input: WeeklyPatternsOptimizationMessageInput) -> String {
+            guard input.isOptimizationMeaningful else {
+                if !input.hasMeaningfulGap {
+                    return Strings.Dashboard.optimizationConsistentPerformance
+                } else if !input.bestDayNotPerfect {
+                    return Strings.Dashboard.optimizationNearPerfect
                 } else {
-                    self.optimizationMessage = Strings.Dashboard.optimizationKeepBuilding
+                    return Strings.Dashboard.optimizationKeepBuilding
                 }
-            } else {
-                let gapPercentage = Int(performanceGap * 100)
-                self.optimizationMessage = String(format: Strings.Dashboard.optimizationSuggestion, domain.bestDay, gapPercentage, domain.worstDay)
             }
-            
-            // Build requirements list
-            var requirements: [ThresholdRequirement] = []
-            
-            requirements.append(ThresholdRequirement(
-                title: Self.getTrackingTitle(for: timePeriod),
-                description: "Need consistent tracking data",
-                current: daysWithData,
-                target: minDaysRequired,
-                isMet: hasEnoughDays,
-                unit: "days"
-            ))
-            
-            requirements.append(ThresholdRequirement(
-                title: "30% completion rate",
-                description: "Need regular habit completion",
-                current: Int(averageRate * 100),
-                target: Int(minCompletionRate * 100),
-                isMet: hasEnoughCompletion,
-                unit: "%"
-            ))
-            
-            requirements.append(ThresholdRequirement(
-                title: "Multiple active habits",
-                description: "Need variety for optimization",
-                current: habitCount,
-                target: minHabitsRequired,
-                isMet: hasEnoughHabits,
-                unit: "habits"
-            ))
-            
-            requirements.append(ThresholdRequirement(
-                title: "Performance variation",
-                description: "Need different completion rates across days",
-                current: Int(performanceSpread * 100),
-                target: 10,
-                isMet: hasVariation,
-                unit: "% spread"
-            ))
-            
-            self.thresholdRequirements = requirements
+            return String(format: Strings.Dashboard.optimizationSuggestion, input.bestDay, Int(input.performanceGap * 100), input.worstDay)
+        }
+
+        private static func buildRequirements(from input: WeeklyPatternsRequirementsInput) -> [ThresholdRequirement] {
+            [
+                ThresholdRequirement(
+                    title: getTrackingTitle(for: input.timePeriod),
+                    description: "Need consistent tracking data",
+                    current: input.daysWithData, target: input.minDaysRequired,
+                    isMet: input.hasEnoughDays, unit: "days"
+                ),
+                ThresholdRequirement(
+                    title: "30% completion rate",
+                    description: "Need regular habit completion",
+                    current: Int(input.averageRate * 100), target: Int(minimumCompletionRateForOptimization * 100),
+                    isMet: input.hasEnoughCompletion, unit: "%"
+                ),
+                ThresholdRequirement(
+                    title: "Multiple active habits",
+                    description: "Need variety for optimization",
+                    current: input.habitCount, target: minimumHabitsRequired,
+                    isMet: input.hasEnoughHabits, unit: "habits"
+                ),
+                ThresholdRequirement(
+                    title: "Performance variation",
+                    description: "Need different completion rates across days",
+                    current: Int(input.performanceSpread * 100), target: 10,
+                    isMet: input.hasVariation, unit: "% spread"
+                )
+            ]
         }
         
         // MARK: - Helper Methods

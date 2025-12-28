@@ -204,151 +204,15 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Card Title and Progress Bar - grouped with smaller spacing
-            VStack(alignment: .leading, spacing: 12) {
-                // Card Title - gradient flows continuously across icon and text
-                HStack(spacing: 8) {
-                    Image(systemName: "sparkles")
-                        .font(.title2)
-                    Text(Self.appName)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                }
-                .overlay(
-                    LinearGradient(
-                        colors: progressGradientColors(for: summary?.completionPercentage ?? 0.0),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .mask(
-                        HStack(spacing: 8) {
-                            Image(systemName: "sparkles")
-                                .font(.title2)
-                            Text(Self.appName)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                        }
-                    )
-                )
-                .shadow(
-                    color: showProgressGlow ? Color.green.opacity(0.6) : .clear,
-                    radius: showProgressGlow ? 8 : 0,
-                    x: 0,
-                    y: 0
-                )
-
-                if summary != nil {
-                    // Main Progress Section
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(CardDesign.secondaryBackground)
-                                .frame(height: 8)
-
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    .linearGradient(
-                                        colors: progressGradientColors(for: animatedCompletionPercentage),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: geometry.size.width * animatedCompletionPercentage, height: 8)
-                                .shadow(
-                                    color: showProgressGlow ? Color.green.opacity(0.6) : .clear,
-                                    radius: showProgressGlow ? 8 : 0,
-                                    x: 0,
-                                    y: 0
-                                )
-                        }
-                    }
-                    .frame(height: 8)
-                }
-            }
-
-            // Card Header with Date Navigation
-            VStack(spacing: 12) {
-                HStack {
-                    // Previous Day Button
-                    Button(action: onPreviousDay) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(canGoToPrevious ? .secondary : .secondary.opacity(0.3))
-                    }
-                    .disabled(!canGoToPrevious)
-                    .accessibilityLabel("Previous day")
-                    .accessibilityHint(Strings.Accessibility.previousDayHint)
-                    .accessibilityIdentifier(AccessibilityID.Overview.previousDayButton)
-
-                    Spacer()
-
-                    // Date and Title
-                    VStack(spacing: 4) {
-                        if isViewingToday {
-                            Text("Today, \(CalendarUtils.formatCompact(viewingDate, timezone: timezone))")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-                                .accessibilityAddTraits(.isHeader)
-                        } else {
-                            HStack(spacing: 6) {
-                                Button(action: onGoToToday) {
-                                    Image(systemName: "arrow.uturn.backward")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                .accessibilityLabel("Return to today")
-                                .accessibilityHint(Strings.Accessibility.returnToTodayHint)
-                                .accessibilityIdentifier(AccessibilityID.Overview.todayButton)
-
-                                Text(CalendarUtils.formatCompact(viewingDate, includeDayName: true, timezone: timezone))
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.primary)
-                                    .accessibilityAddTraits(.isHeader)
-                            }
-                        }
-                    }
-
-                    Spacer()
-
-                    // Next Day Button
-                    Button(action: onNextDay) {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(canGoToNext ? .secondary : .secondary.opacity(0.3))
-                    }
-                    .disabled(!canGoToNext)
-                    .accessibilityLabel("Next day")
-                    .accessibilityHint(Strings.Accessibility.nextDayHint)
-                    .accessibilityIdentifier(AccessibilityID.Overview.nextDayButton)
-                }
-            }
-
-            if let summary = summary {
-
-                // Enhanced Habits Section - show both completed and incomplete habits
-                if !summary.incompleteHabits.isEmpty || !summary.completedHabits.isEmpty {
-                    habitsSection(summary: summary)
-                } else {
-                    // Empty state - no habits scheduled for this day
-                    noHabitsScheduledView
-                }
-            } else {
-                // Loading State
-                loadingView
-            }
+            titleAndProgressBar
+            dateNavigationHeader
+            contentSection
         }
         .accessibilityIdentifier(AccessibilityID.Overview.todaysSummaryCard)
         .alert("Remove Log Entry?", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) {
-                habitToDelete = nil
-            }
+            Button("Cancel", role: .cancel) { habitToDelete = nil }
             Button("Remove", role: .destructive) {
-                if let habit = habitToDelete {
-                    performRemovalAnimation(for: habit)
-                }
+                if let habit = habitToDelete { performRemovalAnimation(for: habit) }
                 habitToDelete = nil
             }
         } message: {
@@ -356,99 +220,195 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 Text("This will remove the log entry for \"\(habit.name)\" from \(isViewingToday ? "today" : CalendarUtils.formatCompact(viewingDate, includeDayName: true, timezone: timezone)). The habit itself will remain.")
             }
         }
-        .sheet(isPresented: $showingScheduleInfoSheet) {
-            ScheduleIconInfoSheet()
-        }
+        .sheet(isPresented: $showingScheduleInfoSheet) { ScheduleIconInfoSheet() }
         .sheet(item: $habitToUncomplete) { habit in
             UncompleteHabitSheet(
                 habit: habit,
-                onUncomplete: {
-                    onDeleteHabitLog(habit)
-                    habitToUncomplete = nil
-                },
-                onCancel: {
-                    habitToUncomplete = nil
-                }
+                onUncomplete: { onDeleteHabitLog(habit); habitToUncomplete = nil },
+                onCancel: { habitToUncomplete = nil }
             )
         }
-        // PERFORMANCE: Update pre-computed arrays when data or expansion state changes
-        .onAppear {
-            updateVisibleHabits()
-            updateHabitProgressAnimations()
-            // Note: animatedCompletionPercentage starts at 0.0
-            // The onChange handler will handle initial animation based on animateProgressOnLoad flag
-        }
-        .onDisappear {
-            // Cancel all running animation tasks to prevent memory leaks
-            progressGlowTask?.cancel()
-            quickActionGlowTask?.cancel()
-            habitRowGlowTask?.cancel()
-            completionAnimationTask?.cancel()
-        }
-        .onChange(of: summary?.completedHabitsCount) { _, _ in
-            updateVisibleHabits()
-            updateHabitProgressAnimations()
-        }
-        .onChange(of: summary?.totalHabits) { _, _ in
-            updateVisibleHabits()
-        }
-        .onChange(of: summary?.incompleteHabits.count) { _, _ in
-            updateHabitProgressAnimations()
-        }
-        .onChange(of: habitProgressStateId) { _, _ in
-            updateHabitProgressAnimations()
-        }
-        .onChange(of: viewingDate) { _, _ in
-            // When date changes, update visible habits list and animations
-            updateVisibleHabits()
-            updateHabitProgressAnimations()
-        }
-        .onChange(of: isRemainingSectionExpanded) { _, _ in
-            updateVisibleHabits()
-        }
-        .onChange(of: isCompletedSectionExpanded) { _, _ in
-            updateVisibleHabits()
-        }
+        .onAppear { updateVisibleHabits(); updateHabitProgressAnimations() }
+        .onDisappear { cancelAllAnimationTasks() }
+        .onChange(of: summary?.completedHabitsCount) { _, _ in updateVisibleHabits(); updateHabitProgressAnimations() }
+        .onChange(of: summary?.totalHabits) { _, _ in updateVisibleHabits() }
+        .onChange(of: summary?.incompleteHabits.count) { _, _ in updateHabitProgressAnimations() }
+        .onChange(of: habitProgressStateId) { _, _ in updateHabitProgressAnimations() }
+        .onChange(of: viewingDate) { _, _ in updateVisibleHabits(); updateHabitProgressAnimations() }
+        .onChange(of: isRemainingSectionExpanded) { _, _ in updateVisibleHabits() }
+        .onChange(of: isCompletedSectionExpanded) { _, _ in updateVisibleHabits() }
         .onChange(of: summary?.completionPercentage) { oldValue, newValue in
-            guard let newValue = newValue else { return }
+            handleCompletionPercentageChange(oldValue: oldValue, newValue: newValue)
+        }
+    }
 
-            // Determine if we should animate this change
-            // First time: animate only if animateProgressOnLoad is true
-            // Subsequent times: always animate
-            let shouldAnimate = hasInitializedProgress ? true : animateProgressOnLoad
+    // MARK: - Body Helper Views
 
-            // Animate the progress bar filling/draining smoothly
-            if shouldAnimate {
-                withAnimation(.easeInOut(duration: 0.6)) {
-                    animatedCompletionPercentage = newValue
+    @ViewBuilder
+    private var titleAndProgressBar: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            gradientTitle
+            if summary != nil { progressBar }
+        }
+    }
+
+    @ViewBuilder
+    private var gradientTitle: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "sparkles").font(.title2)
+            Text(Self.appName).font(.title2).fontWeight(.bold)
+        }
+        .overlay(
+            LinearGradient(
+                colors: progressGradientColors(for: summary?.completionPercentage ?? 0.0),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .mask(
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles").font(.title2)
+                    Text(Self.appName).font(.title2).fontWeight(.bold)
                 }
-            } else {
-                // No animation - instant update
-                animatedCompletionPercentage = newValue
+            )
+        )
+        .shadow(color: showProgressGlow ? Color.green.opacity(0.6) : .clear, radius: showProgressGlow ? 8 : 0, x: 0, y: 0)
+    }
+
+    @ViewBuilder
+    private var progressBar: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(CardDesign.secondaryBackground)
+                    .frame(height: 8)
+
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(
+                        .linearGradient(
+                            colors: progressGradientColors(for: animatedCompletionPercentage),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: geometry.size.width * animatedCompletionPercentage, height: 8)
+                    .shadow(color: showProgressGlow ? Color.green.opacity(0.6) : .clear, radius: showProgressGlow ? 8 : 0, x: 0, y: 0)
             }
+        }
+        .frame(height: 8)
+    }
 
-            // Mark as initialized after first change
-            hasInitializedProgress = true
+    @ViewBuilder
+    private var dateNavigationHeader: some View {
+        VStack(spacing: 12) {
+            HStack {
+                previousDayButton
+                Spacer()
+                dateTitle
+                Spacer()
+                nextDayButton
+            }
+        }
+    }
 
-            // Trigger glow when reaching 100% completion (only if animated)
-            if shouldAnimate && newValue >= 1.0, oldValue ?? 0.0 < 1.0 {
-                // Cancel any existing glow task
-                progressGlowTask?.cancel()
+    @ViewBuilder
+    private var previousDayButton: some View {
+        Button(action: onPreviousDay) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(canGoToPrevious ? .secondary : .secondary.opacity(0.3))
+        }
+        .disabled(!canGoToPrevious)
+        .accessibilityLabel("Previous day")
+        .accessibilityHint(Strings.Accessibility.previousDayHint)
+        .accessibilityIdentifier(AccessibilityID.Overview.previousDayButton)
+    }
 
-                // Delay glow until progress animation completes
-                // Note: Task inherits MainActor context from View, no MainActor.run needed
-                progressGlowTask = Task {
-                    try? await Task.sleep(nanoseconds: AnimationTiming.progressAnimationDelay)
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        showProgressGlow = true
+    @ViewBuilder
+    private var nextDayButton: some View {
+        Button(action: onNextDay) {
+            Image(systemName: "chevron.right")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(canGoToNext ? .secondary : .secondary.opacity(0.3))
+        }
+        .disabled(!canGoToNext)
+        .accessibilityLabel("Next day")
+        .accessibilityHint(Strings.Accessibility.nextDayHint)
+        .accessibilityIdentifier(AccessibilityID.Overview.nextDayButton)
+    }
+
+    @ViewBuilder
+    private var dateTitle: some View {
+        VStack(spacing: 4) {
+            if isViewingToday {
+                Text("Today, \(CalendarUtils.formatCompact(viewingDate, timezone: timezone))")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                    .accessibilityAddTraits(.isHeader)
+            } else {
+                HStack(spacing: 6) {
+                    Button(action: onGoToToday) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
                     }
+                    .buttonStyle(PlainButtonStyle())
+                    .accessibilityLabel("Return to today")
+                    .accessibilityHint(Strings.Accessibility.returnToTodayHint)
+                    .accessibilityIdentifier(AccessibilityID.Overview.todayButton)
 
-                    // Fade out the glow after 2 seconds
-                    try? await Task.sleep(nanoseconds: AnimationTiming.glowFadeDelay)
-                    withAnimation(.easeOut(duration: 0.5)) {
-                        showProgressGlow = false
-                    }
+                    Text(CalendarUtils.formatCompact(viewingDate, includeDayName: true, timezone: timezone))
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                        .accessibilityAddTraits(.isHeader)
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var contentSection: some View {
+        if let summary = summary {
+            if !summary.incompleteHabits.isEmpty || !summary.completedHabits.isEmpty {
+                habitsSection(summary: summary)
+            } else {
+                noHabitsScheduledView
+            }
+        } else {
+            loadingView
+        }
+    }
+
+    // MARK: - Body Helper Methods
+
+    private func cancelAllAnimationTasks() {
+        progressGlowTask?.cancel()
+        quickActionGlowTask?.cancel()
+        habitRowGlowTask?.cancel()
+        completionAnimationTask?.cancel()
+    }
+
+    private func handleCompletionPercentageChange(oldValue: Double?, newValue: Double?) {
+        guard let newValue = newValue else { return }
+
+        let shouldAnimate = hasInitializedProgress ? true : animateProgressOnLoad
+
+        if shouldAnimate {
+            withAnimation(.easeInOut(duration: 0.6)) { animatedCompletionPercentage = newValue }
+        } else {
+            animatedCompletionPercentage = newValue
+        }
+
+        hasInitializedProgress = true
+
+        if shouldAnimate && newValue >= 1.0, oldValue ?? 0.0 < 1.0 {
+            progressGlowTask?.cancel()
+            progressGlowTask = Task {
+                try? await Task.sleep(nanoseconds: AnimationTiming.progressAnimationDelay)
+                withAnimation(.easeInOut(duration: 0.3)) { showProgressGlow = true }
+                try? await Task.sleep(nanoseconds: AnimationTiming.glowFadeDelay)
+                withAnimation(.easeOut(duration: 0.5)) { showProgressGlow = false }
             }
         }
     }
@@ -465,102 +425,105 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func quickActionButton(for habit: Habit) -> some View {
         let scheduleStatus = getScheduleStatus(habit)
         let isDisabled = !scheduleStatus.isAvailable
-        
+
         Button {
-            if scheduleStatus.isAvailable {
-                if habit.kind == .numeric {
-                    onNumericHabitAction?(habit)
-                } else {
-                    // For binary habits, complete with glow effect
-                    glowingHabitId = habit.id
-
-                    // Cancel any existing quick action glow task
-                    quickActionGlowTask?.cancel()
-
-                    // Small delay for glow effect, then complete
-                    // Note: Task inherits MainActor context from View, no MainActor.run needed
-                    quickActionGlowTask = Task {
-                        try? await Task.sleep(nanoseconds: AnimationTiming.completionGlowDelay)
-                        onQuickAction(habit)
-                        glowingHabitId = nil
-                    }
-                }
-            }
+            handleQuickActionTap(habit: habit, scheduleStatus: scheduleStatus)
         } label: {
-            HStack(spacing: 12) {
-                // Circular Progress Indicator with Emoji
-                ZStack {
-                    // Background circle with habit color at low opacity
-                    Circle()
-                        .fill(Color(hex: habit.colorHex).opacity(0.15))
-                        .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
-
-                    // Progress border for numeric habits with animated gradient
-                    if habit.kind == .numeric {
-                        let currentValue = getProgress(habit)
-                        let target = habit.dailyTarget ?? 1.0
-                        let actualProgress = calculateProgress(current: currentValue, target: target)
-                        let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
-
-                        Circle()
-                            .trim(from: 0, to: animatedProgress)
-                            .stroke(
-                                .linearGradient(
-                                    colors: progressGradientColors(for: actualProgress),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                            )
-                            .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
-                            .rotationEffect(.degrees(-90))
-                    }
-
-                    // Emoji
-                    Text(habit.emoji ?? "📊")
-                        .font(.title3)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Next: \(habit.name)")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(isDisabled ? .primary.opacity(0.6) : .primary)
-                    
-                    if isDisabled {
-                        Text(scheduleStatus.displayText)
-                            .font(.caption)
-                            .foregroundColor(scheduleStatus.color)
-                    } else if habit.kind == .numeric {
-                        let currentValue = getProgress(habit)
-                        let target = habit.dailyTarget ?? 1.0
-                        let unitText = habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                        Text("\(Int(currentValue))/\(Int(target)) \(!unitText.isEmpty ? unitText : "units")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Spacer()
-                
-                Image(systemName: isDisabled ? "minus.circle" : (habit.kind == .numeric ? "plus.circle.fill" : "plus.circle.fill"))
-                    .font(.title2)
-                    .foregroundColor(isDisabled ? .secondary : AppColors.brand)
-            }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .background(isDisabled ? CardDesign.secondaryBackground.opacity(0.5) : AppColors.brand.opacity(0.1))
-            .cornerRadius(CardDesign.cornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
-                    .stroke(isDisabled ? Color.secondary.opacity(0.3) : AppColors.brand.opacity(0.2), lineWidth: 1)
-            )
+            quickActionButtonLabel(habit: habit, scheduleStatus: scheduleStatus, isDisabled: isDisabled)
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.7 : 1.0)
         .scaleEffect(1.0)
         .completionGlow(isGlowing: glowingHabitId == habit.id)
-        // PERFORMANCE: Removed animation on completedHabits changes - expensive for entire view
+    }
+
+    private func handleQuickActionTap(habit: Habit, scheduleStatus: HabitScheduleStatus) {
+        guard scheduleStatus.isAvailable else { return }
+        if habit.kind == .numeric {
+            onNumericHabitAction?(habit)
+        } else {
+            glowingHabitId = habit.id
+            quickActionGlowTask?.cancel()
+            quickActionGlowTask = Task {
+                try? await Task.sleep(nanoseconds: AnimationTiming.completionGlowDelay)
+                onQuickAction(habit)
+                glowingHabitId = nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func quickActionButtonLabel(habit: Habit, scheduleStatus: HabitScheduleStatus, isDisabled: Bool) -> some View {
+        HStack(spacing: 12) {
+            quickActionProgressIndicator(habit: habit)
+            quickActionTextContent(habit: habit, scheduleStatus: scheduleStatus, isDisabled: isDisabled)
+            Spacer()
+            Image(systemName: isDisabled ? "minus.circle" : "plus.circle.fill")
+                .font(.title2)
+                .foregroundColor(isDisabled ? .secondary : AppColors.brand)
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(isDisabled ? CardDesign.secondaryBackground.opacity(0.5) : AppColors.brand.opacity(0.1))
+        .cornerRadius(CardDesign.cornerRadius)
+        .overlay(
+            RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
+                .stroke(isDisabled ? Color.secondary.opacity(0.3) : AppColors.brand.opacity(0.2), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func quickActionProgressIndicator(habit: Habit) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color(hex: habit.colorHex).opacity(0.15))
+                .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+
+            if habit.kind == .numeric {
+                let currentValue = getProgress(habit)
+                let target = habit.dailyTarget ?? 1.0
+                let actualProgress = calculateProgress(current: currentValue, target: target)
+                let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
+
+                Circle()
+                    .trim(from: 0, to: animatedProgress)
+                    .stroke(
+                        .linearGradient(
+                            colors: progressGradientColors(for: actualProgress),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                    .rotationEffect(.degrees(-90))
+            }
+
+            Text(habit.emoji ?? "📊").font(.title3)
+        }
+    }
+
+    @ViewBuilder
+    private func quickActionTextContent(habit: Habit, scheduleStatus: HabitScheduleStatus, isDisabled: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Next: \(habit.name)")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(isDisabled ? .primary.opacity(0.6) : .primary)
+
+            if isDisabled {
+                Text(scheduleStatus.displayText)
+                    .font(.caption)
+                    .foregroundColor(scheduleStatus.color)
+            } else if habit.kind == .numeric {
+                let currentValue = getProgress(habit)
+                let target = habit.dailyTarget ?? 1.0
+                let unitText = habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                Text("\(Int(currentValue))/\(Int(target)) \(!unitText.isEmpty ? unitText : "units")")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
     }
     
     @ViewBuilder
@@ -642,300 +605,258 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func incompleteHabitsContent(summary: TodaysSummary) -> some View {
         if scheduledIncompleteCount > 0 {
             VStack(spacing: 8) {
-                // Show first 3 habits, or all if expanded
-                // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
                 ForEach(Array(visibleIncompleteHabits.enumerated()), id: \.element.id) { index, habit in
-                    if index == 0 {
-                        // Use TipView for the first incomplete habit to ensure tip shows
-                        VStack(spacing: 4) {
-                            TipView(tapHabitTip, arrowEdge: .bottom) { _ in
-                                // When first tip is dismissed, trigger second tip eligibility
-                                TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
-                                logger.log("First tip dismissed - donated shouldShowCompletedTip event", level: .debug, category: .ui)
-                            }
-                            habitRow(habit: habit, isCompleted: false)
-                        }
-                        .onAppear {
-                            logger.log("First incomplete habit row appeared - tip should show if eligible", level: .debug, category: .ui)
-                        }
-                    } else {
-                        habitRow(habit: habit, isCompleted: false)
-                    }
+                    incompleteHabitItem(habit: habit, isFirstItem: index == 0)
                 }
 
                 if scheduledIncompleteCount > 3 {
-                    if isRemainingSectionExpanded {
-                        // Collapse button
-                        Button {
-                            isRemainingSectionExpanded = false
-                        } label: {
-                            HStack {
-                                Text("Show less")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(AppColors.brand)
-
-                                Image(systemName: "chevron.up")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(AppColors.brand)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .padding(.top, 4)
-                    } else {
-                        // Expand button
-                        Button {
-                            isRemainingSectionExpanded = true
-                        } label: {
-                            HStack {
-                                Text("+ \(scheduledIncompleteCount - 3) more remaining")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(AppColors.brand)
-
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(AppColors.brand)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .padding(.top, 2)
-                    }
+                    sectionToggleButton(
+                        isExpanded: isRemainingSectionExpanded,
+                        expandText: "+ \(scheduledIncompleteCount - 3) more remaining",
+                        color: AppColors.brand,
+                        onToggle: { isRemainingSectionExpanded.toggle() }
+                    )
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func incompleteHabitItem(habit: Habit, isFirstItem: Bool) -> some View {
+        if isFirstItem {
+            VStack(spacing: 4) {
+                TipView(tapHabitTip, arrowEdge: .bottom) { _ in
+                    TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
+                    logger.log("First tip dismissed - donated shouldShowCompletedTip event", level: .debug, category: .ui)
+                }
+                habitRow(habit: habit, isCompleted: false)
+            }
+            .onAppear {
+                logger.log("First incomplete habit row appeared - tip should show if eligible", level: .debug, category: .ui)
+            }
+        } else {
+            habitRow(habit: habit, isCompleted: false)
         }
     }
 
     @ViewBuilder
     private func completedHabitsContent(summary: TodaysSummary) -> some View {
         VStack(spacing: 6) {
-            // Always show first 2 completed habits
             ForEach(Array(summary.completedHabits.prefix(2).enumerated()), id: \.element.id) { index, habit in
-                if index == 0 {
-                    // Use TipView for the first completed habit to ensure tip shows when it becomes eligible
-                    VStack(spacing: 4) {
-                        TipView(tapCompletedHabitTip, arrowEdge: .bottom)
-                        habitRow(habit: habit, isCompleted: true)
-                    }
-                    .onAppear {
-                        logger.log("First completed habit row appeared - tip should show if eligible", level: .debug, category: .ui)
-                    }
-                } else {
-                    habitRow(habit: habit, isCompleted: true)
-                }
+                completedHabitItem(habit: habit, isFirstItem: index == 0)
             }
 
-            // Expandable section for additional completed habits
             if summary.completedHabits.count > 2 {
-                if isCompletedSectionExpanded {
-                    // Show all remaining completed habits
-                    // PERFORMANCE: Use pre-computed array instead of creating NEW array on every render
-                    ForEach(visibleCompletedHabits, id: \.id) { habit in
-                        habitRow(habit: habit, isCompleted: true)
-                    }
+                completedHabitsExpandableSection(summary: summary)
+            }
+        }
+    }
 
-                    // Collapse button
-                    Button {
-                        isCompletedSectionExpanded = false
-                    } label: {
-                        HStack {
-                            Text("Show less")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.green)
+    @ViewBuilder
+    private func completedHabitItem(habit: Habit, isFirstItem: Bool) -> some View {
+        if isFirstItem {
+            VStack(spacing: 4) {
+                TipView(tapCompletedHabitTip, arrowEdge: .bottom)
+                habitRow(habit: habit, isCompleted: true)
+            }
+            .onAppear {
+                logger.log("First completed habit row appeared - tip should show if eligible", level: .debug, category: .ui)
+            }
+        } else {
+            habitRow(habit: habit, isCompleted: true)
+        }
+    }
 
-                            Image(systemName: "chevron.up")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.green)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.top, 4)
-                } else {
-                    // Expand button
-                    Button {
-                        isCompletedSectionExpanded = true
-                    } label: {
-                        HStack {
-                            Text("+ \(summary.completedHabits.count - 2) more completed")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.green)
+    @ViewBuilder
+    private func completedHabitsExpandableSection(summary: TodaysSummary) -> some View {
+        if isCompletedSectionExpanded {
+            ForEach(visibleCompletedHabits, id: \.id) { habit in
+                habitRow(habit: habit, isCompleted: true)
+            }
+        }
 
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.green)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.top, 2)
+        sectionToggleButton(
+            isExpanded: isCompletedSectionExpanded,
+            expandText: "+ \(summary.completedHabits.count - 2) more completed",
+            color: .green,
+            onToggle: { isCompletedSectionExpanded.toggle() }
+        )
+    }
+
+    @ViewBuilder
+    private func sectionToggleButton(isExpanded: Bool, expandText: String, color: Color, onToggle: @escaping () -> Void) -> some View {
+        Button(action: onToggle) {
+            HStack {
+                Text(isExpanded ? "Show less" : expandText)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(color)
+
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.top, isExpanded ? 4 : 2)
+    }
+
+    @ViewBuilder
+    private func habitRow(habit: Habit, isCompleted: Bool) -> some View {
+        let scheduleStatus = getScheduleStatus(habit)
+        let isDisabled = !isCompleted && !scheduleStatus.isAvailable
+
+        HStack(spacing: 0) {
+            habitRowMainButton(habit: habit, isCompleted: isCompleted, scheduleStatus: scheduleStatus, isDisabled: isDisabled)
+            habitRowTrailingButton(habit: habit, isCompleted: isCompleted, scheduleStatus: scheduleStatus)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(habitRowBackground(isCompleted: isCompleted, isDisabled: isDisabled))
+        .overlay(habitRowBorder(isCompleted: isCompleted, isDisabled: isDisabled))
+        .opacity(isDisabled ? 0.6 : 1.0)
+        .completionGlow(isGlowing: glowingHabitId == habit.id)
+    }
+
+    @ViewBuilder
+    private func habitRowMainButton(habit: Habit, isCompleted: Bool, scheduleStatus: HabitScheduleStatus, isDisabled: Bool) -> some View {
+        Button {
+            handleHabitRowTap(habit: habit, isCompleted: isCompleted, scheduleStatus: scheduleStatus)
+        } label: {
+            HStack(spacing: 12) {
+                habitEmojiView(habit: habit, isCompleted: isCompleted)
+                habitInfoView(habit: habit, isCompleted: isCompleted, isDisabled: isDisabled, scheduleStatus: scheduleStatus)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(isDisabled && !isCompleted)
+    }
+
+    private func handleHabitRowTap(habit: Habit, isCompleted: Bool, scheduleStatus: HabitScheduleStatus) {
+        if isCompleted {
+            if habit.kind == .numeric {
+                onNumericHabitAction?(habit)
+            } else {
+                habitToUncomplete = habit
+            }
+        } else if scheduleStatus.isAvailable {
+            if habit.kind == .numeric {
+                onNumericHabitAction?(habit)
+            } else {
+                glowingHabitId = habit.id
+                performCompletionAnimation(for: habit)
+                habitRowGlowTask?.cancel()
+                habitRowGlowTask = Task {
+                    try? await Task.sleep(nanoseconds: AnimationTiming.completionGlowDelay)
+                    glowingHabitId = nil
                 }
             }
         }
     }
 
     @ViewBuilder
-    // swiftlint:disable:next function_body_length
-    private func habitRow(habit: Habit, isCompleted: Bool) -> some View {
-        let scheduleStatus = getScheduleStatus(habit)
-        let isDisabled = !isCompleted && !scheduleStatus.isAvailable
-        
-        HStack(spacing: 0) {
-            // LEFT ZONE: Main content - tappable for quick action or adjustment
+    private func habitEmojiView(habit: Habit, isCompleted: Bool) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color(hex: habit.colorHex).opacity(0.15))
+                .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+
+            if habit.kind == .numeric && !isCompleted {
+                let currentValue = getProgress(habit)
+                let target = habit.dailyTarget ?? 1.0
+                let actualProgress = calculateProgress(current: currentValue, target: target)
+                let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
+
+                Circle()
+                    .trim(from: 0, to: animatedProgress)
+                    .stroke(
+                        .linearGradient(
+                            colors: progressGradientColors(for: actualProgress),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+                    )
+                    .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                    .rotationEffect(.degrees(-90))
+            }
+
+            Text(habit.emoji ?? "📊")
+                .font(.title3)
+        }
+    }
+
+    @ViewBuilder
+    private func habitInfoView(habit: Habit, isCompleted: Bool, isDisabled: Bool, scheduleStatus: HabitScheduleStatus) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(habit.name)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(isCompleted ? .gray : (isDisabled ? .secondary.opacity(0.7) : .primary))
+                .strikethrough(isCompleted, color: .gray)
+                .lineLimit(1)
+
+            if habit.kind == .numeric {
+                let currentValue = getProgress(habit)
+                let target = habit.dailyTarget ?? 1.0
+                Text("\(Int(currentValue))/\(Int(target)) \(habit.unitLabel ?? "units")")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            } else if !isCompleted && isDisabled {
+                Text(scheduleStatus.displayText)
+                    .font(.caption)
+                    .foregroundColor(scheduleStatus.color)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func habitRowTrailingButton(habit: Habit, isCompleted: Bool, scheduleStatus: HabitScheduleStatus) -> some View {
+        if isCompleted {
             Button {
-                if isCompleted {
-                    // Completed habits: allow adjustment
-                    if habit.kind == .numeric {
-                        // Numeric habit: open progress sheet to adjust value
-                        onNumericHabitAction?(habit)
-                    } else {
-                        // Binary habit: show uncomplete confirmation sheet
-                        habitToUncomplete = habit
-                    }
-                } else if scheduleStatus.isAvailable {
-                    if habit.kind == .numeric {
-                        onNumericHabitAction?(habit)
-                    } else {
-                        // Binary habit - animate completion with glow
-                        glowingHabitId = habit.id
-                        performCompletionAnimation(for: habit)
-
-                        // Cancel any existing habit row glow task
-                        habitRowGlowTask?.cancel()
-
-                        // Clear glow after animation
-                        habitRowGlowTask = Task {
-                            try? await Task.sleep(nanoseconds: AnimationTiming.completionGlowDelay)
-                            glowingHabitId = nil
-                        }
-                    }
-                }
+                habitToDelete = habit
+                showingDeleteAlert = true
             } label: {
-                HStack(spacing: 12) {
-                // Habit emoji with progress indicator and completion animation
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: habit.colorHex).opacity(0.15))
-                        .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
-
-                    // Progress ring for numeric habits with animated gradient (only for incomplete)
-                    if habit.kind == .numeric && !isCompleted {
-                        let currentValue = getProgress(habit)
-                        let target = habit.dailyTarget ?? 1.0
-                        let actualProgress = calculateProgress(current: currentValue, target: target)
-                        let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
-
-                        Circle()
-                            .trim(from: 0, to: animatedProgress)
-                            .stroke(
-                                .linearGradient(
-                                    colors: progressGradientColors(for: actualProgress),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
-                            )
-                            .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
-                            .rotationEffect(.degrees(-90))
+                Image(systemName: "ellipsis.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(.gray.opacity(0.8))
+                    .padding(.leading, 8)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(PlainButtonStyle())
+        } else {
+            Button {
+                showingScheduleInfoSheet = true
+            } label: {
+                HStack(spacing: 6) {
+                    if isViewingToday, let streakStatus = getStreakStatus?(habit), streakStatus.isAtRisk {
+                        HStack(spacing: 0) {
+                            Text("🔥").font(.system(size: 12))
+                            Text("\(streakStatus.atRisk)")
+                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                .foregroundColor(.orange)
+                        }
+                        .modifier(PulseAnimationModifier())
                     }
-
-                    // PERFORMANCE: Removed animation overlays - causing scroll lag
-                    // These complex conditional animations were evaluated on every frame
-
-                    // Habit emoji
-                    Text(habit.emoji ?? "📊")
-                        .font(.title3)
-                        // PERFORMANCE: Removed complex opacity calculation - caused evaluation on every habit during scroll
+                    HabitScheduleIndicator(status: scheduleStatus, size: .medium, style: .iconOnly)
                 }
-
-                // Habit info
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(habit.name)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(isCompleted ? .gray : (isDisabled ? .secondary.opacity(0.7) : .primary))
-                        .strikethrough(isCompleted, color: .gray)
-                        .lineLimit(1)
-
-                    // Show progress for numeric habits (both completed and incomplete)
-                    if habit.kind == .numeric {
-                        let currentValue = getProgress(habit)
-                        let target = habit.dailyTarget ?? 1.0
-                        let currentInt = Int(currentValue)
-                        let targetInt = Int(target)
-                        Text("\(currentInt)/\(targetInt) \(habit.unitLabel ?? "units")")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    } else if !isCompleted && isDisabled {
-                        // Show schedule status only for incomplete disabled habits
-                        Text(scheduleStatus.displayText)
-                            .font(.caption)
-                            .foregroundColor(scheduleStatus.color)
-                    }
-                }
-
-                Spacer(minLength: 0)
-                }
+                .padding(.leading, 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(PlainButtonStyle())
-            .disabled(isDisabled && !isCompleted)  // Allow completed habits to be tapped for adjustment
-
-            // RIGHT ZONE: Icon area - tappable for info sheet (or delete for completed)
-            if isCompleted {
-                Button {
-                    habitToDelete = habit
-                    showingDeleteAlert = true
-                } label: {
-                    Image(systemName: "ellipsis.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.gray.opacity(0.8))
-                        .padding(.leading, 8)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(PlainButtonStyle())
-            } else {
-                Button {
-                    showingScheduleInfoSheet = true
-                } label: {
-                    HStack(spacing: 6) {
-                        // Streak at risk indicator (only show for actual today, not retroactive days)
-                        if isViewingToday,
-                           let streakStatus = getStreakStatus?(habit),
-                           streakStatus.isAtRisk {
-                            HStack(spacing: 0) {
-                                Text("🔥")
-                                    .font(.system(size: 12))
-                                Text("\(streakStatus.atRisk)")
-                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.orange)
-                            }
-                            .modifier(PulseAnimationModifier())
-                        }
-
-                        HabitScheduleIndicator(status: scheduleStatus, size: .medium, style: .iconOnly)
-                    }
-                    .padding(.leading, 8)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(
-            RoundedRectangle(cornerRadius: CardDesign.innerCornerRadius)
-                .fill(isCompleted ? Color.green.opacity(0.1) : (isDisabled ? CardDesign.secondaryBackground.opacity(0.5) : AppColors.brand.opacity(0.1)))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CardDesign.innerCornerRadius)
-                .stroke(isCompleted ? Color.green.opacity(0.2) : (isDisabled ? Color.secondary.opacity(0.1) : AppColors.brand.opacity(0.2)), lineWidth: 1)
-        )
-        .opacity(isDisabled ? 0.6 : 1.0)
-        .completionGlow(isGlowing: glowingHabitId == habit.id)
+    }
+
+    private func habitRowBackground(isCompleted: Bool, isDisabled: Bool) -> some View {
+        RoundedRectangle(cornerRadius: CardDesign.innerCornerRadius)
+            .fill(isCompleted ? Color.green.opacity(0.1) : (isDisabled ? CardDesign.secondaryBackground.opacity(0.5) : AppColors.brand.opacity(0.1)))
+    }
+
+    private func habitRowBorder(isCompleted: Bool, isDisabled: Bool) -> some View {
+        RoundedRectangle(cornerRadius: CardDesign.innerCornerRadius)
+            .stroke(isCompleted ? Color.green.opacity(0.2) : (isDisabled ? Color.secondary.opacity(0.1) : AppColors.brand.opacity(0.2)), lineWidth: 1)
     }
     
     @ViewBuilder
@@ -1035,100 +956,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     }
 }
 
-// MARK: - Schedule Icon Info Sheet
-
-struct ScheduleIconInfoSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    ScheduleInfoRow(
-                        icon: "infinity.circle.fill",
-                        iconColor: .blue,
-                        title: "Always Available",
-                        description: "Daily habits that can be logged any day"
-                    )
-
-                    ScheduleInfoRow(
-                        icon: "calendar.circle.fill",
-                        iconColor: .green,
-                        title: "Scheduled for Today",
-                        description: "Habit is scheduled for specific days, and today is one of them"
-                    )
-                } header: {
-                    Text("Schedule Icons")
-                } footer: {
-                    Text("These icons indicate when habits are available to log based on their schedule type.")
-                }
-
-                Section {
-                    StreakInfoRow()
-                } header: {
-                    Text("Streak Indicator")
-                } footer: {
-                    Text("Keep your streaks alive by logging habits before midnight!")
-                }
-            }
-            .navigationTitle("Habit Status")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct ScheduleInfoRow: View {
-    let icon: String
-    let iconColor: Color
-    let title: String
-    let description: String
-
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(iconColor)
-                .frame(width: 32)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-private struct StreakInfoRow: View {
-    var body: some View {
-        HStack(spacing: 16) {
-            Text("🔥")
-                .font(.title2)
-                .modifier(SheetPulseAnimationModifier())
-                .frame(width: 32)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Streak at Risk")
-                    .font(.headline)
-                Text("You have an active streak! Log this habit today to keep it going. The number shows your current streak length.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
 #Preview {
     VStack(spacing: 20) {
         // Today state
@@ -1210,72 +1037,3 @@ private struct StreakInfoRow: View {
     .padding()
     .background(Color(.systemGroupedBackground))
 }
-
-// MARK: - Pulse Animation for Streak At Risk
-
-private struct PulseAnimationModifier: ViewModifier {
-    @State private var pulseCount = 0
-    @State private var scale: CGFloat = 0.95
-    @State private var opacity: Double = 0.65
-
-    private let maxPulses = 2
-
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(scale)
-            .opacity(opacity)
-            .onAppear {
-                animatePulse()
-            }
-    }
-
-    private func animatePulse() {
-        guard pulseCount < maxPulses else {
-            // Stop at ending size
-            withAnimation(.easeOut(duration: 0.3)) {
-                scale = 1.2
-                opacity = 1.0
-            }
-            return
-        }
-
-        // Pulse up
-        withAnimation(.easeInOut(duration: 0.45)) {
-            scale = 1.2
-            opacity = 1.0
-        }
-
-        // Pulse down after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-            withAnimation(.easeInOut(duration: 0.45)) {
-                scale = 0.95
-                opacity = 0.65
-            }
-
-            // Schedule next pulse
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-                pulseCount += 1
-                animatePulse()
-            }
-        }
-    }
-}
-
-private struct SheetPulseAnimationModifier: ViewModifier {
-    @State private var isPulsing = false
-
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(isPulsing ? 1.2 : 1.0)
-            .opacity(isPulsing ? 1.0 : 0.7)
-            .animation(
-                .easeInOut(duration: 0.9)
-                .repeatForever(autoreverses: true),
-                value: isPulsing
-            )
-            .onAppear {
-                isPulsing = true
-            }
-    }
-}
-

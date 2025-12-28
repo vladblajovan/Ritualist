@@ -90,56 +90,81 @@ extension StatsViewModel {
     /// Extract weekly patterns from unified dashboard data
     /// Uses pre-loaded logs without additional queries
     func extractWeeklyPatterns(from dashboardData: StatsData) -> WeeklyPatternsViewModel? {
-        // Calculate weekly patterns from dashboard data
         let habits = dashboardData.habits
         let dateRange = dashboardData.dateRange
 
-        logPerfectDayPatternsStart(habits: habits, dateRange: dateRange)
+        guard !habits.isEmpty else { return nil }
 
-        guard !habits.isEmpty else {
-            return nil
-        }
-        
-        let calendar = CalendarUtils.currentLocalCalendar // Use system calendar with user's week start preference
-        var dayOfWeekStats: [Int: (completed: Int, total: Int)] = [:]
-        
-        // Initialize stats for all days of week (1 = Sunday, 7 = Saturday)
-        for dayNum in 1...7 {
-            dayOfWeekStats[dayNum] = (completed: 0, total: 0)
-        }
-        
-        // Analyze each day in the date range
-        let (updatedStats, daysWithData) = analyzeDayByDayData(
+        let calendar = CalendarUtils.currentLocalCalendar
+        let initialStats = initializeDayOfWeekStats()
+
+        let (dayOfWeekStats, daysWithData) = analyzeDayByDayData(
             dashboardData: dashboardData,
             dateRange: dateRange,
             calendar: calendar,
-            initialStats: dayOfWeekStats
+            initialStats: initialStats
         )
-        dayOfWeekStats = updatedStats
-        
-        // Use proper week ordering respecting user's week start preference
+
+        let analysis = calculateDayPerformances(dayOfWeekStats: dayOfWeekStats, calendar: calendar)
+        let averageRate = calculateAverageRate(from: dayOfWeekStats)
+
+        let weeklyPatternsResult = WeeklyPatternsResult(
+            dayOfWeekPerformance: analysis.performances,
+            bestDay: analysis.bestDay,
+            worstDay: analysis.worstDay,
+            averageWeeklyCompletion: averageRate
+        )
+
+        return WeeklyPatternsViewModel(
+            from: weeklyPatternsResult,
+            daysWithData: daysWithData,
+            averageRate: averageRate,
+            habitCount: habits.count,
+            timePeriod: self.selectedTimePeriod,
+            logger: self.logger
+        )
+    }
+
+    private func initializeDayOfWeekStats() -> [Int: (completed: Int, total: Int)] {
+        var stats: [Int: (completed: Int, total: Int)] = [:]
+        for dayNum in 1...7 {
+            stats[dayNum] = (completed: 0, total: 0)
+        }
+        return stats
+    }
+
+    private struct DayPerformanceAnalysis {
+        let performances: [DayOfWeekPerformanceResult]
+        let bestDay: String
+        let worstDay: String
+        let bestDayRate: Double
+        let worstDayRate: Double
+    }
+
+    private func calculateDayPerformances(
+        dayOfWeekStats: [Int: (completed: Int, total: Int)],
+        calendar: Calendar
+    ) -> DayPerformanceAnalysis {
         let orderedWeekdaySymbols = DateUtils.orderedWeekdaySymbols(style: .standalone)
         var dayPerformances: [DayOfWeekPerformanceResult] = []
         var bestDayRate = 0.0
         var worstDayRate = 1.0
         var bestDay = orderedWeekdaySymbols.first ?? "Monday"
         var worstDay = orderedWeekdaySymbols.first ?? "Monday"
-        
-        // Process days in user's preferred order
+
         for (index, dayName) in orderedWeekdaySymbols.enumerated() {
-            // Convert back to Calendar weekday (1=Sunday, 2=Monday, etc.)
             let startIndex = calendar.firstWeekday - 1
             let calendarWeekday = ((index + startIndex) % 7) + 1
-            
+
             let stats = dayOfWeekStats[calendarWeekday] ?? (completed: 0, total: 0)
             let rate = stats.total > 0 ? Double(stats.completed) / Double(stats.total) : 0.0
-            
+
             dayPerformances.append(DayOfWeekPerformanceResult(
                 dayName: dayName,
                 completionRate: rate,
                 averageHabitsCompleted: stats.completed
             ))
-            
+
             if rate > bestDayRate {
                 bestDayRate = rate
                 bestDay = dayName
@@ -149,37 +174,21 @@ extension StatsViewModel {
                 worstDay = dayName
             }
         }
-        
-        let averageRate = dayOfWeekStats.values.reduce(0.0) { total, stats in
-            let rate = stats.total > 0 ? Double(stats.completed) / Double(stats.total) : 0.0
-            return total + rate
-        } / Double(dayOfWeekStats.count)
-        
-        logPerfectDayPatternsResults(
-            dayPerformances: dayPerformances,
+
+        return DayPerformanceAnalysis(
+            performances: dayPerformances,
             bestDay: bestDay,
             worstDay: worstDay,
             bestDayRate: bestDayRate,
-            worstDayRate: worstDayRate,
-            averageRate: averageRate,
-            daysWithData: daysWithData,
-            habitCount: habits.count
+            worstDayRate: worstDayRate
         )
-        
-        let weeklyPatternsResult = WeeklyPatternsResult(
-            dayOfWeekPerformance: dayPerformances,
-            bestDay: bestDay,
-            worstDay: worstDay,
-            averageWeeklyCompletion: averageRate
-        )
-        
-        return WeeklyPatternsViewModel(from: weeklyPatternsResult, daysWithData: daysWithData, averageRate: averageRate, habitCount: habits.count, timePeriod: self.selectedTimePeriod, logger: self.logger)
     }
-    
-    // MARK: - Debug Logging Helpers
-    
-    private func logPerfectDayPatternsStart(habits: [Habit], dateRange: ClosedRange<Date>) {
-        // Intentionally empty - kept for potential future debugging
+
+    private func calculateAverageRate(from dayOfWeekStats: [Int: (completed: Int, total: Int)]) -> Double {
+        dayOfWeekStats.values.reduce(0.0) { total, stats in
+            let rate = stats.total > 0 ? Double(stats.completed) / Double(stats.total) : 0.0
+            return total + rate
+        } / Double(dayOfWeekStats.count)
     }
     
     private func analyzeDayByDayData(
@@ -229,19 +238,6 @@ extension StatsViewModel {
         }
 
         return (dayOfWeekStats, daysWithData)
-    }
-    
-    private func logPerfectDayPatternsResults(
-        dayPerformances: [DayOfWeekPerformanceResult],
-        bestDay: String,
-        worstDay: String,
-        bestDayRate: Double,
-        worstDayRate: Double,
-        averageRate: Double,
-        daysWithData: Int,
-        habitCount: Int
-    ) {
-        // Intentionally empty - kept for potential future debugging
     }
     
     /// Extract streak analysis from unified dashboard data

@@ -191,8 +191,6 @@ struct CloudKitRecordTypeNamingTests {
         // The actual record type for PersonalityAnalysisModel would be "CD_PersonalityAnalysisModel"
 
         let expectedRecordType = "CD_PersonalityAnalysisModel"
-        let modelName = String(describing: ActivePersonalityAnalysisModel.self)
-            .replacingOccurrences(of: "SchemaV", with: "")  // Remove version prefix if present
 
         // The convention is: "CD_" + ModelTypeName
         // This test verifies our understanding of the naming convention

@@ -206,7 +206,6 @@ private struct HabitsContentView: View {
     }
 }
 
-// swiftlint:disable type_body_length
 private struct HabitsListView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
@@ -230,78 +229,19 @@ private struct HabitsListView: View {
                     await vm.retry()
                 }
             } else if vm.filteredHabits.isEmpty {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // Only show category carousel if habits exist but are filtered out
-                        if vm.selectedFilterCategory != nil {
-                            CategoryCarouselWithManagement(
-                                categories: vm.displayCategories,
-                                selectedCategory: vm.selectedFilterCategory,
-                                onCategoryTap: { category in
-                                    vm.selectFilterCategory(category)
-                                },
-                                onManageTap: {
-                                    showingCategoryManagement = true
-                                },
-                                scrollToStartOnSelection: true,
-                                allowDeselection: true
-                            )
-                            .padding(.top, Spacing.small)
-                            .padding(.bottom, Spacing.medium)
-                        }
-
-                        VStack(spacing: Spacing.xlarge) {
-                            if vm.selectedFilterCategory != nil {
-                                ContentUnavailableView(
-                                    "No habits in this category",
-                                    systemImage: "tray",
-                                    description: Text("No habits found for the selected category. Try selecting a different category or create a new habit.")
-                                )
-                            } else {
-                                // Empty state matching Stats screen style
-                                VStack(spacing: 20) {
-                                    Image(systemName: "checklist")
-                                        .font(.system(size: 60))
-                                        .foregroundColor(.secondary.opacity(0.6))
-                                        .accessibilityHidden(true)
-
-                                    VStack(spacing: 8) {
-                                        Text(Strings.EmptyState.noHabitsYet)
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-
-                                        HStack(spacing: 4) {
-                                            Text("Tap")
-                                            Image(systemName: "plus")
-                                                .fontWeight(.medium)
-                                            Text("or")
-                                            Image(systemName: "sparkles")
-                                                .foregroundStyle(
-                                                    LinearGradient(
-                                                        colors: [.blue, .purple],
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
-                                            Text("to create your first habit")
-                                        }
-                                        .font(.body)
-                                        .foregroundColor(.secondary)
-                                    }
-                                }
-                                .frame(height: 300)
-                                .frame(maxWidth: .infinity)
-                                .padding(.horizontal, 40)
-                                .accessibilityElement(children: .combine)
-                                .accessibilityLabel("No habits yet. Tap plus or the AI assistant button to create your first habit.")
-                            }
-                        }
-                        .padding(.top, Spacing.large)
+                HabitsEmptyStateView(
+                    selectedFilterCategory: vm.selectedFilterCategory,
+                    displayCategories: vm.displayCategories,
+                    onCategoryTap: { category in
+                        vm.selectFilterCategory(category)
+                    },
+                    onManageTap: {
+                        showingCategoryManagement = true
+                    },
+                    onRefresh: {
+                        await vm.refresh()
                     }
-                }
-                .refreshable {
-                    await vm.refresh()
-                }
+                )
             } else {
                 // Unified scrolling: Everything inside List
                 List(selection: $selection) {
@@ -391,7 +331,22 @@ private struct HabitsListView: View {
                 .listStyle(.insetGrouped)
                 .overlay(alignment: .bottom) {
                     if !selection.isEmpty {
-                        editModeToolbar
+                        HabitsEditModeToolbar(
+                            selectionCount: selection.count,
+                            hasActiveSelected: hasActiveSelectedHabits,
+                            hasInactiveSelected: hasInactiveSelectedHabits,
+                            onActivate: {
+                                Task { await activateSelectedHabits() }
+                            },
+                            onDeactivate: {
+                                habitsToDeactivate = selection
+                                showingDeactivateConfirmation = true
+                            },
+                            onDelete: {
+                                habitsToDelete = selection
+                                showingBatchDeleteConfirmation = true
+                            }
+                        )
                     }
                 }
             }
@@ -465,66 +420,7 @@ private struct HabitsListView: View {
             Text(deactivateConfirmationMessage)
         }
     }
-    
-    private var editModeToolbar: some View {
-        HStack(spacing: Spacing.large) {
-            Text("\(selection.count) selected")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            Spacer()
-            
-            if hasInactiveSelectedHabits {
-                Button {
-                    Task {
-                        await activateSelectedHabits()
-                    }
-                } label: {
-                    VStack(spacing: 2) {
-                        Image(systemName: "play.circle")
-                            .font(.title2)
-                        Text("Activate")
-                            .font(.caption2)
-                    }
-                }
-                .foregroundColor(.green)
-            }
-            
-            if hasActiveSelectedHabits {
-                Button {
-                    habitsToDeactivate = selection
-                    showingDeactivateConfirmation = true
-                } label: {
-                    VStack(spacing: 2) {
-                        Image(systemName: "pause.circle")
-                            .font(.title2)
-                        Text("Deactivate")
-                            .font(.caption2)
-                    }
-                }
-                .foregroundColor(.orange)
-            }
-            
-            Button {
-                habitsToDelete = selection
-                showingBatchDeleteConfirmation = true
-            } label: {
-                VStack(spacing: 2) {
-                    Image(systemName: "trash")
-                        .font(.title2)
-                    Text("Delete")
-                        .font(.caption2)
-                }
-            }
-            .foregroundColor(.red)
-        }
-        .padding(.horizontal, Spacing.large)
-        .padding(.vertical, Spacing.medium)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal, Spacing.medium)
-        .padding(.bottom, Spacing.small)
-    }
-    
+
     private var hasActiveSelectedHabits: Bool {
         let selectedHabits = vm.filteredHabits.filter { selection.contains($0.id) }
         return selectedHabits.contains { $0.isActive }

@@ -20,7 +20,11 @@ import Foundation
 /// // ... perform migration ...
 /// logger.logMigrationSuccess(from: "1.0.0", to: "2.0.0", duration: 1.5)
 /// ```
-public final class MigrationLogger: @unchecked Sendable {
+///
+/// **Thread Safety:**
+/// All properties are immutable (`let`) and their types are `Sendable`.
+/// Uses `DebugLogger` (actor) and `UserDefaultsService` (thread-safe).
+public final class MigrationLogger: Sendable {
 
     // MARK: - Singleton
 

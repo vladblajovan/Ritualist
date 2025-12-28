@@ -34,7 +34,7 @@ struct ExportDocument: FileDocument {
 
 struct DataManagementSectionView: View {
     @Bindable var vm: SettingsViewModel
-    let onDeleteResult: (SettingsViewModel.DeleteAllDataResult) -> Void
+    let onDeleteResult: (DeleteAllDataResult) -> Void
     @State private var showingDeleteConfirmation = false
     @State private var showingExporter = false
     @State private var showingImporter = false

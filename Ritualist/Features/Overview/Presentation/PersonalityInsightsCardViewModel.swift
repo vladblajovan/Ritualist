@@ -66,98 +66,88 @@ public final class PersonalityInsightsCardViewModel {
     /// Called after data loads or when user returns to the overview
     public func loadPersonalityInsights() async {
         do {
-            // Check if user is premium - personality insights is a premium feature
-            let isPremium = await checkPremiumStatus.execute()
-            guard isPremium else {
-                // Non-premium users should not see the personality insights card
-                shouldShowPersonalityInsights = false
-                personalityInsights = []
-                dominantPersonalityTrait = nil
-                isPersonalityDataSufficient = false
-                personalityThresholdRequirements = []
+            guard await checkPremiumStatus.execute() else {
+                resetInsightsForNonPremium()
                 return
             }
 
-            // Always get eligibility and requirements info using the UseCase
             let userId = await getUserId()
-            let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
-            let requirements = try await validateAnalysisDataUseCase.getProgressDetails(for: userId)
-
-            // Update state with eligibility info
-            isPersonalityDataSufficient = eligibility.isEligible
-            personalityThresholdRequirements = requirements
-
-            // Show the card for premium users - it will handle different states internally
+            try await updateEligibilityState(for: userId)
             shouldShowPersonalityInsights = true
 
-            // Get existing personality profile
-            var personalityProfile = try await getPersonalityProfileUseCase.execute(for: userId)
+            let personalityProfile = try await fetchOrCreateProfile(for: userId)
+            updateInsightsFromProfile(personalityProfile)
+        } catch {
+            logger.log("Failed to load personality insights: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
+            resetInsightsOnError()
+        }
+    }
 
-            // If user is eligible but no profile exists, attempt to create one
-            if eligibility.isEligible && personalityProfile == nil {
-                do {
-                    let newProfile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
-                    personalityProfile = newProfile
-                } catch {
-                    // Log the error - analysis creation failures shouldn't crash the app
-                    logger.log("Failed to create personality analysis: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
-                    // If analysis fails, we still show the card but with error state
-                    personalityInsights = []
-                    dominantPersonalityTrait = nil
-                    return
-                }
-            }
+    private func resetInsightsForNonPremium() {
+        shouldShowPersonalityInsights = false
+        personalityInsights = []
+        dominantPersonalityTrait = nil
+        isPersonalityDataSufficient = false
+        personalityThresholdRequirements = []
+    }
 
-            // If we have a profile, get insights from it
-            if let profile = personalityProfile {
-                let insights = getPersonalityInsightsUseCase.getAllInsights(for: profile)
+    private func resetInsightsOnError() {
+        personalityInsights = []
+        dominantPersonalityTrait = nil
+        isPersonalityDataSufficient = false
+        personalityThresholdRequirements = []
+    }
 
-                // Convert to OverviewPersonalityInsight format for the new card
-                var cardInsights: [OverviewPersonalityInsight] = []
+    private func updateEligibilityState(for userId: UUID) async throws {
+        let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
+        let requirements = try await validateAnalysisDataUseCase.getProgressDetails(for: userId)
+        isPersonalityDataSufficient = eligibility.isEligible
+        personalityThresholdRequirements = requirements
+    }
 
-                // Add pattern insights
-                for insight in insights.patternInsights.prefix(2) {
-                    cardInsights.append(OverviewPersonalityInsight(
-                        title: insight.title,
-                        message: insight.description,
-                        type: .pattern
-                    ))
-                }
+    private func fetchOrCreateProfile(for userId: UUID) async throws -> PersonalityProfile? {
+        var profile = try await getPersonalityProfileUseCase.execute(for: userId)
 
-                // Add habit recommendations
-                for insight in insights.habitRecommendations.prefix(2) {
-                    cardInsights.append(OverviewPersonalityInsight(
-                        title: insight.title,
-                        message: insight.actionable,
-                        type: .recommendation
-                    ))
-                }
-
-                // Add one motivational insight
-                if let motivationalInsight = insights.motivationalInsights.first {
-                    cardInsights.append(OverviewPersonalityInsight(
-                        title: motivationalInsight.title,
-                        message: motivationalInsight.actionable,
-                        type: .motivation
-                    ))
-                }
-
-                personalityInsights = cardInsights
-                dominantPersonalityTrait = profile.dominantTrait.displayName
-            } else {
-                // No profile available (either data insufficient or analysis failed)
+        if isPersonalityDataSufficient && profile == nil {
+            do {
+                profile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
+            } catch {
+                logger.log("Failed to create personality analysis: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
                 personalityInsights = []
                 dominantPersonalityTrait = nil
             }
-        } catch {
-            // Log the error for debugging - personality analysis failures shouldn't crash the app
-            logger.log("Failed to load personality insights: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
-            // Even on error, show the card but with empty state
+        }
+        return profile
+    }
+
+    private func updateInsightsFromProfile(_ profile: PersonalityProfile?) {
+        guard let profile = profile else {
             personalityInsights = []
             dominantPersonalityTrait = nil
-            isPersonalityDataSufficient = false
-            personalityThresholdRequirements = []
+            return
         }
+
+        let insights = getPersonalityInsightsUseCase.getAllInsights(for: profile)
+        personalityInsights = buildCardInsights(from: insights)
+        dominantPersonalityTrait = profile.dominantTrait.displayName
+    }
+
+    private func buildCardInsights(from insights: PersonalityInsightCollection) -> [OverviewPersonalityInsight] {
+        var cardInsights: [OverviewPersonalityInsight] = []
+
+        for insight in insights.patternInsights.prefix(2) {
+            cardInsights.append(OverviewPersonalityInsight(title: insight.title, message: insight.description, type: .pattern))
+        }
+
+        for insight in insights.habitRecommendations.prefix(2) {
+            cardInsights.append(OverviewPersonalityInsight(title: insight.title, message: insight.actionable, type: .recommendation))
+        }
+
+        if let motivationalInsight = insights.motivationalInsights.first {
+            cardInsights.append(OverviewPersonalityInsight(title: motivationalInsight.title, message: motivationalInsight.actionable, type: .motivation))
+        }
+
+        return cardInsights
     }
 
     /// Check if personality analysis is eligible for this user

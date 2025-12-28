@@ -11,6 +11,33 @@ import Foundation
 import FactoryKit
 import RitualistCore
 
+// MARK: - Configuration Input
+
+public struct InspirationCardConfiguration {
+    public let activeStreaks: [StreakInfo]
+    public let todaysSummary: TodaysSummary?
+    public let displayTimezone: TimeZone
+    public let isViewingToday: Bool
+    public let totalHabitsCount: Int
+    public let userName: String?
+
+    public init(
+        activeStreaks: [StreakInfo],
+        todaysSummary: TodaysSummary?,
+        displayTimezone: TimeZone,
+        isViewingToday: Bool,
+        totalHabitsCount: Int,
+        userName: String?
+    ) {
+        self.activeStreaks = activeStreaks
+        self.todaysSummary = todaysSummary
+        self.displayTimezone = displayTimezone
+        self.isViewingToday = isViewingToday
+        self.totalHabitsCount = totalHabitsCount
+        self.userName = userName
+    }
+}
+
 // MARK: - InspirationCardViewModel
 
 @MainActor
@@ -79,20 +106,13 @@ public final class InspirationCardViewModel {
 
     // MARK: - Context Configuration
 
-    public func configure(
-        activeStreaks: [StreakInfo],
-        todaysSummary: TodaysSummary?,
-        displayTimezone: TimeZone,
-        isViewingToday: Bool,
-        totalHabitsCount: Int,
-        userName: String?
-    ) {
-        self.activeStreaks = activeStreaks
-        self.todaysSummary = todaysSummary
-        self.displayTimezone = displayTimezone
-        self.isViewingToday = isViewingToday
-        self.totalHabitsCount = totalHabitsCount
-        self.cachedUserName = userName
+    public func configure(with configuration: InspirationCardConfiguration) {
+        self.activeStreaks = configuration.activeStreaks
+        self.todaysSummary = configuration.todaysSummary
+        self.displayTimezone = configuration.displayTimezone
+        self.isViewingToday = configuration.isViewingToday
+        self.totalHabitsCount = configuration.totalHabitsCount
+        self.cachedUserName = configuration.userName
     }
 
     // MARK: - Public Methods

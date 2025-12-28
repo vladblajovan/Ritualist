@@ -366,11 +366,6 @@ struct HabitScheduleAnalyzerTimezoneTests {
             schedule: .daysOfWeek([1, 3, 5])
         )
 
-        // Create Monday at 11:30 PM Tokyo time
-        let mondayNight = TimezoneTestHelpers.createLateNightDate(
-            timezone: TimezoneTestHelpers.tokyo
-        )
-
         // Note: The lateNightDate is Nov 8 which is a Friday, not Monday
         // Let's create a proper Monday late night
         let mondayLateNight = TimezoneTestHelpers.createDate(

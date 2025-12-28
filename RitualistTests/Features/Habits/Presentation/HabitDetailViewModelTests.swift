@@ -182,7 +182,7 @@ struct HabitDetailViewModelFormValidityTests {
     func formInvalidWhenDuplicate() async throws {
         // Arrange
         let habit = HabitBuilder.binary(schedule: .daily, startDate: TestDates.today)
-        let (viewModel, mocks) = TestViewModelContainer.habitDetailViewModel(
+        let (viewModel, _) = TestViewModelContainer.habitDetailViewModel(
             habit: habit,
             isUnique: false  // Habit is a duplicate
         )
@@ -352,7 +352,7 @@ struct HabitDetailViewModelEdgeCaseTests {
     @MainActor
     func newHabitDoesNotLoadEarliestLogDate() async throws {
         // Arrange - create new habit (nil)
-        let (viewModel, mocks) = TestViewModelContainer.habitDetailViewModel(
+        let (viewModel, _) = TestViewModelContainer.habitDetailViewModel(
             habit: nil,  // New habit
             earliestLogDate: TestDates.yesterday
         )
@@ -824,7 +824,7 @@ struct HabitDetailViewModelCategoryTests {
     @Test("validateForDuplicates skips validation for empty name")
     @MainActor
     func validateForDuplicatesSkipsEmptyName() async throws {
-        let (viewModel, mocks) = TestViewModelContainer.habitDetailViewModel()
+        let (viewModel, _) = TestViewModelContainer.habitDetailViewModel()
 
         await viewModel.loadInitialData()
 
@@ -838,7 +838,7 @@ struct HabitDetailViewModelCategoryTests {
     @Test("validateForDuplicates detects duplicates")
     @MainActor
     func validateForDuplicatesDetectsDuplicates() async throws {
-        let (viewModel, mocks) = TestViewModelContainer.habitDetailViewModel(isUnique: false)
+        let (viewModel, _) = TestViewModelContainer.habitDetailViewModel(isUnique: false)
 
         await viewModel.loadInitialData()
 
@@ -1168,7 +1168,7 @@ struct HabitDetailViewModelLocationConfigTests {
         await viewModel.loadInitialData()
 
         // Set a disabled config
-        var config = LocationConfiguration.create(
+        let config = LocationConfiguration.create(
             from: CLLocationCoordinate2D(latitude: 40.7128, longitude: -74.0060),
             radius: 100,
             triggerType: .entry,

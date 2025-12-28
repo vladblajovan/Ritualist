@@ -119,13 +119,9 @@ struct LogUseCasesTimezoneDateFilteringTests {
             timezone: tokyo
         )
 
-        // This same instant in New York is still Nov 14 (Tokyo is 14 hours ahead)
-        let logStartInNewYork = CalendarUtils.startOfDayLocal(for: tokyoLog, timezone: newYork)
-        let logStartInTokyo = CalendarUtils.startOfDayLocal(for: tokyoLog, timezone: tokyo)
-
         // Verify the dates are different
-        let (tokyoYear, tokyoMonth, tokyoDay) = TimezoneTestHelpers.calendarDay(for: tokyoLog, in: tokyo)
-        let (nyYear, nyMonth, nyDay) = TimezoneTestHelpers.calendarDay(for: tokyoLog, in: newYork)
+        let (_, _, tokyoDay) = TimezoneTestHelpers.calendarDay(for: tokyoLog, in: tokyo)
+        let (_, _, nyDay) = TimezoneTestHelpers.calendarDay(for: tokyoLog, in: newYork)
 
         #expect(tokyoDay == 15, "In Tokyo, the log is on Nov 15")
         #expect(nyDay == 14, "In New York, the same instant is Nov 14")
@@ -145,7 +141,7 @@ struct LogUseCasesTimezoneDateFilteringTests {
             hour: 0, minute: 0,
             timezone: newYork
         )
-        let queryUntil = TimezoneTestHelpers.createDate(
+        _ = TimezoneTestHelpers.createDate(
             year: 2025, month: 11, day: 20,
             hour: 23, minute: 59,
             timezone: newYork

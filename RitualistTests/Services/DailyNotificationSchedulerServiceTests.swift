@@ -288,7 +288,7 @@ struct DailyNotificationSchedulerServiceTests {
 
     @Test("Propagates repository errors")
     func propagatesRepositoryErrors() async throws {
-        let container = try TestModelContainer.create()
+        _ = try TestModelContainer.create()
         let scheduleHabitReminders = TrackingScheduleHabitReminders()
 
         // Create failing repository

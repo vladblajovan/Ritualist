@@ -48,8 +48,7 @@ struct InspirationCarouselView: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(minHeight: 100)
                 .offset(x: peekOffset)
-                // Reset to valid index when items change (e.g., after dismissal)
-                .onChange(of: items.count) { oldCount, newCount in
+                .onChange(of: items.count) { _, newCount in
                     if currentIndex >= newCount {
                         animateIfAllowed(.easeInOut(duration: 0.2)) {
                             currentIndex = max(0, newCount - 1)

@@ -261,7 +261,7 @@ struct RootTabViewModelTests {
     @Test("Dismiss returning user welcome clears state")
     @MainActor
     func dismissReturningUserWelcomeClearsState() async {
-        let (viewModel, mockiCloud) = createViewModel(iCloudCompleted: true, localCompleted: false)
+        let (viewModel, _) = createViewModel(iCloudCompleted: true, localCompleted: false)
 
         // Setup returning user welcome
         await viewModel.checkOnboardingStatus()

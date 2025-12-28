@@ -198,60 +198,10 @@ struct StreaksCard: View {
 
         Button {
             // Ensure we have valid streak data before showing sheet
-            guard !isLoading,
-                  !streak.habitName.isEmpty,
-                  streak.currentStreak >= 0 else {
-                return
-            }
+            guard !isLoading, !streak.habitName.isEmpty, streak.currentStreak >= 0 else { return }
             sheetStreak = streak
         } label: {
-            VStack(spacing: 8) {
-                // Habit emoji and name
-                VStack(spacing: 4) {
-                    Text(streak.emoji)
-                        .font(.title2)
-                        .accessibilityHidden(true) // Emoji is decorative, info is in label
-
-                    Text(streak.habitName)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-
-                // Streak stats
-                VStack(spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(streak.flameEmoji)
-                            .font(.caption2)
-                            .accessibilityHidden(true) // Decorative flame
-
-                        Text("\(streak.currentStreak)")
-                            .font(.body.weight(.bold))
-                            .foregroundColor(.primary)
-
-                        Text(streak.currentStreak == 1 ? "day" : "days")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-
-                    // Show streak level based on flameCount
-                    if streak.flameCount > 0 {
-                        Text(StreakDetailSheet.streakLevelText(for: streak.flameCount))
-                            .font(.caption2)
-                            .foregroundColor(.orange)
-                            .fontWeight(.medium)
-                    }
-                }
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity)
-            .frame(height: height)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(CardDesign.secondaryBackground)
-            )
+            streakItemContent(for: streak, height: height)
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityElement(children: .combine)
@@ -270,6 +220,54 @@ struct StreaksCard: View {
                 animatingStreakId = nil
                 onAnimationComplete()
             }
+        )
+    }
+
+    @ViewBuilder
+    private func streakItemContent(for streak: StreakInfo, height: CGFloat) -> some View {
+        VStack(spacing: 8) {
+            VStack(spacing: 4) {
+                Text(streak.emoji)
+                    .font(.title2)
+                    .accessibilityHidden(true)
+
+                Text(streak.habitName)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            VStack(spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(streak.flameEmoji)
+                        .font(.caption2)
+                        .accessibilityHidden(true)
+
+                    Text("\(streak.currentStreak)")
+                        .font(.body.weight(.bold))
+                        .foregroundColor(.primary)
+
+                    Text(streak.currentStreak == 1 ? "day" : "days")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                if streak.flameCount > 0 {
+                    Text(StreakDetailSheet.streakLevelText(for: streak.flameCount))
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                        .fontWeight(.medium)
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(CardDesign.secondaryBackground)
         )
     }
 }

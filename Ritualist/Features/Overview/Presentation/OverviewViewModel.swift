@@ -821,7 +821,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     /// Configure child ViewModels with current context
     private func configureChildViewModels(userName: String?) {
-        inspirationVM.configure(
+        let configuration = InspirationCardConfiguration(
             activeStreaks: activeStreaks,
             todaysSummary: todaysSummary,
             displayTimezone: displayTimezone,
@@ -829,6 +829,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             totalHabitsCount: overviewData?.habits.count ?? 0,
             userName: userName
         )
+        inspirationVM.configure(with: configuration)
     }
 
     /// Check if migration just completed and invalidate cache if needed
@@ -1004,91 +1005,90 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     /// Extract TodaysSummary from overview data
     internal func extractTodaysSummary(from data: OverviewData) -> TodaysSummary {
-        // CRITICAL: Use display timezone to get start of day for viewingDate
-        // viewingDate may have been calculated with a different timezone initially,
-        // so we normalize it to start of day in the data's timezone for consistent log matching
         let targetDate = CalendarUtils.startOfDayLocal(for: viewingDate, timezone: data.timezone)
         let habits = data.scheduledHabits(for: targetDate)
 
-        // DEBUG: Log all logs for first habit to understand timezone issues
+        logExtractTodaysSummaryDebugInfo(data: data, habits: habits, targetDate: targetDate)
+
+        let result = categorizeHabitsByCompletion(habits: habits, data: data, targetDate: targetDate)
+        let sortedCompleted = sortCompletedHabitsByLatestLog(result.completed, logs: result.logs)
+
+        return TodaysSummary(
+            completedHabitsCount: sortedCompleted.count,
+            completedHabits: sortedCompleted,
+            totalHabits: habits.count,
+            incompleteHabits: result.incomplete
+        )
+    }
+
+    /// Log debug info for extractTodaysSummary (extracted to reduce function length)
+    private func logExtractTodaysSummaryDebugInfo(data: OverviewData, habits: [Habit], targetDate: Date) {
         if let firstHabit = habits.first {
             let allLogs = data.habitLogs[firstHabit.id] ?? []
             let filteredLogs = data.logs(for: firstHabit.id, on: targetDate)
             logger.log(
                 "DEBUG extractTodaysSummary",
-                level: .warning,
+                level: .debug,
                 category: .stateManagement,
                 metadata: [
                     "viewingDate_utc": viewingDate.description,
                     "targetDate_utc": targetDate.description,
                     "data_timezone": data.timezone.identifier,
-                    "displayTimezone": displayTimezone.identifier,
                     "habit_name": firstHabit.name,
                     "all_logs_count": allLogs.count,
-                    "all_logs_dates": allLogs.map { "log:\($0.date.description) stored_tz:\($0.timezone)" }.joined(separator: "; "),
-                    "filtered_logs_count": filteredLogs.count,
-                    "filtered_logs_dates": filteredLogs.map { $0.date.description }.joined(separator: "; ")
+                    "filtered_logs_count": filteredLogs.count
                 ]
             )
         }
+    }
 
-        logger.logDataIntegrity(
-            check: "extractTodaysSummary",
-            passed: true,
-            metadata: [
-                "target_date": targetDate.description,
-                "total_habits": data.habits.count,
-                "scheduled_habits": habits.count,
-                "habits_detail": data.habits.map { habit in
-                    let isScheduled = habit.schedule.isActiveOn(date: targetDate, timezone: data.timezone)
-                    return "\(habit.name): \(isScheduled ? "scheduled" : "not scheduled")"
-                }.joined(separator: "; ")
-            ]
-        )
+    /// Result of categorizing habits by completion status
+    private struct HabitCategorizationResult {
+        let completed: [Habit]
+        let incomplete: [Habit]
+        let logs: [HabitLog]
+    }
 
+    /// Categorize habits into completed and incomplete lists
+    private func categorizeHabitsByCompletion(
+        habits: [Habit],
+        data: OverviewData,
+        targetDate: Date
+    ) -> HabitCategorizationResult {
         var allTargetDateLogs: [HabitLog] = []
         var incompleteHabits: [Habit] = []
         var completedHabits: [Habit] = []
+        let isFutureDate = targetDate > Date()
 
         for habit in habits {
             let logs = data.logs(for: habit.id, on: targetDate)
             allTargetDateLogs.append(contentsOf: logs)
 
-            // Use centralized completion service for consistent calculation
-            // IMPORTANT: Pass display timezone to ensure correct day comparison
-            let isCompleted = isHabitCompleted.execute(habit: habit, on: targetDate, logs: logs, timezone: data.timezone)
+            let isCompleted = isHabitCompleted.execute(
+                habit: habit, on: targetDate, logs: logs, timezone: data.timezone
+            )
 
-            // Only show as incomplete if not completed AND not a future date
-            if targetDate > Date() {
-                // Don't add future dates to incomplete list
-                if isCompleted {
-                    completedHabits.append(habit)
-                }
-            } else {
-                // Past/present dates
-                if isCompleted {
-                    completedHabits.append(habit)
-                } else {
-                    incompleteHabits.append(habit)
-                }
+            if isCompleted {
+                completedHabits.append(habit)
+            } else if !isFutureDate {
+                incompleteHabits.append(habit)
             }
         }
 
-        // Sort completed habits by latest log time (most recent first)
-        completedHabits.sort { habit1, habit2 in
-            let habit1Logs = allTargetDateLogs.filter { $0.habitID == habit1.id }
-            let habit2Logs = allTargetDateLogs.filter { $0.habitID == habit2.id }
-            let habit1LatestTime = habit1Logs.map { $0.date }.max() ?? Date.distantPast
-            let habit2LatestTime = habit2Logs.map { $0.date }.max() ?? Date.distantPast
-            return habit1LatestTime > habit2LatestTime  // Most recent first
-        }
-
-        return TodaysSummary(
-            completedHabitsCount: completedHabits.count,
-            completedHabits: completedHabits,
-            totalHabits: habits.count,
-            incompleteHabits: incompleteHabits
+        return HabitCategorizationResult(
+            completed: completedHabits,
+            incomplete: incompleteHabits,
+            logs: allTargetDateLogs
         )
+    }
+
+    /// Sort completed habits by latest log time (most recent first)
+    private func sortCompletedHabitsByLatestLog(_ habits: [Habit], logs: [HabitLog]) -> [Habit] {
+        habits.sorted { habit1, habit2 in
+            let habit1LatestTime = logs.filter { $0.habitID == habit1.id }.map { $0.date }.max() ?? .distantPast
+            let habit2LatestTime = logs.filter { $0.habitID == habit2.id }.map { $0.date }.max() ?? .distantPast
+            return habit1LatestTime > habit2LatestTime
+        }
     }
 
     /// Extract monthly completion data from overview data using the data's timezone

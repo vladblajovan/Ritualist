@@ -233,7 +233,7 @@ public struct PersonalityInsightsView: View {
                             .padding(.vertical)
                         }
                         
-                    case .readyWithInsufficientData(let profile, let requirements, let estimatedDays):
+                    case .readyWithInsufficientData(let profile, _, _):
                         ScrollView {
                             VStack(spacing: 24) {
                                 // Status Banner

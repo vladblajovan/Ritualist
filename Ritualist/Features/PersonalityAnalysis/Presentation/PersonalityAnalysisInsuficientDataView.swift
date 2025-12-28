@@ -196,8 +196,7 @@ private struct RequirementRowView: View {
     private var progressText: String {
         let current = requirement.currentValue
         let required = requirement.requiredValue
-        let remaining = required - current
-        
+
         switch requirement.category {
         case .habits:
             return "\(current) of \(required) habits"
