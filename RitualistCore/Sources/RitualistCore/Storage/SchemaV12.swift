@@ -4,32 +4,36 @@
 //
 //  Created by Claude on 26.12.2025.
 //
-//  Schema Version 12: Database Performance Indexes
+//  Schema Version 12: No Schema Changes (Index Experiment Reverted)
 //
 //  Changes from V11:
-//  - HabitLogModel: Added @Index on habitID for faster log lookups
-//  - HabitCategoryModel: Added @Index on isActive and isPredefined for filtering
-//  - PersonalityAnalysisModel: Added @Index on userId and analysisDate for analysis queries
-//  - Migration: Lightweight migration - index creation is automatic
-//  - Rationale: Optimize query performance for common access patterns
+//  - None - this version is identical to V11
+//
+//  IMPORTANT LEARNING: #Index macro breaks CloudKit sync silently!
+//  We attempted to add #Index for performance but discovered:
+//  - SwiftData's #Index macro causes CloudKit sync to fail with NO errors
+//  - Data changes (creates, updates, deletes) simply don't sync
+//  - CloudKit has its own indexing (Queryable, Searchable, Sortable) in CloudKit Console
+//  - DO NOT use #Index on any models until Apple fixes this
 //
 
 import Foundation
 import SwiftData
 
-/// Schema V12: Database Performance Indexes
+/// Schema V12: No Schema Changes (Index Experiment Reverted)
 ///
-/// This schema adds database indexes for query optimization:
-/// 1. HabitLogModel.habitID - Faster log lookups by habit
-/// 2. HabitCategoryModel.isActive - Faster active category filtering
-/// 3. HabitCategoryModel.isPredefined - Faster predefined category queries
-/// 4. PersonalityAnalysisModel.userId - Faster user analysis lookups
-/// 5. PersonalityAnalysisModel.analysisDate - Faster date-based queries
+/// This schema is identical to V11. We originally planned to add #Index macros
+/// for performance optimization, but discovered they break CloudKit sync silently.
+///
+/// CRITICAL LEARNING: #Index macro breaks CloudKit sync!
+/// - SwiftData's #Index causes CloudKit sync to fail with NO errors
+/// - Creates, updates, and deletes simply don't sync to/from CloudKit
+/// - CloudKit Console has its own indexing (Queryable, Searchable, Sortable)
+/// - DO NOT use #Index on any models until Apple fixes this issue
 ///
 /// Migration Strategy:
 /// - Lightweight migration from V11 to V12
-/// - No data loss or transformation
-/// - Indexes created automatically by SwiftData
+/// - No data loss or transformation (schemas are identical)
 public enum SchemaV12: VersionedSchema {
     public static let versionIdentifier: Schema.Version = Schema.Version(12, 0, 0)
 
@@ -121,12 +125,12 @@ public enum SchemaV12: VersionedSchema {
     }
 
     // MARK: - HabitLogModel V12
-    // ADDED: Index on habitID for faster log lookups
+    // NOTE: #Index removed - causes CloudKit sync to fail silently
+    // CloudKit-synced models should NOT use SwiftData #Index macro
+    // CloudKit has its own indexing (Queryable, Searchable, Sortable) configured in CloudKit Console
 
     @Model
     public final class HabitLogModel {
-        // NEW in V12: Compound index for faster habit log queries
-        #Index<HabitLogModel>([\.habitID])
 
         public var id: UUID = UUID()
         public var habitID: UUID = UUID()
@@ -153,12 +157,11 @@ public enum SchemaV12: VersionedSchema {
     }
 
     // MARK: - HabitCategoryModel V12
-    // ADDED: Indexes on isActive and isPredefined for faster filtering
+    // NOTE: #Index removed - causes CloudKit sync to fail silently
+    // CloudKit-synced models should NOT use SwiftData #Index macro
 
     @Model
     public final class HabitCategoryModel {
-        // NEW in V12: Indexes for faster category filtering
-        #Index<HabitCategoryModel>([\.isActive], [\.isPredefined])
 
         public var id: String = ""
         public var name: String = ""
@@ -270,12 +273,10 @@ public enum SchemaV12: VersionedSchema {
     }
 
     // MARK: - PersonalityAnalysisModel V12
-    // ADDED: Indexes on userId and analysisDate for faster queries
+    // NOTE: #Index removed for consistency - avoiding #Index entirely until SwiftData stabilizes
 
     @Model
     public final class PersonalityAnalysisModel {
-        // NEW in V12: Indexes for faster personality analysis queries
-        #Index<PersonalityAnalysisModel>([\.userId], [\.analysisDate])
 
         public var id: String = ""
         public var userId: String = ""

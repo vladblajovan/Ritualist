@@ -33,7 +33,7 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
     // MARK: - Dependencies
 
     private let habitRepository: HabitRepository
-    private let scheduleHabitReminders: ScheduleHabitRemindersUseCase
+    private let habitCompletionCheckService: HabitCompletionCheckService
     private let notificationService: NotificationService
     private let subscriptionService: SecureSubscriptionService
     private let logger: DebugLogger
@@ -42,13 +42,13 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
 
     public init(
         habitRepository: HabitRepository,
-        scheduleHabitReminders: ScheduleHabitRemindersUseCase,
+        habitCompletionCheckService: HabitCompletionCheckService,
         notificationService: NotificationService,
         subscriptionService: SecureSubscriptionService,
         logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
-        self.scheduleHabitReminders = scheduleHabitReminders
+        self.habitCompletionCheckService = habitCompletionCheckService
         self.notificationService = notificationService
         self.subscriptionService = subscriptionService
         self.logger = logger
@@ -81,36 +81,44 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             habit.isActive && !habit.reminders.isEmpty
         }
 
-        // Calculate total notifications needed
-        let totalNotificationsNeeded = activeHabitsWithReminders.reduce(0) { $0 + $1.reminders.count }
+        // Build list of all (habit, reminderTime) pairs
+        var allNotifications: [(habit: Habit, time: ReminderTime)] = []
+        for habit in activeHabitsWithReminders {
+            for time in habit.reminders {
+                allNotifications.append((habit: habit, time: time))
+            }
+        }
+
+        // Sort by time so badge numbers are assigned in chronological order
+        allNotifications.sort { lhs, rhs in
+            if lhs.time.hour != rhs.time.hour {
+                return lhs.time.hour < rhs.time.hour
+            }
+            return lhs.time.minute < rhs.time.minute
+        }
 
         logger.logNotification(
             event: "Found active habits with reminders",
             metadata: [
                 "habits_count": activeHabitsWithReminders.count,
-                "notifications_needed": totalNotificationsNeeded,
+                "notifications_needed": allNotifications.count,
                 "ios_limit": Self.maxHabitNotificationSlots
             ]
         )
 
-        // Prioritize habits if we exceed the limit
-        // Sort by displayOrder (user's priority) and limit notifications
-        let habitsToSchedule = prioritizeHabitsForNotifications(
-            habits: activeHabitsWithReminders,
-            maxNotifications: Self.maxHabitNotificationSlots
-        )
+        // Limit to iOS notification cap (prioritize earlier times)
+        let notificationsToSchedule = Array(allNotifications.prefix(Self.maxHabitNotificationSlots))
 
         // Log warning if we hit the limit
-        if totalNotificationsNeeded > Self.maxHabitNotificationSlots {
+        if allNotifications.count > Self.maxHabitNotificationSlots {
             logger.log(
                 "⚠️ iOS notification limit reached",
                 level: .warning,
                 category: .notifications,
                 metadata: [
-                    "needed": totalNotificationsNeeded,
+                    "needed": allNotifications.count,
                     "limit": Self.maxHabitNotificationSlots,
-                    "habits_with_reminders": activeHabitsWithReminders.count,
-                    "habits_scheduled": habitsToSchedule.count
+                    "dropped": allNotifications.count - notificationsToSchedule.count
                 ]
             )
         }
@@ -125,18 +133,48 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             )
         }
 
-        // Re-schedule notifications for prioritized habits
+        // Cancel all habit notifications to ensure clean slate
+        for habit in activeHabitsWithReminders {
+            await notificationService.cancel(for: habit.id)
+        }
+
+        // Schedule notifications in time order with incrementing badge numbers
         var scheduledCount = 0
         var skippedCount = 0
+        let today = Date()
 
-        for habit in habitsToSchedule {
+        for (index, notification) in notificationsToSchedule.enumerated() {
+            let habit = notification.habit
+            let time = notification.time
+
+            // Check if habit is already completed for today
+            let shouldShow = await habitCompletionCheckService.shouldShowNotification(habitId: habit.id, date: today)
+
+            guard shouldShow else {
+                logger.logNotification(
+                    event: "Habit already completed, skipping notification",
+                    habitId: habit.id.uuidString,
+                    metadata: ["habit_name": habit.name, "time": "\(time.hour):\(String(format: "%02d", time.minute))"]
+                )
+                skippedCount += 1
+                continue
+            }
+
             do {
-                // The ScheduleHabitReminders UseCase will check completion status and only schedule if needed
-                try await scheduleHabitReminders.execute(habit: habit)
+                // Badge number is position in chronological order (1-based)
+                let badgeNumber = index + 1 - skippedCount
+
+                try await notificationService.scheduleSingleNotification(
+                    for: habit.id,
+                    habitName: habit.name,
+                    habitKind: habit.kind,
+                    time: time,
+                    badgeNumber: badgeNumber
+                )
                 scheduledCount += 1
             } catch {
                 logger.logNotification(
-                    event: "Failed to schedule notifications",
+                    event: "Failed to schedule notification",
                     habitId: habit.id.uuidString,
                     metadata: ["habit_name": habit.name, "error": error.localizedDescription]
                 )
@@ -149,7 +187,7 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             metadata: [
                 "scheduled": scheduledCount,
                 "skipped": skippedCount,
-                "dropped_due_to_limit": activeHabitsWithReminders.count - habitsToSchedule.count
+                "dropped_due_to_limit": max(0, allNotifications.count - Self.maxHabitNotificationSlots)
             ]
         )
 
@@ -159,34 +197,8 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             event: "Final notification state",
             metadata: ["pending_count": finalPendingCount]
         )
-    }
 
-    // MARK: - Private Methods
-
-    /// Prioritizes habits for notification scheduling when iOS limit would be exceeded
-    /// - Parameters:
-    ///   - habits: All habits with reminders
-    ///   - maxNotifications: Maximum notifications allowed
-    /// - Returns: Array of habits to schedule, prioritized by displayOrder
-    private func prioritizeHabitsForNotifications(habits: [Habit], maxNotifications: Int) -> [Habit] {
-        // Sort by displayOrder (lower = higher priority, user's arrangement)
-        let sortedHabits = habits.sorted { $0.displayOrder < $1.displayOrder }
-
-        var selectedHabits: [Habit] = []
-        var totalNotifications = 0
-
-        for habit in sortedHabits {
-            let habitNotifications = habit.reminders.count
-            if totalNotifications + habitNotifications <= maxNotifications {
-                selectedHabits.append(habit)
-                totalNotifications += habitNotifications
-            } else {
-                // Can't fit this habit's notifications, stop adding
-                // Future improvement: could partially schedule reminders for this habit
-                break
-            }
-        }
-
-        return selectedHabits
+        // Update badge to reflect delivered notifications count
+        await notificationService.updateBadgeCount()
     }
 }

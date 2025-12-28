@@ -189,8 +189,11 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
 
         // Query StoreKit for current entitlements
         var validPurchases: Set<String> = []
+        var didReceiveAnyEntitlement = false
 
         for await result in Transaction.currentEntitlements {
+            didReceiveAnyEntitlement = true
+
             // Verify transaction cryptographically
             guard let transaction = try? checkVerified(result) else {
                 // Skip unverified transactions
@@ -207,10 +210,33 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         cachedValidPurchases = validPurchases
         lastCacheUpdate = Date()
 
-        // Update Keychain cache for offline scenarios (3-day grace period)
-        // This keeps the secure cache fresh whenever we successfully query StoreKit
+        // Update Keychain cache carefully to preserve grace period
         let isPremium = !validPurchases.isEmpty
-        await SecurePremiumCache.shared.updateCache(isPremium: isPremium)
+
+        if isPremium {
+            // User has valid subscription - always update cache
+            await SecurePremiumCache.shared.updateCache(isPremium: true)
+        } else if didReceiveAnyEntitlement {
+            // StoreKit responded with entitlements but none are valid (expired/revoked)
+            // This is a confirmed "not premium" - safe to update cache
+            await SecurePremiumCache.shared.updateCache(isPremium: false)
+        } else {
+            // StoreKit returned NO entitlements at all - could be:
+            // 1. User truly has no purchases (never purchased)
+            // 2. Network/StoreKit failure (timeout, no connectivity)
+            //
+            // DON'T overwrite Keychain cache here - preserve grace period!
+            // The existing Keychain cache (if premium) will continue to grant
+            // access for up to 3 days, giving time for connectivity to restore.
+            //
+            // Only update to false if the grace period has already expired
+            let cacheStillValid = await SecurePremiumCache.shared.isCacheValid()
+            if !cacheStillValid {
+                // Grace period expired - safe to mark as not premium
+                await SecurePremiumCache.shared.updateCache(isPremium: false)
+            }
+            // else: Keep existing cache, let grace period protect the user
+        }
     }
 
     /// Check if a transaction is currently valid

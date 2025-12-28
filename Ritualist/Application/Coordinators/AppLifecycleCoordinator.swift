@@ -94,6 +94,9 @@ public final class AppLifecycleCoordinator {
     public func handleDidBecomeActive() async {
         guard hasCompletedInitialLaunch else { return }
 
+        // Update badge to reflect actual delivered notification count
+        await notificationService.updateBadgeCount()
+
         await timezoneChangeHandler.detectTimezoneChanges()
         await rescheduleNotificationsIfNeeded()
         await iCloudSyncCoordinator.syncWithCloudIfAvailable()

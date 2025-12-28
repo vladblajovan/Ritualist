@@ -48,4 +48,4 @@ public typealias ActivePersonalityAnalysisModel = ActiveSchemaVersion.Personalit
 // - V9: Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
 // - V10: CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values)
 // - V11: User Demographics (gender, ageGroup in UserProfileModel)
-// - V12: Database Performance Indexes (habitID, isActive, isPredefined, userId, analysisDate) (current)
+// - V12: No changes (index experiment reverted - #Index breaks CloudKit sync) (current)

@@ -48,7 +48,7 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             SchemaV9.self,  // Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
             SchemaV10.self, // CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values)
             SchemaV11.self, // User demographics (gender, ageGroup in UserProfileModel)
-            SchemaV12.self  // Database performance indexes (habitID, isActive, isPredefined, userId, analysisDate)
+            SchemaV12.self  // No changes (index experiment reverted - #Index breaks CloudKit sync)
         ]
     }
 
@@ -77,7 +77,7 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// - V8 → V9: Three-Timezone Model implementation (custom/heavyweight)
     /// - V9 → V10: CloudKit compatibility (removed .unique constraints, optional relationships) (lightweight)
     /// - V10 → V11: User demographics (gender, ageGroup in UserProfileModel) (lightweight)
-    /// - V11 → V12: Database performance indexes (habitID, isActive, isPredefined, userId, analysisDate) (lightweight)
+    /// - V11 → V12: No changes (index experiment reverted - #Index breaks CloudKit sync) (lightweight)
     ///
     /// ## Example Future Migration:
     /// ```swift
@@ -316,25 +316,21 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
         toVersion: SchemaV11.self
     )
 
-    /// V11 → V12: Database Performance Indexes
+    /// V11 → V12: No Schema Changes (Index Experiment Reverted)
     ///
     /// This is a LIGHTWEIGHT migration because:
-    /// - Both schemas use the same entity names (HabitModel, HabitLogModel, etc.)
-    /// - Only adding @Index annotations to existing properties
-    /// - SwiftData can automatically create indexes during migration
-    /// - No data transformation needed
+    /// - V12 is identical to V11 (no actual schema changes)
+    /// - Originally planned to add #Index but reverted due to CloudKit sync issues
     ///
-    /// Changes:
-    /// - HabitLogModel: Added @Index on habitID for faster log lookups
-    /// - HabitCategoryModel: Added @Index on isActive for active category filtering
-    /// - HabitCategoryModel: Added @Index on isPredefined for predefined category queries
-    /// - PersonalityAnalysisModel: Added @Index on userId for user analysis lookups
-    /// - PersonalityAnalysisModel: Added @Index on analysisDate for date-based queries
+    /// CRITICAL LEARNING: #Index macro breaks CloudKit sync!
+    /// - SwiftData's #Index causes CloudKit sync to fail SILENTLY
+    /// - No errors thrown, data simply doesn't sync
+    /// - CloudKit has its own indexing in CloudKit Console
+    /// - DO NOT use #Index until Apple fixes this
     ///
     /// Impact:
-    /// - ✅ Improved query performance for common access patterns
-    /// - ✅ No business logic changes
-    /// - ✅ CloudKit sync compatible
+    /// - ✅ No schema changes (V12 identical to V11)
+    /// - ✅ CloudKit sync preserved
     /// - ✅ Zero data loss
     static let migrateV11toV12 = MigrationStage.lightweight(
         fromVersion: SchemaV11.self,

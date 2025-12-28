@@ -67,6 +67,8 @@ extension Container {
         self {
             let service = LocalNotificationService(
                 habitCompletionCheckService: self.habitCompletionCheckService(),
+                userDefaultsService: self.userDefaultsService(),
+                timezoneService: self.timezoneService(),
                 errorHandler: self.errorHandler(),
                 logger: self.debugLogger()
             )
@@ -198,7 +200,7 @@ extension Container {
         self {
             RitualistCore.DefaultDailyNotificationScheduler(
                 habitRepository: self.habitRepository(),
-                scheduleHabitReminders: self.scheduleHabitReminders(),
+                habitCompletionCheckService: self.habitCompletionCheckService(),
                 notificationService: self.notificationService(),
                 subscriptionService: self.subscriptionService(),
                 logger: self.debugLogger()
