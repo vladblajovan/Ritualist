@@ -99,7 +99,12 @@ struct InspirationCarouselView: View {
             }
         }
         .padding(CardDesign.cardPadding)
-        .background(cardGradient)
+        .background(
+            ZStack {
+                CardDesign.cardBackground
+                cardGradient
+            }
+        )
         .cornerRadius(CardDesign.cornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: CardDesign.cornerRadius)

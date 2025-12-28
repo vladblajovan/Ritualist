@@ -440,6 +440,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     private func handleQuickActionTap(habit: Habit, scheduleStatus: HabitScheduleStatus) {
         guard scheduleStatus.isAvailable else { return }
+        // Auto-dismiss the "tap to log" tip when user performs the action
+        tapHabitTip.invalidate(reason: .actionPerformed)
         if habit.kind == .numeric {
             onNumericHabitAction?(habit)
         } else {
@@ -737,12 +739,16 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     private func handleHabitRowTap(habit: Habit, isCompleted: Bool, scheduleStatus: HabitScheduleStatus) {
         if isCompleted {
+            // Auto-dismiss the "adjust completed habits" tip when user performs the action
+            tapCompletedHabitTip.invalidate(reason: .actionPerformed)
             if habit.kind == .numeric {
                 onNumericHabitAction?(habit)
             } else {
                 habitToUncomplete = habit
             }
         } else if scheduleStatus.isAvailable {
+            // Auto-dismiss the "tap to log" tip when user performs the action
+            tapHabitTip.invalidate(reason: .actionPerformed)
             if habit.kind == .numeric {
                 onNumericHabitAction?(habit)
             } else {

@@ -1069,10 +1069,21 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
     // MARK: - Notification Response Handling
 
     private func handleNotificationResponse(_ response: sending UNNotificationResponse) async {
-        // Remove this notification from delivered list and update badge
+        // Remove this notification from delivered list
         let center = UNUserNotificationCenter.current()
-        center.removeDeliveredNotifications(withIdentifiers: [response.notification.request.identifier])
+        let notificationId = response.notification.request.identifier
+        center.removeDeliveredNotifications(withIdentifiers: [notificationId])
+
+        // Small delay to allow the system to process the removal before querying delivered notifications
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
         await updateBadgeCount()
+
+        logger.log(
+            "🔔 Notification removed and badge updated",
+            level: .debug,
+            category: .notifications,
+            metadata: ["notificationId": notificationId, "action": response.actionIdentifier]
+        )
 
         let userInfo = response.notification.request.content.userInfo
 
@@ -1104,6 +1115,27 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         let habitKind: HabitKind = habitKindString == "numeric" ? .numeric : .binary
         
         let reminderTime = ReminderTime(hour: reminderHour, minute: reminderMinute)
+
+        // Handle system actions (tap or swipe-to-dismiss) - these don't need further processing
+        if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+            logger.log(
+                "👆 Notification tapped (default action)",
+                level: .debug,
+                category: .notifications,
+                metadata: ["habit": habitName]
+            )
+            return
+        }
+
+        if response.actionIdentifier == UNNotificationDismissActionIdentifier {
+            logger.log(
+                "👋 Notification dismissed via swipe",
+                level: .debug,
+                category: .notifications,
+                metadata: ["habit": habitName]
+            )
+            return
+        }
 
         guard let action = NotificationAction(rawValue: response.actionIdentifier) else {
             logger.log(

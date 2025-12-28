@@ -37,16 +37,9 @@ public struct CardDesign {
     // MARK: - Colors (Light/Dark Mode Adaptive)
     #if canImport(UIKit)
     @available(iOS 13.0, watchOS 6.0, *)
-    public static let cardBackground = Color(uiColor: UIColor { traitCollection in
-        switch traitCollection.userInterfaceStyle {
-        case .dark:
-            return UIColor.systemGray5 // Lighter gray in dark mode for better visibility
-        default:
-            return UIColor.secondarySystemGroupedBackground // Keep original for light mode
-        }
-    })
+    public static let cardBackground = Color(uiColor: UIColor.secondarySystemGroupedBackground)
     @available(iOS 13.0, watchOS 6.0, *)
-    public static let secondaryBackground = Color(UIColor.systemGray6)
+    public static let secondaryBackground = Color(uiColor: UIColor.tertiarySystemGroupedBackground)
     #elseif canImport(AppKit)
     @available(macOS 10.15, *)
     public static let cardBackground = Color(NSColor.controlBackgroundColor)
