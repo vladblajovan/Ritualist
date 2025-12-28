@@ -11,51 +11,52 @@ import Observation
 /// Simplified user service that manages the single UserProfile entity
 /// No authentication required - designed for iCloud sync
 /// Acts as a bridge between local ProfileRepository and cloud storage
+@MainActor
 public protocol UserService: Sendable {
     /// Current user profile (includes subscription info) - delegates to ProfileRepository
     var currentProfile: UserProfile { get }
-    
+
     /// Check if user has premium features
     var isPremiumUser: Bool { get }
-    
+
     /// Update user profile - syncs to both local and cloud
     func updateProfile(_ profile: UserProfile) async throws
-    
+
     /// Update subscription after purchase - syncs to both local and cloud
     func updateSubscription(plan: SubscriptionPlan, expiryDate: Date?) async throws
-    
+
     /// Sync with iCloud (future implementation)
     func syncWithiCloud() async throws
 }
 
 // MARK: - Implementations
 
-@Observable
-public final class MockUserService: UserService, @unchecked Sendable {
+@MainActor @Observable
+public final class MockUserService: UserService, Sendable {
     private var _currentProfile = UserProfile()
     private let loadProfile: LoadProfileUseCase?
     private let saveProfile: SaveProfileUseCase?
     private let errorHandler: ErrorHandler?
-    
+
     // Store different test subscription states for easy switching
     private let testSubscriptionStates: [String: (SubscriptionPlan, Date?)] = [
         "free": (.free, nil),
         "monthly": (.monthly, CalendarUtils.addMonths(1, to: Date())),
         "annual": (.annual, CalendarUtils.addYears(1, to: Date()))
     ]
-    
+
     public init(
-        loadProfile: LoadProfileUseCase? = nil, 
+        loadProfile: LoadProfileUseCase? = nil,
         saveProfile: SaveProfileUseCase? = nil,
         errorHandler: ErrorHandler? = nil
     ) {
         self.loadProfile = loadProfile
         self.saveProfile = saveProfile
         self.errorHandler = errorHandler
-        
+
         // Initialize with default profile - will be loaded from repository if available
         _currentProfile = UserProfile(name: "")
-        
+
         // Load actual profile data from repository
         Task {
             await loadInitialProfile()
@@ -141,16 +142,16 @@ public final class MockUserService: UserService, @unchecked Sendable {
     }
 }
 
-@Observable
-public final class ICloudUserService: UserService, @unchecked Sendable {
+@MainActor @Observable
+public final class ICloudUserService: UserService, Sendable {
     private var _currentProfile = UserProfile()
     private let errorHandler: ErrorHandler?
-    
+
     public init(errorHandler: ErrorHandler? = nil) {
         self.errorHandler = errorHandler
         // Initialize with default profile
         _currentProfile = UserProfile()
-        
+
         // TODO: Implement CloudKit integration
         // - Create CKRecord for user profile
         // - Set up CloudKit subscriptions for real-time sync
@@ -193,13 +194,13 @@ public final class ICloudUserService: UserService, @unchecked Sendable {
     }
 }
 
-@Observable
-public final class NoOpUserService: UserService {
+@MainActor @Observable
+public final class NoOpUserService: UserService, Sendable {
     public let currentProfile = UserProfile()
     public let isPremiumUser = false
-    
+
     public init() {}
-    
+
     public func updateProfile(_ profile: UserProfile) async throws {}
     public func updateSubscription(plan: SubscriptionPlan, expiryDate: Date?) async throws {}
     public func syncWithiCloud() async throws {}

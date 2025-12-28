@@ -71,7 +71,7 @@ extension Container {
     }
 
     var getCurrentUserProfile: Factory<GetCurrentUserProfile> {
-        self { GetCurrentUserProfile(userService: self.userService()) }
+        self { @MainActor in GetCurrentUserProfile(userService: self.userService()) }
     }
 
     // MARK: - Calendar Utilities

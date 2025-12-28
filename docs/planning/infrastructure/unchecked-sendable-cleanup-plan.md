@@ -13,16 +13,14 @@ This document tracks the remaining `@unchecked Sendable` occurrences in the code
 | `SecurePremiumCache.swift` | `SecurePremiumCache` | Actor | feat/premium-feature-gating-and-logging |
 | `DebugLogger.swift` | `DebugLogger` | Actor (nonisolated log methods) | feat/premium-feature-gating-and-logging |
 | `MigrationLogger.swift` | `MigrationLogger` | Proper Sendable (no mutable state) | feat/premium-feature-gating-and-logging |
+| `PersonalityPreferencesDataSource.swift` | `DefaultPersonalityPreferencesDataSource` | nonisolated(unsafe) for thread-safe UserDefaults | feat/premium-feature-gating-and-logging |
+| `UserService.swift` | `MockUserService` | @MainActor (required for @Observable) | feat/premium-feature-gating-and-logging |
+| `UserService.swift` | `ICloudUserService` | @MainActor (required for @Observable) | feat/premium-feature-gating-and-logging |
+| `UserService.swift` | `NoOpUserService` | @MainActor (protocol conformance) | feat/premium-feature-gating-and-logging |
 
 ## Worth Converting (Production Code)
 
-### Medium Priority - Services with Mutable State
-
-| File | Class | Notes |
-|------|-------|-------|
-| `PersonalityPreferencesDataSource.swift` | `DefaultPersonalityPreferencesDataSource` | Has mutable state |
-| `UserService.swift` | `MockUserService` | Production mock with mutable state |
-| `UserService.swift` | `ICloudUserService` | Has mutable state |
+All production code with `@unchecked Sendable` has been converted.
 
 ## Safe to Leave As-Is
 

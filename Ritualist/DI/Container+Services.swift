@@ -248,10 +248,10 @@ extension Container {
     // MARK: - User Service
 
     var userService: Factory<UserService> {
-        self {
+        self { @MainActor in
             #if DEBUG
             return MockUserService(
-                loadProfile: self.loadProfile(), 
+                loadProfile: self.loadProfile(),
                 saveProfile: self.saveProfile(),
                 errorHandler: self.errorHandler()
             )

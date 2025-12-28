@@ -16,9 +16,10 @@ public protocol PersonalityPreferencesDataSource: Sendable {
     func savePreferences(_ preferences: PersonalityAnalysisPreferences) async throws
 }
 
-public final class DefaultPersonalityPreferencesDataSource: PersonalityPreferencesDataSource, @unchecked Sendable {
+public final class DefaultPersonalityPreferencesDataSource: PersonalityPreferencesDataSource, Sendable {
 
-    private let userDefaults: UserDefaults
+    // UserDefaults is thread-safe but not Sendable, so we use nonisolated(unsafe)
+    nonisolated(unsafe) private let userDefaults: UserDefaults
 
     public init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults

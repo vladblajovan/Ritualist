@@ -38,6 +38,7 @@ public final class GetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
     }
 }
 
+@MainActor
 public final class GetCurrentUserProfile: GetCurrentUserProfileUseCase {
     private let userService: UserService
 
