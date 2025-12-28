@@ -62,7 +62,6 @@ public final class SettingsViewModel {
 
     // Account setup status (for informational display)
     public private(set) var canMakePayments: Bool = true
-    public private(set) var hasNetworkConnectivity: Bool = true
     public var exportedDataJSON: String?
     public var exportedFileURL: URL?
     public private(set) var isImportingData = false
@@ -128,21 +127,19 @@ public final class SettingsViewModel {
 
     /// Whether there are any account setup issues that might affect purchases
     /// Note: iCloud status is shown in the iCloud Sync section, not here
+    /// Note: Network connectivity is NOT shown here - subscription cache has a grace period
     public var hasAccountSetupIssues: Bool {
-        !canMakePayments || !hasNetworkConnectivity
+        !canMakePayments
     }
 
     /// List of current account setup issues for display in Subscription section
     /// Note: iCloud status is shown in the iCloud Sync section, not here
+    /// Note: Network connectivity is NOT shown here - subscription cache has a grace period
     public var accountSetupIssues: [AccountSetupIssue] {
         var issues: [AccountSetupIssue] = []
 
         if !canMakePayments {
             issues.append(.purchasesRestricted)
-        }
-
-        if !hasNetworkConnectivity {
-            issues.append(.noNetwork)
         }
 
         return issues
@@ -279,7 +276,6 @@ public final class SettingsViewModel {
         async let syncDate = getLastSyncDate.execute()
         async let subscriptionPlan = getCurrentSubscriptionPlan.execute()
         async let subscriptionExpiry = getSubscriptionExpiryDate.execute()
-        async let networkStatus = NetworkUtilities.hasNetworkConnectivity()
         async let cloudStatus = checkiCloudStatus.execute()
 
         // Await all results (runs in parallel)
@@ -289,7 +285,6 @@ public final class SettingsViewModel {
         lastSyncDate = await syncDate
         cachedSubscriptionPlan = await subscriptionPlan
         cachedSubscriptionExpiryDate = await subscriptionExpiry
-        hasNetworkConnectivity = await networkStatus
         iCloudStatus = await cloudStatus
 
         // Check if device allows in-app purchases (parental controls, etc.)

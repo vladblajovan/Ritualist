@@ -60,7 +60,8 @@ public struct MigrationLoadingView: View {
                     .multilineTextAlignment(.center)
                     .accessibilityAddTraits(.isHeader)
 
-                // Migration details (if available)
+                // Migration details (DEBUG only - hide version numbers from users)
+                #if DEBUG
                 if let details = details {
                     Text(details.description)
                         .font(.subheadline)
@@ -69,6 +70,7 @@ public struct MigrationLoadingView: View {
                         .padding(.horizontal, Spacing.medium)
                         .accessibilityLabel("Migration details: \(details.description)")
                 }
+                #endif
 
                 // Loading indicator
                 ProgressView()

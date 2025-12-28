@@ -31,8 +31,7 @@ struct AccountSetupBannerView: View {
     List {
         Section {
             AccountSetupBannerView(issues: [
-                .iCloudNotSignedIn,
-                .noNetwork
+                .purchasesRestricted
             ])
         }
     }
