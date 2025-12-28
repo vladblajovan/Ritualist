@@ -50,6 +50,13 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
     private static let binaryHabitReminderCategory = "BINARY_HABIT_REMINDER"
     private static let numericHabitReminderCategory = "NUMERIC_HABIT_REMINDER"
     private static let habitStreakMilestoneCategory = "HABIT_STREAK_MILESTONE"
+
+    /// Generates a second offset (0-58) based on habitID to prevent notifications
+    /// from different habits firing at the exact same moment when they share the same time.
+    /// This avoids iOS coalescing multiple notifications into a single banner.
+    private static func secondOffset(for habitID: UUID) -> Int {
+        Int(habitID.uuidString.utf8.reduce(0) { $0 &+ Int($1) }) % 59
+    }
     
     // Personality Analysis Categories
     private static let personalityAnalysisCategories = [
@@ -136,10 +143,12 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
         // Notifications should use local timezone - users want reminders at "7 AM local time"
         let calendar = CalendarUtils.currentLocalCalendar
         let today = Date()
-        
+
+        let secondOffset = Self.secondOffset(for: habitID)
+
         for time in times {
             let content = UNMutableNotificationContent()
-            
+
             // Customize title and body based on habit type
             switch habitKind {
             case .binary:
@@ -166,10 +175,12 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
             ]
             
             // Create notification time for today only (non-repeating)
+            // Add second offset to prevent multiple habits at same time from coalescing
             var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
             dateComponents.hour = time.hour
             dateComponents.minute = time.minute
-            
+            dateComponents.second = secondOffset
+
             // Only schedule if the time hasn't passed today
             if let notificationDate = calendar.date(from: dateComponents),
                notificationDate > Date() {
@@ -276,6 +287,8 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
         let today = Date()
         let isWeekend = calendar.isDateInWeekend(today)
 
+        let secondOffset = Self.secondOffset(for: habitID)
+
         for time in times {
             // Generate rich notification content
             let content = HabitReminderNotificationContentGenerator.generateContent(
@@ -289,9 +302,11 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
             // Create notification time for today only (non-repeating)
             // This ensures notifications are cancelled when habit is completed
+            // Add second offset to prevent multiple habits at same time from coalescing
             var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
             dateComponents.hour = time.hour
             dateComponents.minute = time.minute
+            dateComponents.second = secondOffset
 
             // Only schedule if the time hasn't passed today
             if let notificationDate = calendar.date(from: dateComponents),
@@ -349,6 +364,8 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
         let today = Date()
         let isWeekend = calendar.isDateInWeekend(today)
 
+        let secondOffset = Self.secondOffset(for: habitID)
+
         for time in times {
             // Generate personality-tailored notification content
             let content = PersonalityTailoredNotificationContentGenerator.generateTailoredContent(
@@ -363,9 +380,11 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
             // Create notification time for today only (non-repeating)
             // This ensures notifications are cancelled when habit is completed
+            // Add second offset to prevent multiple habits at same time from coalescing
             var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
             dateComponents.hour = time.hour
             dateComponents.minute = time.minute
+            dateComponents.second = secondOffset
 
             // Only schedule if the time hasn't passed today
             if let notificationDate = calendar.date(from: dateComponents),
