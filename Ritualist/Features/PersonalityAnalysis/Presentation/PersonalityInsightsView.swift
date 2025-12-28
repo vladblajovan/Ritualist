@@ -233,7 +233,7 @@ public struct PersonalityInsightsView: View {
                             .padding(.vertical)
                         }
                         
-                    case .readyWithInsufficientData(let profile, let requirements, let estimatedDays):
+                    case .readyWithInsufficientData(let profile, _, _):
                         ScrollView {
                             VStack(spacing: 24) {
                                 // Status Banner
@@ -545,8 +545,8 @@ private struct PersonalityProfileView: View {
             
             VStack(spacing: 8) {
                 AnalysisDetailRow(
-                    label: "Date",
-                    value: DateFormatter.mediumDateFormatter.string(from: profile.analysisMetadata.analysisDate)
+                    label: "Generated",
+                    value: profile.analysisMetadata.analysisDate.relativeOrAbsoluteString()
                 )
                 
                 AnalysisDetailRow(
@@ -669,31 +669,32 @@ private struct ConfidenceBadge: View {
     }
     
     var body: some View {
-        Button(action: {
-            onInfoTap?()
-        }) {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.seal.fill")
-                    .foregroundColor(confidence.color)
-                
-                Text("Confidence level: \(confidence.displayName)")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-                
-                if onInfoTap != nil {
-                    Image(systemName: "info.circle.fill")
-                        .font(.caption2)
+        Button(
+            action: { onInfoTap?() },
+            label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.seal.fill")
                         .foregroundColor(confidence.color)
+
+                    Text("Confidence level: \(confidence.displayName)")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+
+                    if onInfoTap != nil {
+                        Image(systemName: "info.circle.fill")
+                            .font(.caption2)
+                            .foregroundColor(confidence.color)
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(confidence.color.opacity(0.2))
+                )
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(confidence.color.opacity(0.2))
-            )
-        }
+        )
         .buttonStyle(.plain)
         .disabled(onInfoTap == nil)
     }

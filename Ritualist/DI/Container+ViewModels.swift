@@ -105,9 +105,8 @@ extension Container {
             SettingsViewModel(
                 loadProfile: self.loadProfile(),
                 saveProfile: self.saveProfile(),
-                requestNotificationPermission: self.requestNotificationPermission(),
+                permissionCoordinator: self.permissionCoordinator(),
                 checkNotificationStatus: self.checkNotificationStatus(),
-                requestLocationPermissions: self.requestLocationPermissions(),
                 getLocationAuthStatus: self.getLocationAuthStatus(),
                 clearPurchases: self.clearPurchases(),
                 checkPremiumStatus: self.checkPremiumStatus(),
@@ -116,7 +115,7 @@ extension Container {
                 syncWithiCloud: self.syncWithiCloud(),
                 checkiCloudStatus: self.checkiCloudStatus(),
                 getLastSyncDate: self.getLastSyncDate(),
-                deleteiCloudData: self.deleteiCloudData(),
+                deleteData: self.deleteData(),
                 exportUserData: self.exportUserData(),
                 importUserData: self.importUserData(),
                 populateTestData: {
@@ -138,21 +137,18 @@ extension Container {
                 getOnboardingState: self.getOnboardingState(),
                 saveOnboardingState: self.saveOnboardingState(),
                 completeOnboarding: self.completeOnboarding(),
-                requestNotificationPermission: self.requestNotificationPermission(),
-                checkNotificationStatus: self.checkNotificationStatus(),
-                requestLocationPermissions: self.requestLocationPermissions(),
-                getLocationAuthStatus: self.getLocationAuthStatus()
+                permissionCoordinator: self.permissionCoordinator()
             )
         }
         .singleton
     }
     
-    // MARK: - Dashboard ViewModels
+    // MARK: - Stats ViewModels
     
     @MainActor
-    var dashboardViewModel: Factory<DashboardViewModel> {
+    var statsViewModel: Factory<StatsViewModel> {
         self { @MainActor in
-            DashboardViewModel(logger: self.debugLogger())
+            StatsViewModel(logger: self.debugLogger())
         }
         .singleton
     }

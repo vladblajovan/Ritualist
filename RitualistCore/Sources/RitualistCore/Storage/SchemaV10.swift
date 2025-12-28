@@ -31,7 +31,7 @@ import SwiftData
 /// - All existing data preserved
 /// - Relationships maintain cascade delete behavior
 public enum SchemaV10: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(10, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(10, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

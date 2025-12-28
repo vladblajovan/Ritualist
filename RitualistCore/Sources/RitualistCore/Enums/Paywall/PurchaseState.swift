@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum PurchaseState: Equatable {
+public enum PurchaseState: Equatable, Sendable {
     case idle
     case purchasing(String) // product ID
     case success(Product)

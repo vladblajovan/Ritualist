@@ -3,6 +3,7 @@ import Foundation
 // MARK: - Migration Use Cases
 
 /// UseCase for checking if a migration is currently in progress
+@MainActor
 public protocol GetMigrationStatusUseCase {
     var isMigrating: Bool { get }
     var migrationDetails: MigrationDetails? { get }
@@ -10,51 +11,51 @@ public protocol GetMigrationStatusUseCase {
 
 // MARK: - Habit Use Cases
 
-public protocol CreateHabitUseCase { 
-    func execute(_ habit: Habit) async throws -> Habit 
+public protocol CreateHabitUseCase: Sendable {
+    func execute(_ habit: Habit) async throws -> Habit
 }
 
-public protocol GetActiveHabitsUseCase { 
-    func execute() async throws -> [Habit] 
+public protocol GetActiveHabitsUseCase: Sendable {
+    func execute() async throws -> [Habit]
 }
 
-public protocol GetAllHabitsUseCase { 
-    func execute() async throws -> [Habit] 
+public protocol GetAllHabitsUseCase: Sendable {
+    func execute() async throws -> [Habit]
 }
 
-public protocol UpdateHabitUseCase { 
-    func execute(_ habit: Habit) async throws 
+public protocol UpdateHabitUseCase: Sendable {
+    func execute(_ habit: Habit) async throws
 }
 
-public protocol DeleteHabitUseCase { 
-    func execute(id: UUID) async throws 
+public protocol DeleteHabitUseCase: Sendable {
+    func execute(id: UUID) async throws
 }
 
-public protocol ToggleHabitActiveStatusUseCase { 
-    func execute(id: UUID) async throws -> Habit 
+public protocol ToggleHabitActiveStatusUseCase: Sendable {
+    func execute(id: UUID) async throws -> Habit
 }
 
-public protocol ReorderHabitsUseCase { 
-    func execute(_ habits: [Habit]) async throws 
+public protocol ReorderHabitsUseCase: Sendable {
+    func execute(_ habits: [Habit]) async throws
 }
 
-public protocol ValidateHabitUniquenessUseCase { 
-    func execute(name: String, categoryId: String?, excludeId: UUID?) async throws -> Bool 
+public protocol ValidateHabitUniquenessUseCase: Sendable {
+    func execute(name: String, categoryId: String?, excludeId: UUID?) async throws -> Bool
 }
 
-public protocol GetHabitsByCategoryUseCase { 
-    func execute(categoryId: String) async throws -> [Habit] 
+public protocol GetHabitsByCategoryUseCase: Sendable {
+    func execute(categoryId: String) async throws -> [Habit]
 }
 
-public protocol OrphanHabitsFromCategoryUseCase { 
-    func execute(categoryId: String) async throws 
+public protocol OrphanHabitsFromCategoryUseCase: Sendable {
+    func execute(categoryId: String) async throws
 }
 
-public protocol CleanupOrphanedHabitsUseCase { 
-    func execute() async throws -> Int 
+public protocol CleanupOrphanedHabitsUseCase: Sendable {
+    func execute() async throws -> Int
 }
 
-public protocol GetHabitCountUseCase {
+public protocol GetHabitCountUseCase: Sendable {
     func execute() async -> Int
 }
 
@@ -82,21 +83,21 @@ public protocol IsScheduledDayUseCase {
     func execute(habit: Habit, date: Date) -> Bool
 }
 
-public protocol ClearPurchasesUseCase {
-    func execute()
+public protocol ClearPurchasesUseCase: Sendable {
+    func execute() async throws
 }
 
-public protocol CreateHabitFromSuggestionUseCase {
+public protocol CreateHabitFromSuggestionUseCase: Sendable {
     func execute(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult
 }
 
-public protocol RemoveHabitFromSuggestionUseCase {
+public protocol RemoveHabitFromSuggestionUseCase: Sendable {
     func execute(suggestionId: String, habitId: UUID) async -> Bool
 }
 
 // MARK: - Log Use Cases
 
-public protocol GetLogsUseCase {
+public protocol GetLogsUseCase: Sendable {
     /// Get logs with explicit timezone for date filtering
     func execute(for habitID: UUID, since: Date?, until: Date?, timezone: TimeZone) async throws -> [HabitLog]
 
@@ -104,7 +105,7 @@ public protocol GetLogsUseCase {
     func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog]
 }
 
-public protocol GetBatchLogsUseCase {
+public protocol GetBatchLogsUseCase: Sendable {
     /// Get batch logs with explicit timezone for date filtering
     func execute(for habitIDs: [UUID], since: Date?, until: Date?, timezone: TimeZone) async throws -> [UUID: [HabitLog]]
 
@@ -112,19 +113,19 @@ public protocol GetBatchLogsUseCase {
     func execute(for habitIDs: [UUID], since: Date?, until: Date?) async throws -> [UUID: [HabitLog]]
 }
 
-public protocol GetSingleHabitLogsUseCase {
+public protocol GetSingleHabitLogsUseCase: Sendable {
     func execute(for habitID: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog]
 }
 
-public protocol LogHabitUseCase { 
-    func execute(_ log: HabitLog) async throws 
+public protocol LogHabitUseCase: Sendable {
+    func execute(_ log: HabitLog) async throws
 }
 
-public protocol DeleteLogUseCase { 
-    func execute(id: UUID) async throws 
+public protocol DeleteLogUseCase: Sendable {
+    func execute(id: UUID) async throws
 }
 
-public protocol GetLogForDateUseCase {
+public protocol GetLogForDateUseCase: Sendable {
     /// Get log for date with explicit timezone for day comparison
     func execute(habitID: UUID, date: Date, timezone: TimeZone) async throws -> HabitLog?
 
@@ -141,7 +142,7 @@ public protocol GetLogForDateUseCase {
 /// - Parameter habitID: The unique identifier of the habit to query
 /// - Returns: The date of the earliest log entry, or `nil` if no logs exist for this habit
 /// - Throws: Repository errors if the database query fails
-public protocol GetEarliestLogDateUseCase {
+public protocol GetEarliestLogDateUseCase: Sendable {
     /// Get earliest log date with explicit timezone for day normalization
     func execute(for habitID: UUID, timezone: TimeZone) async throws -> Date?
 
@@ -149,38 +150,29 @@ public protocol GetEarliestLogDateUseCase {
     func execute(for habitID: UUID) async throws -> Date?
 }
 
-public protocol ToggleHabitLogUseCase {
-    func execute(
-        date: Date,
-        habit: Habit,
-        currentLoggedDates: Set<Date>,
-        currentHabitLogValues: [Date: Double]
-    ) async throws -> (loggedDates: Set<Date>, habitLogValues: [Date: Double])
-}
-
 // MARK: - Profile Use Cases  
 
-public protocol LoadProfileUseCase { 
-    func execute() async throws -> UserProfile 
+public protocol LoadProfileUseCase: Sendable {
+    func execute() async throws -> UserProfile
 }
 
-public protocol SaveProfileUseCase {
+public protocol SaveProfileUseCase: Sendable {
     func execute(_ profile: UserProfile) async throws
 }
 
-public protocol CheckPremiumStatusUseCase {
+public protocol CheckPremiumStatusUseCase: Sendable {
     func execute() async -> Bool
 }
 
-public protocol GetCurrentSubscriptionPlanUseCase {
+public protocol GetCurrentSubscriptionPlanUseCase: Sendable {
     func execute() async -> SubscriptionPlan
 }
 
-public protocol GetSubscriptionExpiryDateUseCase {
+public protocol GetSubscriptionExpiryDateUseCase: Sendable {
     func execute() async -> Date?
 }
 
-public protocol GetCurrentUserProfileUseCase {
+public protocol GetCurrentUserProfileUseCase: Sendable {
     func execute() async -> UserProfile
 }
 
@@ -196,75 +188,75 @@ public protocol GenerateCalendarGridUseCase {
 
 // MARK: - Tip Use Cases
 
-public protocol GetAllTipsUseCase { 
-    func execute() async throws -> [Tip] 
+public protocol GetAllTipsUseCase: Sendable {
+    func execute() async throws -> [Tip]
 }
 
-public protocol GetFeaturedTipsUseCase { 
-    func execute() async throws -> [Tip] 
+public protocol GetFeaturedTipsUseCase: Sendable {
+    func execute() async throws -> [Tip]
 }
 
-public protocol GetTipByIdUseCase { 
-    func execute(id: UUID) async throws -> Tip? 
+public protocol GetTipByIdUseCase: Sendable {
+    func execute(id: UUID) async throws -> Tip?
 }
 
-public protocol GetTipsByCategoryUseCase { 
-    func execute(category: TipCategory) async throws -> [Tip] 
+public protocol GetTipsByCategoryUseCase: Sendable {
+    func execute(category: TipCategory) async throws -> [Tip]
 }
 
 // MARK: - Category Use Cases
 
-public protocol GetAllCategoriesUseCase { 
-    func execute() async throws -> [HabitCategory] 
+public protocol GetAllCategoriesUseCase: Sendable {
+    func execute() async throws -> [HabitCategory]
 }
 
-public protocol GetCategoryByIdUseCase { 
-    func execute(id: String) async throws -> HabitCategory? 
+public protocol GetCategoryByIdUseCase: Sendable {
+    func execute(id: String) async throws -> HabitCategory?
 }
 
-public protocol GetActiveCategoriesUseCase { 
-    func execute() async throws -> [HabitCategory] 
+public protocol GetActiveCategoriesUseCase: Sendable {
+    func execute() async throws -> [HabitCategory]
 }
 
-public protocol GetPredefinedCategoriesUseCase { 
-    func execute() async throws -> [HabitCategory] 
+public protocol GetPredefinedCategoriesUseCase: Sendable {
+    func execute() async throws -> [HabitCategory]
 }
 
-public protocol GetCustomCategoriesUseCase { 
-    func execute() async throws -> [HabitCategory] 
+public protocol GetCustomCategoriesUseCase: Sendable {
+    func execute() async throws -> [HabitCategory]
 }
 
-public protocol CreateCustomCategoryUseCase { 
-    func execute(_ category: HabitCategory) async throws 
+public protocol CreateCustomCategoryUseCase: Sendable {
+    func execute(_ category: HabitCategory) async throws
 }
 
-public protocol UpdateCategoryUseCase { 
-    func execute(_ category: HabitCategory) async throws 
+public protocol UpdateCategoryUseCase: Sendable {
+    func execute(_ category: HabitCategory) async throws
 }
 
-public protocol DeleteCategoryUseCase { 
-    func execute(id: String) async throws 
+public protocol DeleteCategoryUseCase: Sendable {
+    func execute(id: String) async throws
 }
 
-public protocol ValidateCategoryNameUseCase { 
-    func execute(name: String) async throws -> Bool 
+public protocol ValidateCategoryNameUseCase: Sendable {
+    func execute(name: String) async throws -> Bool
 }
 
-public protocol LoadHabitsDataUseCase {
+public protocol LoadHabitsDataUseCase: Sendable {
     func execute() async throws -> HabitsData
 }
 
 // MARK: - Onboarding Use Cases
 
-public protocol GetOnboardingStateUseCase { 
-    func execute() async throws -> OnboardingState 
+public protocol GetOnboardingStateUseCase: Sendable {
+    func execute() async throws -> OnboardingState
 }
 
-public protocol SaveOnboardingStateUseCase { 
-    func execute(_ state: OnboardingState) async throws 
+public protocol SaveOnboardingStateUseCase: Sendable {
+    func execute(_ state: OnboardingState) async throws
 }
 
-public protocol CompleteOnboardingUseCase {
+public protocol CompleteOnboardingUseCase: Sendable {
     func execute(userName: String?, hasNotifications: Bool, hasLocation: Bool, gender: String?, ageGroup: String?) async throws
 }
 
@@ -280,15 +272,15 @@ public protocol GetCurrentSloganUseCase {
 
 // MARK: - Notification Use Cases
 
-public protocol RequestNotificationPermissionUseCase { 
-    func execute() async throws -> Bool 
+public protocol RequestNotificationPermissionUseCase: Sendable {
+    func execute() async throws -> Bool
 }
 
-public protocol CheckNotificationStatusUseCase { 
-    func execute() async -> Bool 
+public protocol CheckNotificationStatusUseCase: Sendable {
+    func execute() async -> Bool
 }
 
-public protocol ScheduleHabitRemindersUseCase {
+public protocol ScheduleHabitRemindersUseCase: Sendable {
     func execute(habit: Habit) async throws
 }
 
@@ -304,18 +296,18 @@ public protocol HandleNotificationActionUseCase {
     func execute(action: NotificationAction, habitId: UUID, habitName: String?, habitKind: HabitKind, reminderTime: ReminderTime?) async throws
 }
 
-public protocol CancelHabitRemindersUseCase {
+public protocol CancelHabitRemindersUseCase: Sendable {
     func execute(habitId: UUID) async
 }
 
 // MARK: - Feature Gating Use Cases
 
-public protocol CheckFeatureAccessUseCase {
-    func execute() -> Bool
+public protocol CheckFeatureAccessUseCase: Sendable {
+    func execute() async -> Bool
 }
 
-public protocol CheckHabitCreationLimitUseCase {
-    func execute(currentCount: Int) -> Bool
+public protocol CheckHabitCreationLimitUseCase: Sendable {
+    func execute(currentCount: Int) async -> Bool
 }
 
 public protocol GetPaywallMessageUseCase {
@@ -334,33 +326,25 @@ public protocol TrackHabitLoggedUseCase {
 
 // MARK: - Paywall Use Cases
 
-public protocol LoadPaywallProductsUseCase {
+public protocol LoadPaywallProductsUseCase: Sendable {
     func execute() async throws -> [Product]
 }
 
-public protocol PurchaseProductUseCase {
-    func execute(_ product: Product) async throws -> Bool
+public protocol PurchaseProductUseCase: Sendable {
+    func execute(_ product: Product) async throws -> PurchaseResult
 }
 
-public protocol RestorePurchasesUseCase {
-    func execute() async throws -> Bool
+public protocol RestorePurchasesUseCase: Sendable {
+    func execute() async throws -> RestoreResult
 }
 
-public protocol CheckProductPurchasedUseCase {
+public protocol CheckProductPurchasedUseCase: Sendable {
     func execute(_ productId: String) async -> Bool
-}
-
-public protocol ResetPurchaseStateUseCase {
-    func execute()
-}
-
-public protocol GetPurchaseStateUseCase {
-    func execute() -> PurchaseState
 }
 
 // MARK: - Habit Schedule Use Cases
 
-public protocol ValidateHabitScheduleUseCase {
+public protocol ValidateHabitScheduleUseCase: Sendable {
     func execute(habit: Habit, date: Date) async throws -> HabitScheduleValidationResult
 }
 
@@ -410,7 +394,7 @@ public protocol RefreshWidgetUseCase {
 }
 
 
-// MARK: - Dashboard Analytics Use Cases
+// MARK: - Stats Analytics Use Cases
 
 public protocol GetHabitLogsForAnalyticsUseCase {
     func execute(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog]
@@ -447,30 +431,30 @@ public extension CalculateStreakAnalysisUseCase {
 
 // MARK: - Personality Analysis Use Cases
 
-public protocol AnalyzePersonalityUseCase {
+public protocol AnalyzePersonalityUseCase: Sendable {
     func execute(for userId: UUID) async throws -> PersonalityProfile
 }
 
-public protocol GetPersonalityInsightsUseCase {
+public protocol GetPersonalityInsightsUseCase: Sendable {
     func execute(for userId: UUID) async throws -> PersonalityProfile?
     func getAllInsights(for profile: PersonalityProfile) -> PersonalityInsightCollection
 }
 
-public protocol IsPersonalityAnalysisEnabledUseCase {
+public protocol IsPersonalityAnalysisEnabledUseCase: Sendable {
     func execute(for userId: UUID) async throws -> Bool
 }
 
-public protocol GetPersonalityProfileUseCase {
+public protocol GetPersonalityProfileUseCase: Sendable {
     func execute(for userId: UUID) async throws -> PersonalityProfile?
 }
 
-public protocol UpdatePersonalityAnalysisUseCase {
+public protocol UpdatePersonalityAnalysisUseCase: Sendable {
     func execute(for userId: UUID) async throws -> PersonalityProfile
     func regenerateAnalysis(for userId: UUID) async throws -> PersonalityProfile
     func shouldUpdateAnalysis(for userId: UUID) async throws -> Bool
 }
 
-public protocol ValidateAnalysisDataUseCase {
+public protocol ValidateAnalysisDataUseCase: Sendable {
     func execute(for userId: UUID) async throws -> AnalysisEligibility
     func getProgressDetails(for userId: UUID) async throws -> [ThresholdRequirement]
     func getEstimatedDaysToEligibility(for userId: UUID) async throws -> Int?
@@ -478,47 +462,47 @@ public protocol ValidateAnalysisDataUseCase {
 
 // MARK: - Personality Analysis Preferences Use Cases
 
-public protocol GetAnalysisPreferencesUseCase {
+public protocol GetAnalysisPreferencesUseCase: Sendable {
     func execute(for userId: UUID) async throws -> PersonalityAnalysisPreferences?
 }
 
-public protocol SaveAnalysisPreferencesUseCase {
+public protocol SaveAnalysisPreferencesUseCase: Sendable {
     func execute(_ preferences: PersonalityAnalysisPreferences) async throws
 }
 
-public protocol DeletePersonalityDataUseCase {
+public protocol DeletePersonalityDataUseCase: Sendable {
     func execute(for userId: UUID) async throws
 }
 
 // MARK: - Personality Analysis Scheduler Use Cases
 
-public protocol StartAnalysisSchedulingUseCase {
+public protocol StartAnalysisSchedulingUseCase: Sendable {
     func execute(for userId: UUID) async
 }
 
-public protocol UpdateAnalysisSchedulingUseCase {
+public protocol UpdateAnalysisSchedulingUseCase: Sendable {
     func execute(for userId: UUID, preferences: PersonalityAnalysisPreferences) async
 }
 
-public protocol GetNextScheduledAnalysisUseCase {
+public protocol GetNextScheduledAnalysisUseCase: Sendable {
     func execute(for userId: UUID) async -> Date?
 }
 
-public protocol TriggerAnalysisCheckUseCase {
+public protocol TriggerAnalysisCheckUseCase: Sendable {
     func execute(for userId: UUID) async
 }
 
-public protocol ForceManualAnalysisUseCase {
+public protocol ForceManualAnalysisUseCase: Sendable {
     func execute(for userId: UUID) async
 }
 
 // MARK: - Personality Analysis Data Use Cases
 
-public protocol GetHabitAnalysisInputUseCase {
+public protocol GetHabitAnalysisInputUseCase: Sendable {
     func execute(for userId: UUID) async throws -> HabitAnalysisInput
 }
 
-public protocol GetSelectedHabitSuggestionsUseCase {
+public protocol GetSelectedHabitSuggestionsUseCase: Sendable {
     func execute(from habits: [Habit]) async throws -> [HabitSuggestion]
 }
 
@@ -529,17 +513,17 @@ public protocol EstimateDaysToEligibilityUseCase {
 // MARK: - Debug Use Cases
 
 #if DEBUG
-public protocol GetDatabaseStatsUseCase {
+public protocol GetDatabaseStatsUseCase: Sendable {
     func execute() async throws -> DebugDatabaseStats
 }
 
-public protocol ClearDatabaseUseCase {
+public protocol ClearDatabaseUseCase: Sendable {
     func execute() async throws
 }
 
-public protocol PopulateTestDataUseCase {
+public protocol PopulateTestDataUseCase: Sendable {
     func execute(scenario: TestDataScenario) async throws
-    var progressUpdate: ((String, Double) -> Void)? { get set }
+    var progressUpdate: (@Sendable (String, Double) -> Void)? { get set }
 }
 
 #endif

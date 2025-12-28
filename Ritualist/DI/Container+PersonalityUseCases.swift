@@ -45,7 +45,7 @@ extension Container {
     }
     
     var isPersonalityAnalysisEnabledUseCase: Factory<IsPersonalityAnalysisEnabledUseCase> {
-        self { DefaultIsPersonalityAnalysisEnabledUseCase(repository: self.personalityAnalysisRepository()) }
+        self { IsPersonalityAnalysisEnabledUseCase(repository: self.personalityAnalysisRepository()) }
     }
     
     // MARK: - Personality Analysis Preferences Use Cases

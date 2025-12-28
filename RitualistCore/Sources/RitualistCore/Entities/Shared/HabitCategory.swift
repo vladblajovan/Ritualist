@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct HabitCategory: Identifiable, Hashable, Codable {
+public struct HabitCategory: Identifiable, Hashable, Codable, Sendable {
     public let id: String
     public let name: String
     public let displayName: String
@@ -38,5 +38,18 @@ public struct HabitCategory: Identifiable, Hashable, Codable {
         self.isActive = isActive
         self.isPredefined = isPredefined
         self.personalityWeights = personalityWeights
+    }
+
+    public func withActiveStatus(_ isActive: Bool) -> HabitCategory {
+        HabitCategory(
+            id: id,
+            name: name,
+            displayName: displayName,
+            emoji: emoji,
+            order: order,
+            isActive: isActive,
+            isPredefined: isPredefined,
+            personalityWeights: personalityWeights
+        )
     }
 }

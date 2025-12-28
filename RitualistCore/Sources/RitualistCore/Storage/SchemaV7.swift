@@ -18,7 +18,7 @@ import SwiftData
 /// - HabitModel: Added `lastGeofenceTriggerDate: Date?` for frequency tracking
 /// - Migration: Lightweight migration (new optional properties)
 public enum SchemaV7: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(7, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(7, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

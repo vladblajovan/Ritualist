@@ -9,14 +9,14 @@ import Foundation
 
 /// Protocol for category definitions service
 /// Provides predefined habit categories with personality trait weights
-public protocol CategoryDefinitionsServiceProtocol {
+public protocol CategoryDefinitionsServiceProtocol: Sendable {
     /// Returns all predefined habit categories
     func getPredefinedCategories() -> [HabitCategory]
 }
 
 /// Service that provides predefined habit category definitions
 /// Extracted from CategoryLocalDataSource for proper layer separation
-public final class CategoryDefinitionsService: CategoryDefinitionsServiceProtocol {
+public final class CategoryDefinitionsService: CategoryDefinitionsServiceProtocol, Sendable {
 
     public init() {}
 

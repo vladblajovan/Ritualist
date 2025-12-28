@@ -52,8 +52,8 @@ public final class CheckFeatureAccess: CheckFeatureAccessUseCase {
         self.featureGatingService = featureGatingService
     }
     
-    public func execute() -> Bool {
-        featureGatingService.hasAdvancedAnalytics
+    public func execute() async -> Bool {
+        await featureGatingService.hasAdvancedAnalytics()
     }
 }
 
@@ -64,8 +64,8 @@ public final class CheckHabitCreationLimit: CheckHabitCreationLimitUseCase {
         self.featureGatingService = featureGatingService
     }
 
-    public func execute(currentCount: Int) -> Bool {
-        return featureGatingService.canCreateMoreHabits(currentCount: currentCount)
+    public func execute(currentCount: Int) async -> Bool {
+        await featureGatingService.canCreateMoreHabits(currentCount: currentCount)
     }
 }
 

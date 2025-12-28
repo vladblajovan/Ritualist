@@ -10,6 +10,7 @@ import Foundation
 @testable import RitualistCore
 
 @Suite("ScheduleAwareCompletionCalculator - Core Functionality")
+@MainActor
 struct ScheduleAwareCompletionCalculatorTests {
 
     // MARK: - Test Setup
@@ -341,6 +342,7 @@ struct ScheduleAwareCompletionCalculatorTests {
 // MARK: - Days of Week Schedule Tests
 
 @Suite("ScheduleAwareCompletionCalculator - Days of Week Schedules")
+@MainActor
 struct ScheduleAwareCompletionCalculatorDaysOfWeekTests {
 
     var calculator: ScheduleAwareCompletionCalculator {

@@ -13,7 +13,7 @@ import Foundation
 // MARK: - Inspiration Triggers
 
 /// Defines when and why to show motivational content to users
-public enum InspirationTrigger: CaseIterable, Hashable {
+public enum InspirationTrigger: CaseIterable, Hashable, Sendable {
     case sessionStart          // First app open of the day
     case morningMotivation     // 0% completion in morning
     case firstHabitComplete    // Just completed first habit

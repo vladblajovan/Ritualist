@@ -8,7 +8,7 @@
 import Foundation
 
 /// Protocol for local habit data source operations
-public protocol HabitLocalDataSourceProtocol {
+public protocol HabitLocalDataSourceProtocol: Sendable {
     /// Fetch all habits from local storage
     func fetchAll() async throws -> [Habit]
     

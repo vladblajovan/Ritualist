@@ -1,4 +1,14 @@
 {
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
   "identifier" : "0E9E9A49",
   "nonRenewingSubscriptions" : [
 
@@ -8,48 +18,48 @@
   ],
   "settings" : {
     "_applicationInternalID" : "6736572802",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : true,
+    "_billingIssuesEnabled" : false,
+    "_billingRetryEnabled" : true,
     "_developerTeamID" : "XXXXXXXXXX",
+    "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 757969200.0,
+    "_lastSynchronizedDate" : 757969200,
     "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : true,
     "_storefront" : "USA",
     "_storeKitErrors" : [
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Load Products"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Purchase"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Verification"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "App Store Sync"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Subscription Status"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "App Transaction"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Refund Request Sheet"
       }
-    ]
+    ],
+    "_timeRate" : 0
   },
   "subscriptionGroups" : [
     {
@@ -86,7 +96,10 @@
           "recurringSubscriptionPeriod" : "P1W",
           "referenceName" : "Ritualist Pro Weekly",
           "subscriptionGroupID" : "21542332",
-          "type" : "RecurringSubscription"
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         },
         {
           "adHocOffers" : [
@@ -100,21 +113,19 @@
               "internalID" : "MONTHLY_WELCOME",
               "isStackable" : true,
               "numberOfPeriods" : 3,
-              "offerID" : "WELCOME50",
               "paymentMode" : "payAsYouGo",
               "referenceName" : "Welcome 50% Off",
               "subscriptionPeriod" : "P1M"
             },
             {
               "eligibility" : [
-                "existing",
+                "new",
                 "expired",
-                "new"
+                "existing"
               ],
               "internalID" : "MONTHLY_TEST",
               "isStackable" : true,
               "numberOfPeriods" : 1,
-              "offerID" : "TESTMONTHLY",
               "paymentMode" : "free",
               "referenceName" : "Test Monthly Free Trial",
               "subscriptionPeriod" : "P1M"
@@ -136,7 +147,10 @@
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Ritualist Pro Monthly",
           "subscriptionGroupID" : "21542332",
-          "type" : "RecurringSubscription"
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         },
         {
           "adHocOffers" : [
@@ -150,7 +164,6 @@
               "internalID" : "ANNUAL_RITUALIST",
               "isStackable" : true,
               "numberOfPeriods" : 1,
-              "offerID" : "RITUALIST2025",
               "paymentMode" : "free",
               "referenceName" : "Ritualist 2025 Free Trial",
               "subscriptionPeriod" : "P3M"
@@ -162,7 +175,6 @@
               "internalID" : "ANNUAL_30OFF",
               "isStackable" : true,
               "numberOfPeriods" : 1,
-              "offerID" : "ANNUAL30",
               "paymentMode" : "payAsYouGo",
               "referenceName" : "Annual 30% Off",
               "subscriptionPeriod" : "P1Y"
@@ -176,7 +188,6 @@
               "internalID" : "ANNUAL_TEST",
               "isStackable" : true,
               "numberOfPeriods" : 1,
-              "offerID" : "TESTANNUAL",
               "paymentMode" : "free",
               "referenceName" : "Test Annual Free Trial",
               "subscriptionPeriod" : "P1Y"
@@ -203,7 +214,10 @@
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Ritualist Pro Annual",
           "subscriptionGroupID" : "21542332",
-          "type" : "RecurringSubscription"
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         }
       ]
     }

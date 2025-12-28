@@ -8,7 +8,7 @@
 import Foundation
 
 /// Data source for managing personality analysis preferences
-public protocol PersonalityPreferencesDataSource {
+public protocol PersonalityPreferencesDataSource: Sendable {
     /// Get user's analysis preferences
     func getPreferences(for userId: UUID) async throws -> PersonalityAnalysisPreferences?
 
@@ -16,9 +16,10 @@ public protocol PersonalityPreferencesDataSource {
     func savePreferences(_ preferences: PersonalityAnalysisPreferences) async throws
 }
 
-public final class DefaultPersonalityPreferencesDataSource: PersonalityPreferencesDataSource {
+public final class DefaultPersonalityPreferencesDataSource: PersonalityPreferencesDataSource, Sendable {
 
-    private let userDefaults: UserDefaults
+    // UserDefaults is thread-safe but not Sendable, so we use nonisolated(unsafe)
+    nonisolated(unsafe) private let userDefaults: UserDefaults
 
     public init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults

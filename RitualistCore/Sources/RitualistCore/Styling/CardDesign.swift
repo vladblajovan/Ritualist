@@ -112,48 +112,11 @@ public struct BounceStyle: ButtonStyle {
     }
 }
 
-/// Glassmorphic-friendly card style modifier (no background or corner radius)
-@available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
-public struct GlassmorphicContentStyle: ViewModifier {
-    public init() {}
-    
-    public func body(content: Content) -> some View {
-        content
-            .padding(CardDesign.cardPadding)
-    }
-}
-
-/// Optimized glassmorphic style with no padding - maximizes available space
-@available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
-public struct GlassmorphicMaximizedContentStyle: ViewModifier {
-    public init() {}
-    
-    public func body(content: Content) -> some View {
-        content
-    }
-}
-
 @available(iOS 13.0, watchOS 6.0, macOS 10.15, *)
 public extension View {
     func cardStyle(action: @escaping () -> Void = {}) -> some View {
         Button(action: action) {
             self.modifier(CardStyle())
-        }
-        .buttonStyle(BounceStyle())
-    }
-    
-    /// Use this style for content inside glassmorphic cards
-    func glassmorphicContentStyle(action: @escaping () -> Void = {}) -> some View {
-        Button(action: action) {
-            self.modifier(GlassmorphicContentStyle())
-        }
-        .buttonStyle(BounceStyle())
-    }
-    
-    /// Optimized glassmorphic style that maximizes available space (no padding)
-    func glassmorphicMaximizedContentStyle(action: @escaping () -> Void = {}) -> some View {
-        Button(action: action) {
-            self.modifier(GlassmorphicMaximizedContentStyle())
         }
         .buttonStyle(BounceStyle())
     }

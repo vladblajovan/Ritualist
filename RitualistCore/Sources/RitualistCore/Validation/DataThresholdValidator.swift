@@ -8,7 +8,7 @@
 import Foundation
 
 /// Service for validating data thresholds required for personality analysis
-public protocol DataThresholdValidator {
+public protocol DataThresholdValidator: Sendable {
     /// Check if user meets minimum data requirements
     func validateEligibility(for userId: UUID) async throws -> AnalysisEligibility
     

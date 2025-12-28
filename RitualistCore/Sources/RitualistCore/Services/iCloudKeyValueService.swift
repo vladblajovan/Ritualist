@@ -13,7 +13,7 @@ import Foundation
 
 // MARK: - Protocol
 
-public protocol iCloudKeyValueService {
+public protocol iCloudKeyValueService: Sendable {
     /// Check if onboarding has been completed (syncs from iCloud)
     func hasCompletedOnboarding() -> Bool
 
@@ -56,7 +56,7 @@ private enum LocalKeys {
 
 // MARK: - Implementation
 
-public final class DefaultiCloudKeyValueService: iCloudKeyValueService {
+public final class DefaultiCloudKeyValueService: iCloudKeyValueService, @unchecked Sendable {
     private let store: NSUbiquitousKeyValueStore
     private let userDefaults: UserDefaults
     private let logger: DebugLogger

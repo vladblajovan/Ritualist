@@ -80,27 +80,28 @@ public enum LogCategory: String, CaseIterable {
 /// ```
 ///
 /// **Thread Safety:**
-/// Marked as `@unchecked Sendable` because thread safety is ensured via NSLock.
-/// All mutable state (logBuffer) is protected by `bufferLock`. The `OSLog` instance
-/// and `isProductionBuild` flag are immutable after initialization.
-public final class DebugLogger: @unchecked Sendable {
+/// This is an actor, providing automatic thread safety through actor isolation.
+/// The `log()` method is nonisolated for sync access (os_log is thread-safe),
+/// with buffer updates happening asynchronously via Task.
+public actor DebugLogger {
 
     // MARK: - Properties
 
-    /// OS Log instance for system-level logging
-    private let osLog: OSLog
+    /// OS Log instance for system-level logging (immutable, safe for nonisolated access)
+    nonisolated private let osLog: OSLog
 
     /// Indicates if this is a production (Release) build
     /// In production, only error and critical logs are output
-    private let isProductionBuild: Bool
+    nonisolated private let isProductionBuild: Bool
 
     /// In-memory log buffer for diagnostics (Debug builds only)
     private var logBuffer: [LogEntry] = []
     private let maxBufferSize = 1000
-    private let bufferLock = NSLock()
     
     // Log entry structure
-    private struct LogEntry {
+    // @unchecked Sendable because metadata contains [String: Any] which isn't Sendable,
+    // but we only use this for buffering log entries within the actor
+    private struct LogEntry: @unchecked Sendable {
         let timestamp: Date
         let level: LogLevel
         let category: LogCategory
@@ -133,9 +134,10 @@ public final class DebugLogger: @unchecked Sendable {
     }
     
     // MARK: - Enhanced Logging Methods
-    
+
     /// Primary logging method with full metadata support
-    public func log(
+    /// Nonisolated for sync access - os_log is thread-safe, buffer updates are async
+    nonisolated public func log(
         _ message: String,
         level: LogLevel = .info,
         category: LogCategory = .system,
@@ -158,23 +160,23 @@ public final class DebugLogger: @unchecked Sendable {
             metadata: metadata
         )
 
-        // Add to buffer (only in debug for memory efficiency)
-        if !isProductionBuild {
-            addToBuffer(entry)
-        }
-
-        // OS Log only - appears in Xcode console and Console.app
+        // OS Log - sync, thread-safe (appears in Xcode console and Console.app)
         let emoji = emojiForLevel(level)
         os_log("%{public}@", log: osLog, type: level.osLogType, "\(emoji) \(entry.formattedMessage)")
+
+        // Add to buffer asynchronously (only in debug for memory efficiency)
+        if !isProductionBuild {
+            Task { await self.addToBuffer(entry) }
+        }
     }
-    
+
     /// Convenience method for simple logging (maintains backward compatibility)
-    public func log(_ message: String) {
+    nonisolated public func log(_ message: String) {
         log(message, level: .info, category: .system)
     }
     
     /// Log performance metrics
-    public func logPerformance(
+    nonisolated public func logPerformance(
         operation: String,
         duration: TimeInterval,
         metadata: [String: Any]? = nil
@@ -182,16 +184,16 @@ public final class DebugLogger: @unchecked Sendable {
         var perfMetadata = metadata ?? [:]
         perfMetadata["duration_ms"] = duration * 1000
         perfMetadata["operation"] = operation
-        
+
         let level: LogLevel = duration > 1.0 ? .warning : .info
-        log("Performance: \(operation) took \(String(format: "%.3f", duration))s", 
-            level: level, 
-            category: .performance, 
+        log("Performance: \(operation) took \(String(format: "%.3f", duration))s",
+            level: level,
+            category: .performance,
             metadata: perfMetadata)
     }
-    
+
     /// Log state transitions
-    public func logStateTransition(
+    nonisolated public func logStateTransition(
         from: String,
         to: String,
         context: [String: Any]? = nil
@@ -199,15 +201,15 @@ public final class DebugLogger: @unchecked Sendable {
         var metadata = context ?? [:]
         metadata["from_state"] = from
         metadata["to_state"] = to
-        
-        log("State transition: \(from) → \(to)", 
-            level: .info, 
-            category: .stateManagement, 
+
+        log("State transition: \(from) → \(to)",
+            level: .info,
+            category: .stateManagement,
             metadata: metadata)
     }
-    
+
     /// Log error with recovery context
-    public func logError(
+    nonisolated public func logError(
         _ error: Error,
         context: String? = nil,
         recoveryAttempted: Bool = false,
@@ -219,17 +221,17 @@ public final class DebugLogger: @unchecked Sendable {
         errorMetadata["error_type"] = String(describing: type(of: error))
         errorMetadata["recovery_attempted"] = recoveryAttempted
         errorMetadata["recovery_successful"] = recoverySuccessful
-        
+
         if let context = context {
             errorMetadata["context"] = context
         }
-        
+
         let message = context != nil ? "\(context!): \(error.localizedDescription)" : error.localizedDescription
         log(message, level: .error, category: .errorRecovery, metadata: errorMetadata)
     }
-    
+
     /// Log authentication events
-    public func logAuth(
+    nonisolated public func logAuth(
         event: String,
         userId: String? = nil,
         success: Bool = true,
@@ -238,17 +240,17 @@ public final class DebugLogger: @unchecked Sendable {
         var authMetadata = metadata ?? [:]
         authMetadata["auth_event"] = event
         authMetadata["success"] = success
-        
+
         if let userId = userId {
             authMetadata["user_id"] = userId
         }
-        
+
         let level: LogLevel = success ? .info : .warning
         log("Auth: \(event)", level: level, category: .authentication, metadata: authMetadata)
     }
-    
+
     /// Log subscription events
-    public func logSubscription(
+    nonisolated public func logSubscription(
         event: String,
         plan: String? = nil,
         success: Bool = true,
@@ -257,17 +259,17 @@ public final class DebugLogger: @unchecked Sendable {
         var subMetadata = metadata ?? [:]
         subMetadata["subscription_event"] = event
         subMetadata["success"] = success
-        
+
         if let plan = plan {
             subMetadata["plan"] = plan
         }
-        
+
         let level: LogLevel = success ? .info : .warning
         log("Subscription: \(event)", level: level, category: .subscription, metadata: subMetadata)
     }
-    
+
     /// Log health monitoring events
-    public func logHealth(
+    nonisolated public func logHealth(
         status: String,
         component: String,
         details: [String: Any]? = nil
@@ -275,15 +277,15 @@ public final class DebugLogger: @unchecked Sendable {
         var healthMetadata = details ?? [:]
         healthMetadata["component"] = component
         healthMetadata["health_status"] = status
-        
+
         let level: LogLevel = status.lowercased().contains("critical") ? .critical :
                               status.lowercased().contains("warning") ? .warning : .info
-        
+
         log("Health: \(component) - \(status)", level: level, category: .healthMonitoring, metadata: healthMetadata)
     }
-    
+
     /// Log data integrity events
-    public func logDataIntegrity(
+    nonisolated public func logDataIntegrity(
         check: String,
         passed: Bool,
         issues: [String]? = nil,
@@ -292,22 +294,22 @@ public final class DebugLogger: @unchecked Sendable {
         var dataMetadata = metadata ?? [:]
         dataMetadata["integrity_check"] = check
         dataMetadata["passed"] = passed
-        
+
         if let issues = issues {
             dataMetadata["issues"] = issues
         }
-        
+
         let level: LogLevel = passed ? .info : (issues?.count ?? 0 > 0 ? .warning : .error)
-        let message = passed ? "Data integrity check passed: \(check)" : 
+        let message = passed ? "Data integrity check passed: \(check)" :
                                "Data integrity issues in \(check): \(issues?.joined(separator: ", ") ?? "unknown")"
-        
+
         log(message, level: level, category: .dataIntegrity, metadata: dataMetadata)
     }
-    
+
     // MARK: - Legacy UserActionTracker Methods (for backward compatibility)
-    
+
     /// Log an event with properties and user context
-    public func logEvent(
+    nonisolated public func logEvent(
         name: String,
         properties: [String: Any],
         userId: String?,
@@ -316,45 +318,45 @@ public final class DebugLogger: @unchecked Sendable {
         var metadata = properties
         metadata["user_id"] = userId
         metadata["user_properties"] = userProperties
-        
+
         log("Event: \(name)", level: .info, category: .userAction, metadata: metadata)
     }
-    
+
     /// Log user property changes
-    public func logUserProperty(key: String, value: Any) {
-        let metadata = ["property_key": key, "property_value": value]
+    nonisolated public func logUserProperty(key: String, value: Any) {
+        let metadata: [String: Any] = ["property_key": key, "property_value": value]
         log("User property set: \(key) = \(value)", level: .info, category: .userAction, metadata: metadata)
     }
-    
+
     /// Log user identification
-    public func logUserIdentified(userId: String, properties: [String: Any]?) {
+    nonisolated public func logUserIdentified(userId: String, properties: [String: Any]?) {
         var metadata: [String: Any] = ["user_id": userId]
         if let properties = properties {
             metadata["initial_properties"] = properties
         }
         log("User identified: \(userId)", level: .info, category: .userAction, metadata: metadata)
     }
-    
+
     /// Log user reset
-    public func logUserReset() {
+    nonisolated public func logUserReset() {
         log("User reset", level: .info, category: .userAction)
     }
-    
+
     /// Log tracking state changes
-    public func logTrackingStateChanged(enabled: Bool) {
-        let metadata = ["tracking_enabled": enabled]
+    nonisolated public func logTrackingStateChanged(enabled: Bool) {
+        let metadata: [String: Any] = ["tracking_enabled": enabled]
         log("Tracking \(enabled ? "enabled" : "disabled")", level: .info, category: .userAction, metadata: metadata)
     }
-    
+
     /// Log flush requests
-    public func logFlushRequested() {
+    nonisolated public func logFlushRequested() {
         log("Flush requested", level: .info, category: .userAction)
     }
 
     // MARK: - Personality Analysis Logging
 
     /// Log personality analysis events
-    public func logPersonality(
+    nonisolated public func logPersonality(
         event: String,
         context: [String: Any]? = nil
     ) {
@@ -362,7 +364,7 @@ public final class DebugLogger: @unchecked Sendable {
     }
 
     /// Log personality analysis sheet state changes
-    public func logPersonalitySheet(
+    nonisolated public func logPersonalitySheet(
         state: String,
         shouldSwitchTab: Bool? = nil,
         currentTab: String? = nil,
@@ -382,7 +384,7 @@ public final class DebugLogger: @unchecked Sendable {
     // MARK: - Notification Logging
 
     /// Log notification events
-    public func logNotification(
+    nonisolated public func logNotification(
         event: String,
         type: String? = nil,
         habitId: String? = nil,
@@ -399,10 +401,10 @@ public final class DebugLogger: @unchecked Sendable {
         log("Notification: \(event)", level: .debug, category: .notifications, metadata: notifMetadata)
     }
 
-    // MARK: - Navigation \u0026 Deep Linking
+    // MARK: - Navigation & Deep Linking
 
     /// Log navigation events
-    public func logNavigation(
+    nonisolated public func logNavigation(
         event: String,
         from: String? = nil,
         to: String? = nil,
@@ -420,7 +422,7 @@ public final class DebugLogger: @unchecked Sendable {
     }
 
     /// Log deep link handling
-    public func logDeepLink(
+    nonisolated public func logDeepLink(
         event: String,
         url: String? = nil,
         action: String? = nil,
@@ -438,81 +440,71 @@ public final class DebugLogger: @unchecked Sendable {
     }
 
     // MARK: - Diagnostics and Export
-    
-    /// Get recent logs for diagnostics
+
+    /// Get recent logs for diagnostics (actor-isolated, requires await)
     public func getRecentLogs(limit: Int = 100, level: LogLevel? = nil, category: LogCategory? = nil) -> [String] {
-        bufferLock.lock()
-        defer { bufferLock.unlock() }
-        
         var filteredLogs = logBuffer
-        
+
         if let level = level {
             filteredLogs = filteredLogs.filter { $0.level == level }
         }
-        
+
         if let category = category {
             filteredLogs = filteredLogs.filter { $0.category == category }
         }
-        
+
         return Array(filteredLogs.suffix(limit)).map { $0.formattedMessage }
     }
-    
-    /// Export logs as string for debugging
+
+    /// Export logs as string for debugging (actor-isolated, requires await)
     public func exportLogs(level: LogLevel? = nil, category: LogCategory? = nil) -> String {
         let logs = getRecentLogs(limit: maxBufferSize, level: level, category: category)
         return logs.joined(separator: "\n")
     }
-    
-    /// Clear log buffer
+
+    /// Clear log buffer (actor-isolated, requires await)
     public func clearLogs() {
-        bufferLock.lock()
-        defer { bufferLock.unlock() }
-        
         logBuffer.removeAll()
         log("Log buffer cleared", level: .info, category: .system)
     }
-    
-    /// Get log statistics
+
+    /// Get log statistics (actor-isolated, requires await)
     public func getLogStatistics() -> [String: Any] {
-        bufferLock.lock()
-        defer { bufferLock.unlock() }
-        
         var stats: [String: Any] = [:]
         stats["total_logs"] = logBuffer.count
         stats["buffer_size"] = maxBufferSize
-        
+
         // Count by level
         var levelCounts: [String: Int] = [:]
         for level in LogLevel.allCases {
             levelCounts[level.rawValue] = logBuffer.filter { $0.level == level }.count
         }
         stats["level_counts"] = levelCounts
-        
+
         // Count by category
         var categoryCounts: [String: Int] = [:]
         for category in LogCategory.allCases {
             categoryCounts[category.rawValue] = logBuffer.filter { $0.category == category }.count
         }
         stats["category_counts"] = categoryCounts
-        
+
         return stats
     }
-    
+
     // MARK: - Private Methods
-    
+
+    /// Add entry to buffer (actor-isolated)
     private func addToBuffer(_ entry: LogEntry) {
-        bufferLock.lock()
-        defer { bufferLock.unlock() }
-        
         logBuffer.append(entry)
-        
+
         // Maintain buffer size
         if logBuffer.count > maxBufferSize {
             logBuffer.removeFirst(logBuffer.count - maxBufferSize)
         }
     }
-    
-    private func emojiForLevel(_ level: LogLevel) -> String {
+
+    /// Get emoji for log level (nonisolated - pure function)
+    nonisolated private func emojiForLevel(_ level: LogLevel) -> String {
         switch level {
         case .debug: return "🔍"
         case .info: return "ℹ️"

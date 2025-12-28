@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum HabitSchedule: Codable, Equatable, Hashable {
+public enum HabitSchedule: Codable, Equatable, Hashable, Sendable {
     case daily
     case daysOfWeek(Set<Int>) // 1=Mon…7=Sun
 }

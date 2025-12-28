@@ -8,7 +8,7 @@
 import Foundation
 
 /// Repository protocol for personality analysis data operations
-public protocol PersonalityAnalysisRepositoryProtocol {
+public protocol PersonalityAnalysisRepositoryProtocol: Sendable {
     
     // MARK: - Personality Profile Management
     

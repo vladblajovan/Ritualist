@@ -10,6 +10,7 @@ import Foundation
 @testable import RitualistCore
 
 @Suite("HabitScheduleAnalyzer - Core Functionality")
+@MainActor
 struct HabitScheduleAnalyzerTests {
 
     // MARK: - Test Setup
@@ -300,6 +301,7 @@ struct HabitScheduleAnalyzerTests {
 // MARK: - Timezone Edge Cases
 
 @Suite("HabitScheduleAnalyzer - Timezone Edge Cases")
+@MainActor
 struct HabitScheduleAnalyzerTimezoneTests {
 
     let analyzer = HabitScheduleAnalyzer()
@@ -362,11 +364,6 @@ struct HabitScheduleAnalyzerTimezoneTests {
         // Arrange: Create Mon/Wed/Fri habit
         let habit = HabitBuilder.binary(
             schedule: .daysOfWeek([1, 3, 5])
-        )
-
-        // Create Monday at 11:30 PM Tokyo time
-        let mondayNight = TimezoneTestHelpers.createLateNightDate(
-            timezone: TimezoneTestHelpers.tokyo
         )
 
         // Note: The lateNightDate is Nov 8 which is a Friday, not Monday
@@ -544,6 +541,7 @@ struct HabitScheduleAnalyzerTimezoneTests {
 // MARK: - Error Path Tests
 
 @Suite("HabitScheduleAnalyzer - Error Paths")
+@MainActor
 struct HabitScheduleAnalyzerErrorTests {
 
     let analyzer = HabitScheduleAnalyzer()

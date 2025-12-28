@@ -8,7 +8,7 @@
 import Foundation
 
 /// Service for calculating consecutive tracking days from habit logs
-public protocol CalculateConsecutiveTrackingDaysService {
+public protocol CalculateConsecutiveTrackingDaysService: Sendable {
     /// Calculate how many consecutive days the user has tracked habits
     /// - Parameters:
     ///   - logs: The habit logs to analyze

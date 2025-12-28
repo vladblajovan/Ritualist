@@ -56,14 +56,14 @@ public final class IsScheduledDay: IsScheduledDayUseCase {
     }
 }
 
-public final class ClearPurchases: ClearPurchasesUseCase {
-    private let paywallService: PaywallService
-    
-    public init(paywallService: PaywallService) {
-        self.paywallService = paywallService
+public final class ClearPurchases: ClearPurchasesUseCase, Sendable {
+    private let subscriptionService: SecureSubscriptionService
+
+    public init(subscriptionService: SecureSubscriptionService) {
+        self.subscriptionService = subscriptionService
     }
-    
-    public func execute() {
-        paywallService.clearPurchases()
+
+    public func execute() async throws {
+        try await subscriptionService.clearPurchases()
     }
 }

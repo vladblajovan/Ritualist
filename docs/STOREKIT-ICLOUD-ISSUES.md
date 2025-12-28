@@ -98,7 +98,7 @@ Premium subscription still gates these features:
 
 | Issue | Impact | Fix |
 |-------|--------|-----|
-| No grace period handling | Premature feature lockout | Check `gracePeriodExpiresDate` (iOS 18+) |
+| ~~No grace period handling~~ | ~~Premature feature lockout~~ | ~~Check `gracePeriodExpiresDate`~~ ✅ FIXED |
 | No pending purchase state | Confusing UX for Ask to Buy | Add `.pending` to `PurchaseState` |
 | Verification failures silent | Security events undetected | Log and alert on verification failure |
 | No retry logic | Users give up on failed purchases | Exponential backoff, max 3 retries |

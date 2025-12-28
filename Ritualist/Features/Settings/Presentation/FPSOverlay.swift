@@ -71,7 +71,8 @@ struct FPSOverlay: View {
 final class FPSCounter: ObservableObject {
     @Published private(set) var fps: Double = 60.0
 
-    private var displayLink: CADisplayLink?
+    // nonisolated(unsafe) required for deinit access in @MainActor class
+    nonisolated(unsafe) private var displayLink: CADisplayLink?
     private var lastTimestamp: CFTimeInterval = 0
     private var frameCount: Int = 0
 

@@ -8,7 +8,7 @@
 import Foundation
 
 /// Protocol for local category data source operations
-public protocol CategoryLocalDataSourceProtocol {
+public protocol CategoryLocalDataSourceProtocol: Sendable {
     /// Retrieve all categories from local storage
     func getAllCategories() async throws -> [HabitCategory]
     

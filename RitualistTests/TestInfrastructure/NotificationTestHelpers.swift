@@ -21,6 +21,7 @@ import UserNotifications
 /// - Both implementations have real, observable behavior
 /// - No fake return values or stubbed responses
 /// - InMemoryNotificationCenter actually stores and manages notifications
+@preconcurrency
 protocol NotificationCenterProtocol {
 
     /// Add a notification request to be scheduled
@@ -82,7 +83,6 @@ final class SystemNotificationCenter: NotificationCenterProtocol {
 /// - Actually stores notification requests in memory
 /// - Handles duplicate identifiers correctly (replaces existing)
 /// - Supports removal by identifier
-/// - Thread-safe with actor isolation
 ///
 /// **This Is NOT A Mock:**
 /// - Has real, observable state (pendingRequests array)
@@ -97,7 +97,10 @@ final class SystemNotificationCenter: NotificationCenterProtocol {
 /// let pending = await center.pendingNotificationRequests()
 /// #expect(pending.count == 1)
 /// ```
-actor InMemoryNotificationCenter: NotificationCenterProtocol {
+///
+/// Note: Using class instead of actor for test code since UNNotificationRequest
+/// is not Sendable and tests run single-threaded anyway.
+final class InMemoryNotificationCenter: NotificationCenterProtocol, @unchecked Sendable {
 
     // MARK: - State
 

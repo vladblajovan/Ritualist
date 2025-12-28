@@ -10,8 +10,7 @@ import Foundation
 import Observation
 
 @available(iOS 17.0, macOS 14.0, *)
-@Observable
-public final class DefaultFeatureGatingService: FeatureGatingService {
+public final class DefaultFeatureGatingService: FeatureGatingService, Sendable {
     private let subscriptionService: SecureSubscriptionService
     private let errorHandler: ErrorHandler?
 
@@ -22,45 +21,54 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
         self.subscriptionService = subscriptionService
         self.errorHandler = errorHandler
     }
-    
-    public var maxHabitsAllowed: Int {
-        isPremiumUser ? Int.max : Self.freeMaxHabits
-    }
-    
-    public func canCreateMoreHabits(currentCount: Int) -> Bool {
-        isPremiumUser || currentCount < Self.freeMaxHabits
-    }
-    
-    public var hasAdvancedAnalytics: Bool {
-        isPremiumUser
-    }
-    
-    public var hasCustomReminders: Bool {
-        isPremiumUser
-    }
-    
-    public var hasDataExport: Bool {
-        isPremiumUser
+
+    public func maxHabitsAllowed() async -> Int {
+        await isPremiumUser() ? Int.max : Self.freeMaxHabits
     }
 
-    nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
-        return FeatureGatingConstants.getFeatureBlockedMessage(for: feature)
+    public func canCreateMoreHabits(currentCount: Int) async -> Bool {
+        await isPremiumUser() || currentCount < Self.freeMaxHabits
     }
 
-    public func isFeatureAvailable(_ feature: FeatureType) -> Bool {
+    public func hasAdvancedAnalytics() async -> Bool {
+        await isPremiumUser()
+    }
+
+    public func hasCustomReminders() async -> Bool {
+        await isPremiumUser()
+    }
+
+    public func hasDataExport() async -> Bool {
+        await isPremiumUser()
+    }
+
+    public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
         switch feature {
         case .unlimitedHabits:
-            return isPremiumUser
+            return "You've reached the limit of \(BusinessConstants.freeMaxHabits) habits on the free plan. Upgrade to Pro to track unlimited habits."
         case .advancedAnalytics:
-            return hasAdvancedAnalytics
+            return "Advanced analytics are available with Ritualist Pro. Get detailed insights into your habit patterns."
         case .customReminders:
-            return hasCustomReminders
+            return "Custom reminder times are a Pro feature. Upgrade to set personalized notification schedules."
         case .dataExport:
-            return hasDataExport
+            return "Export your habit data with Ritualist Pro. Download your progress as CSV files."
         }
     }
-    
-    private var isPremiumUser: Bool {
-        subscriptionService.isPremiumUser()
+
+    public func isFeatureAvailable(_ feature: FeatureType) async -> Bool {
+        switch feature {
+        case .unlimitedHabits:
+            return await isPremiumUser()
+        case .advancedAnalytics:
+            return await hasAdvancedAnalytics()
+        case .customReminders:
+            return await hasCustomReminders()
+        case .dataExport:
+            return await hasDataExport()
+        }
+    }
+
+    private func isPremiumUser() async -> Bool {
+        await subscriptionService.isPremiumUser()
     }
 }

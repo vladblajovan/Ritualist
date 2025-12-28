@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents a user's personality analysis profile
-public struct PersonalityProfile: Identifiable, Codable, Hashable {
+public struct PersonalityProfile: Identifiable, Codable, Hashable, Sendable {
     public let id: UUID
     public let userId: UUID
     
@@ -92,7 +92,7 @@ public struct PersonalityProfile: Identifiable, Codable, Hashable {
 }
 
 /// Metadata about how the personality analysis was performed
-public struct AnalysisMetadata: Codable, Hashable {
+public struct AnalysisMetadata: Codable, Hashable, Sendable {
     /// Date when this analysis was performed
     public let analysisDate: Date
     
@@ -119,7 +119,7 @@ public struct AnalysisMetadata: Codable, Hashable {
 }
 
 /// Threshold requirements for personality analysis
-public struct ThresholdRequirement: Identifiable, Codable, Hashable {
+public struct ThresholdRequirement: Identifiable, Codable, Hashable, Sendable {
     public let id: UUID
     public let name: String
     public let description: String
@@ -156,7 +156,7 @@ public struct ThresholdRequirement: Identifiable, Codable, Hashable {
 }
 
 /// Categories of threshold requirements
-public enum RequirementCategory: String, CaseIterable, Codable {
+public enum RequirementCategory: String, CaseIterable, Codable, Sendable {
     case habits = "habits"
     case tracking = "tracking"
     case customization = "customization"
@@ -190,7 +190,7 @@ public enum RequirementCategory: String, CaseIterable, Codable {
 }
 
 /// Progress status for threshold requirements
-public struct ProgressStatus: Codable, Hashable {
+public struct ProgressStatus: Codable, Hashable, Sendable {
     public let current: Int
     public let required: Int
     public let isMet: Bool
@@ -210,7 +210,7 @@ public struct ProgressStatus: Codable, Hashable {
 }
 
 /// Overall analysis eligibility status
-public struct AnalysisEligibility: Codable, Hashable {
+public struct AnalysisEligibility: Codable, Hashable, Sendable {
     public let isEligible: Bool
     public let missingRequirements: [ThresholdRequirement]
     public let overallProgress: Double
@@ -240,7 +240,7 @@ public struct AnalysisEligibility: Codable, Hashable {
 }
 
 /// Input data structure for personality analysis
-public struct HabitAnalysisInput {
+public struct HabitAnalysisInput: Sendable {
     public let activeHabits: [Habit]
     public let completionRates: [Double]
     public let customHabits: [Habit]
@@ -275,7 +275,7 @@ public struct HabitAnalysisInput {
 }
 
 /// Habit completion statistics
-public struct HabitCompletionStats: Codable {
+public struct HabitCompletionStats: Codable, Sendable {
     public let totalHabits: Int
     public let completedHabits: Int
     public let completionRate: Double
@@ -288,7 +288,7 @@ public struct HabitCompletionStats: Codable {
 }
 
 /// User preferences for personality analysis
-public struct PersonalityAnalysisPreferences: Identifiable, Codable, Hashable {
+public struct PersonalityAnalysisPreferences: Identifiable, Codable, Hashable, Sendable {
     public let id: UUID
     public let userId: UUID
     
@@ -399,7 +399,7 @@ public struct PersonalityAnalysisPreferences: Identifiable, Codable, Hashable {
 }
 
 /// How often to run personality analysis
-public enum AnalysisFrequency: String, CaseIterable, Codable {
+public enum AnalysisFrequency: String, CaseIterable, Codable, Sendable {
     case daily = "daily"
     case weekly = "weekly"
     case monthly = "monthly"
@@ -425,7 +425,7 @@ public enum AnalysisFrequency: String, CaseIterable, Codable {
 }
 
 /// Analysis sensitivity levels for privacy control
-public enum AnalysisSensitivity: String, CaseIterable, Codable {
+public enum AnalysisSensitivity: String, CaseIterable, Codable, Sendable {
     case minimal = "minimal"
     case standard = "standard"
     case detailed = "detailed"

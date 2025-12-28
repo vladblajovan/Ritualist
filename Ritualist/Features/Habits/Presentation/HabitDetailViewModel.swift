@@ -16,7 +16,7 @@ public final class HabitDetailViewModel {
     private let getEarliestLogDate: GetEarliestLogDateUseCase
     private let validateHabitUniqueness: ValidateHabitUniquenessUseCase
     private let getActiveCategories: GetActiveCategoriesUseCase
-    private let getLocationAuthStatus: GetLocationAuthStatusUseCase
+    private let permissionCoordinator: PermissionCoordinatorProtocol
 
     // Infrastructure dependencies (property injected - don't need mocking in tests)
     @ObservationIgnored @Injected(\.createHabit) var createHabit
@@ -27,12 +27,16 @@ public final class HabitDetailViewModel {
     @ObservationIgnored @Injected(\.validateCategoryName) var validateCategoryName
     @ObservationIgnored @Injected(\.scheduleHabitReminders) var scheduleHabitReminders
     @ObservationIgnored @Injected(\.configureHabitLocation) var configureHabitLocation
-    @ObservationIgnored @Injected(\.requestLocationPermissions) var requestLocationPermissions
     @ObservationIgnored @Injected(\.timezoneService) var timezoneService
     @ObservationIgnored @Injected(\.debugLogger) var logger
+    @ObservationIgnored @Injected(\.checkPremiumStatus) var checkPremiumStatus
+    @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
 
     /// Cached display timezone for synchronous calculations
     @ObservationIgnored private var displayTimezone: TimeZone = .current
+
+    /// Cached premium status for synchronous UI checks
+    private var cachedPremiumStatus = false
 
     // Form state
     public var name = ""
@@ -70,6 +74,14 @@ public final class HabitDetailViewModel {
     public private(set) var isRequestingLocationPermission = false
     public var showMapPicker = false
 
+    // Premium/Paywall state
+    public var paywallItem: PaywallItem?
+
+    /// Whether user has premium subscription (for feature gating)
+    public var isPremiumUser: Bool {
+        cachedPremiumStatus
+    }
+
     // State management
     public private(set) var isLoading = false
     public private(set) var isSaving = false
@@ -86,19 +98,19 @@ public final class HabitDetailViewModel {
     ///   - getEarliestLogDate: Use case for loading earliest log date (defaults to container)
     ///   - validateHabitUniqueness: Use case for validating habit uniqueness (defaults to container)
     ///   - getActiveCategories: Use case for loading categories (defaults to container)
-    ///   - getLocationAuthStatus: Use case for checking location auth (defaults to container)
+    ///   - permissionCoordinator: Coordinator for permission requests (defaults to container)
     public init(
         habit: Habit? = nil,
         getEarliestLogDate: GetEarliestLogDateUseCase? = nil,
         validateHabitUniqueness: ValidateHabitUniquenessUseCase? = nil,
         getActiveCategories: GetActiveCategoriesUseCase? = nil,
-        getLocationAuthStatus: GetLocationAuthStatusUseCase? = nil
+        permissionCoordinator: PermissionCoordinatorProtocol? = nil
     ) {
         // Use provided dependencies or fall back to container
         self.getEarliestLogDate = getEarliestLogDate ?? Container.shared.getEarliestLogDate()
         self.validateHabitUniqueness = validateHabitUniqueness ?? Container.shared.validateHabitUniqueness()
         self.getActiveCategories = getActiveCategories ?? Container.shared.getActiveCategories()
-        self.getLocationAuthStatus = getLocationAuthStatus ?? Container.shared.getLocationAuthStatus()
+        self.permissionCoordinator = permissionCoordinator ?? Container.shared.permissionCoordinator()
 
         self.originalHabit = habit
         self.isEditMode = habit != nil
@@ -122,7 +134,20 @@ public final class HabitDetailViewModel {
         async let categories: () = loadCategories()
         async let location: () = checkLocationAuthStatus()
         async let earliestLog: () = loadEarliestLogDate()
-        _ = await (categories, location, earliestLog)
+        async let premium: () = loadPremiumStatus()
+        _ = await (categories, location, earliestLog, premium)
+    }
+
+    /// Load and cache premium status for feature gating
+    private func loadPremiumStatus() async {
+        cachedPremiumStatus = await checkPremiumStatus.execute()
+    }
+
+    /// Show the paywall for premium features
+    public func showPaywall() async {
+        await paywallViewModel.load()
+        paywallViewModel.trackPaywallShown(source: "habit_detail", trigger: "premium_feature")
+        paywallItem = PaywallItem(viewModel: paywallViewModel)
     }
     
     public var isFormValid: Bool {
@@ -453,18 +478,15 @@ public final class HabitDetailViewModel {
 extension HabitDetailViewModel {
     public func checkLocationAuthStatus() async {
         isCheckingLocationAuth = true
-        locationAuthStatus = await getLocationAuthStatus.execute()
+        locationAuthStatus = await permissionCoordinator.checkLocationStatus()
         isCheckingLocationAuth = false
     }
 
-    public func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionResult {
+    public func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionOutcome {
         isRequestingLocationPermission = true
-        let result = await requestLocationPermissions.execute(requestAlways: requestAlways)
+        let result = await permissionCoordinator.requestLocationPermission(requestAlways: requestAlways)
+        locationAuthStatus = result.status
         isRequestingLocationPermission = false
-
-        // Update auth status after request
-        await checkLocationAuthStatus()
-
         return result
     }
 
@@ -531,42 +553,28 @@ extension HabitDetailViewModel {
                 if locationAuthStatus == .notDetermined {
                     let result = await requestLocationPermission(requestAlways: true)
 
-                    switch result {
-                    case .granted:
+                    if result.canMonitorGeofences {
                         // Permission granted - show map picker
-                        await MainActor.run {
-                            showMapPicker = true
-                        }
-                    case .denied, .failed:
+                        showMapPicker = true
+                    } else {
                         // Permission denied - clear optimistic state
-                        await MainActor.run {
-                            locationConfiguration = nil
-                        }
+                        locationConfiguration = nil
                     }
                 } else if locationAuthStatus == .authorizedWhenInUse {
                     let result = await requestLocationPermission(requestAlways: true)
 
-                    switch result {
-                    case .granted:
-                        await MainActor.run {
-                            showMapPicker = true
-                        }
-                    case .denied, .failed:
+                    if result.canMonitorGeofences {
+                        showMapPicker = true
+                    } else {
                         // User declined upgrade - clear optimistic state
-                        await MainActor.run {
-                            locationConfiguration = nil
-                        }
+                        locationConfiguration = nil
                     }
                 } else if locationAuthStatus.canMonitorGeofences {
                     // "Always" permission already granted - show map picker
-                    await MainActor.run {
-                        showMapPicker = true
-                    }
+                    showMapPicker = true
                 } else {
                     // Permission denied/restricted - clear optimistic state
-                    await MainActor.run {
-                        locationConfiguration = nil
-                    }
+                    locationConfiguration = nil
                 }
             }
         }

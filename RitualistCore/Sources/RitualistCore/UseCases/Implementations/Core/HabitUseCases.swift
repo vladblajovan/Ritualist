@@ -276,10 +276,10 @@ public final class CleanupOrphanedHabits: CleanupOrphanedHabitsUseCase {
     }
 }
 
-public final class GetActiveHabits: GetActiveHabitsUseCase {
+public final class GetActiveHabits: GetActiveHabitsUseCase, Sendable {
     private let repo: HabitRepository
     public init(repo: HabitRepository) { self.repo = repo }
-    
+
     public func execute() async throws -> [Habit] {
         let allHabits = try await repo.fetchAllHabits()
         return allHabits.filter { $0.isActive }.sorted { $0.displayOrder < $1.displayOrder }

@@ -10,30 +10,43 @@ import RitualistCore
 
 /// Widget ViewModel that uses main app's Use Cases for proper Clean Architecture
 /// Ensures data consistency between widget and main app
-final class WidgetHabitsViewModel {
-    
+final class WidgetHabitsViewModel: Sendable {
+
+    // MARK: - Dependencies
+    private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "widget")
+
     // MARK: - Use Cases (from main app)
     private let getActiveHabits: GetActiveHabitsUseCase
     private let getBatchLogs: GetBatchLogsUseCase
     private let habitCompletionService: HabitCompletionService
-    
+    private let timezoneService: TimezoneService
+
     init(
         getActiveHabits: GetActiveHabitsUseCase,
         getBatchLogs: GetBatchLogsUseCase,
-        habitCompletionService: HabitCompletionService
+        habitCompletionService: HabitCompletionService,
+        timezoneService: TimezoneService
     ) {
         self.getActiveHabits = getActiveHabits
         self.getBatchLogs = getBatchLogs
         self.habitCompletionService = habitCompletionService
+        self.timezoneService = timezoneService
+    }
+
+    // MARK: - Timezone
+
+    /// Get display timezone from user preferences (same as main app)
+    func getDisplayTimezone() async -> TimeZone {
+        (try? await timezoneService.getDisplayTimezone()) ?? .current
     }
     
     // MARK: - Public Methods
     
     /// Get habits with their progress and completion status for a specific date
     /// Uses main app's business logic for consistent results
-    func getHabitsWithProgress(for date: Date) async -> [(habit: Habit, currentProgress: Int, isCompleted: Bool)] {
+    func getHabitsWithProgress(for date: Date, timezone: TimeZone) async -> [(habit: Habit, currentProgress: Int, isCompleted: Bool)] {
         do {
-            let targetDate = CalendarUtils.startOfDayLocal(for: date)
+            let targetDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
 
             // 1. Get active habits using main app's Use Case
             let allHabits = try await getActiveHabits.execute()
@@ -47,7 +60,7 @@ final class WidgetHabitsViewModel {
             let logsByHabitId = try await getBatchLogs.execute(
                 for: habitIds,
                 since: targetDate,
-                until: CalendarUtils.addDaysLocal(1, to: targetDate, timezone: .current)
+                until: CalendarUtils.addDaysLocal(1, to: targetDate, timezone: timezone)
             )
             
             // 4. Process each habit with its progress and completion
@@ -82,15 +95,15 @@ final class WidgetHabitsViewModel {
             return result
 
         } catch {
-            print("[WIDGET-VM] Error: \(error)")
+            logger.log("Failed to get habits with progress: \(error.localizedDescription)", level: .error, category: .system)
             return []
         }
     }
     
     /// Get completion percentage for a specific date
     /// Uses main app's business logic for accurate calculations
-    func getCompletionPercentage(for date: Date) async -> Double {
-        let habitsWithProgress = await getHabitsWithProgress(for: date)
+    func getCompletionPercentage(for date: Date, timezone: TimeZone) async -> Double {
+        let habitsWithProgress = await getHabitsWithProgress(for: date, timezone: timezone)
         guard !habitsWithProgress.isEmpty else { return 0.0 }
 
         let completedCount = habitsWithProgress.filter { $0.isCompleted }.count

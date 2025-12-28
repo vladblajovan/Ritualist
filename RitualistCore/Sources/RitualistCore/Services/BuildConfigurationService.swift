@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Build Configuration Detection
 
 /// Defines the build-time configuration for subscription features
-public enum BuildConfiguration {
+public enum BuildConfiguration: Sendable {
     /// All features are enabled for all users (no subscription gating)
     case allFeaturesEnabled
     /// Subscription-based feature gating is active
@@ -18,15 +18,10 @@ public enum BuildConfiguration {
     
     /// Current build configuration determined at compile time
     public static let current: BuildConfiguration = {
-        #if ALL_FEATURES_ENABLED && SUBSCRIPTION_ENABLED
-        #error("Cannot have both ALL_FEATURES_ENABLED and SUBSCRIPTION_ENABLED flags set. Choose exactly one.")
-        #elseif ALL_FEATURES_ENABLED
+        #if ALL_FEATURES_ENABLED
         return .allFeaturesEnabled
-        #elseif SUBSCRIPTION_ENABLED
-        return .subscriptionBased
         #else
-        // Default to subscription-based when building standalone (e.g., Swift Package Manager)
-        // The main app should always set explicit flags
+        // Default to subscription-based (production behavior)
         return .subscriptionBased
         #endif
     }()
@@ -35,7 +30,7 @@ public enum BuildConfiguration {
 // MARK: - Build Configuration Service Protocol
 
 /// Service for detecting and working with build-time configuration
-public protocol BuildConfigurationService {
+public protocol BuildConfigurationService: Sendable {
     /// Current build configuration
     var buildConfiguration: BuildConfiguration { get }
     
@@ -51,7 +46,7 @@ public protocol BuildConfigurationService {
 
 // MARK: - Default Implementation
 
-public final class DefaultBuildConfigurationService: BuildConfigurationService {
+public final class DefaultBuildConfigurationService: BuildConfigurationService, Sendable {
     
     public init() {}
     

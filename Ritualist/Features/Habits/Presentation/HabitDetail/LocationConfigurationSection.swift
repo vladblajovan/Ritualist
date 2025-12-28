@@ -14,16 +14,36 @@ public struct LocationConfigurationSection: View {
 
     public var body: some View {
         Section {
-            // Enable/Disable Toggle
+            // Enable/Disable Toggle (Premium Feature)
             Toggle(isOn: Binding(
                 get: { vm.locationConfiguration?.isEnabled ?? false },
-                set: { vm.toggleLocationEnabled($0) }
+                set: { newValue in
+                    if newValue && !vm.isPremiumUser {
+                        // Show paywall when non-premium user tries to enable
+                        Task {
+                            await vm.showPaywall()
+                        }
+                    } else {
+                        vm.toggleLocationEnabled(newValue)
+                    }
+                }
             )) {
                 HStack {
                     Image(systemName: "location.fill")
                         .foregroundColor(.purple)
                         .accessibilityHidden(true) // Decorative icon
                     Text("Location Reminders")
+                    if !vm.isPremiumUser {
+                        Spacer()
+                        Text("PRO")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange)
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
+                    }
                 }
             }
             .accessibilityLabel("Location Reminders")
@@ -71,20 +91,21 @@ public struct LocationConfigurationSection: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 8)
                 }
-                .sheet(isPresented: $vm.showMapPicker, onDismiss: {
-                    // Handle swipe-to-dismiss: if user didn't save a location, clear placeholder
-                    vm.handleMapPickerDismiss()
-                }) {
-                    MapLocationPickerView(vm: vm)
-                }
+                .sheet(
+                    isPresented: $vm.showMapPicker,
+                    onDismiss: {
+                        vm.handleMapPickerDismiss()
+                    },
+                    content: {
+                        MapLocationPickerView(vm: vm)
+                    }
+                )
             } else if vm.locationConfiguration == nil || vm.locationConfiguration?.isEnabled == false {
-                // Show explanation when disabled
                 Text("Get reminded when you arrive at or leave a specific location")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
-            // Show permission status if needed
             if vm.locationConfiguration?.isEnabled == true {
                 LocationPermissionStatus(vm: vm)
             }

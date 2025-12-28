@@ -7,25 +7,25 @@
 
 import Foundation
 
-public protocol FeatureGatingService {
+public protocol FeatureGatingService: Sendable {
     /// Maximum number of habits allowed for the current user
-    var maxHabitsAllowed: Int { get }
-    
+    func maxHabitsAllowed() async -> Int
+
     /// Whether the user can create more habits
-    func canCreateMoreHabits(currentCount: Int) -> Bool
-    
+    func canCreateMoreHabits(currentCount: Int) async -> Bool
+
     /// Whether advanced analytics are available
-    var hasAdvancedAnalytics: Bool { get }
-    
+    func hasAdvancedAnalytics() async -> Bool
+
     /// Whether custom reminders are available
-    var hasCustomReminders: Bool { get }
-    
+    func hasCustomReminders() async -> Bool
+
     /// Whether data export is available
-    var hasDataExport: Bool { get }
+    func hasDataExport() async -> Bool
 
     /// Get a user-friendly message when a feature is blocked
     func getFeatureBlockedMessage(for feature: FeatureType) -> String
-    
+
     /// Check if a specific feature is available
-    func isFeatureAvailable(_ feature: FeatureType) -> Bool
+    func isFeatureAvailable(_ feature: FeatureType) async -> Bool
 }

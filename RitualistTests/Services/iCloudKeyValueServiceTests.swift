@@ -14,14 +14,11 @@ import Testing
 import Foundation
 @testable import RitualistCore
 
-#if swift(>=6.1)
 @Suite(
     "iCloudKeyValueService Tests",
     .tags(.isolated, .fast)
 )
-#else
-@Suite("iCloudKeyValueService Tests")
-#endif
+@MainActor
 struct iCloudKeyValueServiceTests {
 
     // MARK: - Test Setup
@@ -221,7 +218,7 @@ struct iCloudKeyValueNotificationTests {
 // MARK: - Mock for Integration Tests
 
 /// Mock implementation for testing code that depends on iCloudKeyValueService
-public final class MockiCloudKeyValueService: iCloudKeyValueService {
+public final class MockiCloudKeyValueService: iCloudKeyValueService, @unchecked Sendable {
     public var iCloudOnboardingCompleted = false
     public var localOnboardingCompleted = false
     public var synchronizeCallCount = 0

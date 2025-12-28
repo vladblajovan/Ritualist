@@ -73,11 +73,12 @@ extension Container {
         self { DefaultUpdateLastSyncDateUseCase() }
     }
 
-    var deleteiCloudData: Factory<DeleteiCloudDataUseCase> {
+    var deleteData: Factory<DeleteDataUseCase> {
         self {
-            DefaultDeleteiCloudDataUseCase(
+            DefaultDeleteDataUseCase(
                 modelContext: self.persistenceContainer().context,
-                iCloudKeyValueService: self.iCloudKeyValueService()
+                iCloudKeyValueService: self.iCloudKeyValueService(),
+                seedPredefinedCategories: self.seedPredefinedCategories()
             )
         }
     }
@@ -93,12 +94,12 @@ extension Container {
 
     var exportUserData: Factory<ExportUserDataUseCase> {
         self {
+            // NOTE: PersonalityAnalysis intentionally excluded for privacy
             DefaultExportUserDataUseCase(
                 loadProfile: self.loadProfile(),
                 getLastSyncDate: self.getLastSyncDate(),
                 habitRepository: self.habitRepository(),
                 categoryRepository: self.categoryRepository(),
-                personalityRepository: self.personalityAnalysisRepository(),
                 logDataSource: self.logDataSource(),
                 logger: self.debugLogger()
             )
@@ -107,14 +108,15 @@ extension Container {
 
     var importUserData: Factory<ImportUserDataUseCase> {
         self {
+            // NOTE: PersonalityAnalysis intentionally excluded for privacy
             DefaultImportUserDataUseCase(
                 loadProfile: self.loadProfile(),
                 saveProfile: self.saveProfile(),
                 habitRepository: self.habitRepository(),
                 categoryRepository: self.categoryRepository(),
-                personalityRepository: self.personalityAnalysisRepository(),
                 logDataSource: self.logDataSource(),
                 updateLastSyncDate: self.updateLastSyncDate(),
+                validationService: self.importValidationService(),
                 modelContext: self.persistenceContainer().context,
                 logger: self.debugLogger()
             )
@@ -124,7 +126,7 @@ extension Container {
     // MARK: - Development Operations
 
     var clearPurchases: Factory<ClearPurchases> {
-        self { ClearPurchases(paywallService: self.paywallService()) }
+        self { ClearPurchases(subscriptionService: self.subscriptionService()) }
     }
 
     #if DEBUG

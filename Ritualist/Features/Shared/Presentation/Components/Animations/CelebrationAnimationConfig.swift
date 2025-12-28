@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-public struct CelebrationAnimationConfig {
+public struct CelebrationAnimationConfig: Sendable {
     public let duration: Double
     public let scaleEffect: Double
     public let glowRadius: Double

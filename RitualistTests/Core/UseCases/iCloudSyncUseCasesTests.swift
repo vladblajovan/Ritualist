@@ -16,6 +16,7 @@ import Testing
 // MARK: - iCloudSyncStatus Tests
 
 @Suite("iCloudSyncStatus - Display Messages")
+@MainActor
 struct iCloudSyncStatusDisplayTests {
 
     @Test("available status has correct display message")
@@ -62,6 +63,7 @@ struct iCloudSyncStatusDisplayTests {
 }
 
 @Suite("iCloudSyncStatus - Sync Capability")
+@MainActor
 struct iCloudSyncStatusCapabilityTests {
 
     @Test("only available status can sync")
@@ -97,6 +99,7 @@ struct iCloudSyncStatusCapabilityTests {
 // MARK: - iCloudSyncError Tests
 
 @Suite("iCloudSyncError - Error Descriptions")
+@MainActor
 struct iCloudSyncErrorTests {
 
     @Test("syncNotAvailable error includes status message")
@@ -133,6 +136,7 @@ struct iCloudSyncErrorTests {
 // MARK: - DisabledCheckiCloudStatusUseCase Tests
 
 @Suite("DisabledCheckiCloudStatusUseCase - Behavior")
+@MainActor
 struct DisabledCheckiCloudStatusUseCaseTests {
 
     @Test("always returns unknown status")
@@ -165,6 +169,7 @@ struct DisabledCheckiCloudStatusUseCaseTests {
 // MARK: - DefaultSyncWithiCloudUseCase Tests
 
 @Suite("DefaultSyncWithiCloudUseCase - Sync Logic")
+@MainActor
 struct DefaultSyncWithiCloudUseCaseTests {
 
     @Test("succeeds when iCloud is available")
@@ -231,6 +236,7 @@ struct DefaultSyncWithiCloudUseCaseTests {
 // MARK: - Last Sync Date Use Cases Tests
 
 @Suite("DefaultGetLastSyncDateUseCase")
+@MainActor
 struct GetLastSyncDateUseCaseTests {
 
     @Test("returns nil when no date stored")
@@ -264,6 +270,7 @@ struct GetLastSyncDateUseCaseTests {
 }
 
 @Suite("DefaultUpdateLastSyncDateUseCase")
+@MainActor
 struct UpdateLastSyncDateUseCaseTests {
 
     @Test("stores date in UserDefaults")
@@ -302,6 +309,7 @@ struct UpdateLastSyncDateUseCaseTests {
 // MARK: - Integration Tests (Get + Update)
 
 @Suite("Sync Date UseCases Integration")
+@MainActor
 struct SyncDateIntegrationTests {
 
     @Test("get and update work together")
@@ -328,7 +336,7 @@ struct SyncDateIntegrationTests {
 // MARK: - Test Doubles
 
 /// Mock implementation for testing sync use cases
-private final class MockCheckiCloudStatusUseCase: CheckiCloudStatusUseCase {
+private final class MockCheckiCloudStatusUseCase: CheckiCloudStatusUseCase, @unchecked Sendable {
     private let returnStatus: iCloudSyncStatus
 
     init(returnStatus: iCloudSyncStatus) {

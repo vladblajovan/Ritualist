@@ -24,7 +24,7 @@ import SwiftData
 // MARK: - Active Schema Reference (SINGLE SOURCE OF TRUTH)
 
 /// The current active schema - UPDATE THIS SINGLE LINE WHEN MIGRATING
-public typealias ActiveSchemaVersion = SchemaV11
+public typealias ActiveSchemaVersion = SchemaV12
 
 // MARK: - Model Type Aliases (derived from ActiveSchemaVersion)
 
@@ -47,4 +47,5 @@ public typealias ActivePersonalityAnalysisModel = ActiveSchemaVersion.Personalit
 // - V8: Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
 // - V9: Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
 // - V10: CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values)
-// - V11: User Demographics (gender, ageGroup in UserProfileModel) (current)
+// - V11: User Demographics (gender, ageGroup in UserProfileModel)
+// - V12: No changes (index experiment reverted - #Index breaks CloudKit sync) (current)

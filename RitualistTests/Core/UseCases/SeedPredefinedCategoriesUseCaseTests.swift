@@ -17,6 +17,7 @@ import SwiftData
 /// - Dependency Injection: Verifies DI pattern usage (1 test)
 /// - Error Propagation: Ensures errors are properly propagated (2 tests)
 @Suite("SeedPredefinedCategoriesUseCase Tests")
+@MainActor
 struct SeedPredefinedCategoriesUseCaseTests {
 
     // MARK: - Test Helpers

@@ -41,7 +41,8 @@ public struct CalendarUtils {
     /// Thread-safe cache for Calendar instances by timezone identifier.
     /// Avoids creating thousands of Calendar instances in hot paths like streak calculations.
     /// Limited to maxCalendarCacheSize entries to prevent unbounded growth.
-    private static var calendarCache: [String: Calendar] = [:]
+    /// Note: nonisolated(unsafe) is safe because all access is synchronized via calendarCacheLock
+    nonisolated(unsafe) private static var calendarCache: [String: Calendar] = [:]
     private static let calendarCacheLock = NSLock()
     private static let maxCalendarCacheSize = 20  // More than enough for typical use (1-3 timezones)
 
@@ -71,13 +72,14 @@ public struct CalendarUtils {
     }
 
     // MARK: - Storage with Timezone Context
-    
-    /// ISO8601 formatter for consistent date storage  
-    public static let storageDateFormatter: ISO8601DateFormatter = {
+
+    /// ISO8601 formatter for consistent date storage
+    /// Creates a new instance each time for thread-safety in Swift 6 concurrency
+    public static var storageDateFormatter: ISO8601DateFormatter {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
-    }()
+    }
     
     /// Create timestamped entry with timezone context for logging
     public static func createTimestampedEntry() -> (timestamp: Date, timezone: String) {
@@ -480,7 +482,15 @@ public struct CalendarUtils {
     public static func formatForDisplay(_ date: Date, style: DateFormatter.Style = .medium, timezone: TimeZone = .current) -> String {
         return formatInTimezone(date, timezone, style: style)
     }
-    
+
+    /// Format date in compact style for card headers (e.g., "24 Dec" or "Mon, 23 Dec")
+    public static func formatCompact(_ date: Date, includeDayName: Bool = false, timezone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = includeDayName ? "EEE, d MMM" : "d MMM"
+        formatter.timeZone = timezone
+        return formatter.string(from: date)
+    }
+
     /// Format time components in specified timezone
     public static func formatTime(_ date: Date, timezone: TimeZone = .current) -> String {
         let formatter = DateFormatter()

@@ -11,6 +11,7 @@ import SwiftData
 @testable import RitualistCore
 
 @Suite("HabitMaintenanceService Tests")
+@MainActor
 struct HabitMaintenanceServiceTests {
 
     // MARK: - Test Infrastructure

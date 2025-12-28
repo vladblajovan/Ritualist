@@ -13,7 +13,7 @@ import Foundation
 /// ## Timezone Support
 /// All methods accept an optional `timezone` parameter (defaults to `.current`).
 /// For timezone-aware calculations, use the display timezone from `TimezoneService`.
-public protocol HabitCompletionService {
+public protocol HabitCompletionService: Sendable {
     /// Check if a habit is completed on a specific date based on its schedule semantics
     /// - For daily/daysOfWeek: returns true if logged on that specific day
     /// - Parameter timezone: Timezone for date calculations (defaults to current)

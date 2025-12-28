@@ -77,8 +77,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     public private(set) var cachedCanCreateMoreHabits: Bool = true
 
     /// Check if user can create more habits based on current count
-    public var canCreateMoreHabits: Bool {
-        checkHabitCreationLimit.execute(currentCount: habitsData.totalHabitsCount)
+    public func canCreateMoreHabits() async -> Bool {
+        await checkHabitCreationLimit.execute(currentCount: habitsData.totalHabitsCount)
     }
 
     /// Check if user is at or over the free limit
@@ -100,8 +100,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     }
 
     /// Refresh the cached premium status. Call when view appears or after potential status changes.
-    public func refreshPremiumStatus() {
-        cachedCanCreateMoreHabits = canCreateMoreHabits
+    public func refreshPremiumStatus() async {
+        cachedCanCreateMoreHabits = await canCreateMoreHabits()
     }
     
     /// Filtered habits based on selected category and active categories only
@@ -185,7 +185,9 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         isViewVisible = visible
         // Refresh premium status when view becomes visible to catch any status changes
         if visible {
-            refreshPremiumStatus()
+            Task {
+                await refreshPremiumStatus()
+            }
         }
     }
 
@@ -214,7 +216,7 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
             )
 
             // Refresh premium status after loading data (ensures correct banner state)
-            refreshPremiumStatus()
+            await refreshPremiumStatus()
 
             hasLoadedInitialData = true
         } catch {
@@ -418,11 +420,11 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     
     /// Handle create habit button tap from toolbar
     public func handleCreateHabitTap() {
-        if canCreateMoreHabits {
-            showingCreateHabit = true
-        } else {
-            // Show paywall for users who hit the limit
-            Task {
+        Task {
+            if await canCreateMoreHabits() {
+                showingCreateHabit = true
+            } else {
+                // Show paywall for users who hit the limit
                 await showPaywall()
             }
         }
@@ -561,7 +563,9 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         paywallViewModel.trackPaywallDismissed()
 
         // Refresh premium status in case user purchased
-        refreshPremiumStatus()
+        Task {
+            await refreshPremiumStatus()
+        }
 
         isHandlingPaywallDismissal = true
 

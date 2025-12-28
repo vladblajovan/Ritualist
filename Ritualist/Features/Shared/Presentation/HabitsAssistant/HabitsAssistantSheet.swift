@@ -15,6 +15,7 @@ public struct HabitsAssistantSheet: View {
     @State private var originalState: [String: Bool] = [:]
     @State private var userIntentions: [String: Bool] = [:]
     @State private var isProcessingActions = false
+    @State private var canCreateMoreHabits = true
 
     private let existingHabits: [Habit]
     private let onShowPaywall: (() -> Void)?
@@ -36,11 +37,6 @@ public struct HabitsAssistantSheet: View {
         }
 
         return count
-    }
-
-    /// Check if user can create more habits (for feature gating)
-    private var canCreateMoreHabits: Bool {
-        checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
     }
 
     /// Should show limit banner for free users
@@ -119,8 +115,8 @@ public struct HabitsAssistantSheet: View {
             regularMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
             largeMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0)
         )
-        .onAppear {
-            // Initialize the ViewModel with existing habits to populate mappings
+        .task {
+            // Initialize and check habit creation limit
             logger.log(
                 "🔍 Initializing Habits Assistant",
                 level: .debug,
@@ -129,6 +125,12 @@ public struct HabitsAssistantSheet: View {
             )
             habitsAssistantViewModel.initializeWithExistingHabits(existingHabits)
             initializeIntentionState()
+            canCreateMoreHabits = await checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
+        }
+        .onChange(of: userIntentions) {
+            Task {
+                canCreateMoreHabits = await checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
+            }
         }
     }
     
@@ -149,13 +151,26 @@ public struct HabitsAssistantSheet: View {
     
     private func processIntentionChanges() async {
         let operations = calculateRequiredOperations()
+        logOperations(operations)
 
+        guard !operations.isEmpty else {
+            logger.log("🔍 No operations to process", level: .debug, category: .ui)
+            return
+        }
+
+        isProcessingActions = true
+        defer { isProcessingActions = false }
+
+        for operation in operations {
+            await executeOperation(operation)
+        }
+    }
+
+    private func logOperations(_ operations: [RequiredOperation]) {
         let operationsDescription = operations.map { operation -> String in
             switch operation {
-            case .add(let suggestion):
-                return "ADD: \(suggestion.name)"
-            case .remove(let suggestionId, let habitId):
-                return "REMOVE: \(suggestionId) (habitId: \(habitId))"
+            case .add(let suggestion): return "ADD: \(suggestion.name)"
+            case .remove(let suggestionId, let habitId): return "REMOVE: \(suggestionId) (habitId: \(habitId))"
             }
         }.joined(separator: ", ")
 
@@ -171,49 +186,31 @@ public struct HabitsAssistantSheet: View {
                 "operations": operationsDescription
             ]
         )
+    }
 
-        guard !operations.isEmpty else {
-            logger.log(
-                "🔍 No operations to process",
-                level: .debug,
-                category: .ui
-            )
-            return
-        }
-        
-        isProcessingActions = true
-        defer { isProcessingActions = false }
-        
-        for operation in operations {
-            switch operation {
-            case .add(let suggestion):
-                let result = await createHabitFromSuggestionUseCase.execute(suggestion)
-                switch result {
-                case .success(let habitId):
-                    habitsAssistantViewModel.markSuggestionAsAdded(suggestion.id, habitId: habitId)
-                    habitsAssistantViewModel.trackHabitAdded(
-                        habitId: suggestion.id,
-                        habitName: suggestion.name,
-                        category: suggestion.categoryId
-                    )
-                case .limitReached:
-                    habitsAssistantViewModel.trackHabitAddFailed(
-                        habitId: suggestion.id,
-                        error: "Habit limit reached"
-                    )
-                    onShowPaywall?()
-                case .error(let errorMessage):
-                    habitsAssistantViewModel.trackHabitAddFailed(
-                        habitId: suggestion.id,
-                        error: errorMessage
-                    )
-                }
-            case .remove(let suggestionId, let habitId):
-                let success = await removeHabitFromSuggestionUseCase.execute(suggestionId: suggestionId, habitId: habitId)
-                if success {
-                    habitsAssistantViewModel.markSuggestionAsRemoved(suggestionId)
-                }
+    private func executeOperation(_ operation: RequiredOperation) async {
+        switch operation {
+        case .add(let suggestion):
+            await executeAddOperation(suggestion)
+        case .remove(let suggestionId, let habitId):
+            let success = await removeHabitFromSuggestionUseCase.execute(suggestionId: suggestionId, habitId: habitId)
+            if success {
+                habitsAssistantViewModel.markSuggestionAsRemoved(suggestionId)
             }
+        }
+    }
+
+    private func executeAddOperation(_ suggestion: HabitSuggestion) async {
+        let result = await createHabitFromSuggestionUseCase.execute(suggestion)
+        switch result {
+        case .success(let habitId):
+            habitsAssistantViewModel.markSuggestionAsAdded(suggestion.id, habitId: habitId)
+            habitsAssistantViewModel.trackHabitAdded(habitId: suggestion.id, habitName: suggestion.name, category: suggestion.categoryId)
+        case .limitReached:
+            habitsAssistantViewModel.trackHabitAddFailed(habitId: suggestion.id, error: "Habit limit reached")
+            onShowPaywall?()
+        case .error(let errorMessage):
+            habitsAssistantViewModel.trackHabitAddFailed(habitId: suggestion.id, error: errorMessage)
         }
     }
     

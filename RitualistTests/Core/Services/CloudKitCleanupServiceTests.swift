@@ -34,6 +34,7 @@ import Foundation
 ///
 /// Uses MockUserDefaultsService for test isolation - no shared state between tests.
 @Suite("CloudKitCleanupService - Completion Flag Behavior")
+@MainActor
 struct CloudKitCleanupCompletionFlagTests {
 
     @Test("Cleanup skips when already completed")
@@ -75,6 +76,7 @@ struct CloudKitCleanupCompletionFlagTests {
 // MARK: - CloudKit Cleanup Error Tests
 
 @Suite("CloudKitCleanupError - Error Descriptions")
+@MainActor
 struct CloudKitCleanupErrorTests {
 
     @Test("Partial failure error description includes counts")
@@ -100,6 +102,7 @@ struct CloudKitCleanupErrorTests {
 // MARK: - PersistenceConfiguration Tests
 
 @Suite("PersistenceConfiguration - Entity Assignment")
+@MainActor
 struct PersistenceConfigurationTests {
 
     @Test("PersonalityAnalysis is in local-only configuration")
@@ -124,18 +127,19 @@ struct PersistenceConfigurationTests {
         #expect(!containsPersonalityAnalysis, "PersonalityAnalysisModel should NOT be in CloudKit-synced types")
     }
 
-    @Test("Local configuration has CloudKit disabled")
-    func localConfigurationHasCloudKitDisabled() {
-        let localConfig = PersistenceConfiguration.localConfiguration
+    @Test("Local and CloudKit configurations have distinct names")
+    func localAndCloudKitConfigurationsHaveDistinctNames() {
+        // Access configurations via allConfigurations (configurations are now private)
+        let allConfigs = PersistenceConfiguration.allConfigurations
 
-        // The configuration name should be "Local"
-        #expect(localConfig.name == "Local", "Local configuration should be named 'Local'")
+        let configNames = allConfigs.map { $0.name }
 
-        // cloudKitDatabase should be .none for local config
-        // Note: We can't directly inspect cloudKitDatabase, but we can verify
-        // the configuration exists and is distinct from CloudKit config
-        let cloudKitConfig = PersistenceConfiguration.cloudKitConfiguration
-        #expect(localConfig.name != cloudKitConfig.name, "Local and CloudKit configs should have different names")
+        // Verify both configurations exist with expected names
+        #expect(configNames.contains("Local"), "Should have Local configuration")
+        #expect(configNames.contains("CloudKit"), "Should have CloudKit configuration")
+
+        // Verify they are distinct
+        #expect(Set(configNames).count == configNames.count, "All configuration names should be unique")
     }
 
     @Test("CloudKit configuration contains expected syncable entities")
@@ -177,6 +181,7 @@ struct PersistenceConfigurationTests {
 // MARK: - CD_ Prefix Documentation Verification
 
 @Suite("CloudKit Record Type Naming")
+@MainActor
 struct CloudKitRecordTypeNamingTests {
 
     @Test("SwiftData CloudKit record type uses CD_ prefix convention")
@@ -186,8 +191,6 @@ struct CloudKitRecordTypeNamingTests {
         // The actual record type for PersonalityAnalysisModel would be "CD_PersonalityAnalysisModel"
 
         let expectedRecordType = "CD_PersonalityAnalysisModel"
-        let modelName = String(describing: ActivePersonalityAnalysisModel.self)
-            .replacingOccurrences(of: "SchemaV", with: "")  // Remove version prefix if present
 
         // The convention is: "CD_" + ModelTypeName
         // This test verifies our understanding of the naming convention

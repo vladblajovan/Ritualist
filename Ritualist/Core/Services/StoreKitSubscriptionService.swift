@@ -19,7 +19,6 @@ import RitualistCore
 /// - StoreKit 2 Transaction.currentEntitlements for real-time status
 /// - On-device receipt verification (StoreKit handles cryptographic validation)
 /// - Subscription expiry detection
-/// - Lifetime purchase recognition
 /// - Performance-optimized caching
 ///
 /// **Security:**
@@ -36,7 +35,7 @@ import RitualistCore
 /// 4. Uncomment this service in Container+Services.swift
 /// 5. Test with sandbox accounts
 ///
-public final class StoreKitSubscriptionService: SecureSubscriptionService {
+public actor StoreKitSubscriptionService: SecureSubscriptionService {
 
     // MARK: - Private Properties
 
@@ -52,148 +51,6 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
 
     /// Error handler for logging/analytics
     private let errorHandler: ErrorHandler?
-
-    // Local logger: Static methods run before DI container is initialized
-    private static let startupLogger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "subscription")
-
-    // MARK: - Static Premium Check (Secure, for Startup)
-
-    /// Verify premium status asynchronously, using cache when fresh to avoid unnecessary StoreKit calls.
-    ///
-    /// **PERFORMANCE OPTIMIZATION:**
-    /// - If cache is less than 24 hours old, returns cached value immediately (no StoreKit call)
-    /// - Only queries StoreKit when cache is stale or doesn't exist
-    /// - This dramatically reduces app startup time for returning users
-    ///
-    /// **SECURITY:** When StoreKit is queried, it uses cryptographically signed receipts
-    /// that cannot be bypassed by modifying local storage.
-    ///
-    /// **Usage:** Call this after app UI is shown (in `performInitialLaunchTasks()`) to verify
-    /// the cached premium status and update it if needed.
-    ///
-    /// - Parameter forceVerification: If `true`, always queries StoreKit regardless of cache freshness.
-    ///   Use this for explicit "Restore Purchases" actions.
-    /// - Returns: `true` if user has any valid (non-expired, non-revoked) subscription or purchase
-    ///
-    /// **Timeout:** Returns cached value if StoreKit doesn't respond within 5 seconds.
-    ///
-    public static func verifyPremiumAsync(forceVerification: Bool = false) async -> Bool {
-        return await verifyPremiumSync(timeout: 5.0, forceVerification: forceVerification)
-    }
-
-    /// Verify premium status with configurable timeout.
-    ///
-    /// This is the core verification method used by both:
-    /// - `verifyPremiumAsync()` - for post-launch verification (5s timeout)
-    /// - Container initialization - for pre-container sync blocking (2s timeout)
-    ///
-    /// - Parameters:
-    ///   - timeout: Maximum seconds to wait for StoreKit response
-    ///   - forceVerification: If `true`, always queries StoreKit regardless of cache freshness
-    /// - Returns: `true` if user has any valid subscription or purchase
-    ///
-    public static func verifyPremiumSync(timeout: Double, forceVerification: Bool = false) async -> Bool {
-        let startTime = Date()
-
-        // Check if we can skip verification using cached value
-        if !forceVerification && SecurePremiumCache.shared.canSkipVerification() {
-            let cachedStatus = SecurePremiumCache.shared.getCachedPremiumStatus()
-            let cacheAge = SecurePremiumCache.shared.getCacheAge() ?? 0
-
-            startupLogger.log(
-                "✅ Using cached premium status (cache fresh)",
-                level: .info,
-                category: .subscription,
-                metadata: [
-                    "cached_premium": cachedStatus,
-                    "cache_age_hours": String(format: "%.1f", cacheAge / 3600),
-                    "verification_skipped": true
-                ]
-            )
-
-            return cachedStatus
-        }
-
-        // Cache is stale or doesn't exist - query StoreKit
-        let cacheAge = SecurePremiumCache.shared.getCacheAge()
-        startupLogger.log(
-            "🔐 Querying StoreKit for premium status",
-            level: .info,
-            category: .subscription,
-            metadata: [
-                "reason": forceVerification ? "forced" : (cacheAge == nil ? "no_cache" : "cache_stale"),
-                "cache_age_hours": cacheAge.map { String(format: "%.1f", $0 / 3600) } ?? "none"
-            ]
-        )
-
-        // Use withTaskGroup to implement timeout - if StoreKit hangs, fall back to cache
-        let timeoutSeconds: UInt64 = UInt64(timeout)
-
-        let result = await withTaskGroup(of: Bool?.self) { group in
-            // Task 1: Query StoreKit
-            group.addTask {
-                for await result in Transaction.currentEntitlements {
-                    // Only count verified transactions
-                    if case .verified(let transaction) = result {
-                        // Check not revoked
-                        if transaction.revocationDate == nil {
-                            // Check not expired (for subscriptions)
-                            if let expirationDate = transaction.expirationDate {
-                                if expirationDate > Date() {
-                                    return true
-                                }
-                            } else {
-                                // Non-consumable (lifetime) - no expiry
-                                return true
-                            }
-                        }
-                    }
-                }
-                return false
-            }
-
-            // Task 2: Timeout after specified seconds
-            group.addTask {
-                try? await Task.sleep(nanoseconds: timeoutSeconds * 1_000_000_000)
-                return nil // Signal timeout
-            }
-
-            // Return first result (either StoreKit response or timeout)
-            if let queryResult = await group.next() {
-                group.cancelAll()
-                if let value = queryResult {
-                    // StoreKit responded - update cache with fresh value
-                    SecurePremiumCache.shared.updateCache(isPremium: value)
-                    return value
-                } else {
-                    // Timeout occurred - fall back to cached value
-                    startupLogger.log(
-                        "⚠️ StoreKit verification timed out after \(timeoutSeconds)s - using cached value",
-                        level: .warning,
-                        category: .subscription
-                    )
-                    return SecurePremiumCache.shared.getCachedPremiumStatus()
-                }
-            }
-
-            return false
-        }
-
-        // Log verification timing for performance monitoring
-        let duration = Date().timeIntervalSince(startTime)
-        startupLogger.log(
-            "🔐 StoreKit verification completed",
-            level: .info,
-            category: .subscription,
-            metadata: [
-                "is_premium": result,
-                "duration_ms": Int(duration * 1000),
-                "timed_out": duration >= timeout
-            ]
-        )
-
-        return result
-    }
 
     // MARK: - Initialization
 
@@ -219,7 +76,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         return Array(cachedValidPurchases)
     }
 
-    public func isPremiumUser() -> Bool {
+    public func isPremiumUser() async -> Bool {
         // Check in-memory cache first (populated after StoreKit queries this session)
         if !cachedValidPurchases.isEmpty {
             return true
@@ -228,11 +85,11 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         // Fall back to Keychain cache (populated by verifyPremiumAsync at startup)
         // This handles the case where sync isPremiumUser() is called before
         // async refreshCache() has populated the in-memory cache
-        return SecurePremiumCache.shared.getCachedPremiumStatus()
+        return await SecurePremiumCache.shared.getCachedPremiumStatus()
     }
 
-    public func getValidPurchases() -> [String] {
-        return Array(cachedValidPurchases)
+    public func getValidPurchases() async -> [String] {
+        Array(cachedValidPurchases)
     }
 
     public func registerPurchase(_ productId: String) async throws {
@@ -243,7 +100,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
 
         // Update Keychain cache immediately after purchase
         // This ensures the user has offline access right away
-        SecurePremiumCache.shared.updateCache(isPremium: true)
+        await SecurePremiumCache.shared.updateCache(isPremium: true)
     }
 
     public func clearPurchases() async throws {
@@ -253,19 +110,14 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         lastCacheUpdate = .distantPast
 
         // Clear Keychain cache as well
-        SecurePremiumCache.shared.clearCache()
+        await SecurePremiumCache.shared.clearCache()
     }
 
     public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
         // Refresh cache if needed
         await refreshCacheIfNeeded()
 
-        // Check for lifetime purchase first (highest priority)
-        if cachedValidPurchases.contains(StoreKitProductID.lifetime) {
-            return .lifetime
-        }
-
-        // Check for annual subscription
+        // Check for annual subscription (highest priority)
         if cachedValidPurchases.contains(StoreKitProductID.annual) {
             return .annual
         }
@@ -304,7 +156,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
             }
         }
 
-        // No expiry date found (lifetime purchase or free user)
+        // No expiry date found (free user)
         return nil
     }
 
@@ -337,8 +189,11 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
 
         // Query StoreKit for current entitlements
         var validPurchases: Set<String> = []
+        var didReceiveAnyEntitlement = false
 
         for await result in Transaction.currentEntitlements {
+            didReceiveAnyEntitlement = true
+
             // Verify transaction cryptographically
             guard let transaction = try? checkVerified(result) else {
                 // Skip unverified transactions
@@ -355,16 +210,44 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         cachedValidPurchases = validPurchases
         lastCacheUpdate = Date()
 
-        // Update Keychain cache for offline scenarios (3-day grace period)
-        // This keeps the secure cache fresh whenever we successfully query StoreKit
+        // Update Keychain cache carefully to preserve grace period
         let isPremium = !validPurchases.isEmpty
-        SecurePremiumCache.shared.updateCache(isPremium: isPremium)
+
+        if isPremium {
+            // User has valid subscription - always update cache
+            await SecurePremiumCache.shared.updateCache(isPremium: true)
+        } else if didReceiveAnyEntitlement {
+            // StoreKit responded with entitlements but none are valid (expired/revoked)
+            // This is a confirmed "not premium" - safe to update cache
+            await SecurePremiumCache.shared.updateCache(isPremium: false)
+        } else {
+            // StoreKit returned NO entitlements at all - could be:
+            // 1. User truly has no purchases (never purchased)
+            // 2. Network/StoreKit failure (timeout, no connectivity)
+            //
+            // DON'T overwrite Keychain cache here - preserve grace period!
+            // The existing Keychain cache (if premium) will continue to grant
+            // access for up to 3 days, giving time for connectivity to restore.
+            //
+            // Only update to false if the grace period has already expired
+            let cacheStillValid = await SecurePremiumCache.shared.isCacheValid()
+            if !cacheStillValid {
+                // Grace period expired - safe to mark as not premium
+                await SecurePremiumCache.shared.updateCache(isPremium: false)
+            }
+            // else: Keep existing cache, let grace period protect the user
+        }
     }
 
     /// Check if a transaction is currently valid
     ///
     /// - Parameter transaction: The verified transaction to check
     /// - Returns: `true` if transaction grants current entitlement, `false` otherwise
+    ///
+    /// **Grace Period Handling:**
+    /// When a subscription appears expired, we also check if the user is in a billing
+    /// grace period. Apple's Billing Grace Period feature gives users extra time to
+    /// fix payment issues while retaining access to premium features.
     ///
     private func isTransactionValid(_ transaction: Transaction) async -> Bool {
         // Check for revocation
@@ -375,11 +258,91 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
         // For subscriptions, check expiration
         if let expirationDate = transaction.expirationDate {
             // Transaction is valid if not yet expired
-            return expirationDate > Date()
+            if expirationDate > Date() {
+                return true
+            }
+
+            // Subscription appears expired - check if user is in grace period
+            // This handles Apple's Billing Grace Period where payment failed but
+            // user still has access while Apple retries or user updates payment method
+            if await isUserInGracePeriod() {
+                return true
+            }
+
+            return false
         }
 
-        // For non-consumables (lifetime), always valid if not revoked
+        // No expiration date means non-subscription purchase - always valid if not revoked
         return true
+    }
+
+    /// Check if the user is currently in a billing grace period
+    ///
+    /// Apple's Billing Grace Period gives subscribers extra time (configured in App Store Connect)
+    /// to fix payment issues without losing access. This method checks the subscription status
+    /// to determine if the user should retain premium access despite an "expired" transaction.
+    ///
+    /// **Subscription States that grant access:**
+    /// - `.subscribed` - Active subscription
+    /// - `.inGracePeriod` - Payment failed, user has time to fix payment method
+    /// - `.inBillingRetryPeriod` - Apple is retrying the payment
+    ///
+    /// - Returns: `true` if user is in grace period or billing retry, `false` otherwise
+    ///
+    private func isUserInGracePeriod() async -> Bool {
+        do {
+            // Query subscription status for our subscription group
+            let statuses = try await Product.SubscriptionInfo.status(
+                for: StoreKitProductID.subscriptionGroupID
+            )
+
+            for status in statuses {
+                switch status.state {
+                case .subscribed:
+                    // Active subscription - should have been caught by expiration check
+                    // but return true just in case
+                    return true
+
+                case .inGracePeriod:
+                    // User's payment failed but they're in grace period
+                    // They should retain access while fixing payment method
+                    Self.startupLogger.log(
+                        "🔔 User in billing grace period - retaining premium access",
+                        level: .info,
+                        category: .subscription
+                    )
+                    return true
+
+                case .inBillingRetryPeriod:
+                    // Apple is retrying the payment - user retains access
+                    Self.startupLogger.log(
+                        "🔔 User in billing retry period - retaining premium access",
+                        level: .info,
+                        category: .subscription
+                    )
+                    return true
+
+                case .expired, .revoked:
+                    // Fully expired or revoked - no access
+                    continue
+
+                default:
+                    // Unknown state - be conservative and continue checking
+                    continue
+                }
+            }
+
+            return false
+        } catch {
+            // If we can't query subscription status, be conservative and deny grace period
+            // The user can still restore purchases if they believe they should have access
+            Self.startupLogger.log(
+                "⚠️ Failed to check subscription status for grace period: \(error.localizedDescription)",
+                level: .warning,
+                category: .subscription
+            )
+            return false
+        }
     }
 
     /// Verifies a transaction using StoreKit's built-in verification
@@ -418,9 +381,9 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     3. Enable In-App Purchases capability
     4. Create Subscription Group: "Ritualist Pro"
     5. Create IAP Products:
+       - com.vladblajovan.ritualist.weekly ($2.99/week)
        - com.vladblajovan.ritualist.monthly ($9.99/month)
        - com.vladblajovan.ritualist.annual ($49.99/year, 7-day trial)
-       - com.vladblajovan.ritualist.lifetime ($100 one-time)
     6. Submit products for review
 
  ✅ Phase 2: Code Activation
@@ -435,8 +398,7 @@ public final class StoreKitSubscriptionService: SecureSubscriptionService {
     2. Test purchase validation
     3. Test restore purchases
     4. Test subscription expiry detection
-    5. Test lifetime purchase (non-consumable)
-    6. Test cache refresh logic
+    5. Test cache refresh logic
 
  ✅ Phase 4: Deployment
     1. TestFlight: Use Ritualist-AllFeatures scheme (bypass paywall)

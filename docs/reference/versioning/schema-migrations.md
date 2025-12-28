@@ -6,7 +6,7 @@ This guide explains how to create a new schema version and migration for the Rit
 
 The app uses **SwiftData's VersionedSchema and SchemaMigrationPlan** for database migrations. Each schema version is defined in a separate file (e.g., `SchemaV8.swift`) and migrations are lightweight (automatic) whenever possible.
 
-**Current Schema Version**: V11
+**Current Schema Version**: V12
 
 ## When to Create a New Schema
 
@@ -435,6 +435,6 @@ If you encounter issues:
 
 ---
 
-**Last Updated**: November 28, 2025
-**Current Schema Version**: V11
-**Total Migrations**: 9 (V2→V3, V3→V4, V4→V5, V5→V6, V6→V7, V7→V8, V8→V9, V9→V10, V10→V11)
+**Last Updated**: December 26, 2025
+**Current Schema Version**: V12
+**Total Migrations**: 10 (V2→V3, V3→V4, V4→V5, V5→V6, V6→V7, V7→V8, V8→V9, V9→V10, V10→V11, V11→V12)

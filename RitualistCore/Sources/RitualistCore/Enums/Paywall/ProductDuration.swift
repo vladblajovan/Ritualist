@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum ProductDuration: String, Codable, CaseIterable {
+public enum ProductDuration: String, Codable, CaseIterable, Sendable {
     case weekly
     case monthly
     case annual

@@ -4,6 +4,7 @@ import SwiftUI
 
 /// Tests for MonthlyCalendarViewLogic - demonstrates testable view logic pattern
 @Suite("MonthlyCalendarViewLogic Tests")
+@MainActor
 struct MonthlyCalendarViewLogicTests {
 
     let calendar = CalendarUtils.currentLocalCalendar

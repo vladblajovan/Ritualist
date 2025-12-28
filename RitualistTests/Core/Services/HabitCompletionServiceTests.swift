@@ -10,6 +10,7 @@ import Foundation
 @testable import RitualistCore
 
 @Suite("HabitCompletionService - Core Functionality")
+@MainActor
 struct HabitCompletionServiceTests {
 
     // MARK: - Test Setup
@@ -186,7 +187,6 @@ struct HabitCompletionServiceTests {
         // Arrange: Create habit with 3 days of logs
         let habit = HabitBuilder.binary(schedule: .daily)
         let threeDaysAgo = CalendarUtils.addDays(-3, to: TestDates.today)
-        let twoDaysAgo = CalendarUtils.addDays(-2, to: TestDates.today)
 
         // Logged on 2 out of 4 days
         let logs = [
@@ -251,6 +251,7 @@ struct HabitCompletionServiceTests {
 // MARK: - Timezone Edge Cases
 
 @Suite("HabitCompletionService - Timezone Edge Cases")
+@MainActor
 struct HabitCompletionServiceTimezoneTests {
 
     let service = DefaultHabitCompletionService()
@@ -501,6 +502,7 @@ struct HabitCompletionServiceTimezoneTests {
 // MARK: - Error Path Tests
 
 @Suite("HabitCompletionService - Error Paths & Edge Cases")
+@MainActor
 struct HabitCompletionServiceErrorTests {
 
     let service = DefaultHabitCompletionService()

@@ -7,4 +7,4 @@
 
 import Foundation
 
-public enum HabitKind: Codable, Equatable, Hashable { case binary, numeric }
+public enum HabitKind: Codable, Equatable, Hashable, Sendable { case binary, numeric }

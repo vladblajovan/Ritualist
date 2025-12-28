@@ -13,7 +13,7 @@ import NaturalLanguage
 // MARK: - Supporting Types
 
 /// Context information needed to generate a personalized message
-public struct MessageContext {
+public struct MessageContext: Sendable {
     public let trigger: InspirationTrigger
     public let personality: PersonalityProfile?
     public let completionPercentage: Double
@@ -42,7 +42,7 @@ public struct MessageContext {
 }
 
 /// Recent completion pattern analysis
-public enum CompletionPattern {
+public enum CompletionPattern: Sendable {
     case consistent      // Stable completion rates
     case improving       // Upward trend
     case declining       // Downward trend
@@ -81,7 +81,7 @@ public struct PersonalizedMessage {
 
 // MARK: - Protocol
 
-public protocol PersonalizedMessageGeneratorProtocol {
+public protocol PersonalizedMessageGeneratorProtocol: Sendable {
     /// Generate personalized message based on context
     func generateMessage(for context: MessageContext) async -> PersonalizedMessage
 

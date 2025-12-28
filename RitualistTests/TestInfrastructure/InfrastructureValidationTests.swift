@@ -17,6 +17,7 @@ import UserNotifications
 /// These are NOT unit tests of production code - they test our test infrastructure.
 /// Think of them as "meta-tests" that give us confidence the tools we built for testing are reliable.
 @Suite("Infrastructure Validation Tests")
+@MainActor
 struct InfrastructureValidationTests {
 
     // MARK: - NotificationCenterProtocol Validation
@@ -80,7 +81,7 @@ struct InfrastructureValidationTests {
         #expect(pending.first?.identifier == "test-2")
 
         // Verify removal was tracked
-        let removed = await center.removedIdentifiers
+        let removed = center.removedIdentifiers
         #expect(removed.contains("test-1"))
     }
 
@@ -184,16 +185,16 @@ struct InfrastructureValidationTests {
 
         // Verify state before reset
         var pending = await center.pendingNotificationRequests()
-        var removed = await center.removedIdentifiers
+        var removed = center.removedIdentifiers
         #expect(pending.isEmpty)
         #expect(!removed.isEmpty)
 
         // Reset
-        await center.reset()
+        center.reset()
 
         // Verify complete reset
         pending = await center.pendingNotificationRequests()
-        removed = await center.removedIdentifiers
+        removed = center.removedIdentifiers
         #expect(pending.isEmpty)
         #expect(removed.isEmpty)
     }

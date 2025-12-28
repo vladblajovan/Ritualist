@@ -61,9 +61,6 @@ public typealias CompleteOnboarding = RitualistCore.CompleteOnboarding
 public typealias GenerateCalendarDays = RitualistCore.GenerateCalendarDays
 public typealias GenerateCalendarGrid = RitualistCore.GenerateCalendarGrid
 
-// Re-export Habit Logging UseCases
-public typealias ToggleHabitLog = RitualistCore.ToggleHabitLog
-
 // Re-export Service-based UseCases
 public typealias GetCurrentSlogan = RitualistCore.GetCurrentSlogan
 public typealias RequestNotificationPermission = RitualistCore.RequestNotificationPermission
@@ -79,8 +76,6 @@ public typealias LoadPaywallProducts = RitualistCore.LoadPaywallProducts
 public typealias PurchaseProduct = RitualistCore.PurchaseProduct
 public typealias RestorePurchases = RitualistCore.RestorePurchases
 public typealias CheckProductPurchased = RitualistCore.CheckProductPurchased
-public typealias ResetPurchaseState = RitualistCore.ResetPurchaseState
-public typealias GetPurchaseState = RitualistCore.GetPurchaseState
 
 // Re-export Habit Suggestion UseCases
 public typealias CreateHabitFromSuggestion = RitualistCore.CreateHabitFromSuggestion
@@ -117,3 +112,21 @@ public typealias TestDataPopulationError = RitualistCore.TestDataPopulationError
 // Re-export Additional UseCases
 public typealias CalculateCurrentStreak = RitualistCore.CalculateCurrentStreak
 public typealias GetHabitsFromSuggestions = RitualistCore.GetHabitsFromSuggestions
+
+// Re-export Stats UseCases
+public typealias AnalyzeWeeklyPatternsUseCase = RitualistCore.AnalyzeWeeklyPatternsUseCase
+public typealias GenerateProgressChartDataUseCase = RitualistCore.GenerateProgressChartDataUseCase
+public typealias CalculateHabitPerformanceUseCase = RitualistCore.CalculateHabitPerformanceUseCase
+
+// Re-export Personality Analysis UseCases
+public typealias AnalyzePersonalityUseCase = RitualistCore.AnalyzePersonalityUseCase
+public typealias DefaultAnalyzePersonalityUseCase = RitualistCore.DefaultAnalyzePersonalityUseCase
+public typealias GetPersonalityInsightsUseCase = RitualistCore.GetPersonalityInsightsUseCase
+public typealias DefaultGetPersonalityInsightsUseCase = RitualistCore.DefaultGetPersonalityInsightsUseCase
+public typealias GetPersonalityProfileUseCase = RitualistCore.GetPersonalityProfileUseCase
+public typealias DefaultGetPersonalityProfileUseCase = RitualistCore.DefaultGetPersonalityProfileUseCase
+public typealias IsPersonalityAnalysisEnabledUseCase = RitualistCore.DefaultIsPersonalityAnalysisEnabledUseCase
+public typealias UpdatePersonalityAnalysisUseCase = RitualistCore.UpdatePersonalityAnalysisUseCase
+public typealias DefaultUpdatePersonalityAnalysisUseCase = RitualistCore.DefaultUpdatePersonalityAnalysisUseCase
+public typealias ValidateAnalysisDataUseCase = RitualistCore.ValidateAnalysisDataUseCase
+public typealias DefaultValidateAnalysisDataUseCase = RitualistCore.DefaultValidateAnalysisDataUseCase

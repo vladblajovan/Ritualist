@@ -17,7 +17,7 @@ import SwiftData
 /// - HabitModel: Added `archivedDate: Date?` property to support habit archiving
 /// - Migration: Lightweight migration (new optional property)
 public enum SchemaV6: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(6, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(6, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

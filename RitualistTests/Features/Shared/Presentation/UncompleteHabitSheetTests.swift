@@ -13,6 +13,7 @@ import SwiftUI
 
 /// Tests for UncompleteHabitSheet accessibility identifiers
 @Suite("UncompleteHabitSheet - Accessibility Identifiers")
+@MainActor
 struct UncompleteHabitSheetAccessibilityTests {
 
     @Test("Sheet accessibility identifiers have correct format")
@@ -45,6 +46,7 @@ struct UncompleteHabitSheetAccessibilityTests {
 
 /// Tests for UncompleteHabitSheet VoiceOver support
 @Suite("UncompleteHabitSheet - VoiceOver")
+@MainActor
 struct UncompleteHabitSheetVoiceOverTests {
 
     @Test("VoiceOver announcement delay uses AccessibilityConfig constant")
@@ -74,6 +76,7 @@ struct UncompleteHabitSheetVoiceOverTests {
 
 /// Tests for UncompleteHabitSheet localization strings
 @Suite("UncompleteHabitSheet - Localization")
+@MainActor
 struct UncompleteHabitSheetLocalizationTests {
 
     @Test("Strings namespace exists for UncompleteHabitSheet")
@@ -102,6 +105,7 @@ struct UncompleteHabitSheetLocalizationTests {
 
 /// Tests for habit creation for UncompleteHabitSheet testing
 @Suite("UncompleteHabitSheet - Test Data")
+@MainActor
 struct UncompleteHabitSheetTestDataTests {
 
     @Test("Binary habit can be created for sheet testing")

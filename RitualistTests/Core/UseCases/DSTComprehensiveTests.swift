@@ -19,6 +19,7 @@ import Testing
 // MARK: - US DST Streak Tests
 
 @Suite("DST - US Streak Continuity")
+@MainActor
 struct USDSTStreakTests {
 
     let completionService = DefaultHabitCompletionService()
@@ -114,6 +115,7 @@ struct USDSTStreakTests {
 // MARK: - EU DST Tests
 
 @Suite("DST - EU Timezone Coverage")
+@MainActor
 struct EUDSTTests {
 
     let completionService = DefaultHabitCompletionService()
@@ -225,6 +227,7 @@ struct EUDSTTests {
 // MARK: - DST Week Calculation Tests
 
 @Suite("DST - Week Calculations")
+@MainActor
 struct DSTWeekCalculationTests {
 
     let analyzer = HabitScheduleAnalyzer()
@@ -339,6 +342,7 @@ struct DSTWeekCalculationTests {
 // MARK: - DST Same-Day Multiple Logs Tests
 
 @Suite("DST - Same Day Multiple Logs")
+@MainActor
 struct DSTSameDayLogsTests {
 
     @Test("Logs before and after spring forward count as same day")
@@ -417,6 +421,7 @@ struct DSTSameDayLogsTests {
 // MARK: - DST Completion Check Tests
 
 @Suite("DST - Habit Completion")
+@MainActor
 struct DSTHabitCompletionTests {
 
     let calculator = DefaultScheduleAwareCompletionCalculator()
@@ -501,6 +506,7 @@ struct DSTHabitCompletionTests {
 // MARK: - DST Schedule Analysis Tests
 
 @Suite("DST - Schedule Analysis")
+@MainActor
 struct DSTScheduleAnalysisTests {
 
     let analyzer = HabitScheduleAnalyzer()

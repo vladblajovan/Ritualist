@@ -10,24 +10,24 @@ import Foundation
 /// Protocol for secure subscription validation and management
 /// Designed to be implemented with mock services during development
 /// and real App Store receipt validation in production
-public protocol SecureSubscriptionService {
+public protocol SecureSubscriptionService: Sendable {
     /// Validate if a specific product is purchased and valid
     func validatePurchase(_ productId: String) async -> Bool
-    
+
     /// Restore and validate all purchased products
     func restorePurchases() async -> [String]
-    
+
     /// Check if user has any premium subscription
-    func isPremiumUser() -> Bool
-    
+    func isPremiumUser() async -> Bool
+
     /// Get all currently valid product IDs
-    func getValidPurchases() -> [String]
-    
+    func getValidPurchases() async -> [String]
+
     /// Register a purchase after successful transaction
     /// In production: Updates cache immediately after StoreKit purchase
     /// In testing: Simulates a purchase for mock implementation
     func registerPurchase(_ productId: String) async throws
-    
+
     /// Clear all purchases (for mock implementation and testing)
     func clearPurchases() async throws
 

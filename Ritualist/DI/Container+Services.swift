@@ -67,6 +67,8 @@ extension Container {
         self {
             let service = LocalNotificationService(
                 habitCompletionCheckService: self.habitCompletionCheckService(),
+                userDefaultsService: self.userDefaultsService(),
+                timezoneService: self.timezoneService(),
                 errorHandler: self.errorHandler(),
                 logger: self.debugLogger()
             )
@@ -154,8 +156,9 @@ extension Container {
             .singleton
     }
     
+    @MainActor
     var widgetRefreshService: Factory<WidgetRefreshServiceProtocol> {
-        self { WidgetRefreshService(logger: self.debugLogger()) }
+        self { @MainActor in WidgetRefreshService(logger: self.debugLogger()) }
             .singleton
     }
 
@@ -197,8 +200,9 @@ extension Container {
         self {
             RitualistCore.DefaultDailyNotificationScheduler(
                 habitRepository: self.habitRepository(),
-                scheduleHabitReminders: self.scheduleHabitReminders(),
+                habitCompletionCheckService: self.habitCompletionCheckService(),
                 notificationService: self.notificationService(),
+                subscriptionService: self.subscriptionService(),
                 logger: self.debugLogger()
             )
         }
@@ -243,14 +247,13 @@ extension Container {
         .singleton
     }
     
-    // MARK: - Legacy User Service
-    
-    @available(*, deprecated, message: "Use userUIService instead")
+    // MARK: - User Service
+
     var userService: Factory<UserService> {
-        self {
+        self { @MainActor in
             #if DEBUG
             return MockUserService(
-                loadProfile: self.loadProfile(), 
+                loadProfile: self.loadProfile(),
                 saveProfile: self.saveProfile(),
                 errorHandler: self.errorHandler()
             )
@@ -267,9 +270,8 @@ extension Container {
         self {
             // Build flag logic:
             // - ALL_FEATURES_ENABLED: Mock with premium always on (Ritualist-AllFeatures scheme)
-            // - SUBSCRIPTION_ENABLED: Mock for testing paywall UI (Ritualist-Subscription scheme)
             // - No flags (default): Real StoreKit2 for production (Ritualist scheme)
-            #if ALL_FEATURES_ENABLED || SUBSCRIPTION_ENABLED
+            #if ALL_FEATURES_ENABLED
             return RitualistCore.MockSecureSubscriptionService(errorHandler: self.errorHandler())
             #else
             return StoreKitSubscriptionService(errorHandler: self.errorHandler())
@@ -288,23 +290,15 @@ extension Container {
     var paywallService: Factory<PaywallService> {
         self {
             // Build flag logic:
-            // - ALL_FEATURES_ENABLED: Mock with premium always on (Ritualist-AllFeatures scheme)
-            // - SUBSCRIPTION_ENABLED: Mock for testing paywall UI (Ritualist-Subscription scheme)
-            // - No flags (default): Real StoreKit2 for production (Ritualist scheme)
-            #if ALL_FEATURES_ENABLED || SUBSCRIPTION_ENABLED
-            let mockPaywall = MockPaywallService(
-                subscriptionService: self.secureSubscriptionService(),
-                testingScenario: .randomResults
-            )
-            mockPaywall.configure(scenario: .randomResults, delay: 1.5, failureRate: 0.15)
-            return mockPaywall
+            // - ALL_FEATURES_ENABLED: NoOp paywall (all features unlocked)
+            // - Default: Real StoreKit2 for production
+            #if ALL_FEATURES_ENABLED
+            return NoOpPaywallService()
             #else
-            return MainActor.assumeIsolated {
-                StoreKitPaywallService(
-                    subscriptionService: self.secureSubscriptionService(),
-                    logger: self.debugLogger()
-                )
-            }
+            return StoreKitPaywallService(
+                subscriptionService: self.secureSubscriptionService(),
+                logger: self.debugLogger()
+            )
             #endif
         }
         .singleton
@@ -324,9 +318,8 @@ extension Container {
             .singleton
     }
 
-    // MARK: - Legacy Feature Gating Service
-    
-    @available(*, deprecated, message: "Use featureGatingUIService instead")
+    // MARK: - Feature Gating Service
+
     var featureGatingService: Factory<FeatureGatingService> {
         self {
             #if ALL_FEATURES_ENABLED
@@ -358,9 +351,30 @@ extension Container {
         }
         .singleton
     }
+
+    @MainActor
+    var permissionCoordinator: Factory<PermissionCoordinatorProtocol> {
+        self { @MainActor in
+            PermissionCoordinator(
+                requestNotificationPermission: self.requestNotificationPermission(),
+                checkNotificationStatus: self.checkNotificationStatus(),
+                requestLocationPermissions: self.requestLocationPermissions(),
+                getLocationAuthStatus: self.getLocationAuthStatus(),
+                dailyNotificationScheduler: self.dailyNotificationScheduler(),
+                restoreGeofenceMonitoring: self.restoreGeofenceMonitoring(),
+                logger: self.debugLogger()
+            )
+        }
+        .singleton
+    }
     
     var urlValidationService: Factory<URLValidationService> {
         self { DefaultURLValidationService() }
+        .singleton
+    }
+
+    var importValidationService: Factory<ImportValidationService> {
+        self { DefaultImportValidationService(logger: self.debugLogger()) }
         .singleton
     }
     
@@ -372,13 +386,38 @@ extension Container {
             .singleton
     }
 
+    // MARK: - Inspiration Services
+
+    var inspirationDismissalStore: Factory<InspirationDismissalStoreProtocol> {
+        self {
+            InspirationDismissalStore(
+                userDefaults: self.userDefaultsService(),
+                logger: self.debugLogger()
+            )
+        }
+        .singleton
+    }
+
+    var completionPatternAnalyzer: Factory<CompletionPatternAnalyzerProtocol> {
+        self {
+            CompletionPatternAnalyzer(
+                getActiveHabits: self.getActiveHabits(),
+                getLogs: self.getLogs(),
+                logger: self.debugLogger()
+            )
+        }
+        .singleton
+    }
+
     // MARK: - Debug Services
 
     #if DEBUG
     var debugService: Factory<DebugServiceProtocol> {
-        self { 
-            let container = self.persistenceContainer()
-            return DebugService(persistenceContainer: container)
+        self {
+            MainActor.assumeIsolated {
+                let container = self.persistenceContainer()
+                return DebugService(persistenceContainer: container)
+            }
         }
         .singleton
     }

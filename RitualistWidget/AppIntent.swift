@@ -13,8 +13,8 @@ import RitualistCore
 /// App Intent for completing binary habits directly from the widget
 /// Provides one-tap completion for binary habits without opening the main app
 struct CompleteHabitIntent: AppIntent {
-    static var title: LocalizedStringResource = "Complete Habit"
-    static var description: IntentDescription = IntentDescription("Complete a habit directly from the widget")
+    static let title: LocalizedStringResource = "Complete Habit"
+    static let description: IntentDescription = IntentDescription("Complete a habit directly from the widget")
     
     @Parameter(title: "Habit ID")
     var habitId: String
@@ -24,18 +24,10 @@ struct CompleteHabitIntent: AppIntent {
         print("[WIDGET-INTENT-DEBUG] CompleteHabitIntent.perform() STARTED")
         print("[WIDGET-INTENT-DEBUG] Habit ID: \(habitId)")
         print("[WIDGET-INTENT-DEBUG] Current date: \(Date())")
-        
-        // Test dependency injection first
-        do {
-            @Injected(\.logHabitUseCase) var logHabitUseCase
-            print("[WIDGET-INTENT-DEBUG] ✅ Dependency injection successful: logHabitUseCase injected")
-        } catch {
-            print("[WIDGET-INTENT-DEBUG] ❌ Dependency injection FAILED: \(error)")
-            return .result()
-        }
-        
+
         @Injected(\.logHabitUseCase) var logHabitUseCase
-        
+        print("[WIDGET-INTENT-DEBUG] ✅ Dependency injection successful: logHabitUseCase injected")
+
         print("[WIDGET-INTENT] Attempting to complete habit with ID: \(habitId)")
         
         // Convert string ID to UUID
@@ -106,8 +98,8 @@ struct CompleteHabitIntent: AppIntent {
 /// Allows completing habits for any date within bounds (last 30 days)
 /// Used primarily for widget interactions where users want to log habits for past dates
 struct CompleteHistoricalHabitIntent: AppIntent {
-    static var title: LocalizedStringResource = "Complete Historical Habit"
-    static var description: IntentDescription = IntentDescription("Complete a habit for a specific date")
+    static let title: LocalizedStringResource = "Complete Historical Habit"
+    static let description: IntentDescription = IntentDescription("Complete a habit for a specific date")
     
     @Parameter(title: "Habit ID")
     var habitId: String
@@ -192,40 +184,42 @@ struct CompleteHistoricalHabitIntent: AppIntent {
 /// App Intent for navigating to previous day in widget date navigation
 /// Moves widget display to previous day if within allowed history bounds
 struct NavigateToPreviousDayIntent: AppIntent {
-    static var title: LocalizedStringResource = "Navigate to Previous Day"
-    static var description: IntentDescription = IntentDescription("Navigate widget to previous day")
-    
+    static let title: LocalizedStringResource = "Navigate to Previous Day"
+    static let description: IntentDescription = IntentDescription("Navigate widget to previous day")
+
     func perform() async throws -> some IntentResult {
         @Injected(\.widgetDateNavigationService) var navigationService
-        @Injected(\.widgetRefreshService) var widgetRefreshService: WidgetRefreshServiceProtocol
-        
+
         print("[WIDGET-INTENT] NavigateToPreviousDayIntent.perform() called")
         print("[WIDGET-INTENT] Current date before navigation: \(navigationService.currentDate)")
         print("[WIDGET-INTENT] Can go back: \(navigationService.canGoBack)")
-        
+
         // Validate navigation is possible before attempting
         guard navigationService.canGoBack else {
             print("[WIDGET-INTENT] Cannot navigate to previous day - already at earliest allowed date")
             return .result() // Silent failure at boundary
         }
-        
+
         // Execute navigation
         print("[WIDGET-INTENT] Calling navigateToPrevious()...")
         let navigationSuccess = navigationService.navigateToPrevious()
         print("[WIDGET-INTENT] Navigation result: \(navigationSuccess)")
-        
+
         if navigationSuccess {
             print("[WIDGET-INTENT] Successfully navigated to previous day: \(navigationService.currentDate)")
-            
+
             print("[WIDGET-INTENT] Calling widget refresh...")
-            widgetRefreshService.refreshWidgets()
+            await MainActor.run {
+                let widgetRefreshService = Container.shared.widgetRefreshService()
+                widgetRefreshService.refreshWidgets()
+            }
             print("[WIDGET-INTENT] Widget refresh call completed")
-            
+
             print("[WIDGET-INTENT] Widget refresh triggered after previous day navigation")
         } else {
             print("[WIDGET-INTENT] Navigation to previous day failed - boundary check or date calculation error")
         }
-        
+
         print("[WIDGET-INTENT] NavigateToPreviousDayIntent.perform() completed")
         return .result()
     }
@@ -234,34 +228,36 @@ struct NavigateToPreviousDayIntent: AppIntent {
 /// App Intent for navigating to next day in widget date navigation
 /// Moves widget display to next day if not already at today
 struct NavigateToNextDayIntent: AppIntent {
-    static var title: LocalizedStringResource = "Navigate to Next Day"
-    static var description: IntentDescription = IntentDescription("Navigate widget to next day")
-    
+    static let title: LocalizedStringResource = "Navigate to Next Day"
+    static let description: IntentDescription = IntentDescription("Navigate widget to next day")
+
     func perform() async throws -> some IntentResult {
         @Injected(\.widgetDateNavigationService) var navigationService
-        @Injected(\.widgetRefreshService) var widgetRefreshService: WidgetRefreshServiceProtocol
-        
+
         print("[WIDGET-INTENT] Attempting to navigate to next day")
-        
+
         // Validate navigation is possible before attempting
         guard navigationService.canGoForward else {
             print("[WIDGET-INTENT] Cannot navigate to next day - already at today")
             return .result() // Silent failure at boundary
         }
-        
+
         // Execute navigation
         let navigationSuccess = navigationService.navigateToNext()
-        
+
         if navigationSuccess {
             print("[WIDGET-INTENT] Successfully navigated to next day: \(navigationService.currentDate)")
-            
-            widgetRefreshService.refreshWidgets()
-            
+
+            await MainActor.run {
+                let widgetRefreshService = Container.shared.widgetRefreshService()
+                widgetRefreshService.refreshWidgets()
+            }
+
             print("[WIDGET-INTENT] Widget refresh triggered after next day navigation")
         } else {
             print("[WIDGET-INTENT] Navigation to next day failed - boundary check or date calculation error")
         }
-        
+
         return .result()
     }
 }
@@ -269,30 +265,32 @@ struct NavigateToNextDayIntent: AppIntent {
 /// App Intent for navigating directly to today in widget date navigation
 /// Resets widget display to current date regardless of previous navigation state
 struct NavigateToTodayIntent: AppIntent {
-    static var title: LocalizedStringResource = "Navigate to Today"
-    static var description: IntentDescription = IntentDescription("Navigate widget to today")
-    
+    static let title: LocalizedStringResource = "Navigate to Today"
+    static let description: IntentDescription = IntentDescription("Navigate widget to today")
+
     func perform() async throws -> some IntentResult {
         @Injected(\.widgetDateNavigationService) var navigationService
-        @Injected(\.widgetRefreshService) var widgetRefreshService: WidgetRefreshServiceProtocol
-        
+
         print("[WIDGET-INTENT] Attempting to navigate to today")
-        
+
         // Check if already viewing today to avoid unnecessary operations
         if navigationService.isViewingToday {
             print("[WIDGET-INTENT] Already viewing today - no navigation needed")
             return .result()
         }
-        
+
         // Execute navigation to today (always succeeds)
         navigationService.navigateToToday()
-        
+
         print("[WIDGET-INTENT] Successfully navigated to today: \(navigationService.currentDate)")
-        
-        widgetRefreshService.refreshWidgets()
-        
+
+        await MainActor.run {
+            let widgetRefreshService = Container.shared.widgetRefreshService()
+            widgetRefreshService.refreshWidgets()
+        }
+
         print("[WIDGET-INTENT] Widget refresh triggered after today navigation")
-        
+
         return .result()
     }
 }

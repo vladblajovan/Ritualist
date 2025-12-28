@@ -1,0 +1,278 @@
+import Foundation
+import RitualistCore
+
+// MARK: - Debug Formatters
+private extension DateFormatter {
+    static let debugDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd/yyyy"
+        return formatter
+    }()
+    
+    static let weekdayName: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        return formatter
+    }()
+}
+import FactoryKit
+
+extension StatsViewModel {
+    
+    /// Load unified dashboard data in a single batch operation
+    /// Replaces 5 separate UseCase calls with 1 unified data load + extraction
+    /// Expected to reduce queries from 471+ to 3 for annual views
+    func loadUnifiedDashboardData() async throws -> StatsData {
+        let range = selectedTimePeriod.dateRange
+        
+        // PHASE 2: Single batch data loading (3 queries total)
+        
+        // 1. Single query for all active habits
+        let habits = try await getActiveHabits.execute()
+        
+        // 2. Single query for all categories
+        let categories = try await getAllCategories.execute()
+        
+        // 3. Single batch query for ALL habit logs in the entire date range
+        // Use display timezone for date filtering to ensure correct day boundaries
+        let habitIds: [UUID] = habits.map { $0.id }
+        let habitLogs = try await self.getBatchLogs.execute(
+            for: habitIds,
+            since: range.start,
+            until: range.end,
+            timezone: displayTimezone
+        )
+        
+        // Create unified data structure with pre-calculated daily completions using UseCases
+        // Pass the display timezone to ensure all date calculations use the user's preferred timezone
+        return StatsData(
+            habits: habits,
+            categories: categories,
+            habitLogs: habitLogs,
+            dateRange: range.start...range.end,
+            timezone: displayTimezone,
+            isHabitCompleted: self.isHabitCompleted,
+            calculateDailyProgress: self.calculateDailyProgress,
+            isScheduledDay: self.isScheduledDay
+        )
+    }
+    
+    // MARK: - Data Extraction Methods (Phase 4)
+
+    /// Extract habit performance data from unified dashboard data
+    /// O(n) operation using pre-calculated data - no additional queries
+    func extractHabitPerformanceData(from dashboardData: StatsData) -> [HabitPerformanceViewModel] {
+        let domainResults = dashboardData.habitPerformanceData(using: scheduleAnalyzer)
+        return domainResults.map(HabitPerformanceViewModel.init)
+    }
+    
+    /// Extract progress chart data from unified dashboard data
+    /// O(n) operation using pre-calculated data - no additional queries
+    func extractProgressChartData(from dashboardData: StatsData) -> [ChartDataPointViewModel] {
+        let domainResults = dashboardData.chartDataPoints()
+        let viewModels = domainResults.map(ChartDataPointViewModel.init)
+
+        // DEBUG: Log chart data extraction for weekly period
+        #if DEBUG
+        logger.log(
+            "📊 Progress Chart Data - Period: \(selectedTimePeriod.displayName), Range: \(dashboardData.dateRange.lowerBound) to \(dashboardData.dateRange.upperBound), Data Points: \(viewModels.count)",
+            level: .info,
+            category: .ui
+        )
+        if viewModels.isEmpty {
+            logger.log("⚠️ Progress chart data is EMPTY for \(selectedTimePeriod.displayName)", level: .warning, category: .ui)
+        }
+        #endif
+
+        return viewModels
+    }
+    
+    /// Extract weekly patterns from unified dashboard data
+    /// Uses pre-loaded logs without additional queries
+    func extractWeeklyPatterns(from dashboardData: StatsData) -> WeeklyPatternsViewModel? {
+        let habits = dashboardData.habits
+        let dateRange = dashboardData.dateRange
+
+        guard !habits.isEmpty else { return nil }
+
+        let calendar = CalendarUtils.currentLocalCalendar
+        let initialStats = initializeDayOfWeekStats()
+
+        let (dayOfWeekStats, daysWithData) = analyzeDayByDayData(
+            dashboardData: dashboardData,
+            dateRange: dateRange,
+            calendar: calendar,
+            initialStats: initialStats
+        )
+
+        let analysis = calculateDayPerformances(dayOfWeekStats: dayOfWeekStats, calendar: calendar)
+        let averageRate = calculateAverageRate(from: dayOfWeekStats)
+
+        let weeklyPatternsResult = WeeklyPatternsResult(
+            dayOfWeekPerformance: analysis.performances,
+            bestDay: analysis.bestDay,
+            worstDay: analysis.worstDay,
+            averageWeeklyCompletion: averageRate
+        )
+
+        return WeeklyPatternsViewModel(
+            from: weeklyPatternsResult,
+            daysWithData: daysWithData,
+            averageRate: averageRate,
+            habitCount: habits.count,
+            timePeriod: self.selectedTimePeriod,
+            logger: self.logger
+        )
+    }
+
+    private func initializeDayOfWeekStats() -> [Int: (completed: Int, total: Int)] {
+        var stats: [Int: (completed: Int, total: Int)] = [:]
+        for dayNum in 1...7 {
+            stats[dayNum] = (completed: 0, total: 0)
+        }
+        return stats
+    }
+
+    private struct DayPerformanceAnalysis {
+        let performances: [DayOfWeekPerformanceResult]
+        let bestDay: String
+        let worstDay: String
+        let bestDayRate: Double
+        let worstDayRate: Double
+    }
+
+    private func calculateDayPerformances(
+        dayOfWeekStats: [Int: (completed: Int, total: Int)],
+        calendar: Calendar
+    ) -> DayPerformanceAnalysis {
+        let orderedWeekdaySymbols = DateUtils.orderedWeekdaySymbols(style: .standalone)
+        var dayPerformances: [DayOfWeekPerformanceResult] = []
+        var bestDayRate = 0.0
+        var worstDayRate = 1.0
+        var bestDay = orderedWeekdaySymbols.first ?? "Monday"
+        var worstDay = orderedWeekdaySymbols.first ?? "Monday"
+
+        for (index, dayName) in orderedWeekdaySymbols.enumerated() {
+            let startIndex = calendar.firstWeekday - 1
+            let calendarWeekday = ((index + startIndex) % 7) + 1
+
+            let stats = dayOfWeekStats[calendarWeekday] ?? (completed: 0, total: 0)
+            let rate = stats.total > 0 ? Double(stats.completed) / Double(stats.total) : 0.0
+
+            dayPerformances.append(DayOfWeekPerformanceResult(
+                dayName: dayName,
+                completionRate: rate,
+                averageHabitsCompleted: stats.completed
+            ))
+
+            if rate > bestDayRate {
+                bestDayRate = rate
+                bestDay = dayName
+            }
+            if rate < worstDayRate {
+                worstDayRate = rate
+                worstDay = dayName
+            }
+        }
+
+        return DayPerformanceAnalysis(
+            performances: dayPerformances,
+            bestDay: bestDay,
+            worstDay: worstDay,
+            bestDayRate: bestDayRate,
+            worstDayRate: worstDayRate
+        )
+    }
+
+    private func calculateAverageRate(from dayOfWeekStats: [Int: (completed: Int, total: Int)]) -> Double {
+        dayOfWeekStats.values.reduce(0.0) { total, stats in
+            let rate = stats.total > 0 ? Double(stats.completed) / Double(stats.total) : 0.0
+            return total + rate
+        } / Double(dayOfWeekStats.count)
+    }
+    
+    private func analyzeDayByDayData(
+        dashboardData: StatsData,
+        dateRange: ClosedRange<Date>,
+        calendar: Calendar,
+        initialStats: [Int: (completed: Int, total: Int)]
+    ) -> ([Int: (completed: Int, total: Int)], Int) {
+        var dayOfWeekStats = initialStats
+        var currentDate = dateRange.lowerBound
+        var totalDaysAnalyzed = 0
+        var daysWithData = 0
+
+        while currentDate <= dateRange.upperBound {
+            // Use display timezone for weekday calculation (not device timezone)
+            let dayOfWeek = CalendarUtils.weekdayComponentLocal(from: currentDate, timezone: dashboardData.timezone)
+            let scheduledHabits = dashboardData.scheduledHabits(for: currentDate)
+            let completedHabits = dashboardData.completedHabits(for: currentDate)
+            
+            totalDaysAnalyzed += 1
+            
+            // Only count as "data day" if there are logs for this date (actual user activity)
+            // Uses cross-timezone comparison: log's calendar day (in its stored timezone) vs query date (in display timezone)
+            let hasLogsForDate = dashboardData.habitLogs.values.flatMap { $0 }.contains { log in
+                let logTimezone = log.resolvedTimezone(fallback: dashboardData.timezone)
+                return CalendarUtils.areSameDayAcrossTimezones(
+                    log.date,
+                    timezone1: logTimezone,
+                    currentDate,
+                    timezone2: dashboardData.timezone
+                )
+            }
+
+            // Count any day with logs (user activity), regardless of whether all scheduled habits were completed
+            if hasLogsForDate {
+                daysWithData += 1
+
+                // Only update stats if there are scheduled habits for this day
+                if !scheduledHabits.isEmpty {
+                    let actualCompletedCount = scheduledHabits.filter { completedHabits.contains($0.id) }.count
+                    dayOfWeekStats[dayOfWeek]?.completed += actualCompletedCount
+                    dayOfWeekStats[dayOfWeek]?.total += scheduledHabits.count
+                }
+            }
+
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: dashboardData.timezone)
+        }
+
+        return (dayOfWeekStats, daysWithData)
+    }
+    
+    /// Extract streak analysis from unified dashboard data
+    /// Uses existing CalculateStreakAnalysisUseCase for system-wide streak calculation
+    func extractStreakAnalysis(from dashboardData: StatsData) -> StreakAnalysisViewModel? {
+        let habits = dashboardData.habits
+        let dateRange = dashboardData.dateRange
+        guard !habits.isEmpty else { return nil }
+        
+        // Flatten habitLogs for service call
+        let allLogs = dashboardData.habitLogs.values.flatMap { $0 }
+
+        // Use existing UseCase for proper streak analysis
+        // Pass the display timezone for consistent date calculations
+        let streakAnalysisResult = calculateStreakAnalysis.execute(
+            habits: habits,
+            logs: allLogs,
+            from: dateRange.lowerBound,
+            to: dateRange.upperBound,
+            timezone: dashboardData.timezone
+        )
+        
+        return StreakAnalysisViewModel(from: streakAnalysisResult)
+    }
+    
+    /// Extract category breakdown from unified dashboard data
+    /// Uses DashboardData's pre-calculated category performance data
+    func extractCategoryBreakdown(from dashboardData: StatsData) -> [CategoryPerformanceViewModel] {
+        let domainResults = dashboardData.categoryPerformanceData()
+        return domainResults.map(CategoryPerformanceViewModel.init)
+    }
+    
+    /// Example method showing proper UseCase usage for single habit queries
+    /// Uses the new GetSingleHabitLogsUseCase with optimized batch loading
+    func getLogsForSpecificHabit(_ habitId: UUID, from startDate: Date, to endDate: Date) async throws -> [HabitLog] {
+        try await getSingleHabitLogs.execute(for: habitId, from: startDate, to: endDate)
+    }
+}

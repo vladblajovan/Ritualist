@@ -10,6 +10,7 @@ import Foundation
 @testable import RitualistCore
 
 @Suite("Log Validation - Start Date Restrictions")
+@MainActor
 struct LogValidationStartDateTests {
 
     // MARK: - HabitScheduleValidationError Tests
@@ -144,6 +145,7 @@ struct LogValidationStartDateTests {
 }
 
 @Suite("Log Validation - GetEarliestLogDate")
+@MainActor
 struct GetEarliestLogDateTests {
 
     @Test("Returns nil for empty logs")
@@ -220,6 +222,7 @@ struct GetEarliestLogDateTests {
 // MARK: - LogHabit Start Date Validation Integration Tests
 
 @Suite("LogHabit - Start Date Validation Integration")
+@MainActor
 struct LogHabitStartDateIntegrationTests {
 
     @Test("Logging before habit start date throws dateBeforeStartDate error")

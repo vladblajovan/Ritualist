@@ -19,14 +19,11 @@ import Foundation
 @testable import Ritualist
 @testable import RitualistCore
 
-#if swift(>=6.1)
 @Suite(
     "RootTabViewModel Tests",
     .tags(.isolated, .fast, .ui)
 )
-#else
-@Suite("RootTabViewModel Tests")
-#endif
+@MainActor
 struct RootTabViewModelTests {
 
     // MARK: - Test Setup
@@ -264,7 +261,7 @@ struct RootTabViewModelTests {
     @Test("Dismiss returning user welcome clears state")
     @MainActor
     func dismissReturningUserWelcomeClearsState() async {
-        let (viewModel, mockiCloud) = createViewModel(iCloudCompleted: true, localCompleted: false)
+        let (viewModel, _) = createViewModel(iCloudCompleted: true, localCompleted: false)
 
         // Setup returning user welcome
         await viewModel.checkOnboardingStatus()
@@ -400,7 +397,7 @@ struct RootTabViewModelTests {
 // MARK: - Mocks
 
 /// Mock iCloudKeyValueService for testing RootTabViewModel
-final class MockiCloudKeyValueServiceForViewModel: iCloudKeyValueService {
+final class MockiCloudKeyValueServiceForViewModel: iCloudKeyValueService, @unchecked Sendable {
     var iCloudOnboardingCompleted = false
     var localOnboardingCompleted = false
     var synchronizeCallCount = 0
@@ -440,7 +437,7 @@ final class MockiCloudKeyValueServiceForViewModel: iCloudKeyValueService {
 }
 
 /// Mock ProfileRepository for testing
-final class MockProfileRepository: ProfileRepository {
+final class MockProfileRepository: ProfileRepository, @unchecked Sendable {
     var profileToReturn: UserProfile?
     var savedProfile: UserProfile?
     var shouldThrowError = false

@@ -193,7 +193,7 @@ RitualistTests/           # Unit and integration tests
 
 Scripts/                  # Automation scripts
 ├── bump-version.sh      # Version management
-├── set-build-number.sh  # Auto build numbers
+├── pre-commit-hook.sh   # Build number auto-increment (installed to .git/hooks/)
 └── update-build-number-manual.sh
 
 docs/                     # Documentation

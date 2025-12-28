@@ -17,7 +17,7 @@ import SwiftData
 /// - HabitModel: Added `lastCompletedDate: Date?` property to track last completion
 /// - Migration: Lightweight migration (new optional property)
 public enum SchemaV5: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(5, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(5, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

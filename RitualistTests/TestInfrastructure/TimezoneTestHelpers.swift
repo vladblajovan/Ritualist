@@ -425,7 +425,7 @@ public enum TimezoneTestHelpers {
 ///     timezoneService: timezoneService
 /// )
 /// ```
-public final class MockTimezoneService: TimezoneService {
+public actor MockTimezoneService: TimezoneService {
     private let displayTimezone: TimeZone
     private let shouldThrowError: Bool
 
@@ -438,7 +438,7 @@ public final class MockTimezoneService: TimezoneService {
         self.shouldThrowError = shouldThrowError
     }
 
-    public func getCurrentTimezone() -> TimeZone {
+    public func getCurrentTimezone() async -> TimeZone {
         return .current
     }
 

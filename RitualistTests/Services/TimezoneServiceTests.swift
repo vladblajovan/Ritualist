@@ -21,14 +21,11 @@ import SwiftData
 /// - History Management (2 tests): Trimming to 100 entries
 /// - Detection (7 tests): Timezone change and travel detection
 /// - Update Operations (4 tests): Current timezone updates and change tracking
-#if swift(>=6.1)
 @Suite(
     "TimezoneService Tests",
     .tags(.timezone, .travel, .businessLogic, .critical, .database, .integration)
 )
-#else
-@Suite("TimezoneService Tests")
-#endif
+@MainActor
 struct TimezoneServiceTests {
 
     // MARK: - Test Helpers
@@ -73,8 +70,8 @@ struct TimezoneServiceTests {
         // Should create default profile and return home timezone
         let homeTz = try await service.getHomeTimezone()
 
-        // Verify it returned a valid timezone
-        #expect(homeTz != nil)
+        // Verify it returned the current timezone (default for new profiles)
+        #expect(homeTz.identifier == TimeZone.current.identifier)
 
         // Verify default profile was created in database
         let profileDataSource = ProfileLocalDataSource(modelContainer: container)
@@ -94,8 +91,8 @@ struct TimezoneServiceTests {
         // Should create default profile and return display timezone
         let displayTz = try await service.getDisplayTimezone()
 
-        // Verify it returned a valid timezone
-        #expect(displayTz != nil)
+        // Verify it returned the current timezone (default for new profiles)
+        #expect(displayTz.identifier == TimeZone.current.identifier)
 
         // Verify default profile was created
         let profileDataSource = ProfileLocalDataSource(modelContainer: container)
@@ -131,7 +128,7 @@ struct TimezoneServiceTests {
         let container = try TestModelContainer.create()
         let service = createService(container: container)
 
-        let currentTz = service.getCurrentTimezone()
+        let currentTz = await service.getCurrentTimezone()
 
         #expect(currentTz == TimeZone.current)
     }
@@ -1236,8 +1233,8 @@ struct TimezoneServiceTests {
 
         // Simulate travel: Update current timezone to Tokyo
         try await service.updateHomeTimezone(homeTimezone) // Keep home as NY
-        var profileData = ProfileLocalDataSource(modelContainer: container)
-        var profileRepo = ProfileRepositoryImpl(local: profileData)
+        let profileData = ProfileLocalDataSource(modelContainer: container)
+        let profileRepo = ProfileRepositoryImpl(local: profileData)
         var travelProfile = try await profileRepo.loadProfile()
 
         // Manually update current timezone to simulate device detecting new timezone

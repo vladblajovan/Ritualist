@@ -539,7 +539,7 @@ enum CategoryBuilder {
 
 /// In-memory UserDefaults for testing
 /// Isolates tests from actual UserDefaults and provides clean state per test
-class MockUserDefaults: UserDefaults {
+class MockUserDefaults: UserDefaults, @unchecked Sendable {
     private var storage: [String: Any] = [:]
 
     override func bool(forKey defaultName: String) -> Bool {

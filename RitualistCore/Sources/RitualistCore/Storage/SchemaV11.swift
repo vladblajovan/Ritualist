@@ -27,7 +27,7 @@ import SwiftData
 /// - No data loss or transformation
 /// - New fields default to nil (not yet collected from user)
 public enum SchemaV11: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(11, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(11, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

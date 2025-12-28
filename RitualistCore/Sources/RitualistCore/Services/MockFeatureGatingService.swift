@@ -8,32 +8,28 @@
 import Foundation
 import Observation
 
-public final class MockFeatureGatingService: FeatureGatingService {
+public final class MockFeatureGatingService: FeatureGatingService, Sendable {
     private let errorHandler: ErrorHandler?
-    
+
     public init(errorHandler: ErrorHandler? = nil) {
         self.errorHandler = errorHandler
     }
-    
-    public var maxHabitsAllowed: Int { Int.max }
-    
-    public func canCreateMoreHabits(currentCount: Int) -> Bool { true }
-    
-    public var hasAdvancedAnalytics: Bool { true }
-    
-    public var hasCustomReminders: Bool { true }
-    
-    public var hasDataExport: Bool { true }
 
-    public var hasPremiumThemes: Bool { true }
-    
-    public var hasPrioritySupport: Bool { true }
-    
+    public func maxHabitsAllowed() async -> Int { Int.max }
+
+    public func canCreateMoreHabits(currentCount: Int) async -> Bool { true }
+
+    public func hasAdvancedAnalytics() async -> Bool { true }
+
+    public func hasCustomReminders() async -> Bool { true }
+
+    public func hasDataExport() async -> Bool { true }
+
     public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
         "This feature is always available in mock mode."
     }
-    
-    public func isFeatureAvailable(_ feature: FeatureType) -> Bool {
+
+    public func isFeatureAvailable(_ feature: FeatureType) async -> Bool {
         true
     }
 }

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct OnboardingState: Codable, Hashable {
+public struct OnboardingState: Codable, Hashable, Sendable {
     public var isCompleted: Bool
     public var completedDate: Date?
     public var userName: String?

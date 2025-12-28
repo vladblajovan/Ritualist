@@ -321,8 +321,8 @@ private struct RadiusControl: View {
         return CGFloat(percentage) * width
     }
 
-    private func updateRadius(from x: CGFloat, in width: CGFloat) {
-        let percentage = max(0, min(1, x / width))
+    private func updateRadius(from xPosition: CGFloat, in width: CGFloat) {
+        let percentage = max(0, min(1, xPosition / width))
         let range = LocationConfiguration.maximumRadius - LocationConfiguration.minimumRadius
         let newValue = LocationConfiguration.minimumRadius + (range * Double(percentage))
         let snapped = (newValue / 10).rounded() * 10 // Snap to 10m increments
@@ -338,13 +338,21 @@ private struct RadiusControl: View {
 
 // MARK: - Trigger Selection
 
+private struct TriggerOption: Identifiable {
+    let trigger: GeofenceTrigger
+    let icon: String
+    let label: String
+
+    var id: GeofenceTrigger { trigger }
+}
+
 private struct TriggerSelection: View {
     @Binding var selection: GeofenceTrigger
 
-    private let triggers: [(GeofenceTrigger, String, String)] = [
-        (.entry, "arrow.down.to.line", "Arriving"),
-        (.exit, "arrow.up.to.line", "Leaving"),
-        (.both, "arrow.up.arrow.down", "Arriving & Leaving")
+    private let triggers: [TriggerOption] = [
+        TriggerOption(trigger: .entry, icon: "arrow.down.to.line", label: "Arriving"),
+        TriggerOption(trigger: .exit, icon: "arrow.up.to.line", label: "Leaving"),
+        TriggerOption(trigger: .both, icon: "arrow.up.arrow.down", label: "Arriving & Leaving")
     ]
 
     var body: some View {
@@ -353,12 +361,12 @@ private struct TriggerSelection: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(triggers, id: \.0) { trigger, icon, label in
+                    ForEach(triggers) { option in
                         TriggerChip(
-                            icon: icon,
-                            label: label,
-                            isSelected: selection == trigger,
-                            action: { selection = trigger }
+                            icon: option.icon,
+                            label: option.label,
+                            isSelected: selection == option.trigger,
+                            action: { selection = option.trigger }
                         )
                     }
                 }

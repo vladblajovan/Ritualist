@@ -31,7 +31,6 @@ public struct OverviewView: View {
                             }
                         }
                     )
-                    .frame(maxWidth: .infinity)
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 
@@ -81,80 +80,56 @@ public struct OverviewView: View {
                         vm.goToToday()
                     }
                 )
-                // PERFORMANCE: Use simpleCard instead of glassmorphicCard for this massive 932-line card
-                // .thinMaterial blur recalculates on every scroll frame = expensive for complex content
-                .simpleCard()
+                .cardStyle()
                 .id("topCard")
-                
-                // Conditional cards based on user state
-                // COMMENTED OUT: QuickActionsCard - Quick Log functionality temporarily disabled
-                /*
-                if vm.shouldShowQuickActions {
-                    QuickActionsCard(
-                        incompleteHabits: vm.incompleteHabits,
-                        completedHabits: vm.completedHabits,
-                        currentSlogan: vm.currentSlogan,
-                        timeOfDay: vm.currentTimeOfDay,
-                        completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
-                        viewingDate: vm.viewingDate,
-                        onHabitComplete: { habit in
-                            Task {
-                                await vm.completeHabit(habit)
-                            }
-                        },
-                        getProgressSync: { habit in
-                            vm.getProgressSync(for: habit)
-                        },
-                        onNumericHabitUpdate: { habit, newValue in
-                            try await vm.updateNumericHabit(habit, value: newValue)
-                        },
-                        onNumericHabitAction: { habit in
-                            vm.showNumericSheet(for: habit)
-                        },
-                        onDeleteHabitLog: { habit in
-                            Task {
-                                await vm.deleteHabitLog(habit)
-                            }
-                        },
-                        getScheduleStatus: { habit in
-                            vm.getScheduleStatus(for: habit)
-                        },
-                        getValidationMessage: { habit in
-                            await vm.getScheduleValidationMessage(for: habit)
-                        },
-                        getWeeklyProgress: { habit in
-                            vm.getWeeklyProgress(for: habit)
-                        }
-                    )
-                    .glassmorphicCard()
-                }
-                */
-                
-                // Monthly calendar section - heavily optimized for scroll performance
-                MonthlyCalendarCard(
-                    monthlyData: vm.monthlyCompletionData,
-                    onDateSelect: { date in
-                        vm.goToDate(date)
-                        // Scroll immediately after date selection (which happens after glow effect)
-                        withAnimation(.easeInOut(duration: 0.6)) {
-                            proxy.scrollTo("topCard", anchor: .top)
-                        }
-                    },
-                    timezone: vm.displayTimezone
-                )
-                .simpleCard()
-                
+
+                // Monthly Calendar + Streaks - side by side on iPad with equal heights
                 if vm.shouldShowActiveStreaks || vm.isLoading {
-                    StreaksCard(
-                        streaks: vm.activeStreaks,
-                        shouldAnimateBestStreak: false,
-                        onAnimationComplete: {},
-                        isLoading: vm.isLoading
+                    EqualHeightRow {
+                        MonthlyCalendarCard(
+                            monthlyData: vm.monthlyCompletionData,
+                            onDateSelect: { date in
+                                vm.goToDate(date)
+                                // Defer scroll to next run loop so view updates first
+                                DispatchQueue.main.async {
+                                    withAnimation(.easeInOut(duration: 0.6)) {
+                                        proxy.scrollTo("topCard", anchor: .top)
+                                    }
+                                }
+                            },
+                            timezone: vm.displayTimezone
+                        )
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .cardStyle()
+                    } second: {
+                        StreaksCard(
+                            streaks: vm.activeStreaks,
+                            shouldAnimateBestStreak: false,
+                            onAnimationComplete: {},
+                            isLoading: vm.isLoading
+                        )
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .cardStyle()
+                    }
+                } else {
+                    // No streaks - show calendar full width
+                    MonthlyCalendarCard(
+                        monthlyData: vm.monthlyCompletionData,
+                        onDateSelect: { date in
+                            vm.goToDate(date)
+                            // Defer scroll to next run loop so view updates first
+                            DispatchQueue.main.async {
+                                withAnimation(.easeInOut(duration: 0.6)) {
+                                    proxy.scrollTo("topCard", anchor: .top)
+                                }
+                            }
+                        },
+                        timezone: vm.displayTimezone
                     )
-                    .simpleCard()
+                    .cardStyle()
                 }
-                
-                // Personality-based insights (separate card)
+
+                // Personality Insights - full width on its own row
                 if vm.shouldShowPersonalityInsights {
                     PersonalityInsightsCard(
                         insights: vm.personalityInsights,
@@ -165,7 +140,7 @@ public struct OverviewView: View {
                             vm.openPersonalityAnalysis()
                         }
                     )
-                    .simpleCard()
+                    .cardStyle()
                 }
                 
                 Spacer(minLength: 100) // Tab bar padding

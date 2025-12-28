@@ -10,6 +10,7 @@ import Foundation
 @testable import RitualistCore
 
 @Suite("StreakCalculationService - Core Functionality")
+@MainActor
 struct StreakCalculationServiceTests {
 
     // MARK: - Test Setup
@@ -395,6 +396,7 @@ struct StreakCalculationServiceTests {
 // MARK: - Timezone Edge Cases
 
 @Suite("StreakCalculationService - Timezone Edge Cases")
+@MainActor
 struct StreakCalculationServiceTimezoneTests {
 
     let completionService = DefaultHabitCompletionService()
@@ -605,6 +607,7 @@ struct StreakCalculationServiceTimezoneTests {
 // MARK: - Error Path Tests
 
 @Suite("StreakCalculationService - Error Paths")
+@MainActor
 struct StreakCalculationServiceErrorTests {
 
     let completionService = DefaultHabitCompletionService()
@@ -740,6 +743,7 @@ struct StreakCalculationServiceErrorTests {
 // MARK: - Start Date and Retroactive Logging Tests
 
 @Suite("StreakCalculationService - Start Date Validation")
+@MainActor
 struct StreakCalculationServiceStartDateTests {
 
     let completionService = DefaultHabitCompletionService()
@@ -1051,6 +1055,7 @@ struct StreakCalculationServiceStartDateTests {
 // MARK: - GetStreakStatus Tests
 
 @Suite("StreakCalculationService - GetStreakStatus")
+@MainActor
 struct StreakCalculationServiceGetStreakStatusTests {
 
     let completionService = DefaultHabitCompletionService()

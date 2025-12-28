@@ -16,6 +16,7 @@ import CloudKit
 // MARK: - CloudKitRetryError Tests
 
 @Suite("CloudKitRetryError - Error Messages")
+@MainActor
 struct CloudKitRetryErrorTests {
 
     @Test("retriesExhausted provides descriptive error message")
@@ -62,6 +63,7 @@ struct CloudKitRetryErrorTests {
 // MARK: - CloudKitAvailabilityError Tests
 
 @Suite("CloudKitAvailabilityError - Error Messages")
+@MainActor
 struct CloudKitAvailabilityErrorTests {
 
     @Test("notSignedIn error has descriptive message")
@@ -147,6 +149,7 @@ struct CloudKitAvailabilityErrorTests {
 // MARK: - CloudSyncErrorHandler Initialization Tests
 
 @Suite("CloudSyncErrorHandler - Initialization")
+@MainActor
 struct CloudSyncErrorHandlerInitTests {
 
     @Test("default initialization uses sensible defaults")
@@ -179,6 +182,7 @@ struct CloudSyncErrorHandlerInitTests {
 // MARK: - CKError UserInfo Tests
 
 @Suite("CKError - Retry Information Extraction")
+@MainActor
 struct CKErrorRetryInfoTests {
 
     @Test("CKErrorRetryAfterKey can be extracted from userInfo")
@@ -213,6 +217,7 @@ struct CKErrorRetryInfoTests {
 // MARK: - Error Classification Integration Tests
 
 @Suite("CloudSyncErrorHandler - Error Classification Behavior")
+@MainActor
 struct ErrorClassificationBehaviorTests {
 
     @Test("network errors should be retryable")
@@ -278,6 +283,7 @@ struct ErrorClassificationBehaviorTests {
 // MARK: - Exponential Backoff Contract Tests
 
 @Suite("CloudSyncErrorHandler - Exponential Backoff Contract")
+@MainActor
 struct ExponentialBackoffContractTests {
 
     @Test("backoff delay increases with attempts")

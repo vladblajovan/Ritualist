@@ -8,6 +8,7 @@ import Testing
 /// whether two dates represent the same calendar day when each is interpreted
 /// in its own timezone.
 @Suite("CalendarUtils - Cross-Timezone Day Comparison")
+@MainActor
 struct CalendarUtilsTests {
 
     // MARK: - areSameDayAcrossTimezones Tests

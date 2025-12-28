@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import UserNotifications
+@preconcurrency import UserNotifications
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -19,18 +19,19 @@ public enum NotificationAuthorizationStatus {
     case ephemeral
 }
 
-public protocol NotificationService {
+public protocol NotificationService: Sendable {
     func requestAuthorizationIfNeeded() async throws -> Bool
     func checkAuthorizationStatus() async -> Bool
     func schedule(for habitID: UUID, times: [ReminderTime]) async throws
     func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws
+    func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int) async throws
     func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws
     func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws
     func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws
     func cancel(for habitID: UUID) async
     func sendImmediate(title: String, body: String, habitId: UUID?) async throws
     func setupNotificationCategories() async
-    
+
     // Personality Analysis Scheduler methods
     func schedulePersonalityAnalysis(userId: UUID, at date: Date, frequency: AnalysisFrequency) async throws
     func sendPersonalityAnalysisCompleted(userId: UUID, profile: PersonalityProfile) async throws
@@ -39,13 +40,28 @@ public protocol NotificationService {
 
     // Location-based notification methods
     func sendLocationTriggeredNotification(for habitID: UUID, habitName: String, event: GeofenceEvent) async throws
+
+    // Pending notification management (for daily rescheduling)
+    func getPendingHabitNotificationIds() async -> [String]
+    func clearHabitNotifications(ids: [String]) async
+
+    // Badge management
+    func updateBadgeCount() async
+    func decrementBadge() async
 }
 
-public final class LocalNotificationService: NSObject, NotificationService {
+public final class LocalNotificationService: NSObject, NotificationService, @unchecked Sendable {
     private static let habitReminderCategory = "HABIT_REMINDER"
     private static let binaryHabitReminderCategory = "BINARY_HABIT_REMINDER"
     private static let numericHabitReminderCategory = "NUMERIC_HABIT_REMINDER"
     private static let habitStreakMilestoneCategory = "HABIT_STREAK_MILESTONE"
+
+    /// Generates a second offset (0-58) based on habitID to prevent notifications
+    /// from different habits firing at the exact same moment when they share the same time.
+    /// This avoids iOS coalescing multiple notifications into a single banner.
+    private static func secondOffset(for habitID: UUID) -> Int {
+        Int(habitID.uuidString.utf8.reduce(0) { $0 &+ Int($1) }) % 59
+    }
     
     // Personality Analysis Categories
     private static let personalityAnalysisCategories = [
@@ -63,14 +79,60 @@ public final class LocalNotificationService: NSObject, NotificationService {
     public var personalityDeepLinkCoordinator: PersonalityDeepLinkCoordinator?
     private let errorHandler: ErrorHandler?
     private let habitCompletionCheckService: HabitCompletionCheckService
+    private let userDefaultsService: UserDefaultsService
+    private let timezoneService: TimezoneService
     private let logger: DebugLogger
+
+    // Track catch-up notifications to prevent duplicate delivery on repeated foreground events
+    // Persisted to UserDefaults to survive app termination/relaunch
+    // Keys defined in UserDefaultsKeys for centralized management
+
+    /// Check if a catch-up was already delivered today for a habit (using display timezone)
+    private func wasCatchUpDeliveredToday(habitId: UUID) async -> Bool {
+        // Get display timezone for consistent "today" check across app
+        let timezone: TimeZone
+        do {
+            timezone = try await timezoneService.getDisplayTimezone()
+        } catch {
+            timezone = TimeZone.current
+        }
+
+        guard let storedDate = userDefaultsService.date(forKey: UserDefaultsKeys.catchUpDeliveryDate),
+              CalendarUtils.isTodayLocal(storedDate, timezone: timezone) else {
+            return false
+        }
+        guard let storedIds = userDefaultsService.stringArray(forKey: UserDefaultsKeys.catchUpDeliveredHabitIds) else {
+            return false
+        }
+        let deliveredIds = Set(storedIds.compactMap { UUID(uuidString: $0) })
+        return deliveredIds.contains(habitId)
+    }
+
+    /// Mark a catch-up as delivered today for a habit
+    private func markCatchUpDelivered(habitId: UUID) {
+        var currentIds = userDefaultsService.stringArray(forKey: UserDefaultsKeys.catchUpDeliveredHabitIds) ?? []
+
+        // Reset if stored date is not today (using device timezone for simplicity in setter)
+        if let storedDate = userDefaultsService.date(forKey: UserDefaultsKeys.catchUpDeliveryDate),
+           !CalendarUtils.isTodayLocal(storedDate) {
+            currentIds = []
+        }
+
+        currentIds.append(habitId.uuidString)
+        userDefaultsService.set(currentIds as Any, forKey: UserDefaultsKeys.catchUpDeliveredHabitIds)
+        userDefaultsService.set(Date(), forKey: UserDefaultsKeys.catchUpDeliveryDate)
+    }
 
     public init(
         habitCompletionCheckService: HabitCompletionCheckService,
+        userDefaultsService: UserDefaultsService,
+        timezoneService: TimezoneService,
         errorHandler: ErrorHandler? = nil,
         logger: DebugLogger
     ) {
         self.habitCompletionCheckService = habitCompletionCheckService
+        self.userDefaultsService = userDefaultsService
+        self.timezoneService = timezoneService
         self.errorHandler = errorHandler
         self.logger = logger
         super.init()
@@ -128,65 +190,176 @@ public final class LocalNotificationService: NSObject, NotificationService {
     }
     
     public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {
+        // Schedule without badge (used when not doing bulk scheduling with badge ordering)
+        for time in times {
+            try await scheduleSingleNotification(for: habitID, habitName: habitName, habitKind: habitKind, time: time, badgeNumber: 0)
+        }
+
+        // Track notification scheduling
+        trackingService?.track(.notificationScheduled(
+            habitId: habitID.uuidString,
+            habitName: habitName,
+            reminderCount: times.count
+        ))
+    }
+
+    public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int) async throws {
         let center = UNUserNotificationCenter.current()
         // Notifications should use local timezone - users want reminders at "7 AM local time"
         let calendar = CalendarUtils.currentLocalCalendar
         let today = Date()
-        
-        for time in times {
-            let content = UNMutableNotificationContent()
-            
-            // Customize title and body based on habit type
-            switch habitKind {
-            case .binary:
-                content.title = "Time to complete: \(habitName) ✓"
-                content.body = "Quick tap to mark as done!"
-            case .numeric:
-                content.title = "Log progress: \(habitName)"
-                content.body = "Time to track your progress!"
-            }
-            
-            content.sound = .default
-            
-            // Use different category based on habit type
-            content.categoryIdentifier = habitKind == .binary ? 
-                Self.binaryHabitReminderCategory : Self.numericHabitReminderCategory
-            
-            // Store habit information in userInfo for action handling
-            content.userInfo = [
-                "habitId": habitID.uuidString,
-                "habitName": habitName,
-                "habitKind": habitKind == .binary ? "binary" : "numeric",
-                "reminderHour": time.hour,
-                "reminderMinute": time.minute
-            ]
-            
-            // Create notification time for today only (non-repeating)
-            var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
-            dateComponents.hour = time.hour
-            dateComponents.minute = time.minute
-            
-            // Only schedule if the time hasn't passed today
-            if let notificationDate = calendar.date(from: dateComponents),
-               notificationDate > Date() {
-                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
-                let id = "today_\(habitID.uuidString)-\(time.hour)-\(time.minute)"
-                let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
 
-                try await center.add(request)
+        let secondOffset = Self.secondOffset(for: habitID)
+
+        let content = UNMutableNotificationContent()
+
+        // Customize title and body based on habit type
+        switch habitKind {
+        case .binary:
+            content.title = "Time to complete: \(habitName) ✓"
+            content.body = "Quick tap to mark as done!"
+        case .numeric:
+            content.title = "Log progress: \(habitName)"
+            content.body = "Time to track your progress!"
+        }
+
+        content.sound = .default
+        if badgeNumber > 0 {
+            content.badge = NSNumber(value: badgeNumber)
+        }
+
+        // Use different category based on habit type
+        content.categoryIdentifier = habitKind == .binary ?
+            Self.binaryHabitReminderCategory : Self.numericHabitReminderCategory
+
+        // Store habit information in userInfo for action handling
+        content.userInfo = [
+            "habitId": habitID.uuidString,
+            "habitName": habitName,
+            "habitKind": habitKind == .binary ? "binary" : "numeric",
+            "reminderHour": time.hour,
+            "reminderMinute": time.minute
+        ]
+
+        // Create notification time for today only (non-repeating)
+        // Add second offset to prevent multiple habits at same time from coalescing
+        var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
+        dateComponents.hour = time.hour
+        dateComponents.minute = time.minute
+        dateComponents.second = secondOffset
+
+        // Only schedule if the time hasn't passed today
+        if let notificationDate = calendar.date(from: dateComponents),
+           notificationDate > Date() {
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+            let id = "today_\(habitID.uuidString)-\(time.hour)-\(time.minute)"
+            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+
+            try await center.add(request)
+            logger.log(
+                "📅 Scheduled notification for today",
+                level: .info,
+                category: .notifications,
+                metadata: [
+                    "habit": habitName,
+                    "time": "\(time.hour):\(String(format: "%02d", time.minute))",
+                    "badge": badgeNumber,
+                    "id": id
+                ]
+            )
+        } else if let notificationDate = calendar.date(from: dateComponents) {
+            // Time has passed - check how long ago
+            let timeSinceScheduled = Date().timeIntervalSince(notificationDate)
+            let minimumCatchUpDelay: TimeInterval = 2 * 60 * 60 // 2 hours
+
+            // Skip catch-up if original notification was recent (user probably already saw it)
+            guard timeSinceScheduled >= minimumCatchUpDelay else {
                 logger.log(
-                    "📅 Scheduled notification for today",
+                    "⏭️ Skipping catch-up - original notification was recent",
+                    level: .debug,
+                    category: .notifications,
+                    metadata: [
+                        "habit": habitName,
+                        "minutesSinceScheduled": Int(timeSinceScheduled / 60)
+                    ]
+                )
+                return
+            }
+
+            // Check if habit is incomplete
+            let shouldNotify = await habitCompletionCheckService.shouldShowNotification(
+                habitId: habitID,
+                date: today
+            )
+
+            if shouldNotify {
+                // Skip if we already delivered a catch-up for this habit today
+                // Uses display timezone for consistent "today" check across app
+                guard await !wasCatchUpDeliveredToday(habitId: habitID) else {
+                    logger.log(
+                        "⏭️ Skipping catch-up - already delivered today",
+                        level: .debug,
+                        category: .notifications,
+                        metadata: ["habit": habitName, "habitId": habitID.uuidString]
+                    )
+                    return
+                }
+
+                // Send catch-up notification with short delay
+                // Use unique ID per habit to avoid duplicate catch-ups
+                let catchUpContent = UNMutableNotificationContent()
+                catchUpContent.title = "Don't forget: \(habitName)"
+                catchUpContent.body = habitKind == .binary
+                    ? "You haven't completed this habit yet today. Tap to mark as done!"
+                    : "You haven't logged progress yet today. Tap to update!"
+                catchUpContent.sound = .default
+                if badgeNumber > 0 {
+                    catchUpContent.badge = NSNumber(value: badgeNumber)
+                }
+                catchUpContent.categoryIdentifier = habitKind == .binary
+                    ? Self.binaryHabitReminderCategory
+                    : Self.numericHabitReminderCategory
+                catchUpContent.userInfo = [
+                    "habitId": habitID.uuidString,
+                    "habitName": habitName,
+                    "habitKind": habitKind == .binary ? "binary" : "numeric",
+                    "reminderHour": time.hour,
+                    "reminderMinute": time.minute,
+                    "isCatchUp": true
+                ]
+
+                // 30 second delay so it doesn't feel jarring when opening the app
+                let catchUpTrigger = UNTimeIntervalNotificationTrigger(timeInterval: 30, repeats: false)
+                let catchUpId = "catchup_\(habitID.uuidString)"
+
+                // Remove any existing catch-up for this habit to avoid duplicates
+                center.removePendingNotificationRequests(withIdentifiers: [catchUpId])
+
+                let catchUpRequest = UNNotificationRequest(
+                    identifier: catchUpId,
+                    content: catchUpContent,
+                    trigger: catchUpTrigger
+                )
+
+                try await center.add(catchUpRequest)
+
+                // Track that we've delivered this catch-up today (persisted to UserDefaults)
+                markCatchUpDelivered(habitId: habitID)
+
+                logger.log(
+                    "🔔 Scheduled catch-up notification",
                     level: .info,
                     category: .notifications,
                     metadata: [
                         "habit": habitName,
-                        "time": "\(time.hour):\(String(format: "%02d", time.minute))",
-                        "id": id
+                        "originalTime": "\(time.hour):\(String(format: "%02d", time.minute))",
+                        "badge": badgeNumber,
+                        "id": catchUpId
                     ]
                 )
             } else {
                 logger.log(
-                    "⏰ Skipping notification - time already passed",
+                    "⏰ Skipping notification - time passed and habit already completed",
                     level: .debug,
                     category: .notifications,
                     metadata: [
@@ -196,13 +369,6 @@ public final class LocalNotificationService: NSObject, NotificationService {
                 )
             }
         }
-        
-        // Track notification scheduling
-        trackingService?.track(.notificationScheduled(
-            habitId: habitID.uuidString,
-            habitName: habitName,
-            reminderCount: times.count
-        ))
     }
     
     public func scheduleRichReminders(
@@ -219,6 +385,8 @@ public final class LocalNotificationService: NSObject, NotificationService {
         let today = Date()
         let isWeekend = calendar.isDateInWeekend(today)
 
+        let secondOffset = Self.secondOffset(for: habitID)
+
         for time in times {
             // Generate rich notification content
             let content = HabitReminderNotificationContentGenerator.generateContent(
@@ -232,9 +400,11 @@ public final class LocalNotificationService: NSObject, NotificationService {
 
             // Create notification time for today only (non-repeating)
             // This ensures notifications are cancelled when habit is completed
+            // Add second offset to prevent multiple habits at same time from coalescing
             var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
             dateComponents.hour = time.hour
             dateComponents.minute = time.minute
+            dateComponents.second = secondOffset
 
             // Only schedule if the time hasn't passed today
             if let notificationDate = calendar.date(from: dateComponents),
@@ -292,6 +462,8 @@ public final class LocalNotificationService: NSObject, NotificationService {
         let today = Date()
         let isWeekend = calendar.isDateInWeekend(today)
 
+        let secondOffset = Self.secondOffset(for: habitID)
+
         for time in times {
             // Generate personality-tailored notification content
             let content = PersonalityTailoredNotificationContentGenerator.generateTailoredContent(
@@ -306,9 +478,11 @@ public final class LocalNotificationService: NSObject, NotificationService {
 
             // Create notification time for today only (non-repeating)
             // This ensures notifications are cancelled when habit is completed
+            // Add second offset to prevent multiple habits at same time from coalescing
             var dateComponents = calendar.dateComponents([.year, .month, .day], from: today)
             dateComponents.hour = time.hour
             dateComponents.minute = time.minute
+            dateComponents.second = secondOffset
 
             // Only schedule if the time hasn't passed today
             if let notificationDate = calendar.date(from: dateComponents),
@@ -564,11 +738,107 @@ public final class LocalNotificationService: NSObject, NotificationService {
             return .denied
         }
     }
-    
+
+    // MARK: - Pending Notification Management
+
+    /// Returns IDs of all pending habit-related notifications
+    /// Identifies habit notifications by UUID prefix or known prefixes (today_, rich_, tailored_, catchup_)
+    public func getPendingHabitNotificationIds() async -> [String] {
+        let center = UNUserNotificationCenter.current()
+        let pendingRequests = await center.pendingNotificationRequests()
+
+        return pendingRequests.compactMap { request in
+            let id = request.identifier
+            // Identify habit notifications by:
+            // 1. Known prefixes for different notification types
+            // 2. UUID format at the start (habitID-based notifications)
+            if id.hasPrefix("today_") ||
+               id.hasPrefix("rich_") ||
+               id.hasPrefix("tailored_") ||
+               id.hasPrefix("catchup_") ||
+               (id.contains("-") && UUID(uuidString: String(id.prefix(36))) != nil) {
+                return id
+            }
+            return nil
+        }
+    }
+
+    /// Clears pending notifications with the specified IDs
+    public func clearHabitNotifications(ids: [String]) async {
+        guard !ids.isEmpty else { return }
+
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+
+        logger.logNotification(
+            event: "Cleared habit notifications",
+            metadata: ["count": ids.count]
+        )
+    }
+
+    // MARK: - Badge Management
+
+    /// Updates the app badge to show the count of delivered (unread) habit notifications
+    public func updateBadgeCount() async {
+        let center = UNUserNotificationCenter.current()
+        let delivered = await center.deliveredNotifications()
+
+        // Count only habit-related notifications (not personality analysis, etc.)
+        let habitNotificationCount = delivered.filter { notification in
+            let id = notification.request.identifier
+            return id.hasPrefix("today_") ||
+                   id.hasPrefix("rich_") ||
+                   id.hasPrefix("tailored_") ||
+                   id.hasPrefix("catchup_") ||
+                   notification.request.content.userInfo["habitId"] != nil
+        }.count
+
+        await MainActor.run {
+            UNUserNotificationCenter.current().setBadgeCount(habitNotificationCount)
+        }
+
+        logger.log(
+            "🔢 Badge updated",
+            level: .debug,
+            category: .notifications,
+            metadata: ["count": habitNotificationCount]
+        )
+    }
+
+    /// Decrements the badge count by 1 (minimum 0)
+    public func decrementBadge() async {
+        let center = UNUserNotificationCenter.current()
+        let delivered = await center.deliveredNotifications()
+
+        // Count remaining habit notifications
+        let habitNotificationCount = delivered.filter { notification in
+            let id = notification.request.identifier
+            return id.hasPrefix("today_") ||
+                   id.hasPrefix("rich_") ||
+                   id.hasPrefix("tailored_") ||
+                   id.hasPrefix("catchup_") ||
+                   notification.request.content.userInfo["habitId"] != nil
+        }.count
+
+        // Badge should reflect delivered notifications minus 1 (the one being handled)
+        let newCount = max(0, habitNotificationCount - 1)
+
+        await MainActor.run {
+            UNUserNotificationCenter.current().setBadgeCount(newCount)
+        }
+
+        logger.log(
+            "🔢 Badge decremented",
+            level: .debug,
+            category: .notifications,
+            metadata: ["newCount": newCount]
+        )
+    }
+
     // MARK: - Private Helpers
     
     /// Executes an async operation with a timeout to prevent blocking the delegate
-    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async -> T) async throws -> T {
+    private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async -> T) async throws -> T {
         try await withThrowingTaskGroup(of: T.self) { group in
             // Add the actual operation
             group.addTask {
@@ -645,39 +915,31 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
             habitId: habitId.uuidString
         )
 
-        // Use async completion checking with timeout to avoid blocking the delegate
-        Task {
-            do {
-                let shouldShow = try await withTimeout(seconds: 0.5) {
-                    await self.habitCompletionCheckService.shouldShowNotification(habitId: habitId, date: Date())
-                }
+        // Obj-C completion handlers are thread-safe but not marked Sendable
+        nonisolated(unsafe) let handler = completionHandler
+        let checkService = self.habitCompletionCheckService
+        let loggerRef = self.logger
+        let habitIdStr = habitId.uuidString
 
-                if shouldShow {
-                    logger.log(
-                        "✅ Showing notification - habit not completed",
-                        level: .info,
-                        category: .notifications,
-                        metadata: ["habitId": habitId.uuidString]
-                    )
-                    completionHandler([.banner, .sound, .badge])
-                } else {
-                    logger.log(
-                        "🚫 Suppressing notification - habit already completed",
-                        level: .info,
-                        category: .notifications,
-                        metadata: ["habitId": habitId.uuidString]
-                    )
-                    completionHandler([]) // Suppress notification
-                }
-            } catch {
-                logger.log(
-                    "⚠️ Error checking completion - showing notification as fallback",
-                    level: .warning,
+        Task { @MainActor in
+            let shouldShow = await checkService.shouldShowNotification(habitId: habitId, date: Date())
+
+            if shouldShow {
+                loggerRef.log(
+                    "✅ Showing notification - habit not completed",
+                    level: .info,
                     category: .notifications,
-                    metadata: ["error": String(describing: error), "habitId": habitId.uuidString]
+                    metadata: ["habitId": habitIdStr]
                 )
-                // Fail-safe: show notification on any error
-                completionHandler([.banner, .sound, .badge])
+                handler([.banner, .sound, .badge])
+            } else {
+                loggerRef.log(
+                    "🚫 Suppressing notification - habit already completed",
+                    level: .info,
+                    category: .notifications,
+                    metadata: ["habitId": habitIdStr]
+                )
+                handler([])
             }
         }
     }
@@ -705,21 +967,13 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
                 "appState": appState
             ]
         )
-        
-        // Handle notification response on main thread
-        #if canImport(UIKit)
-        DispatchQueue.main.async {
-            Task {
-                await self.handleNotificationResponse(response)
-                completionHandler()
-            }
-        }
-        #else
-        Task {
+
+        // Obj-C completion handlers are thread-safe but not marked Sendable
+        nonisolated(unsafe) let handler = completionHandler
+        Task { @MainActor in
             await self.handleNotificationResponse(response)
-            completionHandler()
+            handler()
         }
-        #endif
     }
     
     // MARK: - Notification Categories Setup
@@ -814,11 +1068,11 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
     
     // MARK: - Notification Response Handling
 
-    private func handleNotificationResponse(_ response: UNNotificationResponse) async {
-        // Clear app badge when any notification is tapped
-        await MainActor.run {
-            UNUserNotificationCenter.current().setBadgeCount(0)
-        }
+    private func handleNotificationResponse(_ response: sending UNNotificationResponse) async {
+        // Remove this notification from delivered list and update badge
+        let center = UNUserNotificationCenter.current()
+        center.removeDeliveredNotifications(withIdentifiers: [response.notification.request.identifier])
+        await updateBadgeCount()
 
         let userInfo = response.notification.request.content.userInfo
 
@@ -925,6 +1179,26 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
         habitName: String,
         event: GeofenceEvent
     ) async throws {
+        // Check if habit is already completed - skip notification if so
+        let shouldNotify = await habitCompletionCheckService.shouldShowNotification(
+            habitId: habitID,
+            date: Date()
+        )
+
+        guard shouldNotify else {
+            logger.log(
+                "⏭️ Skipping location notification - habit already completed",
+                level: .info,
+                category: .notifications,
+                metadata: [
+                    "habit": habitName,
+                    "habitId": habitID.uuidString,
+                    "eventType": event.eventType.rawValue
+                ]
+            )
+            return
+        }
+
         let center = UNUserNotificationCenter.current()
         let content = UNMutableNotificationContent()
 
@@ -973,7 +1247,7 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
 
     /// Handle personality analysis notification responses
     @MainActor
-    private func handlePersonalityNotificationResponse(_ response: UNNotificationResponse) async {
+    private func handlePersonalityNotificationResponse(_ response: sending UNNotificationResponse) async {
         logger.log(
             "🧠 Handling personality notification response",
             level: .debug,

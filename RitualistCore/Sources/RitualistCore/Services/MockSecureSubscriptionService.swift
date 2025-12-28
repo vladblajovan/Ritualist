@@ -10,7 +10,7 @@ import Foundation
 /// Development-safe mock implementation that cannot be bypassed via UserDefaults
 /// Uses in-memory storage during development, designed for easy migration to
 /// App Store receipt validation or RevenueCat when external services are available
-public final class MockSecureSubscriptionService: SecureSubscriptionService {
+public actor MockSecureSubscriptionService: SecureSubscriptionService {
 
     // MARK: - Private Properties
 
@@ -59,7 +59,10 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
     public init(userDefaults: UserDefaults = .standard, errorHandler: ErrorHandler? = nil) {
         self.userDefaults = userDefaults
         self.errorHandler = errorHandler
-        loadMockPurchases()
+        // Load mock purchases inline (can't call actor method from init)
+        if let storedPurchases = userDefaults.stringArray(forKey: UserDefaultsKeys.mockPurchases) {
+            self.validatedPurchases = Set(storedPurchases)
+        }
     }
     
     // MARK: - Protocol Implementation
@@ -74,7 +77,7 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
         Array(validatedPurchases)
     }
     
-    public func isPremiumUser() -> Bool {
+    public func isPremiumUser() async -> Bool {
         // Check build configuration cache first (AllFeatures scheme)
         if userDefaults.bool(forKey: UserDefaultsKeys.allFeaturesEnabledCache) {
             return true
@@ -84,8 +87,8 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
         // This allows tests to use isolated UserDefaults
         return !validatedPurchases.isEmpty
     }
-    
-    public func getValidPurchases() -> [String] {
+
+    public func getValidPurchases() async -> [String] {
         Array(validatedPurchases)
     }
     
@@ -100,17 +103,12 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
     }
 
     public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
-        // Check AllFeatures build flag first (returns lifetime for TestFlight/dev builds)
+        // Check AllFeatures build flag first (returns annual for TestFlight/dev builds)
         if userDefaults.bool(forKey: UserDefaultsKeys.allFeaturesEnabledCache) {
-            return .lifetime
+            return .annual
         }
 
-        // Check for lifetime purchase first (highest priority)
-        if validatedPurchases.contains(StoreKitProductID.lifetime) {
-            return .lifetime
-        }
-
-        // Check for annual subscription
+        // Check for annual subscription (highest priority)
         if validatedPurchases.contains(StoreKitProductID.annual) {
             return .annual
         }
@@ -142,8 +140,8 @@ public final class MockSecureSubscriptionService: SecureSubscriptionService {
         case .annual:
             // Mock expiry: 365 days from now
             return Date().addingTimeInterval(365 * 24 * 60 * 60)
-        case .lifetime, .free:
-            // No expiry for lifetime or free
+        case .free:
+            // No expiry for free
             return nil
         }
     }

@@ -88,16 +88,16 @@ public final class LoadHabitsData: LoadHabitsDataUseCase {
     
     public func execute() async throws -> HabitsData {
         // Batch load both habits and categories concurrently for performance
-        async let habitsResult = habitRepo.fetchAllHabits()
-        async let categoriesResult = categoryRepo.getActiveCategories()
-        
-        do {
-            let habits = try await habitsResult.sorted { $0.displayOrder < $1.displayOrder }
-            let categories = try await categoriesResult
-            
-            return HabitsData(habits: habits, categories: categories)
-        } catch {
-            throw error
-        }
+        // Capture repos locally to avoid capturing self in async let
+        let habitRepository = habitRepo
+        let categoryRepository = categoryRepo
+
+        async let habitsResult = habitRepository.fetchAllHabits()
+        async let categoriesResult = categoryRepository.getActiveCategories()
+
+        let habits = try await habitsResult.sorted { $0.displayOrder < $1.displayOrder }
+        let categories = try await categoriesResult
+
+        return HabitsData(habits: habits, categories: categories)
     }
 }

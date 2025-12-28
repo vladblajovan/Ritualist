@@ -5,11 +5,11 @@ import Foundation
 
 public final class GetDatabaseStats: GetDatabaseStatsUseCase {
     private let debugService: DebugServiceProtocol
-    
+
     public init(debugService: DebugServiceProtocol) {
         self.debugService = debugService
     }
-    
+
     public func execute() async throws -> DebugDatabaseStats {
         try await debugService.getDatabaseStats()
     }
@@ -17,17 +17,17 @@ public final class GetDatabaseStats: GetDatabaseStatsUseCase {
 
 public final class ClearDatabase: ClearDatabaseUseCase {
     private let debugService: DebugServiceProtocol
-    
+
     public init(debugService: DebugServiceProtocol) {
         self.debugService = debugService
     }
-    
+
     public func execute() async throws {
         try await debugService.clearDatabase()
     }
 }
 
-public final class PopulateTestData: PopulateTestDataUseCase {
+public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendable {
     // MARK: - Dependencies - UseCases and Repositories, NOT Services
     private let debugService: DebugServiceProtocol
     private let habitSuggestionsService: HabitSuggestionsService
@@ -42,7 +42,8 @@ public final class PopulateTestData: PopulateTestDataUseCase {
     private let logger: DebugLogger
 
     // MARK: - Progress Tracking
-    public var progressUpdate: ((String, Double) -> Void)?
+    // Debug-only code: mutable for progress updates, @unchecked Sendable is acceptable
+    nonisolated(unsafe) public var progressUpdate: (@Sendable (String, Double) -> Void)?
 
     public init(
         debugService: DebugServiceProtocol,

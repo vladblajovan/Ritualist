@@ -52,9 +52,8 @@ struct SubscriptionManagementSectionView: View {
                 UpgradeBannerView(onUpgradeTap: showPaywall)
             }
 
-            // Expiry Date Row (for time-limited subscriptions)
-            if let expiryDate = vm.subscriptionExpiryDate,
-               vm.subscriptionPlan != .lifetime {
+            // Expiry Date Row (for subscriptions)
+            if let expiryDate = vm.subscriptionExpiryDate {
                 HStack {
                     Label("Renews", systemImage: "calendar")
                         .foregroundStyle(.secondary)
@@ -88,17 +87,13 @@ struct SubscriptionManagementSectionView: View {
                 .disabled(isRestoringPurchases)
             }
 
-            // Manage Subscription / View Purchase History Button (for all premium users)
-            if vm.subscriptionPlan == .monthly || vm.subscriptionPlan == .annual || vm.subscriptionPlan == .lifetime {
+            // Manage Subscription Button (for all premium users)
+            if vm.subscriptionPlan == .weekly || vm.subscriptionPlan == .monthly || vm.subscriptionPlan == .annual {
                 Button {
                     openSubscriptionManagement()
                 } label: {
                     HStack {
-                        if vm.subscriptionPlan == .lifetime {
-                            Label("View Purchase History", systemImage: "clock.arrow.circlepath")
-                        } else {
-                            Label("Manage Subscription", systemImage: "gearshape")
-                        }
+                        Label("Manage Subscription", systemImage: "gearshape")
                         Spacer()
                         Image(systemName: "arrow.up.right.square")
                             .font(.caption)
@@ -132,8 +127,6 @@ struct SubscriptionManagementSectionView: View {
             return "person"
         case .weekly, .monthly, .annual:
             return "star.circle.fill"
-        case .lifetime:
-            return "crown.fill"
         }
     }
 
@@ -167,10 +160,6 @@ struct SubscriptionManagementSectionView: View {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
                 .font(.caption)
-        case .lifetime:
-            Image(systemName: "infinity.circle.fill")
-                .foregroundStyle(.orange)
-                .font(.caption)
         }
     }
 
@@ -180,8 +169,6 @@ struct SubscriptionManagementSectionView: View {
             return .secondary
         case .weekly, .monthly, .annual:
             return .green
-        case .lifetime:
-            return .orange
         }
     }
 
@@ -201,8 +188,6 @@ struct SubscriptionManagementSectionView: View {
             Text("Your monthly subscription gives you access to all premium features. Manage or cancel anytime in App Store.")
         case .annual:
             Text("Your annual subscription includes all premium features. You can manage or cancel anytime in App Store.")
-        case .lifetime:
-            Text("You have lifetime access to all premium features. Thank you for your support!")
         }
         #endif
     }
@@ -248,7 +233,6 @@ struct SubscriptionManagementSectionView: View {
             }
 
             showingRestoreAlert = true
-
         } catch {
             restoreAlertMessage = "Failed to restore purchases. Please try again later."
             showingRestoreAlert = true
@@ -271,9 +255,6 @@ struct SubscriptionManagementSectionView: View {
 
             // Annual subscriber preview
             SubscriptionManagementSectionView(vm: makePreviewVM(plan: .annual, expiryDate: Date().addingTimeInterval(BusinessConstants.oneYearInterval)))
-
-            // Lifetime access preview
-            SubscriptionManagementSectionView(vm: makePreviewVM(plan: .lifetime))
         }
         .navigationTitle("Subscription Previews")
     }
@@ -288,9 +269,8 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
     let vm = SettingsViewModel(
         loadProfile: MockLoadProfile(profile: profile),
         saveProfile: MockSaveProfile(),
-        requestNotificationPermission: MockRequestNotificationPermission(),
+        permissionCoordinator: MockPermissionCoordinator(),
         checkNotificationStatus: MockCheckNotificationStatus(),
-        requestLocationPermissions: MockRequestLocationPermissions(),
         getLocationAuthStatus: MockGetLocationAuthStatus(),
         clearPurchases: MockClearPurchases(),
         checkPremiumStatus: MockCheckPremiumStatus(isPremium: plan.isPremium),
@@ -299,7 +279,7 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
         syncWithiCloud: MockSyncWithiCloud(),
         checkiCloudStatus: MockCheckiCloudStatus(),
         getLastSyncDate: MockGetLastSyncDate(),
-        deleteiCloudData: MockDeleteiCloudData(),
+        deleteData: MockDeleteData(),
         exportUserData: MockExportUserData(),
         importUserData: MockImportUserData()
     )
@@ -321,18 +301,18 @@ private struct MockSaveProfile: SaveProfileUseCase {
     func execute(_ profile: UserProfile) async throws {}
 }
 
-private struct MockRequestNotificationPermission: RequestNotificationPermissionUseCase {
-    func execute() async throws -> Bool { true }
+private struct MockPermissionCoordinator: PermissionCoordinatorProtocol {
+    func requestNotificationPermission() async -> NotificationPermissionOutcome { .success(true) }
+    func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionOutcome { .success(.authorizedWhenInUse) }
+    func checkNotificationStatus() async -> Bool { true }
+    func checkLocationStatus() async -> LocationAuthorizationStatus { .authorizedWhenInUse }
+    func checkAllPermissions() async -> (notifications: Bool, location: LocationAuthorizationStatus) { (true, .authorizedWhenInUse) }
+    func scheduleAllNotifications() async throws {}
+    func restoreAllGeofences() async throws {}
 }
 
 private struct MockCheckNotificationStatus: CheckNotificationStatusUseCase {
     func execute() async -> Bool { true }
-}
-
-private struct MockRequestLocationPermissions: RequestLocationPermissionsUseCase {
-    func execute(requestAlways: Bool) async -> LocationPermissionResult {
-        .granted(.authorizedWhenInUse)
-    }
 }
 
 private struct MockGetLocationAuthStatus: GetLocationAuthStatusUseCase {
@@ -342,7 +322,7 @@ private struct MockGetLocationAuthStatus: GetLocationAuthStatusUseCase {
 }
 
 private struct MockClearPurchases: ClearPurchasesUseCase {
-    func execute() {}
+    func execute() async throws {}
 }
 
 private struct MockCheckPremiumStatus: CheckPremiumStatusUseCase {
@@ -379,7 +359,7 @@ private struct MockGetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
     func execute() async -> Date? { expiryDate }
 }
 
-private struct MockDeleteiCloudData: DeleteiCloudDataUseCase {
+private struct MockDeleteData: DeleteDataUseCase {
     func execute() async throws {}
 }
 
@@ -399,5 +379,7 @@ private struct MockExportUserData: ExportUserDataUseCase {
 }
 
 private struct MockImportUserData: ImportUserDataUseCase {
-    func execute(jsonString: String) async throws {}
+    func execute(jsonString: String) async throws -> ImportResult {
+        ImportResult(hasLocationConfigurations: false, habitsImported: 0, habitLogsImported: 0, categoriesImported: 0)
+    }
 }

@@ -17,7 +17,7 @@ import SwiftData
 /// This schema represents the first versioned snapshot of the database.
 /// Any future schema changes must create V2, V3, etc. with migration plans.
 public enum SchemaV1: VersionedSchema {
-    public static var versionIdentifier: Schema.Version = Schema.Version(1, 0, 0)
+    public static let versionIdentifier: Schema.Version = Schema.Version(1, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
         [

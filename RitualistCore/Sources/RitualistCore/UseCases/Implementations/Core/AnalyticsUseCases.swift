@@ -22,8 +22,9 @@ public final class RefreshWidget: RefreshWidgetUseCase {
     }
     
     public func execute(habitId: UUID) {
+        let service = widgetRefreshService
         Task { @MainActor in
-            widgetRefreshService.refreshWidgetsForHabit(habitId)
+            service.refreshWidgetsForHabit(habitId)
         }
     }
 }

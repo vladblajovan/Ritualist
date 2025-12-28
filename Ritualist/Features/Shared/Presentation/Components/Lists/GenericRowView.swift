@@ -1,4 +1,5 @@
 import SwiftUI
+import FactoryKit
 import RitualistCore
 
 /// A generic row component that replaces all duplicate row implementations across the app
@@ -359,7 +360,9 @@ private struct HabitRowWithSplitZones: View {
     let scheduleStatus: HabitScheduleStatus
     let onTap: () -> Void
 
+    @Injected(\.subscriptionService) private var subscriptionService
     @State private var showingIconInfoSheet = false
+    @State private var isPremiumUser = false
 
     private var isEnabled: Bool {
         habit.isActive && scheduleStatus.isAvailable
@@ -415,16 +418,16 @@ private struct HabitRowWithSplitZones: View {
                 showingIconInfoSheet = true
             } label: {
                 HStack(spacing: 8) {
-                    // Time-based reminders indicator (if reminders are set)
-                    if !habit.reminders.isEmpty {
+                    // Time-based reminders indicator (only for premium users with reminders)
+                    if isPremiumUser && !habit.reminders.isEmpty {
                         Image(systemName: "bell.fill")
                             .font(.body)
                             .foregroundColor(.orange)
                             .accessibilityLabel("Time-based reminders enabled")
                     }
 
-                    // Location indicator (if location-based reminders are enabled)
-                    if habit.locationConfiguration?.isEnabled == true {
+                    // Location indicator (only for premium users with location enabled)
+                    if isPremiumUser && habit.locationConfiguration?.isEnabled == true {
                         Image(systemName: "location.fill")
                             .font(.body)
                             .foregroundColor(.purple)
@@ -442,6 +445,9 @@ private struct HabitRowWithSplitZones: View {
         .opacity(isEnabled ? 1.0 : 0.7)
         .sheet(isPresented: $showingIconInfoSheet) {
             HabitIconInfoSheet()
+        }
+        .task {
+            isPremiumUser = await subscriptionService.isPremiumUser()
         }
     }
 }

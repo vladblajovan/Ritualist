@@ -8,7 +8,7 @@
 import Foundation
 
 /// Protocol for local tip data source operations
-public protocol TipLocalDataSourceProtocol {
+public protocol TipLocalDataSourceProtocol: Sendable {
     /// Get all available tips
     func getAllTips() async throws -> [Tip]
     

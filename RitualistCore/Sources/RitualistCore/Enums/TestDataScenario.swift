@@ -13,7 +13,7 @@ import Foundation
 ///
 /// Each scenario represents a different user journey stage with specific data characteristics
 /// that trigger different app behaviors and feature availability.
-public enum TestDataScenario: String, CaseIterable, Identifiable {
+public enum TestDataScenario: String, CaseIterable, Identifiable, Sendable {
     // General scenarios
     case minimal = "Fresh Start"
     case moderate = "Building Momentum"

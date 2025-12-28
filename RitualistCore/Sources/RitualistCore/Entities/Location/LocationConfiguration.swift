@@ -12,7 +12,7 @@ import Foundation
 import CoreLocation
 
 /// Defines how a geofence should trigger notifications
-public enum GeofenceTrigger: String, Codable, Equatable, Hashable {
+public enum GeofenceTrigger: String, Codable, Equatable, Hashable, Sendable {
     /// Trigger notification when entering the geofenced area
     case entry
 
@@ -32,7 +32,7 @@ public enum GeofenceTrigger: String, Codable, Equatable, Hashable {
 }
 
 /// Defines how frequently location-based notifications should be sent
-public enum NotificationFrequency: Codable, Equatable, Hashable {
+public enum NotificationFrequency: Codable, Equatable, Hashable, Sendable {
     /// Send notification only once per day, regardless of how many times user enters/exits
     case oncePerDay
 
@@ -51,7 +51,7 @@ public enum NotificationFrequency: Codable, Equatable, Hashable {
 }
 
 /// Location-based configuration for habit reminders
-public struct LocationConfiguration: Codable, Equatable, Hashable {
+public struct LocationConfiguration: Codable, Equatable, Hashable, Sendable {
     /// Geographic coordinate of the geofence center
     public var latitude: Double
     public var longitude: Double

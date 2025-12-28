@@ -107,7 +107,7 @@ public struct AppearanceSection: View {
                                 vm.selectedColorHex = colorHex
                             } label: {
                                 Circle()
-                                    .fill(Color(hex: colorHex) ?? AppColors.brand)
+                                    .fill(Color(hex: colorHex))
                                     .frame(width: 31, height: 33)
                                     .overlay(
                                         Circle()

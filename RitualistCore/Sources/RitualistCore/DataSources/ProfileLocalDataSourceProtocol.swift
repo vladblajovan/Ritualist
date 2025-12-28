@@ -8,7 +8,7 @@
 import Foundation
 
 /// Protocol for local user profile data source operations
-public protocol ProfileLocalDataSourceProtocol {
+public protocol ProfileLocalDataSourceProtocol: Sendable {
     /// Load the user profile from local storage
     func load() async throws -> UserProfile?
     

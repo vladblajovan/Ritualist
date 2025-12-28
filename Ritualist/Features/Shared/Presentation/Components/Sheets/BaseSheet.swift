@@ -17,7 +17,7 @@ public enum SheetSizing {
 }
 
 /// Configuration for scroll behavior within sheets
-public struct ScrollConfiguration {
+public struct ScrollConfiguration: Sendable {
     let isEnabled: Bool
     let showsIndicators: Bool
     let dismissOnDrag: Bool
@@ -222,10 +222,11 @@ public struct BaseSheet<Content: View>: View {
                 supportsDynamicType: supportsDynamicType,
                 onHeightMeasured: { height in
                     measuredContentHeight = height
+                },
+                content: {
+                    content()
                 }
-            ) {
-                content()
-            }
+            )
         }
     }
     
@@ -307,7 +308,7 @@ public struct BaseSheet<Content: View>: View {
     @ViewBuilder
     private var fullScreenHeader: some View {
         HStack {
-            if let dismissButton = dismissButton {
+            if dismissButton != nil {
                 Button(action: handleDismiss) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
@@ -420,7 +421,7 @@ public struct BaseSheet<Content: View>: View {
 
 // MARK: - Supporting Types
 
-public struct DismissButtonPresets {
+public struct DismissButtonPresets: Sendable {
     public static let done = BaseSheet<AnyView>.DismissButton(title: "Done")
     public static let cancel = BaseSheet<AnyView>.DismissButton(title: "Cancel")
     public static let close = BaseSheet<AnyView>.DismissButton(title: "Close")
@@ -434,25 +435,45 @@ public extension BaseSheet {
         case card        // Card-like with centered content and bottom actions
         case fullScreen  // Full screen with custom navigation
     }
-    
-    struct DismissButton: Equatable {
+
+    struct DismissButton: Equatable, Sendable {
         let title: String
-        
+
         public init(title: String) {
             self.title = title
         }
     }
-    
+
+    enum SheetActionStyle: CaseIterable {
+        case primary, secondary, destructive
+
+        var color: Color {
+            switch self {
+            case .primary: return AppColors.brand
+            case .secondary: return .primary
+            case .destructive: return .red
+            }
+        }
+
+        var actionButtonStyle: ActionButton.ActionButtonStyle {
+            switch self {
+            case .primary: return .primary
+            case .secondary: return .secondary
+            case .destructive: return .destructive
+            }
+        }
+    }
+
     struct SheetAction: Equatable {
         let title: String
-        let style: ActionStyle
+        let style: SheetActionStyle
         let isDisabled: Bool
         let isLoading: Bool
         let action: () -> Void
-        
+
         public init(
             title: String,
-            style: ActionStyle = .primary,
+            style: SheetActionStyle = .primary,
             isDisabled: Bool = false,
             isLoading: Bool = false,
             action: @escaping () -> Void
@@ -463,32 +484,12 @@ public extension BaseSheet {
             self.isLoading = isLoading
             self.action = action
         }
-        
+
         public static func == (lhs: SheetAction, rhs: SheetAction) -> Bool {
-            lhs.title == rhs.title && 
-            lhs.style == rhs.style && 
+            lhs.title == rhs.title &&
+            lhs.style == rhs.style &&
             lhs.isDisabled == rhs.isDisabled &&
             lhs.isLoading == rhs.isLoading
-        }
-        
-        public enum ActionStyle: CaseIterable {
-            case primary, secondary, destructive
-            
-            var color: Color {
-                switch self {
-                case .primary: return AppColors.brand
-                case .secondary: return .primary
-                case .destructive: return .red
-                }
-            }
-            
-            var actionButtonStyle: ActionButton.ActionButtonStyle {
-                switch self {
-                case .primary: return .primary
-                case .secondary: return .secondary
-                case .destructive: return .destructive
-                }
-            }
         }
     }
 }
@@ -575,6 +576,7 @@ private struct ResponsiveSizingModifier: ViewModifier {
 // MARK: - Device Capability Detection
 
 /// Helper for detecting device capabilities and screen characteristics
+@MainActor
 public struct DeviceCapabilities {
     
     // MARK: - Screen Size Detection
@@ -797,7 +799,7 @@ public struct ResponsiveSheetSizingModifier: ViewModifier {
                             measuredHeight = geometry.size.height
                             screenHeight = UIScreen.main.bounds.height
                         }
-                        .onChange(of: geometry.size.height) { newHeight in
+                        .onChange(of: geometry.size.height) { _, newHeight in
                             measuredHeight = newHeight
                         }
                 }

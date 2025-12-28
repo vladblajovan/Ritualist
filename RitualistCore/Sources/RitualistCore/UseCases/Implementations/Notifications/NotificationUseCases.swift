@@ -58,44 +58,55 @@ public final class LogHabitFromNotification: LogHabitFromNotificationUseCase {
     private let logRepository: LogRepository
     private let getLogForDate: GetLogForDateUseCase
     private let logHabit: LogHabitUseCase
-    
+    private let timezoneService: TimezoneService
+
     public init(
         habitRepository: HabitRepository,
         logRepository: LogRepository,
         getLogForDate: GetLogForDateUseCase,
-        logHabit: LogHabitUseCase
+        logHabit: LogHabitUseCase,
+        timezoneService: TimezoneService
     ) {
         self.habitRepository = habitRepository
         self.logRepository = logRepository
         self.getLogForDate = getLogForDate
         self.logHabit = logHabit
+        self.timezoneService = timezoneService
     }
-    
+
     public func execute(habitId: UUID, date: Date, value: Double?) async throws {
         // Fetch habit to determine logging behavior
         guard let habit = try await habitRepository.fetchHabit(by: habitId) else {
             throw NotificationError.habitNotFound(id: habitId)
         }
-        
+
+        // CRITICAL: Use display timezone (not device timezone) to match the user's view of "today"
+        // This ensures notification-triggered completions go to the same day the user sees in the app
+        let displayTimezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+
         // Check if there's already a log for today
         let existingLog = try await getLogForDate.execute(habitID: habitId, date: date)
-        
+
         if habit.kind == .binary {
             // Binary habit: log as complete if not already logged
             if existingLog == nil {
-                let log = HabitLog.withCurrentTimezone(habitID: habitId, date: date, value: 1.0)
+                // Use start of day in display timezone and store the display timezone identifier
+                let logDate = CalendarUtils.startOfDayLocal(for: date, timezone: displayTimezone)
+                let log = HabitLog(habitID: habitId, date: logDate, value: 1.0, timezone: displayTimezone.identifier)
                 try await logHabit.execute(log)
             }
         } else {
             // Count habit: increment by 1 or use provided value
             let currentValue = existingLog?.value ?? 0.0
             let newValue = value ?? (currentValue + 1.0)
-            
+
             if let existingLog = existingLog {
-                let updatedLog = HabitLog(id: existingLog.id, habitID: habitId, date: date, value: newValue, timezone: existingLog.timezone)
+                let updatedLog = HabitLog(id: existingLog.id, habitID: habitId, date: existingLog.date, value: newValue, timezone: existingLog.timezone)
                 try await logHabit.execute(updatedLog)
             } else {
-                let newLog = HabitLog.withCurrentTimezone(habitID: habitId, date: date, value: newValue)
+                // Use start of day in display timezone and store the display timezone identifier
+                let logDate = CalendarUtils.startOfDayLocal(for: date, timezone: displayTimezone)
+                let newLog = HabitLog(habitID: habitId, date: logDate, value: newValue, timezone: displayTimezone.identifier)
                 try await logHabit.execute(newLog)
             }
         }

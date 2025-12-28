@@ -9,7 +9,7 @@ import Foundation
 // MARK: - Mock Habit Repository
 
 /// Simple in-memory HabitRepository for testing use cases
-public final class MockHabitRepository: HabitRepository {
+public final class MockHabitRepository: HabitRepository, @unchecked Sendable {
     public var habits: [Habit] = []
 
     public init(habits: [Habit] = []) {
@@ -44,7 +44,7 @@ public final class MockHabitRepository: HabitRepository {
 // MARK: - Mock Log Repository
 
 /// Simple in-memory LogRepository for testing use cases
-public final class MockLogRepository: LogRepository {
+public final class MockLogRepository: LogRepository, @unchecked Sendable {
     public var logs: [UUID: [HabitLog]] = [:]
     public var upsertedLogs: [HabitLog] = []
 
@@ -78,7 +78,7 @@ public final class MockLogRepository: LogRepository {
 // MARK: - Mock Validate Habit Schedule Use Case
 
 /// Simple mock for ValidateHabitScheduleUseCase that returns configurable results
-public final class MockValidateHabitScheduleUseCase: ValidateHabitScheduleUseCase {
+public final class MockValidateHabitScheduleUseCase: ValidateHabitScheduleUseCase, @unchecked Sendable {
     public var isValid: Bool
     public var reason: String?
 

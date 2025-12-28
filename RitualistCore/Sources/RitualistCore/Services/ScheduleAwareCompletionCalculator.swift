@@ -8,7 +8,7 @@
 import Foundation
 
 /// Service responsible for calculating accurate completion rates based on habit schedules and types
-public protocol ScheduleAwareCompletionCalculator {
+public protocol ScheduleAwareCompletionCalculator: Sendable {
     /// Calculate completion rate for a specific habit within a date range
     func calculateCompletionRate(
         for habit: Habit,

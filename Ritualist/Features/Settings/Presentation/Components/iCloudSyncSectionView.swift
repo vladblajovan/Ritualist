@@ -145,9 +145,8 @@ struct ICloudSyncSectionView: View {
         ICloudSyncSectionView(vm: SettingsViewModel(
             loadProfile: MockLoadProfile(),
             saveProfile: MockSaveProfile(),
-            requestNotificationPermission: MockRequestNotificationPermission(),
+            permissionCoordinator: MockPermissionCoordinator(),
             checkNotificationStatus: MockCheckNotificationStatus(),
-            requestLocationPermissions: MockRequestLocationPermissions(),
             getLocationAuthStatus: MockGetLocationAuthStatus(),
             clearPurchases: MockClearPurchases(),
             checkPremiumStatus: MockCheckPremiumStatus(),
@@ -156,7 +155,7 @@ struct ICloudSyncSectionView: View {
             syncWithiCloud: MockSyncWithiCloud(),
             checkiCloudStatus: MockCheckiCloudStatus(),
             getLastSyncDate: MockGetLastSyncDate(),
-            deleteiCloudData: MockDeleteiCloudData(),
+            deleteData: MockDeleteData(),
             exportUserData: MockExportUserData(),
             importUserData: MockImportUserData()
         ))
@@ -175,18 +174,18 @@ private struct MockSaveProfile: SaveProfileUseCase {
     func execute(_ profile: UserProfile) async throws {}
 }
 
-private struct MockRequestNotificationPermission: RequestNotificationPermissionUseCase {
-    func execute() async throws -> Bool { true }
+private struct MockPermissionCoordinator: PermissionCoordinatorProtocol {
+    func requestNotificationPermission() async -> NotificationPermissionOutcome { .success(true) }
+    func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionOutcome { .success(.authorizedWhenInUse) }
+    func checkNotificationStatus() async -> Bool { true }
+    func checkLocationStatus() async -> LocationAuthorizationStatus { .authorizedWhenInUse }
+    func checkAllPermissions() async -> (notifications: Bool, location: LocationAuthorizationStatus) { (true, .authorizedWhenInUse) }
+    func scheduleAllNotifications() async throws {}
+    func restoreAllGeofences() async throws {}
 }
 
 private struct MockCheckNotificationStatus: CheckNotificationStatusUseCase {
     func execute() async -> Bool { true }
-}
-
-private struct MockRequestLocationPermissions: RequestLocationPermissionsUseCase {
-    func execute(requestAlways: Bool) async -> LocationPermissionResult {
-        .granted(.authorizedWhenInUse)
-    }
 }
 
 private struct MockGetLocationAuthStatus: GetLocationAuthStatusUseCase {
@@ -196,7 +195,7 @@ private struct MockGetLocationAuthStatus: GetLocationAuthStatusUseCase {
 }
 
 private struct MockClearPurchases: ClearPurchasesUseCase {
-    func execute() {}
+    func execute() async throws {}
 }
 
 private struct MockCheckPremiumStatus: CheckPremiumStatusUseCase {
@@ -227,7 +226,7 @@ private struct MockGetLastSyncDate: GetLastSyncDateUseCase {
     }
 }
 
-private struct MockDeleteiCloudData: DeleteiCloudDataUseCase {
+private struct MockDeleteData: DeleteDataUseCase {
     func execute() async throws {}
 }
 
@@ -247,5 +246,7 @@ private struct MockExportUserData: ExportUserDataUseCase {
 }
 
 private struct MockImportUserData: ImportUserDataUseCase {
-    func execute(jsonString: String) async throws {}
+    func execute(jsonString: String) async throws -> ImportResult {
+        ImportResult(hasLocationConfigurations: false, habitsImported: 0, habitLogsImported: 0, categoriesImported: 0)
+    }
 }

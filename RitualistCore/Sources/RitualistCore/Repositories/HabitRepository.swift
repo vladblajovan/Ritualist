@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol HabitRepository {
+public protocol HabitRepository: Sendable {
     func fetchAllHabits() async throws -> [Habit]
     func fetchHabit(by id: UUID) async throws -> Habit?
     /// Updates an existing habit or inserts it if it doesn't exist (upsert semantics)

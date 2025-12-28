@@ -68,15 +68,26 @@ public struct HabitsRoot: View {
                 await vm.refresh()
             }
         }
-        .sheet(isPresented: $showingCategoryManagement, onDismiss: {
+        .onReceive(NotificationCenter.default.publisher(for: .habitsDataDidChange)) { _ in
+            // Refresh when habits are created/updated/deleted from other screens (e.g., AI assistant)
+            guard vm.selectedHabit == nil else { return }
             Task {
                 await vm.refresh()
             }
-        }) {
-            NavigationStack {
-                CategoryManagementView(vm: categoryManagementVM)
-            }
         }
+        .sheet(
+            isPresented: $showingCategoryManagement,
+            onDismiss: {
+                Task {
+                    await vm.refresh()
+                }
+            },
+            content: {
+                NavigationStack {
+                    CategoryManagementView(vm: categoryManagementVM)
+                }
+            }
+        )
     }
 }
 
@@ -103,7 +114,7 @@ private struct HabitsContentView: View {
 
     var body: some View {
         ZStack {
-            GeometryReader { geometry in
+            GeometryReader { _ in
                 HabitsListView(
                     vm: vm,
                     showingCategoryManagement: $showingCategoryManagement
@@ -195,7 +206,6 @@ private struct HabitsContentView: View {
     }
 }
 
-// swiftlint:disable type_body_length
 private struct HabitsListView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
@@ -219,49 +229,19 @@ private struct HabitsListView: View {
                     await vm.retry()
                 }
             } else if vm.filteredHabits.isEmpty {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // Only show category carousel if habits exist but are filtered out
-                        if vm.selectedFilterCategory != nil {
-                            CategoryCarouselWithManagement(
-                                categories: vm.displayCategories,
-                                selectedCategory: vm.selectedFilterCategory,
-                                onCategoryTap: { category in
-                                    vm.selectFilterCategory(category)
-                                },
-                                onManageTap: {
-                                    showingCategoryManagement = true
-                                },
-                                scrollToStartOnSelection: true,
-                                allowDeselection: true
-                            )
-                            .padding(.top, Spacing.small)
-                            .padding(.bottom, Spacing.medium)
-                        }
-
-                        VStack(spacing: Spacing.xlarge) {
-                            if vm.selectedFilterCategory != nil {
-                                ContentUnavailableView(
-                                    "No habits in this category",
-                                    systemImage: "tray",
-                                    description: Text("No habits found for the selected category. Try selecting a different category or create a new habit.")
-                                )
-                            } else {
-                                ContentUnavailableView {
-                                    Label(Strings.EmptyState.noHabitsYet, systemImage: "plus.circle")
-                                        .foregroundStyle(.secondary)
-                                } description: {
-                                    Text(Strings.EmptyState.tapPlusToCreate)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .padding(.top, Spacing.large)
+                HabitsEmptyStateView(
+                    selectedFilterCategory: vm.selectedFilterCategory,
+                    displayCategories: vm.displayCategories,
+                    onCategoryTap: { category in
+                        vm.selectFilterCategory(category)
+                    },
+                    onManageTap: {
+                        showingCategoryManagement = true
+                    },
+                    onRefresh: {
+                        await vm.refresh()
                     }
-                }
-                .refreshable {
-                    await vm.refresh()
-                }
+                )
             } else {
                 // Unified scrolling: Everything inside List
                 List(selection: $selection) {
@@ -351,7 +331,22 @@ private struct HabitsListView: View {
                 .listStyle(.insetGrouped)
                 .overlay(alignment: .bottom) {
                     if !selection.isEmpty {
-                        editModeToolbar
+                        HabitsEditModeToolbar(
+                            selectionCount: selection.count,
+                            hasActiveSelected: hasActiveSelectedHabits,
+                            hasInactiveSelected: hasInactiveSelectedHabits,
+                            onActivate: {
+                                Task { await activateSelectedHabits() }
+                            },
+                            onDeactivate: {
+                                habitsToDeactivate = selection
+                                showingDeactivateConfirmation = true
+                            },
+                            onDelete: {
+                                habitsToDelete = selection
+                                showingBatchDeleteConfirmation = true
+                            }
+                        )
                     }
                 }
             }
@@ -425,66 +420,7 @@ private struct HabitsListView: View {
             Text(deactivateConfirmationMessage)
         }
     }
-    
-    private var editModeToolbar: some View {
-        HStack(spacing: Spacing.large) {
-            Text("\(selection.count) selected")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            Spacer()
-            
-            if hasInactiveSelectedHabits {
-                Button {
-                    Task {
-                        await activateSelectedHabits()
-                    }
-                } label: {
-                    VStack(spacing: 2) {
-                        Image(systemName: "play.circle")
-                            .font(.title2)
-                        Text("Activate")
-                            .font(.caption2)
-                    }
-                }
-                .foregroundColor(.green)
-            }
-            
-            if hasActiveSelectedHabits {
-                Button {
-                    habitsToDeactivate = selection
-                    showingDeactivateConfirmation = true
-                } label: {
-                    VStack(spacing: 2) {
-                        Image(systemName: "pause.circle")
-                            .font(.title2)
-                        Text("Deactivate")
-                            .font(.caption2)
-                    }
-                }
-                .foregroundColor(.orange)
-            }
-            
-            Button {
-                habitsToDelete = selection
-                showingBatchDeleteConfirmation = true
-            } label: {
-                VStack(spacing: 2) {
-                    Image(systemName: "trash")
-                        .font(.title2)
-                    Text("Delete")
-                        .font(.caption2)
-                }
-            }
-            .foregroundColor(.red)
-        }
-        .padding(.horizontal, Spacing.large)
-        .padding(.vertical, Spacing.medium)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal, Spacing.medium)
-        .padding(.bottom, Spacing.small)
-    }
-    
+
     private var hasActiveSelectedHabits: Bool {
         let selectedHabits = vm.filteredHabits.filter { selection.contains($0.id) }
         return selectedHabits.contains { $0.isActive }
@@ -521,7 +457,7 @@ private struct HabitsListView: View {
     
     private func activateSelectedHabits() async {
         for habitId in selection {
-            await vm.toggleActiveStatus(id: habitId)
+            _ = await vm.toggleActiveStatus(id: habitId)
         }
         selection.removeAll()
     }
@@ -537,11 +473,11 @@ private struct HabitsListView: View {
             ]
         )
         for habitId in habitsToDeactivate {
-            await vm.toggleActiveStatus(id: habitId)
+            _ = await vm.toggleActiveStatus(id: habitId)
         }
         selection.removeAll()
     }
-    
+
     private func deleteSelectedHabits() async {
         logger.log(
             "🗑️ Deleting habits",
@@ -553,7 +489,7 @@ private struct HabitsListView: View {
             ]
         )
         for habitId in habitsToDelete {
-            await vm.delete(id: habitId)
+            _ = await vm.delete(id: habitId)
         }
         selection.removeAll()
     }
@@ -622,6 +558,7 @@ private struct OperationStatusView: View {
 }
 
 private struct DraggableFloatingButton: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Binding var dragOffset: CGSize
     let screenSize: CGSize
     let safeAreaInsets: EdgeInsets
@@ -630,7 +567,10 @@ private struct DraggableFloatingButton: View {
     @GestureState private var temporaryOffset: CGSize = .zero
     @State private var isDragging = false
 
-    private let buttonSize: CGFloat = 60
+    /// Button size adapts for iPad (regular) vs iPhone (compact)
+    private var buttonSize: CGFloat {
+        horizontalSizeClass == .regular ? 72 : 60
+    }
     private let padding: CGFloat = 16
     private let rightEdgeInset: CGFloat = 15 // Visual breathing room when snapped to right edge
 
@@ -642,9 +582,9 @@ private struct DraggableFloatingButton: View {
                 .shadow(color: .blue.opacity(0.3), radius: 12, x: 0, y: 4)
                 .shadow(color: .blue.opacity(0.2), radius: 4, x: 0, y: 2)
 
-            // AI icon with gradient
+            // AI icon with gradient - larger on iPad
             Image(systemName: "sparkles")
-                .font(.title2.weight(.semibold))
+                .font(horizontalSizeClass == .regular ? .title.weight(.semibold) : .title2.weight(.semibold))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.blue, .purple],
