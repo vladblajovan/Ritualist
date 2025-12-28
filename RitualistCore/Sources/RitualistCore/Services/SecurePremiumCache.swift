@@ -21,9 +21,8 @@ import Security
 /// - Cannot be copied between apps or easily tampered with
 ///
 /// **Thread Safety:**
-/// All read methods (`getCachedPremiumStatus()`, `getCacheAge()`, etc.) are thread-safe.
-/// iOS Keychain APIs (Security.framework) handle synchronization internally.
-/// These methods can be safely called from any thread without additional locking.
+/// This is an actor, providing automatic thread safety through actor isolation.
+/// All methods are safely called from any context using `await`.
 ///
 /// **Offline Grace Period:**
 /// - Industry standard: 3 days (matches RevenueCat SDK)
@@ -36,11 +35,11 @@ import Security
 /// SecurePremiumCache.shared.updateCache(isPremium: true)
 ///
 /// // When StoreKit times out:
-/// if SecurePremiumCache.shared.getCachedPremiumStatus() {
+/// if await SecurePremiumCache.shared.getCachedPremiumStatus() {
 ///     // Grant premium access (within grace period)
 /// }
 /// ```
-public final class SecurePremiumCache: @unchecked Sendable {
+public actor SecurePremiumCache {
 
     // MARK: - Singleton
 

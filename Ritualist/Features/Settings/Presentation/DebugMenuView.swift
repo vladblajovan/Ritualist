@@ -709,7 +709,9 @@ struct DebugMenuView: View { // swiftlint:disable:this type_body_length
 
                 // Clear Premium Cache (Keychain) - for testing feature gating
                 Button(role: .destructive) {
-                    SecurePremiumCache.shared.clearCache()
+                    Task {
+                        await SecurePremiumCache.shared.clearCache()
+                    }
                 } label: {
                     HStack {
                         Image(systemName: "key.slash")

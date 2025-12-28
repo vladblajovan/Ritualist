@@ -159,7 +159,7 @@ public final class AppLifecycleCoordinator {
     }
 
     private func verifyAndUpdatePremiumStatus() async {
-        let cachedPremium = SecurePremiumCache.shared.getCachedPremiumStatus()
+        let cachedPremium = await SecurePremiumCache.shared.getCachedPremiumStatus()
 
         logger.log(
             "🔐 Verifying premium status (for feature gating)",
@@ -169,7 +169,7 @@ public final class AppLifecycleCoordinator {
         )
 
         let actualPremium = await StoreKitSubscriptionService.verifyPremiumAsync()
-        SecurePremiumCache.shared.updateCache(isPremium: actualPremium)
+        await SecurePremiumCache.shared.updateCache(isPremium: actualPremium)
 
         if actualPremium != cachedPremium {
             logger.log(

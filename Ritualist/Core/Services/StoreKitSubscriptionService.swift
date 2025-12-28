@@ -94,23 +94,22 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
     public static func verifyPremiumSync(timeout: Double, forceVerification: Bool = false) async -> Bool {
         let startTime = Date()
 
-        if let cachedResult = checkCachedPremiumStatus(forceVerification: forceVerification) {
+        if let cachedResult = await checkCachedPremiumStatus(forceVerification: forceVerification) {
             return cachedResult
         }
 
-        logStoreKitQueryStart(forceVerification: forceVerification)
+        await logStoreKitQueryStart(forceVerification: forceVerification)
         let result = await queryStoreKitWithTimeout(timeout: timeout)
         logVerificationCompleted(result: result, startTime: startTime, timeout: timeout)
         return result
     }
 
-    private static func checkCachedPremiumStatus(forceVerification: Bool) -> Bool? {
-        guard !forceVerification && SecurePremiumCache.shared.canSkipVerification() else {
-            return nil
-        }
+    private static func checkCachedPremiumStatus(forceVerification: Bool) async -> Bool? {
+        guard !forceVerification else { return nil }
+        guard await SecurePremiumCache.shared.canSkipVerification() else { return nil }
 
-        let cachedStatus = SecurePremiumCache.shared.getCachedPremiumStatus()
-        let cacheAge = SecurePremiumCache.shared.getCacheAge() ?? 0
+        let cachedStatus = await SecurePremiumCache.shared.getCachedPremiumStatus()
+        let cacheAge = await SecurePremiumCache.shared.getCacheAge() ?? 0
 
         startupLogger.log(
             "✅ Using cached premium status (cache fresh)",
@@ -125,8 +124,8 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         return cachedStatus
     }
 
-    private static func logStoreKitQueryStart(forceVerification: Bool) {
-        let cacheAge = SecurePremiumCache.shared.getCacheAge()
+    private static func logStoreKitQueryStart(forceVerification: Bool) async {
+        let cacheAge = await SecurePremiumCache.shared.getCacheAge()
         startupLogger.log(
             "🔐 Querying StoreKit for premium status",
             level: .info,
@@ -151,7 +150,7 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
             if let queryResult = await group.next() {
                 group.cancelAll()
                 if let value = queryResult {
-                    SecurePremiumCache.shared.updateCache(isPremium: value)
+                    await SecurePremiumCache.shared.updateCache(isPremium: value)
                     return value
                 } else {
                     startupLogger.log(
@@ -159,7 +158,7 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
                         level: .warning,
                         category: .subscription
                     )
-                    return SecurePremiumCache.shared.getCachedPremiumStatus()
+                    return await SecurePremiumCache.shared.getCachedPremiumStatus()
                 }
             }
             return false
@@ -272,7 +271,7 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         return Array(cachedValidPurchases)
     }
 
-    public func isPremiumUser() -> Bool {
+    public func isPremiumUser() async -> Bool {
         // Check in-memory cache first (populated after StoreKit queries this session)
         if !cachedValidPurchases.isEmpty {
             return true
@@ -281,10 +280,10 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         // Fall back to Keychain cache (populated by verifyPremiumAsync at startup)
         // This handles the case where sync isPremiumUser() is called before
         // async refreshCache() has populated the in-memory cache
-        return SecurePremiumCache.shared.getCachedPremiumStatus()
+        return await SecurePremiumCache.shared.getCachedPremiumStatus()
     }
 
-    public func getValidPurchases() -> [String] {
+    public func getValidPurchases() async -> [String] {
         Array(cachedValidPurchases)
     }
 
@@ -296,7 +295,7 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
 
         // Update Keychain cache immediately after purchase
         // This ensures the user has offline access right away
-        SecurePremiumCache.shared.updateCache(isPremium: true)
+        await SecurePremiumCache.shared.updateCache(isPremium: true)
     }
 
     public func clearPurchases() async throws {
@@ -306,7 +305,7 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         lastCacheUpdate = .distantPast
 
         // Clear Keychain cache as well
-        SecurePremiumCache.shared.clearCache()
+        await SecurePremiumCache.shared.clearCache()
     }
 
     public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
@@ -406,7 +405,7 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         // Update Keychain cache for offline scenarios (3-day grace period)
         // This keeps the secure cache fresh whenever we successfully query StoreKit
         let isPremium = !validPurchases.isEmpty
-        SecurePremiumCache.shared.updateCache(isPremium: isPremium)
+        await SecurePremiumCache.shared.updateCache(isPremium: isPremium)
     }
 
     /// Check if a transaction is currently valid
