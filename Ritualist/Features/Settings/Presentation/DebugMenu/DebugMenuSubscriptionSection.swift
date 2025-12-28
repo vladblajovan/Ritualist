@@ -11,6 +11,8 @@ import FactoryKit
 struct DebugMenuSubscriptionSection: View {
     @Bindable var vm: SettingsViewModel
     @Injected(\.debugLogger) private var logger
+    @State private var showingClearMockPurchasesConfirmation = false
+    @State private var showingClearPremiumCacheConfirmation = false
 
     var body: some View {
         Section("Subscription Testing") {
@@ -34,9 +36,7 @@ struct DebugMenuSubscriptionSection: View {
             .padding(.vertical, 4)
 
             Button(role: .destructive) {
-                Task {
-                    await clearMockPurchases()
-                }
+                showingClearMockPurchasesConfirmation = true
             } label: {
                 HStack {
                     Image(systemName: "xmark.circle")
@@ -48,6 +48,16 @@ struct DebugMenuSubscriptionSection: View {
                 }
             }
             .disabled(vm.subscriptionPlan == .free)
+            .alert("Clear Mock Purchases?", isPresented: $showingClearMockPurchasesConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Clear", role: .destructive) {
+                    Task {
+                        await clearMockPurchases()
+                    }
+                }
+            } message: {
+                Text("This will reset subscription to free tier for testing.")
+            }
 
             Text("Clears mock subscription from UserDefaults to test free tier")
                 .font(.caption)
@@ -59,9 +69,7 @@ struct DebugMenuSubscriptionSection: View {
             #endif
 
             Button(role: .destructive) {
-                Task {
-                    await SecurePremiumCache.shared.clearCache()
-                }
+                showingClearPremiumCacheConfirmation = true
             } label: {
                 HStack {
                     Image(systemName: "key.slash")
@@ -71,6 +79,16 @@ struct DebugMenuSubscriptionSection: View {
 
                     Spacer()
                 }
+            }
+            .alert("Clear Premium Cache?", isPresented: $showingClearPremiumCacheConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Clear", role: .destructive) {
+                    Task {
+                        await SecurePremiumCache.shared.clearCache()
+                    }
+                }
+            } message: {
+                Text("This will clear the Keychain-cached premium status for testing feature gating.")
             }
 
             Text("Clears the Keychain-cached premium status for testing feature gating (habit limits). iCloud sync is always enabled regardless of premium status.")

@@ -94,6 +94,14 @@ public enum UserDefaultsKeys {
     /// Key for storing the date when catch-up notifications were last tracked
     /// Resets daily to allow fresh catch-ups each day
     public static let catchUpDeliveryDate = "com.ritualist.catchUpDeliveryDate"
+
+    /// Key for storing notification IDs that have fired today
+    /// Used to prevent duplicate notifications on app restart within the same time window
+    public static let firedNotificationIds = "com.ritualist.firedNotificationIds"
+
+    /// Key for storing the date when fired notifications were last tracked
+    /// Resets daily to allow fresh notifications each day
+    public static let firedNotificationDate = "com.ritualist.firedNotificationDate"
 }
 
 // MARK: - Logger Constants

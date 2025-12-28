@@ -222,6 +222,9 @@ public final class AppLifecycleCoordinator {
         }
 
         do {
+            // Sync fired notification state from delivered notifications to prevent duplicates
+            await notificationService.syncFiredNotificationsFromDelivered()
+
             logger.log("🚀 Scheduling initial notifications on app launch", level: .info, category: .system)
             try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
         } catch {
@@ -259,6 +262,9 @@ public final class AppLifecycleCoordinator {
 
         let startTime = Date()
         do {
+            // Sync fired notification state from delivered notifications to prevent duplicates
+            await notificationService.syncFiredNotificationsFromDelivered()
+
             logger.log("🔄 Re-scheduling notifications on app active", level: .info, category: .system)
             try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
             lastNotificationRescheduleUptime = currentUptime

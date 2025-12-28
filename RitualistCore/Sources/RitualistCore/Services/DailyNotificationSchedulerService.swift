@@ -30,6 +30,12 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
         iOSNotificationLimit - reservedSlots
     }
 
+    /// Generates a second offset (0-58) based on habitID to match notification delivery stagger.
+    /// Must match the same algorithm in NotificationService to ensure badge order matches delivery order.
+    private static func secondOffset(for habitID: UUID) -> Int {
+        Int(habitID.uuidString.utf8.reduce(0) { $0 &+ Int($1) }) % 59
+    }
+
     // MARK: - Dependencies
 
     private let habitRepository: HabitRepository
@@ -89,12 +95,18 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             }
         }
 
-        // Sort by time so badge numbers are assigned in chronological order
+        // Sort by actual delivery order: (hour, minute, secondOffset)
+        // This ensures badge numbers match the order iOS will deliver notifications
+        // secondOffset is based on habitID hash and staggers notifications at the same time
         allNotifications.sort { lhs, rhs in
             if lhs.time.hour != rhs.time.hour {
                 return lhs.time.hour < rhs.time.hour
             }
-            return lhs.time.minute < rhs.time.minute
+            if lhs.time.minute != rhs.time.minute {
+                return lhs.time.minute < rhs.time.minute
+            }
+            // Same hour:minute - sort by secondOffset (delivery stagger)
+            return Self.secondOffset(for: lhs.habit.id) < Self.secondOffset(for: rhs.habit.id)
         }
 
         logger.logNotification(
@@ -138,12 +150,13 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             await notificationService.cancel(for: habit.id)
         }
 
-        // Schedule notifications in time order with incrementing badge numbers
+        // Schedule notifications with incrementing badge numbers based on delivery order
+        // Badge is set at schedule time for background delivery, and updated dynamically in willPresent for foreground
         var scheduledCount = 0
         var skippedCount = 0
         let today = Date()
 
-        for (index, notification) in notificationsToSchedule.enumerated() {
+        for notification in notificationsToSchedule {
             let habit = notification.habit
             let time = notification.time
 
@@ -161,8 +174,9 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             }
 
             do {
-                // Badge number is position in chronological order (1-based)
-                let badgeNumber = index + 1 - skippedCount
+                // Badge number based on delivery order (1-indexed)
+                // Sorted by (hour, minute, secondOffset) to match actual iOS delivery order
+                let badgeNumber = scheduledCount + 1
 
                 try await notificationService.scheduleSingleNotification(
                     for: habit.id,

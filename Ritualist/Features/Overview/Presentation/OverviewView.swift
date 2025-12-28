@@ -165,9 +165,10 @@ public struct OverviewView: View {
                 // RACE CONDITION FIX: Set view as visible immediately
                 vm.setViewVisible(true)
 
-                // Process pending numeric habit from notification with enhanced timing validation
+                // Process pending habits from notifications with enhanced timing validation
                 // This now serves as a fallback since the observer pattern will catch most cases
                 processNumericHabitWithViewStateValidation()
+                processBinaryHabitWithViewStateValidation()
             }
             .onDisappear {
                 // RACE CONDITION FIX: Set view as not visible
@@ -233,6 +234,21 @@ public struct OverviewView: View {
                     )
                 }
             }
+            .sheet(isPresented: $vm.showingCompleteHabitSheet) {
+                if let habit = vm.selectedHabitForSheet, habit.kind == .binary {
+                    CompleteHabitSheet(
+                        habit: habit,
+                        onComplete: {
+                            Task {
+                                await vm.completeHabit(habit)
+                            }
+                        },
+                        onCancel: {
+                            // Sheet dismisses automatically
+                        }
+                    )
+                }
+            }
             .background(Color(.systemGroupedBackground))
         } // ScrollViewReader
     }
@@ -245,24 +261,19 @@ public struct OverviewView: View {
         guard vm.pendingNumericHabitFromNotification != nil && !vm.isPendingHabitProcessed else {
             return
         }
-        
+
         // First attempt with 500ms delay for view hierarchy readiness
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+
             // Validate view is ready for sheet presentation
             if isViewReadyForSheetPresentation() {
                 vm.processPendingNumericHabit()
             } else {
-                // PHASE 1 FIX: Normal data loading timing, not an error
                 // Wait for data loading to complete (typically takes 500-1000ms)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if isViewReadyForSheetPresentation() {
-                        vm.processPendingNumericHabit()
-                    } else {
-                        // Processing anyway to prevent hanging deep links
-                        vm.processPendingNumericHabit()
-                    }
-                }
+                try? await Task.sleep(for: .milliseconds(500))
+                // Processing anyway to prevent hanging deep links
+                vm.processPendingNumericHabit()
             }
         }
     }
@@ -271,13 +282,33 @@ public struct OverviewView: View {
     private func isViewReadyForSheetPresentation() -> Bool {
         // Check if view has basic data loaded (indicates view lifecycle is complete)
         let hasDataLoaded = vm.todaysSummary != nil
-        
+
         // Check if there's no conflicting sheet state
-        let noConflictingSheet = !vm.showingNumericSheet && vm.selectedHabitForSheet == nil
-        
+        let noConflictingSheet = !vm.showingNumericSheet && !vm.showingCompleteHabitSheet && vm.selectedHabitForSheet == nil
+
         // PHASE 1 FIX: Remove hasPendingHabit requirement - view can be ready without pending actions
         // The early guard in processNumericHabitWithViewStateValidation() handles the pending habit check
         return hasDataLoaded && noConflictingSheet
+    }
+
+    /// Processes pending binary habit with robust view state validation and timing
+    private func processBinaryHabitWithViewStateValidation() {
+        guard vm.pendingBinaryHabitFromNotification != nil && !vm.isPendingBinaryHabitProcessed else {
+            return
+        }
+
+        // First attempt with 500ms delay for view hierarchy readiness
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+
+            if isViewReadyForSheetPresentation() {
+                vm.processPendingBinaryHabit()
+            } else {
+                // Wait for data loading to complete
+                try? await Task.sleep(for: .milliseconds(500))
+                vm.processPendingBinaryHabit()
+            }
+        }
     }
 }
 

@@ -553,6 +553,26 @@ public enum Strings {
             String(format: String(localized: "uncompleteHabitSheet.accessibility.screenChanged"), habitName)
         }
     }
+
+    // MARK: - Complete Habit Sheet
+    public enum CompleteHabitSheet {
+        public static let notCompleted = String(localized: "completeHabitSheet.notCompleted")
+        public static let markAsCompleted = String(localized: "completeHabitSheet.markAsCompleted")
+
+        // Accessibility
+        public static let markAsCompletedHint = String(localized: "completeHabitSheet.accessibility.markAsCompletedHint")
+        public static let cancelHint = String(localized: "completeHabitSheet.accessibility.cancelHint")
+
+        /// Accessibility label for header combining habit name and not completed status
+        public static func headerAccessibilityLabel(_ habitName: String) -> String {
+            String(format: String(localized: "completeHabitSheet.accessibility.headerLabel"), habitName)
+        }
+
+        /// VoiceOver announcement when sheet appears
+        public static func screenChangedAnnouncement(_ habitName: String) -> String {
+            String(format: String(localized: "completeHabitSheet.accessibility.screenChanged"), habitName)
+        }
+    }
 }
 
 // MARK: - SwiftUI Extensions

@@ -19,6 +19,9 @@ struct DebugMenuMigrationSection: View {
     let migrationLogger: MigrationLogger
     let onRefresh: () -> Void
 
+    @State private var showingSimulateMigrationConfirmation = false
+    @State private var showingCleanDuplicatesConfirmation = false
+
     var body: some View {
         Section("Migration Management") {
             VStack(alignment: .leading, spacing: 8) {
@@ -48,7 +51,7 @@ struct DebugMenuMigrationSection: View {
             .padding(.vertical, 4)
 
             Button(role: .destructive) {
-                simulateMigration()
+                showingSimulateMigrationConfirmation = true
             } label: {
                 HStack {
                     Image(systemName: "arrow.triangle.2.circlepath")
@@ -59,13 +62,21 @@ struct DebugMenuMigrationSection: View {
                     Spacer()
                 }
             }
+            .alert("Simulate Migration?", isPresented: $showingSimulateMigrationConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Simulate", role: .destructive) {
+                    simulateMigration()
+                }
+            } message: {
+                Text("This will set schema version to V\(getPreviousVersionNumber()) to trigger migration on next app launch.")
+            }
 
             Text("Sets schema version to \(getPreviousVersionNumber()).0.0 to trigger migration on next app launch")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
             Button(role: .destructive) {
-                cleanDuplicateMigrations()
+                showingCleanDuplicatesConfirmation = true
             } label: {
                 HStack {
                     Image(systemName: "trash.circle")
@@ -77,6 +88,14 @@ struct DebugMenuMigrationSection: View {
                 }
             }
             .disabled(migrationHistoryCount <= 1)
+            .alert("Clean Duplicate Migrations?", isPresented: $showingCleanDuplicatesConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Clean", role: .destructive) {
+                    cleanDuplicateMigrations()
+                }
+            } message: {
+                Text("This will remove duplicate migration entries, keeping only the latest for each version transition.")
+            }
 
             Text("Removes duplicate migration entries, keeping only the latest for each version transition")
                 .font(.caption)

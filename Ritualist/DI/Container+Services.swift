@@ -82,6 +82,27 @@ extension Container {
             // Configure the action handler to use dependency injection
             service.actionHandler = { [weak self] action, habitId, habitName, habitKind, reminderTime in
                 guard let self = self else { return }
+
+                // For binary habits tapped from notification, show confirmation sheet instead of auto-completing
+                if action == .log && habitKind == .binary {
+                    Task {
+                        do {
+                            if let habit = try await self.habitRepository().fetchHabit(by: habitId) {
+                                await MainActor.run {
+                                    self.overviewViewModel().setPendingBinaryHabit(habit)
+                                    self.navigationService().navigateToOverview(shouldRefresh: true)
+                                }
+                            }
+                        } catch {
+                            await MainActor.run {
+                                self.navigationService().navigateToOverview(shouldRefresh: true)
+                            }
+                        }
+                    }
+                    return // Skip auto-logging for binary habits
+                }
+
+                // For other actions (snooze, dismiss) and numeric log, use the use case
                 try await self.handleNotificationAction().execute(
                     action: action,
                     habitId: habitId,
@@ -89,7 +110,7 @@ extension Container {
                     habitKind: habitKind,
                     reminderTime: reminderTime
                 )
-                
+
                 // Handle numeric habits: fetch habit and set as pending, then navigate to Overview
                 if action == .log && habitKind == .numeric {
                     Task {

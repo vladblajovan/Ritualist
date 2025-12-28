@@ -9,6 +9,7 @@ import RitualistCore
 #if DEBUG
 struct DebugMenuiCloudSection: View {
     @Bindable var vm: SettingsViewModel
+    @State private var showingResetDiagnosticsConfirmation = false
 
     var body: some View {
         Section("iCloud Sync Diagnostics") {
@@ -33,7 +34,7 @@ struct DebugMenuiCloudSection: View {
             .disabled(vm.isCheckingCloudStatus)
 
             Button(role: .destructive) {
-                ICloudSyncDiagnostics.shared.reset()
+                showingResetDiagnosticsConfirmation = true
             } label: {
                 HStack {
                     Image(systemName: "trash")
@@ -43,6 +44,14 @@ struct DebugMenuiCloudSection: View {
 
                     Spacer()
                 }
+            }
+            .alert("Reset Sync Diagnostics?", isPresented: $showingResetDiagnosticsConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    ICloudSyncDiagnostics.shared.reset()
+                }
+            } message: {
+                Text("This will clear all recorded sync events and counters.")
             }
 
             Text("Sync flow: Push Received → Store Changes. If 'Registered' is No, check Push Notifications capability. If pushes come but no store changes, check CloudKit Stats schema deployment.")

@@ -189,15 +189,6 @@ public final class HandleNotificationAction: HandleNotificationActionUseCase {
             )
             await cancelHabitReminders.execute(habitId: habitId)
             
-            // Send confirmation notification for binary habits (background completion)
-            // Pass nil for habitId since this is a celebratory notification, not a reminder
-            if habitKind == .binary, let habitName = habitName {
-                let title = "✅ \(habitName) completed!"
-                let body = "Great job! Keep up the streak."
-                try await notificationService.sendImmediate(title: title, body: body, habitId: nil)
-            }
-            // For numeric habits, the foreground app will open and show the UI
-            
         case .remindLater:
             guard let habitName = habitName, let reminderTime = reminderTime else {
                 throw NotificationError.missingRequiredData(field: "habit name or reminder time for snooze")

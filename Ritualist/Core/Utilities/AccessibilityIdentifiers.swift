@@ -178,6 +178,11 @@ public enum AccessibilityID {
         public static let uncompleteHabit = "sheet.uncompleteHabit"
         public static let uncompleteHabitConfirmButton = "sheet.uncompleteHabit.confirm"
         public static let uncompleteHabitCancelButton = "sheet.uncompleteHabit.cancel"
+
+        // Complete Habit Sheet
+        public static let completeHabit = "sheet.completeHabit"
+        public static let completeHabitConfirmButton = "sheet.completeHabit.confirm"
+        public static let completeHabitCancelButton = "sheet.completeHabit.cancel"
     }
 
     // MARK: - Toasts

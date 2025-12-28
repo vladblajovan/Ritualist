@@ -17,6 +17,8 @@ struct DebugMenuOnboardingSection: View {
     @Binding var showingRestartRequiredAlert: Bool
     @Binding var restartInstructionMessage: String
 
+    @State private var showingResetTipsConfirmation = false
+
     var body: some View {
         Section("Onboarding Management") {
             Button(role: .destructive) {
@@ -54,7 +56,7 @@ struct DebugMenuOnboardingSection: View {
                 .foregroundColor(.secondary)
 
             Button(role: .destructive) {
-                resetTips()
+                showingResetTipsConfirmation = true
             } label: {
                 HStack {
                     Image(systemName: "lightbulb")
@@ -64,6 +66,14 @@ struct DebugMenuOnboardingSection: View {
 
                     Spacer()
                 }
+            }
+            .alert("Reset Tips?", isPresented: $showingResetTipsConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    resetTips()
+                }
+            } message: {
+                Text("This will reset all TipKit tips so they can be shown again. Requires app restart.")
             }
 
             Text("Resets all TipKit tips so they can be shown again. Useful for testing the tip flow.")

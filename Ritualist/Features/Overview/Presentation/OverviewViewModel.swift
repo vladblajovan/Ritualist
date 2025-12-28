@@ -32,9 +32,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     // Notification-triggered sheet state
     public var pendingNumericHabitFromNotification: Habit?
+    public var pendingBinaryHabitFromNotification: Habit?
+    public var showingCompleteHabitSheet = false
 
     // Track if pending habit has been processed to prevent double-processing
     @ObservationIgnored private var hasPendingHabitBeenProcessed: Bool = false
+    @ObservationIgnored private var hasPendingBinaryHabitBeenProcessed: Bool = false
 
     // Track view visibility to handle immediate processing when habit is set
     public var isViewVisible: Bool = false
@@ -673,6 +676,37 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         // Clean up state after processing
         pendingNumericHabitFromNotification = nil
         hasPendingHabitBeenProcessed = true
+    }
+
+    // MARK: - Binary Habit Completion (from Notification)
+
+    public func setPendingBinaryHabit(_ habit: Habit) {
+        pendingBinaryHabitFromNotification = habit
+        hasPendingBinaryHabitBeenProcessed = false
+
+        // If view is visible, process immediately
+        if isViewVisible {
+            processPendingBinaryHabit()
+        }
+    }
+
+    public var isPendingBinaryHabitProcessed: Bool {
+        hasPendingBinaryHabitBeenProcessed
+    }
+
+    public func processPendingBinaryHabit() {
+        // Prevent double-processing if already handled
+        guard !hasPendingBinaryHabitBeenProcessed,
+              let habit = pendingBinaryHabitFromNotification else {
+            return
+        }
+
+        selectedHabitForSheet = habit
+        showingCompleteHabitSheet = true
+
+        // Clean up state after processing
+        pendingBinaryHabitFromNotification = nil
+        hasPendingBinaryHabitBeenProcessed = true
     }
 
     public func deleteHabitLog(_ habit: Habit) async {
