@@ -10,7 +10,7 @@ public final class CheckPremiumStatus: CheckPremiumStatusUseCase {
     }
 
     public func execute() async -> Bool {
-        subscriptionService.isPremiumUser()
+        await subscriptionService.isPremiumUser()
     }
 }
 

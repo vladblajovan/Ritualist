@@ -10,8 +10,7 @@ import Foundation
 import Observation
 
 @available(iOS 17.0, macOS 14.0, *)
-@Observable
-public final class DefaultFeatureGatingService: FeatureGatingService {
+public final class DefaultFeatureGatingService: FeatureGatingService, Sendable {
     private let subscriptionService: SecureSubscriptionService
     private let errorHandler: ErrorHandler?
 
@@ -22,45 +21,45 @@ public final class DefaultFeatureGatingService: FeatureGatingService {
         self.subscriptionService = subscriptionService
         self.errorHandler = errorHandler
     }
-    
-    public var maxHabitsAllowed: Int {
-        isPremiumUser ? Int.max : Self.freeMaxHabits
-    }
-    
-    public func canCreateMoreHabits(currentCount: Int) -> Bool {
-        isPremiumUser || currentCount < Self.freeMaxHabits
-    }
-    
-    public var hasAdvancedAnalytics: Bool {
-        isPremiumUser
-    }
-    
-    public var hasCustomReminders: Bool {
-        isPremiumUser
-    }
-    
-    public var hasDataExport: Bool {
-        isPremiumUser
+
+    public func maxHabitsAllowed() async -> Int {
+        await isPremiumUser() ? Int.max : Self.freeMaxHabits
     }
 
-    nonisolated public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
-        return FeatureGatingConstants.getFeatureBlockedMessage(for: feature)
+    public func canCreateMoreHabits(currentCount: Int) async -> Bool {
+        await isPremiumUser() || currentCount < Self.freeMaxHabits
     }
 
-    public func isFeatureAvailable(_ feature: FeatureType) -> Bool {
+    public func hasAdvancedAnalytics() async -> Bool {
+        await isPremiumUser()
+    }
+
+    public func hasCustomReminders() async -> Bool {
+        await isPremiumUser()
+    }
+
+    public func hasDataExport() async -> Bool {
+        await isPremiumUser()
+    }
+
+    public func getFeatureBlockedMessage(for feature: FeatureType) -> String {
+        FeatureGatingConstants.getFeatureBlockedMessage(for: feature)
+    }
+
+    public func isFeatureAvailable(_ feature: FeatureType) async -> Bool {
         switch feature {
         case .unlimitedHabits:
-            return isPremiumUser
+            return await isPremiumUser()
         case .advancedAnalytics:
-            return hasAdvancedAnalytics
+            return await hasAdvancedAnalytics()
         case .customReminders:
-            return hasCustomReminders
+            return await hasCustomReminders()
         case .dataExport:
-            return hasDataExport
+            return await hasDataExport()
         }
     }
-    
-    private var isPremiumUser: Bool {
-        subscriptionService.isPremiumUser()
+
+    private func isPremiumUser() async -> Bool {
+        await subscriptionService.isPremiumUser()
     }
 }

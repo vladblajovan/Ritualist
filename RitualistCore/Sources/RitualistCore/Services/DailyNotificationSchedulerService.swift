@@ -60,7 +60,7 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
         logger.logNotification(event: "Starting daily notification rescheduling")
 
         // Premium check: Only premium users get habit notifications
-        guard subscriptionService.isPremiumUser() else {
+        guard await subscriptionService.isPremiumUser() else {
             logger.logNotification(event: "Non-premium user - skipping habit notifications")
 
             // Clear any existing habit notifications for non-premium users

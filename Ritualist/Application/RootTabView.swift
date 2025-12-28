@@ -458,7 +458,7 @@ public struct RootTabView: View {
         // assistant sheet dismisses (see onDisappear handler).
 
         let currentHabitCount = existingHabits.count
-        let canAddMoreHabits = checkHabitCreationLimit.execute(currentCount: currentHabitCount)
+        let canAddMoreHabits = await checkHabitCreationLimit.execute(currentCount: currentHabitCount)
 
         // Only open assistant if user hasn't reached the limit
         // For premium users or users with < 5 habits

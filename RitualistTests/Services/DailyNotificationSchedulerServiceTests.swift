@@ -538,7 +538,7 @@ struct DailyNotificationSchedulerServiceTests {
 // MARK: - Test Subscription Service
 
 /// Simple test implementation of SecureSubscriptionService
-private final class TestSubscriptionService: SecureSubscriptionService {
+private actor TestSubscriptionService: SecureSubscriptionService {
     private let isPremium: Bool
 
     init(isPremium: Bool = true) {
@@ -553,11 +553,11 @@ private final class TestSubscriptionService: SecureSubscriptionService {
         isPremium ? ["premium_subscription"] : []
     }
 
-    func isPremiumUser() -> Bool {
+    func isPremiumUser() async -> Bool {
         isPremium
     }
 
-    func getValidPurchases() -> [String] {
+    func getValidPurchases() async -> [String] {
         isPremium ? ["premium_subscription"] : []
     }
 

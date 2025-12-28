@@ -175,7 +175,7 @@ public struct HandleGeofenceEventUseCaseImpl: HandleGeofenceEventUseCase {
         )
 
         // Premium check: Location-based notifications are a premium feature
-        guard subscriptionService.isPremiumUser() else {
+        guard await subscriptionService.isPremiumUser() else {
             logger.log(
                 "⏭️ Skipping location notification - user is not premium",
                 level: .info,
@@ -389,7 +389,7 @@ public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUse
 
         // Premium check: Location-based features are premium-only
         // Skip restoration to save battery and iOS geofence slots
-        guard subscriptionService.isPremiumUser() else {
+        guard await subscriptionService.isPremiumUser() else {
             logger.log("Non-premium user - skipping geofence restoration", level: .info, category: .location)
 
             // Clean up any existing geofences for non-premium users

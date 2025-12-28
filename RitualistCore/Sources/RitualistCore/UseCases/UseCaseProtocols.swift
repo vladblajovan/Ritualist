@@ -302,12 +302,12 @@ public protocol CancelHabitRemindersUseCase: Sendable {
 
 // MARK: - Feature Gating Use Cases
 
-public protocol CheckFeatureAccessUseCase {
-    func execute() -> Bool
+public protocol CheckFeatureAccessUseCase: Sendable {
+    func execute() async -> Bool
 }
 
 public protocol CheckHabitCreationLimitUseCase: Sendable {
-    func execute(currentCount: Int) -> Bool
+    func execute(currentCount: Int) async -> Bool
 }
 
 public protocol GetPaywallMessageUseCase {

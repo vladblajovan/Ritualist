@@ -180,10 +180,6 @@ public actor MockPaywallService: PaywallService {
         simulatePurchaseDelay = delay
         simulateFailureRate = failureRate
     }
-
-    public var hasPremiumPurchase: Bool {
-        subscriptionService.isPremiumUser()
-    }
 }
 
 // MARK: - NoOp Implementation

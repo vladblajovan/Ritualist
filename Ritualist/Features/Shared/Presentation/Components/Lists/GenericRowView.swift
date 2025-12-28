@@ -446,8 +446,8 @@ private struct HabitRowWithSplitZones: View {
         .sheet(isPresented: $showingIconInfoSheet) {
             HabitIconInfoSheet()
         }
-        .onAppear {
-            isPremiumUser = subscriptionService.isPremiumUser()
+        .task {
+            isPremiumUser = await subscriptionService.isPremiumUser()
         }
     }
 }

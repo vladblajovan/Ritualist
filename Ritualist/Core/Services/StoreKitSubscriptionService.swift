@@ -35,13 +35,12 @@ import RitualistCore
 /// 4. Uncomment this service in Container+Services.swift
 /// 5. Test with sandbox accounts
 ///
-public final class StoreKitSubscriptionService: SecureSubscriptionService, @unchecked Sendable {
+public actor StoreKitSubscriptionService: SecureSubscriptionService {
 
     // MARK: - Private Properties
 
     /// Cache of validated purchases for performance optimization
     /// Refreshed on each validation check from StoreKit
-    /// Note: Access to mutable state is serialized through async methods
     private var cachedValidPurchases: Set<String> = []
 
     /// Last cache update timestamp

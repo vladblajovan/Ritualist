@@ -23,7 +23,7 @@ public final class CreateHabitFromSuggestion: CreateHabitFromSuggestionUseCase {
         let currentCount = await getHabitCount.execute()
         
         // Check if user can create more habits
-        let canCreate = checkHabitCreationLimit.execute(currentCount: currentCount)
+        let canCreate = await checkHabitCreationLimit.execute(currentCount: currentCount)
         
         if !canCreate {
             let message = featureGatingService.getFeatureBlockedMessage(for: .unlimitedHabits)

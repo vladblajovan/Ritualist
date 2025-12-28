@@ -15,6 +15,7 @@ public struct HabitsAssistantSheet: View {
     @State private var originalState: [String: Bool] = [:]
     @State private var userIntentions: [String: Bool] = [:]
     @State private var isProcessingActions = false
+    @State private var canCreateMoreHabits = true
 
     private let existingHabits: [Habit]
     private let onShowPaywall: (() -> Void)?
@@ -36,11 +37,6 @@ public struct HabitsAssistantSheet: View {
         }
 
         return count
-    }
-
-    /// Check if user can create more habits (for feature gating)
-    private var canCreateMoreHabits: Bool {
-        checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
     }
 
     /// Should show limit banner for free users
@@ -119,8 +115,8 @@ public struct HabitsAssistantSheet: View {
             regularMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
             largeMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0)
         )
-        .onAppear {
-            // Initialize the ViewModel with existing habits to populate mappings
+        .task {
+            // Initialize and check habit creation limit
             logger.log(
                 "🔍 Initializing Habits Assistant",
                 level: .debug,
@@ -129,6 +125,12 @@ public struct HabitsAssistantSheet: View {
             )
             habitsAssistantViewModel.initializeWithExistingHabits(existingHabits)
             initializeIntentionState()
+            canCreateMoreHabits = await checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
+        }
+        .onChange(of: userIntentions) {
+            Task {
+                canCreateMoreHabits = await checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
+            }
         }
     }
     
