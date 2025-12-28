@@ -32,13 +32,13 @@ public final class SettingsViewModel {
     @ObservationIgnored @Injected(\.toastService) var toastService
     @ObservationIgnored @Injected(\.onboardingViewModel) var onboardingViewModel
     @ObservationIgnored @Injected(\.deduplicateData) var deduplicateData
+    @ObservationIgnored @Injected(\.iCloudKeyValueService) var iCloudKeyValueService
 
     #if DEBUG
     private let populateTestData: PopulateTestDataUseCase?
     @ObservationIgnored @Injected(\.getDatabaseStats) var getDatabaseStats
     @ObservationIgnored @Injected(\.clearDatabase) var clearDatabase
     @ObservationIgnored @Injected(\.saveOnboardingState) var saveOnboardingState
-    @ObservationIgnored @Injected(\.iCloudKeyValueService) var iCloudKeyValueService
     @ObservationIgnored @Injected(\.userDefaultsService) var userDefaults
     #endif
 
