@@ -501,7 +501,8 @@ extension SettingsViewModel {
             userActionTracker.track(.custom(event: "user_data_imported", parameters: [
                 "habits_count": importResult.habitsImported,
                 "logs_count": importResult.habitLogsImported,
-                "has_location_configs": importResult.hasLocationConfigurations
+                "has_location_configs": importResu
+                hasLocationConfigurations
             ]))
             iCloudKeyValueService.setOnboardingCompletedLocally()
             iCloudKeyValueService.setOnboardingCompleted()
