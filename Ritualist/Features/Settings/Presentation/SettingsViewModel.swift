@@ -315,7 +315,7 @@ public final class SettingsViewModel {
             //     body: "Your preferences have been updated successfully."
             // )
 
-            // Auto-sync with iCloud after profile changes
+            // Auto-sync with iCloud after profile changes (silent - don't show toast on failure)
             do {
                 try await syncWithiCloud.execute()
             } catch {
@@ -325,9 +325,7 @@ public final class SettingsViewModel {
                     category: .network,
                     metadata: ["error": error.localizedDescription]
                 )
-                #if DEBUG
-                toastService.info(Strings.ICloudSync.syncDelayed, icon: "icloud.slash")
-                #endif
+                // Don't show toast - iCloud sync is non-critical and will retry automatically
             }
 
             isSaving = false

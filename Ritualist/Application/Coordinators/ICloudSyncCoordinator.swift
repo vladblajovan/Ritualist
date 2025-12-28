@@ -165,6 +165,11 @@ public final class ICloudSyncCoordinator {
         }
     }
 
+}
+
+// MARK: - CloudKit Cleanup
+
+extension ICloudSyncCoordinator {
     /// One-time cleanup to remove PersonalityAnalysis records from CloudKit
     public func cleanupPersonalityAnalysisFromCloudKit() async {
         do {
@@ -181,9 +186,62 @@ public final class ICloudSyncCoordinator {
         }
     }
 
-    // MARK: - Private Methods
+    private func handleCloudKitCleanupError(_ error: Error) {
+        if case CloudKitCleanupError.partialFailure = error {
+            logger.log(
+                "⚠️ Partial CloudKit cleanup failure, will retry on next launch",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
+        } else if let ckError = error as? CKError {
+            handleCKError(ckError)
+        } else {
+            logger.log(
+                "⚠️ Failed to cleanup PersonalityAnalysis from CloudKit",
+                level: .warning,
+                category: .system,
+                metadata: ["error": error.localizedDescription]
+            )
+        }
+    }
 
-    private func getCachedICloudStatus() async -> iCloudSyncStatus {
+    private func handleCKError(_ ckError: CKError) {
+        switch ckError.code {
+        case .networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited:
+            logger.log(
+                "⚠️ CloudKit cleanup failed due to network/service, will retry",
+                level: .warning,
+                category: .system,
+                metadata: ["error_code": ckError.code.rawValue]
+            )
+        case .notAuthenticated, .permissionFailure, .managedAccountRestricted:
+            markCloudKitCleanupComplete()
+            logger.log(
+                "❌ CloudKit cleanup skipped due to auth/permission, marking complete",
+                level: .info,
+                category: .system,
+                metadata: ["error_code": ckError.code.rawValue]
+            )
+        default:
+            logger.log(
+                "⚠️ CloudKit cleanup failed, will retry on next launch",
+                level: .warning,
+                category: .system,
+                metadata: ["error_code": ckError.code.rawValue, "error": ckError.localizedDescription]
+            )
+        }
+    }
+
+    private func markCloudKitCleanupComplete() {
+        userDefaults.set(true, forKey: "personalityAnalysisCloudKitCleanupCompleted")
+    }
+}
+
+// MARK: - iCloud Status Caching
+
+extension ICloudSyncCoordinator {
+    func getCachedICloudStatus() async -> iCloudSyncStatus {
         let currentUptime = ProcessInfo.processInfo.systemUptime
 
         if let cachedStatus = cachedICloudStatus,
@@ -214,8 +272,12 @@ public final class ICloudSyncCoordinator {
 
         return freshStatus
     }
+}
 
-    private func deduplicateSyncedDataAndGetResult() async -> DeduplicationResult {
+// MARK: - Deduplication
+
+extension ICloudSyncCoordinator {
+    func deduplicateSyncedDataAndGetResult() async -> DeduplicationResult {
         do {
             let result = try await deduplicateData.execute()
             lastDeduplicationUptime = ProcessInfo.processInfo.systemUptime
@@ -232,27 +294,7 @@ public final class ICloudSyncCoordinator {
             }
             #endif
 
-            if result.hadDuplicates {
-                logger.log(
-                    "🔄 Cleaned up duplicate records from iCloud sync",
-                    level: .info,
-                    category: .system,
-                    metadata: [
-                        "habits_removed": result.habitsRemoved,
-                        "categories_removed": result.categoriesRemoved,
-                        "logs_removed": result.habitLogsRemoved,
-                        "profiles_removed": result.profilesRemoved,
-                        "total_items_checked": result.totalItemsChecked
-                    ]
-                )
-            } else if !result.hadDataToCheck {
-                logger.log(
-                    "🔄 Deduplication complete - no data in database yet (waiting for iCloud sync)",
-                    level: .debug,
-                    category: .system
-                )
-            }
-
+            logDeduplicationResult(result)
             return result
         } catch {
             logger.log(
@@ -271,7 +313,30 @@ public final class ICloudSyncCoordinator {
         }
     }
 
-    private func deduplicateSyncedDataThrottled() async {
+    private func logDeduplicationResult(_ result: DeduplicationResult) {
+        if result.hadDuplicates {
+            logger.log(
+                "🔄 Cleaned up duplicate records from iCloud sync",
+                level: .info,
+                category: .system,
+                metadata: [
+                    "habits_removed": result.habitsRemoved,
+                    "categories_removed": result.categoriesRemoved,
+                    "logs_removed": result.habitLogsRemoved,
+                    "profiles_removed": result.profilesRemoved,
+                    "total_items_checked": result.totalItemsChecked
+                ]
+            )
+        } else if !result.hadDataToCheck {
+            logger.log(
+                "🔄 Deduplication complete - no data in database yet (waiting for iCloud sync)",
+                level: .debug,
+                category: .system
+            )
+        }
+    }
+
+    func deduplicateSyncedDataThrottled() async {
         let currentUptime = ProcessInfo.processInfo.systemUptime
         if let lastUptime = lastDeduplicationUptime,
            (currentUptime - lastUptime) < deduplicationThrottleInterval {
@@ -294,8 +359,12 @@ public final class ICloudSyncCoordinator {
 
         _ = await deduplicateSyncedDataAndGetResult()
     }
+}
 
-    private func postUIRefreshNotificationDebounced() {
+// MARK: - UI Refresh
+
+extension ICloudSyncCoordinator {
+    func postUIRefreshNotificationDebounced() {
         uiRefreshDebounceTask?.cancel()
 
         uiRefreshDebounceTask = Task {
@@ -313,52 +382,5 @@ public final class ICloudSyncCoordinator {
                 // Task was cancelled
             }
         }
-    }
-
-    private func handleCloudKitCleanupError(_ error: Error) {
-        if case CloudKitCleanupError.partialFailure = error {
-            logger.log(
-                "⚠️ Partial CloudKit cleanup failure, will retry on next launch",
-                level: .warning,
-                category: .system,
-                metadata: ["error": error.localizedDescription]
-            )
-        } else if let ckError = error as? CKError {
-            switch ckError.code {
-            case .networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited:
-                logger.log(
-                    "⚠️ CloudKit cleanup failed due to network/service, will retry",
-                    level: .warning,
-                    category: .system,
-                    metadata: ["error_code": ckError.code.rawValue]
-                )
-            case .notAuthenticated, .permissionFailure, .managedAccountRestricted:
-                markCloudKitCleanupComplete()
-                logger.log(
-                    "❌ CloudKit cleanup skipped due to auth/permission, marking complete",
-                    level: .info,
-                    category: .system,
-                    metadata: ["error_code": ckError.code.rawValue]
-                )
-            default:
-                logger.log(
-                    "⚠️ CloudKit cleanup failed, will retry on next launch",
-                    level: .warning,
-                    category: .system,
-                    metadata: ["error_code": ckError.code.rawValue, "error": ckError.localizedDescription]
-                )
-            }
-        } else {
-            logger.log(
-                "⚠️ Failed to cleanup PersonalityAnalysis from CloudKit",
-                level: .warning,
-                category: .system,
-                metadata: ["error": error.localizedDescription]
-            )
-        }
-    }
-
-    private func markCloudKitCleanupComplete() {
-        userDefaults.set(true, forKey: "personalityAnalysisCloudKitCleanupCompleted")
     }
 }
