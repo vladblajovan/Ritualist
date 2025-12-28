@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "image2-new-iOS-Dark-1024x1024@1x.png",
+      "filename" : "image2.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -13,7 +13,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "image3-new-iOS-Dark-1024x1024@1x.png",
+      "filename" : "image3.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -27,12 +27,6 @@
       ],
       "idiom" : "universal",
       "platform" : "ios",
-      "size" : "1024x1024"
-    },
-    {
-      "filename" : "image2-new-iOS-Dark-1024x1024@1x 1.png",
-      "idiom" : "universal",
-      "platform" : "watchos",
       "size" : "1024x1024"
     }
   ],
