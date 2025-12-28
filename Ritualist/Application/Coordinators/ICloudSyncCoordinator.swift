@@ -164,7 +164,6 @@ public final class ICloudSyncCoordinator {
             )
         }
     }
-
 }
 
 // MARK: - CloudKit Cleanup
