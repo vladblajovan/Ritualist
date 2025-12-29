@@ -162,8 +162,9 @@ struct MonthlyCalendarCard: View {
                 let numRows = maxRow + 1
                 let cellSize: CGFloat = 36
                 let verticalSpacing: CGFloat = 4
-                // Height = rows + gaps between rows (no extra padding)
-                return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing
+                let borderStrokeBuffer: CGFloat = 2  // Account for "today" indicator border extending beyond circle
+                // Height = rows + gaps between rows + buffer for border stroke on last row
+                return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
             }())
             // Accessibility: Provide summary for VoiceOver users
             .accessibilityElement(children: .ignore)

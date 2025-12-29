@@ -98,10 +98,20 @@ extension StoreKitSubscriptionService {
         )
     }
 
+    /// Result of querying StoreKit for entitlements
+    private enum EntitlementQueryResult {
+        /// User has a valid premium subscription
+        case premium
+        /// StoreKit returned entitlements but none are valid (all expired/revoked)
+        case notPremiumConfirmed
+        /// StoreKit returned NO entitlements at all (could be: never purchased, OR StoreKit failure)
+        case noEntitlementsReturned
+    }
+
     static func queryStoreKitWithTimeout(timeout: Double) async -> Bool {
         let timeoutNanoseconds = UInt64(timeout) * 1_000_000_000
 
-        return await withTaskGroup(of: Bool?.self) { group in
+        return await withTaskGroup(of: EntitlementQueryResult?.self) { group in
             group.addTask { await queryCurrentEntitlements() }
             group.addTask {
                 try? await Task.sleep(nanoseconds: timeoutNanoseconds)
@@ -110,9 +120,42 @@ extension StoreKitSubscriptionService {
 
             if let queryResult = await group.next() {
                 group.cancelAll()
-                if let value = queryResult {
-                    await SecurePremiumCache.shared.updateCache(isPremium: value)
-                    return value
+                if let result = queryResult {
+                    // Handle the result based on what StoreKit returned
+                    switch result {
+                    case .premium:
+                        // User has valid subscription - always update cache
+                        await SecurePremiumCache.shared.updateCache(isPremium: true)
+                        return true
+
+                    case .notPremiumConfirmed:
+                        // StoreKit confirmed no valid subscription - safe to update cache
+                        await SecurePremiumCache.shared.updateCache(isPremium: false)
+                        return false
+
+                    case .noEntitlementsReturned:
+                        // StoreKit returned NO entitlements - could be:
+                        // 1. User truly never purchased (should return false)
+                        // 2. StoreKit Config file issue / race condition (preserve cache)
+                        //
+                        // To protect against StoreKit testing issues while still being correct
+                        // for real users, only update cache if it's already expired/invalid.
+                        // This preserves the 3-day grace period for purchased users.
+                        let cacheStillValid = await SecurePremiumCache.shared.isCacheValid()
+                        if cacheStillValid {
+                            startupLogger.log(
+                                "⚠️ StoreKit returned no entitlements but cache is valid - preserving cache",
+                                level: .warning,
+                                category: .subscription,
+                                metadata: ["cache_age_hours": String(format: "%.1f", (await SecurePremiumCache.shared.getCacheAge() ?? 0) / 3600)]
+                            )
+                            return await SecurePremiumCache.shared.getCachedPremiumStatus()
+                        } else {
+                            // Cache expired or doesn't exist - user is not premium
+                            await SecurePremiumCache.shared.updateCache(isPremium: false)
+                            return false
+                        }
+                    }
                 } else {
                     startupLogger.log(
                         "⚠️ StoreKit verification timed out after \(Int(timeout))s - using cached value",
@@ -126,20 +169,26 @@ extension StoreKitSubscriptionService {
         }
     }
 
-    static func queryCurrentEntitlements() async -> Bool {
+    private static func queryCurrentEntitlements() async -> EntitlementQueryResult {
+        var didReceiveAnyEntitlement = false
+
         for await result in Transaction.currentEntitlements {
+            didReceiveAnyEntitlement = true
+
             if case .verified(let transaction) = result {
                 if transaction.revocationDate == nil {
                     if let expirationDate = transaction.expirationDate {
-                        if expirationDate > Date() { return true }
-                        if await checkGracePeriodStatus() { return true }
+                        if expirationDate > Date() { return .premium }
+                        if await checkGracePeriodStatus() { return .premium }
                     } else {
-                        return true
+                        return .premium
                     }
                 }
             }
         }
-        return false
+
+        // Distinguish between "received entitlements but all invalid" vs "received nothing"
+        return didReceiveAnyEntitlement ? .notPremiumConfirmed : .noEntitlementsReturned
     }
 
     static func logVerificationCompleted(result: Bool, startTime: Date, timeout: Double) {

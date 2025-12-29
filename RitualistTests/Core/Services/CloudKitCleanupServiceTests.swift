@@ -135,8 +135,8 @@ struct PersistenceConfigurationTests {
         let configNames = allConfigs.map { $0.name }
 
         // Verify both configurations exist with expected names
-        #expect(configNames.contains("Local"), "Should have Local configuration")
-        #expect(configNames.contains("CloudKit"), "Should have CloudKit configuration")
+        #expect(configNames.contains(PersistenceStoreNames.local), "Should have Local configuration")
+        #expect(configNames.contains(PersistenceStoreNames.cloudKit), "Should have CloudKit configuration")
 
         // Verify they are distinct
         #expect(Set(configNames).count == configNames.count, "All configuration names should be unique")
@@ -163,8 +163,8 @@ struct PersistenceConfigurationTests {
         #expect(allConfigs.count == 2, "Should have exactly 2 configurations (CloudKit + Local)")
 
         let configNames = allConfigs.map { $0.name }
-        #expect(configNames.contains("CloudKit"), "Should contain CloudKit configuration")
-        #expect(configNames.contains("Local"), "Should contain Local configuration")
+        #expect(configNames.contains(PersistenceStoreNames.cloudKit), "Should contain CloudKit configuration")
+        #expect(configNames.contains(PersistenceStoreNames.local), "Should contain Local configuration")
     }
 
     @Test("No entity appears in both CloudKit and Local configurations")

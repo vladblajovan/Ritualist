@@ -166,6 +166,20 @@ public enum iCloudConstants {
     public static let containerIdentifier = "iCloud.com.vladblajovan.Ritualist"
 }
 
+// MARK: - Persistence Store Names
+
+/// Store names for SwiftData persistence configurations.
+/// Used by PersistenceConfiguration to define storage locations.
+public enum PersistenceStoreNames {
+    /// CloudKit-synced store name (habits, logs, categories, profile, onboarding)
+    /// This store syncs to iCloud when available, or operates locally when offline
+    public static let cloudKit = "CloudKit"
+
+    /// Local-only store name (privacy-sensitive data like PersonalityAnalysis)
+    /// This store NEVER syncs to iCloud regardless of availability
+    public static let local = "Local"
+}
+
 // MARK: - Sync Configuration
 
 /// Configuration constants for iCloud sync retry behavior.

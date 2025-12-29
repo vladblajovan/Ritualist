@@ -96,7 +96,7 @@ public enum PersistenceConfiguration {
     /// Uses CloudKit private database for cross-device sync
     private static var cloudKitSyncConfiguration: ModelConfiguration {
         ModelConfiguration(
-            "CloudKit",
+            PersistenceStoreNames.cloudKit,
             schema: Schema(cloudKitSyncedTypes),
             cloudKitDatabase: .private(iCloudConstants.containerIdentifier)
         )
@@ -106,7 +106,7 @@ public enum PersistenceConfiguration {
     /// Personality data stays on-device for privacy
     private static var localOnlyConfiguration: ModelConfiguration {
         ModelConfiguration(
-            "Local",
+            PersistenceStoreNames.local,
             schema: Schema(localOnlyTypes),
             cloudKitDatabase: .none
         )
@@ -127,7 +127,7 @@ public enum PersistenceConfiguration {
     /// - Data created while offline will sync when iCloud becomes available again
     private static var cloudKitLocalOnlyConfiguration: ModelConfiguration {
         ModelConfiguration(
-            "CloudKit",  // Same name as iCloud config for data continuity
+            PersistenceStoreNames.cloudKit,  // Same name as iCloud config for data continuity
             schema: Schema(cloudKitSyncedTypes),
             cloudKitDatabase: .none
         )
