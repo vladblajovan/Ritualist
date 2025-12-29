@@ -243,13 +243,13 @@ struct StreaksCard: View {
 
             VStack(spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(streak.flameEmoji)
-                        .font(.caption2)
-                        .accessibilityHidden(true)
-
                     Text("\(streak.currentStreak)")
                         .font(.body.weight(.bold))
                         .foregroundColor(.primary)
+
+                    Text(streak.flameEmoji)
+                        .font(.caption2)
+                        .accessibilityHidden(true)
 
                     Text(streak.currentStreak == 1 ? "day" : "days")
                         .font(.caption2)

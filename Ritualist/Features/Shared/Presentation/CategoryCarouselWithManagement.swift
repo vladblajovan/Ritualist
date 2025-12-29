@@ -16,6 +16,7 @@ public struct CategoryCarouselWithManagement: View {
     let onManageTap: () -> Void
     let scrollToStartOnSelection: Bool
     let allowDeselection: Bool
+    let unselectedBackgroundColor: Color
 
     public init(
         categories: [HabitCategory],
@@ -23,7 +24,8 @@ public struct CategoryCarouselWithManagement: View {
         onCategoryTap: @escaping (HabitCategory?) -> Void,
         onManageTap: @escaping () -> Void,
         scrollToStartOnSelection: Bool = false,
-        allowDeselection: Bool = false
+        allowDeselection: Bool = false,
+        unselectedBackgroundColor: Color = AppColors.chipUnselectedBackground
     ) {
         self.categories = categories
         self.selectedCategory = selectedCategory
@@ -31,6 +33,7 @@ public struct CategoryCarouselWithManagement: View {
         self.onManageTap = onManageTap
         self.scrollToStartOnSelection = scrollToStartOnSelection
         self.allowDeselection = allowDeselection
+        self.unselectedBackgroundColor = unselectedBackgroundColor
     }
 
     public var body: some View {
@@ -65,7 +68,7 @@ public struct CategoryCarouselWithManagement: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 25)
-                .fill(Color(.tertiarySystemBackground))
+                .fill(unselectedBackgroundColor)
         )
         .foregroundColor(.primary)
     }
@@ -76,6 +79,7 @@ public struct CategoryCarouselWithManagement: View {
             Chip(
                 text: category.displayName,
                 emoji: category.emoji,
+                unselectedBackgroundColor: unselectedBackgroundColor,
                 isSelected: selectedCategory?.id == category.id
             )
             .onTapGesture {

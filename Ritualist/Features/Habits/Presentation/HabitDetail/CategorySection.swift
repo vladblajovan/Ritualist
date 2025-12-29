@@ -30,7 +30,7 @@ public struct CategorySection: View {
                     } else {
                         // Reusable category carousel with cogwheel
                         CategoryCarouselWithManagement(
-                            categories: vm.categories,
+                            categories: vm.displayCategories,
                             selectedCategory: vm.selectedCategory,
                             onCategoryTap: { category in
                                 if let category = category {
@@ -39,7 +39,8 @@ public struct CategorySection: View {
                             },
                             onManageTap: {
                                 showingCategoryManagement = true
-                            }
+                            },
+                            scrollToStartOnSelection: true
                         )
                     }
                 }

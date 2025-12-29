@@ -23,7 +23,8 @@ struct HabitsEmptyStateView: View {
                         onCategoryTap: onCategoryTap,
                         onManageTap: onManageTap,
                         scrollToStartOnSelection: true,
-                        allowDeselection: true
+                        allowDeselection: true,
+                        unselectedBackgroundColor: Color(.secondarySystemGroupedBackground)
                     )
                     .padding(.top, Spacing.small)
                     .padding(.bottom, Spacing.medium)

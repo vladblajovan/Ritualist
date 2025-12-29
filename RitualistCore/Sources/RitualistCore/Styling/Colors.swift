@@ -53,6 +53,16 @@ public enum AppColors {
     public static let systemGray5 = Color(UIColor.systemGray5)
     @available(iOS 13.0, watchOS 6.0, *)
     public static let systemGray6 = Color(UIColor.systemGray6)
+
+    /// Adaptive chip background color for unselected state
+    /// Light mode: light gray (systemGray6) for visibility on white forms
+    /// Dark mode: medium gray (systemGray4) for visibility on dark forms
+    @available(iOS 13.0, watchOS 6.0, *)
+    public static let chipUnselectedBackground = Color(UIColor { traitCollection in
+        traitCollection.userInterfaceStyle == .dark
+            ? UIColor.systemGray4
+            : UIColor.systemGray6
+    })
     #elseif canImport(AppKit)
     @available(macOS 10.15, *)
     public static let background = Color(NSColor.windowBackgroundColor)

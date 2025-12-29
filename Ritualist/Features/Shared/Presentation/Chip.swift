@@ -5,6 +5,7 @@ public struct Chip: View {
     let text: String
     let emoji: String?
     let color: Color?
+    let unselectedBackgroundColor: Color
     let isSelected: Bool
     let accessibilityIdentifier: String?
 
@@ -16,12 +17,14 @@ public struct Chip: View {
         text: String,
         emoji: String? = nil,
         color: Color? = nil,
+        unselectedBackgroundColor: Color = AppColors.chipUnselectedBackground,
         isSelected: Bool = false,
         accessibilityIdentifier: String? = nil
     ) {
         self.text = text
         self.emoji = emoji
         self.color = color
+        self.unselectedBackgroundColor = unselectedBackgroundColor
         self.isSelected = isSelected
         self.accessibilityIdentifier = accessibilityIdentifier
     }
@@ -39,7 +42,7 @@ public struct Chip: View {
         .padding(.vertical, verticalPadding)
         .background(
             RoundedRectangle(cornerRadius: 25)
-                .fill(isSelected ? (color ?? AppColors.brand) : Color(.tertiarySystemBackground))
+                .fill(isSelected ? (color ?? AppColors.brand) : unselectedBackgroundColor)
         )
         .foregroundColor(
             isSelected ? .white : .primary

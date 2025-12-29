@@ -195,21 +195,17 @@ public struct MapLocationPickerView: View {
     }
 
     private func syncCoordinateToConfig(_ coordinate: CLLocationCoordinate2D) {
-        if var config = vm.locationConfiguration {
-            config.latitude = coordinate.latitude
-            config.longitude = coordinate.longitude
-            vm.updateLocationConfiguration(config)
-        } else {
-            let newConfig = LocationConfiguration.create(
-                from: coordinate,
-                radius: radius,
-                triggerType: triggerType,
-                frequency: frequencyPreset.toNotificationFrequency,
-                isEnabled: true,
-                locationLabel: locationLabel.isEmpty ? nil : locationLabel
-            )
-            vm.updateLocationConfiguration(newConfig)
-        }
+        // Always create config from current local state to ensure all settings are synced
+        // This fixes a bug where only coordinates were updated, losing radius/trigger/frequency changes
+        let newConfig = LocationConfiguration.create(
+            from: coordinate,
+            radius: radius,
+            triggerType: triggerType,
+            frequency: frequencyPreset.toNotificationFrequency,
+            isEnabled: true,
+            locationLabel: locationLabel.isEmpty ? nil : locationLabel
+        )
+        vm.updateLocationConfiguration(newConfig)
     }
 
     private func saveConfiguration() {

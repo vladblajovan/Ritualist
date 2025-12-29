@@ -19,7 +19,7 @@ public struct ReminderSection: View {
                 }
                 .padding(.vertical, Spacing.small)
             } else {
-                ForEach(Array(vm.reminders.enumerated()), id: \.offset) { index, reminder in
+                ForEach(Array(vm.reminders.enumerated()), id: \.element) { index, reminder in
                     ReminderTimeRow(
                         reminder: reminder,
                         onDelete: {
@@ -66,18 +66,18 @@ public struct ReminderSection: View {
 public struct ReminderTimeRow: View {
     let reminder: ReminderTime
     let onDelete: () -> Void
-    
+
     public var body: some View {
         HStack {
             Image(systemName: "bell.fill")
                 .foregroundColor(.blue)
                 .frame(width: 20)
-            
+
             Text(formatTime(reminder))
                 .font(.body)
-            
+
             Spacer()
-            
+
             Button {
                 onDelete()
             } label: {
@@ -88,15 +88,13 @@ public struct ReminderTimeRow: View {
         }
         .padding(.vertical, 2)
     }
-    
+
     private func formatTime(_ reminder: ReminderTime) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
-        
         let date = CalendarUtils.currentLocalCalendar.date(
             from: DateComponents(hour: reminder.hour, minute: reminder.minute)
         ) ?? Date()
-        
         return formatter.string(from: date)
     }
 }

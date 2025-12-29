@@ -56,6 +56,19 @@ public final class HabitDetailViewModel {
     public private(set) var categories: [HabitCategory] = []
     public private(set) var isLoadingCategories = false
     public private(set) var categoriesError: Error?
+
+    /// Display categories with selected category moved to first position
+    public var displayCategories: [HabitCategory] {
+        guard let selected = selectedCategory else {
+            return categories
+        }
+        var reordered = categories
+        if let selectedIndex = reordered.firstIndex(where: { $0.id == selected.id }) {
+            let selectedCategory = reordered.remove(at: selectedIndex)
+            reordered.insert(selectedCategory, at: 0)
+        }
+        return reordered
+    }
     
     // Validation state
     public private(set) var isDuplicateHabit = false

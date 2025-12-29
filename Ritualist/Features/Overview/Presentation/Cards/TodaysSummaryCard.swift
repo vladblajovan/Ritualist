@@ -802,11 +802,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             } label: {
                 HStack(spacing: 6) {
                     if isViewingToday, let streakStatus = getStreakStatus?(habit), streakStatus.isAtRisk {
-                        HStack(spacing: 0) {
-                            Text("🔥").font(.system(size: 12))
+                        HStack(spacing: 2) {
                             Text("\(streakStatus.atRisk)")
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                                 .foregroundColor(.orange)
+                            Text("🔥").font(.system(size: 12))
                         }
                         .modifier(PulseAnimationModifier())
                     }
