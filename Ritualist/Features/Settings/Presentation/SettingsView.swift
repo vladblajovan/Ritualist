@@ -62,7 +62,7 @@ private struct SettingsFormView: View {
     @State private var selectedImageData: Data?
 
     /// User preference: whether brand header stays pinned at top while scrolling
-    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = false
+    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = true
 
     #if DEBUG
     @State private var showingDebugMenu = false

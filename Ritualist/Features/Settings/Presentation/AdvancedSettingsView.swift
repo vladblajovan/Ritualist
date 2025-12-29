@@ -8,7 +8,7 @@ struct AdvancedSettingsView: View {
     @Binding var displayTimezoneMode: String
     @Binding var appearance: Int
 
-    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = false
+    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = true
     @Injected(\.timezoneService) private var timezoneService
 
     @State private var currentTimezone: TimeZone = .current

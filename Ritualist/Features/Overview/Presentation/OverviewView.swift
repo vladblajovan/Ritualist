@@ -6,7 +6,7 @@ public struct OverviewView: View {
     @State var vm: OverviewViewModel
     
     /// User preference: whether brand header stays pinned at top while scrolling
-    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = false
+    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = true
     
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     

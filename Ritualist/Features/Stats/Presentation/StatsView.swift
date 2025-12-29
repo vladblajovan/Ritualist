@@ -10,7 +10,7 @@ public struct StatsView: View {
     @Injected(\.navigationService) private var navigationService
 
     /// User preference: whether brand header stays pinned at top while scrolling
-    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = false
+    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = true
 
     @State private var showingProgressTrendInfo = false
     @State private var showingHabitPatternsInfo = false
