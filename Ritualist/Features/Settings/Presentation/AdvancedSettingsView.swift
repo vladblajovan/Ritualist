@@ -8,6 +8,7 @@ struct AdvancedSettingsView: View {
     @Binding var displayTimezoneMode: String
     @Binding var appearance: Int
 
+    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = false
     @Injected(\.timezoneService) private var timezoneService
 
     @State private var currentTimezone: TimeZone = .current
@@ -21,7 +22,7 @@ struct AdvancedSettingsView: View {
     var body: some View {
         Form {
             // Appearance Section
-            Section("Appearance") {
+            Section {
                 HStack {
                     Label {
                         Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
@@ -43,6 +44,20 @@ struct AdvancedSettingsView: View {
                             .foregroundColor(.blue)
                     }
                 }
+
+                Toggle(isOn: $isHeaderPinned) {
+                    Label {
+                        Text("Sticky Header")
+                    } icon: {
+                        Image(systemName: "pin.fill")
+                            .font(.title2)
+                            .foregroundColor(.orange)
+                    }
+                }
+            } header: {
+                Text("Appearance")
+            } footer: {
+                Text("Sticky header keeps the app title and progress bar fixed at the top while scrolling.")
             }
 
             // Travel Status Section (if traveling)

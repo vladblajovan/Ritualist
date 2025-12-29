@@ -53,6 +53,16 @@ public struct CardDesign {
     
     public static let shadowColor = Color.primary.opacity(0.1)
     
+    // MARK: - Brand Header
+    /// Font size for app brand header (icon + "Ritualist" text)
+    public static let brandHeaderFontSize: CGFloat = 28
+    /// Progress bar height for brand header
+    public static let progressBarHeight: CGFloat = 8
+    /// Glow radius for completion animations
+    public static let glowRadius: CGFloat = 8
+    /// Glow opacity for completion animations
+    public static let glowOpacity: Double = 0.6
+
     // MARK: - Progress Colors
     public static let progressGreen = Color(hex: "#4CAF50") ?? .green
     public static let progressOrange = Color(hex: "#FF9800") ?? .orange

@@ -169,21 +169,24 @@ public struct CircularProgressView: View {
     /// - 50-80%: Orange (medium completion)
     /// - 80-100%: Green (high completion)
     /// - 100%: Full green gradient (perfect completion)
+    ///
+    /// Start color adapts to match app icon background (light/dark mode aware)
     public static func adaptiveProgressColors(for completion: Double) -> [Color] {
         let percentage = min(max(completion, 0.0), 1.0)
+        let startColor = Color.ritualistIconBackground
 
         if percentage < 0.5 {
-            // Low completion: Cyan → Red gradient
-            return [Color.ritualistCyan, CardDesign.progressRed]
+            // Low completion: Icon blue → Red gradient
+            return [startColor, CardDesign.progressRed]
         } else if percentage < 0.8 {
-            // Medium completion: Cyan → Orange gradient
-            return [Color.ritualistCyan, CardDesign.progressOrange]
+            // Medium completion: Icon blue → Orange gradient
+            return [startColor, CardDesign.progressOrange]
         } else if percentage < 1.0 {
-            // High completion: Cyan → Green gradient
-            return [Color.ritualistCyan, CardDesign.progressGreen]
+            // High completion: Icon blue → Green gradient
+            return [startColor, CardDesign.progressGreen]
         } else {
-            // 100% completion: Cyan → Bright Green gradient
-            return [Color.ritualistCyan, CardDesign.progressGreen]
+            // 100% completion: Icon blue → Bright Green gradient
+            return [startColor, CardDesign.progressGreen]
         }
     }
 

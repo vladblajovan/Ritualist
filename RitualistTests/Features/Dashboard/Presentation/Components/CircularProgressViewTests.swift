@@ -29,10 +29,10 @@ struct CircularProgressViewGradientTests {
         #expect(colors25.count == 2)
         #expect(colors49.count == 2)
 
-        // First color should be ritualistCyan
-        #expect(colors0[0] == Color.ritualistCyan)
-        #expect(colors25[0] == Color.ritualistCyan)
-        #expect(colors49[0] == Color.ritualistCyan)
+        // First color should be ritualistIconBackground (adaptive brand color)
+        #expect(colors0[0] == Color.ritualistIconBackground)
+        #expect(colors25[0] == Color.ritualistIconBackground)
+        #expect(colors49[0] == Color.ritualistIconBackground)
 
         // Second color should be progressRed
         #expect(colors0[1] == CardDesign.progressRed)
@@ -68,7 +68,7 @@ struct CircularProgressViewGradientTests {
     func perfectCompletionUsesGreenGradient() {
         let colors100 = CircularProgressView.adaptiveProgressColors(for: 1.0)
 
-        #expect(colors100[0] == Color.ritualistCyan)
+        #expect(colors100[0] == Color.ritualistIconBackground)
         #expect(colors100[1] == CardDesign.progressGreen)
     }
 

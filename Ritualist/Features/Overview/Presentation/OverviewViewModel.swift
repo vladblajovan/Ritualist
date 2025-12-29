@@ -52,6 +52,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     /// Track if initial data has been loaded to prevent duplicate loads
     @ObservationIgnored private var hasLoadedInitialData = false
+    @ObservationIgnored private var hasEverLoadedData = false // True first load flag, never reset
 
     /// Track if a refresh was requested while a load was in progress
     /// When true, loadData() will re-run after current load completes
@@ -273,15 +274,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         do {
             // Use timezone already fetched above (before early return check)
-            // timezoneChanged is already computed above
-            let isFirstLoad = !hasLoadedInitialData
             displayTimezone = newTimezone
 
             // Recalculate viewingDate when:
             // 1. Timezone actually changed (user updated settings)
-            // 2. First load (viewingDate was initialized with device timezone, not user's setting)
+            // 2. True first load (viewingDate was initialized with device timezone, not user's setting)
+            // Note: Use hasEverLoadedData to avoid resetting date during navigation-triggered reloads
             // This ensures MonthlyCalendarCard and TodaysSummaryCard show correct "today" highlighting
-            if timezoneChanged || isFirstLoad {
+            if timezoneChanged || !hasEverLoadedData {
                 let oldViewingDate = viewingDate
                 viewingDate = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
                 logger.log(
@@ -289,7 +289,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                     level: .info,
                     category: .stateManagement,
                     metadata: [
-                        "reason": isFirstLoad ? "first_load" : "timezone_changed",
+                        "reason": !hasEverLoadedData ? "first_load" : "timezone_changed",
                         "timezone": displayTimezone.identifier,
                         "oldViewingDate": oldViewingDate.description,
                         "newViewingDate": viewingDate.description
@@ -323,6 +323,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             // Store the overview data and extract all card data from it using unified approach
             self.overviewData = overviewData
             self.hasLoadedInitialData = true
+            self.hasEverLoadedData = true
             self.todaysSummary = extractTodaysSummary(from: overviewData)
             self.activeStreaks = extractActiveStreaks(from: overviewData)
             self.monthlyCompletionData = extractMonthlyData(from: overviewData)

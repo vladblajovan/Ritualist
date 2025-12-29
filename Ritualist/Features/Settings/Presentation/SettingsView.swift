@@ -61,6 +61,9 @@ private struct SettingsFormView: View {
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
 
+    /// User preference: whether brand header stays pinned at top while scrolling
+    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = false
+
     #if DEBUG
     @State private var showingDebugMenu = false
     #endif
@@ -82,18 +85,31 @@ private struct SettingsFormView: View {
     }
 
     var body: some View {
-        Group {
-            if let error = vm.error {
-                ErrorView(
-                    title: "Failed to Load Settings",
-                    message: error.localizedDescription
-                ) {
-                    await vm.retry()
-                }
-            } else {
-                Form {
-                    // Account Section
-                    AccountSectionView(
+        VStack(spacing: 0) {
+            // Sticky header at the top (only when pinned)
+            if isHeaderPinned {
+                stickyBrandHeader
+            }
+
+            Group {
+                if let error = vm.error {
+                    ErrorView(
+                        title: "Failed to Load Settings",
+                        message: error.localizedDescription
+                    ) {
+                        await vm.retry()
+                    }
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            // Scrolling header (only when not pinned)
+                            if !isHeaderPinned {
+                                scrollingBrandHeader
+                            }
+
+                            Form {
+                                // Account Section
+                                AccountSectionView(
                         vm: vm,
                         name: $name,
                         appearance: $appearance,
@@ -225,12 +241,18 @@ private struct SettingsFormView: View {
                             Text("Acknowledgements")
                         }
                     }
-                }
-                .refreshable {
-                    await vm.reload()
-                    updateLocalState()
-                }
-                .sheet(isPresented: $showingImagePicker) {
+                            }
+                            .scrollDisabled(true)
+                            .frame(minHeight: 2200)
+
+                            Spacer(minLength: 100) // Bottom padding for tab bar
+                        } // LazyVStack
+                    } // ScrollView
+                    .refreshable {
+                        await vm.reload()
+                        updateLocalState()
+                    }
+                    .sheet(isPresented: $showingImagePicker) {
                     AvatarImagePicker(
                         name: displayName,
                         currentImageData: vm.profile.avatarImageData,
@@ -283,10 +305,51 @@ private struct SettingsFormView: View {
                     // Sync local state when profile changes (e.g., after delete all data)
                     updateLocalState()
                 }
-            }
+                } // else
+            } // Group
+        } // VStack
+        .background(Color(.systemGroupedBackground))
+        .navigationBarHidden(true)
+    }
+
+    // MARK: - Brand Header
+
+    @ViewBuilder
+    private var stickyBrandHeader: some View {
+        AppBrandHeader(
+            completionPercentage: nil,
+            showProgressBar: false,
+            showProfileAvatar: false
+        )
+        .padding(.horizontal, Spacing.large)
+        .padding(.top, Spacing.medium)
+        .background(Color(.systemGroupedBackground))
+        .overlay(alignment: .bottom) {
+            // Fade gradient that overlays scroll content for smooth fade effect
+            LinearGradient(
+                colors: [
+                    Color(.systemGroupedBackground),
+                    Color(.systemGroupedBackground).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .offset(y: 16)
+            .allowsHitTesting(false)
         }
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.large)
+        .zIndex(1) // Ensure header and fade render above scroll content
+    }
+
+    @ViewBuilder
+    private var scrollingBrandHeader: some View {
+        AppBrandHeader(
+            completionPercentage: nil,
+            showProgressBar: false,
+            showProfileAvatar: false
+        )
+        .padding(.horizontal, Spacing.large)
+        .padding(.top, Spacing.medium)
     }
 
     // MARK: - Computed Properties

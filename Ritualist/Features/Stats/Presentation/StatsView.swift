@@ -9,18 +9,32 @@ public struct StatsView: View {
     @Injected(\.debugLogger) private var logger
     @Injected(\.navigationService) private var navigationService
 
+    /// User preference: whether brand header stays pinned at top while scrolling
+    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = false
+
     @State private var showingProgressTrendInfo = false
     @State private var showingHabitPatternsInfo = false
 
     public init(vm: StatsViewModel) {
         self.vm = vm
     }
-    
+
     public var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 20) {
-                // Main Stats Cards
-                if vm.hasHabits {
+        VStack(spacing: 0) {
+            // Sticky header at the top (only when pinned)
+            if isHeaderPinned {
+                stickyBrandHeader
+            }
+
+            ScrollView {
+                LazyVStack(spacing: 20) {
+                    // Scrolling header (only when not pinned)
+                    if !isHeaderPinned {
+                        scrollingBrandHeader
+                    }
+
+                    // Main Stats Cards
+                    if vm.hasHabits {
                     // Time Period Selector - only show when there's data to filter
                     timePeriodSelector
 
@@ -70,48 +84,49 @@ public struct StatsView: View {
                     emptyStateView
                 }
 
-                Spacer(minLength: 100) // Bottom padding for tab bar
+                    Spacer(minLength: 100) // Bottom padding for tab bar
+                }
+                .padding(.horizontal, Spacing.large)
+                .padding(.top, isHeaderPinned ? 16 : 0) // Accommodate sticky header's fade gradient
             }
-            .padding(.horizontal, Spacing.large)
-        }
-        .refreshable {
-            await vm.refresh()
-        }
-        .navigationTitle(Strings.Navigation.stats)
-        .navigationBarTitleDisplayMode(.large)
-        .task {
-            await vm.loadData()
-        }
-        .onAppear {
-            vm.setViewVisible(true)
-        }
-        .onDisappear {
-            vm.setViewVisible(false)
-            vm.markViewDisappeared()
-        }
-        .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
-            // When view becomes visible (tab switch), reload to pick up changes from other tabs
-            // Skip on initial appear - the .task modifier handles initial load.
-            if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+            .refreshable {
+                await vm.refresh()
+            }
+            .task {
+                await vm.loadData()
+            }
+            .onAppear {
+                vm.setViewVisible(true)
+            }
+            .onDisappear {
+                vm.setViewVisible(false)
+                vm.markViewDisappeared()
+            }
+            .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
+                // When view becomes visible (tab switch), reload to pick up changes from other tabs
+                // Skip on initial appear - the .task modifier handles initial load.
+                if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+                    Task {
+                        logger.log("Tab switch detected: Reloading dashboard data", level: .debug, category: .ui)
+                        vm.invalidateCacheForTabSwitch()
+                        await vm.refresh()
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
+                // Auto-refresh when iCloud syncs new data from another device
                 Task {
-                    logger.log("Tab switch detected: Reloading dashboard data", level: .debug, category: .ui)
-                    vm.invalidateCacheForTabSwitch()
+                    logger.log(
+                        "☁️ iCloud sync detected - refreshing Dashboard",
+                        level: .info,
+                        category: .system
+                    )
                     await vm.refresh()
                 }
             }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
-            // Auto-refresh when iCloud syncs new data from another device
-            Task {
-                logger.log(
-                    "☁️ iCloud sync detected - refreshing Dashboard",
-                    level: .info,
-                    category: .system
-                )
-                await vm.refresh()
-            }
-        }
+        } // VStack
         .background(Color(.systemGroupedBackground))
+        .navigationBarHidden(true)
         .sheet(isPresented: $showingProgressTrendInfo) {
             ChartInfoSheet(
                 title: "Progress Trend",
@@ -137,6 +152,58 @@ public struct StatsView: View {
                 ],
                 example: "If Wednesday shows 80%, it means across all Wednesdays in the period, you averaged 80% completion"
             )
+        }
+    }
+
+    // MARK: - Brand Header
+
+    @ViewBuilder
+    private var stickyBrandHeader: some View {
+        AppBrandHeader(
+            completionPercentage: vm.weeklyPatterns?.averageWeeklyCompletion,
+            showProgressBar: false
+        )
+        .padding(.horizontal, Spacing.large)
+        .padding(.top, Spacing.medium)
+        .background(Color(.systemGroupedBackground))
+        .overlay(alignment: .bottom) {
+            // Fade gradient that overlays scroll content for smooth fade effect
+            LinearGradient(
+                colors: [
+                    Color(.systemGroupedBackground),
+                    Color(.systemGroupedBackground).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .offset(y: 16)
+            .allowsHitTesting(false)
+        }
+        .zIndex(1) // Ensure header and fade render above scroll content
+    }
+
+    @ViewBuilder
+    private var scrollingBrandHeader: some View {
+        AppBrandHeader(
+            completionPercentage: vm.weeklyPatterns?.averageWeeklyCompletion,
+            showProgressBar: false
+        )
+        // Match sticky header's top padding so position is consistent when toggling
+        .padding(.top, Spacing.medium)
+        .overlay(alignment: .bottom) {
+            // Fade gradient matching sticky header for visual consistency
+            LinearGradient(
+                colors: [
+                    Color(.systemGroupedBackground),
+                    Color(.systemGroupedBackground).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .offset(y: 16)
+            .allowsHitTesting(false)
         }
     }
 

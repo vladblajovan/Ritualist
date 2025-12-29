@@ -15,6 +15,11 @@ public extension Color {
     /// Primary blue from light mode icon (right side)
     static let ritualistBlue = Color(hex: 0x0D6EFD)
 
+    /// Icon background blue - matches the app icon background color
+    /// Light mode: Bright blue matching light icon
+    /// Dark mode: Deep navy matching dark icon
+    static let ritualistIconBackground = Color("Brand")
+
     /// Light cyan tint for subtle variations
     static let ritualistLightCyan = Color(hex: 0x5DCDDE)
 

@@ -14,7 +14,7 @@ struct AccountSectionView: View {
     let updateUserName: () async -> Void
 
     var body: some View {
-        Section("Account") {
+        Section {
             // Avatar and Name row
             HStack(spacing: Spacing.medium) {
                 AvatarView(
