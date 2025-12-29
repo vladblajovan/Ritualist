@@ -4,253 +4,297 @@ import RitualistCore
 
 public struct OverviewView: View {
     @State var vm: OverviewViewModel
-
+    
+    /// User preference: whether brand header stays pinned at top while scrolling
+    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = false
+    
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
     public init(vm: OverviewViewModel) {
         self.vm = vm
     }
     
     public var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: CardDesign.cardSpacing) {
-                // Always show core cards
-                // Inspiration carousel moved to top position
-                if vm.shouldShowInspirationCard && !vm.inspirationItems.isEmpty {
-                    InspirationCarouselView(
-                        items: vm.inspirationItems,
-                        timeOfDay: vm.currentTimeOfDay,
-                        completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
-                        onDismiss: { item in
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                vm.dismissInspirationItem(item)
-                            }
-                        },
-                        onDismissAll: {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                vm.dismissAllInspirationItems()
-                            }
+        VStack(spacing: 0) {
+            // Sticky header at the top (only when pinned)
+            if isHeaderPinned {
+                stickyBrandHeader
+            }
+            
+            // Scrollable content
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: CardDesign.cardSpacing) {
+                        // Scrolling header (only when not pinned)
+                        if !isHeaderPinned {
+                            scrollingBrandHeader
                         }
-                    )
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                
-                TodaysSummaryCard(
-                    summary: vm.todaysSummary,
-                    viewingDate: vm.viewingDate,
-                    isViewingToday: vm.isViewingToday,
-                    timezone: vm.displayTimezone,
-                    canGoToPrevious: vm.canGoToPreviousDay,
-                    canGoToNext: vm.canGoToNextDay,
-                    currentSlogan: vm.isViewingToday ? vm.currentSlogan : nil,
-                    onQuickAction: { habit in
-                        Task {
-                            await vm.completeHabit(habit)
-                        }
-                    },
-                    onNumericHabitUpdate: { habit, newValue in
-                        try await vm.updateNumericHabit(habit, value: newValue)
-                    },
-                    getProgressSync: { habit in
-                        vm.getProgressSync(for: habit)
-                    },
-                    onNumericHabitAction: { habit in
-                        vm.showNumericSheet(for: habit)
-                    },
-                    onDeleteHabitLog: { habit in
-                        Task {
-                            await vm.deleteHabitLog(habit)
-                        }
-                    },
-                    getScheduleStatus: { habit in
-                        vm.getScheduleStatus(for: habit)
-                    },
-                    getValidationMessage: { habit in
-                        await vm.getScheduleValidationMessage(for: habit)
-                    },
-                    getStreakStatus: { habit in
-                        vm.getStreakStatusSync(for: habit)
-                    },
-                    onPreviousDay: {
-                        vm.goToPreviousDay()
-                    },
-                    onNextDay: {
-                        vm.goToNextDay()
-                    },
-                    onGoToToday: {
-                        vm.goToToday()
-                    }
-                )
-                .cardStyle()
-                .id("topCard")
-
-                // Monthly Calendar + Streaks - side by side on iPad with equal heights
-                if vm.shouldShowActiveStreaks || vm.isLoading {
-                    EqualHeightRow {
-                        MonthlyCalendarCard(
-                            monthlyData: vm.monthlyCompletionData,
-                            onDateSelect: { date in
-                                vm.goToDate(date)
-                                // Defer scroll to next run loop so view updates first
-                                DispatchQueue.main.async {
-                                    withAnimation(.easeInOut(duration: 0.6)) {
-                                        proxy.scrollTo("topCard", anchor: .top)
+                        
+                        // Inspiration carousel at top position
+                        if vm.shouldShowInspirationCard && !vm.inspirationItems.isEmpty {
+                            InspirationCarouselView(
+                                items: vm.inspirationItems,
+                                timeOfDay: vm.currentTimeOfDay,
+                                completionPercentage: vm.todaysSummary?.completionPercentage ?? 0.0,
+                                onDismiss: { item in
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        vm.dismissInspirationItem(item)
+                                    }
+                                },
+                                onDismissAll: {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        vm.dismissAllInspirationItems()
                                     }
                                 }
-                            },
-                            timezone: vm.displayTimezone
-                        )
-                        .frame(maxHeight: .infinity, alignment: .top)
-                        .cardStyle()
-                    } second: {
-                        StreaksCard(
-                            streaks: vm.activeStreaks,
-                            shouldAnimateBestStreak: false,
-                            onAnimationComplete: {},
-                            isLoading: vm.isLoading
-                        )
-                        .frame(maxHeight: .infinity, alignment: .top)
-                        .cardStyle()
-                    }
-                } else {
-                    // No streaks - show calendar full width
-                    MonthlyCalendarCard(
-                        monthlyData: vm.monthlyCompletionData,
-                        onDateSelect: { date in
-                            vm.goToDate(date)
-                            // Defer scroll to next run loop so view updates first
-                            DispatchQueue.main.async {
-                                withAnimation(.easeInOut(duration: 0.6)) {
-                                    proxy.scrollTo("topCard", anchor: .top)
+                            )
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+                        
+                        TodaysSummaryCard(
+                            summary: vm.todaysSummary,
+                            viewingDate: vm.viewingDate,
+                            isViewingToday: vm.isViewingToday,
+                            timezone: vm.displayTimezone,
+                            canGoToPrevious: vm.canGoToPreviousDay,
+                            canGoToNext: vm.canGoToNextDay,
+                            currentSlogan: vm.isViewingToday ? vm.currentSlogan : nil,
+                            onQuickAction: { habit in
+                                Task {
+                                    await vm.completeHabit(habit)
                                 }
+                            },
+                            onNumericHabitUpdate: { habit, newValue in
+                                try await vm.updateNumericHabit(habit, value: newValue)
+                            },
+                            getProgressSync: { habit in
+                                vm.getProgressSync(for: habit)
+                            },
+                            onNumericHabitAction: { habit in
+                                vm.showNumericSheet(for: habit)
+                            },
+                            onDeleteHabitLog: { habit in
+                                Task {
+                                    await vm.deleteHabitLog(habit)
+                                }
+                            },
+                            getScheduleStatus: { habit in
+                                vm.getScheduleStatus(for: habit)
+                            },
+                            getValidationMessage: { habit in
+                                await vm.getScheduleValidationMessage(for: habit)
+                            },
+                            getStreakStatus: { habit in
+                                vm.getStreakStatusSync(for: habit)
+                            },
+                            onPreviousDay: {
+                                vm.goToPreviousDay()
+                            },
+                            onNextDay: {
+                                vm.goToNextDay()
+                            },
+                            onGoToToday: {
+                                vm.goToToday()
                             }
-                        },
-                        timezone: vm.displayTimezone
-                    )
-                    .cardStyle()
-                }
-
-                // Personality Insights - full width on its own row
-                if vm.shouldShowPersonalityInsights {
-                    PersonalityInsightsCard(
-                        insights: vm.personalityInsights,
-                        dominantTrait: vm.dominantPersonalityTrait,
-                        isDataSufficient: vm.isPersonalityDataSufficient,
-                        thresholdRequirements: vm.personalityThresholdRequirements,
-                        onOpenAnalysis: {
-                            vm.openPersonalityAnalysis()
+                        )
+                        .cardStyle()
+                        
+                        // Monthly Calendar + Streaks - side by side on iPad
+                        if vm.shouldShowActiveStreaks || vm.isLoading {
+                            EqualHeightRow {
+                                MonthlyCalendarCard(
+                                    monthlyData: vm.monthlyCompletionData,
+                                    onDateSelect: { date in
+                                        vm.goToDate(date)
+                                        DispatchQueue.main.async {
+                                            withAnimation(.easeInOut(duration: 0.6)) {
+                                                proxy.scrollTo("scrollTop", anchor: .top)
+                                            }
+                                        }
+                                    },
+                                    timezone: vm.displayTimezone
+                                )
+                                .frame(maxHeight: .infinity, alignment: .top)
+                                .cardStyle()
+                            } second: {
+                                StreaksCard(
+                                    streaks: vm.activeStreaks,
+                                    shouldAnimateBestStreak: false,
+                                    onAnimationComplete: {},
+                                    isLoading: vm.isLoading
+                                )
+                                .frame(maxHeight: .infinity, alignment: .top)
+                                .cardStyle()
+                            }
+                        } else {
+                            MonthlyCalendarCard(
+                                monthlyData: vm.monthlyCompletionData,
+                                onDateSelect: { date in
+                                    vm.goToDate(date)
+                                    DispatchQueue.main.async {
+                                        withAnimation(.easeInOut(duration: 0.6)) {
+                                            proxy.scrollTo("scrollTop", anchor: .top)
+                                        }
+                                    }
+                                },
+                                timezone: vm.displayTimezone
+                            )
+                            .cardStyle()
                         }
-                    )
-                    .cardStyle()
+                        
+                        // Personality Insights - full width on its own row
+                        if vm.shouldShowPersonalityInsights {
+                            PersonalityInsightsCard(
+                                insights: vm.personalityInsights,
+                                dominantTrait: vm.dominantPersonalityTrait,
+                                isDataSufficient: vm.isPersonalityDataSufficient,
+                                thresholdRequirements: vm.personalityThresholdRequirements,
+                                onOpenAnalysis: {
+                                    vm.openPersonalityAnalysis()
+                                }
+                            )
+                            .cardStyle()
+                        }
+                        
+                        Spacer(minLength: 100) // Tab bar padding
+                    }
+                    .padding(.horizontal, Spacing.large)
+                    .padding(.top, isHeaderPinned ? 16 : 0)
+                    .id("scrollTop")
                 }
-                
-                Spacer(minLength: 100) // Tab bar padding
-            }
-            .padding(.horizontal, Spacing.large)
-            }
-            .refreshable {
-                await vm.refresh()
-            }
-            .task {
-                await vm.loadData()
-            }
-            .onChange(of: vm.isMigrating) { wasMigrating, isMigrating in
-                // When migration completes, reload data immediately
-                if wasMigrating && !isMigrating {
+                .refreshable {
+                    await vm.refresh()
+                }
+                .task {
+                    await vm.loadData()
+                }
+                .onChange(of: vm.isMigrating) { wasMigrating, isMigrating in
+                    if wasMigrating && !isMigrating {
+                        Task {
+                            await vm.refresh()
+                        }
+                    }
+                }
+                .onAppear {
+                    vm.setViewVisible(true)
+                    processNumericHabitWithViewStateValidation()
+                    processBinaryHabitWithViewStateValidation()
+                }
+                .onDisappear {
+                    vm.setViewVisible(false)
+                    vm.markViewDisappeared()
+                }
+                .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
+                    if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+                        Task {
+                            Container.shared.debugLogger().log("Tab switch detected: Reloading overview data", level: .debug, category: .ui)
+                            vm.invalidateCacheForTabSwitch()
+                            await vm.refresh()
+                            await vm.refreshPersonalityInsights()
+                        }
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     Task {
                         await vm.refresh()
                     }
                 }
-            }
-            .onAppear {
-                // RACE CONDITION FIX: Set view as visible immediately
-                vm.setViewVisible(true)
-
-                // Process pending habits from notifications with enhanced timing validation
-                // This now serves as a fallback since the observer pattern will catch most cases
-                processNumericHabitWithViewStateValidation()
-                processBinaryHabitWithViewStateValidation()
-            }
-            .onDisappear {
-                // RACE CONDITION FIX: Set view as not visible
-                vm.setViewVisible(false)
-                // Track that view has disappeared (for tab switch detection)
-                vm.markViewDisappeared()
-            }
-            .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
-                // When view becomes visible (tab switch), reload to pick up changes from other tabs
-                // This ensures habit schedule changes from Habits screen are reflected in Overview
-                //
-                // IMPORTANT: Skip on initial appear - the .task modifier handles initial load.
-                // Only reload when returning to this tab after visiting another tab.
-                // We use isReturningFromTabSwitch which tracks if onDisappear was ever called,
-                // correctly distinguishing initial appear from tab switch regardless of load success.
-                if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+                .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                     Task {
-                        Container.shared.debugLogger().log("Tab switch detected: Reloading overview data", level: .debug, category: .ui)
-                        vm.invalidateCacheForTabSwitch()
-                        // Use refresh() to bypass the "already loaded" check
+                        Container.shared.debugLogger().log(
+                            "☁️ iCloud sync detected - refreshing Overview",
+                            level: .info,
+                            category: .system
+                        )
                         await vm.refresh()
-                        await vm.refreshPersonalityInsights()
                     }
                 }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                // Refresh data when app comes to foreground (after background notification actions)
-                Task {
-                    await vm.refresh()
+                .onReceive(NotificationCenter.default.publisher(for: .habitsDataDidChange)) { _ in
+                    Task {
+                        await vm.refresh()
+                    }
                 }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
-                // Auto-refresh when iCloud syncs new data from another device
-                // This ensures Overview shows the latest data without requiring tab switch
-                Task {
-                    Container.shared.debugLogger().log(
-                        "☁️ iCloud sync detected - refreshing Overview",
-                        level: .info,
-                        category: .system
-                    )
-                    await vm.refresh()
+                .sheet(isPresented: $vm.showingNumericSheet) {
+                    if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
+                        NumericHabitLogSheetDirect(
+                            habit: habit,
+                            viewingDate: vm.viewingDate,
+                            timezone: vm.displayTimezone,
+                            onSave: { newValue in
+                                try await vm.updateNumericHabit(habit, value: newValue)
+                            },
+                            onCancel: { },
+                            initialValue: vm.getProgressSync(for: habit)
+                        )
+                    }
                 }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .habitsDataDidChange)) { _ in
-                // Refresh immediately when habits are created/updated/deleted in other tabs
-                Task {
-                    await vm.refresh()
+                .sheet(isPresented: $vm.showingCompleteHabitSheet) {
+                    if let habit = vm.selectedHabitForSheet, habit.kind == .binary {
+                        CompleteHabitSheet(
+                            habit: habit,
+                            onComplete: {
+                                Task {
+                                    await vm.completeHabit(habit)
+                                }
+                            },
+                            onCancel: { }
+                        )
+                    }
                 }
-            }
-            .sheet(isPresented: $vm.showingNumericSheet) {
-                if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
-                    NumericHabitLogSheetDirect(
-                        habit: habit,
-                        viewingDate: vm.viewingDate,
-                        timezone: vm.displayTimezone,
-                        onSave: { newValue in
-                            try await vm.updateNumericHabit(habit, value: newValue)
-                        },
-                        onCancel: {
-                            // Sheet dismisses automatically
-                        },
-                        initialValue: vm.getProgressSync(for: habit)
-                    )
-                }
-            }
-            .sheet(isPresented: $vm.showingCompleteHabitSheet) {
-                if let habit = vm.selectedHabitForSheet, habit.kind == .binary {
-                    CompleteHabitSheet(
-                        habit: habit,
-                        onComplete: {
-                            Task {
-                                await vm.completeHabit(habit)
-                            }
-                        },
-                        onCancel: {
-                            // Sheet dismisses automatically
-                        }
-                    )
-                }
-            }
-            .background(Color(.systemGroupedBackground))
-        } // ScrollViewReader
+                .background(Color(.systemGroupedBackground))
+            } // ScrollViewReader
+        } // VStack (sticky header + scroll content)
+        .background(Color(.systemGroupedBackground))
+    }
+    
+    // MARK: - Brand Header
+    
+    @ViewBuilder
+    private var stickyBrandHeader: some View {
+        AppBrandHeader(
+            completionPercentage: vm.todaysSummary?.completionPercentage
+        )
+        .padding(.horizontal, Spacing.large)
+        .padding(.top, Spacing.medium + (horizontalSizeClass == .regular ? 10 : 0))
+        .background(Color(.systemGroupedBackground))
+        .overlay(alignment: .bottom) {
+            // Fade gradient that overlays scroll content for smooth fade effect
+            LinearGradient(
+                colors: [
+                    Color(.systemGroupedBackground),
+                    Color(.systemGroupedBackground).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .offset(y: 16)
+            .allowsHitTesting(false)
+        }
+        .zIndex(1) // Ensure header and fade render above scroll content
+    }
+    
+    @ViewBuilder
+    private var scrollingBrandHeader: some View {
+        AppBrandHeader(
+            completionPercentage: vm.todaysSummary?.completionPercentage
+        )
+        // Match sticky header's top padding so position is consistent when toggling
+        // Extra 10px on iPad to align with other pages
+        .padding(.top, Spacing.medium + (horizontalSizeClass == .regular ? 10 : 0))
+        .overlay(alignment: .bottom) {
+            // Fade gradient matching sticky header for visual consistency
+            LinearGradient(
+                colors: [
+                    Color(.systemGroupedBackground),
+                    Color(.systemGroupedBackground).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .offset(y: 16)
+            .allowsHitTesting(false)
+        }
     }
     
     // MARK: - Private Methods
@@ -261,11 +305,11 @@ public struct OverviewView: View {
         guard vm.pendingNumericHabitFromNotification != nil && !vm.isPendingHabitProcessed else {
             return
         }
-
+        
         // First attempt with 500ms delay for view hierarchy readiness
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
-
+            
             // Validate view is ready for sheet presentation
             if isViewReadyForSheetPresentation() {
                 vm.processPendingNumericHabit()
@@ -282,25 +326,25 @@ public struct OverviewView: View {
     private func isViewReadyForSheetPresentation() -> Bool {
         // Check if view has basic data loaded (indicates view lifecycle is complete)
         let hasDataLoaded = vm.todaysSummary != nil
-
+        
         // Check if there's no conflicting sheet state
         let noConflictingSheet = !vm.showingNumericSheet && !vm.showingCompleteHabitSheet && vm.selectedHabitForSheet == nil
-
+        
         // PHASE 1 FIX: Remove hasPendingHabit requirement - view can be ready without pending actions
         // The early guard in processNumericHabitWithViewStateValidation() handles the pending habit check
         return hasDataLoaded && noConflictingSheet
     }
-
+    
     /// Processes pending binary habit with robust view state validation and timing
     private func processBinaryHabitWithViewStateValidation() {
         guard vm.pendingBinaryHabitFromNotification != nil && !vm.isPendingBinaryHabitProcessed else {
             return
         }
-
+        
         // First attempt with 500ms delay for view hierarchy readiness
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
-
+            
             if isViewReadyForSheetPresentation() {
                 vm.processPendingBinaryHabit()
             } else {

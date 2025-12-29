@@ -42,35 +42,35 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @State private var glowingHabitId: UUID?
     @State private var animatingProgress: Double = 0.0
     @State private var isAnimatingCompletion = false
-    @State private var showProgressGlow = false
-    @State private var animatedCompletionPercentage: Double = 0.0
-    @State private var hasInitializedProgress = false
     @State private var habitAnimatedProgress: [UUID: Double] = [:] // Track animated progress per habit
 
     // Task references for proper cancellation on view disappear
-    @State private var progressGlowTask: Task<Void, Never>?
     @State private var quickActionGlowTask: Task<Void, Never>?
     @State private var habitRowGlowTask: Task<Void, Never>?
     @State private var completionAnimationTask: Task<Void, Never>?
 
-    // CONFIGURATION: Set to false to disable progress bar animation on initial load
-    // When true (default), the progress bar will animate from 0% to current value when the view first appears
-    // When false, it will immediately show the current value without animation
-    private let animateProgressOnLoad: Bool = true
-
     // Animation timing constants (in nanoseconds)
     private enum AnimationTiming {
-        static let progressAnimationDelay: UInt64 = 600_000_000       // 0.6s - match progress bar animation
-        static let glowFadeDelay: UInt64 = 2_000_000_000              // 2s - glow fade out delay
         static let completionGlowDelay: UInt64 = 500_000_000          // 0.5s - completion glow duration
         static let completionAnimationDelay: UInt64 = 800_000_000     // 0.8s - completion animation duration
         static let animationCleanupDelay: UInt64 = 500_000_000        // 0.5s - cleanup delay after animation
     }
 
-    // App name from bundle (uses display name if available, falls back to bundle name)
-    private static let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
-        ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
-        ?? "Ritualist"
+    // MARK: - Layout Configuration
+
+    /// Default visible remaining items when collapsed
+    private var defaultVisibleRemaining: Int {
+        horizontalSizeClass == .regular
+            ? BusinessConstants.iPadHabitGridColumns * BusinessConstants.iPadDefaultVisibleRemainingRows
+            : BusinessConstants.iPhoneDefaultVisibleRemaining
+    }
+
+    /// Default visible completed items when collapsed
+    private var defaultVisibleCompleted: Int {
+        horizontalSizeClass == .regular
+            ? BusinessConstants.iPadHabitGridColumns * BusinessConstants.iPadDefaultVisibleCompletedRows
+            : BusinessConstants.iPhoneDefaultVisibleCompleted
+    }
 
     // PERFORMANCE: Pre-computed arrays to avoid creating NEW arrays on every render
     @State private var visibleIncompleteHabits: [Habit] = []
@@ -147,11 +147,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         // Pre-compute incomplete habits array
         visibleIncompleteHabits = isRemainingSectionExpanded ?
             scheduledIncompleteHabits :
-            Array(scheduledIncompleteHabits.prefix(3))
+            Array(scheduledIncompleteHabits.prefix(defaultVisibleRemaining))
 
         // Pre-compute completed habits array (no need to filter - completed habits are always valid)
         visibleCompletedHabits = isCompletedSectionExpanded ?
-            Array(summary.completedHabits.dropFirst(2)) :
+            Array(summary.completedHabits.dropFirst(defaultVisibleCompleted)) :
             []
     }
 
@@ -204,7 +204,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            titleAndProgressBar
             dateNavigationHeader
             contentSection
         }
@@ -237,65 +236,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         .onChange(of: viewingDate) { _, _ in updateVisibleHabits(); updateHabitProgressAnimations() }
         .onChange(of: isRemainingSectionExpanded) { _, _ in updateVisibleHabits() }
         .onChange(of: isCompletedSectionExpanded) { _, _ in updateVisibleHabits() }
-        .onChange(of: summary?.completionPercentage) { oldValue, newValue in
-            handleCompletionPercentageChange(oldValue: oldValue, newValue: newValue)
-        }
     }
 
     // MARK: - Body Helper Views
-
-    @ViewBuilder
-    private var titleAndProgressBar: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            gradientTitle
-            if summary != nil { progressBar }
-        }
-    }
-
-    @ViewBuilder
-    private var gradientTitle: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "sparkles").font(.title2)
-            Text(Self.appName).font(.title2).fontWeight(.bold)
-        }
-        .overlay(
-            LinearGradient(
-                colors: progressGradientColors(for: summary?.completionPercentage ?? 0.0),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-            .mask(
-                HStack(spacing: 8) {
-                    Image(systemName: "sparkles").font(.title2)
-                    Text(Self.appName).font(.title2).fontWeight(.bold)
-                }
-            )
-        )
-        .shadow(color: showProgressGlow ? Color.green.opacity(0.6) : .clear, radius: showProgressGlow ? 8 : 0, x: 0, y: 0)
-    }
-
-    @ViewBuilder
-    private var progressBar: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(CardDesign.secondaryBackground)
-                    .frame(height: 8)
-
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(
-                        .linearGradient(
-                            colors: progressGradientColors(for: animatedCompletionPercentage),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: geometry.size.width * animatedCompletionPercentage, height: 8)
-                    .shadow(color: showProgressGlow ? Color.green.opacity(0.6) : .clear, radius: showProgressGlow ? 8 : 0, x: 0, y: 0)
-            }
-        }
-        .frame(height: 8)
-    }
 
     @ViewBuilder
     private var dateNavigationHeader: some View {
@@ -383,36 +326,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     // MARK: - Body Helper Methods
 
     private func cancelAllAnimationTasks() {
-        progressGlowTask?.cancel()
         quickActionGlowTask?.cancel()
         habitRowGlowTask?.cancel()
         completionAnimationTask?.cancel()
     }
 
-    private func handleCompletionPercentageChange(oldValue: Double?, newValue: Double?) {
-        guard let newValue = newValue else { return }
-
-        let shouldAnimate = hasInitializedProgress ? true : animateProgressOnLoad
-
-        if shouldAnimate {
-            withAnimation(.easeInOut(duration: 0.6)) { animatedCompletionPercentage = newValue }
-        } else {
-            animatedCompletionPercentage = newValue
-        }
-
-        hasInitializedProgress = true
-
-        if shouldAnimate && newValue >= 1.0, oldValue ?? 0.0 < 1.0 {
-            progressGlowTask?.cancel()
-            progressGlowTask = Task {
-                try? await Task.sleep(nanoseconds: AnimationTiming.progressAnimationDelay)
-                withAnimation(.easeInOut(duration: 0.3)) { showProgressGlow = true }
-                try? await Task.sleep(nanoseconds: AnimationTiming.glowFadeDelay)
-                withAnimation(.easeOut(duration: 0.5)) { showProgressGlow = false }
-            }
-        }
-    }
-    
     // MARK: - Progress Bar Helpers
 
     /// Calculate gradient colors based on completion percentage
@@ -558,46 +476,92 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     // MARK: - Enhanced Habits Section
 
+    /// Grid columns for iPad layout
+    private var iPadGrid: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 12), count: BusinessConstants.iPadHabitGridColumns)
+    }
+
     @ViewBuilder
     private func habitsSection(summary: TodaysSummary) -> some View {
-        // iPad: 2-column layout (remaining | completed) - only when there are remaining habits
+        // iPad: 3-column grid within each section
         // iPhone: stacked layout
-        if horizontalSizeClass == .regular && scheduledIncompleteCount > 0 {
-            HStack(alignment: .top, spacing: 16) {
-                // Left column: Remaining habits
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Remaining")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .padding(.leading, 12)
-                        .padding(.bottom, 4)
+        if horizontalSizeClass == .regular {
+            VStack(alignment: .leading, spacing: 16) {
+                // Remaining section - only show if there are remaining habits
+                if scheduledIncompleteCount > 0 {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Remaining")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 12)
 
-                    incompleteHabitsContent(summary: summary)
+                        LazyVGrid(columns: iPadGrid, spacing: 8) {
+                            ForEach(visibleIncompleteHabits, id: \.id) { habit in
+                                habitRow(habit: habit, isCompleted: false)
+                            }
+                        }
+
+                        if scheduledIncompleteCount > defaultVisibleRemaining {
+                            sectionToggleButton(
+                                isExpanded: isRemainingSectionExpanded,
+                                expandText: "+ \(scheduledIncompleteCount - defaultVisibleRemaining) more remaining",
+                                color: AppColors.brand,
+                                onToggle: { isRemainingSectionExpanded.toggle() }
+                            )
+                        }
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .top)
 
-                // Right column: Completed habits
-                VStack(alignment: .leading, spacing: 8) {
-                    if !summary.completedHabits.isEmpty {
+                // Completed section - only show if there are completed habits
+                if !summary.completedHabits.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("Completed")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.secondary)
                             .padding(.leading, 12)
-                            .padding(.bottom, 4)
+
+                        LazyVGrid(columns: iPadGrid, spacing: 8) {
+                            ForEach(summary.completedHabits.prefix(isCompletedSectionExpanded ? summary.completedHabits.count : defaultVisibleCompleted), id: \.id) { habit in
+                                habitRow(habit: habit, isCompleted: true)
+                            }
+                        }
+
+                        if summary.completedHabits.count > defaultVisibleCompleted {
+                            sectionToggleButton(
+                                isExpanded: isCompletedSectionExpanded,
+                                expandText: "+ \(summary.completedHabits.count - defaultVisibleCompleted) more completed",
+                                color: .green,
+                                onToggle: { isCompletedSectionExpanded.toggle() }
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            // iPhone: Stacked layout with labels
+            VStack(alignment: .leading, spacing: 16) {
+                // Remaining section - only show if there are remaining habits
+                if scheduledIncompleteCount > 0 {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Remaining")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 12)
+
+                        incompleteHabitsContent(summary: summary)
+                    }
+                }
+
+                // Completed section - only show if there are completed habits
+                if !summary.completedHabits.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Completed")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 12)
 
                         completedHabitsContent(summary: summary)
                     }
-                }
-                .frame(maxWidth: .infinity, alignment: .top)
-            }
-        } else {
-            // iPhone: Original stacked layout
-            VStack(alignment: .leading, spacing: 8) {
-                incompleteHabitsContent(summary: summary)
-
-                if !summary.completedHabits.isEmpty {
-                    completedHabitsContent(summary: summary)
-                        .padding(.top, scheduledIncompleteCount > 0 ? 12 : 0)
                 }
             }
         }
@@ -611,10 +575,10 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     incompleteHabitItem(habit: habit, isFirstItem: index == 0)
                 }
 
-                if scheduledIncompleteCount > 3 {
+                if scheduledIncompleteCount > defaultVisibleRemaining {
                     sectionToggleButton(
                         isExpanded: isRemainingSectionExpanded,
-                        expandText: "+ \(scheduledIncompleteCount - 3) more remaining",
+                        expandText: "+ \(scheduledIncompleteCount - defaultVisibleRemaining) more remaining",
                         color: AppColors.brand,
                         onToggle: { isRemainingSectionExpanded.toggle() }
                     )
@@ -644,11 +608,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private func completedHabitsContent(summary: TodaysSummary) -> some View {
         VStack(spacing: 6) {
-            ForEach(Array(summary.completedHabits.prefix(2).enumerated()), id: \.element.id) { index, habit in
+            ForEach(Array(summary.completedHabits.prefix(defaultVisibleCompleted).enumerated()), id: \.element.id) { index, habit in
                 completedHabitItem(habit: habit, isFirstItem: index == 0)
             }
 
-            if summary.completedHabits.count > 2 {
+            if summary.completedHabits.count > defaultVisibleCompleted {
                 completedHabitsExpandableSection(summary: summary)
             }
         }
@@ -679,7 +643,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
         sectionToggleButton(
             isExpanded: isCompletedSectionExpanded,
-            expandText: "+ \(summary.completedHabits.count - 2) more completed",
+            expandText: "+ \(summary.completedHabits.count - defaultVisibleCompleted) more completed",
             color: .green,
             onToggle: { isCompletedSectionExpanded.toggle() }
         )

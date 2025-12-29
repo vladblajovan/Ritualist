@@ -102,6 +102,11 @@ public enum UserDefaultsKeys {
     /// Key for storing the date when fired notifications were last tracked
     /// Resets daily to allow fresh notifications each day
     public static let firedNotificationDate = "com.ritualist.firedNotificationDate"
+
+    // MARK: - UI Preferences
+
+    /// Key for storing whether the brand header is pinned (sticky) at the top
+    public static let brandHeaderPinned = "com.ritualist.brandHeaderPinned"
 }
 
 // MARK: - Logger Constants
@@ -372,5 +377,22 @@ public struct BusinessConstants {
 
     /// Default testing failure rate (20%)
     public static let defaultTestingFailureRate = 0.2
+
+    // MARK: - TodaysSummaryCard Layout
+
+    /// iPhone layout: default visible remaining habits when collapsed
+    public static let iPhoneDefaultVisibleRemaining = 3
+
+    /// iPhone layout: default visible completed habits when collapsed
+    public static let iPhoneDefaultVisibleCompleted = 2
+
+    /// iPad layout: number of columns in grid
+    public static let iPadHabitGridColumns = 3
+
+    /// iPad layout: number of rows to show for remaining habits when collapsed
+    public static let iPadDefaultVisibleRemainingRows = 2
+
+    /// iPad layout: number of rows to show for completed habits when collapsed
+    public static let iPadDefaultVisibleCompletedRows = 1
 }
 

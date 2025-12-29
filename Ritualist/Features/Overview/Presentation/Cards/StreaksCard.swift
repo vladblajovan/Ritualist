@@ -144,33 +144,35 @@ struct StreaksCard: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(StreaksAccessibility.emptyStateLabel)
             } else {
-                // Horizontal Scrolling Grid (horizontal-first filling)
-                // Use GeometryReader to calculate dynamic item heights
+                // Unified layout: 2 rows, horizontal scroll, peek at next items
                 GeometryReader { geometry in
-                    let numRows = numberOfRows
-                    let availableHeight = geometry.size.height
-                    // Scale to fill space when 2 rows; keep fixed height for 1 row
-                    let dynamicItemHeight = numRows > 1
-                        ? (availableHeight - CGFloat(numRows - 1) * rowSpacing) / CGFloat(numRows)
-                        : itemHeight
+                    let availableWidth = geometry.size.width
+                    let columnCount = (streaks.count + 1) / 2 // Ceiling division
+                    let needsScroll = columnCount > 2
+                    let peekWidth: CGFloat = needsScroll ? (horizontalSizeClass == .regular ? 70 : 30) : 0
+                    // Calculate item width: 2 columns + spacing + peek (if scrolling)
+                    let calculatedWidth = (availableWidth - itemSpacing - peekWidth) / 2
+                    let itemWidth = max(calculatedWidth, 120) // Minimum width
 
                     ScrollView(.horizontal, showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: rowSpacing) {
-                            ForEach(Array(streakRows.enumerated()), id: \.offset) { _, rowStreaks in
-                                HStack(spacing: itemSpacing) {
-                                    ForEach(rowStreaks) { streak in
-                                        streakItem(for: streak, height: dynamicItemHeight)
-                                            .frame(width: 140) // Fixed width for consistent sizing
+                        HStack(spacing: itemSpacing) {
+                            // Group streaks into vertical pairs (2 rows per column)
+                            ForEach(Array(stride(from: 0, to: streaks.count, by: 2)), id: \.self) { index in
+                                VStack(spacing: rowSpacing) {
+                                    streakItem(for: streaks[index], height: itemHeight)
+                                    if index + 1 < streaks.count {
+                                        streakItem(for: streaks[index + 1], height: itemHeight)
+                                    } else {
+                                        // Empty placeholder to maintain layout
+                                        Color.clear.frame(height: itemHeight)
                                     }
                                 }
+                                .frame(width: itemWidth)
                             }
                         }
-                        .padding(.trailing, 16)
                     }
                 }
-                .frame(minHeight: gridHeight) // Minimum height based on row count, can expand
-                // Prevent flash during layout recalculations
-                .transaction { $0.animation = nil }
+                .frame(height: itemHeight * 2 + rowSpacing)
             }
 
             // Only add spacer on iPad for equal-height matching in side-by-side layout
