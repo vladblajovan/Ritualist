@@ -39,6 +39,8 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
     private let habitCompletionService: HabitCompletionService
     private let testDataUtilities: TestDataPopulationServiceProtocol
     private let completeOnboardingUseCase: CompleteOnboardingUseCase
+    private let seedPredefinedCategoriesUseCase: SeedPredefinedCategoriesUseCase
+    private let userDefaults: UserDefaultsService
     private let logger: DebugLogger
 
     // MARK: - Progress Tracking
@@ -56,6 +58,8 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
         habitCompletionService: HabitCompletionService,
         testDataUtilities: TestDataPopulationServiceProtocol,
         completeOnboardingUseCase: CompleteOnboardingUseCase,
+        seedPredefinedCategoriesUseCase: SeedPredefinedCategoriesUseCase,
+        userDefaults: UserDefaultsService = DefaultUserDefaultsService(),
         logger: DebugLogger
     ) {
         self.debugService = debugService
@@ -68,6 +72,8 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
         self.habitCompletionService = habitCompletionService
         self.testDataUtilities = testDataUtilities
         self.completeOnboardingUseCase = completeOnboardingUseCase
+        self.seedPredefinedCategoriesUseCase = seedPredefinedCategoriesUseCase
+        self.userDefaults = userDefaults
         self.logger = logger
     }
     
@@ -81,8 +87,15 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
         progressUpdate?("Clearing existing data...", 0.0)
         try await debugService.clearDatabase()
 
+        // Step 1.5: Re-seed predefined categories
+        // clearDatabase() deletes all categories but doesn't reset the seeding flag.
+        // We must reset the flag and re-seed so habits from suggestions have valid category relationships.
+        progressUpdate?("Seeding predefined categories...", 0.1)
+        userDefaults.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+        try await seedPredefinedCategoriesUseCase.execute()
+
         // Step 2: Create custom categories (scenario-dependent count)
-        progressUpdate?("Creating custom categories...", 0.15)
+        progressUpdate?("Creating custom categories...", 0.2)
         let customCategories = try await createCustomCategories(count: config.customCategoryCount, scenario: scenario)
 
         // Step 3: Create habits from suggestions (scenario-dependent count)

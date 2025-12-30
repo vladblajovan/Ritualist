@@ -117,6 +117,7 @@ extension Container {
                 logDataSource: self.logDataSource(),
                 updateLastSyncDate: self.updateLastSyncDate(),
                 validationService: self.importValidationService(),
+                seedPredefinedCategoriesUseCase: self.seedPredefinedCategories(),
                 modelContext: self.persistenceContainer().context,
                 logger: self.debugLogger()
             )
@@ -143,6 +144,7 @@ extension Container {
                 habitCompletionService: self.habitCompletionService(),
                 testDataUtilities: self.testDataPopulationService(),
                 completeOnboardingUseCase: self.completeOnboarding(),
+                seedPredefinedCategoriesUseCase: self.seedPredefinedCategories(),
                 logger: self.debugLogger()
             )
         }

@@ -21,6 +21,8 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase, @uncheck
     private let logDataSource: LogLocalDataSourceProtocol
     private let updateLastSyncDate: UpdateLastSyncDateUseCase
     private let validationService: ImportValidationService
+    private let seedPredefinedCategoriesUseCase: SeedPredefinedCategoriesUseCase
+    private let userDefaults: UserDefaultsService
     private let modelContext: ModelContext
     private let logger: DebugLogger
 
@@ -32,6 +34,8 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase, @uncheck
         logDataSource: LogLocalDataSourceProtocol,
         updateLastSyncDate: UpdateLastSyncDateUseCase,
         validationService: ImportValidationService,
+        seedPredefinedCategoriesUseCase: SeedPredefinedCategoriesUseCase,
+        userDefaults: UserDefaultsService = DefaultUserDefaultsService(),
         modelContext: ModelContext,
         logger: DebugLogger
     ) {
@@ -42,6 +46,8 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase, @uncheck
         self.logDataSource = logDataSource
         self.updateLastSyncDate = updateLastSyncDate
         self.validationService = validationService
+        self.seedPredefinedCategoriesUseCase = seedPredefinedCategoriesUseCase
+        self.userDefaults = userDefaults
         self.modelContext = modelContext
         self.logger = logger
     }
@@ -154,6 +160,14 @@ public final class DefaultImportUserDataUseCase: ImportUserDataUseCase, @uncheck
 
             // Import categories first (habits depend on them)
             try await importCategories(importedData.categories)
+
+            // Re-seed predefined categories after import
+            // This ensures:
+            // 1. Predefined categories from old exports are updated to latest definitions
+            // 2. Any NEW predefined categories added since export are created
+            // Uses updateCategory (upsert) so no duplicates are created
+            userDefaults.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+            try await seedPredefinedCategoriesUseCase.execute()
 
             // Import habits
             try await importHabits(importedData.habits)

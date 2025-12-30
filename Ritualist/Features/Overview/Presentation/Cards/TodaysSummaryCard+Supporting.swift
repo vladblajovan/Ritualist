@@ -18,6 +18,26 @@ struct ScheduleIconInfoSheet: View {
             List {
                 Section {
                     ScheduleInfoRow(
+                        icon: "bell.fill",
+                        iconColor: .orange,
+                        title: "Time-Based Reminders",
+                        description: "Habit has scheduled notification reminders at specific times"
+                    )
+
+                    ScheduleInfoRow(
+                        icon: "location.fill",
+                        iconColor: .purple,
+                        title: "Location-Based Reminders",
+                        description: "Habit has geofence reminders that trigger when arriving or leaving a location"
+                    )
+                } header: {
+                    Text("Reminder Icons")
+                } footer: {
+                    Text("These icons show which reminder features are enabled for each habit (Pro feature).")
+                }
+
+                Section {
+                    ScheduleInfoRow(
                         icon: "infinity.circle.fill",
                         iconColor: .blue,
                         title: "Always Available",

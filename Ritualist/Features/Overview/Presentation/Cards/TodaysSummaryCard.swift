@@ -9,6 +9,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     // MARK: - Dependencies
     @Injected(\.debugLogger) private var logger
+    @Injected(\.subscriptionService) private var subscriptionService
 
     // MARK: - Tips
     private let tapHabitTip = TapHabitTip()
@@ -43,6 +44,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @State private var animatingProgress: Double = 0.0
     @State private var isAnimatingCompletion = false
     @State private var habitAnimatedProgress: [UUID: Double] = [:] // Track animated progress per habit
+    @State private var isPremiumUser = false
 
     // Task references for proper cancellation on view disappear
     @State private var quickActionGlowTask: Task<Void, Never>?
@@ -228,6 +230,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             )
         }
         .onAppear { updateVisibleHabits(); updateHabitProgressAnimations() }
+        .task { isPremiumUser = await subscriptionService.isPremiumUser() }
         .onDisappear { cancelAllAnimationTasks() }
         .onChange(of: summary?.completedHabitsCount) { _, _ in updateVisibleHabits(); updateHabitProgressAnimations() }
         .onChange(of: summary?.totalHabits) { _, _ in updateVisibleHabits() }
@@ -801,6 +804,22 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 showingScheduleInfoSheet = true
             } label: {
                 HStack(spacing: 6) {
+                    // Time-based reminders indicator (only for premium users with reminders)
+                    if isPremiumUser && !habit.reminders.isEmpty {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.orange)
+                            .accessibilityLabel("Time-based reminders enabled")
+                    }
+
+                    // Location indicator (only for premium users with location enabled)
+                    if isPremiumUser && habit.locationConfiguration?.isEnabled == true {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.purple)
+                            .accessibilityLabel("Location-based reminders enabled")
+                    }
+
                     if isViewingToday, let streakStatus = getStreakStatus?(habit), streakStatus.isAtRisk {
                         HStack(spacing: 2) {
                             Text("\(streakStatus.atRisk)")
