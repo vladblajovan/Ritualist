@@ -364,7 +364,12 @@ private struct HabitsListView: View {
         }
         .sheet(item: $vm.selectedHabit) { habit in
             let detailVM = vm.makeHabitDetailViewModel(for: habit)
-            HabitDetailView(vm: detailVM)
+            HabitDetailView(vm: detailVM, onDelete: {
+                vm.selectedHabit = nil
+                Task {
+                    await vm.refresh()
+                }
+            })
                 .onDisappear {
                     if detailVM.didMakeChanges {
                         vm.handleHabitDetailDismissal()

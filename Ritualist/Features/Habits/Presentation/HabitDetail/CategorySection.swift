@@ -40,7 +40,8 @@ public struct CategorySection: View {
                             onManageTap: {
                                 showingCategoryManagement = true
                             },
-                            scrollToStartOnSelection: true
+                            scrollToStartOnSelection: true,
+                            allowDeselection: false
                         )
                     }
                 }

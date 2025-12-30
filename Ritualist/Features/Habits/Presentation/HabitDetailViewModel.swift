@@ -99,6 +99,7 @@ public final class HabitDetailViewModel {
     public private(set) var isLoading = false
     public private(set) var isSaving = false
     public private(set) var isDeleting = false
+    public private(set) var didDelete = false
     public private(set) var error: Error?
     public private(set) var isEditMode: Bool
     
@@ -250,8 +251,9 @@ public final class HabitDetailViewModel {
         
         do {
             try await deleteHabit.execute(id: habitId)
-            
+
             isDeleting = false
+            didDelete = true
             return true
         } catch {
             self.error = error

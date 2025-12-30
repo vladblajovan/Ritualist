@@ -7,9 +7,11 @@ public struct HabitDetailView: View {
     @Bindable var vm: HabitDetailViewModel
     @ObservationIgnored @Injected(\.categoryManagementViewModel) var categoryManagementVM
     @State private var showingCategoryManagement = false
+    let onDelete: (() -> Void)?
 
-    public init(vm: HabitDetailViewModel) {
+    public init(vm: HabitDetailViewModel, onDelete: (() -> Void)? = nil) {
         self.vm = vm
+        self.onDelete = onDelete
     }
     
     public var body: some View {
@@ -25,7 +27,7 @@ public struct HabitDetailView: View {
                         await vm.retry()
                     }
                 } else {
-                    HabitFormView(vm: vm, showingCategoryManagement: $showingCategoryManagement)
+                    HabitFormView(vm: vm, showingCategoryManagement: $showingCategoryManagement, onDelete: onDelete)
                 }
             }
             .navigationTitle(vm.isEditMode ? Strings.Navigation.editHabit : Strings.Navigation.newHabit)

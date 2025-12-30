@@ -96,33 +96,22 @@ public struct HabitsAssistantView: View {
                 .padding(.bottom, Spacing.small)
             }
 
-            // Sticky category selector
+            // Sticky category selector - reuses the same carousel as Habits page
             if vm.isLoadingCategories {
                 ProgressView("Loading categories...")
                     .padding(.vertical, Spacing.medium)
             } else {
-                VStack(spacing: Spacing.small) {
-                    HorizontalCarousel(
-                        items: vm.categories,
-                        selectedItem: vm.selectedCategory,
-                        onItemTap: { category in
-                            if vm.selectedCategory?.id == category.id {
-                                // Deselect if tapping the same category
-                                vm.clearCategorySelection()
-                            } else {
-                                vm.selectCategory(category)
-                            }
-                        },
-                        showPageIndicator: false,
-                        content: { category, isSelected in
-                            Chip(
-                                text: category.displayName,
-                                emoji: category.emoji,
-                                isSelected: isSelected
-                            )
+                CategoryCarouselWithManagement(
+                    categories: vm.categories,
+                    selectedCategory: vm.selectedCategory,
+                    onCategoryTap: { category in
+                        if let category = category {
+                            vm.selectCategory(category)
+                        } else {
+                            vm.clearCategorySelection()
                         }
-                    )
-                }
+                    }
+                )
                 .padding(.bottom, Spacing.small)
             }
             

@@ -10,8 +10,8 @@ import FactoryKit
 import RitualistCore
 
 public struct DeleteSection: View {
-    @Environment(\.dismiss) private var dismiss
     @Bindable var vm: HabitDetailViewModel
+    let onDelete: (() -> Void)?
     @State private var showingDeleteAlert = false
     
     public var body: some View {
@@ -36,10 +36,10 @@ public struct DeleteSection: View {
         .alert(Strings.Dialog.deleteHabit, isPresented: $showingDeleteAlert) {
             Button(Strings.Button.cancel, role: .cancel) { }
             Button(Strings.Button.delete, role: .destructive) {
-                Task {
+                Task { @MainActor in
                     let success = await vm.delete()
                     if success {
-                        dismiss()
+                        onDelete?()
                     }
                 }
             }

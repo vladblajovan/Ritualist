@@ -8,23 +8,27 @@
 import SwiftUI
 import RitualistCore
 
-/// Reusable category carousel with integrated cogwheel management button
+/// Reusable category carousel with optional cogwheel management button
+/// When no category is selected (nil), all items are shown
 public struct CategoryCarouselWithManagement: View {
     let categories: [HabitCategory]
     let selectedCategory: HabitCategory?
     let onCategoryTap: (HabitCategory?) -> Void
-    let onManageTap: () -> Void
+    let onManageTap: (() -> Void)?
     let scrollToStartOnSelection: Bool
     let allowDeselection: Bool
     let unselectedBackgroundColor: Color
+
+    /// Whether to show the cogwheel button
+    private var showCogwheel: Bool { onManageTap != nil }
 
     public init(
         categories: [HabitCategory],
         selectedCategory: HabitCategory?,
         onCategoryTap: @escaping (HabitCategory?) -> Void,
-        onManageTap: @escaping () -> Void,
+        onManageTap: (() -> Void)? = nil,
         scrollToStartOnSelection: Bool = false,
-        allowDeselection: Bool = false,
+        allowDeselection: Bool = true,
         unselectedBackgroundColor: Color = AppColors.chipUnselectedBackground
     ) {
         self.categories = categories
@@ -40,7 +44,9 @@ public struct CategoryCarouselWithManagement: View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.small) {
-                    cogwheelButton
+                    if showCogwheel {
+                        cogwheelButton
+                    }
                     categoryChips(scrollProxy: proxy)
                 }
                 .padding(.horizontal, Spacing.screenMargin)
@@ -49,14 +55,17 @@ public struct CategoryCarouselWithManagement: View {
         }
     }
 
+    @ViewBuilder
     private var cogwheelButton: some View {
-        Button {
-            onManageTap()
-        } label: {
-            cogwheelButtonContent
+        if let onManageTap = onManageTap {
+            Button {
+                onManageTap()
+            } label: {
+                cogwheelButtonContent
+            }
+            .accessibilityLabel("Manage Categories")
+            .id("cogwheel")
         }
-        .accessibilityLabel("Manage Categories")
-        .id("cogwheel")
     }
 
     private var cogwheelButtonContent: some View {
@@ -111,7 +120,11 @@ public struct CategoryCarouselWithManagement: View {
             // Select - optionally scroll to start
             if scrollToStartOnSelection && !isCurrentlySelected {
                 animateIfAllowed(.default) {
-                    scrollProxy.scrollTo("cogwheel", anchor: .leading)
+                    // Scroll to cogwheel if visible, otherwise scroll to first category
+                    let scrollTarget = showCogwheel ? "cogwheel" : categories.first?.id
+                    if let target = scrollTarget {
+                        scrollProxy.scrollTo(target, anchor: .leading)
+                    }
                 }
             }
             onCategoryTap(category)

@@ -12,6 +12,7 @@ import RitualistCore
 public struct HabitFormView: View {
     @Bindable var vm: HabitDetailViewModel
     @Binding var showingCategoryManagement: Bool
+    let onDelete: (() -> Void)?
 
     public var body: some View {
         List {
@@ -24,7 +25,7 @@ public struct HabitFormView: View {
             if vm.isEditMode {
                 StartDateSection(vm: vm)
                 ActiveStatusSection(vm: vm)
-                DeleteSection(vm: vm)
+                DeleteSection(vm: vm, onDelete: onDelete)
             }
         }
         .listStyle(.insetGrouped)
