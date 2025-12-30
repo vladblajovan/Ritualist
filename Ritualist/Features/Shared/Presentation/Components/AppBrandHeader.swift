@@ -56,7 +56,7 @@ struct AppBrandHeader: View {
     private var profileAvatarView: some View {
         ZStack {
             Circle()
-                .fill(avatarBackgroundColor)
+                .fill(avatarBackgroundGradient)
                 .frame(width: profileAvatarSize, height: profileAvatarSize)
 
             if let imageData = settingsVM.profile.avatarImageData,
@@ -88,16 +88,37 @@ struct AppBrandHeader: View {
         return ""
     }
 
-    private var avatarBackgroundColor: Color {
+    private var avatarBackgroundGradient: AnyShapeStyle {
         if settingsVM.profile.avatarImageData != nil {
-            return .clear
+            return AnyShapeStyle(Color.clear)
         } else if !avatarInitials.isEmpty {
-            // Generate consistent color based on name
-            let hash = settingsVM.profile.name.hashValue
-            let colors: [Color] = [AppColors.brand, .blue, .green, .orange, .purple, .red, .pink, .indigo]
-            return colors[abs(hash) % colors.count]
+            // Generate consistent gradient based on name hash
+            let hash = abs(settingsVM.profile.name.hashValue)
+            let gradientPairs: [(Color, Color)] = [
+                (AppColors.brand, AppColors.accentCyan),           // Blue to cyan (primary brand)
+                (Color.blue, Color.purple),                         // Blue to purple
+                (AppColors.accentCyan, Color.green),               // Cyan to green
+                (Color.indigo, AppColors.brand),                   // Indigo to blue
+                (Color.purple, Color.pink),                        // Purple to pink
+                (Color.green, AppColors.accentCyan),               // Green to cyan
+            ]
+            let pair = gradientPairs[hash % gradientPairs.count]
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [pair.0, pair.1],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
         }
-        return Color(.systemGray4)
+        // Empty avatar - use brand gradient
+        return AnyShapeStyle(
+            LinearGradient(
+                colors: [AppColors.brand, AppColors.accentCyan],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
     }
 
     // MARK: - Animation State

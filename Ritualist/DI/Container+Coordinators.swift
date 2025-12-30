@@ -79,4 +79,13 @@ extension Container {
             appStartTime: appStartTime
         )
     }
+
+    // MARK: - Notification Action Coordinator
+
+    var notificationActionCoordinator: Factory<NotificationActionCoordinator> {
+        self {
+            NotificationActionCoordinator(logger: self.debugLogger())
+        }
+        .singleton
+    }
 }

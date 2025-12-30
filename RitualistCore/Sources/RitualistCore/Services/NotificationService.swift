@@ -1261,18 +1261,18 @@ extension LocalNotificationService: UNUserNotificationCenterDelegate {
             return
         }
 
-        // Handle tap on notification (default action) - open habit sheet to log progress
+        // Handle tap on notification (default action) - open app and show habit sheet
         if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
             logger.log(
-                "👆 Notification tapped - opening habit sheet",
+                "👆 Notification tapped - opening app",
                 level: .info,
                 category: .notifications,
                 metadata: ["habit": habitName, "habitKind": habitKind == .binary ? "binary" : "numeric"]
             )
 
-            // Treat tap as "log" action to open the habit sheet
+            // Use .openApp action to open the habit sheet (distinct from .log quick action)
             do {
-                try await actionHandler?(.log, habitId, habitName, habitKind, reminderTime)
+                try await actionHandler?(.openApp, habitId, habitName, habitKind, reminderTime)
             } catch {
                 await errorHandler?.logError(
                     error,

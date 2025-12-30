@@ -30,9 +30,9 @@ public struct AvatarView: View {
                 onEditTapped()
             } label: {
                 ZStack {
-                    // Background circle
+                    // Background circle with gradient for initials
                     Circle()
-                        .fill(backgroundColor)
+                        .fill(backgroundGradient)
                         .frame(width: size, height: size)
                     
                     // Content (initials or image)
@@ -83,16 +83,42 @@ public struct AvatarView: View {
         .frame(width: size, height: size)
     }
     
-    private var backgroundColor: Color {
+    private var backgroundGradient: AnyShapeStyle {
         if imageData != nil {
-            return Color.clear
+            return AnyShapeStyle(Color.clear)
         } else if !initials.isEmpty {
-            return initialsBackgroundColor
+            return AnyShapeStyle(initialsGradient)
         } else {
-            return Color(.systemGray4)
+            // Empty avatar - use brand gradient
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [AppColors.brand, AppColors.accentCyan],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
         }
     }
-    
+
+    private var initialsGradient: LinearGradient {
+        // Generate consistent gradient based on name hash
+        let hash = abs(name.hashValue)
+        let gradientPairs: [(Color, Color)] = [
+            (AppColors.brand, AppColors.accentCyan),           // Blue to cyan (primary brand)
+            (Color.blue, Color.purple),                         // Blue to purple
+            (AppColors.accentCyan, Color.green),               // Cyan to green
+            (Color.indigo, AppColors.brand),                   // Indigo to blue
+            (Color.purple, Color.pink),                        // Purple to pink
+            (Color.green, AppColors.accentCyan),               // Green to cyan
+        ]
+        let pair = gradientPairs[hash % gradientPairs.count]
+        return LinearGradient(
+            colors: [pair.0, pair.1],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     private var initials: String {
         let words = name.trimmingCharacters(in: .whitespacesAndNewlines)
             .components(separatedBy: .whitespacesAndNewlines)
@@ -116,22 +142,6 @@ public struct AvatarView: View {
         return ""
     }
     
-    private var initialsBackgroundColor: Color {
-        // Generate a consistent color based on the name
-        let hash = name.hashValue
-        let colors: [Color] = [
-            AppColors.brand,
-            .blue,
-            .green,
-            .orange,
-            .purple,
-            .red,
-            .pink,
-            .indigo
-        ]
-        let index = abs(hash) % colors.count
-        return colors[index]
-    }
 }
 
 public struct AvatarImagePicker: View {
