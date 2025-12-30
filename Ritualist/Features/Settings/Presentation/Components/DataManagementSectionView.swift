@@ -94,14 +94,7 @@ struct DataManagementSectionView: View {
                         Label("Export", systemImage: "square.and.arrow.up")
                         Spacer()
                         if !vm.isPremiumUser {
-                            Text("PRO")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .clipShape(Capsule())
+                            CrownProBadge()
                         }
                     }
                 }
@@ -128,14 +121,7 @@ struct DataManagementSectionView: View {
                         Label("Import", systemImage: "square.and.arrow.down")
                         Spacer()
                         if !vm.isPremiumUser {
-                            Text("PRO")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .clipShape(Capsule())
+                            CrownProBadge()
                         }
                     }
                 }

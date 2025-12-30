@@ -22,8 +22,11 @@ public final class PersonalityInsightsCardViewModel {
     /// Personality insights to display on the card
     public var personalityInsights: [OverviewPersonalityInsight] = []
 
-    /// Whether to show the personality insights card
-    public var shouldShowPersonalityInsights = true
+    /// Whether to show the personality insights card (only for premium users)
+    public var shouldShowPersonalityInsights = false
+
+    /// Whether to show the personality upsell card (free users with sufficient data)
+    public var showPersonalityUpsell = false
 
     /// Whether user has sufficient data for new personality analysis
     public var isPersonalityDataSufficient = false
@@ -33,6 +36,9 @@ public final class PersonalityInsightsCardViewModel {
 
     /// The dominant personality trait name (e.g., "Conscientiousness")
     public var dominantPersonalityTrait: String?
+
+    /// Paywall item for presenting the paywall sheet
+    public var paywallItem: PaywallItem?
 
     // MARK: - Dependencies
 
@@ -44,6 +50,7 @@ public final class PersonalityInsightsCardViewModel {
     @ObservationIgnored @Injected(\.checkPremiumStatus) private var checkPremiumStatus
     @ObservationIgnored @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     @ObservationIgnored @Injected(\.getCurrentUserProfile) private var getCurrentUserProfile
+    @ObservationIgnored @Injected(\.paywallViewModel) private var paywallViewModel
     @ObservationIgnored @Injected(\.debugLogger) private var logger
 
     // MARK: - Initialization
@@ -66,12 +73,27 @@ public final class PersonalityInsightsCardViewModel {
     /// Called after data loads or when user returns to the overview
     public func loadPersonalityInsights() async {
         do {
-            guard await checkPremiumStatus.execute() else {
-                resetInsightsForNonPremium()
+            let isPremium = await checkPremiumStatus.execute()
+            let userId = await getUserId()
+
+            if !isPremium {
+                // For free users, check if they have enough data to show upsell
+                try await updateEligibilityState(for: userId)
+
+                if isPersonalityDataSufficient {
+                    // Show upsell card for free users with sufficient data
+                    showPersonalityUpsell = true
+                    shouldShowPersonalityInsights = false
+                    logger.log("Showing personality upsell for free user with sufficient data", level: .info, category: .ui)
+                } else {
+                    // Not enough data - hide everything
+                    resetInsightsForNonPremium()
+                }
                 return
             }
 
-            let userId = await getUserId()
+            // Premium user - show full insights
+            showPersonalityUpsell = false
             try await updateEligibilityState(for: userId)
             shouldShowPersonalityInsights = true
 
@@ -83,8 +105,16 @@ public final class PersonalityInsightsCardViewModel {
         }
     }
 
+    /// Show the paywall for personality insights upsell
+    public func showPaywall() async {
+        await paywallViewModel.load()
+        paywallViewModel.trackPaywallShown(source: "overview", trigger: "personality_upsell")
+        paywallItem = PaywallItem(viewModel: paywallViewModel)
+    }
+
     private func resetInsightsForNonPremium() {
         shouldShowPersonalityInsights = false
+        showPersonalityUpsell = false
         personalityInsights = []
         dominantPersonalityTrait = nil
         isPersonalityDataSufficient = false
@@ -96,6 +126,7 @@ public final class PersonalityInsightsCardViewModel {
         dominantPersonalityTrait = nil
         isPersonalityDataSufficient = false
         personalityThresholdRequirements = []
+        showPersonalityUpsell = false
     }
 
     private func updateEligibilityState(for userId: UUID) async throws {

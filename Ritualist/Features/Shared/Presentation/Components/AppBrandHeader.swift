@@ -10,6 +10,20 @@ import SwiftUI
 import RitualistCore
 import FactoryKit
 
+/// Configuration for an action button in the header
+struct HeaderAction: Identifiable {
+    let id = UUID()
+    let icon: String
+    let action: () -> Void
+    let accessibilityLabel: String
+
+    init(icon: String, accessibilityLabel: String, action: @escaping () -> Void) {
+        self.icon = icon
+        self.accessibilityLabel = accessibilityLabel
+        self.action = action
+    }
+}
+
 /// Reusable app branding header with optional progress bar.
 ///
 /// Features:
@@ -17,11 +31,20 @@ import FactoryKit
 /// - Gradient colors adapt based on completion percentage (red → orange → green)
 /// - Optional progress bar with matching gradient
 /// - Glow animation when reaching 100% completion
+/// - Optional configurable action buttons (circular, left of avatar)
 /// - Profile avatar with tap-to-settings navigation (self-contained)
 ///
 /// Usage:
 /// ```swift
 /// AppBrandHeader(completionPercentage: viewModel.completionPercentage)
+///
+/// // With action buttons:
+/// AppBrandHeader(
+///     completionPercentage: 0.5,
+///     actions: [
+///         HeaderAction(icon: "plus", accessibilityLabel: "Add") { print("Add tapped") }
+///     ]
+/// )
 /// ```
 struct AppBrandHeader: View {
     // MARK: - Input
@@ -39,86 +62,99 @@ struct AppBrandHeader: View {
     /// Set to false when used in Settings to avoid redundancy.
     var showProfileAvatar: Bool = true
 
+    /// Optional action buttons displayed to the left of the profile avatar (max 3)
+    var actions: [HeaderAction] = []
+
     // MARK: - Injected Dependencies
 
     @Injected(\.settingsViewModel) private var settingsVM
     @Injected(\.navigationService) private var navigationService
+    @Environment(\.colorScheme) private var colorScheme
 
     // MARK: - Profile Avatar Size
 
-    /// Size for the profile avatar (slightly smaller than the header text)
-    private let profileAvatarSize: CGFloat = 32
+    /// Outer size for the profile avatar (includes gradient ring)
+    private let avatarOuterSize: CGFloat = 36
+    /// Width of the progress gradient ring around the avatar
+    private let avatarRingWidth: CGFloat = 3
+    /// Inner content size (for image or initials)
+    private var avatarInnerSize: CGFloat { avatarOuterSize - (avatarRingWidth * 2) }
 
     // MARK: - Profile Avatar View
 
-    /// Custom avatar view without disabled tint (AvatarView's button is disabled when showEditBadge is false)
+    /// Avatar view with progress gradient ring
+    /// - Always shows progress gradient ring matching title/progress bar colors
+    /// - Inside: user image, initials, or empty (just gradient)
     @ViewBuilder
     private var profileAvatarView: some View {
-        ZStack {
-            Circle()
-                .fill(avatarBackgroundGradient)
-                .frame(width: profileAvatarSize, height: profileAvatarSize)
+        let contentType = AppBrandHeaderViewLogic.avatarContentType(
+            hasAvatarImage: settingsVM.profile.avatarImageData != nil,
+            name: settingsVM.profile.name
+        )
 
-            if let imageData = settingsVM.profile.avatarImageData,
-               let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: profileAvatarSize, height: profileAvatarSize)
-                    .clipShape(Circle())
-            } else if !avatarInitials.isEmpty {
-                Text(avatarInitials)
-                    .font(.system(size: profileAvatarSize * 0.4, weight: .medium, design: .rounded))
+        ZStack {
+            // Progress gradient circle (always visible as ring or full background)
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: progressGradientColors(for: completionPercentage ?? 0.0),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: avatarOuterSize, height: avatarOuterSize)
+
+            // Inner content based on type
+            switch contentType {
+            case .image:
+                // Show image with visible gradient ring border
+                if let imageData = settingsVM.profile.avatarImageData,
+                   let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: avatarInnerSize, height: avatarInnerSize)
+                        .clipShape(Circle())
+                }
+            case .initials:
+                // Show initials on gradient background (no inner cutout)
+                Text(AppBrandHeaderViewLogic.avatarInitials(from: settingsVM.profile.name))
+                    .font(.system(size: avatarOuterSize * 0.38, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
+            case .empty:
+                // Just show the gradient circle (no additional content)
+                EmptyView()
             }
         }
     }
 
-    private var avatarInitials: String {
-        let name = settingsVM.profile.name
-        let words = name.trimmingCharacters(in: .whitespacesAndNewlines)
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
+    // MARK: - Action Button
 
-        if words.count >= 2 {
-            return String(words[0].prefix(1)).uppercased() + String(words[1].prefix(1)).uppercased()
-        } else if let first = words.first {
-            return String(first.prefix(first.count >= 2 ? 2 : 1)).uppercased()
-        }
-        return ""
+    /// Size for action buttons (matches avatar for visual consistency)
+    private let actionButtonSize: CGFloat = 36
+
+    /// Background color for action buttons - white in light mode, gray in dark mode
+    private var actionButtonBackground: Color {
+        colorScheme == .light ? Color(.systemBackground) : Color(.secondarySystemBackground)
     }
 
-    private var avatarBackgroundGradient: AnyShapeStyle {
-        if settingsVM.profile.avatarImageData != nil {
-            return AnyShapeStyle(Color.clear)
-        } else if !avatarInitials.isEmpty {
-            // Generate consistent gradient based on name hash
-            let hash = abs(settingsVM.profile.name.hashValue)
-            let gradientPairs: [(Color, Color)] = [
-                (AppColors.brand, AppColors.accentCyan),           // Blue to cyan (primary brand)
-                (Color.blue, Color.purple),                         // Blue to purple
-                (AppColors.accentCyan, Color.green),               // Cyan to green
-                (Color.indigo, AppColors.brand),                   // Indigo to blue
-                (Color.purple, Color.pink),                        // Purple to pink
-                (Color.green, AppColors.accentCyan),               // Green to cyan
-            ]
-            let pair = gradientPairs[hash % gradientPairs.count]
-            return AnyShapeStyle(
-                LinearGradient(
-                    colors: [pair.0, pair.1],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
+    @ViewBuilder
+    private func actionButton(_ action: HeaderAction) -> some View {
+        Button {
+            action.action()
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(actionButtonBackground)
+                    .frame(width: actionButtonSize, height: actionButtonSize)
+
+                Image(systemName: action.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
+            }
         }
-        // Empty avatar - use brand gradient
-        return AnyShapeStyle(
-            LinearGradient(
-                colors: [AppColors.brand, AppColors.accentCyan],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .buttonStyle(.plain)
+        .accessibilityLabel(action.accessibilityLabel)
     }
 
     // MARK: - Animation State
@@ -212,7 +248,12 @@ struct AppBrandHeader: View {
 
             Spacer()
 
-            // Profile avatar - navigates to settings on tap
+            // Action buttons - circular buttons to the left of avatar (max 3)
+            ForEach(actions.prefix(3)) { action in
+                actionButton(action)
+            }
+
+            // Profile avatar - always visible with progress gradient, navigates to settings on tap
             if showProfileAvatar {
                 Button {
                     navigationService.selectedTab = .settings

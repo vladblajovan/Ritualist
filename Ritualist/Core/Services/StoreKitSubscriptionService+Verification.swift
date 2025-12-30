@@ -100,8 +100,8 @@ extension StoreKitSubscriptionService {
 
     /// Result of querying StoreKit for entitlements
     private enum EntitlementQueryResult {
-        /// User has a valid premium subscription
-        case premium
+        /// User has a valid premium subscription with specific plan
+        case premium(SubscriptionPlan)
         /// StoreKit returned entitlements but none are valid (all expired/revoked)
         case notPremiumConfirmed
         /// StoreKit returned NO entitlements at all (could be: never purchased, OR StoreKit failure)
@@ -123,14 +123,14 @@ extension StoreKitSubscriptionService {
                 if let result = queryResult {
                     // Handle the result based on what StoreKit returned
                     switch result {
-                    case .premium:
-                        // User has valid subscription - always update cache
-                        await SecurePremiumCache.shared.updateCache(isPremium: true)
+                    case .premium(let plan):
+                        // User has valid subscription - always update cache with plan
+                        await SecurePremiumCache.shared.updateCache(plan: plan)
                         return true
 
                     case .notPremiumConfirmed:
                         // StoreKit confirmed no valid subscription - safe to update cache
-                        await SecurePremiumCache.shared.updateCache(isPremium: false)
+                        await SecurePremiumCache.shared.updateCache(plan: .free)
                         return false
 
                     case .noEntitlementsReturned:
@@ -152,7 +152,7 @@ extension StoreKitSubscriptionService {
                             return await SecurePremiumCache.shared.getCachedPremiumStatus()
                         } else {
                             // Cache expired or doesn't exist - user is not premium
-                            await SecurePremiumCache.shared.updateCache(isPremium: false)
+                            await SecurePremiumCache.shared.updateCache(plan: .free)
                             return false
                         }
                     }
@@ -177,11 +177,12 @@ extension StoreKitSubscriptionService {
 
             if case .verified(let transaction) = result {
                 if transaction.revocationDate == nil {
+                    let plan = StoreKitProductID.subscriptionPlan(for: transaction.productID)
                     if let expirationDate = transaction.expirationDate {
-                        if expirationDate > Date() { return .premium }
-                        if await checkGracePeriodStatus() { return .premium }
+                        if expirationDate > Date() { return .premium(plan) }
+                        if await checkGracePeriodStatus() { return .premium(plan) }
                     } else {
-                        return .premium
+                        return .premium(plan)
                     }
                 }
             }

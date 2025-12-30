@@ -119,31 +119,7 @@ private struct HabitsContentView: View {
                     vm: vm,
                     showingCategoryManagement: $showingCategoryManagement
                 )
-                .navigationTitle("Habits")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    // Primary action: Add Habit
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            vm.handleCreateHabitTap()
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                        }
-                        .accessibilityIdentifier(AccessibilityID.Habits.addButton)
-                        .accessibilityLabel("Add Habit")
-                        .accessibilityHint("Create a new habit to track")
-                    }
-
-                    // Secondary action: Edit mode (only show when habits exist)
-                    if !vm.filteredHabits.isEmpty {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            EditButton()
-                                .foregroundStyle(.primary)
-                        }
-                    }
-                }
+                .navigationBarHidden(true)
                 .safeAreaInset(edge: .bottom) {
                     // Ensure content doesn't get hidden by FAB - only when FAB is visible
                     if !isEditMode {
@@ -206,11 +182,13 @@ private struct HabitsContentView: View {
     }
 }
 
+// swiftlint:disable type_body_length
 private struct HabitsListView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var vm: HabitsViewModel
     @Binding var showingCategoryManagement: Bool
     @Injected(\.debugLogger) private var logger
+    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = true
     @State private var showingDeleteConfirmation = false
     @State private var showingBatchDeleteConfirmation = false
     @State private var showingDeactivateConfirmation = false
@@ -218,9 +196,96 @@ private struct HabitsListView: View {
     @State private var habitsToDelete: Set<UUID> = []
     @State private var habitsToDeactivate: Set<UUID> = []
     @State private var selection: Set<UUID> = []
-    
+
+    private var isEditMode: Bool {
+        editMode?.wrappedValue.isEditing == true
+    }
+
+    private var headerActions: [HeaderAction] {
+        var actions: [HeaderAction] = []
+
+        // Edit button - only show when habits exist
+        if !vm.filteredHabits.isEmpty {
+            actions.append(HeaderAction(
+                icon: isEditMode ? "checkmark" : "pencil",
+                accessibilityLabel: isEditMode ? "Done editing" : "Edit habits"
+            ) {
+                withAnimation {
+                    editMode?.wrappedValue = isEditMode ? .inactive : .active
+                }
+            })
+        }
+
+        // Add habit button
+        actions.append(HeaderAction(
+            icon: "plus",
+            accessibilityLabel: "Add habit"
+        ) {
+            vm.handleCreateHabitTap()
+        })
+
+        return actions
+    }
+
+    private var stickyBrandHeader: some View {
+        AppBrandHeader(
+            completionPercentage: nil,
+            showProgressBar: false,
+            actions: headerActions
+        )
+        .padding(.horizontal, Spacing.large)
+        .padding(.top, Spacing.medium)
+        .padding(.bottom, 16) // Space for gradient overlay
+        .background(Color(.systemGroupedBackground))
+        .overlay(alignment: .bottom) {
+            // Fade gradient that overlays scroll content for smooth fade effect
+            LinearGradient(
+                colors: [
+                    Color(.systemGroupedBackground),
+                    Color(.systemGroupedBackground).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .offset(y: 16)
+            .allowsHitTesting(false)
+        }
+        .zIndex(1)
+    }
+
+    private var scrollingBrandHeader: some View {
+        AppBrandHeader(
+            completionPercentage: nil,
+            showProgressBar: false,
+            actions: headerActions
+        )
+        .padding(.horizontal, Spacing.large)
+        .padding(.top, Spacing.medium)
+        .background(Color(.systemGroupedBackground))
+        .overlay(alignment: .bottom) {
+            // Fade gradient matching sticky header for visual consistency
+            LinearGradient(
+                colors: [
+                    Color(.systemGroupedBackground),
+                    Color(.systemGroupedBackground).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .offset(y: 16)
+            .allowsHitTesting(false)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
+            // Sticky header (only when pinned)
+            if isHeaderPinned {
+                stickyBrandHeader
+            }
+
             if let error = vm.error {
                 ErrorView(
                     title: Strings.Error.failedLoadHabits,
@@ -231,41 +296,43 @@ private struct HabitsListView: View {
             } else if vm.filteredHabits.isEmpty {
                 HabitsEmptyStateView(
                     selectedFilterCategory: vm.selectedFilterCategory,
-                    displayCategories: vm.displayCategories,
+                    categories: vm.categories,
+                    isOverFreeLimit: vm.isOverFreeLimit,
+                    habitCount: vm.habitsData.totalHabitsCount,
+                    maxHabits: vm.freeMaxHabits,
                     onCategoryTap: { category in
                         vm.selectFilterCategory(category)
                     },
                     onManageTap: {
                         showingCategoryManagement = true
                     },
+                    onUpgradeTap: {
+                        Task {
+                            await vm.showPaywall()
+                        }
+                    },
                     onRefresh: {
                         await vm.refresh()
                     }
                 )
             } else {
-                // Unified scrolling: Everything inside List
+                // Everything inside List for unified scrolling
                 List(selection: $selection) {
-                    // Categories and banner section (scrolls with list)
-                    Section {
-                        // Reusable category carousel with cogwheel
-                        CategoryCarouselWithManagement(
-                                categories: vm.displayCategories,
-                                selectedCategory: vm.selectedFilterCategory,
-                                onCategoryTap: { category in
-                                    vm.selectFilterCategory(category)
-                                },
-                                onManageTap: {
-                                    showingCategoryManagement = true
-                                },
-                                scrollToStartOnSelection: true,
-                                allowDeselection: true,
-                                unselectedBackgroundColor: Color(.secondarySystemGroupedBackground)
-                            )
-                            .padding(.vertical, Spacing.small)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    // Scrolling header (only when not pinned)
+                    if !isHeaderPinned {
+                        Section {
+                            scrollingBrandHeader
+                                .padding(.bottom, 20) // Space for gradient overlay
+                                .listRowInsets(EdgeInsets(top: 0, leading: -Spacing.large, bottom: 0, trailing: -Spacing.large))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                        }
+                        .listSectionSpacing(0)
+                    }
 
-                        // Over-limit banner (if user has more habits than free plan allows)
-                        if vm.isOverFreeLimit {
+                    // Over-limit banner section
+                    if vm.isOverFreeLimit {
+                        Section {
                             OverLimitBannerView(
                                 currentCount: vm.habitsData.totalHabitsCount,
                                 maxCount: vm.freeMaxHabits,
@@ -275,11 +342,37 @@ private struct HabitsListView: View {
                                     }
                                 }
                             )
+                            .padding(.horizontal, Spacing.medium)
                             .padding(.vertical, Spacing.small)
-                            .listRowInsets(EdgeInsets(top: 0, leading: Spacing.screenMargin, bottom: 0, trailing: Spacing.screenMargin))
+                            .listRowInsets(EdgeInsets(top: 0, leading: -Spacing.medium, bottom: 0, trailing: -Spacing.medium))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                         }
+                        .listSectionSpacing(0)
                     }
-                    .listRowBackground(Color(.systemGroupedBackground))
+
+                    // Categories carousel section
+                    Section {
+                        CategoryCarouselWithManagement(
+                            categories: vm.categories,
+                            selectedCategory: vm.selectedFilterCategory,
+                            onCategoryTap: { category in
+                                vm.selectFilterCategory(category)
+                            },
+                            onManageTap: {
+                                showingCategoryManagement = true
+                            },
+                            scrollToStartOnSelection: true,
+                            allowDeselection: true,
+                            unselectedBackgroundColor: Color(.secondarySystemGroupedBackground)
+                        )
+                        .padding(.top, Spacing.small)
+                        .padding(.bottom, Spacing.large)
+                        .listRowInsets(EdgeInsets(top: 0, leading: -Spacing.medium, bottom: 0, trailing: -Spacing.medium))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                    }
+                    .listSectionSpacing(0)
 
                     // Habits section
                     Section {
@@ -330,6 +423,7 @@ private struct HabitsListView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
+                .contentMargins(.top, isHeaderPinned ? 0 : 0, for: .scrollContent)
                 .overlay(alignment: .bottom) {
                     if !selection.isEmpty {
                         HabitsEditModeToolbar(
@@ -685,55 +779,16 @@ private struct OverLimitBannerView: View {
         currentCount >= maxCount
     }
 
+    private var message: String {
+        isAtLimit
+            ? "Keep the momentum! Unlock Pro for unlimited habits."
+            : "Unlock Pro to create unlimited habits and reach your goals faster."
+    }
+
     var body: some View {
-        HStack(spacing: Spacing.medium) {
-            // Info icon - changes to warning when at limit
-            Image(systemName: isAtLimit ? "exclamationmark.circle.fill" : "info.circle.fill")
-                .font(.title3)
-                .foregroundStyle(isAtLimit ? .orange : .blue)
-
-            // Message
-            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                Text("\(currentCount)/\(maxCount) habits (Free)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.primary)
-
-                Text(isAtLimit
-                     ? "Limit reached. Upgrade to Pro for unlimited habits"
-                     : "Upgrade to Pro for unlimited habits")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            // Upgrade button
-            Button(action: onUpgradeTap) {
-                Text("Upgrade")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, Spacing.medium)
-                    .padding(.vertical, Spacing.small)
-                    .background(
-                        LinearGradient(
-                            colors: [.blue, .cyan],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(Capsule())
-            }
-        }
-        .padding(Spacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.medium)
-                .fill(Color(.secondarySystemGroupedBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.medium)
-                .stroke((isAtLimit ? Color.orange : Color.blue).opacity(0.3), lineWidth: 1)
+        ProUpgradeBanner(
+            style: .card(habitCount: currentCount, maxHabits: maxCount, message: message),
+            onUnlock: onUpgradeTap
         )
     }
 }

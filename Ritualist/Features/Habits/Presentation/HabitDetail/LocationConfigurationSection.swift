@@ -35,14 +35,7 @@ public struct LocationConfigurationSection: View {
                     Text("Location Reminders")
                     if !vm.isPremiumUser {
                         Spacer()
-                        Text("PRO")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange)
-                            .foregroundColor(.white)
-                            .clipShape(Capsule())
+                        CrownProBadge()
                     }
                 }
             }

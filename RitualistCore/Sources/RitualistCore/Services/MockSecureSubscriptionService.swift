@@ -78,14 +78,8 @@ public actor MockSecureSubscriptionService: SecureSubscriptionService {
     }
     
     public func isPremiumUser() async -> Bool {
-        // Check build configuration cache first (AllFeatures scheme)
-        if userDefaults.bool(forKey: UserDefaultsKeys.allFeaturesEnabledCache) {
-            return true
-        }
-
-        // Check mock purchases using instance's userDefaults (not .standard)
-        // This allows tests to use isolated UserDefaults
-        return !validatedPurchases.isEmpty
+        // Simply derive from getCurrentSubscriptionPlan() for consistency
+        await getCurrentSubscriptionPlan() != .free
     }
 
     public func getValidPurchases() async -> [String] {

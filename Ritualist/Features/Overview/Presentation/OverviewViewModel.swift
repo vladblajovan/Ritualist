@@ -161,6 +161,24 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         personalityVM.personalityThresholdRequirements
     }
 
+    /// Whether to show personality upsell card (free users with sufficient data)
+    public var showPersonalityUpsell: Bool {
+        personalityVM.showPersonalityUpsell
+    }
+
+    /// Paywall item for personality insights upsell (binding for sheet presentation)
+    public var personalityPaywallItem: PaywallItem? {
+        get { personalityVM.paywallItem }
+        set { personalityVM.paywallItem = newValue }
+    }
+
+    /// Show paywall for personality insights upsell
+    public func showPersonalityPaywall() {
+        Task {
+            await personalityVM.showPaywall()
+        }
+    }
+
     // MARK: - Migration State (exposed via UseCase)
 
     /// Whether a migration is currently in progress

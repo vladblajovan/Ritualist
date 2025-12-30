@@ -8,17 +8,32 @@ import RitualistCore
 
 struct HabitsEmptyStateView: View {
     let selectedFilterCategory: HabitCategory?
-    let displayCategories: [HabitCategory]
+    let categories: [HabitCategory]
+    let isOverFreeLimit: Bool
+    let habitCount: Int
+    let maxHabits: Int
     let onCategoryTap: (HabitCategory?) -> Void
     let onManageTap: () -> Void
+    let onUpgradeTap: () -> Void
     let onRefresh: () async -> Void
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                // Over-limit banner
+                if isOverFreeLimit {
+                    HabitLimitBannerView(
+                        currentCount: habitCount,
+                        maxCount: maxHabits,
+                        onUpgradeTap: onUpgradeTap
+                    )
+                    .padding(.horizontal, Spacing.medium)
+                    .padding(.vertical, Spacing.small)
+                }
+
                 if selectedFilterCategory != nil {
                     CategoryCarouselWithManagement(
-                        categories: displayCategories,
+                        categories: categories,
                         selectedCategory: selectedFilterCategory,
                         onCategoryTap: onCategoryTap,
                         onManageTap: onManageTap,
@@ -44,9 +59,11 @@ struct HabitsEmptyStateView: View {
                 .padding(.top, Spacing.large)
             }
         }
+        .contentMargins(.horizontal, 4, for: .scrollContent)
         .refreshable {
             await onRefresh()
         }
+        .background(Color(.systemGroupedBackground))
     }
 }
 

@@ -153,8 +153,16 @@ public struct OverviewView: View {
                                 }
                             )
                             .cardStyle()
+                        } else if vm.showPersonalityUpsell {
+                            // Upsell card for free users with sufficient data
+                            PersonalityInsightsUpsellCard(
+                                onUnlock: {
+                                    vm.showPersonalityPaywall()
+                                }
+                            )
+                            .cardStyle()
                         }
-                        
+
                         Spacer(minLength: 100) // Tab bar padding
                     }
                     .padding(.horizontal, Spacing.large)
@@ -239,6 +247,9 @@ public struct OverviewView: View {
                             onCancel: { }
                         )
                     }
+                }
+                .sheet(item: $vm.personalityPaywallItem) { item in
+                    PaywallView(vm: item.viewModel)
                 }
                 .background(Color(.systemGroupedBackground))
             } // ScrollViewReader

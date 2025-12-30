@@ -54,69 +54,74 @@ public struct HabitsAssistantView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            // Show enhanced intro section only on first visit (post-onboarding)
-            if isFirstVisit {
-                VStack(alignment: .leading, spacing: Spacing.medium) {
-                    // Descriptive text
-                    VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                        Text(Strings.HabitsAssistant.firstVisitTitle)
-                            .font(.title3)
-                            .fontWeight(.bold)
+        ScrollView {
+            VStack(spacing: 0) {
+                // Show enhanced intro section only on first visit (post-onboarding)
+                if isFirstVisit {
+                    VStack(alignment: .leading, spacing: Spacing.medium) {
+                        // Descriptive text
+                        VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                            Text(Strings.HabitsAssistant.firstVisitTitle)
+                                .font(.title3)
+                                .fontWeight(.bold)
 
-                        Text(Strings.HabitsAssistant.firstVisitDescription)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                            Text(Strings.HabitsAssistant.firstVisitDescription)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        // Habit limit banner - show on first visit to set expectations
+                        #if !ALL_FEATURES_ENABLED
+                        HabitLimitBannerView(
+                            currentCount: totalHabitCount,
+                            maxCount: maxHabitsAllowed,
+                            onUpgradeTap: onShowPaywall
+                        )
+                        #endif
                     }
+                    .padding(.horizontal, Spacing.medium)
+                    .padding(.top, Spacing.medium)
+                    .padding(.bottom, Spacing.small)
+                }
 
-                    // Habit limit banner - show on first visit to set expectations
-                    #if !ALL_FEATURES_ENABLED
+                // Regular limit banner (shown when at/over limit on subsequent visits)
+                if !isFirstVisit && shouldShowLimitBanner {
                     HabitLimitBannerView(
                         currentCount: totalHabitCount,
                         maxCount: maxHabitsAllowed,
                         onUpgradeTap: onShowPaywall
                     )
-                    #endif
+                    .padding(.horizontal, Spacing.medium)
+                    .padding(.top, Spacing.medium)
+                    .padding(.bottom, Spacing.small)
                 }
-                .padding(.horizontal, Spacing.medium)
-                .padding(.top, Spacing.medium)
-                .padding(.bottom, Spacing.small)
-            }
 
-            // Regular limit banner (shown when at/over limit on subsequent visits)
-            if !isFirstVisit && shouldShowLimitBanner {
-                HabitLimitBannerView(
-                    currentCount: totalHabitCount,
-                    maxCount: maxHabitsAllowed,
-                    onUpgradeTap: onShowPaywall
-                )
-                .padding(.horizontal, Spacing.medium)
-                .padding(.top, Spacing.medium)
-                .padding(.bottom, Spacing.small)
-            }
+                // Category selector - scrolls with content
+                if vm.isLoadingCategories {
+                    ProgressView("Loading categories...")
+                        .padding(.vertical, Spacing.medium)
+                } else {
+                    CategoryCarouselWithManagement(
+                        categories: vm.categories,
+                        selectedCategory: vm.selectedCategory,
+                        onCategoryTap: { category in
+                            if let category = category {
+                                vm.selectCategory(category)
+                            } else {
+                                vm.clearCategorySelection()
+                            }
+                        },
+                        onManageTap: nil,
+                        scrollToStartOnSelection: true,
+                        allowDeselection: true,
+                        unselectedBackgroundColor: Color(.secondarySystemGroupedBackground)
+                    )
+                    .padding(.top, Spacing.small)
+                    .padding(.bottom, Spacing.small)
+                }
 
-            // Sticky category selector - reuses the same carousel as Habits page
-            if vm.isLoadingCategories {
-                ProgressView("Loading categories...")
-                    .padding(.vertical, Spacing.medium)
-            } else {
-                CategoryCarouselWithManagement(
-                    categories: vm.categories,
-                    selectedCategory: vm.selectedCategory,
-                    onCategoryTap: { category in
-                        if let category = category {
-                            vm.selectCategory(category)
-                        } else {
-                            vm.clearCategorySelection()
-                        }
-                    }
-                )
-                .padding(.bottom, Spacing.small)
-            }
-            
-            // Scrollable content
-            ScrollView {
+                // Habit suggestions
                 LazyVStack(spacing: Spacing.medium) {
                     ForEach(suggestions) { suggestion in
                         HabitSuggestionRow(
@@ -138,7 +143,7 @@ public struct HabitsAssistantView: View {
                 .padding(.bottom, Spacing.xlarge)
             }
         }
-        .background(Color.clear)
+        .background(Color(.systemGroupedBackground))
         .task {
             await vm.loadCategories()
             vm.initializeWithExistingHabits(existingHabits)
@@ -245,25 +250,25 @@ private struct HabitSuggestionRow: View {
                 Text(suggestion.emoji)
                     .font(.title2)
             }
-            
+
             // Habit info
             VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                 Text(suggestion.name)
                     .font(.headline)
                     .fontWeight(.semibold)
-                
+
                 Text(suggestion.description)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
-                
+
                 HStack(spacing: Spacing.small) {
                     Text(scheduleText)
                         .font(.caption)
                         .padding(.horizontal, Spacing.small)
                         .padding(.vertical, 2)
                         .background(.gray.opacity(0.1), in: Capsule())
-                    
+
                     if let target = targetText {
                         Text(target)
                             .font(.caption)
@@ -273,48 +278,53 @@ private struct HabitSuggestionRow: View {
                     }
                 }
             }
-            
+
             Spacer()
-            
-            // Add/Remove button
-            Button(action: {
-                Task { 
-                    if isAdded {
-                        await onRemove()
-                    } else {
-                        await onAdd()
-                    }
+
+            // Add/Remove indicator
+            ZStack {
+                Circle()
+                    .fill(isAdded ? Color.green : AppColors.brand)
+                    .frame(width: 32, height: 32)
+
+                if (isCreating && !isAdded) || (isDeleting && isAdded) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .transition(.scale.combined(with: .opacity))
+                } else if isAdded {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .transition(.scale.combined(with: .opacity))
+                } else {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .transition(.scale.combined(with: .opacity))
                 }
-            }, label: {
-                ZStack {
-                    Circle()
-                        .fill(isAdded ? Color.green : AppColors.brand)
-                        .frame(width: 32, height: 32)
-                    
-                    if (isCreating && !isAdded) || (isDeleting && isAdded) {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    } else if isAdded {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                    } else {
-                        Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                }
-            })
-            .disabled(isCreating || isDeleting)
-            .buttonStyle(PlainButtonStyle())
+            }
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isAdded)
+            .animation(.easeInOut(duration: 0.2), value: isCreating)
+            .animation(.easeInOut(duration: 0.2), value: isDeleting)
         }
         .padding(Spacing.medium)
-        .background(.gray.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+        .background(.gray.opacity(0.05), in: RoundedRectangle(cornerRadius: CardDesign.cornerRadius))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
                 .stroke(.gray.opacity(0.2), lineWidth: 1)
         )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !isCreating && !isDeleting else { return }
+            Task {
+                if isAdded {
+                    await onRemove()
+                } else {
+                    await onAdd()
+                }
+            }
+        }
     }
 }
 

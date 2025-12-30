@@ -35,19 +35,21 @@ struct SubscriptionManagementSectionView: View {
                 )
             }
             #else
-            // Subscription Status Row (Production)
-            HStack {
-                Label("Status", systemImage: subscriptionIcon)
-                    .foregroundStyle(.primary)
+            // Subscription Row (Production) - only show for premium users
+            if vm.subscriptionPlan != .free {
+                HStack {
+                    Label(vm.subscriptionPlan.displayName, systemImage: subscriptionIcon)
+                        .foregroundStyle(.primary)
 
-                Spacer()
+                    Spacer()
 
-                subscriptionStatusBadge
+                    CrownProBadge()
+                }
             }
             #endif
 
             #if !ALL_FEATURES_ENABLED
-            // Subscribe Button (for free users only)
+            // Upgrade Banner (for free users only)
             if vm.subscriptionPlan == .free {
                 UpgradeBannerView(onUpgradeTap: showPaywall)
             }
@@ -127,48 +129,6 @@ struct SubscriptionManagementSectionView: View {
             return "person"
         case .weekly, .monthly, .annual:
             return "star.circle.fill"
-        }
-    }
-
-    // MARK: - Subscription Status Badge
-
-    @ViewBuilder
-    private var subscriptionStatusBadge: some View {
-        HStack(spacing: 6) {
-            statusIndicator
-            Text(vm.subscriptionPlan.displayName)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(statusColor)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(statusColor.opacity(0.15))
-        )
-    }
-
-    @ViewBuilder
-    private var statusIndicator: some View {
-        switch vm.subscriptionPlan {
-        case .free:
-            Image(systemName: "circle")
-                .foregroundStyle(.secondary)
-                .font(.caption2)
-        case .weekly, .monthly, .annual:
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-                .font(.caption)
-        }
-    }
-
-    private var statusColor: Color {
-        switch vm.subscriptionPlan {
-        case .free:
-            return .secondary
-        case .weekly, .monthly, .annual:
-            return .green
         }
     }
 

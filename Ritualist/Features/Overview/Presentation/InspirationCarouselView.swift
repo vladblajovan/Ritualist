@@ -3,8 +3,6 @@ import RitualistCore
 
 /// A swipeable carousel of inspiration cards, sorted by trigger priority
 struct InspirationCarouselView: View {
-    // MARK: - Reduce Motion Support
-    private var shouldAnimateVisuals: Bool { !isReduceMotionEnabled }
     let items: [InspirationItem]
     let timeOfDay: TimeOfDay
     let completionPercentage: Double
@@ -12,8 +10,6 @@ struct InspirationCarouselView: View {
     let onDismissAll: () -> Void
 
     @State private var currentIndex: Int = 0
-    @State private var peekOffset: CGFloat = 0
-    @State private var hasShownPeekHint: Bool = false
 
     /// Compute gradient for card background based on time of day and completion
     private var cardGradient: LinearGradient {
@@ -47,7 +43,6 @@ struct InspirationCarouselView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(minHeight: 100)
-                .offset(x: peekOffset)
                 .onChange(of: items.count) { _, newCount in
                     if currentIndex >= newCount {
                         animateIfAllowed(.easeInOut(duration: 0.2)) {
@@ -55,47 +50,48 @@ struct InspirationCarouselView: View {
                         }
                     }
                 }
-                // Peek hint animation when carousel appears with multiple items
-                // Uses .task for automatic cancellation when view disappears
-                .task(id: hasShownPeekHint) {
-                    await showPeekHintIfNeeded()
-                }
 
-                // Page indicators inside card (bottom-center with contrast backdrop)
+                // Page indicators and dismiss button (same line)
                 if items.count > 1 {
-                    HStack(spacing: 6) {
-                        ForEach(0..<items.count, id: \.self) { index in
-                            Circle()
-                                .fill(index == currentIndex ? Color.white : Color.white.opacity(0.4))
-                                .frame(width: 6, height: 6)
-                                .reduceMotionAnimation(.easeInOut(duration: 0.2), value: currentIndex)
+                    HStack(spacing: 8) {
+                        // Page indicators
+                        HStack(spacing: 6) {
+                            ForEach(0..<items.count, id: \.self) { index in
+                                Circle()
+                                    .fill(index == currentIndex ? Color.white : Color.white.opacity(0.4))
+                                    .frame(width: 6, height: 6)
+                                    .reduceMotionAnimation(.easeInOut(duration: 0.2), value: currentIndex)
+                            }
                         }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(.black.opacity(0.2))
-                    )
-                    .padding(.bottom, 12)
-                    // Accessibility: Group indicators and announce as single element
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Page \(currentIndex + 1) of \(items.count)")
-                    .accessibilityIdentifier(AccessibilityID.InspirationCarousel.pageIndicators)
-                }
-            }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(.secondary.opacity(0.15))
+                        )
+                        // Accessibility: Group indicators and announce as single element
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Page \(currentIndex + 1) of \(items.count)")
+                        .accessibilityIdentifier(AccessibilityID.InspirationCarousel.pageIndicators)
 
-            // Dismiss all button (outside carousel, affects all cards)
-            if items.count > 1 {
-                Button {
-                    onDismissAll()
-                } label: {
-                    Text("Dismiss all")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        // Dismiss all button (X icon in circle)
+                        Button {
+                            onDismissAll()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.8))
+                                .frame(width: 22, height: 22)
+                                .background(
+                                    Circle()
+                                        .fill(.secondary.opacity(0.15))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Dismiss all")
+                        .accessibilityIdentifier(AccessibilityID.InspirationCarousel.dismissAllButton)
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier(AccessibilityID.InspirationCarousel.dismissAllButton)
             }
         }
         .padding(CardDesign.cardPadding)
@@ -112,62 +108,6 @@ struct InspirationCarouselView: View {
         )
         .shadow(color: CardDesign.shadowColor, radius: CardDesign.shadowRadius, x: 0, y: 2)
         .accessibilityIdentifier(AccessibilityID.InspirationCarousel.carousel)
-    }
-
-    // MARK: - Peek Hint Animation
-
-    /// Shows a subtle "peek" animation to hint that the carousel is swipeable.
-    /// Only triggers once when carousel first appears with multiple items.
-    /// Uses structured concurrency for automatic cancellation when view disappears.
-    /// Respects Reduce Motion accessibility setting.
-    @MainActor
-    private func showPeekHintIfNeeded() async {
-        guard items.count > 1, !hasShownPeekHint else { return }
-        hasShownPeekHint = true
-
-        // Skip visual animations if user prefers reduced motion
-        guard !isReduceMotionEnabled else { return }
-
-        // Delay before starting the peek animation
-        try? await Task.sleep(for: .milliseconds(600))
-        guard !Task.isCancelled else { return }
-
-        // First bounce
-        await performPeekBounce()
-        guard !Task.isCancelled else { return }
-
-        // Brief pause between bounces
-        try? await Task.sleep(for: .milliseconds(300))
-        guard !Task.isCancelled else { return }
-
-        // Second bounce
-        await performPeekBounce()
-    }
-
-    /// Performs a single peek-bounce animation.
-    /// Returns when the animation completes or is cancelled.
-    @MainActor
-    private func performPeekBounce() async {
-        // Peek left to reveal edge of next card
-        animateIfAllowed(.easeOut(duration: 0.2)) {
-            peekOffset = -25
-        }
-
-        // Wait for peek animation
-        try? await Task.sleep(for: .milliseconds(200))
-        guard !Task.isCancelled else {
-            // Reset offset if cancelled mid-animation
-            peekOffset = 0
-            return
-        }
-
-        // Bounce back to original position
-        animateIfAllowed(SpringAnimation.interactive) {
-            peekOffset = 0
-        }
-
-        // Wait for bounce to settle
-        try? await Task.sleep(for: .milliseconds(300))
     }
 }
 

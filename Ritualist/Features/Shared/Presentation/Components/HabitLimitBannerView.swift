@@ -9,7 +9,7 @@ import SwiftUI
 import RitualistCore
 
 /// Banner component that displays habit count and limit for free users
-/// Shows dynamic counter (e.g., "3/5 habits") and upgrade option
+/// Thin wrapper around ProUpgradeBanner for backward compatibility
 struct HabitLimitBannerView: View {
     let currentCount: Int
     let maxCount: Int
@@ -19,55 +19,16 @@ struct HabitLimitBannerView: View {
         currentCount >= maxCount
     }
 
+    private var message: String {
+        isAtLimit
+            ? "Keep the momentum! Unlock Pro for unlimited habits."
+            : "Unlock Pro to create unlimited habits and reach your goals faster."
+    }
+
     var body: some View {
-        HStack(spacing: Spacing.medium) {
-            // Info icon - changes color when at limit
-            Image(systemName: isAtLimit ? "exclamationmark.circle.fill" : "info.circle.fill")
-                .font(.title3)
-                .foregroundStyle(isAtLimit ? .orange : .blue)
-
-            // Message
-            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                Text("\(currentCount)/\(maxCount) habits (Free)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.primary)
-
-                Text(isAtLimit
-                     ? "Limit reached. Upgrade to Pro for unlimited habits"
-                     : "Upgrade to Pro for unlimited habits")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            // Upgrade button
-            Button(action: onUpgradeTap) {
-                Text("Upgrade")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, Spacing.medium)
-                    .padding(.vertical, Spacing.small)
-                    .background(
-                        LinearGradient(
-                            colors: [.blue, .cyan],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(Capsule())
-            }
-        }
-        .padding(Spacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.medium)
-                .fill(Color(.secondarySystemGroupedBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.medium)
-                .stroke((isAtLimit ? Color.orange : Color.blue).opacity(0.3), lineWidth: 1)
+        ProUpgradeBanner(
+            style: .card(habitCount: currentCount, maxHabits: maxCount, message: message),
+            onUnlock: onUpgradeTap
         )
     }
 }

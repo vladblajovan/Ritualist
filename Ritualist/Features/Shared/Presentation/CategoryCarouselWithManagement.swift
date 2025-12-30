@@ -10,6 +10,7 @@ import RitualistCore
 
 /// Reusable category carousel with optional cogwheel management button
 /// When no category is selected (nil), all items are shown
+/// When `scrollToStartOnSelection` is true, selected category is moved to first position
 public struct CategoryCarouselWithManagement: View {
     let categories: [HabitCategory]
     let selectedCategory: HabitCategory?
@@ -21,6 +22,19 @@ public struct CategoryCarouselWithManagement: View {
 
     /// Whether to show the cogwheel button
     private var showCogwheel: Bool { onManageTap != nil }
+
+    /// Categories with selected category moved to first position (when scrollToStartOnSelection is true)
+    private var displayCategories: [HabitCategory] {
+        guard scrollToStartOnSelection, let selected = selectedCategory else {
+            return categories
+        }
+        var reordered = categories
+        if let selectedIndex = reordered.firstIndex(where: { $0.id == selected.id }) {
+            let selectedCategory = reordered.remove(at: selectedIndex)
+            reordered.insert(selectedCategory, at: 0)
+        }
+        return reordered
+    }
 
     public init(
         categories: [HabitCategory],
@@ -46,10 +60,15 @@ public struct CategoryCarouselWithManagement: View {
                 HStack(spacing: Spacing.small) {
                     if showCogwheel {
                         cogwheelButton
+                    } else {
+                        // Invisible anchor for scroll-to-start
+                        Color.clear
+                            .frame(width: selectedCategory != nil ? Spacing.small : 0)
+                            .id("scrollStart")
                     }
                     categoryChips(scrollProxy: proxy)
                 }
-                .padding(.horizontal, Spacing.screenMargin)
+                .padding(.horizontal, Spacing.medium)
             }
             .mask(gradientMask)
         }
@@ -84,13 +103,14 @@ public struct CategoryCarouselWithManagement: View {
 
     @ViewBuilder
     private func categoryChips(scrollProxy: ScrollViewProxy) -> some View {
-        ForEach(categories, id: \.id) { category in
+        ForEach(displayCategories, id: \.id) { category in
             Chip(
                 text: category.displayName,
                 emoji: category.emoji,
                 unselectedBackgroundColor: unselectedBackgroundColor,
                 isSelected: selectedCategory?.id == category.id
             )
+            .id(category.id)
             .onTapGesture {
                 handleCategoryTap(category, scrollProxy: scrollProxy)
             }
@@ -114,20 +134,26 @@ public struct CategoryCarouselWithManagement: View {
         let isCurrentlySelected = selectedCategory?.id == category.id
 
         if allowDeselection && isCurrentlySelected {
-            // Deselect - don't scroll
             onCategoryTap(nil)
+            // Scroll back to start only when no cogwheel
+            if scrollToStartOnSelection && !showCogwheel {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(50))
+                    scrollProxy.scrollTo("scrollStart", anchor: .leading)
+                }
+            }
         } else {
-            // Select - optionally scroll to start
-            if scrollToStartOnSelection && !isCurrentlySelected {
-                animateIfAllowed(.default) {
-                    // Scroll to cogwheel if visible, otherwise scroll to first category
-                    let scrollTarget = showCogwheel ? "cogwheel" : categories.first?.id
-                    if let target = scrollTarget {
-                        scrollProxy.scrollTo(target, anchor: .leading)
+            onCategoryTap(category)
+            // Then scroll to start
+            if scrollToStartOnSelection {
+                Task { @MainActor in
+                    if showCogwheel {
+                        scrollProxy.scrollTo("cogwheel", anchor: .leading)
+                    } else {
+                        scrollProxy.scrollTo(category.id, anchor: UnitPoint(x: 0.05, y: 0.5))
                     }
                 }
             }
-            onCategoryTap(category)
         }
     }
 }

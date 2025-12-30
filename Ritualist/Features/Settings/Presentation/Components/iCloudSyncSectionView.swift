@@ -27,6 +27,8 @@ struct ICloudSyncSectionView: View {
         } footer: {
             if vm.iCloudStatus.canSync {
                 Text("Your habits sync automatically across all your devices signed into the same iCloud account.")
+            } else {
+                Text("Sign in to iCloud in Settings → Apple ID to sync your habits across devices.")
             }
         }
     }
@@ -75,10 +77,6 @@ struct ICloudSyncSectionView: View {
 
             Spacer()
         }
-
-        Text("Sign in to iCloud in Settings → Apple ID.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
     }
 
     // MARK: - Status Indicator

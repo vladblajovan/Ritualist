@@ -77,15 +77,9 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
     }
 
     public func isPremiumUser() async -> Bool {
-        // Check in-memory cache first (populated after StoreKit queries this session)
-        if !cachedValidPurchases.isEmpty {
-            return true
-        }
-
-        // Fall back to Keychain cache (populated by verifyPremiumAsync at startup)
-        // This handles the case where sync isPremiumUser() is called before
-        // async refreshCache() has populated the in-memory cache
-        return await SecurePremiumCache.shared.getCachedPremiumStatus()
+        // Simply derive from getCurrentSubscriptionPlan() for consistency
+        // Both methods now fall back to Keychain cache in offline scenarios
+        await getCurrentSubscriptionPlan() != .free
     }
 
     public func getValidPurchases() async -> [String] {
@@ -100,7 +94,8 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
 
         // Update Keychain cache immediately after purchase
         // This ensures the user has offline access right away
-        await SecurePremiumCache.shared.updateCache(isPremium: true)
+        let plan = StoreKitProductID.subscriptionPlan(for: productId)
+        await SecurePremiumCache.shared.updateCache(plan: plan)
     }
 
     public func clearPurchases() async throws {
@@ -117,23 +112,16 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         // Refresh cache if needed
         await refreshCacheIfNeeded()
 
-        // Check for annual subscription (highest priority)
-        if cachedValidPurchases.contains(StoreKitProductID.annual) {
-            return .annual
+        // Check in-memory cache first (populated by StoreKit queries)
+        let planFromMemory = subscriptionPlanFromPurchases(cachedValidPurchases)
+
+        if planFromMemory != .free {
+            return planFromMemory
         }
 
-        // Check for monthly subscription
-        if cachedValidPurchases.contains(StoreKitProductID.monthly) {
-            return .monthly
-        }
-
-        // Check for weekly subscription
-        if cachedValidPurchases.contains(StoreKitProductID.weekly) {
-            return .weekly
-        }
-
-        // Default to free if no purchases
-        return .free
+        // Fall back to Keychain cache for offline scenarios
+        // This ensures Settings shows the correct plan when StoreKit is unavailable
+        return await SecurePremiumCache.shared.getCachedSubscriptionPlan()
     }
 
     public func getSubscriptionExpiryDate() async -> Date? {
@@ -210,16 +198,16 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         cachedValidPurchases = validPurchases
         lastCacheUpdate = Date()
 
-        // Update Keychain cache carefully to preserve grace period
-        let isPremium = !validPurchases.isEmpty
+        // Determine subscription plan from valid purchases
+        let plan = subscriptionPlanFromPurchases(validPurchases)
 
-        if isPremium {
-            // User has valid subscription - always update cache
-            await SecurePremiumCache.shared.updateCache(isPremium: true)
+        if plan != .free {
+            // User has valid subscription - always update cache with actual plan
+            await SecurePremiumCache.shared.updateCache(plan: plan)
         } else if didReceiveAnyEntitlement {
             // StoreKit responded with entitlements but none are valid (expired/revoked)
             // This is a confirmed "not premium" - safe to update cache
-            await SecurePremiumCache.shared.updateCache(isPremium: false)
+            await SecurePremiumCache.shared.updateCache(plan: .free)
         } else {
             // StoreKit returned NO entitlements at all - could be:
             // 1. User truly has no purchases (never purchased)
@@ -233,10 +221,27 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
             let cacheStillValid = await SecurePremiumCache.shared.isCacheValid()
             if !cacheStillValid {
                 // Grace period expired - safe to mark as not premium
-                await SecurePremiumCache.shared.updateCache(isPremium: false)
+                await SecurePremiumCache.shared.updateCache(plan: .free)
             }
             // else: Keep existing cache, let grace period protect the user
         }
+    }
+
+    /// Determine subscription plan from a set of valid product IDs
+    private func subscriptionPlanFromPurchases(_ purchases: Set<String>) -> SubscriptionPlan {
+        // Check for annual subscription (highest priority)
+        if purchases.contains(StoreKitProductID.annual) {
+            return .annual
+        }
+        // Check for monthly subscription
+        if purchases.contains(StoreKitProductID.monthly) {
+            return .monthly
+        }
+        // Check for weekly subscription
+        if purchases.contains(StoreKitProductID.weekly) {
+            return .weekly
+        }
+        return .free
     }
 
     /// Check if a transaction is currently valid

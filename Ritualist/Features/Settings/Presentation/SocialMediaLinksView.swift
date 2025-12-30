@@ -51,14 +51,14 @@ private struct SocialMediaButton: View {
         Button {
             openURL(url)
         } label: {
-            HStack(spacing: Spacing.medium) {
-                Image(systemName: iconName)
-                    .foregroundColor(iconColor)
-                    .font(.title2)
-                    .frame(width: IconSize.large)
-
-                Text(title)
-                    .foregroundColor(.primary)
+            HStack {
+                Label {
+                    Text(title)
+                        .foregroundColor(.primary)
+                } icon: {
+                    Image(systemName: iconName)
+                        .foregroundColor(iconColor)
+                }
 
                 Spacer()
 

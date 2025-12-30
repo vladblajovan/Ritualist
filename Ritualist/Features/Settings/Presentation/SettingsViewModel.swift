@@ -113,7 +113,7 @@ public final class SettingsViewModel {
     }
 
     /// Subscription expiry date from service (not database)
-    /// Returns nil for lifetime subscriptions or free users
+    /// Returns nil for free users
     public var subscriptionExpiryDate: Date? {
         cachedSubscriptionExpiryDate
     }

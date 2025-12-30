@@ -11,10 +11,8 @@ struct PermissionsSectionView: View {
             PermissionRow(
                 icon: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill",
                 iconColor: vm.hasNotificationPermission ? .green : .orange,
-                title: Strings.Settings.notificationPermission,
-                subtitle: vm.hasNotificationPermission ?
-                    Strings.Settings.notificationsEnabled :
-                    Strings.Settings.notificationsDisabled,
+                title: "Notifications",
+                subtitle: vm.hasNotificationPermission ? nil : Strings.Settings.notificationsDisabled,
                 isRequesting: vm.isRequestingNotifications,
                 isGranted: vm.hasNotificationPermission,
                 requestAction: {
@@ -35,8 +33,8 @@ struct PermissionsSectionView: View {
             PermissionRow(
                 icon: vm.locationAuthStatus.canMonitorGeofences ? "location.fill" : "location.slash.fill",
                 iconColor: vm.locationAuthStatus.canMonitorGeofences ? .green : .orange,
-                title: "Location Permission",
-                subtitle: vm.locationAuthStatus.displayText,
+                title: "Location",
+                subtitle: vm.locationAuthStatus.canMonitorGeofences ? nil : vm.locationAuthStatus.displayText,
                 isRequesting: vm.isRequestingLocationPermission,
                 isGranted: vm.locationAuthStatus.canMonitorGeofences,
                 requestAction: {
@@ -61,7 +59,7 @@ private struct PermissionRow: View {
     let icon: String
     let iconColor: Color
     let title: String
-    let subtitle: String
+    let subtitle: String?
     let isRequesting: Bool
     let isGranted: Bool
     let requestAction: () -> Void
@@ -72,23 +70,21 @@ private struct PermissionRow: View {
     let settingsAccessibilityHint: String
 
     var body: some View {
-        HStack(spacing: Spacing.medium) {
-            // Status icon (standardized to IconSize.large)
-            Image(systemName: icon)
-                .foregroundColor(iconColor)
-                .font(.title2)
-                .frame(width: IconSize.large)
-
-            // Title and description
-            VStack(alignment: .leading, spacing: Spacing.xxsmall) {
-                Text(title)
-                    .font(.headline)
-                    .fontWeight(.medium)
-
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        HStack {
+            Label {
+                if let subtitle {
+                    VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                        Text(title)
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    Text(title)
+                }
+            } icon: {
+                Image(systemName: icon)
+                    .foregroundColor(iconColor)
             }
 
             Spacer()
@@ -115,6 +111,5 @@ private struct PermissionRow: View {
                 .accessibilityHint(settingsAccessibilityHint)
             }
         }
-        .padding(.vertical, Spacing.small)
     }
 }

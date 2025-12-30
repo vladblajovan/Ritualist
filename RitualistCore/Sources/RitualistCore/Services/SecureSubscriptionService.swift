@@ -35,7 +35,7 @@ public protocol SecureSubscriptionService: Sendable {
     /// Returns .free if no active subscription
     func getCurrentSubscriptionPlan() async -> SubscriptionPlan
 
-    /// Get subscription expiry date for time-limited subscriptions
-    /// Returns nil for lifetime subscriptions or free users
+    /// Get subscription expiry date for active subscriptions
+    /// Returns nil for free users
     func getSubscriptionExpiryDate() async -> Date?
 }

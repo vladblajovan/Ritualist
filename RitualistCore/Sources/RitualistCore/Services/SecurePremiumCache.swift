@@ -32,10 +32,11 @@ import Security
 /// **Usage:**
 /// ```swift
 /// // After successful StoreKit verification:
-/// SecurePremiumCache.shared.updateCache(isPremium: true)
+/// await SecurePremiumCache.shared.updateCache(plan: .monthly)
 ///
 /// // When StoreKit times out:
-/// if await SecurePremiumCache.shared.getCachedPremiumStatus() {
+/// let plan = await SecurePremiumCache.shared.getCachedSubscriptionPlan()
+/// if plan != .free {
 ///     // Grant premium access (within grace period)
 /// }
 /// ```
@@ -50,8 +51,11 @@ public actor SecurePremiumCache {
     /// Keychain service identifier
     private let service = "com.vladblajovan.ritualist.premium"
 
-    /// Keychain account for premium status
+    /// Keychain account for premium status (boolean)
     private let premiumStatusAccount = "premium_status"
+
+    /// Keychain account for subscription plan (for Settings display in offline mode)
+    private let subscriptionPlanAccount = "subscription_plan"
 
     /// Keychain account for cache timestamp
     private let cacheTimestampAccount = "cache_timestamp"
@@ -93,17 +97,23 @@ public actor SecurePremiumCache {
 
     // MARK: - Public API
 
-    /// Update the cached premium status after a successful StoreKit verification.
+    /// Update the cached subscription status after a successful StoreKit verification.
     ///
     /// Call this whenever StoreKit successfully verifies the user's subscription status.
     /// This keeps the cache fresh for offline scenarios.
     ///
-    /// - Parameter isPremium: Whether the user currently has an active subscription
+    /// - Parameter plan: The user's current subscription plan
     ///
-    public func updateCache(isPremium: Bool) {
-        // Store premium status
+    public func updateCache(plan: SubscriptionPlan) {
+        // Store premium status (boolean for backward compatibility and quick checks)
+        let isPremium = plan != .free
         let statusData = Data([isPremium ? 1 : 0])
         saveToKeychain(data: statusData, account: premiumStatusAccount)
+
+        // Store subscription plan (for Settings display in offline mode)
+        if let planData = plan.rawValue.data(using: .utf8) {
+            saveToKeychain(data: planData, account: subscriptionPlanAccount)
+        }
 
         // Store current timestamp
         let timestamp = Date().timeIntervalSince1970
@@ -153,6 +163,28 @@ public actor SecurePremiumCache {
             // Cache is too old - don't trust it
             return false
         }
+    }
+
+    /// Get cached subscription plan if within the offline grace period.
+    ///
+    /// Used by Settings to display the correct plan in offline scenarios.
+    ///
+    /// - Returns: The cached subscription plan, or `.free` if cache is invalid/expired/missing
+    ///
+    public func getCachedSubscriptionPlan() -> SubscriptionPlan {
+        // First check if cache is valid (within grace period)
+        guard isCacheValid() else {
+            return .free
+        }
+
+        // Read subscription plan from Keychain
+        guard let planData = readFromKeychain(account: subscriptionPlanAccount),
+              let planString = String(data: planData, encoding: .utf8),
+              let plan = SubscriptionPlan(rawValue: planString) else {
+            return .free
+        }
+
+        return plan
     }
 
     /// Get the age of the current cache in seconds.
@@ -212,12 +244,13 @@ public actor SecurePremiumCache {
         return age <= Self.verificationSkipThreshold
     }
 
-    /// Clear the cached premium status.
+    /// Clear all cached subscription data.
     ///
     /// Call this when user explicitly signs out or subscription is revoked.
     ///
     public func clearCache() {
         deleteFromKeychain(account: premiumStatusAccount)
+        deleteFromKeychain(account: subscriptionPlanAccount)
         deleteFromKeychain(account: cacheTimestampAccount)
     }
 
@@ -289,6 +322,7 @@ extension SecurePremiumCache {
     /// Debug helper to inspect cache state
     public func debugDescription() -> String {
         let isPremium = getCachedPremiumStatus()
+        let plan = getCachedSubscriptionPlan()
         let age = getCacheAge()
         let ageString = age.map { String(format: "%.1f hours", $0 / 3600) } ?? "no cache"
         let gracePeriodHours = Self.offlineGracePeriod / 3600
@@ -297,6 +331,7 @@ extension SecurePremiumCache {
         return """
         SecurePremiumCache:
           - Cached Premium: \(isPremium)
+          - Cached Plan: \(plan.rawValue)
           - Cache Age: \(ageString)
           - Grace Period: \(gracePeriodHours) hours
           - Staleness Threshold: \(stalenessThresholdHours) hours

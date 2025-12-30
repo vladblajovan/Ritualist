@@ -75,23 +75,23 @@ struct DebugMenuSubscriptionSection: View {
                     Image(systemName: "key.slash")
                         .foregroundColor(.red)
 
-                    Text("Clear Premium Cache (Keychain)")
+                    Text("Force Reset to Free User")
 
                     Spacer()
                 }
             }
-            .alert("Clear Premium Cache?", isPresented: $showingClearPremiumCacheConfirmation) {
+            .alert("Force Reset to Free User?", isPresented: $showingClearPremiumCacheConfirmation) {
                 Button("Cancel", role: .cancel) {}
-                Button("Clear", role: .destructive) {
+                Button("Reset", role: .destructive) {
                     Task {
-                        await SecurePremiumCache.shared.clearCache()
+                        await forceResetToFreeUser()
                     }
                 }
             } message: {
-                Text("This will clear the Keychain-cached premium status for testing feature gating.")
+                Text("This will clear ALL premium caches (Keychain + in-memory) and refresh subscription status. Use after deleting StoreKit transactions in Xcode.")
             }
 
-            Text("Clears the Keychain-cached premium status for testing feature gating (habit limits). iCloud sync is always enabled regardless of premium status.")
+            Text("Clears ALL premium caches and forces subscription status refresh. Use this after deleting StoreKit transactions to immediately become a free user.")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -113,6 +113,20 @@ struct DebugMenuSubscriptionSection: View {
             logger.log("Cleared mock purchases", level: .info, category: .debug)
         } catch {
             logger.logError(error, context: "Failed to clear mock purchases")
+        }
+    }
+
+    private func forceResetToFreeUser() async {
+        do {
+            // Clear ALL caches: in-memory + Keychain
+            try await vm.subscriptionService.clearPurchases()
+
+            // Force refresh subscription status from StoreKit
+            await vm.refreshSubscriptionStatus()
+
+            logger.log("Force reset to free user - all caches cleared", level: .info, category: .debug)
+        } catch {
+            logger.logError(error, context: "Failed to force reset to free user")
         }
     }
 }

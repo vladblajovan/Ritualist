@@ -165,11 +165,12 @@ private struct TravelStatusSectionView: View {
     var body: some View {
         Section {
             VStack(alignment: .leading, spacing: Spacing.small) {
-                HStack(spacing: Spacing.small) {
-                    Image(systemName: "airplane")
-                        .foregroundColor(.blue)
+                Label {
                     Text("You're Traveling")
                         .font(.headline)
+                } icon: {
+                    Image(systemName: "airplane")
+                        .foregroundColor(.blue)
                 }
 
                 Text("Your device timezone differs from your home timezone. The app is using your selected display mode for habit tracking.")

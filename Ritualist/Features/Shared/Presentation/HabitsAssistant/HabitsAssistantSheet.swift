@@ -110,11 +110,6 @@ public struct HabitsAssistantSheet: View {
                 }
             }
         }
-        .deviceAwareSheetSizing(
-            compactMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
-            regularMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
-            largeMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0)
-        )
         .task {
             // Initialize and check habit creation limit
             logger.log(
@@ -162,7 +157,10 @@ public struct HabitsAssistantSheet: View {
         defer { isProcessingActions = false }
 
         for operation in operations {
-            await executeOperation(operation)
+            let shouldStop = await executeOperation(operation)
+            if shouldStop {
+                break
+            }
         }
     }
 
@@ -188,29 +186,35 @@ public struct HabitsAssistantSheet: View {
         )
     }
 
-    private func executeOperation(_ operation: RequiredOperation) async {
+    /// Returns true if processing should stop (e.g., limit reached)
+    private func executeOperation(_ operation: RequiredOperation) async -> Bool {
         switch operation {
         case .add(let suggestion):
-            await executeAddOperation(suggestion)
+            return await executeAddOperation(suggestion)
         case .remove(let suggestionId, let habitId):
             let success = await removeHabitFromSuggestionUseCase.execute(suggestionId: suggestionId, habitId: habitId)
             if success {
                 habitsAssistantViewModel.markSuggestionAsRemoved(suggestionId)
             }
+            return false
         }
     }
 
-    private func executeAddOperation(_ suggestion: HabitSuggestion) async {
+    /// Returns true if limit was reached and processing should stop
+    private func executeAddOperation(_ suggestion: HabitSuggestion) async -> Bool {
         let result = await createHabitFromSuggestionUseCase.execute(suggestion)
         switch result {
         case .success(let habitId):
             habitsAssistantViewModel.markSuggestionAsAdded(suggestion.id, habitId: habitId)
             habitsAssistantViewModel.trackHabitAdded(habitId: suggestion.id, habitName: suggestion.name, category: suggestion.categoryId)
+            return false
         case .limitReached:
             habitsAssistantViewModel.trackHabitAddFailed(habitId: suggestion.id, error: "Habit limit reached")
             onShowPaywall?()
+            return true
         case .error(let errorMessage):
             habitsAssistantViewModel.trackHabitAddFailed(habitId: suggestion.id, error: errorMessage)
+            return false
         }
     }
     
@@ -349,11 +353,6 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
                             }
                         }
                     }
-                )
-                .deviceAwareSheetSizing(
-                    compactMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
-                    regularMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0),
-                    largeMultiplier: SizeMultiplier(min: 1.0, ideal: 1.0, max: 1.0)
                 )
                 .onDisappear {
                     Task {

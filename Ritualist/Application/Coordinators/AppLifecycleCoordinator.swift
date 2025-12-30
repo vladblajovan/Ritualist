@@ -171,8 +171,8 @@ public final class AppLifecycleCoordinator {
             metadata: ["cached_premium": cachedPremium]
         )
 
+        // verifyPremiumAsync() already updates the cache internally with the full plan
         let actualPremium = await StoreKitSubscriptionService.verifyPremiumAsync()
-        await SecurePremiumCache.shared.updateCache(isPremium: actualPremium)
 
         if actualPremium != cachedPremium {
             logger.log(

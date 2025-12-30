@@ -71,6 +71,56 @@ struct StreaksCard: View {
         StreaksLayoutViewLogic.distributeItems(streaks)
     }
 
+    /// Whether to use single row layout (iPhone with <=2 streaks)
+    private var useSingleRowLayout: Bool {
+        horizontalSizeClass == .compact && streaks.count <= 2
+    }
+
+    /// Grid view for streaks - adapts between single row and 2-row layouts
+    @ViewBuilder
+    private var streaksGrid: some View {
+        GeometryReader { geometry in
+            let availableWidth = geometry.size.width
+
+            if useSingleRowLayout {
+                // Single row layout for iPhone with 1-2 streaks
+                HStack(spacing: itemSpacing) {
+                    ForEach(streaks) { streak in
+                        streakItem(for: streak, height: itemHeight)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            } else {
+                // 2 rows layout with horizontal scroll
+                let columnCount = (streaks.count + 1) / 2 // Ceiling division
+                let needsScroll = columnCount > 2
+                let peekWidth: CGFloat = needsScroll ? (horizontalSizeClass == .regular ? 70 : 30) : 0
+                // Calculate item width: 2 columns + spacing + peek (if scrolling)
+                let calculatedWidth = (availableWidth - itemSpacing - peekWidth) / 2
+                let itemWidth = max(calculatedWidth, 120) // Minimum width
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: itemSpacing) {
+                        // Group streaks into vertical pairs (2 rows per column)
+                        ForEach(Array(stride(from: 0, to: streaks.count, by: 2)), id: \.self) { index in
+                            VStack(spacing: rowSpacing) {
+                                streakItem(for: streaks[index], height: itemHeight)
+                                if index + 1 < streaks.count {
+                                    streakItem(for: streaks[index + 1], height: itemHeight)
+                                } else {
+                                    // Empty placeholder to maintain layout
+                                    Color.clear.frame(height: itemHeight)
+                                }
+                            }
+                            .frame(width: itemWidth)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(height: useSingleRowLayout ? itemHeight : itemHeight * 2 + rowSpacing)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
@@ -144,35 +194,9 @@ struct StreaksCard: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(StreaksAccessibility.emptyStateLabel)
             } else {
-                // Unified layout: 2 rows, horizontal scroll, peek at next items
-                GeometryReader { geometry in
-                    let availableWidth = geometry.size.width
-                    let columnCount = (streaks.count + 1) / 2 // Ceiling division
-                    let needsScroll = columnCount > 2
-                    let peekWidth: CGFloat = needsScroll ? (horizontalSizeClass == .regular ? 70 : 30) : 0
-                    // Calculate item width: 2 columns + spacing + peek (if scrolling)
-                    let calculatedWidth = (availableWidth - itemSpacing - peekWidth) / 2
-                    let itemWidth = max(calculatedWidth, 120) // Minimum width
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: itemSpacing) {
-                            // Group streaks into vertical pairs (2 rows per column)
-                            ForEach(Array(stride(from: 0, to: streaks.count, by: 2)), id: \.self) { index in
-                                VStack(spacing: rowSpacing) {
-                                    streakItem(for: streaks[index], height: itemHeight)
-                                    if index + 1 < streaks.count {
-                                        streakItem(for: streaks[index + 1], height: itemHeight)
-                                    } else {
-                                        // Empty placeholder to maintain layout
-                                        Color.clear.frame(height: itemHeight)
-                                    }
-                                }
-                                .frame(width: itemWidth)
-                            }
-                        }
-                    }
-                }
-                .frame(height: itemHeight * 2 + rowSpacing)
+                // iPhone with <=2 streaks: single row layout
+                // iPad or 3+ streaks: 2 rows with horizontal scroll
+                streaksGrid
             }
 
             // Only add spacer on iPad for equal-height matching in side-by-side layout

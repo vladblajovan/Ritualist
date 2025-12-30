@@ -105,11 +105,11 @@ public struct AvatarView: View {
         let hash = abs(name.hashValue)
         let gradientPairs: [(Color, Color)] = [
             (AppColors.brand, AppColors.accentCyan),           // Blue to cyan (primary brand)
-            (Color.blue, Color.purple),                         // Blue to purple
+            (Color.blue, Color.purple),                        // Blue to purple
             (AppColors.accentCyan, Color.green),               // Cyan to green
             (Color.indigo, AppColors.brand),                   // Indigo to blue
             (Color.purple, Color.pink),                        // Purple to pink
-            (Color.green, AppColors.accentCyan),               // Green to cyan
+            (Color.green, AppColors.accentCyan)                // Green to cyan
         ]
         let pair = gradientPairs[hash % gradientPairs.count]
         return LinearGradient(
@@ -141,7 +141,6 @@ public struct AvatarView: View {
         
         return ""
     }
-    
 }
 
 public struct AvatarImagePicker: View {
