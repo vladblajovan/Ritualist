@@ -248,7 +248,12 @@ public struct OverviewView: View {
                         )
                     }
                 }
-                .sheet(item: $vm.personalityPaywallItem) { item in
+                .sheet(item: $vm.personalityPaywallItem, onDismiss: {
+                    // Refresh personality insights after paywall dismissal to check subscription status
+                    Task {
+                        await vm.refreshPersonalityInsights()
+                    }
+                }) { item in
                     PaywallView(vm: item.viewModel)
                 }
                 .background(Color(.systemGroupedBackground))
