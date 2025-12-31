@@ -24,7 +24,9 @@ import SwiftData
 // MARK: - Active Schema Reference (SINGLE SOURCE OF TRUTH)
 
 /// The current active schema - UPDATE THIS SINGLE LINE WHEN MIGRATING
-public typealias ActiveSchemaVersion = SchemaV12
+/// NOTE: Reverted from V12 to V11 because V12 had identical checksum (no schema changes)
+/// SwiftData crashes when two schemas have the same checksum in migration plan
+public typealias ActiveSchemaVersion = SchemaV11
 
 // MARK: - Model Type Aliases (derived from ActiveSchemaVersion)
 
@@ -47,5 +49,5 @@ public typealias ActivePersonalityAnalysisModel = ActiveSchemaVersion.Personalit
 // - V8: Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
 // - V9: Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
 // - V10: CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values)
-// - V11: User Demographics (gender, ageGroup in UserProfileModel)
-// - V12: No changes (index experiment reverted - #Index breaks CloudKit sync) (current)
+// - V11: User Demographics (gender, ageGroup in UserProfileModel) (current)
+// - V12: REMOVED - had identical checksum to V11, caused SwiftData migration crash

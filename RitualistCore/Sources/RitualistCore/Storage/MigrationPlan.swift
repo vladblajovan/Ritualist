@@ -47,8 +47,10 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             SchemaV8.self,  // Removed subscription fields from UserProfileModel (subscriptionPlan, subscriptionExpiryDate)
             SchemaV9.self,  // Three-Timezone Model (currentTimezoneIdentifier, homeTimezoneIdentifier, displayTimezoneModeData, timezoneChangeHistoryData)
             SchemaV10.self, // CloudKit compatibility (removed .unique constraints, optional relationship arrays, default values)
-            SchemaV11.self, // User demographics (gender, ageGroup in UserProfileModel)
-            SchemaV12.self  // No changes (index experiment reverted - #Index breaks CloudKit sync)
+            SchemaV11.self  // User demographics (gender, ageGroup in UserProfileModel)
+            // NOTE: V12 removed - identical checksum to V11 causes SwiftData migration crash
+            // SchemaV12.self was created to revert #Index experiment but had no actual schema changes
+            // SwiftData's NSLightweightMigrationStage requires unique checksums per version
         ]
     }
 
@@ -77,7 +79,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
     /// - V8 → V9: Three-Timezone Model implementation (custom/heavyweight)
     /// - V9 → V10: CloudKit compatibility (removed .unique constraints, optional relationships) (lightweight)
     /// - V10 → V11: User demographics (gender, ageGroup in UserProfileModel) (lightweight)
-    /// - V11 → V12: No changes (index experiment reverted - #Index breaks CloudKit sync) (lightweight)
+    ///
+    /// NOTE: V11 → V12 migration removed - V12 had identical checksum to V11
     ///
     /// ## Example Future Migration:
     /// ```swift
@@ -100,8 +103,8 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
             migrateV7toV8,
             migrateV8toV9,
             migrateV9toV10,
-            migrateV10toV11,
-            migrateV11toV12
+            migrateV10toV11
+            // NOTE: migrateV11toV12 removed - V12 had identical checksum to V11
         ]
     }
 
@@ -316,26 +319,16 @@ public enum RitualistMigrationPlan: SchemaMigrationPlan {
         toVersion: SchemaV11.self
     )
 
-    /// V11 → V12: No Schema Changes (Index Experiment Reverted)
-    ///
-    /// This is a LIGHTWEIGHT migration because:
-    /// - V12 is identical to V11 (no actual schema changes)
-    /// - Originally planned to add #Index but reverted due to CloudKit sync issues
-    ///
-    /// CRITICAL LEARNING: #Index macro breaks CloudKit sync!
-    /// - SwiftData's #Index causes CloudKit sync to fail SILENTLY
-    /// - No errors thrown, data simply doesn't sync
-    /// - CloudKit has its own indexing in CloudKit Console
-    /// - DO NOT use #Index until Apple fixes this
-    ///
-    /// Impact:
-    /// - ✅ No schema changes (V12 identical to V11)
-    /// - ✅ CloudKit sync preserved
-    /// - ✅ Zero data loss
-    static let migrateV11toV12 = MigrationStage.lightweight(
-        fromVersion: SchemaV11.self,
-        toVersion: SchemaV12.self
-    )
+    // NOTE: migrateV11toV12 removed - V12 had identical checksum to V11
+    // SwiftData's NSLightweightMigrationStage requires unique checksums per version
+    // When schemas have identical structure, SwiftData cannot distinguish between versions
+    // and crashes with "NSLightweightMigrationStage initWithVersionChecksums:" error
+    //
+    // CRITICAL LEARNING: #Index macro breaks CloudKit sync!
+    // - SwiftData's #Index causes CloudKit sync to fail SILENTLY
+    // - No errors thrown, data simply doesn't sync
+    // - CloudKit has its own indexing in CloudKit Console
+    // - DO NOT use #Index until Apple fixes this
 
     // MARK: - Future Migration Stages (Examples)
 

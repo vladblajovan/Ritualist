@@ -4,7 +4,8 @@
 //
 //  Created by Claude on 26.12.2025.
 //
-//  Unit tests for SchemaV12 (Database Performance Indexes).
+//  Unit tests for SchemaV12 file (retained for reference but not in migration plan).
+//  V12 was removed from migration plan due to identical checksum with V11.
 //
 
 import Testing
@@ -17,6 +18,8 @@ import SwiftData
 struct SchemaV12Tests {
 
     // MARK: - Schema Version Tests
+    // NOTE: V12 file exists but is NOT in the migration plan
+    // These tests verify the file still compiles correctly
 
     @Test("Schema version is 12.0.0")
     func schemaVersionIsCorrect() {
@@ -30,39 +33,39 @@ struct SchemaV12Tests {
         #expect(models.count == 6)
     }
 
-    @Test("ActiveSchemaVersion points to V12")
-    func activeSchemaIsV12() {
-        // This ensures ActiveSchema.swift is updated correctly
-        #expect(ActiveSchemaVersion.versionIdentifier == Schema.Version(12, 0, 0))
+    @Test("ActiveSchemaVersion points to V11 (V12 removed due to checksum collision)")
+    func activeSchemaIsV11() {
+        // V12 was removed from migration plan because it had identical checksum to V11
+        // SwiftData's NSLightweightMigrationStage requires unique checksums per version
+        #expect(ActiveSchemaVersion.versionIdentifier == Schema.Version(11, 0, 0))
     }
 
     // MARK: - Migration Plan Tests
 
-    @Test("MigrationPlan includes SchemaV12")
-    func migrationPlanIncludesV12() {
+    @Test("MigrationPlan does NOT include SchemaV12 (removed due to checksum collision)")
+    func migrationPlanExcludesV12() {
         let schemas = RitualistMigrationPlan.schemas
         let hasV12 = schemas.contains { $0.versionIdentifier == Schema.Version(12, 0, 0) }
-        #expect(hasV12)
+        #expect(!hasV12, "V12 should NOT be in migration plan - identical checksum to V11 causes crash")
     }
 
-    @Test("MigrationPlan has V11 to V12 migration stage")
-    func migrationPlanHasV11ToV12Stage() {
-        // Migration stages count should include V11→V12
+    @Test("MigrationPlan has 9 migration stages (V2→V3 through V10→V11)")
+    func migrationPlanHasCorrectStageCount() {
         let stages = RitualistMigrationPlan.stages
-        #expect(stages.count == 10) // V2→V3 through V11→V12
+        #expect(stages.count == 9) // V2→V3 through V10→V11 (V11→V12 removed)
     }
 
-    @Test("Current schema version is V12")
-    func currentSchemaVersionIsV12() {
+    @Test("Current schema version is V11")
+    func currentSchemaVersionIsV11() {
         let currentVersion = RitualistMigrationPlan.currentSchemaVersion
-        #expect(currentVersion == Schema.Version(12, 0, 0))
+        #expect(currentVersion == Schema.Version(11, 0, 0))
     }
 
-    // MARK: - Model Type Alias Tests
+    // MARK: - Model Type Alias Tests (V12 types still exist in file)
 
-    @Test("Type aliases point to V12 models")
+    @Test("V12 type aliases still resolve correctly")
     func typeAliasesPointToV12() {
-        // Verify type aliases resolve correctly
+        // V12 file exists for historical reference, types still compile
         let habitModel = HabitModelV12.self
         let habitLogModel = HabitLogModelV12.self
         let categoryModel = HabitCategoryModelV12.self
@@ -78,18 +81,18 @@ struct SchemaV12Tests {
         #expect(personalityModel == SchemaV12.PersonalityAnalysisModel.self)
     }
 
-    @Test("Active model aliases use V12")
-    func activeModelAliasesUseV12() {
-        // These should all be V12 models
-        #expect(ActiveHabitModel.self == SchemaV12.HabitModel.self)
-        #expect(ActiveHabitLogModel.self == SchemaV12.HabitLogModel.self)
-        #expect(ActiveHabitCategoryModel.self == SchemaV12.HabitCategoryModel.self)
-        #expect(ActiveUserProfileModel.self == SchemaV12.UserProfileModel.self)
-        #expect(ActiveOnboardingStateModel.self == SchemaV12.OnboardingStateModel.self)
-        #expect(ActivePersonalityAnalysisModel.self == SchemaV12.PersonalityAnalysisModel.self)
+    @Test("Active model aliases use V11 (not V12)")
+    func activeModelAliasesUseV11() {
+        // Active aliases now point to V11 since V12 was removed
+        #expect(ActiveHabitModel.self == SchemaV11.HabitModel.self)
+        #expect(ActiveHabitLogModel.self == SchemaV11.HabitLogModel.self)
+        #expect(ActiveHabitCategoryModel.self == SchemaV11.HabitCategoryModel.self)
+        #expect(ActiveUserProfileModel.self == SchemaV11.UserProfileModel.self)
+        #expect(ActiveOnboardingStateModel.self == SchemaV11.OnboardingStateModel.self)
+        #expect(ActivePersonalityAnalysisModel.self == SchemaV11.PersonalityAnalysisModel.self)
     }
 
-    // MARK: - Entity Conversion Tests
+    // MARK: - Entity Conversion Tests (V12 conversions still work)
 
     @Test("HabitLogModel can be created and converted")
     func habitLogModelConversion() {
@@ -169,23 +172,23 @@ struct SchemaV12Tests {
 @MainActor
 struct SchemaMigrationChainTests {
 
-    @Test("Migration chain is complete from V2 to V12")
+    @Test("Migration chain is complete from V2 to V11 (V12 removed)")
     func migrationChainIsComplete() {
         let schemas = RitualistMigrationPlan.schemas
         let stages = RitualistMigrationPlan.stages
 
-        // Should have 11 schemas (V2 through V12)
-        #expect(schemas.count == 11)
+        // Should have 10 schemas (V2 through V11) - V12 removed due to checksum collision
+        #expect(schemas.count == 10)
 
-        // Should have 10 migration stages (V2→V3 through V11→V12)
-        #expect(stages.count == 10)
+        // Should have 9 migration stages (V2→V3 through V10→V11)
+        #expect(stages.count == 9)
 
-        // Verify version progression
+        // Verify version progression (V12 excluded)
         let versions = schemas.map { $0.versionIdentifier.major }
-        #expect(versions == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+        #expect(versions == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
     }
 
-    @Test("No version gaps in schema chain")
+    @Test("No version gaps in schema chain (V2 to V11)")
     func noVersionGapsInSchemaChain() {
         let schemas = RitualistMigrationPlan.schemas
         let versions = schemas.map { $0.versionIdentifier.major }
