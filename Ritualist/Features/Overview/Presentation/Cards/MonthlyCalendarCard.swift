@@ -165,11 +165,13 @@ struct MonthlyCalendarCard: View {
             }
             .frame(minHeight: {
                 // Estimate height for layout - actual height set by Canvas frame
+                // Use worst-case (iPad) values to prevent layout jumps on larger devices
+                // iPad column width ~70pt → cellSize=36 (capped), verticalSpacing=34pt
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let numRows = maxRow + 1
-                // Use iPhone sizes for minimum height estimate
                 let cellSize: CGFloat = 36
-                let verticalSpacing: CGFloat = 12
+                let worstCaseColumnWidth: CGFloat = 70  // Typical iPad column width
+                let verticalSpacing: CGFloat = worstCaseColumnWidth - cellSize  // ~34pt on iPad
                 let borderStrokeBuffer: CGFloat = 2
                 return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
             }())
