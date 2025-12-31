@@ -119,21 +119,26 @@ struct MonthlyCalendarCard: View {
 
             // PERFORMANCE: Use Canvas for GPU-accelerated rendering - SINGLE draw pass
             GeometryReader { geometry in
+                let columnWidth = geometry.size.width / 7
+                // Circle fills 75% of column width, leaving 25% for spacing
+                // Cap at 36pt on iPhone for consistent appearance
+                let cellSize: CGFloat = min(columnWidth * 0.75, 36)
+                // Spacing = gap between circles (same horizontally and vertically)
+                let verticalSpacing: CGFloat = columnWidth - cellSize
+                let fontSize: CGFloat = cellSize * 0.39  // Scale font with circle size
+                let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
+                let numRows = maxRow + 1
+                let borderStrokeBuffer: CGFloat = 2
+                let totalHeight = CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
+
                 Canvas { context, size in
-                    let cellSize: CGFloat = 36  // Circle diameter
-                    let verticalSpacing: CGFloat = 12   // Match horizontal spacing between columns
-                    let strokePadding: CGFloat = 0  // No extra padding needed
-
-                    // No arrow offset needed - day names use full width now
-                    let columnWidth = size.width / 7
-
                     for dayData in displayDays where dayData.isCurrentMonth {
                         // Center circle in column (matching day name alignment)
                         let centerX = CGFloat(dayData.col) * columnWidth + columnWidth / 2
-                        let centerY = strokePadding + CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
+                        let centerY = CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
 
                         let center = CGPoint(x: centerX, y: centerY)
-                        let radius: CGFloat = 18
+                        let radius: CGFloat = cellSize / 2
 
                         // Draw background circle
                         let circlePath = Circle().path(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
@@ -146,24 +151,26 @@ struct MonthlyCalendarCard: View {
 
                         // Draw day number
                         let text = Text("\(dayData.dayNumber)")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: fontSize, weight: .medium))
                             .foregroundColor(dayData.textColor.opacity(dayData.opacity))
 
                         context.draw(text, at: center, anchor: .center)
                     }
                 }
+                .frame(height: totalHeight)
                 .contentShape(Rectangle())
                 .onTapGesture { location in
                     handleTap(at: location, canvasWidth: geometry.size.width)
                 }
             }
             .frame(minHeight: {
+                // Estimate height for layout - actual height set by Canvas frame
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let numRows = maxRow + 1
+                // Use iPhone sizes for minimum height estimate
                 let cellSize: CGFloat = 36
                 let verticalSpacing: CGFloat = 12
-                let borderStrokeBuffer: CGFloat = 2  // Account for "today" indicator border extending beyond circle
-                // Height = rows + gaps between rows + buffer for border stroke on last row
+                let borderStrokeBuffer: CGFloat = 2
                 return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
             }())
             // Accessibility: Provide summary for VoiceOver users
@@ -262,11 +269,10 @@ struct MonthlyCalendarCard: View {
     }
 
     private func handleTap(at location: CGPoint, canvasWidth: CGFloat) {
-        let cellSize: CGFloat = 36  // Circle diameter
-        let verticalSpacing: CGFloat = 12   // Match horizontal spacing between columns
-
-        // No arrow offset - day names use full width
         let columnWidth = canvasWidth / 7
+        // Match the dynamic sizing from Canvas
+        let cellSize: CGFloat = min(columnWidth * 0.75, 36)
+        let verticalSpacing: CGFloat = columnWidth - cellSize
 
         let col = Int(location.x / columnWidth)
         let row = Int(location.y / (cellSize + verticalSpacing))
