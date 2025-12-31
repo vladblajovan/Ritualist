@@ -178,15 +178,7 @@ extension Container {
     }
     
     // MARK: - Presentation Services
-    
-    @MainActor
-    var habitsAssistantPresentationService: Factory<HabitsAssistantPresentationService> {
-        self { @MainActor in
-            HabitsAssistantPresentationService()
-        }
-        .singleton
-    }
-    
+
     @MainActor
     var categoryManagementPresentationService: Factory<CategoryManagementPresentationService> {
         self { @MainActor in
