@@ -123,8 +123,8 @@ struct MonthlyCalendarCard: View {
                 // Circle fills 75% of column width, leaving 25% for spacing
                 // Cap at 36pt on iPhone for consistent appearance
                 let cellSize: CGFloat = min(columnWidth * 0.75, 36)
-                // Spacing = gap between circles (same horizontally and vertically)
-                let verticalSpacing: CGFloat = columnWidth - cellSize
+                // Spacing = gap between circles, capped at 20pt to prevent explosion in landscape
+                let verticalSpacing: CGFloat = min(columnWidth - cellSize, 20)
                 let fontSize: CGFloat = cellSize * 0.39  // Scale font with circle size
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let numRows = maxRow + 1
@@ -165,13 +165,11 @@ struct MonthlyCalendarCard: View {
             }
             .frame(minHeight: {
                 // Estimate height for layout - actual height set by Canvas frame
-                // Use device-appropriate column width estimate to avoid excess padding
+                // Use capped values matching Canvas calculation
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let numRows = maxRow + 1
-                // iPhone ~55pt column width, iPad ~70pt
-                let estimatedColumnWidth: CGFloat = horizontalSizeClass == .regular ? 70 : 55
-                let cellSize: CGFloat = min(estimatedColumnWidth * 0.75, 36)
-                let verticalSpacing: CGFloat = estimatedColumnWidth - cellSize
+                let cellSize: CGFloat = 36
+                let verticalSpacing: CGFloat = 20  // Capped value
                 let borderStrokeBuffer: CGFloat = 2
                 return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
             }())
@@ -274,7 +272,7 @@ struct MonthlyCalendarCard: View {
         let columnWidth = canvasWidth / 7
         // Match the dynamic sizing from Canvas
         let cellSize: CGFloat = min(columnWidth * 0.75, 36)
-        let verticalSpacing: CGFloat = columnWidth - cellSize
+        let verticalSpacing: CGFloat = min(columnWidth - cellSize, 20)
 
         let col = Int(location.x / columnWidth)
         let row = Int(location.y / (cellSize + verticalSpacing))
