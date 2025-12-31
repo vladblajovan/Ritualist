@@ -42,6 +42,12 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Task for coalescing rapid notification posts (prevents notification spam)
     @ObservationIgnored private var notificationCoalesceTask: Task<Void, Never>?
 
+    /// Task for pending assistant reopen after paywall dismissal (cancellable to prevent race conditions)
+    @ObservationIgnored private var pendingAssistantReopenTask: Task<Void, Never>?
+
+    /// Task for pending paywall show after assistant dismissal (cancellable to prevent race conditions)
+    @ObservationIgnored private var pendingPaywallShowTask: Task<Void, Never>?
+
     /// Track view visibility for tab switch detection
     public var isViewVisible: Bool = false
 
@@ -432,6 +438,11 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     
     /// Show paywall
     public func showPaywall() async {
+        // Cancel any pending assistant reopen to prevent showing it after paywall closes
+        // if the user directly triggered paywall (not via assistant flow)
+        pendingAssistantReopenTask?.cancel()
+        pendingAssistantReopenTask = nil
+
         await paywallViewModel.load()
         paywallViewModel.trackPaywallShown(source: "habits", trigger: "habit_limit")
         paywallItem = PaywallItem(viewModel: paywallViewModel)
@@ -539,16 +550,40 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     }
     
     // MARK: - Assistant Navigation
-    
+
     /// Handle habit assistant button tap
     public func handleAssistantTap(source: String = "toolbar") {
+        // Cancel any pending reopen tasks to prevent race conditions
+        // (user is manually opening, so we don't need the delayed reopen)
+        cancelPendingAssistantPaywallTasks()
+
         userActionTracker.track(.habitsAssistantOpened(source: source == "emptyState" ? .emptyState : .habitsPage))
         showingHabitAssistant = true
+    }
+
+    /// Cancel all pending assistant/paywall tasks and reset flags
+    /// Call this when user takes an action that should override any pending async operations
+    private func cancelPendingAssistantPaywallTasks() {
+        pendingAssistantReopenTask?.cancel()
+        pendingAssistantReopenTask = nil
+        pendingPaywallShowTask?.cancel()
+        pendingPaywallShowTask = nil
+
+        // Reset flags to clean state
+        shouldReopenAssistantAfterPaywall = false
+        pendingPaywallAfterAssistantDismiss = false
+        isHandlingPaywallDismissal = false
     }
     
     /// Dismiss assistant and show paywall (called from assistant's upgrade button)
     /// Sets flag to show paywall after assistant dismissal completes
     public func dismissAssistantAndShowPaywall() {
+        // Cancel any existing pending tasks before setting up new flow
+        pendingAssistantReopenTask?.cancel()
+        pendingAssistantReopenTask = nil
+        pendingPaywallShowTask?.cancel()
+        pendingPaywallShowTask = nil
+
         pendingPaywallAfterAssistantDismiss = true
         shouldReopenAssistantAfterPaywall = true
         showingHabitAssistant = false
@@ -573,10 +608,16 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
             // Reset the flag
             shouldReopenAssistantAfterPaywall = false
 
+            // Cancel any existing pending reopen task
+            pendingAssistantReopenTask?.cancel()
+
             // Wait for paywall dismissal animation to complete before reopening assistant
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.showingHabitAssistant = true
-                self.isHandlingPaywallDismissal = false
+            // Using a cancellable Task instead of DispatchQueue to prevent race conditions
+            pendingAssistantReopenTask = Task {
+                try? await Task.sleep(for: .seconds(1.0))
+                guard !Task.isCancelled else { return }
+                showingHabitAssistant = true
+                isHandlingPaywallDismissal = false
             }
         } else {
             isHandlingPaywallDismissal = false
@@ -592,9 +633,15 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         // Check if we need to show paywall after assistant dismissal
         if pendingPaywallAfterAssistantDismiss {
             pendingPaywallAfterAssistantDismiss = false
+
+            // Cancel any existing pending paywall task
+            pendingPaywallShowTask?.cancel()
+
             // Small delay to let the sheet dismissal animation complete
-            Task {
+            // Using a cancellable Task to prevent race conditions
+            pendingPaywallShowTask = Task {
                 try? await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled else { return }
                 await showPaywall()
             }
         }
