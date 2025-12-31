@@ -330,6 +330,11 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
     @State private var showingPaywall = false
     @State private var shouldReopenAssistant = false
 
+    /// Cancellable task for pending paywall presentation (prevents race conditions)
+    @State private var pendingPaywallTask: Task<Void, Never>?
+    /// Cancellable task for pending assistant reopen (prevents race conditions)
+    @State private var pendingReopenTask: Task<Void, Never>?
+
     let existingHabits: [Habit]
     let isFirstVisit: Bool
     let onDataRefreshNeeded: () async -> Void
@@ -341,16 +346,24 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
                     existingHabits: existingHabits,
                     isFirstVisit: isFirstVisit,
                     onShowPaywall: {
+                        // Cancel any pending reopen task
+                        pendingReopenTask?.cancel()
+                        pendingReopenTask = nil
+
                         shouldReopenAssistant = true
                         isPresented = false
+
+                        // Cancel any existing paywall task before creating new one
+                        pendingPaywallTask?.cancel()
+
                         // Delay paywall presentation to allow sheet dismiss animation to complete
-                        // Without this, SwiftUI can get confused presenting a new sheet while dismissing another
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            Task {
-                                await paywallViewModel.load()
-                                paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
-                                showingPaywall = true
-                            }
+                        // Using cancellable Task to prevent race conditions
+                        pendingPaywallTask = Task {
+                            try? await Task.sleep(for: .milliseconds(500))
+                            guard !Task.isCancelled else { return }
+                            await paywallViewModel.load()
+                            paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
+                            showingPaywall = true
                         }
                     }
                 )
@@ -366,12 +379,26 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
                         paywallViewModel.trackPaywallDismissed()
                         if shouldReopenAssistant {
                             shouldReopenAssistant = false
+
+                            // Cancel any existing reopen task before creating new one
+                            pendingReopenTask?.cancel()
+
                             // Wait for dismissal animation before reopening
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            // Using cancellable Task to prevent race conditions
+                            pendingReopenTask = Task {
+                                try? await Task.sleep(for: .seconds(1.0))
+                                guard !Task.isCancelled else { return }
                                 isPresented = true
                             }
                         }
                     }
+            }
+            .onChange(of: isPresented) { _, newValue in
+                // If user manually opens assistant, cancel any pending reopen task
+                if newValue {
+                    pendingReopenTask?.cancel()
+                    pendingReopenTask = nil
+                }
             }
     }
 }
