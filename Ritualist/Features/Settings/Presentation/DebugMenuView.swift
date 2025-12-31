@@ -108,8 +108,6 @@ struct DebugMenuView: View {
                 onRefresh: loadMigrationStats
             )
 
-            DebugMenuTimezoneDiagnosticsSection(vm: vm)
-
             DebugMenuPerformanceSection(vm: vm)
 
             DebugMenuSubscriptionSection(vm: vm)
