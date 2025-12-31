@@ -121,7 +121,7 @@ struct MonthlyCalendarCard: View {
             GeometryReader { geometry in
                 Canvas { context, size in
                     let cellSize: CGFloat = 36  // Circle diameter
-                    let verticalSpacing: CGFloat = 4    // Tight spacing between rows
+                    let verticalSpacing: CGFloat = 12   // Match horizontal spacing between columns
                     let strokePadding: CGFloat = 0  // No extra padding needed
 
                     // No arrow offset needed - day names use full width now
@@ -161,7 +161,7 @@ struct MonthlyCalendarCard: View {
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let numRows = maxRow + 1
                 let cellSize: CGFloat = 36
-                let verticalSpacing: CGFloat = 4
+                let verticalSpacing: CGFloat = 12
                 let borderStrokeBuffer: CGFloat = 2  // Account for "today" indicator border extending beyond circle
                 // Height = rows + gaps between rows + buffer for border stroke on last row
                 return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
@@ -263,7 +263,7 @@ struct MonthlyCalendarCard: View {
 
     private func handleTap(at location: CGPoint, canvasWidth: CGFloat) {
         let cellSize: CGFloat = 36  // Circle diameter
-        let verticalSpacing: CGFloat = 4    // Tight spacing between rows
+        let verticalSpacing: CGFloat = 12   // Match horizontal spacing between columns
 
         // No arrow offset - day names use full width
         let columnWidth = canvasWidth / 7
