@@ -165,13 +165,12 @@ struct MonthlyCalendarCard: View {
             }
             .frame(minHeight: {
                 // Estimate height for layout - actual height set by Canvas frame
-                // Use capped values matching Canvas calculation
+                // Use iPhone portrait values (slightly under actual) to avoid bottom padding
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let numRows = maxRow + 1
                 let cellSize: CGFloat = 36
-                let verticalSpacing: CGFloat = 20  // Capped value
-                let borderStrokeBuffer: CGFloat = 2
-                return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
+                let verticalSpacing: CGFloat = 12  // iPhone portrait typical spacing
+                return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing
             }())
             // Accessibility: Provide summary for VoiceOver users
             .accessibilityElement(children: .ignore)
