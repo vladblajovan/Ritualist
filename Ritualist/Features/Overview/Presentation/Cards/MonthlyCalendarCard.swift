@@ -164,13 +164,17 @@ struct MonthlyCalendarCard: View {
                 }
             }
             .frame(minHeight: {
-                // Estimate height for layout - actual height set by Canvas frame
-                // Use iPhone portrait values (slightly under actual) to avoid bottom padding
+                // Estimate height for layout based on current orientation
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let numRows = maxRow + 1
                 let cellSize: CGFloat = 36
-                let verticalSpacing: CGFloat = 12  // iPhone portrait typical spacing
-                return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing
+                // Detect orientation: landscape has wider screen
+                let screenBounds = UIScreen.main.bounds
+                let isLandscape = screenBounds.width > screenBounds.height
+                // Portrait: ~19pt spacing, Landscape: 20pt (capped)
+                let verticalSpacing: CGFloat = isLandscape ? 20 : 19
+                let borderStrokeBuffer: CGFloat = 2
+                return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
             }())
             // Accessibility: Provide summary for VoiceOver users
             .accessibilityElement(children: .ignore)
