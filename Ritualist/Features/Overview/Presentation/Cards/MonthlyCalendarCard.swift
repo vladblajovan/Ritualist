@@ -42,6 +42,18 @@ struct MonthlyCalendarCard: View {
     /// is updating. SwiftUI's animation system naturally debounces these transitions.
     @State private var canvasSize: CGSize = .zero
 
+    /// Minimum height for the calendar grid, calculated independently of GeometryReader.
+    /// This ensures proper sizing in EqualHeightRow on iPad where intrinsic size is needed.
+    private var minimumGridHeight: CGFloat {
+        let rowCount = maxRowIndex + 1
+        let cellSize = horizontalSizeClass == .compact
+            ? LayoutConstants.maxCellSizeCompact
+            : LayoutConstants.maxCellSizeRegular
+        let spacing = min(cellSize * LayoutConstants.verticalSpacingRatio, LayoutConstants.maxVerticalSpacing)
+        let buffer = LayoutConstants.borderBuffer
+        return buffer + CGFloat(rowCount) * cellSize + CGFloat(rowCount - 1) * spacing + buffer
+    }
+
     private var calendar: Calendar {
         CalendarUtils.localCalendar(for: timezone)
     }
@@ -179,7 +191,7 @@ struct MonthlyCalendarCard: View {
                 .onAppear { canvasSize = geometry.size }
                 .onChange(of: geometry.size) { _, newSize in canvasSize = newSize }
             }
-            .frame(minHeight: layout.totalHeight)
+            .frame(minHeight: horizontalSizeClass == .regular ? minimumGridHeight : layout.totalHeight)
             // Accessibility: Provide summary for VoiceOver users
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(calendarAccessibilityLabel)
