@@ -248,14 +248,18 @@ public struct OverviewView: View {
                         )
                     }
                 }
-                .sheet(item: $vm.personalityPaywallItem, onDismiss: {
-                    // Refresh personality insights after paywall dismissal to check subscription status
-                    Task {
-                        await vm.refreshPersonalityInsights()
+                .sheet(
+                    item: $vm.personalityPaywallItem,
+                    onDismiss: {
+                        // Refresh personality insights after paywall dismissal to check subscription status
+                        Task {
+                            await vm.refreshPersonalityInsights()
+                        }
+                    },
+                    content: { item in
+                        PaywallView(vm: item.viewModel)
                     }
-                }) { item in
-                    PaywallView(vm: item.viewModel)
-                }
+                )
                 .background(Color(.systemGroupedBackground))
             } // ScrollViewReader
         } // VStack (sticky header + scroll content)

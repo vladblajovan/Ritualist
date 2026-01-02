@@ -26,6 +26,8 @@ struct MonthlyCalendarCard: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var currentDate = Date()
     @State private var displayDays: [DayDisplayData] = []
+    @State private var calculatedHeight: CGFloat = 250 // Initial estimate, updated by GeometryReader
+    @State private var gridPadding: CGFloat = 10 // Padding from edge to first circle
 
     private var calendar: Calendar {
         CalendarUtils.localCalendar(for: timezone)
@@ -125,17 +127,23 @@ struct MonthlyCalendarCard: View {
                 let cellSize: CGFloat = min(columnWidth * 0.75, 36)
                 // Spacing = gap between circles, capped at 20pt to prevent explosion in landscape
                 let verticalSpacing: CGFloat = min(columnWidth - cellSize, 20)
+                // Padding from edge to first circle, capped for consistent bottom padding
+                // iPhone landscape needs slightly more padding
+                let isIPhoneLandscape = horizontalSizeClass == .compact && geometry.size.width > geometry.size.height
+                let paddingCap: CGFloat = isIPhoneLandscape ? 10 : 2
+                let edgePadding: CGFloat = min((columnWidth - cellSize) / 2, paddingCap)
                 let fontSize: CGFloat = cellSize * 0.39  // Scale font with circle size
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let numRows = maxRow + 1
-                let borderStrokeBuffer: CGFloat = 2
-                let totalHeight = CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
+                let borderStrokeBuffer: CGFloat = 2  // Bottom buffer for border stroke
+                let topBuffer: CGFloat = 1  // Top buffer for border stroke when today is in first row
+                let totalHeight = CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer + topBuffer
 
                 Canvas { context, size in
                     for dayData in displayDays where dayData.isCurrentMonth {
                         // Center circle in column (matching day name alignment)
                         let centerX = CGFloat(dayData.col) * columnWidth + columnWidth / 2
-                        let centerY = CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
+                        let centerY = topBuffer + CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
 
                         let center = CGPoint(x: centerX, y: centerY)
                         let radius: CGFloat = cellSize / 2
@@ -162,20 +170,18 @@ struct MonthlyCalendarCard: View {
                 .onTapGesture { location in
                     handleTap(at: location, canvasWidth: geometry.size.width)
                 }
+                .onChange(of: totalHeight) { _, newHeight in
+                    calculatedHeight = newHeight
+                }
+                .onChange(of: edgePadding) { _, newPadding in
+                    gridPadding = newPadding
+                }
+                .onAppear {
+                    calculatedHeight = totalHeight
+                    gridPadding = edgePadding
+                }
             }
-            .frame(minHeight: {
-                // Estimate height for layout based on current orientation
-                let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
-                let numRows = maxRow + 1
-                let cellSize: CGFloat = 36
-                // Detect orientation: landscape has wider screen
-                let screenBounds = UIScreen.main.bounds
-                let isLandscape = screenBounds.width > screenBounds.height
-                // Portrait: ~19pt spacing, Landscape: 20pt (capped)
-                let verticalSpacing: CGFloat = isLandscape ? 20 : 19
-                let borderStrokeBuffer: CGFloat = 2
-                return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
-            }())
+            .frame(minHeight: calculatedHeight + gridPadding)
             // Accessibility: Provide summary for VoiceOver users
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(calendarAccessibilityLabel)
@@ -276,9 +282,10 @@ struct MonthlyCalendarCard: View {
         // Match the dynamic sizing from Canvas
         let cellSize: CGFloat = min(columnWidth * 0.75, 36)
         let verticalSpacing: CGFloat = min(columnWidth - cellSize, 20)
+        let topBuffer: CGFloat = 1
 
         let col = Int(location.x / columnWidth)
-        let row = Int(location.y / (cellSize + verticalSpacing))
+        let row = Int((location.y - topBuffer) / (cellSize + verticalSpacing))
 
         if let dayData = displayDays.first(where: { $0.row == row && $0.col == col && $0.isCurrentMonth }) {
             onDateSelect(dayData.date)

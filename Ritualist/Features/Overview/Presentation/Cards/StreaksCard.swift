@@ -152,8 +152,8 @@ struct StreaksCard: View {
                     .accessibilityLabel(StreaksAccessibility.streakCount(streaks.count))
             }
 
-            // Only add spacer on iPad for equal-height matching in side-by-side layout
-            if horizontalSizeClass == .regular {
+            // Only add spacer on iPad with 3+ streaks for equal-height matching
+            if horizontalSizeClass == .regular && streaks.count > 2 {
                 Spacer(minLength: 0)
             }
 
@@ -199,8 +199,8 @@ struct StreaksCard: View {
                 streaksGrid
             }
 
-            // Only add spacer on iPad for equal-height matching in side-by-side layout
-            if horizontalSizeClass == .regular {
+            // Only add spacer on iPad with 3+ streaks for equal-height matching
+            if horizontalSizeClass == .regular && streaks.count > 2 {
                 Spacer(minLength: 0)
             }
         }
