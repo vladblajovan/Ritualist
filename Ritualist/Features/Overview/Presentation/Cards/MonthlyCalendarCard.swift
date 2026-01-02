@@ -51,14 +51,21 @@ struct MonthlyCalendarCard: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var currentDate = Date()
     @State private var displayDays: [DayDisplayData] = []
-    @State private var canvasSize: CGSize = .zero // Stored geometry for layout calculations
+    /// Stored canvas geometry for layout calculations.
+    /// Updated via onChange(of: geometry.size) to ensure layout and tap detection stay synchronized.
+    /// Note: During rapid orientation changes, there may be a brief moment where canvasSize
+    /// is updating. SwiftUI's animation system naturally debounces these transitions.
+    @State private var canvasSize: CGSize = .zero
 
     private var calendar: Calendar {
         CalendarUtils.localCalendar(for: timezone)
     }
 
-    /// Computed layout metrics derived from stored canvas size.
-    /// Single source of truth for both Canvas rendering and tap detection.
+    /// Computes all layout metrics from the stored canvas size.
+    ///
+    /// This is the single source of truth for both Canvas rendering and tap detection,
+    /// eliminating synchronization issues between the two. Both operations read from
+    /// the same `canvasSize` state, guaranteeing consistent hit testing.
     private var layout: LayoutMetrics {
         let columnWidth = canvasSize.width / 7
         let cellSize = min(columnWidth * CalendarLayout.circleSizeRatio, CalendarLayout.maxCellSize)
@@ -81,13 +88,22 @@ struct MonthlyCalendarCard: View {
         )
     }
 
+    /// Computed layout dimensions for the calendar grid.
+    /// All values are derived from `canvasSize` and used by both Canvas and tap detection.
     private struct LayoutMetrics {
+        /// Width of each day column (canvas width / 7)
         let columnWidth: CGFloat
+        /// Diameter of day circles
         let cellSize: CGFloat
+        /// Vertical gap between rows
         let verticalSpacing: CGFloat
+        /// Bottom padding inside the grid container
         let edgePadding: CGFloat
+        /// Font size for day numbers
         let fontSize: CGFloat
+        /// Top offset to prevent border clipping
         let topBuffer: CGFloat
+        /// Total height of the calendar grid
         let totalHeight: CGFloat
     }
 
@@ -305,6 +321,12 @@ struct MonthlyCalendarCard: View {
         }
     }
 
+    /// Handles tap gestures on the calendar grid.
+    ///
+    /// Converts tap location to grid coordinates using `layout` metrics (the same
+    /// metrics used for Canvas rendering), then finds and selects the matching day.
+    ///
+    /// - Parameter location: The tap location in Canvas coordinate space
     private func handleTap(at location: CGPoint) {
         let metrics = layout
         let col = Int(location.x / metrics.columnWidth)
