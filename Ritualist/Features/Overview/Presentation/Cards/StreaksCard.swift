@@ -76,6 +76,11 @@ struct StreaksCard: View {
         horizontalSizeClass == .compact && streaks.count <= 2
     }
 
+    /// Whether to show spacers for equal-height matching (iPad with 3+ streaks)
+    private var shouldShowEqualHeightSpacers: Bool {
+        horizontalSizeClass == .regular && streaks.count > 2
+    }
+
     /// Grid view for streaks - adapts between single row and 2-row layouts
     @ViewBuilder
     private var streaksGrid: some View {
@@ -152,8 +157,7 @@ struct StreaksCard: View {
                     .accessibilityLabel(StreaksAccessibility.streakCount(streaks.count))
             }
 
-            // Only add spacer on iPad with 3+ streaks for equal-height matching
-            if horizontalSizeClass == .regular && streaks.count > 2 {
+            if shouldShowEqualHeightSpacers {
                 Spacer(minLength: 0)
             }
 
@@ -199,8 +203,7 @@ struct StreaksCard: View {
                 streaksGrid
             }
 
-            // Only add spacer on iPad with 3+ streaks for equal-height matching
-            if horizontalSizeClass == .regular && streaks.count > 2 {
+            if shouldShowEqualHeightSpacers {
                 Spacer(minLength: 0)
             }
         }

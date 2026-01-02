@@ -27,7 +27,10 @@ struct MonthlyCalendarCard: View {
     @State private var currentDate = Date()
     @State private var displayDays: [DayDisplayData] = []
     @State private var calculatedHeight: CGFloat = 250 // Initial estimate, updated by GeometryReader
-    @State private var gridPadding: CGFloat = 10 // Padding from edge to first circle
+    @State private var gridPadding: CGFloat = 2 // Bottom padding, matches edge padding cap
+    @State private var cellSize: CGFloat = 36 // Circle size, stored for tap detection
+    @State private var verticalSpacing: CGFloat = 20 // Row spacing, stored for tap detection
+    @State private var topBuffer: CGFloat = 1 // Top buffer for border stroke
 
     private var calendar: Calendar {
         CalendarUtils.localCalendar(for: timezone)
@@ -122,31 +125,32 @@ struct MonthlyCalendarCard: View {
             // PERFORMANCE: Use Canvas for GPU-accelerated rendering - SINGLE draw pass
             GeometryReader { geometry in
                 let columnWidth = geometry.size.width / 7
-                // Circle fills 75% of column width, leaving 25% for spacing
-                // Cap at 36pt on iPhone for consistent appearance
-                let cellSize: CGFloat = min(columnWidth * 0.75, 36)
-                // Spacing = gap between circles, capped at 20pt to prevent explosion in landscape
-                let verticalSpacing: CGFloat = min(columnWidth - cellSize, 20)
-                // Padding from edge to first circle, capped for consistent bottom padding
-                // iPhone landscape needs slightly more padding
+                // Circle size: 75% of column, capped at 36pt for consistent touch targets
+                let localCellSize: CGFloat = min(columnWidth * 0.75, 36)
+                // Row spacing: capped at 20pt to prevent excessive gaps in landscape
+                let localVerticalSpacing: CGFloat = min(columnWidth - localCellSize, 20)
+                // Bottom padding: 2pt default, 10pt for iPhone landscape (empirically tuned)
                 let isIPhoneLandscape = horizontalSizeClass == .compact && geometry.size.width > geometry.size.height
                 let paddingCap: CGFloat = isIPhoneLandscape ? 10 : 2
-                let edgePadding: CGFloat = min((columnWidth - cellSize) / 2, paddingCap)
-                let fontSize: CGFloat = cellSize * 0.39  // Scale font with circle size
+                let localEdgePadding: CGFloat = min((columnWidth - localCellSize) / 2, paddingCap)
+                // Font scales with circle size for readability
+                let fontSize: CGFloat = localCellSize * 0.39
                 let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
                 let numRows = maxRow + 1
-                let borderStrokeBuffer: CGFloat = 2  // Bottom buffer for border stroke
-                let topBuffer: CGFloat = 1  // Top buffer for border stroke when today is in first row
-                let totalHeight = CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer + topBuffer
+                // Buffer for 2pt border stroke that extends outside circle bounds
+                let borderStrokeBuffer: CGFloat = 2
+                // Top buffer prevents border clipping when today is in first row (border lineWidth/2)
+                let localTopBuffer: CGFloat = 1
+                let totalHeight = CGFloat(numRows) * localCellSize + CGFloat(numRows - 1) * localVerticalSpacing + borderStrokeBuffer + localTopBuffer
 
                 Canvas { context, size in
                     for dayData in displayDays where dayData.isCurrentMonth {
                         // Center circle in column (matching day name alignment)
                         let centerX = CGFloat(dayData.col) * columnWidth + columnWidth / 2
-                        let centerY = topBuffer + CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
+                        let centerY = localTopBuffer + CGFloat(dayData.row) * (localCellSize + localVerticalSpacing) + localCellSize / 2
 
                         let center = CGPoint(x: centerX, y: centerY)
-                        let radius: CGFloat = cellSize / 2
+                        let radius: CGFloat = localCellSize / 2
 
                         // Draw background circle
                         let circlePath = Circle().path(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
@@ -170,15 +174,15 @@ struct MonthlyCalendarCard: View {
                 .onTapGesture { location in
                     handleTap(at: location, canvasWidth: geometry.size.width)
                 }
-                .onChange(of: totalHeight) { _, newHeight in
-                    calculatedHeight = newHeight
-                }
-                .onChange(of: edgePadding) { _, newPadding in
-                    gridPadding = newPadding
-                }
                 .onAppear {
-                    calculatedHeight = totalHeight
-                    gridPadding = edgePadding
+                    updateLayoutMetrics(totalHeight: totalHeight, edgePadding: localEdgePadding,
+                                       cellSize: localCellSize, verticalSpacing: localVerticalSpacing,
+                                       topBuffer: localTopBuffer)
+                }
+                .onChange(of: geometry.size) { _, _ in
+                    updateLayoutMetrics(totalHeight: totalHeight, edgePadding: localEdgePadding,
+                                       cellSize: localCellSize, verticalSpacing: localVerticalSpacing,
+                                       topBuffer: localTopBuffer)
                 }
             }
             .frame(minHeight: calculatedHeight + gridPadding)
@@ -279,17 +283,29 @@ struct MonthlyCalendarCard: View {
 
     private func handleTap(at location: CGPoint, canvasWidth: CGFloat) {
         let columnWidth = canvasWidth / 7
-        // Match the dynamic sizing from Canvas
-        let cellSize: CGFloat = min(columnWidth * 0.75, 36)
-        let verticalSpacing: CGFloat = min(columnWidth - cellSize, 20)
-        let topBuffer: CGFloat = 1
-
+        // Use stored @State values for tap detection to guarantee consistency with Canvas rendering
         let col = Int(location.x / columnWidth)
         let row = Int((location.y - topBuffer) / (cellSize + verticalSpacing))
 
         if let dayData = displayDays.first(where: { $0.row == row && $0.col == col && $0.isCurrentMonth }) {
             onDateSelect(dayData.date)
         }
+    }
+
+    /// Updates stored layout metrics when geometry changes
+    /// Centralizes layout state updates to ensure tap detection matches Canvas rendering
+    private func updateLayoutMetrics(
+        totalHeight: CGFloat,
+        edgePadding: CGFloat,
+        cellSize newCellSize: CGFloat,
+        verticalSpacing newVerticalSpacing: CGFloat,
+        topBuffer newTopBuffer: CGFloat
+    ) {
+        calculatedHeight = totalHeight
+        gridPadding = edgePadding
+        cellSize = newCellSize
+        verticalSpacing = newVerticalSpacing
+        topBuffer = newTopBuffer
     }
 }
 
