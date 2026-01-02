@@ -27,6 +27,28 @@ public enum StreaksLayoutViewLogic {
         return itemCount <= 2 ? 1 : 2
     }
 
+    // MARK: - Layout Mode
+
+    /// Determines whether to use single row layout.
+    /// ≤2 streaks always use single row for optimal horizontal space usage on any device.
+    /// - Parameters:
+    ///   - isCompactWidth: Whether the device is in compact width class (iPhone) - not used, kept for API compatibility
+    ///   - itemCount: Number of items to display
+    /// - Returns: true if single row layout should be used
+    public static func useSingleRowLayout(isCompactWidth: Bool, itemCount: Int) -> Bool {
+        itemCount <= 2
+    }
+
+    /// Determines whether to show spacers for equal-height card matching.
+    /// iPad with 3+ streaks needs spacers to match height with adjacent cards.
+    /// - Parameters:
+    ///   - isCompactWidth: Whether the device is in compact width class (iPhone)
+    ///   - itemCount: Number of items to display
+    /// - Returns: true if equal-height spacers should be shown
+    public static func shouldShowEqualHeightSpacers(isCompactWidth: Bool, itemCount: Int) -> Bool {
+        !isCompactWidth && itemCount > 2
+    }
+
     // MARK: - Height Calculation
 
     /// Calculates the total grid height based on layout context

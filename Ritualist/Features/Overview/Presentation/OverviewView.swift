@@ -4,31 +4,22 @@ import RitualistCore
 
 public struct OverviewView: View {
     @State var vm: OverviewViewModel
-    
-    /// User preference: whether brand header stays pinned at top while scrolling
-    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = true
-    
+
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    
+
     public init(vm: OverviewViewModel) {
         self.vm = vm
     }
-    
+
     public var body: some View {
         VStack(spacing: 0) {
-            // Sticky header at the top (only when pinned)
-            if isHeaderPinned {
-                stickyBrandHeader
-            }
-            
+            // Sticky header at the top
+            stickyBrandHeader
+
             // Scrollable content
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: CardDesign.cardSpacing) {
-                        // Scrolling header (only when not pinned)
-                        if !isHeaderPinned {
-                            scrollingBrandHeader
-                        }
                         
                         // Inspiration carousel at top position
                         if vm.shouldShowInspirationCard && !vm.inspirationItems.isEmpty {
@@ -166,7 +157,7 @@ public struct OverviewView: View {
                         Spacer(minLength: 100) // Tab bar padding
                     }
                     .padding(.horizontal, Spacing.large)
-                    .padding(.top, isHeaderPinned ? 16 : 0)
+                    .padding(.top, 16)
                     .id("scrollTop")
                 }
                 .refreshable {
@@ -271,50 +262,13 @@ public struct OverviewView: View {
     @ViewBuilder
     private var stickyBrandHeader: some View {
         AppBrandHeader(
-            completionPercentage: vm.todaysSummary?.completionPercentage
+            completionPercentage: vm.todaysSummary?.completionPercentage,
+            progressDisplayStyle: .circular
         )
         .padding(.horizontal, Spacing.large)
         .padding(.top, Spacing.medium + (horizontalSizeClass == .regular ? 10 : 0))
         .background(Color(.systemGroupedBackground))
-        .overlay(alignment: .bottom) {
-            // Fade gradient that overlays scroll content for smooth fade effect
-            LinearGradient(
-                colors: [
-                    Color(.systemGroupedBackground),
-                    Color(.systemGroupedBackground).opacity(0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 16)
-            .offset(y: 16)
-            .allowsHitTesting(false)
-        }
         .zIndex(1) // Ensure header and fade render above scroll content
-    }
-    
-    @ViewBuilder
-    private var scrollingBrandHeader: some View {
-        AppBrandHeader(
-            completionPercentage: vm.todaysSummary?.completionPercentage
-        )
-        // Match sticky header's top padding so position is consistent when toggling
-        // Extra 10px on iPad to align with other pages
-        .padding(.top, Spacing.medium + (horizontalSizeClass == .regular ? 10 : 0))
-        .overlay(alignment: .bottom) {
-            // Fade gradient matching sticky header for visual consistency
-            LinearGradient(
-                colors: [
-                    Color(.systemGroupedBackground),
-                    Color(.systemGroupedBackground).opacity(0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 16)
-            .offset(y: 16)
-            .allowsHitTesting(false)
-        }
     }
     
     // MARK: - Private Methods

@@ -13,8 +13,8 @@ import RitualistCore
 /// When `scrollToStartOnSelection` is true, selected category is moved to first position
 public struct CategoryCarouselWithManagement: View {
     let categories: [HabitCategory]
-    let selectedCategory: HabitCategory?
-    let onCategoryTap: (HabitCategory?) -> Void
+    @Binding var selectedCategory: HabitCategory?
+    let onCategoryTap: ((HabitCategory?) -> Void)?
     let onManageTap: (() -> Void)?
     let scrollToStartOnSelection: Bool
     let allowDeselection: Bool
@@ -38,15 +38,15 @@ public struct CategoryCarouselWithManagement: View {
 
     public init(
         categories: [HabitCategory],
-        selectedCategory: HabitCategory?,
-        onCategoryTap: @escaping (HabitCategory?) -> Void,
+        selectedCategory: Binding<HabitCategory?>,
+        onCategoryTap: ((HabitCategory?) -> Void)? = nil,
         onManageTap: (() -> Void)? = nil,
         scrollToStartOnSelection: Bool = false,
         allowDeselection: Bool = true,
         unselectedBackgroundColor: Color = AppColors.chipUnselectedBackground
     ) {
         self.categories = categories
-        self.selectedCategory = selectedCategory
+        self._selectedCategory = selectedCategory
         self.onCategoryTap = onCategoryTap
         self.onManageTap = onManageTap
         self.scrollToStartOnSelection = scrollToStartOnSelection
@@ -60,15 +60,11 @@ public struct CategoryCarouselWithManagement: View {
                 HStack(spacing: Spacing.small) {
                     if showCogwheel {
                         cogwheelButton
-                    } else {
-                        // Invisible anchor for scroll-to-start
-                        Color.clear
-                            .frame(width: selectedCategory != nil ? Spacing.small : 0)
-                            .id("scrollStart")
                     }
                     categoryChips(scrollProxy: proxy)
                 }
-                .padding(.horizontal, Spacing.medium)
+                .padding(.leading, showCogwheel ? 0 : Spacing.medium)
+                .padding(.trailing, Spacing.medium)
             }
             .mask(gradientMask)
         }
@@ -134,24 +130,15 @@ public struct CategoryCarouselWithManagement: View {
         let isCurrentlySelected = selectedCategory?.id == category.id
 
         if allowDeselection && isCurrentlySelected {
-            onCategoryTap(nil)
-            // Scroll back to start only when no cogwheel
-            if scrollToStartOnSelection && !showCogwheel {
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(50))
-                    scrollProxy.scrollTo("scrollStart", anchor: .leading)
-                }
-            }
+            selectedCategory = nil
+            onCategoryTap?(nil)
         } else {
-            onCategoryTap(category)
-            // Then scroll to start
-            if scrollToStartOnSelection {
+            selectedCategory = category
+            onCategoryTap?(category)
+            // Scroll to cogwheel when scrollToStartOnSelection is enabled (used in habit detail)
+            if scrollToStartOnSelection && showCogwheel {
                 Task { @MainActor in
-                    if showCogwheel {
-                        scrollProxy.scrollTo("cogwheel", anchor: .leading)
-                    } else {
-                        scrollProxy.scrollTo(category.id, anchor: UnitPoint(x: 0.05, y: 0.5))
-                    }
+                    scrollProxy.scrollTo("cogwheel", anchor: .leading)
                 }
             }
         }

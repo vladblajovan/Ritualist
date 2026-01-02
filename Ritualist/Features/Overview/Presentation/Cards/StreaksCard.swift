@@ -73,12 +73,18 @@ struct StreaksCard: View {
 
     /// Whether to use single row layout (iPhone with <=2 streaks)
     private var useSingleRowLayout: Bool {
-        horizontalSizeClass == .compact && streaks.count <= 2
+        StreaksLayoutViewLogic.useSingleRowLayout(
+            isCompactWidth: horizontalSizeClass == .compact,
+            itemCount: streaks.count
+        )
     }
 
     /// Whether to show spacers for equal-height matching (iPad with 3+ streaks)
     private var shouldShowEqualHeightSpacers: Bool {
-        horizontalSizeClass == .regular && streaks.count > 2
+        StreaksLayoutViewLogic.shouldShowEqualHeightSpacers(
+            isCompactWidth: horizontalSizeClass == .compact,
+            itemCount: streaks.count
+        )
     }
 
     /// Grid view for streaks - adapts between single row and 2-row layouts

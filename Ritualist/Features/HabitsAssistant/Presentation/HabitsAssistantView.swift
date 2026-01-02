@@ -9,49 +9,19 @@ import Foundation
 import SwiftUI
 import RitualistCore
 
+/// Presentation component for displaying habit suggestions.
+/// Uses HabitsAssistantSheetViewModel for all state and logic.
 public struct HabitsAssistantView: View {
-    @Bindable var vm: HabitsAssistantViewModel
+    @Bindable var vm: HabitsAssistantSheetViewModel
+
+    let isFirstVisit: Bool
+    let onSuggestionTap: (HabitSuggestion, Bool) async -> Void
+    let onShowPaywall: () -> Void
+
+    // MARK: - Local UI State
+
     @State private var isCreatingHabit = false
     @State private var isDeletingHabit = false
-
-    private let existingHabits: [Habit]
-    private let onHabitCreate: (HabitSuggestion) async -> CreateHabitFromSuggestionResult
-    private let onHabitRemove: (UUID) async -> Bool
-    private let onShowPaywall: () -> Void
-    private let shouldShowLimitBanner: Bool
-    private let maxHabitsAllowed: Int
-    private let getCurrentHabitCount: () -> Int
-    private let isFirstVisit: Bool
-
-    public init(vm: HabitsAssistantViewModel,
-                existingHabits: [Habit] = [],
-                shouldShowLimitBanner: Bool = false,
-                maxHabitsAllowed: Int = BusinessConstants.freeMaxHabits,
-                getCurrentHabitCount: @escaping () -> Int = { 0 },
-                isFirstVisit: Bool = false,
-                onHabitCreate: @escaping (HabitSuggestion) async -> CreateHabitFromSuggestionResult,
-                onHabitRemove: @escaping (UUID) async -> Bool,
-                onShowPaywall: @escaping () -> Void) {
-        self.vm = vm
-        self.existingHabits = existingHabits
-        self.shouldShowLimitBanner = shouldShowLimitBanner
-        self.maxHabitsAllowed = maxHabitsAllowed
-        self.getCurrentHabitCount = getCurrentHabitCount
-        self.isFirstVisit = isFirstVisit
-        self.onHabitCreate = onHabitCreate
-        self.onHabitRemove = onHabitRemove
-        self.onShowPaywall = onShowPaywall
-    }
-    
-    private var suggestions: [HabitSuggestion] {
-        vm.getSuggestions()
-    }
-
-    private var totalHabitCount: Int {
-        // Use the closure provided by the parent to get the current/projected count
-        // This allows the parent (HabitsAssistantSheet) to track user intentions
-        getCurrentHabitCount()
-    }
 
     public var body: some View {
         ScrollView {
@@ -59,7 +29,6 @@ public struct HabitsAssistantView: View {
                 // Show enhanced intro section only on first visit (post-onboarding)
                 if isFirstVisit {
                     VStack(alignment: .leading, spacing: Spacing.medium) {
-                        // Descriptive text
                         VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                             Text(Strings.HabitsAssistant.firstVisitTitle)
                                 .font(.title3)
@@ -71,11 +40,10 @@ public struct HabitsAssistantView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
-                        // Habit limit banner - show on first visit to set expectations
                         #if !ALL_FEATURES_ENABLED
                         HabitLimitBannerView(
-                            currentCount: totalHabitCount,
-                            maxCount: maxHabitsAllowed,
+                            currentCount: vm.projectedHabitCount,
+                            maxCount: vm.maxHabitsAllowed,
                             onUpgradeTap: onShowPaywall
                         )
                         #endif
@@ -86,10 +54,10 @@ public struct HabitsAssistantView: View {
                 }
 
                 // Regular limit banner (shown when at/over limit on subsequent visits)
-                if !isFirstVisit && shouldShowLimitBanner {
+                if !isFirstVisit && vm.shouldShowLimitBanner {
                     HabitLimitBannerView(
-                        currentCount: totalHabitCount,
-                        maxCount: maxHabitsAllowed,
+                        currentCount: vm.projectedHabitCount,
+                        maxCount: vm.maxHabitsAllowed,
                         onUpgradeTap: onShowPaywall
                     )
                     .padding(.horizontal, Spacing.medium)
@@ -97,43 +65,35 @@ public struct HabitsAssistantView: View {
                     .padding(.bottom, Spacing.small)
                 }
 
-                // Category selector - scrolls with content
-                if vm.isLoadingCategories {
-                    ProgressView("Loading categories...")
-                        .padding(.vertical, Spacing.medium)
-                } else {
-                    CategoryCarouselWithManagement(
-                        categories: vm.categories,
-                        selectedCategory: vm.selectedCategory,
-                        onCategoryTap: { category in
-                            if let category = category {
-                                vm.selectCategory(category)
-                            } else {
-                                vm.clearCategorySelection()
-                            }
-                        },
-                        onManageTap: nil,
-                        scrollToStartOnSelection: true,
-                        allowDeselection: true,
-                        unselectedBackgroundColor: Color(.secondarySystemGroupedBackground)
-                    )
-                    .padding(.top, Spacing.small)
-                    .padding(.bottom, Spacing.small)
-                }
+                // Category selector
+                CategoryCarouselWithManagement(
+                    categories: vm.categories,
+                    selectedCategory: $vm.selectedCategory,
+                    onManageTap: nil,
+                    scrollToStartOnSelection: false,
+                    allowDeselection: true,
+                    unselectedBackgroundColor: Color(.secondarySystemGroupedBackground)
+                )
+                .padding(.top, Spacing.small)
+                .padding(.bottom, Spacing.small)
 
                 // Habit suggestions
                 LazyVStack(spacing: Spacing.medium) {
-                    ForEach(suggestions) { suggestion in
+                    ForEach(vm.getSuggestions()) { suggestion in
                         HabitSuggestionRow(
                             suggestion: suggestion,
                             isAdded: vm.addedSuggestionIds.contains(suggestion.id),
                             isCreating: isCreatingHabit,
                             isDeleting: isDeletingHabit,
                             onAdd: {
-                                await addHabit(suggestion)
+                                isCreatingHabit = true
+                                await onSuggestionTap(suggestion, true)
+                                isCreatingHabit = false
                             },
                             onRemove: {
-                                await removeHabit(suggestion)
+                                isDeletingHabit = true
+                                await onSuggestionTap(suggestion, false)
+                                isDeletingHabit = false
                             }
                         )
                     }
@@ -146,69 +106,7 @@ public struct HabitsAssistantView: View {
         .background(Color(.systemGroupedBackground))
         .task {
             await vm.loadCategories()
-            vm.initializeWithExistingHabits(existingHabits)
         }
-    }
-    
-    private func addHabit(_ suggestion: HabitSuggestion) async {
-        guard !vm.addedSuggestionIds.contains(suggestion.id) else { return }
-        
-        // Track habit suggestion viewed when user attempts to add it
-        vm.trackHabitSuggestionViewed(
-            habitId: suggestion.id,
-            category: suggestion.categoryId
-        )
-        
-        isCreatingHabit = true
-        let result = await onHabitCreate(suggestion)
-        
-        switch result {
-        case .success(let habitId):
-            vm.markSuggestionAsAdded(suggestion.id, habitId: habitId)
-            vm.trackHabitAdded(
-                habitId: suggestion.id,
-                habitName: suggestion.name,
-                category: suggestion.categoryId
-            )
-        case .limitReached:
-            // Show paywall for limit reached
-            vm.trackHabitAddFailed(
-                habitId: suggestion.id,
-                error: "Habit limit reached"
-            )
-            onShowPaywall()
-        case .error(let errorMessage):
-            vm.trackHabitAddFailed(
-                habitId: suggestion.id,
-                error: errorMessage
-            )
-        }
-        
-        isCreatingHabit = false
-    }
-    
-    private func removeHabit(_ suggestion: HabitSuggestion) async {
-        guard vm.addedSuggestionIds.contains(suggestion.id),
-              let habitId = vm.suggestionToHabitMappings[suggestion.id] else { return }
-        
-        isDeletingHabit = true
-        let success = await onHabitRemove(habitId)
-        
-        if success {
-            vm.markSuggestionAsRemoved(suggestion.id)
-            vm.trackHabitRemoved(
-                habitId: suggestion.id,
-                habitName: suggestion.name,
-                category: suggestion.categoryId
-            )
-        } else {
-            vm.trackHabitRemoveFailed(
-                habitId: suggestion.id,
-                error: "Failed to remove habit"
-            )
-        }
-
-        isDeletingHabit = false
     }
 }
 
@@ -219,7 +117,7 @@ private struct HabitSuggestionRow: View {
     let isDeleting: Bool
     let onAdd: () async -> Void
     let onRemove: () async -> Void
-    
+
     private var scheduleText: String {
         switch suggestion.schedule {
         case .daily:
@@ -232,13 +130,13 @@ private struct HabitSuggestionRow: View {
             return selectedDays.joined(separator: ", ")
         }
     }
-    
+
     private var targetText: String? {
         guard let target = suggestion.dailyTarget,
               let unit = suggestion.unitLabel else { return nil }
         return "\(Int(target)) \(unit)"
     }
-    
+
     var body: some View {
         HStack(spacing: Spacing.medium) {
             // Emoji and color indicator
@@ -327,4 +225,3 @@ private struct HabitSuggestionRow: View {
         }
     }
 }
-

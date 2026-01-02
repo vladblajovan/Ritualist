@@ -69,12 +69,7 @@ extension Container {
     
     var createHabitFromSuggestionUseCase: Factory<CreateHabitFromSuggestionUseCase> {
         self {
-            CreateHabitFromSuggestion(
-                createHabit: self.createHabit(),
-                getHabitCount: self.getHabitCount(),
-                checkHabitCreationLimit: self.checkHabitCreationLimit(),
-                featureGatingService: self.featureGatingService()
-            )
+            CreateHabitFromSuggestion(createHabit: self.createHabit())
         }
     }
     

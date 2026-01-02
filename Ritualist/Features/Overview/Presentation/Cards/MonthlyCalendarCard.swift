@@ -2,28 +2,10 @@ import SwiftUI
 import Foundation
 import RitualistCore
 
-// MARK: - Layout Constants
-
-/// Named constants for calendar grid layout calculations.
-/// Centralized here for maintainability and documentation.
-private enum CalendarLayout {
-    /// Circle diameter as fraction of column width (75%)
-    static let circleSizeRatio: CGFloat = 0.75
-    /// Maximum circle size in points for consistent touch targets
-    static let maxCellSize: CGFloat = 36
-    /// Maximum vertical spacing between rows to prevent excessive gaps in landscape
-    static let maxVerticalSpacing: CGFloat = 20
-    /// Bottom padding cap for iPhone landscape mode (empirically tuned)
-    static let landscapePaddingCap: CGFloat = 10
-    /// Default bottom padding cap for portrait and iPad
-    static let defaultPaddingCap: CGFloat = 2
-    /// Font size as fraction of circle diameter for readability
-    static let fontSizeRatio: CGFloat = 0.39
-    /// Top buffer to prevent border clipping when today is in first row (border lineWidth/2)
-    static let topBuffer: CGFloat = 1
-    /// Buffer for border stroke that extends outside circle bounds
-    static let borderStrokeBuffer: CGFloat = 2
-}
+// Type aliases for cleaner code
+private typealias LayoutConstants = MonthlyCalendarViewLogic.LayoutConstants
+private typealias LayoutMetrics = MonthlyCalendarViewLogic.LayoutMetrics
+private typealias LayoutContext = MonthlyCalendarViewLogic.LayoutContext
 
 // MARK: - Day Display Data
 
@@ -37,6 +19,7 @@ private struct DayDisplayData: Identifiable {
     let hasBorder: Bool
     let opacity: Double
     let isCurrentMonth: Bool
+    let isFuture: Bool
     let row: Int
     let col: Int
 }
@@ -51,6 +34,8 @@ struct MonthlyCalendarCard: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var currentDate = Date()
     @State private var displayDays: [DayDisplayData] = []
+    /// Maximum row index for current month days, cached to avoid repeated filtering in layout
+    @State private var maxRowIndex: Int = 4
     /// Stored canvas geometry for layout calculations.
     /// Updated via onChange(of: geometry.size) to ensure layout and tap detection stay synchronized.
     /// Note: During rapid orientation changes, there may be a brief moment where canvasSize
@@ -62,49 +47,17 @@ struct MonthlyCalendarCard: View {
     }
 
     /// Computes all layout metrics from the stored canvas size.
-    ///
-    /// This is the single source of truth for both Canvas rendering and tap detection,
-    /// eliminating synchronization issues between the two. Both operations read from
-    /// the same `canvasSize` state, guaranteeing consistent hit testing.
+    /// Delegates to MonthlyCalendarViewLogic for testability.
+    /// On iPad, passes available height for dynamic sizing to fill EqualHeightRow.
     private var layout: LayoutMetrics {
-        let columnWidth = canvasSize.width / 7
-        let cellSize = min(columnWidth * CalendarLayout.circleSizeRatio, CalendarLayout.maxCellSize)
-        let verticalSpacing = min(columnWidth - cellSize, CalendarLayout.maxVerticalSpacing)
-        let isIPhoneLandscape = horizontalSizeClass == .compact && canvasSize.width > canvasSize.height
-        let paddingCap = isIPhoneLandscape ? CalendarLayout.landscapePaddingCap : CalendarLayout.defaultPaddingCap
-        let edgePadding = min((columnWidth - cellSize) / 2, paddingCap)
-        let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
-        let numRows = maxRow + 1
-        let totalHeight = CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + CalendarLayout.borderStrokeBuffer + CalendarLayout.topBuffer
-
-        return LayoutMetrics(
-            columnWidth: columnWidth,
-            cellSize: cellSize,
-            verticalSpacing: verticalSpacing,
-            edgePadding: edgePadding,
-            fontSize: cellSize * CalendarLayout.fontSizeRatio,
-            topBuffer: CalendarLayout.topBuffer,
-            totalHeight: totalHeight
+        let isCompact = horizontalSizeClass == .compact
+        let context = LayoutContext(
+            canvasSize: canvasSize,
+            maxRowIndex: maxRowIndex,
+            isCompactWidth: isCompact,
+            availableHeight: isCompact ? nil : canvasSize.height
         )
-    }
-
-    /// Computed layout dimensions for the calendar grid.
-    /// All values are derived from `canvasSize` and used by both Canvas and tap detection.
-    private struct LayoutMetrics {
-        /// Width of each day column (canvas width / 7)
-        let columnWidth: CGFloat
-        /// Diameter of day circles
-        let cellSize: CGFloat
-        /// Vertical gap between rows
-        let verticalSpacing: CGFloat
-        /// Bottom padding inside the grid container
-        let edgePadding: CGFloat
-        /// Font size for day numbers
-        let fontSize: CGFloat
-        /// Top offset to prevent border clipping
-        let topBuffer: CGFloat
-        /// Total height of the calendar grid
-        let totalHeight: CGFloat
+        return MonthlyCalendarViewLogic.computeLayout(for: context)
     }
 
     private var monthString: String {
@@ -200,7 +153,8 @@ struct MonthlyCalendarCard: View {
                 Canvas { context, _ in
                     for dayData in displayDays where dayData.isCurrentMonth {
                         let centerX = CGFloat(dayData.col) * metrics.columnWidth + metrics.columnWidth / 2
-                        let centerY = metrics.topBuffer + CGFloat(dayData.row) * (metrics.cellSize + metrics.verticalSpacing) + metrics.cellSize / 2
+                        // Use symmetric borderBuffer for consistent top/bottom spacing
+                        let centerY = metrics.borderBuffer + CGFloat(dayData.row) * (metrics.cellSize + metrics.verticalSpacing) + metrics.cellSize / 2
                         let center = CGPoint(x: centerX, y: centerY)
                         let radius = metrics.cellSize / 2
 
@@ -225,7 +179,7 @@ struct MonthlyCalendarCard: View {
                 .onAppear { canvasSize = geometry.size }
                 .onChange(of: geometry.size) { _, newSize in canvasSize = newSize }
             }
-            .frame(minHeight: layout.totalHeight + layout.edgePadding)
+            .frame(minHeight: layout.totalHeight)
             // Accessibility: Provide summary for VoiceOver users
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(calendarAccessibilityLabel)
@@ -292,6 +246,7 @@ struct MonthlyCalendarCard: View {
         let currentMonth = calendar.dateComponents(in: timezone, from: currentDate).month ?? 1
         let today = Date()
 
+        var computedMaxRow = 0
         displayDays = days.enumerated().map { index, date in
             let dayNumber = calendar.dateComponents(in: timezone, from: date).day ?? 1
             let normalizedDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
@@ -306,6 +261,11 @@ struct MonthlyCalendarCard: View {
                 calendar: calendar
             )
 
+            let row = index / 7
+            if context.isCurrentMonth {
+                computedMaxRow = max(computedMaxRow, row)
+            }
+
             return DayDisplayData(
                 id: normalizedDate.timeIntervalSince1970.description,
                 date: date,
@@ -315,24 +275,33 @@ struct MonthlyCalendarCard: View {
                 hasBorder: MonthlyCalendarViewLogic.shouldShowBorder(for: context),
                 opacity: MonthlyCalendarViewLogic.opacity(for: context),
                 isCurrentMonth: context.isCurrentMonth,
-                row: index / 7,
+                isFuture: context.isFuture,
+                row: row,
                 col: index % 7
             )
         }
+        maxRowIndex = computedMaxRow
     }
 
     /// Handles tap gestures on the calendar grid.
-    ///
-    /// Converts tap location to grid coordinates using `layout` metrics (the same
-    /// metrics used for Canvas rendering), then finds and selects the matching day.
+    /// Delegates grid position calculation to MonthlyCalendarViewLogic for testability.
     ///
     /// - Parameter location: The tap location in Canvas coordinate space
     private func handleTap(at location: CGPoint) {
-        let metrics = layout
-        let col = Int(location.x / metrics.columnWidth)
-        let row = Int((location.y - metrics.topBuffer) / (metrics.cellSize + metrics.verticalSpacing))
+        // Guard against invalid state during rapid orientation changes
+        guard canvasSize.width > 0, canvasSize.height > 0 else { return }
 
-        if let dayData = displayDays.first(where: { $0.row == row && $0.col == col && $0.isCurrentMonth }) {
+        let metrics = layout
+
+        // Use extracted logic for grid position calculation (includes bounds validation)
+        guard let position = MonthlyCalendarViewLogic.gridPosition(
+            for: location,
+            metrics: metrics,
+            maxRowIndex: maxRowIndex
+        ) else { return }
+
+        // Find the tapped day - must be current month and not a future date
+        if let dayData = displayDays.first(where: { $0.row == position.row && $0.col == position.col && $0.isCurrentMonth && !$0.isFuture }) {
             onDateSelect(dayData.date)
         }
     }

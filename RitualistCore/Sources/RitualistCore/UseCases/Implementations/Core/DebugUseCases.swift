@@ -205,6 +205,8 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
         let finalSuggestions = Array(selectedSuggestions.shuffled().prefix(count))
         var createdHabits: [Habit] = []
 
+        // NOTE: CreateHabitFromSuggestionUseCase no longer checks limits.
+        // Limit checking is now at the UI layer, so test data can create unlimited habits.
         for suggestion in finalSuggestions {
             let result = await createHabitFromSuggestionUseCase.execute(suggestion)
 
@@ -216,8 +218,6 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
                 }
             case .error(let error):
                 logger.log("Failed to create habit from suggestion '\(suggestion.name)': \(error)", level: .error, category: .debug)
-            case .limitReached:
-                throw TestDataPopulationError("Habit creation limit reached while creating suggested habits")
             }
         }
 

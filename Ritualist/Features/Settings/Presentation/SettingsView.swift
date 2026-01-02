@@ -61,9 +61,6 @@ private struct SettingsFormView: View {
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
 
-    /// User preference: whether brand header stays pinned at top while scrolling
-    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = true
-
     #if DEBUG
     @State private var showingDebugMenu = false
     #endif
@@ -86,10 +83,8 @@ private struct SettingsFormView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Sticky header at the top (only when pinned)
-            if isHeaderPinned {
-                stickyBrandHeader
-            }
+            // Sticky header at the top
+            stickyBrandHeader
 
             Group {
                 if let error = vm.error {
@@ -102,11 +97,6 @@ private struct SettingsFormView: View {
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            // Scrolling header (only when not pinned)
-                            if !isHeaderPinned {
-                                scrollingBrandHeader
-                            }
-
                             Form {
                                 // Account Section
                                 AccountSectionView(
@@ -248,6 +238,7 @@ private struct SettingsFormView: View {
                             Spacer(minLength: 100) // Bottom padding for tab bar
                         } // LazyVStack
                     } // ScrollView
+                    .contentMargins(.top, -Spacing.medium - 4, for: .scrollContent)
                     .refreshable {
                         await vm.reload()
                         updateLocalState()
@@ -324,32 +315,7 @@ private struct SettingsFormView: View {
         .padding(.horizontal, Spacing.large)
         .padding(.top, Spacing.medium)
         .background(Color(.systemGroupedBackground))
-        .overlay(alignment: .bottom) {
-            // Fade gradient that overlays scroll content for smooth fade effect
-            LinearGradient(
-                colors: [
-                    Color(.systemGroupedBackground),
-                    Color(.systemGroupedBackground).opacity(0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 16)
-            .offset(y: 16)
-            .allowsHitTesting(false)
-        }
         .zIndex(1) // Ensure header and fade render above scroll content
-    }
-
-    @ViewBuilder
-    private var scrollingBrandHeader: some View {
-        AppBrandHeader(
-            completionPercentage: nil,
-            showProgressBar: false,
-            showProfileAvatar: false
-        )
-        .padding(.horizontal, Spacing.large)
-        .padding(.top, Spacing.medium)
     }
 
     // MARK: - Computed Properties

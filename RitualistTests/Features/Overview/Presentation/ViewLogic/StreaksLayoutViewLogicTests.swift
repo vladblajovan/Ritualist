@@ -265,4 +265,111 @@ struct StreaksLayoutViewLogicTests {
         let height = StreaksLayoutViewLogic.gridHeight(for: context)
         #expect(height == 250, "Large spacing should give 2×100 + 50 = 250")
     }
+
+    // MARK: - Single Row Layout Tests
+
+    @Test("Single row layout on iPhone with 0 items")
+    func singleRowLayoutiPhoneZeroItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: true, itemCount: 0)
+        #expect(result == true, "iPhone with 0 items should use single row")
+    }
+
+    @Test("Single row layout on iPhone with 1 item")
+    func singleRowLayoutiPhoneOneItem() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: true, itemCount: 1)
+        #expect(result == true, "iPhone with 1 item should use single row")
+    }
+
+    @Test("Single row layout on iPhone with 2 items")
+    func singleRowLayoutiPhoneTwoItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: true, itemCount: 2)
+        #expect(result == true, "iPhone with 2 items should use single row")
+    }
+
+    @Test("Single row layout on iPhone with 3 items")
+    func singleRowLayoutiPhoneThreeItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: true, itemCount: 3)
+        #expect(result == false, "iPhone with 3+ items should NOT use single row")
+    }
+
+    @Test("Single row layout on iPad with 1 item")
+    func singleRowLayoutiPadOneItem() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: false, itemCount: 1)
+        #expect(result == true, "iPad with 1 item should use single row layout")
+    }
+
+    @Test("Single row layout on iPad with 2 items")
+    func singleRowLayoutiPadTwoItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: false, itemCount: 2)
+        #expect(result == true, "iPad with 2 items should use single row layout")
+    }
+
+    @Test("Single row layout on iPad with 3 items")
+    func singleRowLayoutiPadThreeItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: false, itemCount: 3)
+        #expect(result == false, "iPad with 3+ items should NOT use single row layout")
+    }
+
+    // MARK: - Equal Height Spacers Tests
+
+    @Test("Equal height spacers on iPad with 3+ items")
+    func equalHeightSpacersiPadThreeItems() {
+        let result = StreaksLayoutViewLogic.shouldShowEqualHeightSpacers(isCompactWidth: false, itemCount: 3)
+        #expect(result == true, "iPad with 3+ items should show equal height spacers")
+    }
+
+    @Test("Equal height spacers on iPad with 5 items")
+    func equalHeightSpacersiPadFiveItems() {
+        let result = StreaksLayoutViewLogic.shouldShowEqualHeightSpacers(isCompactWidth: false, itemCount: 5)
+        #expect(result == true, "iPad with 5 items should show equal height spacers")
+    }
+
+    @Test("Equal height spacers on iPad with 2 items")
+    func equalHeightSpacersiPadTwoItems() {
+        let result = StreaksLayoutViewLogic.shouldShowEqualHeightSpacers(isCompactWidth: false, itemCount: 2)
+        #expect(result == false, "iPad with ≤2 items should NOT show equal height spacers")
+    }
+
+    @Test("Equal height spacers on iPad with 0 items")
+    func equalHeightSpacersiPadZeroItems() {
+        let result = StreaksLayoutViewLogic.shouldShowEqualHeightSpacers(isCompactWidth: false, itemCount: 0)
+        #expect(result == false, "iPad with 0 items should NOT show equal height spacers")
+    }
+
+    @Test("Equal height spacers on iPhone with 3 items")
+    func equalHeightSpacersiPhoneThreeItems() {
+        let result = StreaksLayoutViewLogic.shouldShowEqualHeightSpacers(isCompactWidth: true, itemCount: 3)
+        #expect(result == false, "iPhone should never show equal height spacers")
+    }
+
+    @Test("Equal height spacers on iPhone with 5 items")
+    func equalHeightSpacersiPhoneFiveItems() {
+        let result = StreaksLayoutViewLogic.shouldShowEqualHeightSpacers(isCompactWidth: true, itemCount: 5)
+        #expect(result == false, "iPhone should never show equal height spacers")
+    }
+
+    // MARK: - Boundary Condition Tests
+
+    @Test("Single row and equal height spacers are mutually exclusive")
+    func singleRowAndEqualHeightMutuallyExclusive() {
+        // Test various combinations - these should never both be true
+        let testCases: [(isCompact: Bool, count: Int)] = [
+            (true, 0), (true, 1), (true, 2), (true, 3), (true, 5),
+            (false, 0), (false, 1), (false, 2), (false, 3), (false, 5)
+        ]
+
+        for testCase in testCases {
+            let singleRow = StreaksLayoutViewLogic.useSingleRowLayout(
+                isCompactWidth: testCase.isCompact,
+                itemCount: testCase.count
+            )
+            let equalHeight = StreaksLayoutViewLogic.shouldShowEqualHeightSpacers(
+                isCompactWidth: testCase.isCompact,
+                itemCount: testCase.count
+            )
+
+            let bothTrue = singleRow && equalHeight
+            #expect(!bothTrue, "Single row and equal height spacers should never both be true (compact: \(testCase.isCompact), count: \(testCase.count))")
+        }
+    }
 }
