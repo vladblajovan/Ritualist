@@ -1,81 +1,36 @@
 import SwiftUI
 import RitualistCore
-import UniformTypeIdentifiers
 
 struct ICloudSyncSectionView: View {
     @Bindable var vm: SettingsViewModel
 
     var body: some View {
         Section {
-            if vm.isLoading {
-                // MARK: - Loading State
+            NavigationLink {
+                ICloudSyncSettingsView(vm: vm)
+            } label: {
                 HStack {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Loading...")
-                        .foregroundStyle(.secondary)
+                    Label("iCloud", systemImage: "icloud")
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    if vm.isLoading || vm.isCheckingCloudStatus {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        statusIndicator
+                    }
                 }
-            } else if !vm.iCloudStatus.canSync {
-                // MARK: - iCloud Not Available
-                iCloudSetupPrompt
-            } else {
-                // MARK: - iCloud Available: Show Status
-                syncStatusContent
             }
         } header: {
-            Text("iCloud Sync")
+            Text("Sync")
         } footer: {
             if vm.iCloudStatus.canSync {
-                Text("Your habits sync automatically across all your devices signed into the same iCloud account.")
+                Text("Syncing across your devices.")
             } else {
-                Text("Sign in to iCloud in Settings → Apple ID to sync your habits across devices.")
+                Text("Tap to see how to enable sync.")
             }
-        }
-    }
-
-    // MARK: - Sync Status Content
-
-    @ViewBuilder
-    private var syncStatusContent: some View {
-        // iCloud Account Status
-        HStack {
-            Label("Status", systemImage: "icloud")
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            if vm.isCheckingCloudStatus {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                statusIndicator
-            }
-        }
-
-        // Last Synced Timestamp
-        if let lastSync = vm.lastSyncDate {
-            HStack {
-                Label("Last Synced", systemImage: "clock")
-                    .foregroundStyle(.primary)
-
-                Spacer()
-
-                Text(lastSync, format: .relative(presentation: .named))
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
-            }
-        }
-    }
-
-    // MARK: - iCloud Setup Prompt
-
-    @ViewBuilder
-    private var iCloudSetupPrompt: some View {
-        HStack {
-            Label("iCloud Not Available", systemImage: "icloud.slash")
-                .foregroundStyle(.orange)
-
-            Spacer()
         }
     }
 
@@ -139,24 +94,26 @@ struct ICloudSyncSectionView: View {
 }
 
 #Preview {
-    Form {
-        ICloudSyncSectionView(vm: SettingsViewModel(
-            loadProfile: MockLoadProfile(),
-            saveProfile: MockSaveProfile(),
-            permissionCoordinator: MockPermissionCoordinator(),
-            checkNotificationStatus: MockCheckNotificationStatus(),
-            getLocationAuthStatus: MockGetLocationAuthStatus(),
-            clearPurchases: MockClearPurchases(),
-            checkPremiumStatus: MockCheckPremiumStatus(),
-            getCurrentSubscriptionPlan: MockGetCurrentSubscriptionPlan(),
-            getSubscriptionExpiryDate: MockGetSubscriptionExpiryDate(),
-            syncWithiCloud: MockSyncWithiCloud(),
-            checkiCloudStatus: MockCheckiCloudStatus(),
-            getLastSyncDate: MockGetLastSyncDate(),
-            deleteData: MockDeleteData(),
-            exportUserData: MockExportUserData(),
-            importUserData: MockImportUserData()
-        ))
+    NavigationStack {
+        Form {
+            ICloudSyncSectionView(vm: SettingsViewModel(
+                loadProfile: MockLoadProfile(),
+                saveProfile: MockSaveProfile(),
+                permissionCoordinator: MockPermissionCoordinator(),
+                checkNotificationStatus: MockCheckNotificationStatus(),
+                getLocationAuthStatus: MockGetLocationAuthStatus(),
+                clearPurchases: MockClearPurchases(),
+                checkPremiumStatus: MockCheckPremiumStatus(),
+                getCurrentSubscriptionPlan: MockGetCurrentSubscriptionPlan(),
+                getSubscriptionExpiryDate: MockGetSubscriptionExpiryDate(),
+                syncWithiCloud: MockSyncWithiCloud(),
+                checkiCloudStatus: MockCheckiCloudStatus(),
+                getLastSyncDate: MockGetLastSyncDate(),
+                deleteData: MockDeleteData(),
+                exportUserData: MockExportUserData(),
+                importUserData: MockImportUserData()
+            ))
+        }
     }
 }
 

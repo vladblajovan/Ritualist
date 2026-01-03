@@ -57,6 +57,13 @@ struct OnboardingPage3View: View {
                         title: "Set Your Goals",
                         description: "Binary tracking or numeric targets with units"
                     )
+
+                    OnboardingFeatureCard(
+                        icon: "airplane",
+                        iconColor: .blue,
+                        title: "Travel-Friendly",
+                        description: "Automatic timezone handling keeps habits on track wherever you go"
+                    )
                 }
                 .padding(.horizontal, 24)
 
