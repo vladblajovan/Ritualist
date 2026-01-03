@@ -205,6 +205,7 @@ struct CategoryDefinitionsServiceTests {
         #expect(weights["extraversion"] == 0.7)
         #expect(weights["agreeableness"] == 0.6)
         #expect(weights["conscientiousness"] == 0.3)
+        #expect(weights["neuroticism"] == -0.3)
     }
 
     // MARK: - Learning Category Tests
@@ -235,6 +236,7 @@ struct CategoryDefinitionsServiceTests {
         #expect(weights["openness"] == 0.8)
         #expect(weights["conscientiousness"] == 0.5)
         #expect(weights["extraversion"] == 0.2)
+        #expect(weights["neuroticism"] == -0.2)
     }
 
     // MARK: - Creativity Category Tests
@@ -265,6 +267,7 @@ struct CategoryDefinitionsServiceTests {
         #expect(weights["openness"] == 0.9)
         #expect(weights["extraversion"] == 0.3)
         #expect(weights["conscientiousness"] == 0.1)
+        #expect(weights["neuroticism"] == -0.3)
     }
 
     // MARK: - Consistency Tests

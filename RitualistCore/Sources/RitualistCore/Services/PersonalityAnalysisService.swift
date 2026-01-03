@@ -13,10 +13,20 @@ import NaturalLanguage
 public protocol PersonalityAnalysisService: Sendable {
     /// Calculate personality scores from habit analysis input
     func calculatePersonalityScores(from input: HabitAnalysisInput) -> [PersonalityTrait: Double]
-    
+
+    /// Calculate personality scores with detailed breakdown (accumulators and weights)
+    func calculatePersonalityScoresWithDetails(
+        from input: HabitAnalysisInput,
+        completionStats: HabitCompletionStats?
+    ) -> (
+        scores: [PersonalityTrait: Double],
+        accumulators: [PersonalityTrait: Double],
+        totalWeights: [PersonalityTrait: Double]
+    )
+
     /// Determine dominant trait from scores
     func determineDominantTrait(from scores: [PersonalityTrait: Double]) -> PersonalityTrait
-    
+
     /// Calculate confidence level for analysis
     func calculateConfidence(from metadata: AnalysisMetadata) -> ConfidenceLevel
 }
@@ -65,22 +75,13 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             .neuroticism: 0.0
         ]
         
-        // Analyze habit selections from suggestions
-        for suggestion in input.selectedSuggestions {
-            guard let weights = suggestion.personalityWeights else { 
-                continue 
-            }
-            
-            for (traitKey, weight) in weights {
-                if let trait = PersonalityTrait(rawValue: traitKey) {
-                    traitAccumulators[trait, default: 0.0] += weight
-                    totalWeights[trait, default: 0.0] += abs(weight)
-                }
-            }
-        }
+        // REMOVED: Suggestion analysis - suggestions are processed via their categories
+        // Having both was causing double-counting and unpredictable results
+        // Category weights are the authoritative source for personality traits
         
         // CRITICAL FIX: Analyze predefined category habits
-        
+        // Category weights are the PRIMARY signal - semantic analysis only ADDS to traits, never overrides
+
         // Group active habits by predefined category
         var habitsByPredefinedCategory: [String: [Habit]] = [:]
         for habit in input.activeHabits {
@@ -88,175 +89,125 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             guard let category = input.habitCategories.first(where: { $0.id == categoryId && $0.isPredefined }) else { continue }
             habitsByPredefinedCategory[categoryId, default: []].append(habit)
         }
-        
-        // Process each predefined category with ML-enhanced semantic analysis
+
+        // Process each predefined category - USE CATEGORY WEIGHTS DIRECTLY
         for (categoryId, categoryHabits) in habitsByPredefinedCategory {
             guard let category = input.habitCategories.first(where: { $0.id == categoryId }) else { continue }
             guard let weights = category.personalityWeights else { continue }
 
-            // ENHANCEMENT: Blend category prior with habit semantic analysis ONLY if semantic signal is strong
-            // This captures nuanced patterns like "Health category used for anxiety management"
-            // But avoids diluting category priors when habit names are generic (e.g., "Drink Water")
-
-            // Get semantic weights from habit names using ML (if available)
-            let habitCompletionRates = categoryHabits.compactMap { getCompletionRateForHabit(habit: $0, input: input) }
-            let semanticWeights = inferSemanticWeightsFromHabits(
-                habits: categoryHabits,
-                completionRates: habitCompletionRates
-            )
-
-            // Determine if semantic analysis found strong signals (any trait > 0.3)
-            let hasStrongSemanticSignal = semanticWeights.values.contains(where: { $0 > 0.3 })
-
-            // Blend category prior with semantic insights
-            var blendedWeights: [String: Double] = [:]
-            if hasStrongSemanticSignal {
-                // Strong semantic signal detected - blend with category prior
-                let categoryPriorWeight = 0.6
-                let semanticBlendWeight = 0.4
-                for (traitKey, categoryWeight) in weights {
-                    let semanticValue = semanticWeights[traitKey] ?? 0.05
-                    blendedWeights[traitKey] = (categoryWeight * categoryPriorWeight) + (semanticValue * semanticBlendWeight)
-                }
-            } else {
-                // No strong semantic signal - use category prior as-is (generic habit names)
-                blendedWeights = weights
-            }
+            // SIMPLIFIED: Use category weights directly - no semantic blending for predefined categories
+            // Predefined categories have carefully calibrated weights that should not be diluted
 
             // Distribute category weight across habits in that category
             let habitWeight = 1.0 / Double(categoryHabits.count)
 
-            // Apply weights for each habit in this category with specific modifiers and completion weighting
+            // Apply weights for each habit in this category
             for habit in categoryHabits {
 
                 // Get individual habit completion rate
                 let completionRate = getCompletionRateForHabit(habit: habit, input: input)
 
-                // Calculate habit-specific modifiers
-                let habitModifiers = calculateHabitSpecificModifiers(habit: habit, input: input)
+                // Completion weighting: direct scaling from 0.1 to 1.0
+                // Low completion (e.g., 20%) should significantly reduce category contribution
+                // This allows low completion to properly signal reduced conscientiousness
+                let completionWeighting = max(0.1, min(1.0, completionRate))
 
-                // Calculate completion-based weighting (0.3 to 1.0 range)
-                // High completion rates get full weight, low completion rates get reduced weight
-                let completionWeighting = 0.3 + (completionRate * 0.7)
-
-                for (traitKey, blendedWeight) in blendedWeights {
+                for (traitKey, categoryWeight) in weights {
                     if let trait = PersonalityTrait(rawValue: traitKey) {
-                        // Apply habit-specific modifier and completion weighting to blended weight
-                        let habitModifier = habitModifiers[trait] ?? 1.0
-                        let modifiedWeight = blendedWeight * habitModifier * completionWeighting
-                        let contribution = modifiedWeight * habitWeight
+                        // ROBUST: Negative weights (like neuroticism: -0.3) stay negative
+                        // They reduce that trait's score, which is correct behavior
+                        // Low completion simply reduces the MAGNITUDE of the contribution
+                        let contribution = categoryWeight * completionWeighting * habitWeight
 
                         traitAccumulators[trait, default: 0.0] += contribution
                         totalWeights[trait, default: 0.0] += abs(contribution)
-
                     }
                 }
             }
         }
         
         
-        // Analyze custom habit categories
+        // Analyze custom habit categories - use keyword inference for weights
+        // Custom categories contribute with lower weight than predefined categories
+        let customCategoryWeight = 0.5 // Custom categories have 50% influence of predefined
         for category in input.customCategories {
             let categoryHabits = input.customHabits.filter { $0.categoryId == category.id }
-            
-            // Use explicit weights if available, otherwise infer from behavior
+            guard !categoryHabits.isEmpty else { continue }
+
+            // Use explicit weights if available, otherwise infer from name/habits
             var weights = category.personalityWeights
             if weights == nil {
                 weights = inferPersonalityWeights(for: category, habits: categoryHabits, allLogs: input.completionRates)
             }
-            
-            let categoryWeight = Double(categoryHabits.count) / Double(max(input.customHabits.count, 1))
-            
-            if let weights = weights {
-                // Calculate average completion rate for habits in this custom category
-                let categoryCompletionRates = categoryHabits.compactMap { habit in
-                    getCompletionRateForHabit(habit: habit, input: input)
-                }
-                let avgCategoryCompletion = categoryCompletionRates.isEmpty ? 0.5 : 
-                    categoryCompletionRates.reduce(0.0, +) / Double(categoryCompletionRates.count)
-                let categoryCompletionWeighting = 0.3 + (avgCategoryCompletion * 0.7)
-                
-                
+
+            guard let weights = weights else { continue }
+
+            let habitWeight = 1.0 / Double(categoryHabits.count)
+
+            for habit in categoryHabits {
+                let completionRate = getCompletionRateForHabit(habit: habit, input: input)
+                let completionWeighting = max(0.1, min(1.0, completionRate))
+
                 for (traitKey, weight) in weights {
                     if let trait = PersonalityTrait(rawValue: traitKey) {
-                        let contribution = weight * categoryWeight * categoryCompletionWeighting
+                        let contribution = weight * completionWeighting * habitWeight * customCategoryWeight
                         traitAccumulators[trait, default: 0.0] += contribution
                         totalWeights[trait, default: 0.0] += abs(contribution)
-                        
                     }
                 }
             }
         }
         
         // Analyze completion rates with enhanced schedule-aware statistics
+        // This is a SECONDARY signal that modifies conscientiousness and neuroticism
         if let stats = completionStats, stats.totalHabits > 0 {
-            // Use enhanced schedule-aware completion rate
-            let scheduleAwareCompletionRate = stats.completionRate
-            let conscientiousnessBonus = (scheduleAwareCompletionRate - 0.5) * 0.4 // Enhanced weight
-            
-            // Additional bonus for cross-habit consistency (habits with >50% completion)
-            let consistencyRatio = Double(stats.completedHabits) / Double(stats.totalHabits)
-            let consistencyBonus = (consistencyRatio - 0.5) * 0.2
-            
-            traitAccumulators[.conscientiousness, default: 0.0] += conscientiousnessBonus + consistencyBonus
-            totalWeights[.conscientiousness, default: 0.0] += 0.6 // Increased weight for enhanced data
-            
-            // Neuroticism analysis: High completion suggests emotional stability
-            if scheduleAwareCompletionRate > 0.7 {
-                let stabilityBonus = -0.2 // Negative neuroticism (more stable)
-                traitAccumulators[.neuroticism, default: 0.0] += stabilityBonus
-                totalWeights[.neuroticism, default: 0.0] += 0.2
-            } else if scheduleAwareCompletionRate < 0.3 {
-                let instabilityPenalty = 0.3 // Higher neuroticism
-                traitAccumulators[.neuroticism, default: 0.0] += instabilityPenalty
-                totalWeights[.neuroticism, default: 0.0] += 0.3
+            let completionRate = stats.completionRate
+
+            // Conscientiousness: High completion = disciplined, low completion = less disciplined
+            // Scale is centered at 0.5 (neutral)
+            let conscientiousnessBonus = (completionRate - 0.5) * 0.5
+            traitAccumulators[.conscientiousness, default: 0.0] += conscientiousnessBonus
+            totalWeights[.conscientiousness, default: 0.0] += 0.5
+
+            // Neuroticism: ONLY low completion (<30%) indicates struggle/instability
+            // High completion does NOT add negative neuroticism - that comes from category weights
+            // This ensures category weights remain the primary signal
+            if completionRate < 0.3 {
+                // Low completion indicates struggle - add STRONG positive neuroticism
+                // Scales with struggle severity and habit count (more failing habits = more stress)
+                let struggleSeverity = (0.3 - completionRate) / 0.3 // 0.0 to 1.0
+                let habitMultiplier = min(Double(stats.totalHabits) / 5.0, 2.0) // More habits = stronger signal
+                let instabilityContribution = (0.5 + (struggleSeverity * 0.5)) * habitMultiplier // 0.5 to 2.0
+                traitAccumulators[.neuroticism, default: 0.0] += instabilityContribution
+                totalWeights[.neuroticism, default: 0.0] += 0.7 * habitMultiplier
             }
-            
+            // For completion >= 30%, neuroticism is determined by category weights alone
+            // Categories like Health, Wellness have negative neuroticism weights
+            // which will naturally reduce neuroticism for users completing those habits
+
         } else {
             // Fallback to original completion rate analysis
             let avgCompletionRate = input.completionRates.reduce(0.0, +) / Double(max(input.completionRates.count, 1))
             let conscientiousnessBonus = (avgCompletionRate - 0.5) * 0.3
             traitAccumulators[.conscientiousness, default: 0.0] += conscientiousnessBonus
             totalWeights[.conscientiousness, default: 0.0] += 0.3
+
+            // Add neuroticism signal only for very low completion
+            if avgCompletionRate < 0.3 {
+                let struggleSeverity = (0.3 - avgCompletionRate) / 0.3
+                let instabilityContribution = 0.4 + (struggleSeverity * 0.4)
+                traitAccumulators[.neuroticism, default: 0.0] += instabilityContribution
+                totalWeights[.neuroticism, default: 0.0] += 0.5
+            }
         }
         
-        // Analyze habit diversity and schedule flexibility (openness to experience)
-        let diversityScore = Double(input.habitCategories.count) / 10.0 // Normalize to 0-1+ range
-        let opennessBonus = min(diversityScore, 1.0) * 0.2
-        
-        // Enhanced openness analysis: schedule flexibility preferences
-        if let stats = completionStats, stats.totalHabits > 0 {
-            // Analyze schedule pattern preferences from active habits
-            var flexibleScheduleCount = 0
-            var rigidScheduleCount = 0
-            
-            for habit in input.activeHabits {
-                switch habit.schedule {
-                case .daily:
-                    rigidScheduleCount += 1
-                case .daysOfWeek(let days):
-                    if days.count <= 3 {
-                        flexibleScheduleCount += 1 // Selective days = flexibility
-                    } else {
-                        rigidScheduleCount += 1
-                    }
-                }
-            }
-            
-            let totalScheduledHabits = flexibleScheduleCount + rigidScheduleCount
-            if totalScheduledHabits > 0 {
-                let flexibilityRatio = Double(flexibleScheduleCount) / Double(totalScheduledHabits)
-                let flexibilityBonus = (flexibilityRatio - 0.5) * 0.25 // Bonus for preferring flexibility
-                traitAccumulators[.openness, default: 0.0] += opennessBonus + flexibilityBonus
-                totalWeights[.openness, default: 0.0] += 0.45
-            } else {
-                traitAccumulators[.openness, default: 0.0] += opennessBonus
-                totalWeights[.openness, default: 0.0] += 0.2
-            }
-        } else {
-            traitAccumulators[.openness, default: 0.0] += opennessBonus
-            totalWeights[.openness, default: 0.0] += 0.2
-        }
+        // Analyze habit diversity (openness to experience) - TERTIARY signal
+        // Openness is primarily determined by category weights (Learning, Creativity categories)
+        // Diversity only adds a small bonus
+        let diversityScore = Double(input.habitCategories.count) / 10.0
+        let diversityBonus = min(diversityScore, 0.5) * 0.15 // Small bonus, max 0.075
+        traitAccumulators[.openness, default: 0.0] += diversityBonus
+        totalWeights[.openness, default: 0.0] += 0.15
         
         // Analyze scheduling patterns (extraversion for social/evening habits)
         let socialHabits = input.customHabits.filter { habit in
@@ -273,42 +224,37 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         }
         
         
-        // Normalize scores with evidence strength consideration
+        // Normalization with evidence strength consideration
+        // Traits with more evidence should have more impact than traits with little evidence
         var normalizedScores: [PersonalityTrait: Double] = [:]
         let maxTotalWeight = totalWeights.values.max() ?? 1.0
-        
+
         for trait in PersonalityTrait.allCases {
             let accumulator = traitAccumulators[trait, default: 0.0]
             let totalWeight = totalWeights[trait, default: 0.0]
-            
-            if totalWeight > 0 {
-                // Calculate base ratio (-1 to 1 range)
-                let rawRatio = accumulator / totalWeight
-                
-                // Evidence strength factor (0.1 to 1.0) - weak evidence gets dampened
-                let evidenceStrength = min(totalWeight / maxTotalWeight, 1.0)
-                let minStrength = 0.1
-                let adjustedStrength = max(evidenceStrength, minStrength)
-                
-                // Apply evidence dampening to extreme ratios
-                var adjustedRatio = rawRatio
-                if abs(rawRatio) > 0.8 && adjustedStrength < 0.3 {
-                    // Dampen extreme ratios when evidence is weak
-                    let dampeningFactor = 0.3 + (adjustedStrength * 0.5) // 0.3 to 0.8 range
-                    adjustedRatio = rawRatio * dampeningFactor
-                }
-                
-                // Convert from -1 to 1 range to 0 to 1 range
-                let normalizedScore = (adjustedRatio + 1.0) / 2.0
-                normalizedScores[trait] = max(0.0, min(1.0, normalizedScore))
-                
+
+            if totalWeight > 0.001 {
+                // Calculate base ratio: accumulator / totalWeight gives -1 to 1 range
+                let ratio = accumulator / totalWeight
+                let clampedRatio = max(-1.0, min(1.0, ratio))
+
+                // Convert to 0-1 range (base score)
+                let baseScore = (clampedRatio + 1.0) / 2.0
+
+                // Evidence strength: linear scaling based on relative evidence
+                // This ensures traits with more evidence get higher final scores
+                // and breaks ties between close traits like extraversion vs agreeableness
+                let relativeEvidence = totalWeight / maxTotalWeight
+                let evidenceStrength = relativeEvidence
+
+                // Apply evidence dampening: weak evidence → score closer to 0.5
+                let adjustedScore = 0.5 + (baseScore - 0.5) * evidenceStrength
+                normalizedScores[trait] = adjustedScore
             } else {
-                // Default to neutral (0.5) if no data
+                // No data for this trait - default to neutral
                 normalizedScores[trait] = 0.5
             }
         }
-        
-        let winner = determineDominantTrait(from: normalizedScores)
         
         return (scores: normalizedScores, accumulators: traitAccumulators, totalWeights: totalWeights)
     }
@@ -505,6 +451,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
 
         // Combine habit names for semantic analysis
         let allText = habits.map { $0.name }.joined(separator: ". ")
+        let allTextLower = allText.lowercased()
 
         // Calculate semantic similarity for each trait
         for trait in PersonalityTrait.allCases {
@@ -520,6 +467,24 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             } else {
                 weights[trait.rawValue] = 0.05
             }
+        }
+
+        // CRITICAL: Check for coping/wellness keywords that REDUCE neuroticism
+        // These habits help manage stress, so they should have NEGATIVE neuroticism
+        let copingKeywords = ["mindful", "calm", "stability", "self-care", "therapy", "coping",
+                               "manage", "relax", "peaceful", "serene", "balanced", "grounded",
+                               "meditat", "breath", "zen", "tranquil", "wellness", "yoga"]
+        let hasCopingKeywords = copingKeywords.contains { allTextLower.contains($0) }
+
+        let stressKeywords = ["stress", "anxiety", "worry", "overwhelm", "tension", "nervous"]
+        let hasStressKeywords = stressKeywords.contains { allTextLower.contains($0) }
+
+        if hasCopingKeywords && !hasStressKeywords {
+            // Coping habits WITHOUT stress keywords → reduce neuroticism
+            weights["neuroticism"] = -0.3
+        } else if hasStressKeywords && !hasCopingKeywords {
+            // Stress keywords WITHOUT coping → high neuroticism (keep ML result or boost)
+            weights["neuroticism"] = max(weights["neuroticism"] ?? 0.05, 0.4)
         }
 
         // Enhance with completion rate behavior
@@ -585,14 +550,29 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             weights["agreeableness"] = 0.5
         }
 
-        // NEUROTICISM keywords
-        let neuroticismKeywords = ["stress", "anxiety", "mood", "therapy", "coping", "worry",
-                                    "self-care", "emotional", "mindful", "calm", "manage", "attempt",
-                                    "stability", "overwhelm", "tension", "nervous", "concern"]
-        let neuroticismMatches = neuroticismKeywords.filter { allText.contains($0) }
-        if !neuroticismMatches.isEmpty {
+        // NEUROTICISM - Split into stress indicators (positive) and coping indicators (negative)
+        // Stress keywords indicate high neuroticism (anxiety, worry)
+        let stressKeywords = ["stress", "anxiety", "worry", "overwhelm", "tension", "nervous",
+                               "concern", "panic", "fear", "distress", "upset", "frustrated"]
+        let stressMatches = stressKeywords.filter { allText.contains($0) }
+
+        // Coping keywords indicate LOW neuroticism (managing stress successfully)
+        let copingKeywords = ["mindful", "calm", "stability", "self-care", "therapy", "coping",
+                               "manage", "relax", "peaceful", "serene", "balanced", "grounded",
+                               "meditat", "breath", "zen", "tranquil"]
+        let copingMatches = copingKeywords.filter { allText.contains($0) }
+
+        if !stressMatches.isEmpty && copingMatches.isEmpty {
+            // Only stress keywords - high neuroticism
             weights["neuroticism"] = 0.5
+        } else if !copingMatches.isEmpty && stressMatches.isEmpty {
+            // Only coping keywords - LOW neuroticism (these habits reduce stress)
+            weights["neuroticism"] = -0.3
+        } else if !stressMatches.isEmpty && !copingMatches.isEmpty {
+            // Both - mixed signal, slight positive (acknowledging stress but coping)
+            weights["neuroticism"] = 0.1
         }
+        // If neither, keep baseline 0.05
 
         // Enhance with completion rate behavior
         let avgCompletionRate = completionRates.reduce(0.0, +) / Double(max(completionRates.count, 1))
@@ -673,15 +653,29 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
                 weights["agreeableness"] = 0.5
             }
 
-            // NEUROTICISM: Emotional instability, stress, anxiety
-            let neuroticismKeywords = ["stress", "anxiety", "mood", "therapy", "coping", "worry",
-                                        "self-care", "emotional", "mindful", "calm", "manage", "attempt",
-                                        "stability", "overwhelm", "tension", "nervous", "concern"]
-            let neuroticismMatches = neuroticismKeywords.filter { allText.contains($0) }
-            if !neuroticismMatches.isEmpty {
+            // NEUROTICISM - Split into stress indicators (positive) and coping indicators (negative)
+            // Stress keywords indicate high neuroticism (anxiety, worry)
+            let stressKeywords = ["stress", "anxiety", "worry", "overwhelm", "tension", "nervous",
+                                   "concern", "panic", "fear", "distress", "upset", "frustrated"]
+            let stressMatches = stressKeywords.filter { allText.contains($0) }
+
+            // Coping keywords indicate LOW neuroticism (managing stress successfully)
+            let copingKeywords = ["mindful", "calm", "stability", "self-care", "therapy", "coping",
+                                   "manage", "relax", "peaceful", "serene", "balanced", "grounded",
+                                   "meditat", "breath", "zen", "tranquil"]
+            let copingMatches = copingKeywords.filter { allText.contains($0) }
+
+            if !stressMatches.isEmpty && copingMatches.isEmpty {
+                // Only stress keywords - high neuroticism
                 weights["neuroticism"] = 0.5
+            } else if !copingMatches.isEmpty && stressMatches.isEmpty {
+                // Only coping keywords - LOW neuroticism (these habits reduce stress)
+                weights["neuroticism"] = -0.3
+            } else if !stressMatches.isEmpty && !copingMatches.isEmpty {
+                // Both - mixed signal, slight positive (acknowledging stress but coping)
+                weights["neuroticism"] = 0.1
             } else {
-                // Low consistency = Neuroticism (fallback)
+                // No emotional keywords - check completion rate fallback
                 let avgCompletionRate = allLogs.reduce(0.0, +) / Double(max(allLogs.count, 1))
                 if avgCompletionRate < 0.3 {
                     weights["neuroticism"] = 0.3
@@ -705,6 +699,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         // Combine category name + habit names for semantic analysis
         let allText = ([category.name, category.displayName] + habits.map { $0.name })
             .joined(separator: ". ")
+        let allTextLower = allText.lowercased()
 
         // Calculate semantic similarity for each trait
         for trait in PersonalityTrait.allCases {
@@ -721,6 +716,23 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             } else {
                 weights[trait.rawValue] = 0.05 // Baseline
             }
+        }
+
+        // CRITICAL: Check for coping/wellness keywords that REDUCE neuroticism
+        let copingKeywords = ["mindful", "calm", "stability", "self-care", "therapy", "coping",
+                               "manage", "relax", "peaceful", "serene", "balanced", "grounded",
+                               "meditat", "breath", "zen", "tranquil", "wellness", "yoga"]
+        let hasCopingKeywords = copingKeywords.contains { allTextLower.contains($0) }
+
+        let stressKeywords = ["stress", "anxiety", "worry", "overwhelm", "tension", "nervous"]
+        let hasStressKeywords = stressKeywords.contains { allTextLower.contains($0) }
+
+        if hasCopingKeywords && !hasStressKeywords {
+            // Coping habits WITHOUT stress keywords → reduce neuroticism
+            weights["neuroticism"] = -0.3
+        } else if hasStressKeywords && !hasCopingKeywords {
+            // Stress keywords WITHOUT coping → high neuroticism
+            weights["neuroticism"] = max(weights["neuroticism"] ?? 0.05, 0.4)
         }
 
         // Enhance with behavior-based analysis (completion rates)
@@ -801,12 +813,13 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
                 "relationships family love"
             ]
         case .neuroticism:
+            // ONLY stress/anxiety indicators - NOT coping mechanisms (those reduce neuroticism)
             return [
                 "stress anxiety worry concern",
-                "emotional instability mood",
-                "nervous tension overwhelm",
-                "coping therapy management",
-                "mindfulness calm stability"
+                "emotional instability mood swings",
+                "nervous tension overwhelm panic",
+                "fear distress upset frustrated",
+                "insecurity vulnerability sensitivity"
             ]
         }
     }
@@ -826,10 +839,13 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     /// Calculate habit-specific modifiers based on individual habit characteristics
     nonisolated private func calculateHabitSpecificModifiers(habit: Habit, input: HabitAnalysisInput) -> [PersonalityTrait: Double] {
         var modifiers: [PersonalityTrait: Double] = [:]
-        
+
+        // Get completion rate for this habit to inform modifier decisions
+        let completionRate = getCompletionRateForHabit(habit: habit, input: input)
+
         // 1. Habit name analysis for personality indicators
         let habitName = habit.name.lowercased()
-        
+
         // Conscientiousness indicators
         if habitName.contains("daily") || habitName.contains("routine") || habitName.contains("schedule") {
             modifiers[.conscientiousness] = 1.2  // +20% boost
@@ -837,18 +853,31 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         if habitName.contains("organize") || habitName.contains("plan") || habitName.contains("prepare") {
             modifiers[.conscientiousness] = 1.3  // +30% boost
         }
-        
-        // Openness indicators  
+
+        // Openness indicators - ONLY boost if user is actually completing these habits
+        // At low completion, these habits don't demonstrate openness, just intent
         if habitName.contains("learn") || habitName.contains("study") || habitName.contains("explore") {
-            modifiers[.openness] = 1.2
+            if completionRate > 0.5 {
+                modifiers[.openness] = 1.2
+            } else if completionRate < 0.3 {
+                modifiers[.openness] = 0.9 // Reduce openness signal for unfollowed "exploration" habits
+            }
         }
         if habitName.contains("creative") || habitName.contains("art") || habitName.contains("music") {
-            modifiers[.openness] = 1.4  // Strong creativity boost
+            if completionRate > 0.5 {
+                modifiers[.openness] = 1.4  // Strong creativity boost
+            } else if completionRate < 0.3 {
+                modifiers[.openness] = 0.85
+            }
         }
         if habitName.contains("new") || habitName.contains("try") || habitName.contains("experiment") {
-            modifiers[.openness] = 1.3
+            if completionRate > 0.5 {
+                modifiers[.openness] = 1.3
+            } else if completionRate < 0.3 {
+                modifiers[.openness] = 0.85
+            }
         }
-        
+
         // Extraversion indicators
         if habitName.contains("social") || habitName.contains("people") || habitName.contains("friend") {
             modifiers[.extraversion] = 1.3
@@ -859,7 +888,7 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         if habitName.contains("party") || habitName.contains("event") || habitName.contains("gathering") {
             modifiers[.extraversion] = 1.4
         }
-        
+
         // Agreeableness indicators
         if habitName.contains("help") || habitName.contains("volunteer") || habitName.contains("support") {
             modifiers[.agreeableness] = 1.3
@@ -870,18 +899,29 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         if habitName.contains("donate") || habitName.contains("charity") || habitName.contains("give") {
             modifiers[.agreeableness] = 1.4
         }
-        
-        // Neuroticism modifiers (these are often inverse - stress reduction activities)
-        if habitName.contains("meditat") || habitName.contains("calm") || habitName.contains("relax") {
-            modifiers[.neuroticism] = 0.7  // -30% (less neurotic)
-        }
-        if habitName.contains("mindful") || habitName.contains("breath") || habitName.contains("zen") {
-            modifiers[.neuroticism] = 0.6  // -40% (significant calm effect)
-        }
-        if habitName.contains("stress") || habitName.contains("anxiety") || habitName.contains("worry") {
-            // If explicitly addressing stress/anxiety, this suggests some neuroticism but also coping
-            modifiers[.neuroticism] = 0.8  // -20%
-            modifiers[.conscientiousness] = 1.1  // +10% for addressing the issue
+
+        // Neuroticism modifiers - completion rate determines if coping or struggling
+        let hasNeuroticismKeywords = habitName.contains("stress") || habitName.contains("anxiety") ||
+                                      habitName.contains("worry") || habitName.contains("mood") ||
+                                      habitName.contains("therapy") || habitName.contains("coping")
+        let hasCalmnessKeywords = habitName.contains("meditat") || habitName.contains("calm") ||
+                                   habitName.contains("relax") || habitName.contains("mindful") ||
+                                   habitName.contains("breath") || habitName.contains("zen")
+
+        if hasNeuroticismKeywords || hasCalmnessKeywords {
+            // Completion rate determines interpretation:
+            // - High completion (>0.6): Successfully coping → reduce neuroticism
+            // - Low completion (<0.4): Struggling with these habits → increase neuroticism
+            // - Medium completion: Neutral
+            if completionRate > 0.6 {
+                // Successfully managing stress/emotions
+                modifiers[.neuroticism] = hasCalmnessKeywords ? 0.6 : 0.8
+                modifiers[.conscientiousness] = 1.1
+            } else if completionRate < 0.4 {
+                // Struggling - indicates higher neuroticism
+                modifiers[.neuroticism] = hasNeuroticismKeywords ? 1.4 : 1.2
+            }
+            // Medium completion: no modifier (neutral)
         }
         
         // 2. Habit frequency analysis
@@ -891,9 +931,10 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.1
         case .daysOfWeek(let days):
             // Specific day patterns show planning (conscientiousness) and some flexibility (openness)
+            // But only boost openness if completion rate is decent (actually following through)
             modifiers[.conscientiousness] = (modifiers[.conscientiousness] ?? 1.0) * 1.05
-            if days.count <= 3 {
-                // Selective days suggest thoughtful planning
+            if days.count <= 3 && completionRate > 0.5 {
+                // Selective days with good follow-through suggest thoughtful planning
                 modifiers[.openness] = (modifiers[.openness] ?? 1.0) * 1.05
             }
         }
@@ -932,14 +973,21 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
     nonisolated private func getCompletionRateForHabit(habit: Habit, input: HabitAnalysisInput) -> Double {
         // Find the index of this habit in the activeHabits array
         guard let habitIndex = input.activeHabits.firstIndex(where: { $0.id == habit.id }) else {
-            return 0.0 // Habit not found in active habits
+            // Habit not found - use average completion rate as fallback
+            // This prevents 0.0 completion from incorrectly flipping negative weights
+            let avgRate = input.completionRates.isEmpty ? 0.5 :
+                input.completionRates.reduce(0.0, +) / Double(input.completionRates.count)
+            return avgRate
         }
-        
+
         // Check if we have a completion rate for this index
         guard habitIndex < input.completionRates.count else {
-            return 0.0 // No completion rate data for this habit
+            // No completion rate data - use average as fallback
+            let avgRate = input.completionRates.isEmpty ? 0.5 :
+                input.completionRates.reduce(0.0, +) / Double(input.completionRates.count)
+            return avgRate
         }
-        
+
         return input.completionRates[habitIndex]
     }
 }

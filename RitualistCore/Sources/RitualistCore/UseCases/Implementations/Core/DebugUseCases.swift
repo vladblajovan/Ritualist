@@ -98,9 +98,9 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
         progressUpdate?("Creating custom categories...", 0.2)
         let customCategories = try await createCustomCategories(count: config.customCategoryCount, scenario: scenario)
 
-        // Step 3: Create habits from suggestions (scenario-dependent count)
+        // Step 3: Create habits from suggestions (scenario-dependent count and categories)
         progressUpdate?("Creating habits from suggestions...", 0.3)
-        let suggestedHabits = try await createSuggestedHabits(count: config.suggestedHabitCount)
+        let suggestedHabits = try await createSuggestedHabits(count: config.suggestedHabitCount, scenario: scenario)
 
         // Step 4: Create custom habits (scenario-dependent count)
         progressUpdate?("Creating custom habits...", 0.5)
@@ -185,24 +185,26 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
         return createdCategories
     }
     
-    private func createSuggestedHabits(count: Int) async throws -> [Habit] {
+    private func createSuggestedHabits(count: Int, scenario: TestDataScenario) async throws -> [Habit] {
         let allSuggestions = habitSuggestionsService.getSuggestions()
         guard !allSuggestions.isEmpty else {
             throw TestDataPopulationError("No habit suggestions available")
         }
 
-        // Select diverse habits from different categories (2-3 per category max)
         let suggestionsByCategory = Dictionary(grouping: allSuggestions) { $0.categoryId }
+        let categoryDistribution = getCategoryDistribution(for: scenario, totalCount: count)
+
         var selectedSuggestions: [HabitSuggestion] = []
 
-        for (_, suggestions) in suggestionsByCategory {
+        // Select habits according to the explicit category distribution
+        for (categoryId, targetCount) in categoryDistribution {
+            guard let suggestions = suggestionsByCategory[categoryId] else { continue }
             let shuffled = suggestions.shuffled()
-            let maxPerCategory = min(3, suggestions.count)
-            selectedSuggestions.append(contentsOf: Array(shuffled.prefix(maxPerCategory)))
+            selectedSuggestions.append(contentsOf: shuffled.prefix(targetCount))
         }
 
-        // Take only the requested number of suggestions
-        let finalSuggestions = Array(selectedSuggestions.shuffled().prefix(count))
+        // Take only the requested number (in case distribution added extras)
+        let finalSuggestions = Array(selectedSuggestions.prefix(count))
         var createdHabits: [Habit] = []
 
         // NOTE: CreateHabitFromSuggestionUseCase no longer checks limits.
@@ -222,6 +224,101 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
         }
 
         return createdHabits
+    }
+
+    /// Returns explicit category distribution for each scenario
+    /// This ensures deterministic personality outcomes by controlling exactly which categories habits come from
+    /// Key: categoryId, Value: number of habits to create from that category
+    private func getCategoryDistribution(for scenario: TestDataScenario, totalCount: Int) -> [String: Int] {
+        switch scenario {
+        // PERSONALITY PROFILE SCENARIOS
+        // Each uses specific category mix to produce the target dominant trait
+
+        case .opennessProfile:
+            // Target: High Openness
+            // Learning (openness: 0.8) + Creativity (openness: 0.9) = strongest openness signal
+            // Distribution: ~50% learning, ~50% creativity
+            let half = totalCount / 2
+            return [
+                "learning": half,
+                "creativity": totalCount - half
+            ]
+
+        case .conscientiousnessProfile:
+            // Target: High Conscientiousness
+            // Productivity (conscientiousness: 0.8) + Health (conscientiousness: 0.6)
+            // Distribution: ~60% productivity (higher weight), ~40% health
+            let productivity = Int(Double(totalCount) * 0.6)
+            return [
+                "productivity": productivity,
+                "health": totalCount - productivity
+            ]
+
+        case .extraversionProfile:
+            // Target: High Extraversion
+            // Social (extraversion: 0.7) is the only category with high extraversion
+            // Use 100% social habits to maximize extraversion signal
+            return [
+                "social": totalCount
+            ]
+
+        case .agreeablenessProfile:
+            // Target: High Agreeableness
+            // Social (agreeableness: 0.6, BUT extraversion: 0.7) + Wellness (agreeableness: 0.2)
+            // Using ~40% social, ~60% wellness dilutes extraversion while accumulating agreeableness
+            // This ensures agreeableness beats extraversion
+            let social = Int(Double(totalCount) * 0.4)
+            return [
+                "social": social,
+                "wellness": totalCount - social
+            ]
+
+        case .neuroticismProfile:
+            // Target: High Neuroticism (via very low completion rate triggering instability)
+            // Use 100% Health category - it has NO openness weight (unlike Wellness)
+            // Wellness has openness: 0.3 which would compete with neuroticism signal
+            // Health only has: conscientiousness: 0.6, neuroticism: -0.3, agreeableness: 0.2
+            // The algorithm triggers strong neuroticism when completion < 30%
+            return [
+                "health": totalCount
+            ]
+
+        // GENERAL SCENARIOS
+        // These create balanced or diverse habit mixes
+
+        case .full:
+            // Power User: Balanced profile across ALL categories
+            // Equal distribution produces balanced personality scores
+            let perCategory = totalCount / 6
+            let remainder = totalCount % 6
+            return [
+                "health": perCategory + (remainder > 0 ? 1 : 0),
+                "wellness": perCategory + (remainder > 1 ? 1 : 0),
+                "productivity": perCategory + (remainder > 2 ? 1 : 0),
+                "learning": perCategory + (remainder > 3 ? 1 : 0),
+                "social": perCategory + (remainder > 4 ? 1 : 0),
+                "creativity": perCategory
+            ]
+
+        case .moderate:
+            // Building Momentum: Diverse selection (2-3 per category, some variety)
+            // Slightly favor health/productivity as common starting points
+            return [
+                "health": 2,
+                "wellness": 1,
+                "productivity": 2,
+                "learning": 1,
+                "social": 0,
+                "creativity": 0
+            ]
+
+        case .minimal:
+            // Fresh Start: Very few habits, common beginner choices
+            return [
+                "health": 2,
+                "productivity": 1
+            ]
+        }
     }
     
     private func createCustomHabits(count: Int, using customCategories: [HabitCategory], scenario: TestDataScenario) async throws -> [Habit] {

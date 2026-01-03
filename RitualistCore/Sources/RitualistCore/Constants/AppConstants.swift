@@ -231,14 +231,8 @@ public struct BusinessConstants {
     /// Minimum number of tracking days required for personality analysis
     public static let minTrackingDaysForAnalysis = 7
 
-    /// Minimum number of custom categories required for personality analysis
-    public static let minCustomCategoriesForAnalysis = 3
-
-    /// Minimum number of custom habits required for personality analysis
-    public static let minCustomHabitsForAnalysis = 3
-
-    /// Minimum completion rate required for personality analysis (30%)
-    public static let minCompletionRateForAnalysis = 0.3
+    /// Minimum completion rate required for personality analysis (10% - low completion is valid data)
+    public static let minCompletionRateForAnalysis = 0.1
 
     /// Minimum data change threshold to trigger new personality analysis (10%)
     public static let personalityDataChangeThreshold = 0.1
@@ -247,7 +241,7 @@ public struct BusinessConstants {
     public static let personalityAnalysisValidityPeriod: TimeInterval = 604800
 
     /// Minimum habit diversity (different categories) for analysis
-    public static let minHabitDiversityForAnalysis = 3
+    public static let minHabitDiversityForAnalysis = 2
 
     // MARK: - Validation Rules
 

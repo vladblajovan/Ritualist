@@ -34,19 +34,19 @@ public enum TestDataScenario: String, CaseIterable, Identifiable, Sendable {
         case .minimal:
             return "3 habits • 3 days • Insufficient for personality analysis"
         case .moderate:
-            return "6 habits • 2 weeks • Basic personality insights"
+            return "7 habits • 2 weeks • Health & Productivity focus"
         case .full:
-            return "15 habits • 3 months • Full analytics & rich insights"
+            return "16 habits • 3 months • Balanced across all categories"
         case .opennessProfile:
-            return "10 diverse habits • Flexible schedules • High Openness"
+            return "10 habits • Learning & Creativity • High Openness"
         case .conscientiousnessProfile:
-            return "12 structured habits • 90% completion • High Conscientiousness"
+            return "10 habits • Productivity & Health • 90% completion"
         case .extraversionProfile:
-            return "10 social habits • Community focus • High Extraversion"
+            return "10 habits • 100% Social category • High Extraversion"
         case .agreeablenessProfile:
-            return "10 caring habits • Relationship focus • High Agreeableness"
+            return "10 habits • Social + Wellness mix • High Agreeableness"
         case .neuroticismProfile:
-            return "12 habits • 25% completion • High Neuroticism"
+            return "10 habits • 100% Health • 20% completion"
         }
     }
 
@@ -56,19 +56,19 @@ public enum TestDataScenario: String, CaseIterable, Identifiable, Sendable {
         case .minimal:
             return "Tests new user experience with minimal data. Personality analysis unavailable, basic metrics only."
         case .moderate:
-            return "Tests minimum threshold state. Personality analysis available but with low confidence. Some metrics limited."
+            return "Tests minimum threshold state. Health and productivity habits with moderate completion."
         case .full:
-            return "Tests power user experience with rich historical data. Full personality analysis, all metrics, long streaks."
+            return "Tests power user with balanced personality. Equal habits across all 6 categories produce neutral scores."
         case .opennessProfile:
-            return "Showcases Openness personality trait. Diverse habit categories, flexible schedules, creative pursuits, learning focus."
+            return "Showcases Openness trait. 50% Learning + 50% Creativity habits produce highest openness scores."
         case .conscientiousnessProfile:
-            return "Showcases Conscientiousness trait. Highly structured routines, excellent completion rates, goal-oriented behavior."
+            return "Showcases Conscientiousness trait. 60% Productivity + 40% Health with 90%+ completion rate."
         case .extraversionProfile:
-            return "Showcases Extraversion trait. Social habits, community engagement, team activities, relationship building."
+            return "Showcases Extraversion trait. 100% Social habits maximize the extraversion signal."
         case .agreeablenessProfile:
-            return "Showcases Agreeableness trait. Caring behaviors, helping others, family time, volunteer activities."
+            return "Showcases Agreeableness trait. 40% Social + 60% Wellness dilutes extraversion, agreeableness wins."
         case .neuroticismProfile:
-            return "Showcases Neuroticism trait. Inconsistent patterns, low completion, emotional instability indicators."
+            return "Showcases Neuroticism trait. 100% Health habits with very low completion (20%) triggers instability."
         }
     }
 
@@ -130,109 +130,103 @@ public struct TestDataScenarioConfig {
             // Fresh Start: Insufficient data for personality analysis
             // - Below 5 habit minimum
             // - Below 7 day tracking minimum
-            // - Below 3 custom category/habit minimums
+            // - Realistic: user only picked suggestions, no custom habits yet
             return TestDataScenarioConfig(
-                suggestedHabitCount: 2,      // 2 from suggestions
-                customCategoryCount: 1,       // Below minimum
-                customHabitCount: 1,          // Below minimum
+                suggestedHabitCount: 3,       // 3 from suggestions (typical new user)
+                customCategoryCount: 0,       // No custom categories yet
+                customHabitCount: 0,          // No custom habits yet
                 historyDays: 3,               // Below 7-day minimum
                 completionRateRange: 0.3...0.5  // Modest completion
             )
 
         case .moderate:
             // Building Momentum: Minimum threshold met for personality analysis
-            // - Exactly meets 5 habit minimum
+            // - Meets 5 habit minimum
             // - Meets 7 day tracking minimum
-            // - Meets 3 custom category/habit minimums
+            // - 90/10 ratio: mostly from suggestions
             return TestDataScenarioConfig(
-                suggestedHabitCount: 3,       // 3 from suggestions
-                customCategoryCount: 3,       // Meets minimum
-                customHabitCount: 3,          // Meets minimum (total: 6 habits)
+                suggestedHabitCount: 6,       // 6 from suggestions (90%)
+                customCategoryCount: 1,       // 1 custom category
+                customHabitCount: 1,          // 1 custom habit (10%, total: 7 habits)
                 historyDays: 14,              // 2 weeks - above 7-day minimum
                 completionRateRange: 0.4...0.7  // Moderate completion
             )
 
         case .full:
-            // Power User: Rich data for full personality analysis
-            // - Well above all minimums
-            // - 3 months of historical data
-            // - Sophisticated completion patterns
+            // Power User: Balanced personality profile
+            // Distribution: Equal across all 6 categories (~2-3 habits each)
+            // This produces a balanced personality with no single dominant trait
+            // 3 months of historical data, strong engagement
             return TestDataScenarioConfig(
-                suggestedHabitCount: 12,      // 12 from suggestions
-                customCategoryCount: 3,       // Meets requirement
-                customHabitCount: 3,          // Meets requirement (total: 15 habits)
+                suggestedHabitCount: 14,      // ~2-3 per category across all 6 categories
+                customCategoryCount: 2,       // 2 custom categories
+                customHabitCount: 2,          // 2 custom habits (total: 16 habits)
                 historyDays: 90,              // 3 months of rich history
                 completionRateRange: 0.5...0.85  // Strong engagement with variation
             )
 
         case .opennessProfile:
             // The Explorer: Maximizes Openness score
-            // - Diverse habits across many categories
-            // - Flexible schedules (3x/week patterns)
-            // - Creative/learning focus
-            // - Moderate-high completion
+            // Distribution: 50% Learning (openness: 0.8) + 50% Creativity (openness: 0.9)
+            // Good completion (65-75%) shows engagement without perfectionism
             return TestDataScenarioConfig(
-                suggestedHabitCount: 4,       // Some diverse suggestions (40%)
-                customCategoryCount: 3,       // Creative custom categories
-                customHabitCount: 6,          // Many creative custom habits (60%, total: 10)
+                suggestedHabitCount: 9,       // Split: ~5 learning + ~4 creativity
+                customCategoryCount: 2,       // Creative custom categories
+                customHabitCount: 1,          // 1 custom habit (total: 10)
                 historyDays: 60,              // 2 months for pattern recognition
                 completionRateRange: 0.65...0.75  // Good but not perfectionist
             )
 
         case .conscientiousnessProfile:
             // The Achiever: Maximizes Conscientiousness score
-            // - Highly structured daily routines
-            // - Excellent completion rates
-            // - Goal-oriented habits
-            // - Consistent patterns
+            // Distribution: 60% Productivity (conscientiousness: 0.8) + 40% Health (conscientiousness: 0.6)
+            // Very high completion (85-95%) demonstrates discipline
             return TestDataScenarioConfig(
-                suggestedHabitCount: 4,       // Some structured suggestions (40%)
-                customCategoryCount: 3,       // Goal categories
-                customHabitCount: 6,          // Many daily routine habits (60%, total: 10)
+                suggestedHabitCount: 9,       // Split: ~6 productivity + ~3 health
+                customCategoryCount: 2,       // Goal-oriented custom categories
+                customHabitCount: 1,          // 1 custom habit (total: 10)
                 historyDays: 60,              // 2 months of consistency
-                completionRateRange: 0.85...0.95  // Very high completion
+                completionRateRange: 0.85...0.95  // Very high completion - KEY for conscientiousness
             )
 
         case .extraversionProfile:
             // The Connector: Maximizes Extraversion score
-            // - Social interaction habits
-            // - Community/team activities
-            // - Relationship building
-            // - Good completion on social habits
+            // Distribution: 100% Social (extraversion: 0.7)
+            // Using only social category ensures extraversion dominates
             return TestDataScenarioConfig(
-                suggestedHabitCount: 4,       // Some social suggestions
-                customCategoryCount: 3,       // Social custom categories
-                customHabitCount: 6,          // Many social custom habits (total: 10)
+                suggestedHabitCount: 9,       // All 9 from social category
+                customCategoryCount: 2,       // Social custom categories
+                customHabitCount: 1,          // 1 custom habit (total: 10)
                 historyDays: 60,              // 2 months of social engagement
                 completionRateRange: 0.70...0.85  // Strong social commitment
             )
 
         case .agreeablenessProfile:
             // The Caregiver: Maximizes Agreeableness score
-            // - Care/helping habits
-            // - Family/relationship focus
-            // - Volunteering activities
-            // - High completion on care habits
+            // Distribution: 40% Social + 60% Wellness
+            // Social has extraversion: 0.7 + agreeableness: 0.6
+            // Wellness has agreeableness: 0.2 (dilutes extraversion, accumulates agreeableness)
+            // This ratio ensures agreeableness beats extraversion
             return TestDataScenarioConfig(
-                suggestedHabitCount: 4,       // Some care suggestions
-                customCategoryCount: 3,       // Care custom categories
-                customHabitCount: 6,          // Many care custom habits (total: 10)
+                suggestedHabitCount: 9,       // Split: ~4 social + ~5 wellness
+                customCategoryCount: 2,       // Care-focused custom categories
+                customHabitCount: 1,          // 1 custom habit (total: 10)
                 historyDays: 60,              // 2 months of caring patterns
                 completionRateRange: 0.75...0.90  // Very reliable caregiving
             )
 
         case .neuroticismProfile:
             // The Struggler: Maximizes Neuroticism score
-            // - Inconsistent completion patterns
-            // - Many started but not maintained
-            // - Emotional instability indicators
-            // - Low overall completion
+            // Distribution: 100% Health (NO openness weight - unlike Wellness which has openness: 0.3)
+            // Health has: conscientiousness: 0.6, neuroticism: -0.3, agreeableness: 0.2
+            // KEY: Very low completion (15-25%) triggers algorithm's instability detection
+            // The algorithm adds strong neuroticism when completion < 30%
             return TestDataScenarioConfig(
-                suggestedHabitCount: 4,       // Some suggested habits (40%)
-                customCategoryCount: 3,       // Wellness/stress categories
-                customHabitCount: 6,          // Many coping custom habits (60%, total: 10)
+                suggestedHabitCount: 9,       // All 9 from health category
+                customCategoryCount: 2,       // Stress-related custom categories
+                customHabitCount: 1,          // 1 custom habit (total: 10)
                 historyDays: 60,              // 2 months of struggle
-                completionRateRange: 0.15...0.30  // Low, erratic completion
+                completionRateRange: 0.15...0.25  // Very low completion - KEY for neuroticism
             )
         }
     }

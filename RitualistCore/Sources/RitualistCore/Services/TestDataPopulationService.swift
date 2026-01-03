@@ -57,35 +57,32 @@ public final class TestDataPopulationService: TestDataPopulationServiceProtocol 
     }
 
     public func getPersonalityCategories(for scenario: TestDataScenario) -> [(name: String, displayName: String, emoji: String)] {
+        // Note: With 90/10 ratio, we only create 2 custom categories per scenario
+        // Order matters - first 2 categories will be created
         switch scenario {
         case .opennessProfile:
             return [
                 (name: "creative_projects", displayName: "Creative Projects", emoji: "🎨"),
-                (name: "learning_goals", displayName: "Learning Goals", emoji: "🧠"),
                 (name: "exploration", displayName: "Exploration", emoji: "🔭")
             ]
         case .conscientiousnessProfile:
             return [
                 (name: "goals_planning", displayName: "Goals & Planning", emoji: "🎯"),
-                (name: "discipline", displayName: "Discipline", emoji: "⚡"),
                 (name: "achievement", displayName: "Achievement", emoji: "🏆")
             ]
         case .extraversionProfile:
             return [
                 (name: "social_connections", displayName: "Social Connections", emoji: "🤝"),
-                (name: "community", displayName: "Community", emoji: "👥"),
-                (name: "networking", displayName: "Networking", emoji: "🌐")
+                (name: "community", displayName: "Community", emoji: "👥")
             ]
         case .agreeablenessProfile:
             return [
                 (name: "caregiving", displayName: "Caregiving", emoji: "💝"),
-                (name: "family_time", displayName: "Family Time", emoji: "👨‍👩‍👧‍👦"),
                 (name: "helping_others", displayName: "Helping Others", emoji: "🤲")
             ]
         case .neuroticismProfile:
             return [
                 (name: "wellness_attempts", displayName: "Wellness Attempts", emoji: "😰"),
-                (name: "self_improvement", displayName: "Self-Improvement", emoji: "📈"),
                 (name: "stress_management", displayName: "Stress Management", emoji: "🧘")
             ]
         default:
@@ -94,51 +91,33 @@ public final class TestDataPopulationService: TestDataPopulationServiceProtocol 
     }
 
     public func getPersonalityHabits(for scenario: TestDataScenario) -> [(name: String, emoji: String, colorHex: String, kind: HabitKind, unitLabel: String?, dailyTarget: Double?, schedule: HabitSchedule)] {
+        // Note: With 90/10 ratio, we only create 1 custom habit per scenario
+        // First habit in list will be the one created - make it most trait-relevant
         switch scenario {
         case .opennessProfile:
+            // Creative exploration habit - strongly signals Openness
             return [
-                (name: "Try New Restaurant", emoji: "🍽️", colorHex: "#FF6B6B", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([6])),
-                (name: "Learn New Language", emoji: "🗣️", colorHex: "#45B7D1", kind: .numeric, unitLabel: "minutes", dailyTarget: 20.0, schedule: .daysOfWeek([1, 3, 5])),
-                (name: "Explore New Place", emoji: "🗺️", colorHex: "#4CAF50", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([7])),
-                (name: "Creative Writing", emoji: "✍️", colorHex: "#9B59B6", kind: .numeric, unitLabel: "words", dailyTarget: 300.0, schedule: .daysOfWeek([2, 4, 6])),
-                (name: "Photography Walk", emoji: "📸", colorHex: "#E67E22", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([7])),
-                (name: "Experiment Cooking", emoji: "🧑‍🍳", colorHex: "#F39C12", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([6]))
+                (name: "Explore Something New", emoji: "🔭", colorHex: "#9B59B6", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([6, 7]))
             ]
         case .conscientiousnessProfile:
+            // Structured goal-tracking habit - strongly signals Conscientiousness
             return [
-                (name: "Morning Routine", emoji: "☀️", colorHex: "#F39C12", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily),
-                (name: "Daily Planning", emoji: "📋", colorHex: "#3498DB", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily),
-                (name: "Complete Tasks", emoji: "✅", colorHex: "#2ECC71", kind: .numeric, unitLabel: "tasks", dailyTarget: 5.0, schedule: .daily),
-                (name: "Evening Review", emoji: "🌙", colorHex: "#9B59B6", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily),
-                (name: "Track Goals", emoji: "📊", colorHex: "#E74C3C", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily),
-                (name: "Organize Workspace", emoji: "🗂️", colorHex: "#95A5A6", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily)
+                (name: "Track Daily Goals", emoji: "🎯", colorHex: "#3498DB", kind: .numeric, unitLabel: "goals", dailyTarget: 3.0, schedule: .daily)
             ]
         case .extraversionProfile:
+            // Social networking habit - strongly signals Extraversion
             return [
-                (name: "Call Friends", emoji: "📞", colorHex: "#3498DB", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([1, 3, 5])),
-                (name: "Meet New People", emoji: "👋", colorHex: "#F39C12", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([6, 7])),
-                (name: "Social Activity", emoji: "🎉", colorHex: "#E74C3C", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([5, 6])),
-                (name: "Team Collaboration", emoji: "👥", colorHex: "#9B59B6", kind: .numeric, unitLabel: "hours", dailyTarget: 2.0, schedule: .daysOfWeek([1, 2, 3, 4, 5])),
-                (name: "Community Event", emoji: "🌐", colorHex: "#2ECC71", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([7])),
-                (name: "Visit Family", emoji: "🏠", colorHex: "#E67E22", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([7]))
+                (name: "Connect with People", emoji: "🤝", colorHex: "#F39C12", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily)
             ]
         case .agreeablenessProfile:
+            // Helping/caring habit - strongly signals Agreeableness
             return [
-                (name: "Help Someone", emoji: "🤝", colorHex: "#2ECC71", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily),
-                (name: "Family Time", emoji: "👨‍👩‍👧", colorHex: "#E74C3C", kind: .numeric, unitLabel: "hours", dailyTarget: 2.0, schedule: .daily),
-                (name: "Volunteer Work", emoji: "🤲", colorHex: "#9B59B6", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([6])),
-                (name: "Care for Pets", emoji: "🐕", colorHex: "#F39C12", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily),
-                (name: "Support Friend", emoji: "💬", colorHex: "#3498DB", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([1, 3, 5])),
                 (name: "Acts of Kindness", emoji: "💝", colorHex: "#E91E63", kind: .numeric, unitLabel: "acts", dailyTarget: 3.0, schedule: .daily)
             ]
         case .neuroticismProfile:
+            // Stress/coping habit - signals Neuroticism (especially with low completion)
             return [
-                (name: "Stress Management", emoji: "😰", colorHex: "#E74C3C", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily),
-                (name: "Anxiety Journal", emoji: "📝", colorHex: "#9B59B6", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily),
-                (name: "Mood Tracking", emoji: "😔", colorHex: "#95A5A6", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily),
-                (name: "Self-Care Attempt", emoji: "🛁", colorHex: "#3498DB", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([1, 4])),
-                (name: "Therapy Exercises", emoji: "🧠", colorHex: "#2ECC71", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([2, 5])),
-                (name: "Coping Strategies", emoji: "🎯", colorHex: "#F39C12", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daysOfWeek([3, 6]))
+                (name: "Stress Management", emoji: "😰", colorHex: "#E74C3C", kind: .binary, unitLabel: nil, dailyTarget: nil, schedule: .daily)
             ]
         default:
             return getCustomHabitData()

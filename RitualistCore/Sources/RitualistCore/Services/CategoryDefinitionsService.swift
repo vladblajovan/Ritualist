@@ -78,7 +78,8 @@ public final class CategoryDefinitionsService: CategoryDefinitionsServiceProtoco
                 personalityWeights: [
                     "extraversion": 0.7,
                     "agreeableness": 0.6,
-                    "conscientiousness": 0.3
+                    "conscientiousness": 0.3,
+                    "neuroticism": -0.3
                 ]
             ),
             HabitCategory(
@@ -92,7 +93,8 @@ public final class CategoryDefinitionsService: CategoryDefinitionsServiceProtoco
                 personalityWeights: [
                     "openness": 0.8,
                     "conscientiousness": 0.5,
-                    "extraversion": 0.2
+                    "extraversion": 0.2,
+                    "neuroticism": -0.2
                 ]
             ),
             HabitCategory(
@@ -106,7 +108,8 @@ public final class CategoryDefinitionsService: CategoryDefinitionsServiceProtoco
                 personalityWeights: [
                     "openness": 0.9,
                     "extraversion": 0.3,
-                    "conscientiousness": 0.1
+                    "conscientiousness": 0.1,
+                    "neuroticism": -0.3
                 ]
             )
         ]
