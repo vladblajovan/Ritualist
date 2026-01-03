@@ -184,6 +184,8 @@ public struct OverviewView: View {
                 }
                 .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
                     if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
+                        // Immediately hide upsell in case user purchased from another tab
+                        vm.hidePersonalityUpsell()
                         Task {
                             Container.shared.debugLogger().log("Tab switch detected: Reloading overview data", level: .debug, category: .ui)
                             vm.invalidateCacheForTabSwitch()
@@ -239,18 +241,15 @@ public struct OverviewView: View {
                         )
                     }
                 }
-                .sheet(
-                    item: $vm.personalityPaywallItem,
-                    onDismiss: {
-                        // Refresh personality insights after paywall dismissal to check subscription status
-                        Task {
-                            await vm.refreshPersonalityInsights()
-                        }
-                    },
-                    content: { item in
-                        PaywallView(vm: item.viewModel)
+                .sheet(item: $vm.personalityPaywallItem) { item in
+                    PaywallView(vm: item.viewModel)
+                }
+                .onChange(of: vm.personalityPaywallItem) { oldValue, newValue in
+                    // Immediately handle dismissal when paywall closes (like HabitsView pattern)
+                    if oldValue != nil && newValue == nil {
+                        vm.handlePersonalityPaywallDismissal()
                     }
-                )
+                }
                 .background(Color(.systemGroupedBackground))
             } // ScrollViewReader
         } // VStack (sticky header + scroll content)

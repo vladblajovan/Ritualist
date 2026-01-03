@@ -24,10 +24,14 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     @State private var loadTask: Task<Void, Never>?
     @Environment(\.dismiss) private var dismiss
 
+    private var isIPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+
     // MARK: - Dynamic Type Scaling
     @ScaledMetric(relativeTo: .title) private var incrementButtonSize: CGFloat = 44
     @ScaledMetric(relativeTo: .title) private var progressCircleSize: CGFloat = 120
-    @ScaledMetric(relativeTo: .subheadline) private var celebrationHeight: CGFloat = 24
+    @ScaledMetric(relativeTo: .subheadline) private var celebrationHeight: CGFloat = 30
     @ScaledMetric(relativeTo: .headline) private var quickIncrementHeight: CGFloat = 36
     @ScaledMetric(relativeTo: .body) private var buttonHeight: CGFloat = 44
     
@@ -88,183 +92,184 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     public var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Scrollable content area
-                ScrollView {
-                    VStack(spacing: Spacing.large) {
-                        // Header with emoji and name
-                        VStack(spacing: Spacing.medium) {
-                            Text(habit.emoji ?? "📊")
-                                .font(.system(size: 48)) // Keep fixed for decorative emoji
-                            
-                            Text(habit.name)
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        // Progress circle with +/- controls on sides
-                        VStack(spacing: Spacing.medium) {
-                            HStack(spacing: Spacing.xlarge) {
-                                // Minus button - orange to blue gradient
-                                Button {
-                                    HapticFeedbackService.shared.trigger(.light)
-                                    animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        value = max(0, value - 1)
-                                    }
-                                } label: {
-                                    Image(systemName: "minus.circle.fill")
-                                        .font(.system(size: incrementButtonSize))
-                                        .foregroundStyle(
-                                            LinearGradient(
-                                                colors: [CardDesign.progressOrange, .ritualistCyan],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        )
-                                        .opacity(canDecrement ? 1.0 : 0.3)
-                                }
-                                .disabled(!canDecrement)
-                                .accessibilityLabel(Strings.Common.decrease)
-                                .accessibilityHint(Strings.NumericHabitLog.decreaseHint)
+                Spacer()
 
-                                // Progress circle
-                                ZStack {
-                                    CircularProgressView(
-                                        progress: progressPercentage,
-                                        lineWidth: 10,
-                                        showPercentage: false,
-                                        useAdaptiveGradient: true
-                                    )
-                                    .frame(width: progressCircleSize, height: progressCircleSize)
+                // Centered content group (header + progress)
+                VStack(spacing: Spacing.large) {
+                    // Header with emoji and name
+                    VStack(spacing: Spacing.medium) {
+                        Text(habit.emoji ?? "📊")
+                            .font(.system(size: 48))
 
-                                    VStack(spacing: 2) {
-                                        Text("\(Int(value))")
-                                            .font(.title.weight(.bold))
-                                            .foregroundStyle(
-                                                LinearGradient(
-                                                    colors: CircularProgressView.adaptiveProgressColors(for: progressPercentage),
-                                                    startPoint: .leading,
-                                                    endPoint: .trailing
-                                                )
-                                            )
-                                        Text("/ \(Int(dailyTarget))")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .accessibilityElement(children: .ignore)
-                                .accessibilityLabel(
-                                    Strings.NumericHabitLog.progressLabel(
-                                        current: Int(value),
-                                        target: Int(dailyTarget),
-                                        isCompleted: isCompleted
+                        Text(habit.name)
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    // Progress circle with +/- controls
+                    VStack(spacing: Spacing.medium) {
+                    HStack(spacing: Spacing.xlarge) {
+                        // Minus button
+                        Button {
+                            HapticFeedbackService.shared.trigger(.light)
+                            animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                value = max(0, value - 1)
+                            }
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.system(size: incrementButtonSize))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [CardDesign.progressOrange, .ritualistCyan],
+                                        startPoint: .top,
+                                        endPoint: .bottom
                                     )
                                 )
+                                .opacity(canDecrement ? 1.0 : 0.3)
+                        }
+                        .disabled(!canDecrement)
+                        .accessibilityLabel(Strings.Common.decrease)
+                        .accessibilityHint(Strings.NumericHabitLog.decreaseHint)
 
-                                // Plus button - green to blue gradient
-                                Button {
-                                    HapticFeedbackService.shared.trigger(.light)
-                                    animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        value += 1
-                                    }
-                                } label: {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: incrementButtonSize))
-                                        .foregroundStyle(
-                                            LinearGradient(
-                                                colors: [CardDesign.progressGreen, .ritualistCyan],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
+                        // Progress circle
+                        ZStack {
+                            CircularProgressView(
+                                progress: progressPercentage,
+                                lineWidth: 10,
+                                showPercentage: false,
+                                useAdaptiveGradient: true
+                            )
+                            .frame(width: progressCircleSize, height: progressCircleSize)
+
+                            VStack(spacing: 2) {
+                                Text("\(Int(value))")
+                                    .font(.title.weight(.bold))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: CircularProgressView.adaptiveProgressColors(for: progressPercentage),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
                                         )
-                                        .opacity(canIncrement ? 1.0 : 0.3)
-                                }
-                                .disabled(!canIncrement)
-                                .accessibilityLabel(Strings.Common.increase)
-                                .accessibilityHint(Strings.NumericHabitLog.increaseHint)
-                            }
-
-                            // Celebration text - fixed height to prevent layout jumps
-                            Group {
-                                if value == dailyTarget {
-                                    HStack(spacing: Spacing.small) {
-                                        Text("🏆")
-                                            .accessibilityHidden(true) // Decorative emoji
-                                        Text(Strings.NumericHabitLog.wellDoneExtraMile)
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                            .foregroundStyle(
-                                                LinearGradient(
-                                                    colors: [CardDesign.progressGreen, .ritualistCyan],
-                                                    startPoint: .leading,
-                                                    endPoint: .trailing
-                                                )
-                                            )
-                                    }
-                                } else if value > dailyTarget, let text = extraMileText {
-                                    HStack(spacing: Spacing.small) {
-                                        Text("🎉")
-                                            .accessibilityHidden(true) // Decorative emoji
-                                        Text(text)
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                            .foregroundStyle(
-                                                LinearGradient(
-                                                    colors: [CardDesign.progressGreen, .ritualistCyan],
-                                                    startPoint: .leading,
-                                                    endPoint: .trailing
-                                                )
-                                            )
-                                    }
-                                } else {
-                                    Color.clear
-                                }
-                            }
-                            .frame(minHeight: celebrationHeight)
-                        }
-
-                        // Quick increment buttons - scales with Dynamic Type
-                        Group {
-                            if !quickIncrementAmounts.isEmpty {
-                                HStack(spacing: Spacing.medium) {
-                                    ForEach(quickIncrementAmounts, id: \.self) { amount in
-                                        quickIncrementButton(amount: amount)
-                                    }
-                                }
-                            } else {
-                                Color.clear
+                                    )
+                                Text("/ \(Int(dailyTarget))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
-                        .frame(minHeight: quickIncrementHeight)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(
+                            Strings.NumericHabitLog.progressLabel(
+                                current: Int(value),
+                                target: Int(dailyTarget),
+                                isCompleted: isCompleted
+                            )
+                        )
 
-                        // Reset, Complete All, and Done buttons
-                        HStack {
-                            // Reset button - bottom left (only show if value > 0)
-                            if value > 0 {
-                                resetButton()
+                        // Plus button
+                        Button {
+                            HapticFeedbackService.shared.trigger(.light)
+                            animateIfAllowed(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                value += 1
                             }
-
-                            Spacer()
-
-                            // Complete All button - disabled when target reached
-                            completeButton()
-                                .disabled(isCompleted)
-                                .opacity(isCompleted ? 0.4 : 1)
-
-                            // Done button - dismisses sheet
-                            doneButton()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: incrementButtonSize))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [CardDesign.progressGreen, .ritualistCyan],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .opacity(canIncrement ? 1.0 : 0.3)
                         }
-                        .padding(.top, Spacing.small)
+                        .disabled(!canIncrement)
+                        .accessibilityLabel(Strings.Common.increase)
+                        .accessibilityHint(Strings.NumericHabitLog.increaseHint)
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, Spacing.large)
+
+                    // Celebration text - fixed height
+                    Group {
+                        if value == dailyTarget {
+                            HStack(spacing: Spacing.small) {
+                                Text("🏆")
+                                    .accessibilityHidden(true)
+                                Text(Strings.NumericHabitLog.wellDoneExtraMile)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [CardDesign.progressGreen, .ritualistCyan],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                            }
+                        } else if value > dailyTarget, let text = extraMileText {
+                            HStack(spacing: Spacing.small) {
+                                Text("🎉")
+                                    .accessibilityHidden(true)
+                                Text(text)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [CardDesign.progressGreen, .ritualistCyan],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                            }
+                        } else {
+                            Color.clear
+                        }
+                    }
+                        .frame(height: celebrationHeight)
+                    }
+
+                    // Quick increment buttons
+                    Group {
+                        if !quickIncrementAmounts.isEmpty {
+                            HStack(spacing: Spacing.medium) {
+                                ForEach(quickIncrementAmounts, id: \.self) { amount in
+                                    quickIncrementButton(amount: amount)
+                                }
+                            }
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(height: quickIncrementHeight)
                 }
+
+                Spacer()
+
+                // Action buttons at bottom
+                HStack {
+                    if value > 0 {
+                        resetButton()
+                    }
+
+                    Spacer()
+
+                    completeButton()
+                        .disabled(isCompleted)
+                        .opacity(isCompleted ? 0.4 : 1)
+
+                    doneButton()
+                }
+                .padding(.horizontal)
+                .padding(.bottom, Spacing.large)
             }
             .navigationTitle(Strings.NumericHabitLog.title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .presentationDetents([.fraction(0.6)])
+        .scrollContentBackground(.hidden)
+        .presentationDetents(isIPad ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
+        .presentationBackground(.ultraThinMaterial)
         .overlay(
             Group {
                 if isLoading {
@@ -346,7 +351,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .padding(.horizontal, Spacing.large)
                 .frame(minHeight: buttonHeight)
                 .background(Color.secondary.opacity(0.1))
-                .cornerRadius(12)
+                .cornerRadius(CornerRadius.xlarge)
         }
         .accessibilityHint(Strings.NumericHabitLog.resetHint)
     }
@@ -366,7 +371,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .padding(.horizontal, Spacing.large)
                 .frame(minHeight: buttonHeight)
                 .background(adaptiveColor.opacity(0.1))
-                .cornerRadius(12)
+                .cornerRadius(CornerRadius.xlarge)
         }
         .accessibilityHint(Strings.NumericHabitLog.completeAllHint)
     }
@@ -383,7 +388,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .padding(.horizontal, Spacing.large)
                 .frame(minHeight: buttonHeight)
                 .background(Color.accentColor.opacity(0.1))
-                .cornerRadius(12)
+                .cornerRadius(CornerRadius.xlarge)
         }
         .accessibilityHint(Strings.NumericHabitLog.doneHint)
     }
@@ -403,13 +408,12 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
             }
         } label: {
             Text("+\(formatAmount(amount))")
-                .font(.headline)
+                .font(.subheadline.weight(.medium))
                 .foregroundStyle(gradient)
-                .padding(.horizontal, Spacing.medium)
-                .frame(minWidth: 60)
-                .frame(minHeight: buttonHeight)
+                .padding(.horizontal, Spacing.small)
+                .padding(.vertical, Spacing.xsmall)
                 .background(gradient.opacity(0.15))
-                .cornerRadius(8)
+                .cornerRadius(6)
         }
         .accessibilityLabel(Strings.NumericHabitLog.quickIncrementLabel(formatAmount(amount)))
         .accessibilityHint(Strings.NumericHabitLog.quickIncrementHint(formatAmount(amount)))

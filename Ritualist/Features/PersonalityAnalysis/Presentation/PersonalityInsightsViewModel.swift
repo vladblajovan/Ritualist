@@ -271,6 +271,13 @@ public final class PersonalityInsightsViewModel {
         if updatedPrefs.isEnabled { await loadPersonalityInsights() }
     }
 
+    public func setAnalysisEnabled(_ enabled: Bool) async {
+        guard let currentPrefs = preferences, currentPrefs.isEnabled != enabled else { return }
+        let updatedPrefs = currentPrefs.updated(isEnabled: enabled)
+        await savePreferences(updatedPrefs)
+        if enabled { await loadPersonalityInsights() }
+    }
+
     // MARK: - Computed Properties
 
     public var isAnalysisEnabled: Bool { preferences?.isEnabled ?? true }

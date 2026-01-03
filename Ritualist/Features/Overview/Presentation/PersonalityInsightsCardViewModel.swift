@@ -112,6 +112,25 @@ public final class PersonalityInsightsCardViewModel {
         paywallItem = PaywallItem(viewModel: paywallViewModel)
     }
 
+    /// Handle paywall dismissal - immediately hide upsell and refresh status
+    public func handlePaywallDismissal() {
+        // Immediately hide upsell card (user may have purchased)
+        showPersonalityUpsell = false
+
+        // Track dismissal
+        paywallViewModel.trackPaywallDismissed()
+
+        // Refresh to get correct state (will show insights card if now premium)
+        Task {
+            await loadPersonalityInsights()
+        }
+    }
+
+    /// Immediately hide the upsell card (called on tab switch in case user purchased elsewhere)
+    public func hideUpsell() {
+        showPersonalityUpsell = false
+    }
+
     private func resetInsightsForNonPremium() {
         shouldShowPersonalityInsights = false
         showPersonalityUpsell = false

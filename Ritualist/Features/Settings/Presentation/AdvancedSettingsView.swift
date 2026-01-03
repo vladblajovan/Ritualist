@@ -2,11 +2,10 @@ import SwiftUI
 import RitualistCore
 import FactoryKit
 
-/// Advanced Settings page for timezone and technical settings
+/// Timezone settings page for timezone and travel configuration
 struct AdvancedSettingsView: View {
     @Bindable var vm: SettingsViewModel
     @Binding var displayTimezoneMode: String
-    @Binding var appearance: Int
 
     @Injected(\.timezoneService) private var timezoneService
 
@@ -20,31 +19,14 @@ struct AdvancedSettingsView: View {
 
     var body: some View {
         Form {
-            // Appearance Section
+            // Intro Section
             Section {
-                HStack {
-                    Label {
-                        Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
-                            Text(Strings.Settings.followSystem).tag(0)
-                            Text(Strings.Settings.light).tag(1)
-                            Text(Strings.Settings.dark).tag(2)
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                        .onChange(of: appearance) { _, newValue in
-                            Task {
-                                vm.profile.appearance = newValue
-                                _ = await vm.save()
-                                await vm.updateAppearance(newValue)
-                            }
-                        }
-                    } icon: {
-                        Image(systemName: "circle.lefthalf.filled")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                    }
+                VStack(alignment: .leading, spacing: Spacing.small) {
+                    Text("Timezone settings control when your habit day resets. This affects when streaks update and when habits become available again.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-            } header: {
-                Text("Appearance")
             }
 
             // Travel Status Section (if traveling)
@@ -68,7 +50,7 @@ struct AdvancedSettingsView: View {
                 displayMode: displayMode
             )
         }
-        .navigationTitle("Advanced")
+        .navigationTitle("Timezone")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingHomeTimezonePicker) {
             HomeTimezonePickerView(

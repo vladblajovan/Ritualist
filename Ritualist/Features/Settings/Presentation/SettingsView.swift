@@ -82,24 +82,18 @@ private struct SettingsFormView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Sticky header at the top
-            stickyBrandHeader
-
-            Group {
-                if let error = vm.error {
-                    ErrorView(
-                        title: "Failed to Load Settings",
-                        message: error.localizedDescription
-                    ) {
-                        await vm.retry()
-                    }
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            Form {
-                                // Account Section
-                                AccountSectionView(
+        Group {
+            if let error = vm.error {
+                ErrorView(
+                    title: "Failed to Load Settings",
+                    message: error.localizedDescription
+                ) {
+                    await vm.retry()
+                }
+            } else {
+                Form {
+                    // Account Section
+                    AccountSectionView(
                         vm: vm,
                         name: $name,
                         appearance: $appearance,
@@ -111,8 +105,48 @@ private struct SettingsFormView: View {
                         updateUserName: updateUserName
                     )
 
+                    // Appearance Section
+                    Section("Appearance") {
+                        HStack {
+                            Label {
+                                Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
+                                    Text(Strings.Settings.followSystem).tag(0)
+                                    Text(Strings.Settings.light).tag(1)
+                                    Text(Strings.Settings.dark).tag(2)
+                                }
+                                .pickerStyle(MenuPickerStyle())
+                                .onChange(of: appearance) { _, newValue in
+                                    Task {
+                                        vm.profile.appearance = newValue
+                                        _ = await vm.save()
+                                        await vm.updateAppearance(newValue)
+                                    }
+                                }
+                            } icon: {
+                                Image(systemName: "circle.lefthalf.filled")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+
+                    // Timezone Section
+                    Section("Timezone") {
+                        NavigationLink {
+                            AdvancedSettingsView(
+                                vm: vm,
+                                displayTimezoneMode: $displayTimezoneMode
+                            )
+                        } label: {
+                            HStack {
+                                Label("Timezone Settings", systemImage: "clock.badge.questionmark")
+                                Spacer()
+                            }
+                        }
+                    }
+
                     #if DEBUG
-                    // Debug Section (positioned after Account for easy access)
+                    // Debug Section
                     Section("Debug") {
                         GenericRowView.settingsRow(
                             title: "Debug Menu",
@@ -137,22 +171,6 @@ private struct SettingsFormView: View {
                     // Data Management Section (Export/Import/Delete)
                     DataManagementSectionView(vm: vm) { result in
                         vm.showDeleteResultToast(result)
-                    }
-
-                    // Advanced Section
-                    Section("Advanced") {
-                        NavigationLink {
-                            AdvancedSettingsView(
-                                vm: vm,
-                                displayTimezoneMode: $displayTimezoneMode,
-                                appearance: $appearance
-                            )
-                        } label: {
-                            HStack {
-                                Label("Advanced Settings", systemImage: "gearshape.2")
-                                Spacer()
-                            }
-                        }
                     }
 
                     // Social Media Section
@@ -231,15 +249,8 @@ private struct SettingsFormView: View {
                             Text("Acknowledgements")
                         }
                     }
-                            }
-                            .scrollDisabled(true)
-                            .frame(minHeight: 2200)
-
-                            Spacer(minLength: 100) // Bottom padding for tab bar
-                        } // LazyVStack
-                    } // ScrollView
-                    .contentMargins(.top, -Spacing.medium - 4, for: .scrollContent)
-                    .refreshable {
+                }
+                .refreshable {
                         await vm.reload()
                         updateLocalState()
                     }
@@ -296,26 +307,9 @@ private struct SettingsFormView: View {
                     // Sync local state when profile changes (e.g., after delete all data)
                     updateLocalState()
                 }
-                } // else
-            } // Group
-        } // VStack
-        .background(Color(.systemGroupedBackground))
-        .navigationBarHidden(true)
-    }
-
-    // MARK: - Brand Header
-
-    @ViewBuilder
-    private var stickyBrandHeader: some View {
-        AppBrandHeader(
-            completionPercentage: nil,
-            showProgressBar: false,
-            showProfileAvatar: false
-        )
-        .padding(.horizontal, Spacing.large)
-        .padding(.top, Spacing.medium)
-        .background(Color(.systemGroupedBackground))
-        .zIndex(1) // Ensure header and fade render above scroll content
+            } // else
+        } // Group
+        .navigationTitle("Settings")
     }
 
     // MARK: - Computed Properties

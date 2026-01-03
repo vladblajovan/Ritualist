@@ -130,7 +130,6 @@ public final class PersonalityDeepLinkCoordinator {
     @MainActor
     public func resetAnalysisState() {
         shouldShowPersonalityAnalysis = false
-        // Keep pendingNotificationAction and shouldNavigateToSettings as they are
     }
     
     /// Checks if there's a pending navigation that should trigger

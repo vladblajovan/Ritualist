@@ -10,6 +10,10 @@ public struct CompleteHabitSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    private var isIPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+
     public init(
         habit: Habit,
         onComplete: @escaping () -> Void,
@@ -24,6 +28,8 @@ public struct CompleteHabitSheet: View {
         VStack(spacing: Spacing.large) {
             // Habit info header
             VStack(spacing: Spacing.small) {
+                Spacer()
+                
                 Text(habit.emoji ?? "")
                     .font(.system(size: 48))
                     .accessibilityHidden(true) // Decorative emoji
@@ -35,6 +41,8 @@ public struct CompleteHabitSheet: View {
                 Text(Strings.CompleteHabitSheet.notCompleted)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                
+                Spacer()
             }
             .padding(.top, Spacing.medium)
             .accessibilityElement(children: .combine)
@@ -60,7 +68,7 @@ public struct CompleteHabitSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Spacing.medium)
                     .background(Color.green.opacity(0.1))
-                    .cornerRadius(12)
+                    .cornerRadius(CornerRadius.xlarge)
                 }
                 .accessibilityIdentifier(AccessibilityID.Sheet.completeHabitConfirmButton)
                 .accessibilityHint(Strings.CompleteHabitSheet.markAsCompletedHint)
@@ -82,8 +90,10 @@ public struct CompleteHabitSheet: View {
             .padding(.bottom, Spacing.medium)
         }
         .accessibilityIdentifier(AccessibilityID.Sheet.completeHabit)
-        .presentationDetents([.height(280)])
+        .background(.clear)
+        .presentationDetents(isIPad ? [.medium] : [.height(280)])
         .presentationDragIndicator(.visible)
+        .presentationBackground(.ultraThinMaterial)
         .onAppear {
             // Announce sheet to VoiceOver for focus management
             DispatchQueue.main.asyncAfter(deadline: .now() + AccessibilityConfig.voiceOverAnnouncementDelay) {

@@ -4,11 +4,17 @@ import RitualistCore
 struct StreakDetailSheet: View {
     let streak: StreakInfo
     @Environment(\.dismiss) private var dismiss
+
+    private var isIPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    Spacer()
+                    
                     // Header
                     VStack(spacing: 12) {
                         Text(streak.emoji)
@@ -21,6 +27,8 @@ struct StreakDetailSheet: View {
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
+                    
+                    Spacer()
                     
                     // Stats
                     HStack(spacing: 0) {
@@ -125,6 +133,7 @@ struct StreakDetailSheet: View {
             }
             .navigationTitle("Streak Details")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -133,11 +142,10 @@ struct StreakDetailSheet: View {
                 }
             }
         }
-        .deviceAwareSheetSizing(
-            compactMultiplier: SizeMultiplier(min: 0.75, ideal: 0.85, max: 0.95),
-            regularMultiplier: SizeMultiplier(min: 0.70, ideal: 0.80, max: 0.90),
-            largeMultiplier: SizeMultiplier(min: 0.65, ideal: 0.75, max: 0.85)
-        )
+        .scrollContentBackground(.hidden)
+        .presentationDetents(isIPad ? [.large] : [.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(.ultraThinMaterial)
     }
     
     static func streakLevelText(for flameCount: Int) -> String {

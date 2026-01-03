@@ -80,7 +80,6 @@ struct AppBrandHeader: View {
     // MARK: - Injected Dependencies
 
     @Injected(\.settingsViewModel) private var settingsVM
-    @Injected(\.navigationService) private var navigationService
     @Environment(\.colorScheme) private var colorScheme
 
     // MARK: - Profile Avatar Size
@@ -236,6 +235,7 @@ struct AppBrandHeader: View {
     @State private var showProgressGlow = false
     @State private var hasInitializedProgress = false
     @State private var progressGlowTask: Task<Void, Never>?
+    @State private var showingSettings = false
 
     // MARK: - Tips
 
@@ -350,10 +350,10 @@ struct AppBrandHeader: View {
                 actionButton(action)
             }
 
-            // Profile avatar - always visible with progress gradient, navigates to settings on tap
+            // Profile avatar - always visible with progress gradient, opens settings sheet on tap
             if showProfileAvatar {
                 Button {
-                    navigationService.selectedTab = .settings
+                    showingSettings = true
                 } label: {
                     profileAvatarView
                 }
@@ -362,6 +362,18 @@ struct AppBrandHeader: View {
                 .accessibilityLabel("Profile")
                 .accessibilityHint("Double tap to open settings")
                 .popoverTip(circleProgressTip, arrowEdge: .top)
+                .fullScreenCover(isPresented: $showingSettings) {
+                    NavigationStack {
+                        SettingsRoot()
+                            .toolbar {
+                                ToolbarItem(placement: .confirmationAction) {
+                                    Button("Close") {
+                                        showingSettings = false
+                                    }
+                                }
+                            }
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

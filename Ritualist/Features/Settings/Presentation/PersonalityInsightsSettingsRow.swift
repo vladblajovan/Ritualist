@@ -62,12 +62,9 @@ struct PersonalityInsightsSettingsRow: View {
         }
         .sheet(isPresented: $showingPersonalityInsights) {
             PersonalityInsightsView(viewModel: personalityVM)
-                .deviceAwareSheetSizing(
-                    compactMultiplier: SizeMultiplier(min: 0.97, ideal: 1.0, max: 1.0),
-                    regularMultiplier: SizeMultiplier(min: 0.87, ideal: 1.0, max: 1.0),
-                    largeMultiplier: SizeMultiplier(min: 0.78, ideal: 0.89, max: 1.0)
-                )
-                // Remove .presentationBackground for full transparency
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(.regularMaterial)
         }
     }
     

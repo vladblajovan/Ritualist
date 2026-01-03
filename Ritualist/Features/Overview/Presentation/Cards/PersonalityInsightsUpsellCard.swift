@@ -11,6 +11,7 @@ import RitualistCore
 
 struct PersonalityInsightsUpsellCard: View {
     let onUnlock: () -> Void
+    @State private var showingBigFiveInfo = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.medium) {
@@ -26,14 +27,19 @@ struct PersonalityInsightsUpsellCard: View {
                         )
                     )
 
-                VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
                     Text("Personality Insights")
                         .font(.headline)
                         .foregroundColor(.primary)
 
-                    Text("Premium Feature")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Button {
+                        showingBigFiveInfo = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Spacer()
@@ -43,9 +49,9 @@ struct PersonalityInsightsUpsellCard: View {
 
             // Marketing content
             VStack(alignment: .leading, spacing: Spacing.small) {
-                Text("You've built enough habits for us to analyze your unique personality profile!")
-                    .font(.subheadline)
-                    .foregroundColor(.primary)
+                Text("Your habit data is ready for personality analysis:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 // Benefits list
@@ -54,7 +60,6 @@ struct PersonalityInsightsUpsellCard: View {
                     benefitRow(icon: "lightbulb.fill", text: "Get personalized recommendations")
                     benefitRow(icon: "chart.line.uptrend.xyaxis", text: "Understand your motivation patterns")
                 }
-                .padding(.top, 4)
             }
 
             // CTA Button
@@ -72,6 +77,9 @@ struct PersonalityInsightsUpsellCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
             }
             .buttonStyle(.plain)
+        }
+        .sheet(isPresented: $showingBigFiveInfo) {
+            BigFiveInfoSheet()
         }
     }
 
