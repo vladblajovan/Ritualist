@@ -60,13 +60,6 @@ public struct RootTabView: View {
                             }
                             .accessibilityIdentifier(AccessibilityID.Stats.root)
                         }
-
-                        Tab(Strings.Navigation.settings, systemImage: "gear", value: Pages.settings) {
-                            NavigationStack {
-                                SettingsRoot()
-                            }
-                            .accessibilityIdentifier(AccessibilityID.Settings.root)
-                        }
                 }
                 .preferredColorScheme(vm.appearanceManager.colorScheme)
                 #if DEBUG

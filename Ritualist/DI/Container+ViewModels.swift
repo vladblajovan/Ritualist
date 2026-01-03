@@ -41,13 +41,17 @@ extension Container {
     }
     
     @MainActor
-    var habitsAssistantViewModel: Factory<HabitsAssistantViewModel> {
+    var habitsAssistantSheetViewModel: Factory<HabitsAssistantSheetViewModel> {
         self { @MainActor in
-            HabitsAssistantViewModel(
+            HabitsAssistantSheetViewModel(
                 getPredefinedCategoriesUseCase: self.getPredefinedCategoriesUseCase(),
                 getHabitsFromSuggestionsUseCase: self.getHabitsFromSuggestionsUseCase(),
                 getSuggestionsUseCase: self.getSuggestionsUseCase(),
-                trackUserAction: self.trackUserAction()
+                createHabitFromSuggestionUseCase: self.createHabitFromSuggestionUseCase(),
+                removeHabitFromSuggestionUseCase: self.removeHabitFromSuggestionUseCase(),
+                checkHabitCreationLimit: self.checkHabitCreationLimit(),
+                trackUserAction: self.trackUserAction(),
+                logger: self.debugLogger()
             )
         }
         .singleton

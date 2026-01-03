@@ -2,7 +2,7 @@
 //  MigrationStatusService.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Tracks migration status for UI feedback during schema migrations.
 //

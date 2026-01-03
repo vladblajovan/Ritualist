@@ -79,11 +79,8 @@ public struct TipsBottomSheet: View {
                 }
             }
         }
-        .deviceAwareSheetSizing(
-            compactMultiplier: SizeMultiplier(min: 0.88, ideal: 0.97, max: 1.0),
-            regularMultiplier: SizeMultiplier(min: 0.80, ideal: 0.93, max: 1.0),
-            largeMultiplier: SizeMultiplier(min: 0.72, ideal: 0.83, max: 0.94)
-        )
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
     
     private func categoryDisplayName(_ category: TipCategory) -> String {

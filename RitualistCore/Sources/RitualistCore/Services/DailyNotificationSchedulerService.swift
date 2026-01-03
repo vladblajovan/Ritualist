@@ -2,7 +2,7 @@
 //  DailyNotificationScheduler.swift
 //  RitualistCore
 //
-//  Created by Claude on 21.08.2025.
+//  Created by Vlad Blajovan on 21.08.2025.
 //
 
 import Foundation

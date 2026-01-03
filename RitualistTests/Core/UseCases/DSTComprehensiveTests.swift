@@ -2,7 +2,7 @@
 //  DSTComprehensiveTests.swift
 //  RitualistTests
 //
-//  Created by Claude on 22.12.2025.
+//  Created by Vlad Blajovan on 22.12.2025.
 //
 //  Comprehensive test coverage for Daylight Saving Time (DST) transitions.
 //  Tests streak calculations, week boundaries, and habit completion during:

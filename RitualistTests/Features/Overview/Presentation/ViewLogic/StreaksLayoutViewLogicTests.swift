@@ -265,4 +265,48 @@ struct StreaksLayoutViewLogicTests {
         let height = StreaksLayoutViewLogic.gridHeight(for: context)
         #expect(height == 250, "Large spacing should give 2×100 + 50 = 250")
     }
+
+    // MARK: - Single Row Layout Tests
+
+    @Test("Single row layout on iPhone with 0 items")
+    func singleRowLayoutiPhoneZeroItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: true, itemCount: 0)
+        #expect(result == true, "iPhone with 0 items should use single row")
+    }
+
+    @Test("Single row layout on iPhone with 1 item")
+    func singleRowLayoutiPhoneOneItem() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: true, itemCount: 1)
+        #expect(result == true, "iPhone with 1 item should use single row")
+    }
+
+    @Test("Single row layout on iPhone with 2 items")
+    func singleRowLayoutiPhoneTwoItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: true, itemCount: 2)
+        #expect(result == true, "iPhone with 2 items should use single row")
+    }
+
+    @Test("Single row layout on iPhone with 3 items")
+    func singleRowLayoutiPhoneThreeItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: true, itemCount: 3)
+        #expect(result == false, "iPhone with 3+ items should NOT use single row")
+    }
+
+    @Test("Single row layout on iPad with 1 item")
+    func singleRowLayoutiPadOneItem() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: false, itemCount: 1)
+        #expect(result == true, "iPad with 1 item should use single row layout")
+    }
+
+    @Test("Single row layout on iPad with 2 items")
+    func singleRowLayoutiPadTwoItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: false, itemCount: 2)
+        #expect(result == true, "iPad with 2 items should use single row layout")
+    }
+
+    @Test("Single row layout on iPad with 3 items")
+    func singleRowLayoutiPadThreeItems() {
+        let result = StreaksLayoutViewLogic.useSingleRowLayout(isCompactWidth: false, itemCount: 3)
+        #expect(result == false, "iPad with 3+ items should NOT use single row layout")
+    }
 }

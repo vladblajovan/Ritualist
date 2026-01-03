@@ -2,7 +2,7 @@
 //  PersonalityDeepLinkCoordinator.swift
 //  RitualistCore
 //
-//  Created by Claude on 06.08.2025.
+//  Created by Vlad Blajovan on 06.08.2025.
 //
 
 import Foundation
@@ -130,7 +130,6 @@ public final class PersonalityDeepLinkCoordinator {
     @MainActor
     public func resetAnalysisState() {
         shouldShowPersonalityAnalysis = false
-        // Keep pendingNotificationAction and shouldNavigateToSettings as they are
     }
     
     /// Checks if there's a pending navigation that should trigger

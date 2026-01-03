@@ -2,7 +2,7 @@
 //  TimeZone+LocalizedDisplay.swift
 //  Ritualist
 //
-//  Created by Claude on 22.12.2025.
+//  Created by Vlad Blajovan on 22.12.2025.
 //
 //  Provides localized timezone display names for better UX.
 //  Uses iOS built-in localization to show user-friendly names.

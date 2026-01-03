@@ -625,7 +625,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func completedHabitItem(habit: Habit, isFirstItem: Bool) -> some View {
         if isFirstItem {
             VStack(spacing: 4) {
-                TipView(tapCompletedHabitTip, arrowEdge: .bottom)
+                TipView(tapCompletedHabitTip, arrowEdge: .bottom) { _ in
+                    // Tip was dismissed - persist for future tip chaining
+                    TapCompletedHabitTip.wasDismissed.sendDonation()
+                    logger.log("Completed habit tip dismissed", level: .debug, category: .ui)
+                }
                 habitRow(habit: habit, isCompleted: true)
             }
             .onAppear {

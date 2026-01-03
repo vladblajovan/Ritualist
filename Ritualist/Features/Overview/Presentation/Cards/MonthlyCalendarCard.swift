@@ -2,7 +2,14 @@ import SwiftUI
 import Foundation
 import RitualistCore
 
-// PERFORMANCE: Pre-computed day data - ALL properties calculated ONCE when month changes
+// Type aliases for cleaner code
+private typealias LayoutConstants = MonthlyCalendarViewLogic.LayoutConstants
+private typealias LayoutMetrics = MonthlyCalendarViewLogic.LayoutMetrics
+private typealias LayoutContext = MonthlyCalendarViewLogic.LayoutContext
+
+// MARK: - Day Display Data
+
+/// Pre-computed day data - ALL properties calculated ONCE when month changes
 private struct DayDisplayData: Identifiable {
     let id: String
     let date: Date
@@ -12,6 +19,7 @@ private struct DayDisplayData: Identifiable {
     let hasBorder: Bool
     let opacity: Double
     let isCurrentMonth: Bool
+    let isFuture: Bool
     let row: Int
     let col: Int
 }
@@ -26,9 +34,42 @@ struct MonthlyCalendarCard: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var currentDate = Date()
     @State private var displayDays: [DayDisplayData] = []
+    /// Maximum row index for current month days, cached to avoid repeated filtering in layout
+    @State private var maxRowIndex: Int = 4
+    /// Stored canvas geometry for layout calculations.
+    /// Updated via onChange(of: geometry.size) to ensure layout and tap detection stay synchronized.
+    /// Note: During rapid orientation changes, there may be a brief moment where canvasSize
+    /// is updating. SwiftUI's animation system naturally debounces these transitions.
+    @State private var canvasSize: CGSize = .zero
+
+    /// Minimum height for the calendar grid, calculated independently of GeometryReader.
+    /// This ensures proper sizing in EqualHeightRow on iPad where intrinsic size is needed.
+    private var minimumGridHeight: CGFloat {
+        let rowCount = maxRowIndex + 1
+        let cellSize = horizontalSizeClass == .compact
+            ? LayoutConstants.maxCellSizeCompact
+            : LayoutConstants.maxCellSizeRegular
+        let spacing = min(cellSize * LayoutConstants.verticalSpacingRatio, LayoutConstants.maxVerticalSpacing)
+        let buffer = LayoutConstants.borderBuffer
+        return buffer + CGFloat(rowCount) * cellSize + CGFloat(rowCount - 1) * spacing + buffer
+    }
 
     private var calendar: Calendar {
         CalendarUtils.localCalendar(for: timezone)
+    }
+
+    /// Computes all layout metrics from the stored canvas size.
+    /// Delegates to MonthlyCalendarViewLogic for testability.
+    /// On iPad, passes available height for dynamic sizing to fill EqualHeightRow.
+    private var layout: LayoutMetrics {
+        let isCompact = horizontalSizeClass == .compact
+        let context = LayoutContext(
+            canvasSize: canvasSize,
+            maxRowIndex: maxRowIndex,
+            isCompactWidth: isCompact,
+            availableHeight: isCompact ? nil : canvasSize.height
+        )
+        return MonthlyCalendarViewLogic.computeLayout(for: context)
     }
 
     private var monthString: String {
@@ -119,63 +160,38 @@ struct MonthlyCalendarCard: View {
 
             // PERFORMANCE: Use Canvas for GPU-accelerated rendering - SINGLE draw pass
             GeometryReader { geometry in
-                let columnWidth = geometry.size.width / 7
-                // Circle fills 75% of column width, leaving 25% for spacing
-                // Cap at 36pt on iPhone for consistent appearance
-                let cellSize: CGFloat = min(columnWidth * 0.75, 36)
-                // Spacing = gap between circles, capped at 20pt to prevent explosion in landscape
-                let verticalSpacing: CGFloat = min(columnWidth - cellSize, 20)
-                let fontSize: CGFloat = cellSize * 0.39  // Scale font with circle size
-                let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
-                let numRows = maxRow + 1
-                let borderStrokeBuffer: CGFloat = 2
-                let totalHeight = CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
+                let metrics = layout
 
-                Canvas { context, size in
+                Canvas { context, _ in
                     for dayData in displayDays where dayData.isCurrentMonth {
-                        // Center circle in column (matching day name alignment)
-                        let centerX = CGFloat(dayData.col) * columnWidth + columnWidth / 2
-                        let centerY = CGFloat(dayData.row) * (cellSize + verticalSpacing) + cellSize / 2
-
+                        let centerX = CGFloat(dayData.col) * metrics.columnWidth + metrics.columnWidth / 2
+                        // Use symmetric borderBuffer for consistent top/bottom spacing
+                        let centerY = metrics.borderBuffer + CGFloat(dayData.row) * (metrics.cellSize + metrics.verticalSpacing) + metrics.cellSize / 2
                         let center = CGPoint(x: centerX, y: centerY)
-                        let radius: CGFloat = cellSize / 2
+                        let radius = metrics.cellSize / 2
 
-                        // Draw background circle
                         let circlePath = Circle().path(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
                         context.fill(circlePath, with: .color(dayData.bgColor.opacity(dayData.opacity)))
 
-                        // Draw border if needed (today)
                         if dayData.hasBorder {
                             context.stroke(circlePath, with: .color(AppColors.brand), lineWidth: 2)
                         }
 
-                        // Draw day number
                         let text = Text("\(dayData.dayNumber)")
-                            .font(.system(size: fontSize, weight: .medium))
+                            .font(.system(size: metrics.fontSize, weight: .medium))
                             .foregroundColor(dayData.textColor.opacity(dayData.opacity))
-
                         context.draw(text, at: center, anchor: .center)
                     }
                 }
-                .frame(height: totalHeight)
+                .frame(height: metrics.totalHeight)
                 .contentShape(Rectangle())
                 .onTapGesture { location in
-                    handleTap(at: location, canvasWidth: geometry.size.width)
+                    handleTap(at: location)
                 }
+                .onAppear { canvasSize = geometry.size }
+                .onChange(of: geometry.size) { _, newSize in canvasSize = newSize }
             }
-            .frame(minHeight: {
-                // Estimate height for layout based on current orientation
-                let maxRow = displayDays.filter { $0.isCurrentMonth }.map { $0.row }.max() ?? 4
-                let numRows = maxRow + 1
-                let cellSize: CGFloat = 36
-                // Detect orientation: landscape has wider screen
-                let screenBounds = UIScreen.main.bounds
-                let isLandscape = screenBounds.width > screenBounds.height
-                // Portrait: ~19pt spacing, Landscape: 20pt (capped)
-                let verticalSpacing: CGFloat = isLandscape ? 20 : 19
-                let borderStrokeBuffer: CGFloat = 2
-                return CGFloat(numRows) * cellSize + CGFloat(numRows - 1) * verticalSpacing + borderStrokeBuffer
-            }())
+            .frame(minHeight: horizontalSizeClass == .regular ? minimumGridHeight : layout.totalHeight)
             // Accessibility: Provide summary for VoiceOver users
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(calendarAccessibilityLabel)
@@ -242,6 +258,7 @@ struct MonthlyCalendarCard: View {
         let currentMonth = calendar.dateComponents(in: timezone, from: currentDate).month ?? 1
         let today = Date()
 
+        var computedMaxRow = 0
         displayDays = days.enumerated().map { index, date in
             let dayNumber = calendar.dateComponents(in: timezone, from: date).day ?? 1
             let normalizedDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
@@ -256,6 +273,11 @@ struct MonthlyCalendarCard: View {
                 calendar: calendar
             )
 
+            let row = index / 7
+            if context.isCurrentMonth {
+                computedMaxRow = max(computedMaxRow, row)
+            }
+
             return DayDisplayData(
                 id: normalizedDate.timeIntervalSince1970.description,
                 date: date,
@@ -265,22 +287,33 @@ struct MonthlyCalendarCard: View {
                 hasBorder: MonthlyCalendarViewLogic.shouldShowBorder(for: context),
                 opacity: MonthlyCalendarViewLogic.opacity(for: context),
                 isCurrentMonth: context.isCurrentMonth,
-                row: index / 7,
+                isFuture: context.isFuture,
+                row: row,
                 col: index % 7
             )
         }
+        maxRowIndex = computedMaxRow
     }
 
-    private func handleTap(at location: CGPoint, canvasWidth: CGFloat) {
-        let columnWidth = canvasWidth / 7
-        // Match the dynamic sizing from Canvas
-        let cellSize: CGFloat = min(columnWidth * 0.75, 36)
-        let verticalSpacing: CGFloat = min(columnWidth - cellSize, 20)
+    /// Handles tap gestures on the calendar grid.
+    /// Delegates grid position calculation to MonthlyCalendarViewLogic for testability.
+    ///
+    /// - Parameter location: The tap location in Canvas coordinate space
+    private func handleTap(at location: CGPoint) {
+        // Guard against invalid state during rapid orientation changes
+        guard canvasSize.width > 0, canvasSize.height > 0 else { return }
 
-        let col = Int(location.x / columnWidth)
-        let row = Int(location.y / (cellSize + verticalSpacing))
+        let metrics = layout
 
-        if let dayData = displayDays.first(where: { $0.row == row && $0.col == col && $0.isCurrentMonth }) {
+        // Use extracted logic for grid position calculation (includes bounds validation)
+        guard let position = MonthlyCalendarViewLogic.gridPosition(
+            for: location,
+            metrics: metrics,
+            maxRowIndex: maxRowIndex
+        ) else { return }
+
+        // Find the tapped day - must be current month and not a future date
+        if let dayData = displayDays.first(where: { $0.row == position.row && $0.col == position.col && $0.isCurrentMonth && !$0.isFuture }) {
             onDateSelect(dayData.date)
         }
     }

@@ -2,7 +2,7 @@
 //  SchemaV12Tests.swift
 //  RitualistTests
 //
-//  Created by Claude on 26.12.2025.
+//  Created by Vlad Blajovan on 26.12.2025.
 //
 //  Unit tests for SchemaV12 file (retained for reference but not in migration plan).
 //  V12 was removed from migration plan due to identical checksum with V11.

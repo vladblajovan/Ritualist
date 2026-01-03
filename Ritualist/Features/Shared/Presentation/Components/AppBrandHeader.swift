@@ -9,6 +9,7 @@
 import SwiftUI
 import RitualistCore
 import FactoryKit
+import TipKit
 
 /// Configuration for an action button in the header
 struct HeaderAction: Identifiable {
@@ -22,6 +23,14 @@ struct HeaderAction: Identifiable {
         self.accessibilityLabel = accessibilityLabel
         self.action = action
     }
+}
+
+/// Display style for the progress indicator
+enum ProgressDisplayStyle {
+    /// Linear progress bar below the header
+    case linear
+    /// Circular progress ring around the avatar
+    case circular
 }
 
 /// Reusable app branding header with optional progress bar.
@@ -55,6 +64,9 @@ struct AppBrandHeader: View {
     /// Whether to show the progress bar. Defaults to true.
     var showProgressBar: Bool = true
 
+    /// Display style for progress indicator. Defaults to linear.
+    var progressDisplayStyle: ProgressDisplayStyle = .linear
+
     /// Whether to animate the progress bar on initial load. Defaults to true.
     var animateProgressOnLoad: Bool = true
 
@@ -68,22 +80,24 @@ struct AppBrandHeader: View {
     // MARK: - Injected Dependencies
 
     @Injected(\.settingsViewModel) private var settingsVM
-    @Injected(\.navigationService) private var navigationService
     @Environment(\.colorScheme) private var colorScheme
 
     // MARK: - Profile Avatar Size
 
     /// Outer size for the profile avatar (includes gradient ring)
     private let avatarOuterSize: CGFloat = 36
-    /// Width of the progress gradient ring around the avatar
+    /// Width of the progress gradient ring around the avatar (for solid ring)
     private let avatarRingWidth: CGFloat = 3
+    /// Width of the circular progress stroke
+    private let circularProgressLineWidth: CGFloat = 4
     /// Inner content size (for image or initials)
     private var avatarInnerSize: CGFloat { avatarOuterSize - (avatarRingWidth * 2) }
 
     // MARK: - Profile Avatar View
 
-    /// Avatar view with progress gradient ring
-    /// - Always shows progress gradient ring matching title/progress bar colors
+    /// Avatar view with progress gradient ring or circular progress
+    /// - When progressDisplayStyle is .linear: shows solid gradient ring
+    /// - When progressDisplayStyle is .circular: shows gradient avatar with circular progress ring on top
     /// - Inside: user image, initials, or empty (just gradient)
     @ViewBuilder
     private var profileAvatarView: some View {
@@ -92,28 +106,33 @@ struct AppBrandHeader: View {
             name: settingsVM.profile.name
         )
 
+        let showCircularProgress = progressDisplayStyle == .circular && showProgressBar && completionPercentage != nil
+        let hasAvatarImage = contentType == .image
+
         ZStack {
-            // Progress gradient circle (always visible as ring or full background)
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: progressGradientColors(for: completionPercentage ?? 0.0),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            // Show gradient-filled avatar background only when no image is present
+            if !hasAvatarImage {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: progressGradientColors(for: completionPercentage ?? 0.0),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
-                .frame(width: avatarOuterSize, height: avatarOuterSize)
+                    .frame(width: avatarOuterSize, height: avatarOuterSize)
+            }
 
             // Inner content based on type
             switch contentType {
             case .image:
-                // Show image with visible gradient ring border
+                // Show image at full size (no gradient border)
                 if let imageData = settingsVM.profile.avatarImageData,
                    let uiImage = UIImage(data: imageData) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: avatarInnerSize, height: avatarInnerSize)
+                        .frame(width: avatarOuterSize, height: avatarOuterSize)
                         .clipShape(Circle())
                 }
             case .initials:
@@ -125,6 +144,59 @@ struct AppBrandHeader: View {
                 // Just show the gradient circle (no additional content)
                 EmptyView()
             }
+        }
+        .overlay {
+            // Circular progress ring as overlay - doesn't affect avatar position
+            if showCircularProgress {
+                circularProgressRing
+            }
+        }
+    }
+
+    // MARK: - Circular Progress Ring
+
+    /// Gap between avatar and progress ring
+    private let circularProgressGap: CGFloat = 8
+
+    /// Size of the circular progress ring (larger than avatar to not overlap)
+    private var circularProgressSize: CGFloat {
+        avatarOuterSize + circularProgressGap
+    }
+
+    @ViewBuilder
+    private var circularProgressRing: some View {
+        let progress = animatedCompletionPercentage
+
+        ZStack {
+            // Background track
+            Circle()
+                .stroke(
+                    CardDesign.secondaryBackground,
+                    style: StrokeStyle(lineWidth: circularProgressLineWidth, lineCap: .round)
+                )
+                .frame(width: circularProgressSize, height: circularProgressSize)
+
+            // Progress arc with gradient
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    AngularGradient(
+                        colors: progressGradientColors(for: progress),
+                        center: .center,
+                        startAngle: .degrees(0),
+                        endAngle: .degrees(360 * progress)
+                    ),
+                    style: StrokeStyle(lineWidth: circularProgressLineWidth, lineCap: .round)
+                )
+                .frame(width: circularProgressSize, height: circularProgressSize)
+                .rotationEffect(.degrees(-90)) // Start from top
+                .animation(.easeInOut(duration: 0.6), value: progress)
+                .shadow(
+                    color: showProgressGlow ? Color.green.opacity(CardDesign.glowOpacity) : .clear,
+                    radius: showProgressGlow ? CardDesign.glowRadius : 0,
+                    x: 0,
+                    y: 0
+                )
         }
     }
 
@@ -163,6 +235,11 @@ struct AppBrandHeader: View {
     @State private var showProgressGlow = false
     @State private var hasInitializedProgress = false
     @State private var progressGlowTask: Task<Void, Never>?
+    @State private var showingSettings = false
+
+    // MARK: - Tips
+
+    private let circleProgressTip = CircleProgressTip()
 
     // MARK: - Constants
 
@@ -179,12 +256,32 @@ struct AppBrandHeader: View {
 
     // MARK: - Body
 
+    /// Extra bottom padding to accommodate circular progress ring overlay
+    private var circularProgressOverhang: CGFloat {
+        (circularProgressGap + circularProgressLineWidth) / 2
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.medium) {
             gradientTitle
-            if showProgressBar && completionPercentage != nil {
+            if showProgressBar && completionPercentage != nil && progressDisplayStyle == .linear {
                 progressBar
             }
+        }
+        .padding(.bottom, circularProgressOverhang)
+        .overlay(alignment: .bottom) {
+            // Fade gradient that overlays scroll content for smooth fade effect
+            LinearGradient(
+                colors: [
+                    Color(.systemGroupedBackground),
+                    Color(.systemGroupedBackground).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .offset(y: 16)
+            .allowsHitTesting(false)
         }
         .onAppear {
             // Initialize progress immediately when view appears
@@ -253,10 +350,10 @@ struct AppBrandHeader: View {
                 actionButton(action)
             }
 
-            // Profile avatar - always visible with progress gradient, navigates to settings on tap
+            // Profile avatar - always visible with progress gradient, opens settings sheet on tap
             if showProfileAvatar {
                 Button {
-                    navigationService.selectedTab = .settings
+                    showingSettings = true
                 } label: {
                     profileAvatarView
                 }
@@ -264,6 +361,22 @@ struct AppBrandHeader: View {
                 .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
                 .accessibilityLabel("Profile")
                 .accessibilityHint("Double tap to open settings")
+                .popoverTip(circleProgressTip, arrowEdge: .top) { _ in
+                    // Tip was dismissed - enable the next tip in the flow
+                    CircleProgressTip.userWasShownAvatarTip.sendDonation()
+                }
+                .fullScreenCover(isPresented: $showingSettings) {
+                    NavigationStack {
+                        SettingsRoot()
+                            .toolbar {
+                                ToolbarItem(placement: .confirmationAction) {
+                                    Button(Strings.Common.close) {
+                                        showingSettings = false
+                                    }
+                                }
+                            }
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -362,4 +475,14 @@ struct AppBrandHeader: View {
     AppBrandHeader(completionPercentage: nil)
         .padding()
         .background(Color(.systemGroupedBackground))
+}
+
+#Preview("Circular Progress") {
+    VStack(spacing: 32) {
+        AppBrandHeader(completionPercentage: 0.3, progressDisplayStyle: .circular)
+        AppBrandHeader(completionPercentage: 0.6, progressDisplayStyle: .circular)
+        AppBrandHeader(completionPercentage: 1.0, progressDisplayStyle: .circular)
+    }
+    .padding()
+    .background(Color(.systemGroupedBackground))
 }

@@ -2,7 +2,7 @@
 //  MotivationCardDemoView.swift
 //  Ritualist
 //
-//  Created by Claude for UX testing and development
+//  Created by Vlad Blajovan for UX testing and development
 //
 
 import SwiftUI

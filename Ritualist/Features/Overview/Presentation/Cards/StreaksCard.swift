@@ -73,10 +73,18 @@ struct StreaksCard: View {
 
     /// Whether to use single row layout (iPhone with <=2 streaks)
     private var useSingleRowLayout: Bool {
-        horizontalSizeClass == .compact && streaks.count <= 2
+        StreaksLayoutViewLogic.useSingleRowLayout(
+            isCompactWidth: horizontalSizeClass == .compact,
+            itemCount: streaks.count
+        )
     }
 
-    /// Grid view for streaks - adapts between single row and 2-row layouts
+    /// Number of rows per column based on device
+    private var rowsPerColumn: Int {
+        horizontalSizeClass == .regular ? 3 : 2
+    }
+
+    /// Grid view for streaks - adapts between single row and multi-row layouts
     @ViewBuilder
     private var streaksGrid: some View {
         GeometryReader { geometry in
@@ -91,8 +99,9 @@ struct StreaksCard: View {
                     }
                 }
             } else {
-                // 2 rows layout with horizontal scroll
-                let columnCount = (streaks.count + 1) / 2 // Ceiling division
+                // Multi-row layout with horizontal scroll (2 rows on iPhone, 3 on iPad)
+                let rows = rowsPerColumn
+                let columnCount = (streaks.count + rows - 1) / rows // Ceiling division
                 let needsScroll = columnCount > 2
                 let peekWidth: CGFloat = needsScroll ? (horizontalSizeClass == .regular ? 70 : 30) : 0
                 // Calculate item width: 2 columns + spacing + peek (if scrolling)
@@ -101,15 +110,16 @@ struct StreaksCard: View {
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: itemSpacing) {
-                        // Group streaks into vertical pairs (2 rows per column)
-                        ForEach(Array(stride(from: 0, to: streaks.count, by: 2)), id: \.self) { index in
+                        // Group streaks into vertical columns
+                        ForEach(Array(stride(from: 0, to: streaks.count, by: rows)), id: \.self) { index in
                             VStack(spacing: rowSpacing) {
-                                streakItem(for: streaks[index], height: itemHeight)
-                                if index + 1 < streaks.count {
-                                    streakItem(for: streaks[index + 1], height: itemHeight)
-                                } else {
-                                    // Empty placeholder to maintain layout
-                                    Color.clear.frame(height: itemHeight)
+                                ForEach(0..<rows, id: \.self) { rowOffset in
+                                    if index + rowOffset < streaks.count {
+                                        streakItem(for: streaks[index + rowOffset], height: itemHeight)
+                                    } else {
+                                        // Empty placeholder to maintain layout
+                                        Color.clear.frame(height: itemHeight)
+                                    }
                                 }
                             }
                             .frame(width: itemWidth)
@@ -118,7 +128,7 @@ struct StreaksCard: View {
                 }
             }
         }
-        .frame(height: useSingleRowLayout ? itemHeight : itemHeight * 2 + rowSpacing)
+        .frame(height: useSingleRowLayout ? itemHeight : itemHeight * CGFloat(rowsPerColumn) + rowSpacing * CGFloat(rowsPerColumn - 1))
     }
 
     var body: some View {
@@ -150,11 +160,6 @@ struct StreaksCard: View {
                             .fill(CardDesign.secondaryBackground)
                     )
                     .accessibilityLabel(StreaksAccessibility.streakCount(streaks.count))
-            }
-
-            // Only add spacer on iPad for equal-height matching in side-by-side layout
-            if horizontalSizeClass == .regular {
-                Spacer(minLength: 0)
             }
 
             if isLoading {
@@ -197,11 +202,6 @@ struct StreaksCard: View {
                 // iPhone with <=2 streaks: single row layout
                 // iPad or 3+ streaks: 2 rows with horizontal scroll
                 streaksGrid
-            }
-
-            // Only add spacer on iPad for equal-height matching in side-by-side layout
-            if horizontalSizeClass == .regular {
-                Spacer(minLength: 0)
             }
         }
         .accessibilityIdentifier("streaks_card")

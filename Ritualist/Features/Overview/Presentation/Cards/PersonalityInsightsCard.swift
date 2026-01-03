@@ -18,37 +18,32 @@ struct PersonalityInsightsCard: View {
                 Image(systemName: "brain.head.profile")
                     .font(.title2)
                     .foregroundColor(.purple)
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Personality Insights")
                         .font(.headline)
                         .foregroundColor(.primary)
-                    
+
                     if let trait = dominantTrait {
                         Text("Based on your \(trait.lowercased()) profile")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
-                // Link to full analysis - only this icon opens the sheet
-                Button(action: onOpenAnalysis) {
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .contentShape(Circle())
-                        .frame(width: 24, height: 24)
-                }
-                .buttonStyle(PlainButtonStyle())
+
+                // Navigation indicator
+                Image(systemName: "chevron.right")
+                    .font(.body.weight(.medium))
+                    .foregroundColor(.secondary)
             }
-            
+
             // Content based on state
             if !insights.isEmpty {
                 // Show existing insights (even if data is now insufficient for new analysis)
                 insightsContent
-                
+
                 // If data is now insufficient, show warning
                 if !isDataSufficient {
                     warningBanner
@@ -61,6 +56,10 @@ struct PersonalityInsightsCard: View {
                 noInsightsContent
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onOpenAnalysis()
+        }
     }
 
     // MARK: - Content Views
@@ -68,44 +67,58 @@ struct PersonalityInsightsCard: View {
     @ViewBuilder
     private var insightsContent: some View {
         let initialInsightsCount = 3
-        // On large screens (iPad), show all insights without trimming
-        let showAll = horizontalSizeClass == .regular
-        let visibleCount = showAll || isExpanded ? insights.count : initialInsightsCount
+        // On large screens (iPad), show all insights in 2 columns
+        let isRegular = horizontalSizeClass == .regular
+        let visibleCount = isRegular || isExpanded ? insights.count : initialInsightsCount
 
-        VStack(spacing: 16) {
-            ForEach(Array(insights.prefix(visibleCount).enumerated()), id: \.element.id) { index, insight in
-                InsightRow(insight: insight)
-
-                if index < visibleCount - 1 {
-                    Divider()
-                        .opacity(0.3)
+        if isRegular {
+            // iPad: 2-column grid layout
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 16),
+                GridItem(.flexible(), spacing: 16)
+            ], spacing: 12) {
+                ForEach(insights.prefix(visibleCount), id: \.id) { insight in
+                    InsightRow(insight: insight)
                 }
             }
+        } else {
+            // iPhone: single column with dividers
+            VStack(spacing: 16) {
+                ForEach(Array(insights.prefix(visibleCount).enumerated()), id: \.element.id) { index, insight in
+                    InsightRow(insight: insight)
 
-            // Show more/less indicator only on compact screens (iPhone) with additional insights
-            if !showAll && insights.count > initialInsightsCount {
-                HStack {
-                    Text(isExpanded ? "Show less" : "View \(insights.count - initialInsightsCount) more insights")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Spacer()
-
-                    // Expand/collapse handled by tap on this row only
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.top, 4)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    animateIfAllowed(.easeInOut(duration: 0.3)) {
-                        isExpanded.toggle()
+                    if index < visibleCount - 1 {
+                        Divider()
+                            .opacity(0.3)
                     }
                 }
-                .accessibilityLabel(isExpanded ? "Show less insights" : "View \(insights.count - 3) more insights")
-                .accessibilityHint("Double-tap to \(isExpanded ? "collapse" : "expand") the insights list")
-                .accessibilityAddTraits(.isButton)
+
+                // Show more/less indicator only on compact screens (iPhone) with additional insights
+                if insights.count > initialInsightsCount {
+                    HStack {
+                        Text(isExpanded ? "Show less" : "View \(insights.count - initialInsightsCount) more insights")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 4)
+                    .contentShape(Rectangle())
+                    .highPriorityGesture(
+                        TapGesture().onEnded {
+                            animateIfAllowed(.easeInOut(duration: 0.3)) {
+                                isExpanded.toggle()
+                            }
+                        }
+                    )
+                    .accessibilityLabel(isExpanded ? "Show less insights" : "View \(insights.count - 3) more insights")
+                    .accessibilityHint("Double-tap to \(isExpanded ? "collapse" : "expand") the insights list")
+                    .accessibilityAddTraits(.isButton)
+                }
             }
         }
     }

@@ -2,7 +2,7 @@
 //  SchemaV6.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Schema Version 6: Added archivedDate for soft deletion of habits
 //  This schema enables archiving habits instead of deleting them permanently.

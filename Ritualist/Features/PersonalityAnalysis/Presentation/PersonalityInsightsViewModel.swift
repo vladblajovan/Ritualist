@@ -2,7 +2,7 @@
 //  PersonalityInsightsViewModel.swift
 //  Ritualist
 //
-//  Created by Claude on 06.08.2025.
+//  Created by Vlad Blajovan on 06.08.2025.
 //
 
 import Foundation
@@ -269,6 +269,13 @@ public final class PersonalityInsightsViewModel {
         let updatedPrefs = currentPrefs.updated(isEnabled: !currentPrefs.isEnabled)
         await savePreferences(updatedPrefs)
         if updatedPrefs.isEnabled { await loadPersonalityInsights() }
+    }
+
+    public func setAnalysisEnabled(_ enabled: Bool) async {
+        guard let currentPrefs = preferences, currentPrefs.isEnabled != enabled else { return }
+        let updatedPrefs = currentPrefs.updated(isEnabled: enabled)
+        await savePreferences(updatedPrefs)
+        if enabled { await loadPersonalityInsights() }
     }
 
     // MARK: - Computed Properties

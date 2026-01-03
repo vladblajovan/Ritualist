@@ -2,7 +2,7 @@
 //  DataDeduplicationService.swift
 //  RitualistCore
 //
-//  Created by Claude on 26.11.2025.
+//  Created by Vlad Blajovan on 26.11.2025.
 //
 //  Service to deduplicate records after CloudKit sync.
 //

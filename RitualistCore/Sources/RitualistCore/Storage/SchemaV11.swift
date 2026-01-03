@@ -2,7 +2,7 @@
 //  SchemaV11.swift
 //  RitualistCore
 //
-//  Created by Claude on 28.11.2025.
+//  Created by Vlad Blajovan on 28.11.2025.
 //
 //  Schema Version 11: User Profile Demographics
 //

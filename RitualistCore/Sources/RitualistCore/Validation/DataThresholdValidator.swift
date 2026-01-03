@@ -2,7 +2,7 @@
 //  DataThresholdValidator.swift
 //  RitualistCore
 //
-//  Created by Claude on 16.08.2025.
+//  Created by Vlad Blajovan on 16.08.2025.
 //
 
 import Foundation
@@ -24,12 +24,12 @@ public final class DefaultDataThresholdValidator: DataThresholdValidator {
     private let getHabitAnalysisInput: GetHabitAnalysisInputUseCase
 
     // Minimum data thresholds
+    // Note: Custom categories/habits are valuable data points but NOT required
+    // Most users pick from assistant suggestions (predefined categories)
     private struct Thresholds {
         static let minActiveHabits = 5
         static let minTrackingDays = 7
-        static let minCustomCategories = 3
-        static let minCustomHabits = 3
-        static let minCompletionRate = 0.3 // 30%
+        static let minCompletionRate = 0.1 // 10% - low completion is valid data (e.g., struggling users)
     }
 
     public init(getHabitAnalysisInput: GetHabitAnalysisInputUseCase) {
@@ -82,26 +82,6 @@ public final class DefaultDataThresholdValidator: DataThresholdValidator {
             category: .tracking
         ))
         
-        // Custom categories requirement
-        let customCategoriesCount = input.customCategories.count
-        requirements.append(ThresholdRequirement(
-            name: "Custom Categories",
-            description: "Create at least \(Thresholds.minCustomCategories) custom habit categories",
-            currentValue: customCategoriesCount,
-            requiredValue: Thresholds.minCustomCategories,
-            category: .customization
-        ))
-        
-        // Custom habits requirement
-        let customHabitsCount = input.customHabits.count
-        requirements.append(ThresholdRequirement(
-            name: "Custom Habits",
-            description: "Create at least \(Thresholds.minCustomHabits) custom habits",
-            currentValue: customHabitsCount,
-            requiredValue: Thresholds.minCustomHabits,
-            category: .customization
-        ))
-        
         // Completion rate requirement (overall engagement)
         let avgCompletionRate = input.completionRates.reduce(0.0, +) / Double(max(input.completionRates.count, 1))
         let completionRatePercent = Int(avgCompletionRate * 100)
@@ -117,7 +97,7 @@ public final class DefaultDataThresholdValidator: DataThresholdValidator {
         
         // Habit diversity requirement (different categories)
         let diversityCount = input.habitCategories.count
-        let minDiversity = 3 // At least 3 different categories
+        let minDiversity = 2 // At least 2 different categories (lowered from 3 for accessibility)
         requirements.append(ThresholdRequirement(
             name: "Habit Diversity",
             description: "Track habits across at least \(minDiversity) different categories",

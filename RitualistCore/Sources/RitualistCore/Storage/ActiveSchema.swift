@@ -2,7 +2,7 @@
 //  ActiveSchema.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Centralized definition of the active schema version.
 //  When migrating to a new schema, only update the type aliases in this file.

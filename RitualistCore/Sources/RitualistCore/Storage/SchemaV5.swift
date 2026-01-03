@@ -2,7 +2,7 @@
 //  SchemaV5.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Schema Version 5: Added lastCompletedDate tracking to HabitModel
 //  This schema enables showing when a habit was last completed.

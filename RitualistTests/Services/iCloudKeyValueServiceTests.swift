@@ -2,7 +2,7 @@
 //  iCloudKeyValueServiceTests.swift
 //  RitualistTests
 //
-//  Created by Claude on 28.11.2025.
+//  Created by Vlad Blajovan on 28.11.2025.
 //
 //  Unit tests for iCloudKeyValueService.
 //  Note: NSUbiquitousKeyValueStore requires iCloud entitlements and can't be easily

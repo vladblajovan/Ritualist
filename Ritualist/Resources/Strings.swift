@@ -530,6 +530,7 @@ public enum Strings {
     public enum Common {
         public static let done = String(localized: "common.done")
         public static let cancel = String(localized: "common.cancel")
+        public static let close = String(localized: "common.close")
         public static let decrease = String(localized: "common.decrease")
         public static let increase = String(localized: "common.increase")
     }

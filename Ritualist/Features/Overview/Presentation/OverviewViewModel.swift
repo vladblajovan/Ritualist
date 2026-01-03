@@ -179,6 +179,16 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         }
     }
 
+    /// Handle personality paywall dismissal
+    public func handlePersonalityPaywallDismissal() {
+        personalityVM.handlePaywallDismissal()
+    }
+
+    /// Immediately hide personality upsell (in case user purchased elsewhere)
+    public func hidePersonalityUpsell() {
+        personalityVM.hideUpsell()
+    }
+
     // MARK: - Migration State (exposed via UseCase)
 
     /// Whether a migration is currently in progress

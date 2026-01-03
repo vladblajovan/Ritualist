@@ -188,7 +188,6 @@ private struct HabitsListView: View {
     @Bindable var vm: HabitsViewModel
     @Binding var showingCategoryManagement: Bool
     @Injected(\.debugLogger) private var logger
-    @AppStorage(UserDefaultsKeys.brandHeaderPinned) private var isHeaderPinned = true
     @State private var showingDeleteConfirmation = false
     @State private var showingBatchDeleteConfirmation = false
     @State private var showingDeactivateConfirmation = false
@@ -235,56 +234,14 @@ private struct HabitsListView: View {
         )
         .padding(.horizontal, Spacing.large)
         .padding(.top, Spacing.medium)
-        .padding(.bottom, 16) // Space for gradient overlay
         .background(Color(.systemGroupedBackground))
-        .overlay(alignment: .bottom) {
-            // Fade gradient that overlays scroll content for smooth fade effect
-            LinearGradient(
-                colors: [
-                    Color(.systemGroupedBackground),
-                    Color(.systemGroupedBackground).opacity(0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 16)
-            .offset(y: 16)
-            .allowsHitTesting(false)
-        }
         .zIndex(1)
-    }
-
-    private var scrollingBrandHeader: some View {
-        AppBrandHeader(
-            completionPercentage: nil,
-            showProgressBar: false,
-            actions: headerActions
-        )
-        .padding(.horizontal, Spacing.large)
-        .padding(.top, Spacing.medium)
-        .background(Color(.systemGroupedBackground))
-        .overlay(alignment: .bottom) {
-            // Fade gradient matching sticky header for visual consistency
-            LinearGradient(
-                colors: [
-                    Color(.systemGroupedBackground),
-                    Color(.systemGroupedBackground).opacity(0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 16)
-            .offset(y: 16)
-            .allowsHitTesting(false)
-        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Sticky header (only when pinned)
-            if isHeaderPinned {
-                stickyBrandHeader
-            }
+            // Sticky header at the top
+            stickyBrandHeader
 
             if let error = vm.error {
                 ErrorView(
@@ -293,125 +250,101 @@ private struct HabitsListView: View {
                 ) {
                     await vm.retry()
                 }
-            } else if vm.filteredHabits.isEmpty {
-                HabitsEmptyStateView(
-                    selectedFilterCategory: vm.selectedFilterCategory,
-                    categories: vm.categories,
-                    isOverFreeLimit: vm.isOverFreeLimit,
-                    habitCount: vm.habitsData.totalHabitsCount,
-                    maxHabits: vm.freeMaxHabits,
-                    onCategoryTap: { category in
-                        vm.selectFilterCategory(category)
-                    },
-                    onManageTap: {
-                        showingCategoryManagement = true
-                    },
-                    onUpgradeTap: {
-                        Task {
-                            await vm.showPaywall()
-                        }
-                    },
-                    onRefresh: {
-                        await vm.refresh()
-                    }
-                )
             } else {
-                // Everything inside List for unified scrolling
                 List(selection: $selection) {
-                    // Scrolling header (only when not pinned)
-                    if !isHeaderPinned {
-                        Section {
-                            scrollingBrandHeader
-                                .padding(.bottom, 20) // Space for gradient overlay
-                                .listRowInsets(EdgeInsets(top: 0, leading: -Spacing.large, bottom: 0, trailing: -Spacing.large))
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
-                        }
-                        .listSectionSpacing(0)
-                    }
-
                     // Over-limit banner section
                     if vm.isOverFreeLimit {
-                        Section {
-                            OverLimitBannerView(
-                                currentCount: vm.habitsData.totalHabitsCount,
-                                maxCount: vm.freeMaxHabits,
-                                onUpgradeTap: {
-                                    Task {
-                                        await vm.showPaywall()
-                                    }
+                        OverLimitBannerView(
+                            currentCount: vm.habitsData.totalHabitsCount,
+                            maxCount: vm.freeMaxHabits,
+                            onUpgradeTap: {
+                                Task {
+                                    await vm.showPaywall()
                                 }
-                            )
-                            .padding(.horizontal, Spacing.medium)
-                            .padding(.vertical, Spacing.small)
-                            .listRowInsets(EdgeInsets(top: 0, leading: -Spacing.medium, bottom: 0, trailing: -Spacing.medium))
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                        }
-                        .listSectionSpacing(0)
+                            }
+                        )
+                        .padding(2) // Prevent corner clipping from List row
+                        .padding(.bottom, Spacing.small * 2)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
 
                     // Categories carousel section
                     Section {
                         CategoryCarouselWithManagement(
                             categories: vm.categories,
-                            selectedCategory: vm.selectedFilterCategory,
-                            onCategoryTap: { category in
-                                vm.selectFilterCategory(category)
-                            },
+                            selectedCategory: $vm.selectedFilterCategory,
                             onManageTap: {
                                 showingCategoryManagement = true
                             },
-                            scrollToStartOnSelection: true,
+                            scrollToStartOnSelection: false,
                             allowDeselection: true,
                             unselectedBackgroundColor: Color(.secondarySystemGroupedBackground)
                         )
-                        .padding(.top, Spacing.small)
                         .padding(.bottom, Spacing.large)
-                        .listRowInsets(EdgeInsets(top: 0, leading: -Spacing.medium, bottom: 0, trailing: -Spacing.medium))
+                        .listRowInsets(EdgeInsets())
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                     }
                     .listSectionSpacing(0)
 
-                    // Habits section
+                    // Habits section or empty state
                     Section {
-                        ForEach(vm.filteredHabits, id: \.id) { habit in
-                            GenericRowView.habitRowWithSchedule(
-                                habit: habit,
-                                scheduleStatus: vm.getScheduleStatus(for: habit)
-                            ) {
-                                vm.selectHabit(habit)
-                            }
-                            .tag(habit.id)
-                            .accessibilityIdentifier("habit.row.\(habit.id.uuidString)")
-                            .swipeActions(edge: .leading) {
-                                if editMode?.wrappedValue != .active {
-                                    Button {
-                                        Task {
-                                            await vm.toggleActiveStatus(id: habit.id)
-                                        }
-                                    } label: {
-                                        Label(
-                                            habit.isActive ? Strings.Button.deactivate : Strings.Button.activate,
-                                            systemImage: habit.isActive ? "pause.circle" : "play.circle"
-                                        )
-                                    }
-                                    .tint(habit.isActive ? .orange : .green)
+                        if vm.filteredHabits.isEmpty {
+                            // Empty state content (inline, no separate carousel)
+                            VStack(spacing: Spacing.xlarge) {
+                                if vm.selectedFilterCategory != nil {
+                                    ContentUnavailableView(
+                                        "No habits in this category",
+                                        systemImage: "tray",
+                                        description: Text("No habits found for the selected category. Try selecting a different category or create a new habit.")
+                                    )
+                                } else {
+                                    HabitsFirstTimeEmptyState()
                                 }
                             }
+                            .frame(minHeight: 300)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                        } else {
+                            ForEach(vm.filteredHabits, id: \.id) { habit in
+                                GenericRowView.habitRowWithSchedule(
+                                    habit: habit,
+                                    scheduleStatus: vm.getScheduleStatus(for: habit)
+                                ) {
+                                    vm.selectHabit(habit)
+                                }
+                                .tag(habit.id)
+                                .accessibilityIdentifier("habit.row.\(habit.id.uuidString)")
+                                .swipeActions(edge: .leading) {
+                                    if editMode?.wrappedValue != .active {
+                                        Button {
+                                            Task {
+                                                await vm.toggleActiveStatus(id: habit.id)
+                                            }
+                                        } label: {
+                                            Label(
+                                                habit.isActive ? Strings.Button.deactivate : Strings.Button.activate,
+                                                systemImage: habit.isActive ? "pause.circle" : "play.circle"
+                                            )
+                                        }
+                                        .tint(habit.isActive ? .orange : .green)
+                                    }
+                                }
+                            }
+                            .onDelete(perform: { indexSet in
+                                if let index = indexSet.first {
+                                    habitToDelete = vm.filteredHabits[index]
+                                    showingDeleteConfirmation = true
+                                }
+                            })
+                            .onMove(perform: { source, destination in
+                                Task {
+                                    await handleMove(from: source, to: destination)
+                                }
+                            })
                         }
-                        .onDelete(perform: { indexSet in
-                            if let index = indexSet.first {
-                                habitToDelete = vm.filteredHabits[index]
-                                showingDeleteConfirmation = true
-                            }
-                        })
-                        .onMove(perform: { source, destination in
-                            Task {
-                                await handleMove(from: source, to: destination)
-                            }
-                        })
                     }
                 }
                 .refreshable {
@@ -423,7 +356,7 @@ private struct HabitsListView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
-                .contentMargins(.top, isHeaderPinned ? 0 : 0, for: .scrollContent)
+                .contentMargins(.top, 16, for: .scrollContent)
                 .overlay(alignment: .bottom) {
                     if !selection.isEmpty {
                         HabitsEditModeToolbar(
@@ -790,6 +723,48 @@ private struct OverLimitBannerView: View {
             style: .card(habitCount: currentCount, maxHabits: maxCount, message: message),
             onUnlock: onUpgradeTap
         )
+    }
+}
+
+// MARK: - First Time Empty State
+
+private struct HabitsFirstTimeEmptyState: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "checklist")
+                .font(.system(size: 60))
+                .foregroundColor(.secondary.opacity(0.6))
+                .accessibilityHidden(true)
+
+            VStack(spacing: 8) {
+                Text(Strings.EmptyState.noHabitsYet)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+
+                HStack(spacing: 4) {
+                    Text("Tap")
+                    Image(systemName: "plus")
+                        .fontWeight(.medium)
+                    Text("or")
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.blue, .purple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Text("to create your first habit")
+                }
+                .font(.body)
+                .foregroundColor(.secondary)
+            }
+        }
+        .frame(height: 300)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("No habits yet. Tap plus or the AI assistant button to create your first habit.")
     }
 }
 

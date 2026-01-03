@@ -13,53 +13,48 @@ import RitualistCore
 extension PaywallView {
     @ViewBuilder
     func offerCodeButton(showingOfferCodeSheet: Binding<Bool>) -> some View {
-        VStack(spacing: 0) {
-            Divider()
-                .padding(.vertical, 8)
-
-            Button {
-                showingOfferCodeSheet.wrappedValue = true
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "giftcard.fill")
-                        .font(.title3)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.purple, .pink],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+        Button {
+            showingOfferCodeSheet.wrappedValue = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "giftcard.fill")
+                    .font(.title3)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.purple, .pink],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
-                        .frame(width: 32)
+                    )
+                    .frame(width: 32)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Have a promo code?")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-
-                        Text("Redeem your offer code here")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Have a promo code?")
+                        .font(.headline)
                         .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+
+                    Text("Redeem your offer code here")
+                        .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                .padding(16)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CornerRadius.large))
-                .overlay(
-                    RoundedRectangle(cornerRadius: CornerRadius.large)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
             }
-            .buttonStyle(.plain)
+            .padding(16)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CornerRadius.large))
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.large)
+                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
         }
+        .buttonStyle(.plain)
     }
 }
 

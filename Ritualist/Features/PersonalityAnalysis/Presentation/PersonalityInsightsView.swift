@@ -2,7 +2,7 @@
 //  PersonalityInsightsView.swift
 //  Ritualist
 //
-//  Created by Claude on 06.08.2025.
+//  Created by Vlad Blajovan on 06.08.2025.
 //
 
 import SwiftUI
@@ -25,262 +25,35 @@ public struct PersonalityInsightsView: View {
         NavigationView {
             Group {
                 if !viewModel.isAnalysisEnabled {
-                    // Disabled State with status banner
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            // Status Banner
-                            HStack {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.red)
-                                
-                                Text("Analysis is disabled")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                
-                                Spacer()
-                                
-                                Button("Enable") {
-                                    Task {
-                                        await viewModel.toggleAnalysis()
-                                    }
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                            }
-                            .padding()
-                            .background(Color.red.opacity(0.05))
-                            .cornerRadius(8)
-                            .padding(.horizontal)
-                            
-                            Image(systemName: "person.crop.circle.badge.xmark")
-                                .font(.system(size: 60))
-                                .foregroundColor(.secondary)
-                            
-                            Text("Personality Analysis Disabled")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                            
-                            Text("Enable analysis to discover your Big Five personality traits based on your habit patterns.")
-                                .font(.body)
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal)
-                        }
-                        .padding(.vertical)
-                    }
+                    // Disabled State
+                    disabledStateView
                 } else {
-                    // Enabled State - Show normal content
+                    // Enabled State - Show content based on viewState
                     switch viewModel.viewState {
                     case .loading:
-                        VStack {
-                            // Status Banner for loading state
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                
-                                Text("Analysis is enabled")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 8) {
-                                    if viewModel.preferences?.analysisFrequency == .manual {
-                                        Button {
-                                            Task {
-                                                await viewModel.triggerManualAnalysisCheck()
-                                            }
-                                        } label: {
-                                            Image(systemName: "arrow.clockwise")
-                                        }
-                                        .buttonStyle(.bordered)
-                                        .controlSize(.small)
-                                        .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
-                                    }
-                                    
-                                    Button("Disable") {
-                                        Task {
-                                            await viewModel.toggleAnalysis()
-                                        }
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .controlSize(.small)
-                                }
-                            }
-                            .padding()
-                            .background(Color.green.opacity(0.05))
-                            .cornerRadius(8)
-                            .padding(.horizontal)
-                            
-                            Spacer()
-                            VStack(spacing: 12) {
-                                ProgressView()
-                                    .scaleEffect(1.2)
-                                
-                                VStack(spacing: 4) {
-                                    Text("Analyzing your personality...")
-                                        .font(.headline)
-                                    
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "calendar")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        Text("Based on your last 30 days")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                            Spacer()
-                        }
-                        
+                        loadingView
+
                     case .insufficientData(let requirements, let estimatedDays):
                         ScrollView {
-                            VStack(spacing: 20) {
-                                // Status Banner
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                    
-                                    Text("Analysis is enabled")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                    
-                                    Spacer()
-                                    
-                                    HStack(spacing: 8) {
-                                        if viewModel.preferences?.analysisFrequency == .manual {
-                                            Button {
-                                                Task {
-                                                    await viewModel.triggerManualAnalysisCheck()
-                                                }
-                                            } label: {
-                                                Image(systemName: "arrow.clockwise")
-                                            }
-                                            .buttonStyle(.bordered)
-                                            .controlSize(.small)
-                                            .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
-                                        }
-                                        
-                                        Button("Disable") {
-                                            Task {
-                                                await viewModel.toggleAnalysis()
-                                            }
-                                        }
-                                        .buttonStyle(.bordered)
-                                        .controlSize(.small)
-                                    }
-                                }
-                                .padding()
-                                .background(Color.green.opacity(0.05))
-                                .cornerRadius(8)
-                                .padding(.horizontal)
-                                
-                                PersonalityAnalysisInsuficientDataView(
-                                    requirements: requirements,
-                                    estimatedDays: estimatedDays
-                                )
-                                .padding(.horizontal)
-                            }
-                            .padding(.vertical)
+                            PersonalityAnalysisInsuficientDataView(
+                                requirements: requirements,
+                                estimatedDays: estimatedDays
+                            )
+                            .padding()
                         }
-                        
+
                     case .ready(let profile):
-                        ScrollView {
-                            VStack(spacing: 24) {
-                                // Status Banner
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                    
-                                    Text("Analysis is enabled")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                    
-                                    Spacer()
-                                    
-                                    HStack(spacing: 8) {
-                                        if viewModel.preferences?.analysisFrequency == .manual {
-                                            Button {
-                                                Task {
-                                                    await viewModel.triggerManualAnalysisCheck()
-                                                }
-                                            } label: {
-                                                Image(systemName: "arrow.clockwise")
-                                            }
-                                            .buttonStyle(.bordered)
-                                            .controlSize(.small)
-                                            .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
-                                        }
-                                        
-                                        Button("Disable") {
-                                            Task {
-                                                await viewModel.toggleAnalysis()
-                                            }
-                                        }
-                                        .buttonStyle(.bordered)
-                                        .controlSize(.small)
-                                    }
-                                }
-                                .padding()
-                                .background(Color.green.opacity(0.05))
-                                .cornerRadius(8)
-                                .padding(.horizontal)
-                                
-                                // Personality Profile Content
-                                PersonalityProfileView(profile: profile)
-                            }
-                            .padding(.vertical)
-                        }
-                        
+                        PersonalityProfileView(profile: profile)
+
                     case .readyWithInsufficientData(let profile, _, _):
                         ScrollView {
-                            VStack(spacing: 24) {
-                                // Status Banner
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                    
-                                    Text("Analysis is enabled")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                    
-                                    Spacer()
-                                    
-                                    HStack(spacing: 8) {
-                                        if viewModel.preferences?.analysisFrequency == .manual {
-                                            Button {
-                                                Task {
-                                                    await viewModel.triggerManualAnalysisCheck()
-                                                }
-                                            } label: {
-                                                Image(systemName: "arrow.clockwise")
-                                            }
-                                            .buttonStyle(.bordered)
-                                            .controlSize(.small)
-                                            .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
-                                        }
-                                        
-                                        Button("Disable") {
-                                            Task {
-                                                await viewModel.toggleAnalysis()
-                                            }
-                                        }
-                                        .buttonStyle(.bordered)
-                                        .controlSize(.small)
-                                    }
-                                }
-                                .padding()
-                                .background(Color.green.opacity(0.05))
-                                .cornerRadius(8)
-                                .padding(.horizontal)
-                                
+                            VStack(spacing: 16) {
                                 // Warning Banner
                                 HStack {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .font(.caption)
                                         .foregroundColor(.orange)
-                                    
+
                                     Text("This analysis is from your previous data. Create more habits to unlock updated analysis.")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
@@ -289,74 +62,29 @@ public struct PersonalityInsightsView: View {
                                 .padding(.vertical, 8)
                                 .background(Color.orange.opacity(0.05))
                                 .cornerRadius(8)
-                                .padding(.horizontal)
-                                
-                                // Personality Profile Content
+
                                 PersonalityProfileView(profile: profile)
                             }
-                            .padding(.vertical)
-                        }
-                        
-                    case .error(let error):
-                        VStack {
-                            // Status Banner
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                
-                                Text("Analysis is enabled")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 8) {
-                                    if viewModel.preferences?.analysisFrequency == .manual {
-                                        Button {
-                                            Task {
-                                                await viewModel.triggerManualAnalysisCheck()
-                                            }
-                                        } label: {
-                                            Image(systemName: "arrow.clockwise")
-                                        }
-                                        .buttonStyle(.bordered)
-                                        .controlSize(.small)
-                                        .disabled(!viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
-                                    }
-                                    
-                                    Button("Disable") {
-                                        Task {
-                                            await viewModel.toggleAnalysis()
-                                        }
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .controlSize(.small)
-                                }
-                            }
                             .padding()
-                            .background(Color.green.opacity(0.05))
-                            .cornerRadius(8)
-                            .padding(.horizontal)
-                            
-                            Spacer()
-                            PersonalityErrorView(error: error) {
-                                await viewModel.refresh()
-                            }
-                            Spacer()
+                        }
+
+                    case .error(let error):
+                        PersonalityErrorView(error: error) {
+                            await viewModel.refresh()
                         }
                     }
                 }
             }
             .navigationTitle("Personality Insights")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Privacy") {
+                    Button("Settings") {
                         showingPrivacy = true
                     }
-                    .disabled(!viewModel.isAnalysisEnabled)
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
@@ -364,6 +92,7 @@ public struct PersonalityInsightsView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
         .task {
             await viewModel.loadPersonalityInsights()
         }
@@ -371,35 +100,116 @@ public struct PersonalityInsightsView: View {
             // Clear any personality analysis notification badges when user opens insights
             UNUserNotificationCenter.current().setBadgeCount(0)
         }
-        .sheet(isPresented: $showingPrivacy) {
-            BasicPrivacyView()
-                .deviceAwareSheetSizing(
-                    compactMultiplier: SizeMultiplier(min: 0.53, ideal: 0.62, max: 0.79),
-                    regularMultiplier: SizeMultiplier(min: 0.47, ideal: 0.53, max: 0.67),
-                    largeMultiplier: SizeMultiplier(min: 0.39, ideal: 0.50, max: 0.61)
-                )
+        .fullScreenCover(isPresented: $showingPrivacy) {
+            SettingsView()
+                .background(.ultraThinMaterial)
+        }
+    }
+
+    // MARK: - Helper Views
+
+    private var disabledStateView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            Image(systemName: "person.crop.circle.badge.xmark")
+                .font(.system(size: 60))
+                .foregroundColor(.secondary)
+
+            Text("Personality Analysis Disabled")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text("Enable analysis in Settings to discover your Big Five personality traits based on your habit patterns.")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+
+            Button {
+                showingPrivacy = true
+            } label: {
+                Text("Open Settings")
+            }
+            .buttonStyle(.borderedProminent)
+
+            Spacer()
+        }
+        .padding()
+    }
+
+    private var loadingView: some View {
+        VStack(spacing: 12) {
+            Spacer()
+
+            ProgressView()
+                .scaleEffect(1.2)
+
+            VStack(spacing: 4) {
+                Text("Analyzing your personality...")
+                    .font(.headline)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("Based on your last 30 days")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
         }
     }
 }
 
-// MARK: - Basic Privacy View (Step 1)
+// MARK: - Settings View
 
-private struct BasicPrivacyView: View {
+private struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Injected(\.personalityInsightsViewModel) private var viewModel: PersonalityInsightsViewModel
-    @State private var allowDataCollection = true
     @State private var analysisFrequency: AnalysisFrequency = .weekly
+    @State private var isEnabled: Bool = true
     @State private var hasLoaded = false
-    
+    @State private var isToggling = false
+
     var body: some View {
         NavigationView {
             Form {
                 Section {
-                    Toggle("Allow Data Collection", isOn: $allowDataCollection)
-                } footer: {
-                    Text("Control whether new habit data can be used for personality analysis.")
+                    HStack(spacing: 12) {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.title2)
+                            .foregroundColor(.green)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Your data stays on this device")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+
+                            Text("Personality analysis is performed locally. Your habit data and personality insights are never sent to any server.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
                 }
-                
+
+                Section {
+                    Toggle("Enable Analysis", isOn: $isEnabled)
+                        .disabled(isToggling)
+                        .onChange(of: isEnabled) { _, newValue in
+                            Task {
+                                isToggling = true
+                                await viewModel.setAnalysisEnabled(newValue)
+                                isToggling = false
+                            }
+                        }
+                } footer: {
+                    Text("When enabled, your habit patterns are analyzed to generate personality insights.")
+                }
+
                 Section {
                     NavigationLink {
                         FrequencySelectionView(selectedFrequency: $analysisFrequency)
@@ -411,24 +221,37 @@ private struct BasicPrivacyView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+                    .disabled(!isEnabled)
+
+                    Button {
+                        Task {
+                            await viewModel.triggerManualAnalysisCheck()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Regenerate Analysis")
+                        }
+                    }
+                    .disabled(!isEnabled || !viewModel.isForceRedoAnalysisButtonEnabled || viewModel.isLoading)
                 } footer: {
-                    Text("How often personality analysis is performed.")
+                    Text("How often personality analysis is performed. Regenerate to update analysis with latest habit data.")
                 }
             }
-            .navigationTitle("Privacy")
+            .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         Task { await save() }
                     }
                 }
             }
-            .task { 
+            .task {
                 if !hasLoaded {
                     await load()
                     hasLoaded = true
@@ -436,22 +259,21 @@ private struct BasicPrivacyView: View {
             }
         }
     }
-    
+
     @MainActor
     private func load() async {
         await viewModel.loadPreferences()
         if let prefs = viewModel.preferences {
-            allowDataCollection = prefs.allowDataCollection
             analysisFrequency = prefs.analysisFrequency
-        } else {
+            isEnabled = prefs.isEnabled
         }
     }
-    
+
     @MainActor
     private func save() async {
         guard let current = viewModel.preferences else { return }
         let updated = current.updated(
-            analysisFrequency: analysisFrequency, allowDataCollection: allowDataCollection
+            analysisFrequency: analysisFrequency
         )
         await viewModel.savePreferences(updated)
         dismiss()
@@ -461,53 +283,60 @@ private struct BasicPrivacyView: View {
 private struct PersonalityProfileView: View {
     let profile: PersonalityProfile
     @State private var showingConfidenceInfo = false
-    
+    @Injected(\.settingsViewModel) private var settingsVM
+
+    // Avatar sizing (larger than header avatar)
+    private let avatarSize: CGFloat = 72
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 dominantTraitSection
-                
-                allTraitsSection
-                
-                analysisDetailsSection
-                
+
                 insightsSection
+
+                allTraitsSection
+
+                analysisDetailsSection
             }
             .padding()
         }
+        .task {
+            // Ensure profile is loaded for avatar display
+            if settingsVM.profile.name.isEmpty {
+                await settingsVM.load()
+            }
+        }
         .sheet(isPresented: $showingConfidenceInfo) {
             ConfidenceInfoSheet(confidence: profile.confidence)
-                .deviceAwareSheetSizing(
-                    compactMultiplier: SizeMultiplier(min: 0.53, ideal: 0.62, max: 0.79),
-                    regularMultiplier: SizeMultiplier(min: 0.47, ideal: 0.53, max: 0.67),
-                    largeMultiplier: SizeMultiplier(min: 0.39, ideal: 0.50, max: 0.61)
-                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(.ultraThinMaterial)
         }
     }
     
     private var dominantTraitSection: some View {
         VStack(spacing: 16) {
-            Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(GradientTokens.profileIcon)
-            
+            profileAvatarView
+
             VStack(spacing: 8) {
                 Text("Your Dominant Trait")
                     .font(.headline)
                     .foregroundColor(.secondary)
-                
+
                 Text(profile.dominantTrait.displayName)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(.title2)
+                    .fontWeight(.semibold)
                     .foregroundColor(.primary)
-                
+                    .multilineTextAlignment(.center)
+
                 Text(profile.dominantTrait.highScoreDescription)
-                    .font(.body)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
-            
+
             ConfidenceBadge(confidence: profile.confidence) {
                 showingConfidenceInfo = true
             }
@@ -572,23 +401,69 @@ private struct PersonalityProfileView: View {
     }
     
     private var insightsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
             Text("Insights for Habit Building")
                 .font(.title2)
                 .fontWeight(.semibold)
-            
+
             Text("Based on your personality profile, consider these approaches:")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-            
-            LazyVStack(alignment: .leading, spacing: 8) {
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            VStack(alignment: .leading, spacing: 8) {
                 ForEach(personalityInsights, id: \.self) { insight in
                     InsightRowView(insight: insight)
                 }
             }
+            .padding(.horizontal)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.gray.opacity(0.05))
+        )
+    }
+
+    // MARK: - Profile Avatar
+
+    @ViewBuilder
+    private var profileAvatarView: some View {
+        let contentType = AppBrandHeaderViewLogic.avatarContentType(
+            hasAvatarImage: settingsVM.profile.avatarImageData != nil,
+            name: settingsVM.profile.name
+        )
+
+        ZStack {
+            // Gradient background (always shown, unless there's an image)
+            if contentType != .image {
+                Circle()
+                    .fill(GradientTokens.profileIcon)
+                    .frame(width: avatarSize, height: avatarSize)
+            }
+
+            // Inner content based on type
+            switch contentType {
+            case .image:
+                if let imageData = settingsVM.profile.avatarImageData,
+                   let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: avatarSize, height: avatarSize)
+                        .clipShape(Circle())
+                }
+            case .initials:
+                Text(AppBrandHeaderViewLogic.avatarInitials(from: settingsVM.profile.name))
+                    .font(.system(size: avatarSize * 0.38, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+            case .empty:
+                EmptyView()
+            }
         }
     }
-    
+
     private var personalityInsights: [String] {
         var insights: [String] = []
         
@@ -621,31 +496,41 @@ private struct TraitRowView: View {
     let trait: PersonalityTrait
     let score: Double
     let isDominant: Bool
-    
+    @State private var showingInfo = false
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(trait.displayName)
                     .font(.headline)
                     .fontWeight(isDominant ? .semibold : .medium)
-                
+
                 Text(trait.shortDescription)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 4) {
                 Text("\(Int(score * 100))%")
                     .font(.headline)
                     .fontWeight(isDominant ? .semibold : .medium)
                     .foregroundColor(isDominant ? .blue : .primary)
-                
+
                 ProgressView(value: score)
                     .frame(width: 60)
                     .tint(isDominant ? .blue : .gray)
             }
+
+            Button {
+                showingInfo = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
         }
         .padding()
         .background(
@@ -656,6 +541,9 @@ private struct TraitRowView: View {
                         .stroke(isDominant ? Color.blue.opacity(0.15) : Color.clear, lineWidth: 1)
                 )
         )
+        .sheet(isPresented: $showingInfo) {
+            BigFiveInfoSheet(highlightedTrait: trait)
+        }
     }
 }
 
@@ -817,9 +705,18 @@ private extension ConfidenceLevel {
         case .medium:
             return "Track more habits or extend your tracking period to reach high confidence analysis."
         case .high:
-            return "" // No improvement needed
+            return "Great job! Your analysis is highly reliable. Keep tracking to maintain accuracy."
         case .veryHigh:
-            return "" // Maximum confidence achieved
+            return "Excellent! You've achieved maximum confidence in your personality analysis."
+        }
+    }
+
+    var tipHeader: String {
+        switch self {
+        case .insufficient, .low, .medium:
+            return "How to improve:"
+        case .high, .veryHigh:
+            return "Status:"
         }
     }
 }
@@ -893,54 +790,50 @@ private struct ConfidenceInfoSheet: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                // Header with confidence badge
-                VStack(spacing: 12) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(confidence.color)
-                    
-                    Text("Analysis Confidence")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    ConfidenceBadge(confidence: confidence)
-                }
-                .padding(.top)
-                
-                // Explanation
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("What does this mean?")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    Text(confidence.explanation)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    
-                    // Data requirements
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Confidence Levels:")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            confidenceLevelRow(.veryHigh, "150+ data points")
-                            confidenceLevelRow(.high, "75-149 data points")
-                            confidenceLevelRow(.medium, "30-74 data points")  
-                            confidenceLevelRow(.low, "Less than 30 data points")
-                        }
-                        .padding(.leading, 8)
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header with confidence badge
+                    VStack(spacing: 12) {
+                        Text("Analysis Confidence")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+
+                        ConfidenceBadge(confidence: confidence)
                     }
-                    
-                    // Improvement tip
-                    if confidence != .high {
+                    .padding(.top)
+
+                    // Explanation
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("What does this mean?")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+
+                        Text(confidence.explanation)
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        // Data requirements
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("How to improve:")
+                            Text("Confidence Levels:")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                confidenceLevelRow(.veryHigh, "150+ data points")
+                                confidenceLevelRow(.high, "75-149 data points")
+                                confidenceLevelRow(.medium, "30-74 data points")
+                                confidenceLevelRow(.low, "Less than 30 data points")
+                            }
+                            .padding(.leading, 8)
+                        }
+
+                        // Tip section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(confidence.tipHeader)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+
                             Text(confidence.improvementTip)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -950,12 +843,9 @@ private struct ConfidenceInfoSheet: View {
                         .cornerRadius(8)
                     }
                 }
-                
-                Spacer()
+                .padding()
             }
-            .padding()
-            .navigationTitle("Confidence Level")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -964,23 +854,169 @@ private struct ConfidenceInfoSheet: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
     }
-    
+
     private func confidenceLevelRow(_ level: ConfidenceLevel, _ description: String) -> some View {
         HStack {
             Circle()
                 .fill(level.color)
                 .frame(width: 8, height: 8)
-            
+
             Text(level.rawValue.capitalized)
                 .font(.caption)
                 .fontWeight(level == confidence ? .semibold : .regular)
-            
+
             Text("- \(description)")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             Spacer()
         }
+    }
+}
+
+// MARK: - Big Five Info Sheet
+
+struct BigFiveInfoSheet: View {
+    let highlightedTrait: PersonalityTrait?
+    @Environment(\.dismiss) private var dismiss
+
+    init(highlightedTrait: PersonalityTrait? = nil) {
+        self.highlightedTrait = highlightedTrait
+    }
+
+    var body: some View {
+        NavigationView {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Introduction
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("The Big Five Personality Model")
+                                .font(.title2)
+                                .fontWeight(.bold)
+
+                            Text("The Big Five, also known as OCEAN, is the most widely accepted scientific model for understanding personality. It identifies five core dimensions that describe human personality traits.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                        }
+
+                        // Traits
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("The Five Traits")
+                                .font(.headline)
+
+                            ForEach(PersonalityTrait.allCases, id: \.self) { trait in
+                                traitInfoCard(trait)
+                                    .id(trait)
+                            }
+                        }
+
+                        // How it's used
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("How We Use It")
+                                .font(.headline)
+
+                            Text("Ritualist analyzes your habit patterns to estimate your personality profile. This helps provide personalized insights and recommendations for building habits that align with your natural tendencies.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.blue.opacity(0.05))
+                        )
+                    }
+                    .padding()
+                }
+                .onAppear {
+                    if let trait = highlightedTrait {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                proxy.scrollTo(trait, anchor: .center)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("About Big Five")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(.ultraThinMaterial)
+    }
+
+    private func traitInfoCard(_ trait: PersonalityTrait) -> some View {
+        let isHighlighted = trait == highlightedTrait
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(trait.emoji)
+                    .font(.title2)
+
+                Text(trait.displayName)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+
+                Spacer()
+
+                if isHighlighted {
+                    Text("Your tap")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(4)
+                }
+            }
+
+            Text(trait.shortDescription)
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top) {
+                    Text("High:")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .frame(width: 40, alignment: .leading)
+                    Text(trait.highScoreDescription)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                HStack(alignment: .top) {
+                    Text("Low:")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .frame(width: 40, alignment: .leading)
+                    Text(trait.lowScoreDescription)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.top, 4)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isHighlighted ? Color.blue.opacity(0.05) : .gray.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isHighlighted ? Color.blue.opacity(0.2) : Color.clear, lineWidth: 1)
+                )
+        )
     }
 }

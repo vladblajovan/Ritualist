@@ -2,7 +2,7 @@
 //  Container+StatsUserCases.swift
 //  Ritualist
 //
-//  Created by Claude on 07.08.2025.
+//  Created by Vlad Blajovan on 07.08.2025.
 //
 
 import Foundation

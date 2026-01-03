@@ -2,7 +2,7 @@
 //  UserDefaultsService.swift
 //  RitualistCore
 //
-//  Created by Claude on 22.12.2025.
+//  Created by Vlad Blajovan on 22.12.2025.
 //
 //  Provides an injectable abstraction over UserDefaults for better testability.
 //  All UserDefaults access should go through this service to enable mocking in tests.

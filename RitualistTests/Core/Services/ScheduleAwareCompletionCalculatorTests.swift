@@ -2,7 +2,7 @@
 //  ScheduleAwareCompletionCalculatorTests.swift
 //  RitualistTests
 //
-//  Created by Claude on 29.11.2025.
+//  Created by Vlad Blajovan on 29.11.2025.
 //
 
 import Testing

@@ -2,7 +2,7 @@
 //  SchemaV4.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Schema Version 4: Removed isPinned property from habits
 //  This schema removes the isPinned feature to simplify habit management.

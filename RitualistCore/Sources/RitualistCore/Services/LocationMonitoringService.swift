@@ -2,7 +2,7 @@
 //  LocationMonitoringService.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Service for monitoring location and managing geofences using CoreLocation.
 //  Wraps CLLocationManager to provide habit-specific geofence monitoring.

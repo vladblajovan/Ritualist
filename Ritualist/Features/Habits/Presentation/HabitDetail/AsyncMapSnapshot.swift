@@ -2,7 +2,7 @@
 //  AsyncMapSnapshot.swift
 //  Ritualist
 //
-//  Created by Claude on 04.11.2025.
+//  Created by Vlad Blajovan on 04.11.2025.
 //
 
 import SwiftUI

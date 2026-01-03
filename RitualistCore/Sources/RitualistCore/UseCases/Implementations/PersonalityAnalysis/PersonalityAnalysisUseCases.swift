@@ -33,9 +33,12 @@ public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
         let startDate = CalendarUtils.addDaysLocal(-30, to: endDate, timezone: .current)
         let completionStats = try await repository.getHabitCompletionStats(for: userId, from: startDate, to: endDate)
         
-        // Calculate personality scores using Service as utility
-        let traitScores = personalityService.calculatePersonalityScores(from: input)
-        
+        // Calculate personality scores using Service as utility - PASS completionStats!
+        let (traitScores, _, _) = personalityService.calculatePersonalityScoresWithDetails(
+            from: input,
+            completionStats: completionStats
+        )
+
         // Determine dominant trait using Service as utility
         let dominantTrait = personalityService.determineDominantTrait(from: traitScores)
         
@@ -45,7 +48,7 @@ public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
             analysisDate: Date(),
             dataPointsAnalyzed: enhancedDataPoints,
             timeRangeAnalyzed: input.analysisTimeRange,
-            version: "1.6"
+            version: "2.0"
         )
         
         // Calculate confidence using Service as utility

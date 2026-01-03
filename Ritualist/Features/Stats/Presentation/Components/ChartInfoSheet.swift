@@ -11,6 +11,10 @@ struct ChartInfoSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    private var isIPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -85,6 +89,7 @@ struct ChartInfoSheet: View {
             }
             .navigationTitle("About This Chart")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
@@ -93,8 +98,10 @@ struct ChartInfoSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .scrollContentBackground(.hidden)
+        .presentationDetents(isIPad ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
+        .presentationBackground(.ultraThinMaterial)
     }
 }
 

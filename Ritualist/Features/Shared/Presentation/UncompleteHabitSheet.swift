@@ -10,6 +10,10 @@ public struct UncompleteHabitSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    private var isIPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+
     public init(
         habit: Habit,
         onUncomplete: @escaping () -> Void,
@@ -24,10 +28,12 @@ public struct UncompleteHabitSheet: View {
         VStack(spacing: Spacing.large) {
             // Habit info header
             VStack(spacing: Spacing.small) {
+                Spacer()
+                
                 Text(habit.emoji ?? "")
                     .font(.system(size: 48))
                     .accessibilityHidden(true) // Decorative emoji
-
+                
                 Text(habit.name)
                     .font(.headline)
                     .multilineTextAlignment(.center)
@@ -35,55 +41,43 @@ public struct UncompleteHabitSheet: View {
                 Text(Strings.UncompleteHabitSheet.completed)
                     .font(.subheadline)
                     .foregroundColor(.green)
+                
+                Spacer()
             }
             .padding(.top, Spacing.medium)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Strings.UncompleteHabitSheet.headerAccessibilityLabel(habit.name))
 
-            Divider()
-                .accessibilityHidden(true)
+            Spacer()
 
-            // Action buttons
-            VStack(spacing: Spacing.medium) {
-                Button {
-                    HapticFeedbackService.shared.trigger(.medium)
-                    dismiss()
-                    onUncomplete()
-                } label: {
-                    HStack {
-                        Image(systemName: "arrow.uturn.backward.circle.fill")
-                            .accessibilityHidden(true) // Decorative icon
-                        Text(Strings.UncompleteHabitSheet.markAsNotCompleted)
-                    }
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(.orange)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Spacing.medium)
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(12)
+            // Action button
+            Button {
+                HapticFeedbackService.shared.trigger(.medium)
+                dismiss()
+                onUncomplete()
+            } label: {
+                HStack {
+                    Image(systemName: "arrow.uturn.backward.circle.fill")
+                        .accessibilityHidden(true)
+                    Text(Strings.UncompleteHabitSheet.markAsNotCompleted)
                 }
-                .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabitConfirmButton)
-                .accessibilityHint(Strings.UncompleteHabitSheet.markAsNotCompletedHint)
-
-                Button {
-                    dismiss()
-                    onCancel()
-                } label: {
-                    Text(Strings.Common.cancel)
-                        .font(.body.weight(.medium))
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.medium)
-                }
-                .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabitCancelButton)
-                .accessibilityHint(Strings.UncompleteHabitSheet.cancelHint)
+                .font(.body.weight(.semibold))
+                .foregroundColor(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.medium)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(CornerRadius.xlarge)
             }
+            .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabitConfirmButton)
+            .accessibilityHint(Strings.UncompleteHabitSheet.markAsNotCompletedHint)
             .padding(.horizontal)
             .padding(.bottom, Spacing.medium)
         }
         .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabit)
-        .presentationDetents([.height(280)])
+        .background(.clear)
+        .presentationDetents(isIPad ? [.medium] : [.height(220)])
         .presentationDragIndicator(.visible)
+        .presentationBackground(.ultraThinMaterial)
         .onAppear {
             // Announce sheet to VoiceOver for focus management
             DispatchQueue.main.asyncAfter(deadline: .now() + AccessibilityConfig.voiceOverAnnouncementDelay) {

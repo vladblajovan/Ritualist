@@ -2,7 +2,7 @@
 //  PersonalityPreferencesDataSource.swift
 //  RitualistCore
 //
-//  Created by Claude on 14.11.2025.
+//  Created by Vlad Blajovan on 14.11.2025.
 //
 
 import Foundation

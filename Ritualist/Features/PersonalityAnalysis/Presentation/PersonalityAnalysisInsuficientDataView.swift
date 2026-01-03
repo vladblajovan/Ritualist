@@ -2,7 +2,7 @@
 //  DataThresholdPlaceholderView.swift
 //  Ritualist
 //
-//  Created by Claude on 06.08.2025.
+//  Created by Vlad Blajovan on 06.08.2025.
 //
 
 import SwiftUI
@@ -231,11 +231,11 @@ private struct RequirementRowView: View {
             category: .tracking
         ),
         ThresholdRequirement(
-            name: "Custom Habits",
-            description: "Create at least 3 custom habits",
-            currentValue: 3,
-            requiredValue: 3,
-            category: .customization
+            name: "Habit Diversity",
+            description: "Track habits across at least 2 different categories",
+            currentValue: 1,
+            requiredValue: 2,
+            category: .diversity
         )
     ]
 

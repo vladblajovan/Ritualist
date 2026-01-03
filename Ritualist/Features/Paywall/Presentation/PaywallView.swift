@@ -80,12 +80,15 @@ public struct PaywallView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Close") {
+                    Button(Strings.Common.close) {
                         dismiss()
                     }
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .presentationDragIndicator(.visible)
+        .presentationBackground(.ultraThinMaterial)
         .alert("Purchase Error", isPresented: $showingError) {
             Button("OK") {
                 vm.dismissError()

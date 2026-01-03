@@ -2,7 +2,7 @@
 //  MigrationPlan.swift
 //  RitualistCore
 //
-//  Created by Claude on 11.02.2025.
+//  Created by Vlad Blajovan on 11.02.2025.
 //
 //  Defines the migration plan for all schema versions.
 //  This enables safe, automated migrations between schema versions.

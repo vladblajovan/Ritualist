@@ -2,7 +2,7 @@
 //  FPSOverlay.swift
 //  Ritualist
 //
-//  Created by Claude on Performance Optimization
+//  Created by Vlad Blajovan on Performance Optimization
 //
 
 import SwiftUI

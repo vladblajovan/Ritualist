@@ -21,7 +21,7 @@ import Testing
 /// swift test --skip .flaky
 /// ```
 ///
-/// **Running tests by tag (xcodebuild - Xcode 16.3+):**
+/// **Running tests by tag (xcodebuild):**
 /// ```bash
 /// xcodebuild test -only-testing-tags timezone -scheme MyScheme -destination '...'
 /// xcodebuild test -skip-testing-tags integrationTests,slow -scheme MyScheme -destination '...'

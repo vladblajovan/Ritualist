@@ -2,7 +2,7 @@
 //  PersonalityAnalysisDeepLinkSheet.swift
 //  Ritualist
 //
-//  Created by Claude on 06.08.2025.
+//  Created by Vlad Blajovan on 06.08.2025.
 //
 
 import SwiftUI
@@ -47,12 +47,10 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
             // Use PersonalityInsightsView which has its own NavigationView
             PersonalityInsightsView(viewModel: viewModel)
         }
-        .deviceAwareSheetSizing(
-            compactMultiplier: SizeMultiplier(min: 0.97, ideal: 1.0, max: 1.0),
-            regularMultiplier: SizeMultiplier(min: 0.87, ideal: 1.0, max: 1.0),
-            largeMultiplier: SizeMultiplier(min: 0.78, ideal: 0.89, max: 1.0)
-        )
-        // Removed .presentationBackground for full transparency
+        .background(.clear)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(.ultraThinMaterial)
         .onAppear {
             handleNotificationAction()
             clearNotificationBadge()
