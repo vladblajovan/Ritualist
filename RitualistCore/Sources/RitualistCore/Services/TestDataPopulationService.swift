@@ -2,7 +2,7 @@
 //  TestDataPopulationService.swift
 //  RitualistCore
 //
-//  Created by Claude on 20.08.2025.
+//  Created by Vlad Blajovan on 20.08.2025.
 //
 
 import Foundation

@@ -2,7 +2,7 @@
 //  TimezoneService.swift
 //  RitualistCore
 //
-//  Created by Claude on 15.11.2025.
+//  Created by Vlad Blajovan on 15.11.2025.
 //
 //  Manages timezone operations for the three-timezone model:
 //  - Current (auto-detected device timezone)

@@ -2,7 +2,7 @@
 //  LocationError.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Errors related to location-based habit features.
 //

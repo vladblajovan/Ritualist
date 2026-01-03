@@ -2,7 +2,7 @@
 //  WidgetRefreshService.swift
 //  RitualistWidget
 //
-//  Created by Claude on 19.08.2025.
+//  Created by Vlad Blajovan on 19.08.2025.
 //
 
 import WidgetKit

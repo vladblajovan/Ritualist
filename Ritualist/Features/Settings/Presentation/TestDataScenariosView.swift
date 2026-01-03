@@ -2,7 +2,7 @@
 //  TestDataScenariosView.swift
 //  Ritualist
 //
-//  Created by Claude on 01.11.2025.
+//  Created by Vlad Blajovan on 01.11.2025.
 //
 
 import SwiftUI

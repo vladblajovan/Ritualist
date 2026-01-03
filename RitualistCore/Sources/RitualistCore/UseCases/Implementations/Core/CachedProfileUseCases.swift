@@ -2,7 +2,7 @@
 //  CachedProfileUseCases.swift
 //  RitualistCore
 //
-//  Created by Claude on 22.12.2025.
+//  Created by Vlad Blajovan on 22.12.2025.
 //
 //  Provides cached versions of profile use cases to reduce disk I/O.
 //  Uses a shared actor-based cache with configurable TTL.

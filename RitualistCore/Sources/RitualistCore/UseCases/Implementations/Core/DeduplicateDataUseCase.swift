@@ -2,7 +2,7 @@
 //  DeduplicateDataUseCase.swift
 //  RitualistCore
 //
-//  Created by Claude on 26.11.2025.
+//  Created by Vlad Blajovan on 26.11.2025.
 //
 //  Use case for deduplicating data after CloudKit sync or import.
 //

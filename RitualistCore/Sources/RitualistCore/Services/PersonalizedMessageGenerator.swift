@@ -2,7 +2,7 @@
 //  PersonalizedMessageGenerator.swift
 //  RitualistCore
 //
-//  Created by Claude on ML-Powered Personalized Messages Implementation
+//  Created by Vlad Blajovan on ML-Powered Personalized Messages Implementation
 //
 
 import Foundation

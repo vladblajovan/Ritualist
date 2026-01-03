@@ -2,7 +2,7 @@
 //  SeedPredefinedCategoriesUseCase.swift
 //  RitualistCore
 //
-//  Created by Claude on 23.11.2025.
+//  Created by Vlad Blajovan on 23.11.2025.
 //
 
 import Foundation

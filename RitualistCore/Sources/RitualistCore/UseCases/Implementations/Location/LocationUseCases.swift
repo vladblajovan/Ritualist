@@ -2,7 +2,7 @@
 //  LocationUseCases.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Use cases for location-aware habit features.
 //  Follows Clean Architecture: ViewModels → UseCases → Services/Repositories

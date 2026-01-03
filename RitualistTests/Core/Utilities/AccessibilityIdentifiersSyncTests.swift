@@ -2,7 +2,7 @@
 //  AccessibilityIdentifiersSyncTests.swift
 //  RitualistTests
 //
-//  Created by Claude on 27.11.2025.
+//  Created by Vlad Blajovan on 27.11.2025.
 //
 //  Validates that AccessibilityIdentifiers are consistent between app and UI test targets.
 //  This prevents identifier drift that would cause UI tests to fail.

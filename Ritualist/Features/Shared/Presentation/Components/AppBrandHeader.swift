@@ -361,7 +361,10 @@ struct AppBrandHeader: View {
                 .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
                 .accessibilityLabel("Profile")
                 .accessibilityHint("Double tap to open settings")
-                .popoverTip(circleProgressTip, arrowEdge: .top)
+                .popoverTip(circleProgressTip, arrowEdge: .top) { _ in
+                    // Tip was dismissed - enable the next tip in the flow
+                    CircleProgressTip.userWasShownAvatarTip.sendDonation()
+                }
                 .fullScreenCover(isPresented: $showingSettings) {
                     NavigationStack {
                         SettingsRoot()

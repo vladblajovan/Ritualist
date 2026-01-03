@@ -2,7 +2,7 @@
 //  AcknowledgementsView.swift
 //  Ritualist
 //
-//  Created by Claude Code on 22/12/2025.
+//  Created by Vlad Blajovan Code on 22/12/2025.
 //
 
 import SwiftUI

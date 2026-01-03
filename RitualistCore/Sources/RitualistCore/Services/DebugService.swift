@@ -2,7 +2,7 @@
 //  DebugService.swift
 //  RitualistCore
 //
-//  Created by Claude on 18.08.2025.
+//  Created by Vlad Blajovan on 18.08.2025.
 //
 
 import Foundation

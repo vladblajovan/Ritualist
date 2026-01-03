@@ -2,7 +2,7 @@
 //  HabitLogCompletionValidator.swift
 //  RitualistCore
 //
-//  Created by Claude Code on 15/11/2025.
+//  Created by Vlad Blajovan Code on 15/11/2025.
 //  Phase 2, Week 4: Shared Utilities Extraction
 //
 

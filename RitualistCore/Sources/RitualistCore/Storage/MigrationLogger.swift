@@ -2,7 +2,7 @@
 //  MigrationLogger.swift
 //  RitualistCore
 //
-//  Created by Claude on 11.02.2025.
+//  Created by Vlad Blajovan on 11.02.2025.
 //
 //  Logs migration events for debugging and monitoring.
 //  Tracks schema version transitions and migration success/failure.

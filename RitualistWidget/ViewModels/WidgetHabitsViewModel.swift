@@ -2,7 +2,7 @@
 //  WidgetHabitsViewModel.swift
 //  RitualistWidget
 //
-//  Created by Claude on 28.08.2025.
+//  Created by Vlad Blajovan on 28.08.2025.
 //
 
 import Foundation

@@ -2,7 +2,7 @@
 //  AccessibilityIdentifiers.swift
 //  Ritualist
 //
-//  Created by Claude on 27.11.2025.
+//  Created by Vlad Blajovan on 27.11.2025.
 //
 //  Centralized accessibility identifiers for UI testing and VoiceOver support.
 //  Used by both the app (for setting identifiers) and UI tests (for finding elements).

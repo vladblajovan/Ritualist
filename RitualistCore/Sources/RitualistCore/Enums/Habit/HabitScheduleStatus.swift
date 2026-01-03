@@ -2,7 +2,7 @@
 //  HabitScheduleStatus.swift
 //  RitualistCore
 //
-//  Created by Claude on 16.08.2025.
+//  Created by Vlad Blajovan on 16.08.2025.
 //
 
 import Foundation

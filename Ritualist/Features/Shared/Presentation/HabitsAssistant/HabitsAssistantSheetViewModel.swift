@@ -2,7 +2,7 @@
 //  HabitsAssistantSheetViewModel.swift
 //  Ritualist
 //
-//  Created by Claude on 02.01.2026.
+//  Created by Vlad Blajovan on 02.01.2026.
 //
 
 import Foundation

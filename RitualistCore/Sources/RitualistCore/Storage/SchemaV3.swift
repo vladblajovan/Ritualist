@@ -2,7 +2,7 @@
 //  SchemaV3.swift
 //  RitualistCore
 //
-//  Created by Claude on 11.02.2025.
+//  Created by Vlad Blajovan on 11.02.2025.
 //
 //  Schema Version 3: Added isPinned property to habits
 //  This schema adds the ability to pin important habits to the top of lists.

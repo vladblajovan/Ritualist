@@ -2,7 +2,7 @@
 //  TestDataScenario.swift
 //  RitualistCore
 //
-//  Created by Claude on Test Data Scenarios Implementation
+//  Created by Vlad Blajovan on Test Data Scenarios Implementation
 //
 
 import Foundation

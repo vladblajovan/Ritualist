@@ -2,7 +2,7 @@
 //  AppLaunchView.swift
 //  Ritualist
 //
-//  Created by Claude on 27.11.2025.
+//  Created by Vlad Blajovan on 27.11.2025.
 //
 //  Branded launch screen shown while detecting iCloud data.
 //  Provides a seamless transition from the iOS launch screen.

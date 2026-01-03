@@ -2,7 +2,7 @@
 //  CalendarUtils.swift
 //  RitualistCore
 //
-//  Created by Claude on 28.08.2025.
+//  Created by Vlad Blajovan on 28.08.2025.
 //
 //  Provides LOCAL timezone utilities for habit tracking business logic.
 //  All business operations should use LOCAL methods (not UTC) to respect user's timezone.

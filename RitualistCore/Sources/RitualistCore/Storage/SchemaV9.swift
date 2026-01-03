@@ -2,7 +2,7 @@
 //  SchemaV9.swift
 //  RitualistCore
 //
-//  Created by Claude on 15.11.2025.
+//  Created by Vlad Blajovan on 15.11.2025.
 //
 //  Schema Version 9: Three-Timezone Model for comprehensive timezone handling
 //

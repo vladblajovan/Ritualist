@@ -2,7 +2,7 @@
 //  SchemaV2.swift
 //  RitualistCore
 //
-//  Created by Claude on 11.02.2025.
+//  Created by Vlad Blajovan on 11.02.2025.
 //
 //  Schema Version 2: Baseline schema matching existing database
 //  This schema captures the state of models without isPinned property.

@@ -2,7 +2,7 @@
 //  ICloudSyncDiagnostics.swift
 //  Ritualist
 //
-//  Created by Claude on 27.11.2025.
+//  Created by Vlad Blajovan on 27.11.2025.
 //
 //  Diagnostic tracking for iCloud sync events.
 //  Used by Debug Menu to help diagnose sync issues.

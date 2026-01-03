@@ -2,7 +2,7 @@
 //  LocationPermissionService.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Service for requesting and managing location permissions.
 //  Handles the two-step permission flow: "When In Use" → "Always".

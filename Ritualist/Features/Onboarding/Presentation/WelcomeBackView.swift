@@ -2,7 +2,7 @@
 //  WelcomeBackView.swift
 //  Ritualist
 //
-//  Created by Claude on 27.11.2025.
+//  Created by Vlad Blajovan on 27.11.2025.
 //
 //  Welcome screen for returning users with existing iCloud data.
 //  Shows personalized greeting with synced data summary.

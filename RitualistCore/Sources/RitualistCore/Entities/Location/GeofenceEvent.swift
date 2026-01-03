@@ -2,7 +2,7 @@
 //  GeofenceEvent.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Represents a geofence event (entry or exit) for location-based habit reminders.
 //

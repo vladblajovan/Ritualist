@@ -2,7 +2,7 @@
 //  QuickActionCoordinator.swift
 //  RitualistCore
 //
-//  Created by Claude on 27.11.2025.
+//  Created by Vlad Blajovan on 27.11.2025.
 //
 //  Coordinates iOS Quick Actions (Home Screen Shortcuts) handling.
 //  When user long-presses the app icon and selects an action,

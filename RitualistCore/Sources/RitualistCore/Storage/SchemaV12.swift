@@ -2,7 +2,7 @@
 //  SchemaV12.swift
 //  RitualistCore
 //
-//  Created by Claude on 26.12.2025.
+//  Created by Vlad Blajovan on 26.12.2025.
 //
 //  Schema Version 12: No Schema Changes (Index Experiment Reverted)
 //

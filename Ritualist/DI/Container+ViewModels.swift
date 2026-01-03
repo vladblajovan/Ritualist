@@ -54,6 +54,7 @@ extension Container {
                 logger: self.debugLogger()
             )
         }
+        .singleton
     }
     
     // MARK: - Parameterized ViewModels (for editing)

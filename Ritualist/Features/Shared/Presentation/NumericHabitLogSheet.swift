@@ -413,7 +413,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 .padding(.horizontal, Spacing.small)
                 .padding(.vertical, Spacing.xsmall)
                 .background(gradient.opacity(0.15))
-                .cornerRadius(6)
+                .cornerRadius(CornerRadius.xlarge)
         }
         .accessibilityLabel(Strings.NumericHabitLog.quickIncrementLabel(formatAmount(amount)))
         .accessibilityHint(Strings.NumericHabitLog.quickIncrementHint(formatAmount(amount)))

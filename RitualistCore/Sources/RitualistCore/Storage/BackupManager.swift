@@ -2,7 +2,7 @@
 //  BackupManager.swift
 //  RitualistCore
 //
-//  Created by Claude on 11.02.2025.
+//  Created by Vlad Blajovan on 11.02.2025.
 //
 //  Manages automatic database backups for safe migrations.
 //  Creates backups before migrations and enables rollback on failure.

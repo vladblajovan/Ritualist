@@ -2,7 +2,7 @@
 //  SchemaV8.swift
 //  RitualistCore
 //
-//  Created by Claude on 09.11.2025.
+//  Created by Vlad Blajovan on 09.11.2025.
 //
 //  Schema Version 8: Removed subscription fields from UserProfile
 //  Subscription status now queried from SubscriptionService for improved security.

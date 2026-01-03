@@ -2,7 +2,7 @@
 //  DomainValidation.swift
 //  RitualistCore
 //
-//  Created by Claude on 13.08.2025.
+//  Created by Vlad Blajovan on 13.08.2025.
 //
 
 import Foundation

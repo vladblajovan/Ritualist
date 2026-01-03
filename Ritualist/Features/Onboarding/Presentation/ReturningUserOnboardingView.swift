@@ -2,7 +2,7 @@
 //  ReturningUserOnboardingView.swift
 //  Ritualist
 //
-//  Created by Claude on 27.11.2025.
+//  Created by Vlad Blajovan on 27.11.2025.
 //
 //  Streamlined onboarding flow for returning users with existing iCloud data.
 //  Shows welcome back screen, then permissions only (skips name/avatar/habit creation).

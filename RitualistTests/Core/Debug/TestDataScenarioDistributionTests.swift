@@ -2,7 +2,7 @@
 //  TestDataScenarioDistributionTests.swift
 //  RitualistTests
 //
-//  Created by Claude on 03.01.2026.
+//  Created by Vlad Blajovan on 03.01.2026.
 //
 
 import Foundation

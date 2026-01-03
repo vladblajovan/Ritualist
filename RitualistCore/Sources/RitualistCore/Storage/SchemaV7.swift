@@ -2,7 +2,7 @@
 //  SchemaV7.swift
 //  RitualistCore
 //
-//  Created by Claude on 03.11.2025.
+//  Created by Vlad Blajovan on 03.11.2025.
 //
 //  Schema Version 7: Added location-aware habit support
 //  This schema enables geofence-based habit reminders with configurable triggers.

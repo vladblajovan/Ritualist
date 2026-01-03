@@ -2,7 +2,7 @@
 //  CategoryRepositoryImpl.swift
 //  Ritualist
 //
-//  Created by Claude on 03.08.2025.
+//  Created by Vlad Blajovan on 03.08.2025.
 //
 
 import Foundation

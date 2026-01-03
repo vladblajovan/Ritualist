@@ -2,7 +2,7 @@
 //  DisplayTimezoneMode.swift
 //  RitualistCore
 //
-//  Created by Claude on 15.11.2025.
+//  Created by Vlad Blajovan on 15.11.2025.
 //
 //  Defines how the user wants to view their habit data in terms of timezone.
 //  Part of the "Three-Timezone Model" for comprehensive timezone handling.
