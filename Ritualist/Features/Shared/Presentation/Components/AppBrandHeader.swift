@@ -370,7 +370,7 @@ struct AppBrandHeader: View {
                         SettingsRoot()
                             .toolbar {
                                 ToolbarItem(placement: .confirmationAction) {
-                                    Button("Close") {
+                                    Button(Strings.Common.close) {
                                         showingSettings = false
                                     }
                                 }
