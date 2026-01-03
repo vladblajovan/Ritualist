@@ -39,16 +39,6 @@ public enum StreaksLayoutViewLogic {
         itemCount <= 2
     }
 
-    /// Determines whether to show spacers for equal-height card matching.
-    /// iPad with 3+ streaks needs spacers to match height with adjacent cards.
-    /// - Parameters:
-    ///   - isCompactWidth: Whether the device is in compact width class (iPhone)
-    ///   - itemCount: Number of items to display
-    /// - Returns: true if equal-height spacers should be shown
-    public static func shouldShowEqualHeightSpacers(isCompactWidth: Bool, itemCount: Int) -> Bool {
-        !isCompactWidth && itemCount > 2
-    }
-
     // MARK: - Height Calculation
 
     /// Calculates the total grid height based on layout context

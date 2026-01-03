@@ -9,6 +9,7 @@
 import SwiftUI
 import RitualistCore
 import FactoryKit
+import TipKit
 
 /// Configuration for an action button in the header
 struct HeaderAction: Identifiable {
@@ -236,6 +237,10 @@ struct AppBrandHeader: View {
     @State private var hasInitializedProgress = false
     @State private var progressGlowTask: Task<Void, Never>?
 
+    // MARK: - Tips
+
+    private let circleProgressTip = CircleProgressTip()
+
     // MARK: - Constants
 
     /// App name from bundle (uses display name if available, falls back to bundle name)
@@ -356,6 +361,7 @@ struct AppBrandHeader: View {
                 .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
                 .accessibilityLabel("Profile")
                 .accessibilityHint("Double tap to open settings")
+                .popoverTip(circleProgressTip, arrowEdge: .top)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

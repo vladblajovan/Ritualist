@@ -1,6 +1,22 @@
 import TipKit
 import SwiftUI
 
+/// Tip to inform users about the circular progress indicator in the header
+/// Shows on app start to explain the avatar circle tracks daily progress
+struct CircleProgressTip: Tip {
+    var title: Text {
+        Text("Daily Progress")
+    }
+
+    var message: Text? {
+        Text("This circle shows your overall habit completion for today. It fills up as you complete habits.")
+    }
+
+    var image: Image? {
+        Image(systemName: "circle.dashed")
+    }
+}
+
 /// Tip to inform users they can tap a habit to log progress or complete it
 /// Shows when: user has at least 1 incomplete habit (no other conditions)
 struct TapHabitTip: Tip {

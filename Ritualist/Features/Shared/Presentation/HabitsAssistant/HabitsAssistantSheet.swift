@@ -72,11 +72,6 @@ public struct HabitsAssistantSheet: View {
         .task {
             await vm.initialize(existingHabits: existingHabits)
         }
-        .onChange(of: vm.userIntentions) {
-            Task {
-                await vm.refreshLimitStatus()
-            }
-        }
     }
 }
 

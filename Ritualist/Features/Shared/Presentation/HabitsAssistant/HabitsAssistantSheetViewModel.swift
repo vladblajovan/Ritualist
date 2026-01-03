@@ -43,10 +43,10 @@ public final class HabitsAssistantSheetViewModel {
     // MARK: - Intention Tracking State
 
     /// Original state when sheet opened (suggestionId -> wasAdded)
-    public private(set) var originalState: [String: Bool] = [:]
+    private var originalState: [String: Bool] = [:]
 
     /// User's intended state (suggestionId -> wantsAdded)
-    public private(set) var userIntentions: [String: Bool] = [:]
+    private var userIntentions: [String: Bool] = [:]
 
     /// Habit IDs for pending removals (suggestionId -> habitId)
     /// Stored because markSuggestionAsRemoved removes from suggestionToHabitMappings
@@ -245,6 +245,9 @@ public final class HabitsAssistantSheetViewModel {
             addedSuggestionIds.remove(suggestionId)
         }
 
+        // Refresh limit status after intention change
+        await refreshLimitStatus()
+
         return true
     }
 
@@ -323,6 +326,11 @@ public final class HabitsAssistantSheetViewModel {
     private func initializeIntentionState() {
         let allSuggestions = getAllSuggestions()
 
+        // Reset state
+        originalState.removeAll()
+        userIntentions.removeAll()
+        pendingRemovalHabitIds.removeAll()
+
         for suggestion in allSuggestions {
             let isCurrentlyAdded = addedSuggestionIds.contains(suggestion.id)
             originalState[suggestion.id] = isCurrentlyAdded
@@ -378,7 +386,7 @@ public final class HabitsAssistantSheetViewModel {
         )
     }
 
-    /// Returns true if processing should stop (e.g., limit reached)
+    /// Returns true if an error occurred and processing should stop
     private func executeOperation(_ operation: RequiredOperation) async -> Bool {
         switch operation {
         case .add(let suggestion):
@@ -388,20 +396,22 @@ public final class HabitsAssistantSheetViewModel {
             if success {
                 // Already removed from addedSuggestionIds in toggleHabitIntention
                 suggestionToHabitMappings.removeValue(forKey: suggestionId)
+                return false
+            } else {
+                logger.log(
+                    "Failed to remove habit, stopping batch processing",
+                    level: .warning,
+                    category: .ui,
+                    metadata: ["suggestionId": suggestionId, "habitId": habitId.uuidString]
+                )
+                return true  // Stop processing on error to prevent partial state
             }
-            return false
         }
     }
 
-    /// Returns true if limit was reached and processing should stop
+    /// Returns true if an error occurred and processing should stop
+    /// Note: Limit check already performed in toggleHabitIntention, no need to re-check here
     private func executeAddOperation(_ suggestion: HabitSuggestion) async -> Bool {
-        let canCreate = await checkHabitCreationLimit.execute(currentCount: projectedHabitCount)
-        if !canCreate {
-            trackHabitAddFailed(habitId: suggestion.id, error: "Habit limit reached")
-            onShowPaywall?()
-            return true
-        }
-
         let result = await createHabitFromSuggestionUseCase.execute(suggestion)
         switch result {
         case .success(let habitId):
@@ -410,7 +420,13 @@ public final class HabitsAssistantSheetViewModel {
             return false
         case .error(let errorMessage):
             trackHabitAddFailed(habitId: suggestion.id, error: errorMessage)
-            return false
+            logger.log(
+                "Failed to create habit from suggestion, stopping batch processing",
+                level: .warning,
+                category: .ui,
+                metadata: ["suggestionId": suggestion.id, "error": errorMessage]
+            )
+            return true  // Stop processing on error to prevent partial state
         }
     }
 

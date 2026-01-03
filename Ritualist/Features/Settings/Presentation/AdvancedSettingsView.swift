@@ -43,7 +43,6 @@ struct AdvancedSettingsView: View {
                             .foregroundColor(.blue)
                     }
                 }
-
             } header: {
                 Text("Appearance")
             }
