@@ -392,11 +392,14 @@ public struct RestoreGeofenceMonitoringUseCaseImpl: RestoreGeofenceMonitoringUse
         guard await subscriptionService.isPremiumUser() else {
             logger.log("Non-premium user - skipping geofence restoration", level: .info, category: .location)
 
-            // Clean up any existing geofences for non-premium users
-            let monitoredHabitIds = await locationMonitoringService.getMonitoredHabitIds()
-            if !monitoredHabitIds.isEmpty {
-                logger.log("Cleaning up \(monitoredHabitIds.count) geofences for non-premium user", level: .info, category: .location)
-                for habitId in monitoredHabitIds {
+            // CRITICAL: Clean up ALL iOS-level geofences for non-premium users
+            // Must use getSystemMonitoredHabitIds() to get what iOS is actually monitoring,
+            // not getMonitoredHabitIds() which only returns in-memory state (empty after cold launch).
+            // This prevents geofences from firing for users who were premium but are now free.
+            let systemMonitoredHabitIds = await locationMonitoringService.getSystemMonitoredHabitIds()
+            if !systemMonitoredHabitIds.isEmpty {
+                logger.log("Cleaning up \(systemMonitoredHabitIds.count) iOS geofences for non-premium user", level: .info, category: .location)
+                for habitId in systemMonitoredHabitIds {
                     await locationMonitoringService.stopMonitoring(habitId: habitId)
                 }
             }
