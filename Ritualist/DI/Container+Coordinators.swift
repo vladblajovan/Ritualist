@@ -74,6 +74,7 @@ extension Container {
             seedPredefinedCategories: seedPredefinedCategories(),
             iCloudSyncCoordinator: iCloudSyncCoordinator(),
             timezoneChangeHandler: timezoneChangeHandler(),
+            userService: userService(),
             logger: debugLogger(),
             userActionTracker: userActionTracker(),
             appStartTime: appStartTime

@@ -199,7 +199,12 @@ public final class CacheAwareSaveProfile: SaveProfileUseCase {
         // Save to database
         try await innerSaveProfile.execute(profile)
 
-        // Invalidate cache to ensure next read gets fresh data
-        await cache.invalidate()
+        // Update cache with new profile (keeps cache fresh for reads)
+        await cache.set(profile)
+
+        // Notify other components (like UserService) that profile has changed
+        await MainActor.run {
+            NotificationCenter.default.post(name: .userProfileDidChange, object: profile)
+        }
     }
 }

@@ -186,7 +186,8 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
     }
     
     private func createSuggestedHabits(count: Int, scenario: TestDataScenario) async throws -> [Habit] {
-        let allSuggestions = habitSuggestionsService.getSuggestions()
+        // Pass nil for demographics to get ALL suggestions for test data
+        let allSuggestions = habitSuggestionsService.getSuggestions(gender: nil, ageGroup: nil)
         guard !allSuggestions.isEmpty else {
             throw TestDataPopulationError("No habit suggestions available")
         }

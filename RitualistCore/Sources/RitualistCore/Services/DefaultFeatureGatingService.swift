@@ -68,6 +68,15 @@ public final class DefaultFeatureGatingService: FeatureGatingService, Sendable {
         }
     }
 
+    public func isOverActiveHabitLimit(activeCount: Int) async -> Bool {
+        // Premium users are never over the limit
+        if await isPremiumUser() {
+            return false
+        }
+        // Free users are over limit if they have more than freeMaxHabits
+        return activeCount > Self.freeMaxHabits
+    }
+
     private func isPremiumUser() async -> Bool {
         await subscriptionService.isPremiumUser()
     }

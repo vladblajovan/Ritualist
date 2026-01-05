@@ -366,7 +366,7 @@ extension ICloudSyncCoordinator {
     func postUIRefreshNotificationDebounced() {
         uiRefreshDebounceTask?.cancel()
 
-        uiRefreshDebounceTask = Task {
+        uiRefreshDebounceTask = Task { @MainActor in
             do {
                 try await Task.sleep(for: .seconds(BusinessConstants.uiRefreshDebounceInterval))
                 guard !Task.isCancelled else { return }

@@ -3,6 +3,7 @@ import SwiftUI
 import Foundation
 import FactoryKit
 import RitualistCore
+import TipKit
 
 // MARK: - ViewModel
 
@@ -201,7 +202,16 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         getMigrationStatus.migrationDetails
     }
 
+    // MARK: - Habit Limit State
+
+    /// Whether to show the "deactivate habits" banner for users over the free tier limit
+    public var showDeactivateHabitsBanner = false
+
+    /// Number of active habits (for banner display)
+    public var activeHabitsCount = 0
+
     // MARK: - Dependencies
+    @ObservationIgnored @Injected(\.featureGatingService) private var featureGating
     @ObservationIgnored @Injected(\.getActiveHabits) private var getActiveHabits
     @ObservationIgnored @Injected(\.getLogs) private var getLogs
     @ObservationIgnored @Injected(\.getBatchLogs) private var getBatchLogs
@@ -359,6 +369,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             // Configure child VMs with context
             configureChildViewModels(userName: userName)
 
+            // Check if user is over the free tier habit limit
+            await checkHabitLimitStatus(habitCount: overviewData.habits.count)
+
             // Load personality insights separately (non-blocking)
             Task { @MainActor in
                 await personalityVM.loadPersonalityInsights()
@@ -497,6 +510,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
                 // CACHE SYNC: Update cache instead of full reload
                 updateCachedLog(log)
 
+                // Donate tip event when user completes a habit
+                await TapCompletedHabitTip.firstHabitCompleted.donate()
+
                 // Small delay to ensure data is committed to shared container before widget refresh
                 try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
 
@@ -599,6 +615,9 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             // CACHE SYNC: Update cache instead of full reload
             updateCachedLog(log)
 
+            // Donate tip event when user completes a habit
+            await TapCompletedHabitTip.firstHabitCompleted.donate()
+
             // Small delay to ensure data is committed to shared container before widget refresh
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
 
@@ -673,6 +692,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     public func showNumericSheet(for habit: Habit) {
         selectedHabitForSheet = habit
         showingNumericSheet = true
+    }
+
+    public func showBinarySheet(for habit: Habit) {
+        selectedHabitForSheet = habit
+        showingCompleteHabitSheet = true
     }
 
     public func setPendingNumericHabit(_ habit: Habit) {
@@ -1214,5 +1238,25 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     private func getUserName() async -> String? {
         let profile = await getCurrentUserProfile.execute()
         return profile.name.isEmpty ? nil : profile.name
+    }
+
+    // MARK: - Habit Limit Check
+
+    /// Check if user is over the free tier habit limit and update banner state
+    private func checkHabitLimitStatus(habitCount: Int) async {
+        activeHabitsCount = habitCount
+        showDeactivateHabitsBanner = await featureGating.isOverActiveHabitLimit(activeCount: habitCount)
+
+        if showDeactivateHabitsBanner {
+            logger.log(
+                "User over free tier habit limit",
+                level: .info,
+                category: .stateManagement,
+                metadata: [
+                    "activeCount": habitCount,
+                    "maxFree": BusinessConstants.freeMaxHabits
+                ]
+            )
+        }
     }
 }

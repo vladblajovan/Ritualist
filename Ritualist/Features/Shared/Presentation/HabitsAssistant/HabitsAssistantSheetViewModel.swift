@@ -8,6 +8,7 @@
 import Foundation
 import Observation
 import RitualistCore
+import TipKit
 
 /// Consolidated ViewModel for HabitsAssistantSheet handling all logic:
 /// - Category management
@@ -16,7 +17,7 @@ import RitualistCore
 /// - Intention tracking (deferred add/remove operations)
 /// - Paywall integration
 @MainActor @Observable
-public final class HabitsAssistantSheetViewModel {
+public final class HabitsAssistantSheetViewModel { // swiftlint:disable:this type_body_length
 
     // MARK: - Dependencies
 
@@ -26,6 +27,7 @@ public final class HabitsAssistantSheetViewModel {
     private let createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase
     private let removeHabitFromSuggestionUseCase: RemoveHabitFromSuggestionUseCase
     private let checkHabitCreationLimit: CheckHabitCreationLimitUseCase
+    private let userService: UserService
     private let trackUserAction: TrackUserActionUseCase?
     private let logger: DebugLogger
 
@@ -39,6 +41,13 @@ public final class HabitsAssistantSheetViewModel {
 
     public private(set) var addedSuggestionIds: Set<String> = []
     public private(set) var suggestionToHabitMappings: [String: UUID] = [:]
+
+    /// Cached demographics (fetched once at initialization to avoid Observable loops)
+    private var cachedGender: UserGender?
+    private var cachedAgeGroup: UserAgeGroup?
+
+    /// Cached suggestions (computed once at initialization)
+    private var cachedAllSuggestions: [HabitSuggestion] = []
 
     // MARK: - Intention Tracking State
 
@@ -66,6 +75,12 @@ public final class HabitsAssistantSheetViewModel {
 
     /// Existing habits passed from parent
     private var existingHabits: [Habit] = []
+
+    /// Flag to track if setExistingHabits has been called
+    private var hasSetExistingHabits = false
+
+    /// Flag to track if async initialize has completed
+    private var isInitialized = false
 
     // MARK: - Computed Properties
 
@@ -111,6 +126,7 @@ public final class HabitsAssistantSheetViewModel {
         createHabitFromSuggestionUseCase: CreateHabitFromSuggestionUseCase,
         removeHabitFromSuggestionUseCase: RemoveHabitFromSuggestionUseCase,
         checkHabitCreationLimit: CheckHabitCreationLimitUseCase,
+        userService: UserService,
         trackUserAction: TrackUserActionUseCase? = nil,
         logger: DebugLogger
     ) {
@@ -120,26 +136,44 @@ public final class HabitsAssistantSheetViewModel {
         self.createHabitFromSuggestionUseCase = createHabitFromSuggestionUseCase
         self.removeHabitFromSuggestionUseCase = removeHabitFromSuggestionUseCase
         self.checkHabitCreationLimit = checkHabitCreationLimit
+        self.userService = userService
         self.trackUserAction = trackUserAction
         self.logger = logger
     }
 
     // MARK: - Initialization Methods
 
-    /// Set existing habits and initialize state synchronously (call immediately when sheet appears)
-    /// This ensures everything is ready before async initialize completes
+    /// Set existing habits (call immediately when sheet appears)
+    /// Demographics and suggestions are loaded async in initialize()
     public func setExistingHabits(_ habits: [Habit]) {
-        // Skip if already initialized
-        guard existingHabits.isEmpty else { return }
+        // Skip if already called (prevents re-initialization on re-renders)
+        guard !hasSetExistingHabits else { return }
+        hasSetExistingHabits = true
 
         self.existingHabits = habits
-        initializeWithExistingHabits(habits)
-        initializeIntentionState()
     }
 
-    /// Initialize the sheet (async for limit status refresh)
+    /// Initialize the sheet (async - loads profile, demographics, and refreshes limit status)
     public func initialize(existingHabits: [Habit]) async {
-        // setExistingHabits already ran synchronously, just refresh limit status
+        // Skip if already initialized (singleton pattern)
+        guard !isInitialized else { return }
+        isInitialized = true
+
+        // Ensure profile is loaded before accessing demographics
+        await userService.loadProfileIfNeeded()
+
+        // Cache demographics once to avoid Observable loops during rendering
+        let (gender, ageGroup) = getUserDemographics()
+        cachedGender = gender
+        cachedAgeGroup = ageGroup
+
+        // Cache all suggestions once
+        cachedAllSuggestions = getSuggestionsUseCase.execute(gender: gender, ageGroup: ageGroup)
+
+        // Initialize with existing habits (needs cached suggestions)
+        initializeWithExistingHabits(existingHabits)
+        initializeIntentionState()
+
         logger.log(
             "Initializing Habits Assistant Sheet",
             level: .debug,
@@ -148,6 +182,20 @@ public final class HabitsAssistantSheetViewModel {
         )
 
         await refreshLimitStatus()
+    }
+
+    /// Reset state for next sheet presentation (call on sheet dismiss)
+    public func reset() {
+        hasSetExistingHabits = false
+        isInitialized = false
+        existingHabits = []
+        cachedAllSuggestions = []
+        addedSuggestionIds = []
+        suggestionToHabitMappings = [:]
+        originalState = [:]
+        userIntentions = [:]
+        pendingRemovalHabitIds = [:]
+        selectedCategory = nil
     }
 
     // MARK: - Category Methods
@@ -175,21 +223,23 @@ public final class HabitsAssistantSheetViewModel {
 
     // MARK: - Suggestion Methods
 
+    /// Get suggestions filtered by selected category (uses cached data)
     public func getSuggestions() -> [HabitSuggestion] {
         if let selectedCategory = selectedCategory {
-            return getSuggestionsUseCase.execute(categoryId: selectedCategory.id)
+            return cachedAllSuggestions.filter { $0.categoryId == selectedCategory.id }
         } else {
-            return getSuggestionsUseCase.execute()
+            return cachedAllSuggestions
         }
     }
 
+    /// Get all suggestions (uses cached data)
     public func getAllSuggestions() -> [HabitSuggestion] {
-        getSuggestionsUseCase.execute()
+        cachedAllSuggestions
     }
 
     private func initializeWithExistingHabits(_ existingHabits: [Habit]) {
-        let allSuggestions = getSuggestionsUseCase.execute()
-        let allSuggestionIds = allSuggestions.map { $0.id }
+        // Use cached suggestions (already computed in setExistingHabits)
+        let allSuggestionIds = cachedAllSuggestions.map { $0.id }
 
         let (addedSuggestions, habitMappings) = getHabitsFromSuggestionsUseCase.execute(
             existingHabits: existingHabits,
@@ -197,6 +247,16 @@ public final class HabitsAssistantSheetViewModel {
         )
         addedSuggestionIds = addedSuggestions
         suggestionToHabitMappings = habitMappings
+    }
+
+    /// Refresh cached suggestions when demographics change
+    /// Note: This is typically not needed since the sheet is dismissed/recreated,
+    /// but provided for completeness
+    public func refreshSuggestionsCache() {
+        let (gender, ageGroup) = getUserDemographics()
+        cachedGender = gender
+        cachedAgeGroup = ageGroup
+        cachedAllSuggestions = getSuggestionsUseCase.execute(gender: gender, ageGroup: ageGroup)
     }
 
     public func markSuggestionAsAdded(_ suggestionId: String, habitId: UUID) {
@@ -346,6 +406,7 @@ public final class HabitsAssistantSheetViewModel {
 
             if intendedState != originalStateForSuggestion {
                 if intendedState {
+                    // Use case handles duplicates idempotently (returns existing ID if already exists)
                     if let suggestion = getAllSuggestions().first(where: { $0.id == suggestionId }) {
                         operations.append(.add(suggestion))
                     }
@@ -417,6 +478,10 @@ public final class HabitsAssistantSheetViewModel {
         case .success(let habitId):
             suggestionToHabitMappings[suggestion.id] = habitId
             trackHabitAdded(habitId: suggestion.id, habitName: suggestion.name, category: suggestion.categoryId)
+
+            // Donate tip event when user adds their first habit
+            await TapHabitTip.firstHabitAdded.donate()
+
             return false
         case .error(let errorMessage):
             trackHabitAddFailed(habitId: suggestion.id, error: errorMessage)
@@ -437,6 +502,14 @@ public final class HabitsAssistantSheetViewModel {
             habit.colorHex == suggestion.colorHex &&
             habit.kind == suggestion.kind
         }
+    }
+
+    /// Get user demographics from UserService for filtering suggestions
+    private func getUserDemographics() -> (gender: UserGender?, ageGroup: UserAgeGroup?) {
+        let profile = userService.currentProfile
+        let gender: UserGender? = profile.gender.flatMap { UserGender(rawValue: $0) }
+        let ageGroup: UserAgeGroup? = profile.ageGroup.flatMap { UserAgeGroup(rawValue: $0) }
+        return (gender, ageGroup)
     }
 }
 

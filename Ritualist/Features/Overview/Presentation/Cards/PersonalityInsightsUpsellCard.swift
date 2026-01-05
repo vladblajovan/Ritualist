@@ -18,7 +18,7 @@ struct PersonalityInsightsUpsellCard: View {
             // Header with premium gradient
             HStack {
                 Image(systemName: "brain.head.profile")
-                    .font(.title2)
+                    .font(CardDesign.title2)
                     .foregroundStyle(
                         LinearGradient(
                             colors: [.purple, .blue],
@@ -29,14 +29,14 @@ struct PersonalityInsightsUpsellCard: View {
 
                 HStack(spacing: 6) {
                     Text("Personality Insights")
-                        .font(.headline)
+                        .font(CardDesign.headline)
                         .foregroundColor(.primary)
 
                     Button {
                         showingBigFiveInfo = true
                     } label: {
                         Image(systemName: "info.circle")
-                            .font(.subheadline)
+                            .font(CardDesign.subheadline)
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
@@ -50,7 +50,7 @@ struct PersonalityInsightsUpsellCard: View {
             // Marketing content
             VStack(alignment: .leading, spacing: Spacing.small) {
                 Text("Your habit data is ready for personality analysis:")
-                    .font(.caption)
+                    .font(CardDesign.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -66,9 +66,9 @@ struct PersonalityInsightsUpsellCard: View {
             Button(action: onUnlock) {
                 HStack {
                     Image(systemName: "lock.open.fill")
-                        .font(.subheadline)
+                        .font(CardDesign.subheadline)
                     Text("Unlock with Pro")
-                        .font(.subheadline.weight(.semibold))
+                        .font(CardDesign.subheadline.weight(.semibold))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
@@ -87,12 +87,12 @@ struct PersonalityInsightsUpsellCard: View {
     private func benefitRow(icon: String, text: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.caption)
+                .font(CardDesign.caption)
                 .foregroundColor(.purple)
                 .frame(width: 16)
 
             Text(text)
-                .font(.caption)
+                .font(CardDesign.caption)
                 .foregroundColor(.secondary)
         }
     }

@@ -10,7 +10,7 @@ import Foundation
 // MARK: - User Gender
 
 /// Represents user gender options for profile data
-public enum UserGender: String, CaseIterable, Identifiable, Codable {
+public enum UserGender: String, CaseIterable, Identifiable, Codable, Sendable {
     case preferNotToSay = "prefer_not_to_say"
     case male = "male"
     case female = "female"
@@ -31,7 +31,7 @@ public enum UserGender: String, CaseIterable, Identifiable, Codable {
 // MARK: - User Age Group
 
 /// Represents user age group options for profile data
-public enum UserAgeGroup: String, CaseIterable, Identifiable, Codable {
+public enum UserAgeGroup: String, CaseIterable, Identifiable, Codable, Sendable {
     case preferNotToSay = "prefer_not_to_say"
     case under18 = "under_18"
     case age18to24 = "18_24"

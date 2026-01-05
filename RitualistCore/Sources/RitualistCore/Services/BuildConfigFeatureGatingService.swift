@@ -75,4 +75,11 @@ public final class BuildConfigFeatureGatingService: FeatureGatingService, Sendab
         }
         return await standardFeatureGating.isFeatureAvailable(feature)
     }
+
+    public func isOverActiveHabitLimit(activeCount: Int) async -> Bool {
+        if buildConfigService.allFeaturesEnabled {
+            return false
+        }
+        return await standardFeatureGating.isOverActiveHabitLimit(activeCount: activeCount)
+    }
 }

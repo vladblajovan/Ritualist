@@ -12,9 +12,9 @@ struct SmartInsightsCard: View {
             HStack {
                 HStack(spacing: 8) {
                     Text("💡")
-                        .font(.title2)
+                        .font(CardDesign.title2)
                     Text("Weekly Insights")
-                        .font(.headline)
+                        .font(CardDesign.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
                 }
@@ -44,12 +44,12 @@ struct SmartInsightsCard: View {
                     
                     VStack(spacing: 4) {
                         Text("Gathering Insights")
-                            .font(.subheadline)
+                            .font(CardDesign.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(.primary)
                         
                         Text("Complete habits for 2 weeks to unlock personalized insights about your patterns.")
-                            .font(.caption)
+                            .font(CardDesign.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
@@ -83,13 +83,13 @@ struct SmartInsightsCard: View {
             if insights.count > initialInsightsCount {
                 HStack {
                     Text(isExpanded ? "Show less" : "View \(insights.count - initialInsightsCount) more insights")
-                        .font(.caption)
+                        .font(CardDesign.caption)
                         .foregroundColor(.secondary)
                     
                     Spacer()
                     
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
-                        .font(.caption2)
+                        .font(CardDesign.caption2)
                         .foregroundColor(.secondary)
                 }
                 .padding(.top, 4)
@@ -112,7 +112,7 @@ struct SmartInsightsCard: View {
             HStack(spacing: 12) {
                 // Insight Icon
                 Text(insightIcon(for: insight.type))
-                    .font(.title3)
+                    .font(CardDesign.title3)
                     .frame(width: 32, height: 32)
                     .background(insightColor(for: insight.type).opacity(0.1))
                     .foregroundColor(insightColor(for: insight.type))
@@ -121,13 +121,13 @@ struct SmartInsightsCard: View {
                 // Insight Content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(insight.title)
-                        .font(.subheadline.weight(.medium))
+                        .font(CardDesign.subheadline.weight(.medium))
                         .foregroundColor(.primary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                     
                     Text(insight.message)
-                        .font(.caption)
+                        .font(CardDesign.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)

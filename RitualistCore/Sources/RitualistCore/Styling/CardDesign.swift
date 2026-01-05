@@ -56,8 +56,34 @@ public struct CardDesign {
     // MARK: - Brand Header
     /// Font size for app brand header (icon + "Ritualist" text)
     public static let brandHeaderFontSize: CGFloat = 28
+    /// Font for app brand header using SF Rounded design (matches launch screen)
+    public static let brandHeaderFont: Font = .system(size: brandHeaderFontSize, weight: .bold, design: .rounded)
     /// Progress bar height for brand header
     public static let progressBarHeight: CGFloat = 8
+
+    // MARK: - Rounded Fonts (App-wide consistency)
+    /// Large title with rounded design
+    public static let largeTitle: Font = .system(.largeTitle, design: .rounded)
+    /// Title with rounded design
+    public static let title: Font = .system(.title, design: .rounded)
+    /// Title2 with rounded design
+    public static let title2: Font = .system(.title2, design: .rounded)
+    /// Title3 with rounded design
+    public static let title3: Font = .system(.title3, design: .rounded)
+    /// Headline with rounded design
+    public static let headline: Font = .system(.headline, design: .rounded)
+    /// Subheadline with rounded design
+    public static let subheadline: Font = .system(.subheadline, design: .rounded)
+    /// Body with rounded design
+    public static let body: Font = .system(.body, design: .rounded)
+    /// Callout with rounded design
+    public static let callout: Font = .system(.callout, design: .rounded)
+    /// Footnote with rounded design
+    public static let footnote: Font = .system(.footnote, design: .rounded)
+    /// Caption with rounded design
+    public static let caption: Font = .system(.caption, design: .rounded)
+    /// Caption2 with rounded design
+    public static let caption2: Font = .system(.caption2, design: .rounded)
     /// Glow radius for completion animations
     public static let glowRadius: CGFloat = 8
     /// Glow opacity for completion animations

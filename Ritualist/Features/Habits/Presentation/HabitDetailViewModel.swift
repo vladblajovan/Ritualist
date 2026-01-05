@@ -3,6 +3,7 @@ import Observation
 import FactoryKit
 import RitualistCore
 import CoreLocation
+import TipKit
 
 // Helper enum for schedule picker
 public enum ScheduleType: CaseIterable {
@@ -221,6 +222,8 @@ public final class HabitDetailViewModel {
                 try await updateHabit.execute(habit)
             } else {
                 _ = try await createHabit.execute(habit)
+                // Donate tip event for first habit added (gates TapHabitTip)
+                await TapHabitTip.firstHabitAdded.donate()
             }
 
             // Schedule notifications for the habit
