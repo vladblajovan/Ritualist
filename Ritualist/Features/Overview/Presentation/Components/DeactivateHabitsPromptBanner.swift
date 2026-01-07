@@ -44,7 +44,7 @@ struct DeactivateHabitsPromptBanner: View {
             }
 
             // Explanation text
-            Text("Free plan allows \(maxFreeHabits) habits. Deactivate \(excessCount) or upgrade.")
+            Text("Deactivate \(excessCount) habits or upgrade.")
                 .font(CardDesign.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

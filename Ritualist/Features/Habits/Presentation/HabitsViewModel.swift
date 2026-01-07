@@ -416,8 +416,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     public func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
         let result = await createHabitFromSuggestionUseCase.execute(suggestion)
 
-        // Notify other tabs (Overview) to refresh immediately on success
-        if case .success = result {
+        // Notify other tabs (Overview) to refresh on success or idempotent hit
+        if result.isSuccessful {
             NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
         }
 

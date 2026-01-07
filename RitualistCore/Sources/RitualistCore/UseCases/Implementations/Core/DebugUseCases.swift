@@ -219,6 +219,9 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
                    let habit = habits.first(where: { $0.id == habitId }) {
                     createdHabits.append(habit)
                 }
+            case .alreadyExists:
+                // Skip - habit already exists, don't count as newly created test data
+                break
             case .error(let error):
                 logger.log("Failed to create habit from suggestion '\(suggestion.name)': \(error)", level: .error, category: .debug)
             }

@@ -63,10 +63,10 @@ public struct HabitSuggestion: Identifiable, Hashable, Sendable {
         let genderVisible: Bool
         if let allowedGenders = visibleToGenders {
             // If user prefers not to say or didn't specify, show all
-            if gender == nil || gender == .preferNotToSay {
-                genderVisible = true
+            if let gender = gender, gender != .preferNotToSay {
+                genderVisible = allowedGenders.contains(gender)
             } else {
-                genderVisible = allowedGenders.contains(gender!)
+                genderVisible = true
             }
         } else {
             // nil means visible to all genders
@@ -77,10 +77,10 @@ public struct HabitSuggestion: Identifiable, Hashable, Sendable {
         let ageVisible: Bool
         if let allowedAges = visibleToAgeGroups {
             // If user prefers not to say or didn't specify, show all
-            if ageGroup == nil || ageGroup == .preferNotToSay {
-                ageVisible = true
+            if let ageGroup = ageGroup, ageGroup != .preferNotToSay {
+                ageVisible = allowedAges.contains(ageGroup)
             } else {
-                ageVisible = allowedAges.contains(ageGroup!)
+                ageVisible = true
             }
         } else {
             // nil means visible to all age groups

@@ -87,6 +87,8 @@ public final class HabitDetailViewModel {
     public private(set) var isCheckingLocationAuth = false
     public private(set) var isRequestingLocationPermission = false
     public var showMapPicker = false
+    /// Tracks whether user saved a valid location in the map picker (prevents race condition on dismiss)
+    public var mapPickerDidSaveValidLocation = false
 
     // Premium/Paywall state
     public var paywallItem: PaywallItem?
@@ -514,20 +516,24 @@ extension HabitDetailViewModel {
     }
 
     /// Called when map picker sheet is dismissed (via Done, Cancel, or swipe-down)
-    /// Clears placeholder config if user didn't select a real location
+    /// Clears placeholder config if user didn't save a valid location
     public func handleMapPickerDismiss() {
+        // Use explicit flag to avoid race condition with SwiftUI observation timing
+        // On first-time enable, the observation update from saveConfiguration() may not have
+        // propagated before this callback runs, causing the coordinate check to see stale (0,0) values
+        if mapPickerDidSaveValidLocation {
+            mapPickerDidSaveValidLocation = false
+            // User saved a valid location, config is already set correctly
+            return
+        }
+
+        // User dismissed without saving (Cancel, swipe-down, or Done without selection)
+        // Clear the placeholder config if one exists
         guard let config = locationConfiguration else { return }
 
-        // Check if this is still a placeholder (0,0 coordinates)
         let isPlaceholder = config.coordinate.latitude == 0 && config.coordinate.longitude == 0
-
         if isPlaceholder {
-            // User dismissed without selecting a location - clear the config
             locationConfiguration = nil
-        } else {
-            // Force SwiftUI observation update by reassigning the config
-            // This ensures the toggle binding re-evaluates
-            locationConfiguration = config
         }
     }
 
@@ -544,6 +550,9 @@ extension HabitDetailViewModel {
             locationConfiguration = nil
             return
         }
+
+        // Reset the save flag at the start of a new enable flow
+        mapPickerDidSaveValidLocation = false
 
         // Enabling location reminders
         if locationConfiguration != nil {
