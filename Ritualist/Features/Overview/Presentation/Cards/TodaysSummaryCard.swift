@@ -618,10 +618,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 }
                 TipView(longPressLogTip, arrowEdge: .bottom) { action in
                     if action.id == LongPressLogTip.gotItActionId {
-                        // User tapped "Got it" - enable avatar tip
+                        // User tapped "Got it" - enable circle progress tip
                         LongPressLogTip.wasDismissed.sendDonation()
+                        CircleProgressTip.longPressTipDismissed.sendDonation()
                         longPressLogTip.invalidate(reason: .actionPerformed)
-                        logger.log("Long-press tip 'Got it' tapped - avatar tip enabled", level: .debug, category: .ui)
+                        logger.log("Long-press tip 'Got it' tapped - circle progress tip enabled", level: .debug, category: .ui)
                     }
                 }
                 habitRow(habit: habit, isCompleted: false)
@@ -658,15 +659,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         LongPressLogTip.shouldShowLongPressTip.sendDonation()
                         tapCompletedHabitTip.invalidate(reason: .actionPerformed)
                         logger.log("Completed habit tip 'Got it' tapped - long-press tip enabled", level: .debug, category: .ui)
-                    }
-                }
-                // Also show long-press tip here in case all habits are completed
-                TipView(longPressLogTip, arrowEdge: .bottom) { action in
-                    if action.id == LongPressLogTip.gotItActionId {
-                        // User tapped "Got it" - enable avatar tip
-                        LongPressLogTip.wasDismissed.sendDonation()
-                        longPressLogTip.invalidate(reason: .actionPerformed)
-                        logger.log("Long-press tip 'Got it' tapped (from completed section) - avatar tip enabled", level: .debug, category: .ui)
                     }
                 }
                 habitRow(habit: habit, isCompleted: true)

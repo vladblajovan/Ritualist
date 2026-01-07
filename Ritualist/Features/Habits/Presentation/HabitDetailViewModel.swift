@@ -11,6 +11,16 @@ public enum ScheduleType: CaseIterable {
     case daysOfWeek
 }
 
+/// Explicit state for map picker dismiss handling.
+/// Replaces boolean flag to prevent race condition between SwiftUI sheet dismissal
+/// and @Observable state propagation timing.
+public enum MapPickerDismissResult {
+    /// No pending dismiss action (initial state, or after handling)
+    case none
+    /// User saved a valid location before dismissing
+    case savedValidLocation
+}
+
 @MainActor @Observable
 public final class HabitDetailViewModel {
     // Testable dependencies (constructor injected)
@@ -87,8 +97,8 @@ public final class HabitDetailViewModel {
     public private(set) var isCheckingLocationAuth = false
     public private(set) var isRequestingLocationPermission = false
     public var showMapPicker = false
-    /// Tracks whether user saved a valid location in the map picker (prevents race condition on dismiss)
-    public var mapPickerDidSaveValidLocation = false
+    /// Tracks the result of map picker dismissal to handle race condition with @Observable timing
+    public var mapPickerDismissResult: MapPickerDismissResult = .none
 
     // Premium/Paywall state
     public var paywallItem: PaywallItem?
@@ -518,11 +528,11 @@ extension HabitDetailViewModel {
     /// Called when map picker sheet is dismissed (via Done, Cancel, or swipe-down)
     /// Clears placeholder config if user didn't save a valid location
     public func handleMapPickerDismiss() {
-        // Use explicit flag to avoid race condition with SwiftUI observation timing
+        // Check explicit dismiss result to avoid race condition with SwiftUI observation timing.
         // On first-time enable, the observation update from saveConfiguration() may not have
-        // propagated before this callback runs, causing the coordinate check to see stale (0,0) values
-        if mapPickerDidSaveValidLocation {
-            mapPickerDidSaveValidLocation = false
+        // propagated before this callback runs, causing the coordinate check to see stale (0,0) values.
+        if mapPickerDismissResult == .savedValidLocation {
+            mapPickerDismissResult = .none
             // User saved a valid location, config is already set correctly
             return
         }
@@ -551,8 +561,8 @@ extension HabitDetailViewModel {
             return
         }
 
-        // Reset the save flag at the start of a new enable flow
-        mapPickerDidSaveValidLocation = false
+        // Reset dismiss result at the start of a new enable flow
+        mapPickerDismissResult = .none
 
         // Enabling location reminders
         if locationConfiguration != nil {
