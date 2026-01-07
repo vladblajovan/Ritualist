@@ -616,10 +616,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 TipView(tapHabitTip, arrowEdge: .bottom) { _ in
                     logger.log("Tap habit tip dismissed", level: .debug, category: .ui)
                 }
-                TipView(longPressLogTip, arrowEdge: .bottom) { _ in
-                    // Donate event to enable the CircleProgressTip (avatar tip)
-                    LongPressLogTip.wasDismissed.sendDonation()
-                    logger.log("Long-press tip dismissed - avatar tip enabled", level: .debug, category: .ui)
+                TipView(longPressLogTip, arrowEdge: .bottom) { action in
+                    if action.id == LongPressLogTip.gotItActionId {
+                        // User tapped "Got it" - enable avatar tip
+                        LongPressLogTip.wasDismissed.sendDonation()
+                        longPressLogTip.invalidate(reason: .actionPerformed)
+                        logger.log("Long-press tip 'Got it' tapped - avatar tip enabled", level: .debug, category: .ui)
+                    }
                 }
                 habitRow(habit: habit, isCompleted: false)
             }
@@ -648,16 +651,23 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func completedHabitItem(habit: Habit, isFirstItem: Bool) -> some View {
         if isFirstItem {
             VStack(spacing: 4) {
-                TipView(tapCompletedHabitTip, arrowEdge: .bottom) { _ in
-                    // Tip was dismissed - enable long-press tip
-                    TapCompletedHabitTip.wasDismissed.sendDonation()
-                    LongPressLogTip.shouldShowLongPressTip.sendDonation()
-                    logger.log("Completed habit tip dismissed - long-press tip enabled", level: .debug, category: .ui)
+                TipView(tapCompletedHabitTip, arrowEdge: .bottom) { action in
+                    if action.id == TapCompletedHabitTip.gotItActionId {
+                        // User tapped "Got it" - enable long-press tip
+                        TapCompletedHabitTip.wasDismissed.sendDonation()
+                        LongPressLogTip.shouldShowLongPressTip.sendDonation()
+                        tapCompletedHabitTip.invalidate(reason: .actionPerformed)
+                        logger.log("Completed habit tip 'Got it' tapped - long-press tip enabled", level: .debug, category: .ui)
+                    }
                 }
                 // Also show long-press tip here in case all habits are completed
-                TipView(longPressLogTip, arrowEdge: .bottom) { _ in
-                    LongPressLogTip.wasDismissed.sendDonation()
-                    logger.log("Long-press tip dismissed (from completed section) - avatar tip enabled", level: .debug, category: .ui)
+                TipView(longPressLogTip, arrowEdge: .bottom) { action in
+                    if action.id == LongPressLogTip.gotItActionId {
+                        // User tapped "Got it" - enable avatar tip
+                        LongPressLogTip.wasDismissed.sendDonation()
+                        longPressLogTip.invalidate(reason: .actionPerformed)
+                        logger.log("Long-press tip 'Got it' tapped (from completed section) - avatar tip enabled", level: .debug, category: .ui)
+                    }
                 }
                 habitRow(habit: habit, isCompleted: true)
             }

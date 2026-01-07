@@ -67,6 +67,9 @@ struct TapCompletedHabitTip: Tip {
     /// Event triggered when this tip is dismissed - gates the long-press tip
     static let wasDismissed = Tips.Event(id: RitualistTipEvents.completedHabitTipDismissed)
 
+    /// Action ID for the "Got it" button
+    static let gotItActionId = "tapCompletedHabitTip.gotIt"
+
     var title: Text {
         Text("Adjust Completed Habits")
     }
@@ -77,6 +80,12 @@ struct TapCompletedHabitTip: Tip {
 
     var image: Image? {
         Image(systemName: "arrow.uturn.backward.circle.fill")
+    }
+
+    var actions: [Action] {
+        [
+            Action(id: Self.gotItActionId, title: "Got it")
+        ]
     }
 
     var rules: [Rule] {
@@ -96,6 +105,9 @@ struct LongPressLogTip: Tip {
     /// Event triggered when this tip is dismissed - gates the avatar tip
     static let wasDismissed = Tips.Event(id: RitualistTipEvents.longPressTipDismissed)
 
+    /// Action ID for the "Got it" button
+    static let gotItActionId = "longPressLogTip.gotIt"
+
     var title: Text {
         Text("Quick Log with Long-Press")
     }
@@ -106,6 +118,12 @@ struct LongPressLogTip: Tip {
 
     var image: Image? {
         Image(systemName: "hand.tap.fill")
+    }
+
+    var actions: [Action] {
+        [
+            Action(id: Self.gotItActionId, title: "Got it")
+        ]
     }
 
     var rules: [Rule] {
