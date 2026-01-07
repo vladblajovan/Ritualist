@@ -30,7 +30,7 @@ struct MonthlyCalendarViewLogicTests {
         #expect(MonthlyCalendarViewLogic.LayoutConstants.maxVerticalSpacing == 20)
         #expect(MonthlyCalendarViewLogic.LayoutConstants.verticalSpacingRatio == 0.35)
         #expect(MonthlyCalendarViewLogic.LayoutConstants.fontSizeRatio == 0.39)
-        #expect(MonthlyCalendarViewLogic.LayoutConstants.borderBuffer == 1)
+        #expect(MonthlyCalendarViewLogic.LayoutConstants.borderBuffer == 3)
         #expect(MonthlyCalendarViewLogic.LayoutConstants.columnCount == 7)
     }
 
@@ -138,7 +138,7 @@ struct MonthlyCalendarViewLogicTests {
 
         let metrics = MonthlyCalendarViewLogic.computeLayout(for: context)
 
-        #expect(metrics.borderBuffer == 1, "Border buffer should be 1pt for symmetric top/bottom spacing")
+        #expect(metrics.borderBuffer == 3, "Border buffer should be 3pt for glow (2pt) + stroke (1pt)")
     }
 
     @Test("Layout uses height-based sizing when height is constraining factor on iPad")
@@ -155,13 +155,14 @@ struct MonthlyCalendarViewLogicTests {
 
         // With 5 rows and spacingRatio 0.35:
         // divisor = 5 + 4 * 0.35 = 6.4
-        // heightBasedCell = (200 - 2) / 6.4 = 198 / 6.4 ≈ 30.9375
+        // heightBasedCell = (200 - 6) / 6.4 = 194 / 6.4 ≈ 30.3125 (borderBuffer=3, so 2*3=6)
         // widthBasedCell = 600/7 * 0.75 ≈ 64.3
-        // min(30.9375, 64.3, 48) = 30.9375 (height constrained)
+        // min(30.3125, 64.3, 48) = 30.3125 (height constrained)
         let spacingRatio: CGFloat = 0.35
         let numRows: CGFloat = 5
         let divisor: CGFloat = numRows + (numRows - 1) * spacingRatio
-        let expectedCellSize: CGFloat = (200.0 - 2.0) / divisor
+        let borderBuffer: CGFloat = 3.0
+        let expectedCellSize: CGFloat = (200.0 - 2.0 * borderBuffer) / divisor
         let difference: CGFloat = abs(metrics.cellSize - expectedCellSize)
 
         #expect(difference < 0.001, "Cell size should be height-constrained")
@@ -196,8 +197,8 @@ struct MonthlyCalendarViewLogicTests {
 
         // columnWidth = 50, cellSize = min(37.5, 36) = 36 (capped at maxCellSizeCompact)
         // verticalSpacing = min(50 - 36, 20) = min(14, 20) = 14
-        // totalHeight = borderBuffer + 5 * 36 + 4 * 14 + borderBuffer = 1 + 180 + 56 + 1 = 238
-        let expectedHeight: CGFloat = 238
+        // totalHeight = borderBuffer + 5 * 36 + 4 * 14 + borderBuffer = 3 + 180 + 56 + 3 = 242
+        let expectedHeight: CGFloat = 242
 
         #expect(metrics.totalHeight == expectedHeight)
     }

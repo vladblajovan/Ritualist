@@ -79,19 +79,19 @@ struct ProfileCacheTests {
 
     @Test("Cache returns nil after TTL expires")
     func cacheReturnsNilAfterTTLExpires() async throws {
-        // Use very short TTL for testing (0.1 seconds = 100ms)
-        let cache = ProfileCache(ttl: 0.1)
+        // Use short TTL for testing (1 second) - enough margin for async scheduling
+        let cache = ProfileCache(ttl: 1.0)
         let profile = UserProfileBuilder.standard(name: "Expiring User")
 
         // Store profile
         await cache.set(profile)
 
-        // Verify it's cached
+        // Verify it's cached (should be immediate, well within 1s TTL)
         let cachedImmediately = await cache.get()
         #expect(cachedImmediately != nil)
 
         // Wait for TTL to expire
-        try await Task.sleep(nanoseconds: 150_000_000) // 150ms
+        try await Task.sleep(nanoseconds: 1_200_000_000) // 1.2 seconds
 
         // Cache should now return nil
         let cachedAfterExpiry = await cache.get()
@@ -100,17 +100,17 @@ struct ProfileCacheTests {
 
     @Test("isValid returns false after TTL expires")
     func isValidReturnsFalseAfterTTLExpires() async throws {
-        let cache = ProfileCache(ttl: 0.1) // 100ms
+        let cache = ProfileCache(ttl: 1.0) // 1 second - enough margin for async scheduling
         let profile = UserProfileBuilder.standard()
 
         await cache.set(profile)
 
-        // Initially valid
+        // Initially valid (should be immediate, well within 1s TTL)
         let validBefore = await cache.isValid
         #expect(validBefore == true)
 
         // Wait for expiry
-        try await Task.sleep(nanoseconds: 150_000_000) // 150ms
+        try await Task.sleep(nanoseconds: 1_200_000_000) // 1.2 seconds
 
         // Should be invalid now
         let validAfter = await cache.isValid
@@ -319,14 +319,15 @@ struct CachedLoadProfileTests {
 @MainActor
 struct CacheAwareSaveProfileTests {
 
-    @Test("Save invalidates cache")
-    func saveInvalidatesCache() async throws {
+    @Test("Save updates cache with new profile")
+    func saveUpdatesCache() async throws {
         let cache = ProfileCache(ttl: 300)
         let mockInner = MockSaveProfileUseCase()
         let profile = UserProfileBuilder.standard(name: "To Save")
 
-        // Pre-populate cache
-        await cache.set(profile)
+        // Pre-populate cache with different profile
+        let oldProfile = UserProfileBuilder.standard(name: "Old Profile")
+        await cache.set(oldProfile)
         #expect(await cache.isValid == true)
 
         let cacheAwareSave = CacheAwareSaveProfile(
@@ -336,9 +337,9 @@ struct CacheAwareSaveProfileTests {
 
         try await cacheAwareSave.execute(profile)
 
-        // Cache should be invalidated
-        #expect(await cache.isValid == false)
-        #expect(await cache.get() == nil)
+        // Cache should be updated with the saved profile (not invalidated)
+        #expect(await cache.isValid == true)
+        #expect(await cache.get()?.name == "To Save")
     }
 
     @Test("Save calls inner use case")
