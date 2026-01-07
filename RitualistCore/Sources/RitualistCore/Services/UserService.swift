@@ -62,11 +62,13 @@ public final class DefaultUserService: UserService, Sendable {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let self = self else { return }
-            if let updatedProfile = notification.object as? UserProfile {
-                Task { @MainActor in
-                    self._currentProfile = updatedProfile
-                }
+            // Extract profile before Task to avoid sending non-Sendable Notification
+            guard let updatedProfile = notification.object as? UserProfile else { return }
+            // Move ALL access to self inside @MainActor block to avoid
+            // "Publishing changes from background threads" warning
+            Task { @MainActor in
+                guard let self else { return }
+                self._currentProfile = updatedProfile
             }
         }
     }
