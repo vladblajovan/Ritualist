@@ -19,47 +19,65 @@ extension Container {
     // MARK: - Widget Logger
 
     var widgetLogger: Factory<DebugLogger> {
-        self { DebugLogger(subsystem: WidgetConstants.loggerSubsystem, category: "general") }
+        self { DebugLogger(subsystem: WidgetConstants.loggerSubsystem, category: "widget") }
             .singleton
     }
 
     // MARK: - Shared Persistence Container (same as main app)
-    var persistenceContainer: Factory<RitualistCore.PersistenceContainer> {
-        self { 
+    // Returns optional to handle errors gracefully instead of crashing
+    var persistenceContainer: Factory<RitualistCore.PersistenceContainer?> {
+        self {
+            let logger = self.widgetLogger()
             do {
-                return try RitualistCore.PersistenceContainer()
+                let container = try RitualistCore.PersistenceContainer()
+                logger.log("Persistence container initialized successfully", level: .info, category: .widget)
+                return container
             } catch {
-                print("[WIDGET-ERROR] Failed to initialize persistence container: \(error)")
-                print("[WIDGET-ERROR] App group: group.com.vladblajovan.Ritualist")
-                print("[WIDGET-ERROR] Widget cannot access shared data without proper app group setup")
-                fatalError("Widget requires access to shared app data: \(error)")
+                logger.log(
+                    "Failed to initialize persistence container: \(error)",
+                    level: .critical,
+                    category: .widget,
+                    metadata: [
+                        "app_group": "group.com.vladblajovan.Ritualist",
+                        "error": error.localizedDescription
+                    ]
+                )
+                // Return nil instead of crashing - widget will show error state
+                return nil
             }
         }
         .singleton
     }
+
+    /// Indicates whether the widget has valid data access
+    var hasValidDataAccess: Factory<Bool> {
+        self { self.persistenceContainer() != nil }
+    }
     
     // MARK: - Shared Local Data Sources (same as main app)
-    
+    // Note: These will crash if persistenceContainer is nil. Check hasValidDataAccess first.
+
     var habitDataSource: Factory<HabitLocalDataSourceProtocol> {
-        self { 
-            let container = self.persistenceContainer().container
-            return RitualistCore.HabitLocalDataSource(modelContainer: container)
+        self {
+            // Force unwrap is safe here because callers should check hasValidDataAccess first
+            let persistence = self.persistenceContainer()!
+            return RitualistCore.HabitLocalDataSource(modelContainer: persistence.container)
         }
         .singleton
     }
-    
+
     var logDataSource: Factory<LogLocalDataSourceProtocol> {
         self {
-            let container = self.persistenceContainer().container
-            return RitualistCore.LogLocalDataSource(modelContainer: container)
+            let persistence = self.persistenceContainer()!
+            return RitualistCore.LogLocalDataSource(modelContainer: persistence.container)
         }
         .singleton
     }
 
     var profileDataSource: Factory<ProfileLocalDataSourceProtocol> {
         self {
-            let container = self.persistenceContainer().container
-            return RitualistCore.ProfileLocalDataSource(modelContainer: container)
+            let persistence = self.persistenceContainer()!
+            return RitualistCore.ProfileLocalDataSource(modelContainer: persistence.container)
         }
         .singleton
     }

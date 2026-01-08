@@ -16,9 +16,11 @@ import RitualistCore
 struct RemainingHabitsProvider: TimelineProvider {
     typealias Entry = RemainingHabitsEntry
 
+    @Injected(\.hasValidDataAccess) private var hasValidDataAccess
     @Injected(\.widgetHabitsViewModel) private var viewModel
     @Injected(\.widgetDateNavigationService) private var navigationService
-    
+    @Injected(\.widgetLogger) private var logger
+
     func placeholder(in context: Context) -> Entry {
         // Placeholder is synchronous, so we use device timezone as fallback
         // Real data will use the user's display timezone preference
@@ -38,6 +40,13 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
     
     func getSnapshot(in context: Context, completion: @escaping (Entry) -> Void) {
+        // Check for data access before proceeding
+        guard hasValidDataAccess else {
+            logger.log("Widget snapshot failed - no data access", level: .error, category: .widget)
+            completion(Entry.errorEntry())
+            return
+        }
+
         let viewModel = self.viewModel
         let selectedDate = navigationService.currentDate
         Task {
@@ -57,6 +66,14 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
+        // Check for data access before proceeding
+        guard hasValidDataAccess else {
+            logger.log("Widget timeline failed - no data access", level: .error, category: .widget)
+            let errorTimeline = Timeline(entries: [Entry.errorEntry()], policy: .after(Date().addingTimeInterval(3600)))
+            completion(errorTimeline)
+            return
+        }
+
         let viewModel = self.viewModel
         let selectedDate = navigationService.currentDate
         Task {
@@ -273,20 +290,35 @@ struct RemainingHabitsEntry: TimelineEntry {
     let habitDisplayInfo: [HabitDisplayInfo]
     let completionPercentage: Double
     let navigationInfo: WidgetNavigationInfo
-    
+    /// Indicates if widget failed to access shared data (e.g., app group misconfiguration)
+    let hasDataAccessError: Bool
+
     // MARK: - Initializers
-    
+
     /// Primary initializer with optimized value objects
     init(
         date: Date,
         habitDisplayInfo: [HabitDisplayInfo],
         completionPercentage: Double,
-        navigationInfo: WidgetNavigationInfo
+        navigationInfo: WidgetNavigationInfo,
+        hasDataAccessError: Bool = false
     ) {
         self.date = date
         self.habitDisplayInfo = habitDisplayInfo
         self.completionPercentage = completionPercentage
         self.navigationInfo = navigationInfo
+        self.hasDataAccessError = hasDataAccessError
+    }
+
+    /// Creates an error entry when data access fails
+    static func errorEntry() -> RemainingHabitsEntry {
+        RemainingHabitsEntry(
+            date: Date(),
+            habitDisplayInfo: [],
+            completionPercentage: 0,
+            navigationInfo: WidgetNavigationInfo(selectedDate: Date()),
+            hasDataAccessError: true
+        )
     }
     
     /// Convenience initializer from raw data (creates value objects internally)
@@ -307,6 +339,7 @@ struct RemainingHabitsEntry: TimelineEntry {
         }
         self.completionPercentage = completionPercentage
         self.navigationInfo = WidgetNavigationInfo(selectedDate: selectedDate, timezone: timezone)
+        self.hasDataAccessError = false
     }
 
     /// Legacy initializer for backward compatibility
@@ -337,18 +370,39 @@ struct RemainingHabitsEntry: TimelineEntry {
 struct RemainingHabitsWidgetView: View {
     let entry: RemainingHabitsEntry
     @Environment(\.widgetFamily) var family
-    
+
     var body: some View {
-        switch family {
-        case .systemSmall:
-            SmallWidgetView(entry: entry)
-        case .systemMedium:
-            MediumWidgetView(entry: entry)
-        case .systemLarge:
-            LargeWidgetView(entry: entry)
-        default:
-            EmptyView()
+        if entry.hasDataAccessError {
+            WidgetErrorView()
+        } else {
+            switch family {
+            case .systemSmall:
+                SmallWidgetView(entry: entry)
+            case .systemMedium:
+                MediumWidgetView(entry: entry)
+            case .systemLarge:
+                LargeWidgetView(entry: entry)
+            default:
+                EmptyView()
+            }
         }
+    }
+}
+
+/// Shown when widget cannot access shared app data
+private struct WidgetErrorView: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.title)
+                .foregroundColor(.orange)
+            Text("Unable to load data")
+                .font(.headline)
+            Text("Open the app to sync")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

@@ -55,6 +55,9 @@ public enum LogCategory: String, CaseIterable {
     // MARK: - Infrastructure
     case network = "Network"             // API calls, network state
     case debug = "Debug"                 // Development/debug specific
+
+    // MARK: - Widget
+    case widget = "Widget"               // Widget extension logging
 }
 
 // MARK: - Enhanced Debug Logger
