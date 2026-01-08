@@ -10,6 +10,28 @@ import AppIntents
 import Factory
 import RitualistCore
 
+// MARK: - Error Description Helper
+
+extension HabitScheduleValidationError {
+    /// Human-readable description for widget logging
+    var widgetLogDescription: String {
+        switch self {
+        case .habitUnavailable(let habitName):
+            return "Habit unavailable: \(habitName)"
+        case .alreadyLoggedToday(let habitName):
+            return "Already completed: \(habitName)"
+        case .notScheduledForDate(let habitName, let reason):
+            return "Not scheduled: \(habitName), reason: \(reason)"
+        case .invalidSchedule(let habitName):
+            return "Invalid schedule: \(habitName)"
+        case .dateBeforeStartDate(let habitName):
+            return "Date before start: \(habitName)"
+        }
+    }
+}
+
+// MARK: - Habit Completion Intents
+
 /// App Intent for completing binary habits directly from the widget
 /// Provides one-tap completion for binary habits without opening the main app
 struct CompleteHabitIntent: AppIntent {
@@ -59,23 +81,9 @@ struct CompleteHabitIntent: AppIntent {
 
         } catch let error as HabitScheduleValidationError {
             // Handle specific validation errors with detailed logging for debugging
-            let errorDescription: String
-            switch error {
-            case .habitUnavailable(let habitName):
-                errorDescription = "Habit unavailable: \(habitName)"
-            case .alreadyLoggedToday(let habitName):
-                errorDescription = "Habit already completed today: \(habitName)"
-            case .notScheduledForDate(let habitName, let reason):
-                errorDescription = "Habit not scheduled: \(habitName), reason: \(reason)"
-            case .invalidSchedule(let habitName):
-                errorDescription = "Invalid schedule for habit: \(habitName)"
-            case .dateBeforeStartDate(let habitName):
-                errorDescription = "Date before start date for habit: \(habitName)"
-            }
-
             logger.log("Validation error completing habit", level: .warning, category: .widget, metadata: [
                 "habit_id": habitId,
-                "error": errorDescription
+                "error": error.widgetLogDescription
             ])
 
             // All validation errors fail silently in widget context (iOS best practice)
@@ -167,24 +175,10 @@ struct CompleteHistoricalHabitIntent: AppIntent {
 
         } catch let error as HabitScheduleValidationError {
             // Handle specific validation errors with silent failure
-            let errorDescription: String
-            switch error {
-            case .habitUnavailable(let habitName):
-                errorDescription = "Habit unavailable: \(habitName)"
-            case .alreadyLoggedToday(let habitName):
-                errorDescription = "Already completed: \(habitName)"
-            case .notScheduledForDate(let habitName, let reason):
-                errorDescription = "Not scheduled: \(habitName), reason: \(reason)"
-            case .invalidSchedule(let habitName):
-                errorDescription = "Invalid schedule: \(habitName)"
-            case .dateBeforeStartDate(let habitName):
-                errorDescription = "Date before start: \(habitName)"
-            }
-
             logger.log("Validation error completing historical habit", level: .warning, category: .widget, metadata: [
                 "habit_id": habitId,
                 "target_date": targetDate,
-                "error": errorDescription
+                "error": error.widgetLogDescription
             ])
 
             // All validation errors fail silently in widget context (iOS best practice)

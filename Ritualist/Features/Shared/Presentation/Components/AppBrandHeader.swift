@@ -166,7 +166,7 @@ struct AppBrandHeader: View {
             .frame(width: crownBadgeSize, height: crownBadgeSize)
             .background(
                 Circle()
-                    .fill(Color(.systemBackground))
+                    .fill(colorScheme == .dark ? Color.white : Color.black)
                     .shadow(color: .black.opacity(0.15), radius: 1, x: 0, y: 1)
             )
             .offset(x: 5, y: 5) // Offset to sit on the circular progress ring
