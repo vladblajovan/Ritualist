@@ -39,4 +39,18 @@ public enum CreateHabitFromSuggestionResult {
             return false
         }
     }
+
+    /// Whether the operation actually mutated data (new habit created)
+    /// Use this to decide whether to post data change notifications
+    public var didMutateData: Bool {
+        if case .success = self { return true }
+        return false
+    }
+
+    /// Whether this was an idempotent no-op (habit already existed)
+    /// Indicates potentially stale ViewModel state - consider logging for debugging
+    public var isIdempotentHit: Bool {
+        if case .alreadyExists = self { return true }
+        return false
+    }
 }
