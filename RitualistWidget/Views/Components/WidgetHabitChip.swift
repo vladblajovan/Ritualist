@@ -27,34 +27,22 @@ struct WidgetHabitChip: View {
     }
     
     var body: some View {
-        // Implementation of Phase 2 behavior:
+        // Behavior based on habit type, completion status, and date context:
         // - Binary + Today + Incomplete: Button with CompleteHabitIntent
         // - Binary + Historical + Incomplete: Button with CompleteHistoricalHabitIntent
         // - Binary + Historical + Completed: Link to app (view-only)
         // - Numeric + Historical: Link with date + action=progress parameter
         // - Numeric + Today: Link to app (existing behavior)
-        
-        // DEBUG: Log the decision making process for this chip
-        let _ = print("[WIDGET-CHIP-DEBUG] === WidgetHabitChip Decision Logic ===")
-        let _ = print("[WIDGET-CHIP-DEBUG] Habit: \(habit.name)")
-        let _ = print("[WIDGET-CHIP-DEBUG] Habit kind: \(habit.kind)")
-        let _ = print("[WIDGET-CHIP-DEBUG] Is completed: \(habitDisplayInfo.isCompleted)")
-        let _ = print("[WIDGET-CHIP-DEBUG] Is viewing today: \(isViewingToday)")
-        let _ = print("[WIDGET-CHIP-DEBUG] Selected date: \(selectedDate)")
-        let _ = print("[WIDGET-CHIP-DEBUG] Current progress: \(habitDisplayInfo.currentProgress)")
-        
+
         if habit.kind == .binary && !habitDisplayInfo.isCompleted {
-            let _ = print("[WIDGET-CHIP-DEBUG] 🔘 DECISION: Binary + Incomplete -> Button")
             // Binary habits that are incomplete
             if isViewingToday {
-                let _ = print("[WIDGET-CHIP-DEBUG] ✅ Using CompleteHabitIntent (Today)")
                 // Today's incomplete binary habit: Use existing CompleteHabitIntent
                 Button(intent: completeHabitIntent) {
                     chipContent
                 }
                 .buttonStyle(PlainButtonStyle())
             } else {
-                let _ = print("[WIDGET-CHIP-DEBUG] 📅 Using CompleteHistoricalHabitIntent (Historical)")
                 // Historical incomplete binary habit: Use CompleteHistoricalHabitIntent
                 Button(intent: completeHistoricalHabitIntent) {
                     chipContent
@@ -62,11 +50,6 @@ struct WidgetHabitChip: View {
                 .buttonStyle(PlainButtonStyle())
             }
         } else {
-            if habit.kind == .binary {
-                let _ = print("[WIDGET-CHIP-DEBUG] 🔗 DECISION: Binary + Completed -> Link to app")
-            } else {
-                let _ = print("[WIDGET-CHIP-DEBUG] 🔗 DECISION: Numeric habit -> Link to app")
-            }
             // All other cases use deep link to app
             Link(destination: contextualDeepLinkURL) {
                 chipContent

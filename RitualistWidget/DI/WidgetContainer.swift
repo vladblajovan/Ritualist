@@ -19,140 +19,191 @@ extension Container {
     // MARK: - Widget Logger
 
     var widgetLogger: Factory<DebugLogger> {
-        self { DebugLogger(subsystem: WidgetConstants.loggerSubsystem, category: "general") }
+        self { DebugLogger(subsystem: WidgetConstants.loggerSubsystem, category: "widget") }
+            .singleton
+    }
+
+    var timezoneLogger: Factory<DebugLogger> {
+        self { DebugLogger(subsystem: WidgetConstants.loggerSubsystem, category: "timezone") }
             .singleton
     }
 
     // MARK: - Shared Persistence Container (same as main app)
-    var persistenceContainer: Factory<RitualistCore.PersistenceContainer> {
-        self { 
+    // Returns optional to handle errors gracefully instead of crashing
+    var persistenceContainer: Factory<RitualistCore.PersistenceContainer?> {
+        self {
+            let logger = self.widgetLogger()
             do {
-                return try RitualistCore.PersistenceContainer()
+                let container = try RitualistCore.PersistenceContainer()
+                logger.log("Persistence container initialized successfully", level: .info, category: .widget)
+                return container
             } catch {
-                print("[WIDGET-ERROR] Failed to initialize persistence container: \(error)")
-                print("[WIDGET-ERROR] App group: group.com.vladblajovan.Ritualist")
-                print("[WIDGET-ERROR] Widget cannot access shared data without proper app group setup")
-                fatalError("Widget requires access to shared app data: \(error)")
+                logger.log(
+                    "Failed to initialize persistence container: \(error)",
+                    level: .critical,
+                    category: .widget,
+                    metadata: [
+                        "app_group": "group.com.vladblajovan.Ritualist",
+                        "error": error.localizedDescription
+                    ]
+                )
+                // Return nil instead of crashing - widget will show error state
+                return nil
             }
         }
         .singleton
     }
-    
-    // MARK: - Shared Local Data Sources (same as main app)
-    
-    var habitDataSource: Factory<HabitLocalDataSourceProtocol> {
-        self { 
-            let container = self.persistenceContainer().container
-            return RitualistCore.HabitLocalDataSource(modelContainer: container)
-        }
-        .singleton
+
+    /// Indicates whether the widget has valid data access
+    var hasValidDataAccess: Factory<Bool> {
+        self { self.persistenceContainer() != nil }
     }
-    
-    var logDataSource: Factory<LogLocalDataSourceProtocol> {
+
+    // MARK: - Shared Local Data Sources (Optional - nil if persistence unavailable)
+
+    var habitDataSource: Factory<HabitLocalDataSourceProtocol?> {
         self {
-            let container = self.persistenceContainer().container
-            return RitualistCore.LogLocalDataSource(modelContainer: container)
+            guard let persistence = self.persistenceContainer() else { return nil }
+            return RitualistCore.HabitLocalDataSource(modelContainer: persistence.container)
         }
         .singleton
     }
 
-    var profileDataSource: Factory<ProfileLocalDataSourceProtocol> {
+    var logDataSource: Factory<LogLocalDataSourceProtocol?> {
         self {
-            let container = self.persistenceContainer().container
-            return RitualistCore.ProfileLocalDataSource(modelContainer: container)
+            guard let persistence = self.persistenceContainer() else { return nil }
+            return RitualistCore.LogLocalDataSource(modelContainer: persistence.container)
         }
         .singleton
     }
 
-    // MARK: - Shared Repositories (same as main app)
-    
-    var habitRepository: Factory<HabitRepository> {
-        self { HabitRepositoryImpl(local: self.habitDataSource()) }
-            .singleton
-    }
-    
-    var logRepository: Factory<LogRepository> {
-        self { LogRepositoryImpl(local: self.logDataSource()) }
-            .singleton
+    var profileDataSource: Factory<ProfileLocalDataSourceProtocol?> {
+        self {
+            guard let persistence = self.persistenceContainer() else { return nil }
+            return RitualistCore.ProfileLocalDataSource(modelContainer: persistence.container)
+        }
+        .singleton
     }
 
-    var profileRepository: Factory<ProfileRepository> {
-        self { ProfileRepositoryImpl(local: self.profileDataSource()) }
-            .singleton
+    // MARK: - Shared Repositories (Optional - nil if data sources unavailable)
+
+    var habitRepository: Factory<HabitRepository?> {
+        self {
+            guard let dataSource = self.habitDataSource() else { return nil }
+            return HabitRepositoryImpl(local: dataSource)
+        }
+        .singleton
     }
 
-    // MARK: - Shared Use Cases for Timezone
-
-    var loadProfile: Factory<LoadProfileUseCase> {
-        self { LoadProfile(repo: self.profileRepository()) }
+    var logRepository: Factory<LogRepository?> {
+        self {
+            guard let dataSource = self.logDataSource() else { return nil }
+            return LogRepositoryImpl(local: dataSource)
+        }
+        .singleton
     }
 
-    var saveProfile: Factory<SaveProfileUseCase> {
-        self { SaveProfile(repo: self.profileRepository()) }
+    var profileRepository: Factory<ProfileRepository?> {
+        self {
+            guard let dataSource = self.profileDataSource() else { return nil }
+            return ProfileRepositoryImpl(local: dataSource)
+        }
+        .singleton
+    }
+
+    // MARK: - Shared Use Cases for Timezone (Optional)
+
+    var loadProfile: Factory<LoadProfileUseCase?> {
+        self {
+            guard let repo = self.profileRepository() else { return nil }
+            return LoadProfile(repo: repo)
+        }
+    }
+
+    var saveProfile: Factory<SaveProfileUseCase?> {
+        self {
+            guard let repo = self.profileRepository() else { return nil }
+            return SaveProfile(repo: repo)
+        }
     }
 
     // MARK: - Shared Services (same as main app)
-    
+
     var habitCompletionService: Factory<HabitCompletionService> {
         self { DefaultHabitCompletionService() }
             .singleton
     }
 
-    var timezoneService: Factory<TimezoneService> {
+    var timezoneService: Factory<TimezoneService?> {
         self {
-            DefaultTimezoneService(
-                loadProfile: self.loadProfile(),
-                saveProfile: self.saveProfile(),
-                logger: DebugLogger(subsystem: WidgetConstants.loggerSubsystem, category: "timezone")
+            guard let loadProfile = self.loadProfile(),
+                  let saveProfile = self.saveProfile() else { return nil }
+            return DefaultTimezoneService(
+                loadProfile: loadProfile,
+                saveProfile: saveProfile,
+                logger: self.timezoneLogger()
             )
         }
         .singleton
     }
 
-    // MARK: - Shared Use Cases (same as main app)
-    
-    var getActiveHabits: Factory<GetActiveHabitsUseCase> {
-        self { GetActiveHabits(repo: self.habitRepository()) }
+    // MARK: - Shared Use Cases (Optional - nil if repositories unavailable)
+
+    var getActiveHabits: Factory<GetActiveHabitsUseCase?> {
+        self {
+            guard let repo = self.habitRepository() else { return nil }
+            return GetActiveHabits(repo: repo)
+        }
     }
-    
-    var getBatchLogs: Factory<GetBatchLogsUseCase> {
-        self { GetBatchLogs(repo: self.logRepository()) }
+
+    var getBatchLogs: Factory<GetBatchLogsUseCase?> {
+        self {
+            guard let repo = self.logRepository() else { return nil }
+            return GetBatchLogs(repo: repo)
+        }
     }
-    
-    var logHabitUseCase: Factory<LogHabitUseCase> {
-        self { LogHabit(
-            repo: self.logRepository(),
-            habitRepo: self.habitRepository(),
-            validateSchedule: self.validateHabitSchedule()
-        ) }
+
+    var logHabitUseCase: Factory<LogHabitUseCase?> {
+        self {
+            guard let logRepo = self.logRepository(),
+                  let habitRepo = self.habitRepository() else { return nil }
+            return LogHabit(
+                repo: logRepo,
+                habitRepo: habitRepo,
+                validateSchedule: self.validateHabitSchedule()
+            )
+        }
     }
-    
+
     var validateHabitSchedule: Factory<ValidateHabitSchedule> {
         self { ValidateHabitSchedule(habitCompletionService: self.habitCompletionService()) }
     }
-    
+
     // MARK: - Widget Services
-    
+
     @MainActor
     var widgetRefreshService: Factory<WidgetRefreshServiceProtocol> {
         self { @MainActor in WidgetRefreshService() }
             .singleton
     }
-    
+
     var widgetDateNavigationService: Factory<WidgetDateNavigationServiceProtocol> {
         self { WidgetDateNavigationService() }
             .singleton
     }
-    
-    // MARK: - Widget ViewModels
-    
-    var widgetHabitsViewModel: Factory<WidgetHabitsViewModel> {
+
+    // MARK: - Widget ViewModels (Optional - nil if dependencies unavailable)
+
+    var widgetHabitsViewModel: Factory<WidgetHabitsViewModel?> {
         self {
-            WidgetHabitsViewModel(
-                getActiveHabits: self.getActiveHabits(),
-                getBatchLogs: self.getBatchLogs(),
+            guard let getActiveHabits = self.getActiveHabits(),
+                  let getBatchLogs = self.getBatchLogs(),
+                  let timezoneService = self.timezoneService() else { return nil }
+            return WidgetHabitsViewModel(
+                getActiveHabits: getActiveHabits,
+                getBatchLogs: getBatchLogs,
                 habitCompletionService: self.habitCompletionService(),
-                timezoneService: self.timezoneService()
+                timezoneService: timezoneService
             )
         }
     }

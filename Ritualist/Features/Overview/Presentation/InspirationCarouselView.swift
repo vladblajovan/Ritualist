@@ -28,6 +28,7 @@ struct InspirationCarouselView: View {
                             }
                         }
                     )
+                    .padding(.horizontal, Spacing.small) // Visual separation between carousel cards
                     .tag(index)
                 }
             }
