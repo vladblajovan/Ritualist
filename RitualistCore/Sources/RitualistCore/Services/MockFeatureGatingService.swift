@@ -32,4 +32,8 @@ public final class MockFeatureGatingService: FeatureGatingService, Sendable {
     public func isFeatureAvailable(_ feature: FeatureType) async -> Bool {
         true
     }
+
+    public func isOverActiveHabitLimit(activeCount: Int) async -> Bool {
+        false // Mock always allows all habits
+    }
 }

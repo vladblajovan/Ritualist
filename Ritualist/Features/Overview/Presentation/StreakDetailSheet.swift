@@ -22,7 +22,7 @@ struct StreakDetailSheet: View {
                             .accessibilityHidden(true)
                         
                         Text(streak.habitName)
-                            .font(.title2)
+                            .font(CardDesign.title2)
                             .fontWeight(.semibold)
                             .multilineTextAlignment(.center)
                     }
@@ -36,22 +36,22 @@ struct StreakDetailSheet: View {
                         VStack(spacing: 8) {
                             VStack(spacing: 4) {
                                 Text("\(streak.currentStreak)")
-                                    .font(.title)
+                                    .font(CardDesign.title)
                                     .fontWeight(.bold)
                                     .foregroundColor(AppColors.brand)
                                 
                                 Text("Days Active")
-                                    .font(.caption)
+                                    .font(CardDesign.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.secondary)
                             }
                             
                             HStack(spacing: 4) {
                                 Text(streak.flameEmoji)
-                                    .font(.caption)
+                                    .font(CardDesign.caption)
                                 
                                 Text("consecutive \(streak.currentStreak == 1 ? "day" : "days")")
-                                    .font(.caption)
+                                    .font(CardDesign.caption)
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -66,21 +66,21 @@ struct StreakDetailSheet: View {
                         VStack(spacing: 8) {
                             VStack(spacing: 4) {
                                 Text(streak.flameEmoji.isEmpty ? "🔥" : streak.flameEmoji)
-                                    .font(.title)
+                                    .font(CardDesign.title)
                                 
                                 Text("Achievement")
-                                    .font(.caption)
+                                    .font(CardDesign.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.secondary)
                             }
                             
                             HStack(spacing: 4) {
                                 Image(systemName: "star.fill")
-                                    .font(.caption)
+                                    .font(CardDesign.caption)
                                     .foregroundColor(streak.flameCount > 0 ? .yellow : .secondary)
                                 
                                 Text(Self.streakLevelText(for: streak.flameCount))
-                                    .font(.caption)
+                                    .font(CardDesign.caption)
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -95,35 +95,35 @@ struct StreakDetailSheet: View {
                     // Explanation
                     VStack(alignment: .leading, spacing: 16) {
                         Text("How Streaks Work")
-                            .font(.headline)
+                            .font(CardDesign.headline)
                             .fontWeight(.semibold)
                         
                         VStack(alignment: .leading, spacing: 12) {
                             Text("**Days Active**: Your current consecutive streak ending today")
-                                .font(.subheadline)
+                                .font(CardDesign.subheadline)
                             
                             Text("**Achievement Levels**: Based on streak length")
-                                .font(.subheadline)
+                                .font(CardDesign.subheadline)
                             
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
                                     Text("🔥")
                                     Text("7+ days: Building")
-                                        .font(.subheadline)
+                                        .font(CardDesign.subheadline)
                                 }
                                 HStack {
                                     Text("🔥🔥")
                                     Text("14+ days: Strong")
-                                        .font(.subheadline)
+                                        .font(CardDesign.subheadline)
                                 }
                                 HStack {
                                     Text("🔥🔥🔥")
                                     Text("30+ days: Fire Master")
-                                        .font(.subheadline)
+                                        .font(CardDesign.subheadline)
                                 }
                             }
                             .padding(.leading, 16)
-                            .font(.caption)
+                            .font(CardDesign.caption)
                         }
                         .foregroundColor(.secondary)
                     }

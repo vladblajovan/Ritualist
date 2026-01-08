@@ -84,13 +84,13 @@ struct ScheduleInfoRow: View {
     var body: some View {
         HStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.title2)
+                .font(CardDesign.title2)
                 .foregroundColor(iconColor)
                 .frame(width: 32)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline)
-                Text(description).font(.subheadline).foregroundColor(.secondary)
+                Text(title).font(CardDesign.headline)
+                Text(description).font(CardDesign.subheadline).foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 4)
@@ -101,14 +101,14 @@ struct StreakInfoRow: View {
     var body: some View {
         HStack(spacing: 16) {
             Text("🔥")
-                .font(.title2)
+                .font(CardDesign.title2)
                 .modifier(SheetPulseAnimationModifier())
                 .frame(width: 32)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Streak at Risk").font(.headline)
+                Text("Streak at Risk").font(CardDesign.headline)
                 Text("You have an active streak! Log this habit today to keep it going. The number shows your current streak length.")
-                    .font(.subheadline).foregroundColor(.secondary)
+                    .font(CardDesign.subheadline).foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 4)

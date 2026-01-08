@@ -18,16 +18,24 @@ public struct HabitSuggestion: Identifiable, Hashable, Sendable {
     public let dailyTarget: Double?
     public let schedule: HabitSchedule
     public let description: String
-    
+
     /// Personality trait weights for this habit suggestion
     /// Used for personality analysis when user selects this habit
     public let personalityWeights: [String: Double]?
-    
+
+    /// Age groups this suggestion is visible to. `nil` means visible to all.
+    public let visibleToAgeGroups: [UserAgeGroup]?
+
+    /// Genders this suggestion is visible to. `nil` means visible to all.
+    public let visibleToGenders: [UserGender]?
+
     public init(id: String, name: String, emoji: String, colorHex: String,
                 categoryId: String, kind: HabitKind,
                 unitLabel: String? = nil, dailyTarget: Double? = nil,
                 schedule: HabitSchedule = .daily, description: String,
-                personalityWeights: [String: Double]? = nil) {
+                personalityWeights: [String: Double]? = nil,
+                visibleToAgeGroups: [UserAgeGroup]? = nil,
+                visibleToGenders: [UserGender]? = nil) {
         self.id = id
         self.name = name
         self.emoji = emoji
@@ -39,6 +47,47 @@ public struct HabitSuggestion: Identifiable, Hashable, Sendable {
         self.schedule = schedule
         self.description = description
         self.personalityWeights = personalityWeights
+        self.visibleToAgeGroups = visibleToAgeGroups
+        self.visibleToGenders = visibleToGenders
+    }
+
+    // MARK: - Visibility Filtering
+
+    /// Check if this suggestion should be visible for a given user demographic
+    /// - Parameters:
+    ///   - gender: User's gender (nil or preferNotToSay shows all suggestions)
+    ///   - ageGroup: User's age group (nil or preferNotToSay shows all suggestions)
+    /// - Returns: true if the suggestion should be shown to this user
+    public func isVisible(for gender: UserGender?, ageGroup: UserAgeGroup?) -> Bool {
+        // Check gender visibility
+        let genderVisible: Bool
+        if let allowedGenders = visibleToGenders {
+            // If user prefers not to say or didn't specify, show all
+            if let gender = gender, gender != .preferNotToSay {
+                genderVisible = allowedGenders.contains(gender)
+            } else {
+                genderVisible = true
+            }
+        } else {
+            // nil means visible to all genders
+            genderVisible = true
+        }
+
+        // Check age group visibility
+        let ageVisible: Bool
+        if let allowedAges = visibleToAgeGroups {
+            // If user prefers not to say or didn't specify, show all
+            if let ageGroup = ageGroup, ageGroup != .preferNotToSay {
+                ageVisible = allowedAges.contains(ageGroup)
+            } else {
+                ageVisible = true
+            }
+        } else {
+            // nil means visible to all age groups
+            ageVisible = true
+        }
+
+        return genderVisible && ageVisible
     }
     
     /// Convert suggestion to a habit entity

@@ -716,6 +716,245 @@ public struct HabitSuggestionsData {
                 "extraversion": 0.7,
                 "neuroticism": -0.3
             ]
+        ),
+
+        // MARK: - Demographic-Targeted Suggestions
+
+        // Female-targeted health habits
+        HabitSuggestion(
+            id: "prenatal_vitamins",
+            name: "Prenatal Vitamins",
+            emoji: "🤰",
+            colorHex: "#FF69B4",
+            categoryId: "health",
+            kind: .binary,
+            description: "Take prenatal vitamins for reproductive health",
+            visibleToGenders: [.female]
+        ),
+
+        HabitSuggestion(
+            id: "pelvic_floor_exercises",
+            name: "Pelvic Floor Exercises",
+            emoji: "🧘‍♀️",
+            colorHex: "#DDA0DD",
+            categoryId: "health",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 10.0,
+            description: "Strengthen pelvic floor muscles",
+            visibleToGenders: [.female]
+        ),
+
+        HabitSuggestion(
+            id: "cycle_tracking",
+            name: "Track Cycle",
+            emoji: "📅",
+            colorHex: "#FF6B6B",
+            categoryId: "health",
+            kind: .binary,
+            description: "Log menstrual cycle for health awareness",
+            visibleToGenders: [.female]
+        ),
+
+        // Student/young adult habits (under 18 and 18-24)
+        HabitSuggestion(
+            id: "study_session",
+            name: "Study Session",
+            emoji: "📖",
+            colorHex: "#4169E1",
+            categoryId: "learning",
+            kind: .numeric,
+            unitLabel: "hours",
+            dailyTarget: 2.0,
+            description: "Dedicate time to focused studying",
+            visibleToAgeGroups: [.under18, .age18to24]
+        ),
+
+        HabitSuggestion(
+            id: "homework_time",
+            name: "Complete Homework",
+            emoji: "📝",
+            colorHex: "#20B2AA",
+            categoryId: "productivity",
+            kind: .binary,
+            description: "Finish homework before relaxing",
+            visibleToAgeGroups: [.under18]
+        ),
+
+        HabitSuggestion(
+            id: "college_applications",
+            name: "Work on Applications",
+            emoji: "🎓",
+            colorHex: "#8B4513",
+            categoryId: "productivity",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 30.0,
+            description: "Progress on college or job applications",
+            visibleToAgeGroups: [.under18, .age18to24]
+        ),
+
+        HabitSuggestion(
+            id: "internship_search",
+            name: "Internship Search",
+            emoji: "💼",
+            colorHex: "#2F4F4F",
+            categoryId: "productivity",
+            kind: .binary,
+            schedule: .daysOfWeek([1, 3, 5]),
+            description: "Search and apply for internship opportunities",
+            visibleToAgeGroups: [.age18to24, .age25to34]
+        ),
+
+        // Senior/mature adult habits (45+, 55+)
+        HabitSuggestion(
+            id: "retirement_planning",
+            name: "Review Retirement Plan",
+            emoji: "💰",
+            colorHex: "#228B22",
+            categoryId: "productivity",
+            kind: .binary,
+            schedule: .daysOfWeek([7]),
+            description: "Review and update retirement savings goals",
+            visibleToAgeGroups: [.age45to54, .age55plus]
+        ),
+
+        HabitSuggestion(
+            id: "joint_mobility",
+            name: "Joint Mobility",
+            emoji: "🦴",
+            colorHex: "#DEB887",
+            categoryId: "health",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 15.0,
+            description: "Gentle exercises to maintain joint flexibility",
+            visibleToAgeGroups: [.age45to54, .age55plus]
+        ),
+
+        HabitSuggestion(
+            id: "brain_games",
+            name: "Brain Training",
+            emoji: "🧠",
+            colorHex: "#9370DB",
+            categoryId: "wellness",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 15.0,
+            description: "Keep your mind sharp with puzzles and games",
+            visibleToAgeGroups: [.age55plus]
+        ),
+
+        HabitSuggestion(
+            id: "blood_pressure_check",
+            name: "Check Blood Pressure",
+            emoji: "❤️‍🩹",
+            colorHex: "#DC143C",
+            categoryId: "health",
+            kind: .binary,
+            description: "Monitor blood pressure for heart health",
+            visibleToAgeGroups: [.age45to54, .age55plus]
+        ),
+
+        HabitSuggestion(
+            id: "balance_exercises",
+            name: "Balance Exercises",
+            emoji: "⚖️",
+            colorHex: "#6B8E23",
+            categoryId: "health",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 10.0,
+            description: "Practice balance to prevent falls",
+            visibleToAgeGroups: [.age55plus]
+        ),
+
+        // Career-focused habits (working age adults)
+        HabitSuggestion(
+            id: "networking",
+            name: "Professional Networking",
+            emoji: "🤝",
+            colorHex: "#4682B4",
+            categoryId: "social",
+            kind: .binary,
+            schedule: .daysOfWeek([1, 4]),
+            description: "Reach out to professional contacts",
+            visibleToAgeGroups: [.age25to34, .age35to44, .age45to54]
+        ),
+
+        HabitSuggestion(
+            id: "skill_certification",
+            name: "Work on Certification",
+            emoji: "📜",
+            colorHex: "#CD853F",
+            categoryId: "learning",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 30.0,
+            description: "Study for professional certifications",
+            visibleToAgeGroups: [.age25to34, .age35to44]
+        ),
+
+        HabitSuggestion(
+            id: "mentor_session",
+            name: "Mentorship Time",
+            emoji: "👨‍🏫",
+            colorHex: "#8FBC8F",
+            categoryId: "social",
+            kind: .binary,
+            schedule: .daysOfWeek([1, 4]),
+            description: "Mentor others or connect with your mentor",
+            visibleToAgeGroups: [.age35to44, .age45to54, .age55plus]
+        ),
+
+        // Youth-focused habits
+        HabitSuggestion(
+            id: "screen_time_limit",
+            name: "Limit Screen Time",
+            emoji: "📱",
+            colorHex: "#778899",
+            categoryId: "wellness",
+            kind: .numeric,
+            unitLabel: "hours max",
+            dailyTarget: 2.0,
+            description: "Keep recreational screen time in check",
+            visibleToAgeGroups: [.under18, .age18to24]
+        ),
+
+        HabitSuggestion(
+            id: "extracurricular",
+            name: "Extracurricular Activity",
+            emoji: "⚽",
+            colorHex: "#32CD32",
+            categoryId: "social",
+            kind: .binary,
+            description: "Participate in clubs, sports, or activities",
+            visibleToAgeGroups: [.under18]
+        ),
+
+        // Parent-focused habits (typical parenting ages)
+        HabitSuggestion(
+            id: "quality_time_kids",
+            name: "Quality Time with Kids",
+            emoji: "👨‍👧‍👦",
+            colorHex: "#FFD700",
+            categoryId: "social",
+            kind: .numeric,
+            unitLabel: "minutes",
+            dailyTarget: 30.0,
+            description: "Dedicated one-on-one time with children",
+            visibleToAgeGroups: [.age25to34, .age35to44, .age45to54]
+        ),
+
+        HabitSuggestion(
+            id: "kids_homework_help",
+            name: "Help with Homework",
+            emoji: "✏️",
+            colorHex: "#87CEEB",
+            categoryId: "social",
+            kind: .binary,
+            description: "Support children with their schoolwork",
+            visibleToAgeGroups: [.age25to34, .age35to44, .age45to54]
         )
     ]
     
@@ -782,6 +1021,63 @@ public struct HabitSuggestionsData {
         } else {
             return allSuggestions.filter { $0.schedule == .daily }
         }
+    }
+
+    // MARK: - Demographic Filtering
+
+    /// Get habit suggestions filtered by user demographics
+    /// - Parameters:
+    ///   - gender: User's gender (nil or preferNotToSay shows all suggestions)
+    ///   - ageGroup: User's age group (nil or preferNotToSay shows all suggestions)
+    /// - Returns: Array of habit suggestions visible to the specified demographics
+    public static func getSuggestions(for gender: UserGender?, ageGroup: UserAgeGroup?) -> [HabitSuggestion] {
+        return allSuggestions.filter { $0.isVisible(for: gender, ageGroup: ageGroup) }
+    }
+
+    /// Get habit suggestions for a category, filtered by user demographics
+    /// - Parameters:
+    ///   - categoryId: The category ID to filter by
+    ///   - gender: User's gender (nil or preferNotToSay shows all suggestions)
+    ///   - ageGroup: User's age group (nil or preferNotToSay shows all suggestions)
+    /// - Returns: Array of habit suggestions for the category, filtered by demographics
+    public static func getSuggestions(
+        for categoryId: String,
+        gender: UserGender?,
+        ageGroup: UserAgeGroup?
+    ) -> [HabitSuggestion] {
+        return allSuggestions.filter {
+            $0.categoryId == categoryId && $0.isVisible(for: gender, ageGroup: ageGroup)
+        }
+    }
+
+    /// Get random habit suggestions filtered by user demographics
+    /// - Parameters:
+    ///   - count: Number of random suggestions to return
+    ///   - gender: User's gender (nil or preferNotToSay shows all suggestions)
+    ///   - ageGroup: User's age group (nil or preferNotToSay shows all suggestions)
+    /// - Returns: Array of randomly selected habit suggestions, filtered by demographics
+    public static func getRandomSuggestions(
+        _ count: Int,
+        gender: UserGender?,
+        ageGroup: UserAgeGroup?
+    ) -> [HabitSuggestion] {
+        let filtered = getSuggestions(for: gender, ageGroup: ageGroup)
+        return Array(filtered.shuffled().prefix(count))
+    }
+
+    /// Get top habit suggestions filtered by user demographics
+    /// - Parameters:
+    ///   - count: Number of suggestions to return
+    ///   - gender: User's gender (nil or preferNotToSay shows all suggestions)
+    ///   - ageGroup: User's age group (nil or preferNotToSay shows all suggestions)
+    /// - Returns: Array of top habit suggestions, filtered by demographics
+    public static func getTopSuggestions(
+        _ count: Int,
+        gender: UserGender?,
+        ageGroup: UserAgeGroup?
+    ) -> [HabitSuggestion] {
+        let filtered = getSuggestions(for: gender, ageGroup: ageGroup)
+        return Array(filtered.prefix(count))
     }
     
     // MARK: - Statistics & Metrics

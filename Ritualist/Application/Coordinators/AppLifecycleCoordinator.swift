@@ -20,6 +20,7 @@ public final class AppLifecycleCoordinator {
     private let seedPredefinedCategories: SeedPredefinedCategoriesUseCase
     private let iCloudSyncCoordinator: ICloudSyncCoordinator
     private let timezoneChangeHandler: TimezoneChangeHandler
+    private let userService: UserService
     private let logger: DebugLogger
     private let userActionTracker: UserActionTrackerService
 
@@ -42,6 +43,7 @@ public final class AppLifecycleCoordinator {
         seedPredefinedCategories: SeedPredefinedCategoriesUseCase,
         iCloudSyncCoordinator: ICloudSyncCoordinator,
         timezoneChangeHandler: TimezoneChangeHandler,
+        userService: UserService,
         logger: DebugLogger,
         userActionTracker: UserActionTrackerService,
         appStartTime: Date
@@ -52,6 +54,7 @@ public final class AppLifecycleCoordinator {
         self.seedPredefinedCategories = seedPredefinedCategories
         self.iCloudSyncCoordinator = iCloudSyncCoordinator
         self.timezoneChangeHandler = timezoneChangeHandler
+        self.userService = userService
         self.logger = logger
         self.userActionTracker = userActionTracker
         self.appStartTime = appStartTime
@@ -69,10 +72,11 @@ public final class AppLifecycleCoordinator {
         // PARALLEL: Run independent tasks concurrently
         async let premiumVerification: () = verifyAndUpdatePremiumStatus()
         async let categoriesSeeding: () = seedCategories()
+        async let profileLoading: () = userService.loadProfileIfNeeded()
         async let timezoneDetection: () = timezoneChangeHandler.detectTimezoneChanges(showAlert: false)
         async let cloudKitCleanup: () = iCloudSyncCoordinator.cleanupPersonalityAnalysisFromCloudKit()
 
-        _ = await (premiumVerification, categoriesSeeding, timezoneDetection, cloudKitCleanup)
+        _ = await (premiumVerification, categoriesSeeding, profileLoading, timezoneDetection, cloudKitCleanup)
 
         // SEQUENTIAL: Notification scheduling depends on categories
         await setupNotifications()

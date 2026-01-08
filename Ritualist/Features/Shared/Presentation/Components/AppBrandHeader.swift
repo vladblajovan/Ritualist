@@ -95,12 +95,12 @@ struct AppBrandHeader: View {
 
     // MARK: - Profile Avatar View
 
-    /// Avatar view with progress gradient ring or circular progress
+    /// Avatar view with progress gradient ring or circular progress (without crown badge for button label)
     /// - When progressDisplayStyle is .linear: shows solid gradient ring
     /// - When progressDisplayStyle is .circular: shows gradient avatar with circular progress ring on top
     /// - Inside: user image, initials, or empty (just gradient)
     @ViewBuilder
-    private var profileAvatarView: some View {
+    private var profileAvatarViewWithoutCrown: some View {
         let contentType = AppBrandHeaderViewLogic.avatarContentType(
             hasAvatarImage: settingsVM.profile.avatarImageData != nil,
             name: settingsVM.profile.name
@@ -151,6 +151,25 @@ struct AppBrandHeader: View {
                 circularProgressRing
             }
         }
+    }
+
+    // MARK: - Premium Crown Badge
+
+    /// Size of the crown badge
+    private let crownBadgeSize: CGFloat = 14
+
+    @ViewBuilder
+    private var premiumCrownBadge: some View {
+        Image(systemName: "crown.fill")
+            .font(.system(size: 8, weight: .bold))
+            .foregroundStyle(GradientTokens.premiumCrown)
+            .frame(width: crownBadgeSize, height: crownBadgeSize)
+            .background(
+                Circle()
+                    .fill(Color(.systemBackground))
+                    .shadow(color: .black.opacity(0.15), radius: 1, x: 0, y: 1)
+            )
+            .offset(x: 2, y: 2) // Slight offset to position at corner
     }
 
     // MARK: - Circular Progress Ring
@@ -324,7 +343,7 @@ struct AppBrandHeader: View {
 
             // App name with gradient overlay
             Text(Self.appName)
-                .font(.system(size: CardDesign.brandHeaderFontSize, weight: .bold))
+                .font(CardDesign.brandHeaderFont)
                 .overlay(
                     LinearGradient(
                         colors: progressGradientColors(for: completionPercentage ?? 0.0),
@@ -333,7 +352,7 @@ struct AppBrandHeader: View {
                     )
                     .mask(
                         Text(Self.appName)
-                            .font(.system(size: CardDesign.brandHeaderFontSize, weight: .bold))
+                            .font(CardDesign.brandHeaderFont)
                     )
                 )
                 .shadow(
@@ -352,29 +371,34 @@ struct AppBrandHeader: View {
 
             // Profile avatar - always visible with progress gradient, opens settings sheet on tap
             if showProfileAvatar {
-                Button {
-                    showingSettings = true
-                } label: {
-                    profileAvatarView
-                }
-                .buttonStyle(.plain)
-                .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
-                .accessibilityLabel("Profile")
-                .accessibilityHint("Double tap to open settings")
-                .popoverTip(circleProgressTip, arrowEdge: .top) { _ in
-                    // Tip was dismissed - enable the next tip in the flow
-                    CircleProgressTip.userWasShownAvatarTip.sendDonation()
-                }
-                .fullScreenCover(isPresented: $showingSettings) {
-                    NavigationStack {
-                        SettingsRoot()
-                            .toolbar {
-                                ToolbarItem(placement: .confirmationAction) {
-                                    Button(Strings.Common.close) {
-                                        showingSettings = false
+                ZStack(alignment: .bottomTrailing) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        profileAvatarViewWithoutCrown
+                    }
+                    .buttonStyle(.plain)
+                    .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
+                    .accessibilityLabel("Profile")
+                    .accessibilityHint("Double tap to open settings")
+                    .popoverTip(circleProgressTip, arrowEdge: .top)
+                    .fullScreenCover(isPresented: $showingSettings) {
+                        NavigationStack {
+                            SettingsRoot()
+                                .toolbar {
+                                    ToolbarItem(placement: .confirmationAction) {
+                                        Button(Strings.Common.close) {
+                                            showingSettings = false
+                                        }
                                     }
                                 }
-                            }
+                        }
+                    }
+
+                    // Crown badge outside button so it's not affected by button highlight
+                    if settingsVM.isPremiumUser {
+                        premiumCrownBadge
+                            .allowsHitTesting(false)
                     }
                 }
             }

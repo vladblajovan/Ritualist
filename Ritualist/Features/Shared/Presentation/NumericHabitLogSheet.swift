@@ -330,8 +330,8 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
 
             // Trigger tip for completed habits when reaching target for the first time
             if newValue >= dailyTarget && oldValue < dailyTarget {
-                TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
-                logger.log("Numeric habit completed - donated shouldShowCompletedTip event", level: .debug, category: .ui)
+                TapCompletedHabitTip.firstHabitCompleted.sendDonation()
+                logger.log("Numeric habit completed - donated firstHabitCompleted event", level: .debug, category: .ui)
             }
         }
         .completionGlow(isGlowing: isGlowing)

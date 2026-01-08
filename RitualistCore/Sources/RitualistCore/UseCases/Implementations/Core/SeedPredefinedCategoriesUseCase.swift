@@ -141,7 +141,8 @@ public final class SeedPredefinedCategories: SeedPredefinedCategoriesUseCase, @u
         )
 
         // Get suggestions to find which categoryId each suggestionId should have
-        let allSuggestions = habitSuggestionsService.getSuggestions()
+        // Pass nil for demographics since we need ALL suggestions for category repair
+        let allSuggestions = habitSuggestionsService.getSuggestions(gender: nil, ageGroup: nil)
         let suggestionCategoryMap = Dictionary(uniqueKeysWithValues: allSuggestions.map { ($0.id, $0.categoryId) })
 
         // Get all habits from repository

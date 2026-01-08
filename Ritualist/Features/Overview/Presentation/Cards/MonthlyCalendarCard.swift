@@ -16,7 +16,8 @@ private struct DayDisplayData: Identifiable {
     let dayNumber: Int
     let bgColor: Color
     let textColor: Color
-    let hasBorder: Bool
+    let isToday: Bool
+    let isSelected: Bool
     let opacity: Double
     let isCurrentMonth: Bool
     let isFuture: Bool
@@ -30,6 +31,8 @@ struct MonthlyCalendarCard: View {
     let onDateSelect: (Date) -> Void
     /// The timezone used for all date calculations. Should match the timezone used to generate monthlyData keys.
     let timezone: TimeZone
+    /// The currently selected/viewing date (shown in TodaysSummary). Highlighted with blue border.
+    var selectedDate: Date?
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var currentDate = Date()
@@ -99,10 +102,10 @@ struct MonthlyCalendarCard: View {
             HStack {
                 HStack(spacing: 4) {
                     Text(seasonIcon)
-                        .font(.title2)
+                        .font(CardDesign.title2)
                         .accessibilityHidden(true) // Decorative season emoji
                     Text(monthString)
-                        .font(.headline)
+                        .font(CardDesign.headline)
                         .fontWeight(.semibold)
                         .accessibilityAddTraits(.isHeader)
                 }
@@ -151,7 +154,7 @@ struct MonthlyCalendarCard: View {
             HStack(spacing: 0) {
                 ForEach(weekdayHeaders, id: \.self) { day in
                     Text(day)
-                        .font(.caption)
+                        .font(CardDesign.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity)
@@ -171,9 +174,25 @@ struct MonthlyCalendarCard: View {
                         let radius = metrics.cellSize / 2
 
                         let circlePath = Circle().path(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
+
+                        // Today's date gets a compact bright glow effect
+                        if dayData.isToday {
+                            let glowColor = AppColors.brand
+                            let glowRadius = radius + 2
+                            let glowPath = Circle().path(in: CGRect(
+                                x: center.x - glowRadius,
+                                y: center.y - glowRadius,
+                                width: glowRadius * 2,
+                                height: glowRadius * 2
+                            ))
+                            context.fill(glowPath, with: .color(glowColor.opacity(0.4)))
+                        }
+
+                        // Fill the day circle
                         context.fill(circlePath, with: .color(dayData.bgColor.opacity(dayData.opacity)))
 
-                        if dayData.hasBorder {
+                        // Selected date gets blue border
+                        if dayData.isSelected {
                             context.stroke(circlePath, with: .color(AppColors.brand), lineWidth: 2)
                         }
 
@@ -218,6 +237,11 @@ struct MonthlyCalendarCard: View {
             // Note: Using timezone.identifier (String) for reliable SwiftUI change detection
             computeDisplayDays()
         }
+        .onChange(of: selectedDate) { _, _ in
+            // Recompute display days when selected date changes
+            // This updates the blue highlight ring on the selected date
+            computeDisplayDays()
+        }
         // Force view identity change when timezone changes to reset @State
         .id(timezone.identifier)
     }
@@ -258,6 +282,11 @@ struct MonthlyCalendarCard: View {
         let currentMonth = calendar.dateComponents(in: timezone, from: currentDate).month ?? 1
         let today = Date()
 
+        // Normalize selectedDate for comparison
+        let normalizedSelectedDate: Date? = selectedDate.map {
+            CalendarUtils.startOfDayLocal(for: $0, timezone: timezone)
+        }
+
         var computedMaxRow = 0
         displayDays = days.enumerated().map { index, date in
             let dayNumber = calendar.dateComponents(in: timezone, from: date).day ?? 1
@@ -278,13 +307,17 @@ struct MonthlyCalendarCard: View {
                 computedMaxRow = max(computedMaxRow, row)
             }
 
+            // Check if this date is the selected/viewing date
+            let isSelected = normalizedSelectedDate == normalizedDate
+
             return DayDisplayData(
                 id: normalizedDate.timeIntervalSince1970.description,
                 date: date,
                 dayNumber: dayNumber,
                 bgColor: MonthlyCalendarViewLogic.backgroundColor(for: context),
                 textColor: MonthlyCalendarViewLogic.textColor(for: context),
-                hasBorder: MonthlyCalendarViewLogic.shouldShowBorder(for: context),
+                isToday: context.isToday,
+                isSelected: isSelected,
                 opacity: MonthlyCalendarViewLogic.opacity(for: context),
                 isCurrentMonth: context.isCurrentMonth,
                 isFuture: context.isFuture,
@@ -332,7 +365,8 @@ struct MonthlyCalendarCard: View {
     MonthlyCalendarCard(
         monthlyData: sampleData,
         onDateSelect: { _ in },
-        timezone: .current
+        timezone: .current,
+        selectedDate: Date()
     )
     .padding()
     .background(Color(.systemGroupedBackground))

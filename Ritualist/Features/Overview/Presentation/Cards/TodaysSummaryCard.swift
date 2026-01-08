@@ -14,6 +14,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     // MARK: - Tips
     private let tapHabitTip = TapHabitTip()
     private let tapCompletedHabitTip = TapCompletedHabitTip()
+    private let longPressLogTip = LongPressLogTip()
     let summary: TodaysSummary?
     let viewingDate: Date
     let isViewingToday: Bool
@@ -24,7 +25,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let onQuickAction: (Habit) -> Void
     let onNumericHabitUpdate: ((Habit, Double) async throws -> Void)?
     let getProgress: ((Habit) -> Double)
-    let onNumericHabitAction: ((Habit) -> Void)? // New callback for numeric habit sheet
+    let onNumericHabitAction: ((Habit) -> Void)? // Callback for numeric habit sheet
+    let onBinaryHabitAction: ((Habit) -> Void)? // Callback for binary habit confirmation sheet
+    let onLongPressComplete: ((Habit) -> Void)? // Callback for long-press quick-log
     let onDeleteHabitLog: (Habit) -> Void // New callback for deleting habit log
     let getScheduleStatus: (Habit) -> HabitScheduleStatus // New callback for schedule status
     let getValidationMessage: (Habit) async -> String? // New callback for validation message
@@ -32,6 +35,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let onPreviousDay: () -> Void
     let onNextDay: () -> Void
     let onGoToToday: () -> Void
+    let isLoggingLocked: Bool // When true, all habit logging is disabled (over habit limit)
     
     @State private var isCompletedSectionExpanded = false
     @State private var isRemainingSectionExpanded = true  // Show all remaining habits by default
@@ -45,17 +49,22 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @State private var isAnimatingCompletion = false
     @State private var habitAnimatedProgress: [UUID: Double] = [:] // Track animated progress per habit
     @State private var isPremiumUser = false
+    @State private var longPressHabitId: UUID? // Currently long-pressed habit
+    @State private var longPressProgress: Double = 0.0 // Progress of long-press (0.0 to 1.0)
+    @State private var recentlyCompletedViaLongPress: Set<UUID> = [] // Habits that just completed via long-press (show checkmark briefly)
 
     // Task references for proper cancellation on view disappear
     @State private var quickActionGlowTask: Task<Void, Never>?
     @State private var habitRowGlowTask: Task<Void, Never>?
     @State private var completionAnimationTask: Task<Void, Never>?
+    @State private var longPressCompletionTasks: [UUID: Task<Void, Never>] = [:] // Per-habit long-press completion animation tasks
 
     // Animation timing constants (in nanoseconds)
     private enum AnimationTiming {
         static let completionGlowDelay: UInt64 = 500_000_000          // 0.5s - completion glow duration
         static let completionAnimationDelay: UInt64 = 800_000_000     // 0.8s - completion animation duration
         static let animationCleanupDelay: UInt64 = 500_000_000        // 0.5s - cleanup delay after animation
+        static let longPressCheckmarkDisplay: UInt64 = 1_500_000_000  // 1.5s - checkmark display after long-press
     }
 
     // MARK: - Layout Configuration
@@ -99,13 +108,16 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
          onNumericHabitUpdate: ((Habit, Double) async throws -> Void)? = nil,
          getProgressSync: @escaping (Habit) -> Double,
          onNumericHabitAction: ((Habit) -> Void)? = nil,
+         onBinaryHabitAction: ((Habit) -> Void)? = nil,
+         onLongPressComplete: ((Habit) -> Void)? = nil,
          onDeleteHabitLog: @escaping (Habit) -> Void,
          getScheduleStatus: @escaping (Habit) -> HabitScheduleStatus,
          getValidationMessage: @escaping (Habit) async -> String?,
          getStreakStatus: ((Habit) -> HabitStreakStatus)? = nil,
          onPreviousDay: @escaping () -> Void,
          onNextDay: @escaping () -> Void,
-         onGoToToday: @escaping () -> Void) {
+         onGoToToday: @escaping () -> Void,
+         isLoggingLocked: Bool = false) {
         self.summary = summary
         self.viewingDate = viewingDate
         self.isViewingToday = isViewingToday
@@ -117,6 +129,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         self.onNumericHabitUpdate = onNumericHabitUpdate
         self.getProgress = getProgressSync
         self.onNumericHabitAction = onNumericHabitAction
+        self.onBinaryHabitAction = onBinaryHabitAction
+        self.onLongPressComplete = onLongPressComplete
         self.onDeleteHabitLog = onDeleteHabitLog
         self.getScheduleStatus = getScheduleStatus
         self.getValidationMessage = getValidationMessage
@@ -124,6 +138,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         self.onPreviousDay = onPreviousDay
         self.onNextDay = onNextDay
         self.onGoToToday = onGoToToday
+        self.isLoggingLocked = isLoggingLocked
     }
 
     // PERFORMANCE: Update visible arrays only when needed
@@ -232,7 +247,12 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         .onAppear { updateVisibleHabits(); updateHabitProgressAnimations() }
         .task { isPremiumUser = await subscriptionService.isPremiumUser() }
         .onDisappear { cancelAllAnimationTasks() }
-        .onChange(of: summary?.completedHabitsCount) { _, _ in updateVisibleHabits(); updateHabitProgressAnimations() }
+        .onChange(of: summary?.completedHabitsCount) { _, _ in
+            updateVisibleHabits()
+            updateHabitProgressAnimations()
+            // Clear any stale long-press completion indicators when habits move between sections
+            recentlyCompletedViaLongPress.removeAll()
+        }
         .onChange(of: summary?.totalHabits) { _, _ in updateVisibleHabits() }
         .onChange(of: summary?.incompleteHabits.count) { _, _ in updateHabitProgressAnimations() }
         .onChange(of: habitProgressStateId) { _, _ in updateHabitProgressAnimations() }
@@ -287,7 +307,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         VStack(spacing: 4) {
             if isViewingToday {
                 Text("Today, \(CalendarUtils.formatCompact(viewingDate, timezone: timezone))")
-                    .font(.headline)
+                    .font(CardDesign.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
                     .accessibilityAddTraits(.isHeader)
@@ -295,7 +315,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 HStack(spacing: 6) {
                     Button(action: onGoToToday) {
                         Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -304,7 +324,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     .accessibilityIdentifier(AccessibilityID.Overview.todayButton)
 
                     Text(CalendarUtils.formatCompact(viewingDate, includeDayName: true, timezone: timezone))
-                        .font(.headline)
+                        .font(CardDesign.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
                         .accessibilityAddTraits(.isHeader)
@@ -332,6 +352,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         quickActionGlowTask?.cancel()
         habitRowGlowTask?.cancel()
         completionAnimationTask?.cancel()
+        // Cancel all pending long-press completion tasks
+        longPressCompletionTasks.values.forEach { $0.cancel() }
+        longPressCompletionTasks.removeAll()
     }
 
     // MARK: - Progress Bar Helpers
@@ -366,13 +389,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         if habit.kind == .numeric {
             onNumericHabitAction?(habit)
         } else {
-            glowingHabitId = habit.id
-            quickActionGlowTask?.cancel()
-            quickActionGlowTask = Task {
-                try? await Task.sleep(nanoseconds: AnimationTiming.completionGlowDelay)
-                onQuickAction(habit)
-                glowingHabitId = nil
-            }
+            // Show confirmation sheet for binary habits
+            onBinaryHabitAction?(habit)
         }
     }
 
@@ -383,7 +401,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             quickActionTextContent(habit: habit, scheduleStatus: scheduleStatus, isDisabled: isDisabled)
             Spacer()
             Image(systemName: isDisabled ? "minus.circle" : "plus.circle.fill")
-                .font(.title2)
+                .font(CardDesign.title2)
                 .foregroundColor(isDisabled ? .secondary : AppColors.brand)
         }
         .padding(.vertical, 12)
@@ -423,7 +441,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     .rotationEffect(.degrees(-90))
             }
 
-            Text(habit.emoji ?? "📊").font(.title3)
+            Text(habit.emoji ?? "📊").font(CardDesign.title3)
         }
     }
 
@@ -431,19 +449,19 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func quickActionTextContent(habit: Habit, scheduleStatus: HabitScheduleStatus, isDisabled: Bool) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Next: \(habit.name)")
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 15, weight: .medium, design: .rounded))
                 .foregroundColor(isDisabled ? .primary.opacity(0.6) : .primary)
 
             if isDisabled {
                 Text(scheduleStatus.displayText)
-                    .font(.caption)
+                    .font(CardDesign.caption)
                     .foregroundColor(scheduleStatus.color)
             } else if habit.kind == .numeric {
                 let currentValue = getProgress(habit)
                 let target = habit.dailyTarget ?? 1.0
                 let unitText = habit.unitLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 Text("\(Int(currentValue))/\(Int(target)) \(!unitText.isEmpty ? unitText : "units")")
-                    .font(.caption)
+                    .font(CardDesign.caption)
                     .foregroundColor(.secondary)
             }
         }
@@ -594,9 +612,18 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func incompleteHabitItem(habit: Habit, isFirstItem: Bool) -> some View {
         if isFirstItem {
             VStack(spacing: 4) {
+                // Show tap tip OR long-press tip based on TipKit rules
                 TipView(tapHabitTip, arrowEdge: .bottom) { _ in
-                    TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
-                    logger.log("First tip dismissed - donated shouldShowCompletedTip event", level: .debug, category: .ui)
+                    logger.log("Tap habit tip dismissed", level: .debug, category: .ui)
+                }
+                TipView(longPressLogTip, arrowEdge: .bottom) { action in
+                    if action.id == LongPressLogTip.gotItActionId {
+                        // User tapped "Got it" - enable circle progress tip
+                        LongPressLogTip.wasDismissed.sendDonation()
+                        CircleProgressTip.longPressTipDismissed.sendDonation()
+                        longPressLogTip.invalidate(reason: .actionPerformed)
+                        logger.log("Long-press tip 'Got it' tapped - circle progress tip enabled", level: .debug, category: .ui)
+                    }
                 }
                 habitRow(habit: habit, isCompleted: false)
             }
@@ -625,10 +652,14 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func completedHabitItem(habit: Habit, isFirstItem: Bool) -> some View {
         if isFirstItem {
             VStack(spacing: 4) {
-                TipView(tapCompletedHabitTip, arrowEdge: .bottom) { _ in
-                    // Tip was dismissed - persist for future tip chaining
-                    TapCompletedHabitTip.wasDismissed.sendDonation()
-                    logger.log("Completed habit tip dismissed", level: .debug, category: .ui)
+                TipView(tapCompletedHabitTip, arrowEdge: .bottom) { action in
+                    if action.id == TapCompletedHabitTip.gotItActionId {
+                        // User tapped "Got it" - enable long-press tip
+                        TapCompletedHabitTip.wasDismissed.sendDonation()
+                        LongPressLogTip.shouldShowLongPressTip.sendDonation()
+                        tapCompletedHabitTip.invalidate(reason: .actionPerformed)
+                        logger.log("Completed habit tip 'Got it' tapped - long-press tip enabled", level: .debug, category: .ui)
+                    }
                 }
                 habitRow(habit: habit, isCompleted: true)
             }
@@ -678,7 +709,10 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private func habitRow(habit: Habit, isCompleted: Bool) -> some View {
         let scheduleStatus = getScheduleStatus(habit)
-        let isDisabled = !isCompleted && !scheduleStatus.isAvailable
+        // Disable if: not available by schedule OR logging is locked (over habit limit)
+        let isDisabled = !isCompleted && (!scheduleStatus.isAvailable || isLoggingLocked)
+        // Long press only enabled if: not completed, available, has callback, AND not locked
+        let canLongPress = !isCompleted && scheduleStatus.isAvailable && onLongPressComplete != nil && !isLoggingLocked
 
         HStack(spacing: 0) {
             habitRowMainButton(habit: habit, isCompleted: isCompleted, scheduleStatus: scheduleStatus, isDisabled: isDisabled)
@@ -690,6 +724,64 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         .overlay(habitRowBorder(isCompleted: isCompleted, isDisabled: isDisabled))
         .opacity(isDisabled ? 0.6 : 1.0)
         .completionGlow(isGlowing: glowingHabitId == habit.id)
+        .longPressProgress(
+            duration: 0.8,
+            isEnabled: canLongPress,
+            progress: Binding(
+                get: { longPressHabitId == habit.id ? longPressProgress : 0.0 },
+                set: { newValue in
+                    if newValue > 0 {
+                        longPressHabitId = habit.id
+                    }
+                    longPressProgress = newValue
+                }
+            ),
+            onStart: {
+                // Track which habit is being long-pressed
+                longPressHabitId = habit.id
+                longPressProgress = 0.0
+                // Dismiss tips when user starts learning the gesture
+                tapHabitTip.invalidate(reason: .actionPerformed)
+                longPressLogTip.invalidate(reason: .actionPerformed)
+            },
+            onComplete: {
+                // Quick-log the habit
+                // For binary: completes the habit
+                // For numeric: logs the daily target
+                onLongPressComplete?(habit)
+
+                // Add to recently completed set to keep checkmark visible
+                recentlyCompletedViaLongPress.insert(habit.id)
+
+                // Reset progress but delay clearing longPressHabitId to prevent button tap from firing
+                longPressProgress = 0.0
+
+                // Clear longPressHabitId after short delay (after button tap event passes)
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                    longPressHabitId = nil
+                }
+
+                // Trigger tip for completed habits
+                TapCompletedHabitTip.firstHabitCompleted.sendDonation()
+
+                // Schedule removal from recently completed set after delay
+                longPressCompletionTasks[habit.id]?.cancel()
+                longPressCompletionTasks[habit.id] = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: AnimationTiming.longPressCheckmarkDisplay)
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        recentlyCompletedViaLongPress.remove(habit.id)
+                    }
+                    longPressCompletionTasks.removeValue(forKey: habit.id)
+                }
+            },
+            onCancel: {
+                // User released early - reset state
+                longPressHabitId = nil
+                longPressProgress = 0.0
+            }
+        )
     }
 
     @ViewBuilder
@@ -705,7 +797,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
-        .disabled(isDisabled && !isCompleted)
+        .disabled((isDisabled && !isCompleted) || longPressHabitId == habit.id)
     }
 
     private func handleHabitRowTap(habit: Habit, isCompleted: Bool, scheduleStatus: HabitScheduleStatus) {
@@ -723,25 +815,54 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             if habit.kind == .numeric {
                 onNumericHabitAction?(habit)
             } else {
-                glowingHabitId = habit.id
-                performCompletionAnimation(for: habit)
-                habitRowGlowTask?.cancel()
-                habitRowGlowTask = Task {
-                    try? await Task.sleep(nanoseconds: AnimationTiming.completionGlowDelay)
-                    glowingHabitId = nil
-                }
+                // Show confirmation sheet for binary habits
+                onBinaryHabitAction?(habit)
             }
         }
     }
 
     @ViewBuilder
     private func habitEmojiView(habit: Habit, isCompleted: Bool) -> some View {
+        // Show long-press UI when this habit is being long-pressed (longPressHabitId is set on press start)
+        let isLongPressing = longPressHabitId == habit.id
+        let currentLongPressProgress = isLongPressing ? longPressProgress : 0.0
+        // Only show long-press completion indicator for INCOMPLETE habits
+        // Once a habit moves to Completed section, don't show the overlay
+        let isRecentlyCompleted = !isCompleted && recentlyCompletedViaLongPress.contains(habit.id)
+
+        // Crossfade threshold: emoji fades out and checkmark fades in between 0.8 and 1.0
+        let crossfadeStart: Double = 0.8
+        let emojiOpacity: Double = {
+            if isRecentlyCompleted { return 0 }
+            if !isLongPressing { return 1.0 }
+            if currentLongPressProgress < crossfadeStart { return 1.0 }
+            // Fade from 1.0 to 0.0 as progress goes from 0.8 to 1.0
+            return max(0, 1.0 - (currentLongPressProgress - crossfadeStart) / (1.0 - crossfadeStart))
+        }()
+        let checkmarkOpacity: Double = {
+            if isRecentlyCompleted { return 1.0 }
+            if !isLongPressing { return 0 }
+            if currentLongPressProgress < crossfadeStart { return 0 }
+            // Fade from 0.0 to 1.0 as progress goes from 0.8 to 1.0
+            return min(1.0, (currentLongPressProgress - crossfadeStart) / (1.0 - crossfadeStart))
+        }()
+
+        // Background turns green when checkmark is visible
+        let showGreenBackground = isRecentlyCompleted || (isLongPressing && currentLongPressProgress >= crossfadeStart)
+
         ZStack {
+            // Background circle - transitions to green as checkmark appears
             Circle()
                 .fill(Color(hex: habit.colorHex).opacity(0.15))
                 .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                .overlay(
+                    Circle()
+                        .fill(Color.green.opacity(0.15))
+                        .opacity(showGreenBackground ? 1 : 0)
+                )
 
-            if habit.kind == .numeric && !isCompleted {
+            // Numeric habit progress ring (shown when NOT long-pressing and NOT recently completed)
+            if habit.kind == .numeric && !isCompleted && !isLongPressing && !isRecentlyCompleted {
                 let currentValue = getProgress(habit)
                 let target = habit.dailyTarget ?? 1.0
                 let actualProgress = calculateProgress(current: currentValue, target: target)
@@ -761,16 +882,55 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     .rotationEffect(.degrees(-90))
             }
 
+            // Long-press progress ring - always rendered, animates trim from 0 to 1
+            Circle()
+                .trim(from: 0, to: longPressHabitId == habit.id ? longPressProgress : 0.0)
+                .stroke(
+                    LinearGradient(
+                        colors: [.green, .green.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                )
+                .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                .rotationEffect(.degrees(-90))
+                .opacity(isLongPressing ? 1 : 0)
+                .animation(.linear(duration: 0.65), value: longPressProgress)
+
+            // Full green ring when recently completed (after long-press release)
+            if isRecentlyCompleted && !isLongPressing {
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: [.green, .green.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+            }
+
+            // Emoji - visible until 0.8, then fades out
             Text(habit.emoji ?? "📊")
-                .font(.title3)
+                .font(CardDesign.title3)
+                .opacity(emojiOpacity)
+
+            // Checkmark - starts appearing at 0.8, fully visible at 1.0
+            Image(systemName: "checkmark")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(.green)
+                .opacity(checkmarkOpacity)
         }
+        .animation(.easeInOut(duration: 0.3), value: isRecentlyCompleted)
     }
 
     @ViewBuilder
     private func habitInfoView(habit: Habit, isCompleted: Bool, isDisabled: Bool, scheduleStatus: HabitScheduleStatus) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(habit.name)
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundColor(isCompleted ? .gray : (isDisabled ? .secondary.opacity(0.7) : .primary))
                 .strikethrough(isCompleted, color: .gray)
                 .lineLimit(1)
@@ -779,11 +939,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 let currentValue = getProgress(habit)
                 let target = habit.dailyTarget ?? 1.0
                 Text("\(Int(currentValue))/\(Int(target)) \(habit.unitLabel ?? "units")")
-                    .font(.caption)
+                    .font(CardDesign.caption)
                     .foregroundColor(.gray)
             } else if !isCompleted && isDisabled {
                 Text(scheduleStatus.displayText)
-                    .font(.caption)
+                    .font(CardDesign.caption)
                     .foregroundColor(scheduleStatus.color)
             }
         }
@@ -900,8 +1060,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             onQuickAction(habit)
 
             // Trigger tip for completed habits (so second tip can appear)
-            TapCompletedHabitTip.shouldShowCompletedTip.sendDonation()
-            logger.log("Habit completed - donated shouldShowCompletedTip event", level: .debug, category: .ui)
+            TapCompletedHabitTip.firstHabitCompleted.sendDonation()
+            logger.log("Habit completed - donated firstHabitCompleted event", level: .debug, category: .ui)
 
             // Clean up animation state
             try? await Task.sleep(nanoseconds: AnimationTiming.animationCleanupDelay)
