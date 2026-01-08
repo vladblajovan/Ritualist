@@ -169,7 +169,7 @@ struct AppBrandHeader: View {
                     .fill(Color(.systemBackground))
                     .shadow(color: .black.opacity(0.15), radius: 1, x: 0, y: 1)
             )
-            .offset(x: 2, y: 2) // Slight offset to position at corner
+            .offset(x: 5, y: 5) // Offset to sit on the circular progress ring
     }
 
     // MARK: - Circular Progress Ring
@@ -187,10 +187,10 @@ struct AppBrandHeader: View {
         let progress = animatedCompletionPercentage
 
         ZStack {
-            // Background track
+            // Background track - uses secondary with opacity for better contrast in light mode
             Circle()
                 .stroke(
-                    CardDesign.secondaryBackground,
+                    Color.secondary.opacity(0.2),
                     style: StrokeStyle(lineWidth: circularProgressLineWidth, lineCap: .round)
                 )
                 .frame(width: circularProgressSize, height: circularProgressSize)

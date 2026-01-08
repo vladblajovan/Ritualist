@@ -105,6 +105,20 @@ private struct SettingsFormView: View {
                         updateUserName: updateUserName
                     )
 
+                    #if DEBUG
+                    // Debug Section
+                    Section("Debug") {
+                        GenericRowView.settingsRow(
+                            title: "Debug Menu",
+                            subtitle: "Development tools and database management",
+                            icon: "wrench.and.screwdriver",
+                            iconColor: .red
+                        ) {
+                            showingDebugMenu = true
+                        }
+                    }
+                    #endif
+
                     // Appearance Section
                     Section("Appearance") {
                         HStack {
@@ -145,28 +159,14 @@ private struct SettingsFormView: View {
                         }
                     }
 
-                    #if DEBUG
-                    // Debug Section
-                    Section("Debug") {
-                        GenericRowView.settingsRow(
-                            title: "Debug Menu",
-                            subtitle: "Development tools and database management",
-                            icon: "wrench.and.screwdriver",
-                            iconColor: .red
-                        ) {
-                            showingDebugMenu = true
-                        }
-                    }
-                    #endif
-
                     // Subscription Section
                     SubscriptionManagementSectionView(vm: vm)
 
-                    // Permissions Section (Notifications + Location)
-                    PermissionsSectionView(vm: vm)
-
                     // iCloud Sync Section
                     ICloudSyncSectionView(vm: vm)
+
+                    // Permissions Section (Notifications + Location)
+                    PermissionsSectionView(vm: vm)
 
                     // Data Management Section (Export/Import/Delete)
                     DataManagementSectionView(vm: vm) { result in

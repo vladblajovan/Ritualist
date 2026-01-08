@@ -172,30 +172,32 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
     }
 
     public func stopMonitoring(habitId: UUID) async {
-        guard monitoredHabits[habitId] != nil else {
-            logger.log(
-                "⚠️ Habit not currently monitored",
-                level: .warning,
-                category: .location,
-                metadata: ["habitId": habitId.uuidString]
-            )
-            return
-        }
+        let wasInMemory = monitoredHabits[habitId] != nil
 
         logger.log(
             "🛑 Stopping geofence monitoring",
             level: .info,
             category: .location,
-            metadata: ["habitId": habitId.uuidString]
+            metadata: [
+                "habitId": habitId.uuidString,
+                "wasInMemory": wasInMemory
+            ]
         )
 
-        let region = CLCircularRegion(
-            center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-            radius: 100,
-            identifier: habitId.uuidString
-        )
-
-        locationManager.stopMonitoring(for: region)
+        // CRITICAL: Always attempt to remove iOS geofence, even if not in memory.
+        // After a cold launch, in-memory state is empty but iOS may still have geofences.
+        // CLLocationManager.stopMonitoring is safe to call even if region isn't monitored.
+        if let existingRegion = locationManager.monitoredRegions.first(where: { $0.identifier == habitId.uuidString }) {
+            locationManager.stopMonitoring(for: existingRegion)
+        } else {
+            // Fallback: Create minimal region just for identifier (safe no-op if not monitored)
+            let region = CLCircularRegion(
+                center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                radius: 100,
+                identifier: habitId.uuidString
+            )
+            locationManager.stopMonitoring(for: region)
+        }
         monitoredHabits.removeValue(forKey: habitId)
 
         logger.log(
