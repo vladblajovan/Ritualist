@@ -103,6 +103,15 @@ struct InspirationCard: View {
                 .accessibilityLabel("Dismiss inspiration card")
                 .accessibilityIdentifier(AccessibilityID.InspirationCarousel.cardDismissButton)
             }
+            .padding(CardDesign.cardPadding)
+            .padding(.vertical, Spacing.small) // Extra vertical padding for taller cards
+            .background(
+                ZStack {
+                    CardDesign.cardBackground
+                    style.gradient
+                }
+            )
+            .cornerRadius(CardDesign.cornerRadius)
             // PERFORMANCE: Reactive cache updates - only when dependencies change
             .onAppear {
                 updateCachedStyle()

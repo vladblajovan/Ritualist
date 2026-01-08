@@ -11,102 +11,73 @@ struct InspirationCarouselView: View {
 
     @State private var currentIndex: Int = 0
 
-    /// Compute gradient for card background based on time of day and completion
-    private var cardGradient: LinearGradient {
-        let context = InspirationStyleViewLogic.StyleContext(
-            completionPercentage: completionPercentage,
-            timeOfDay: timeOfDay
-        )
-        return InspirationStyleViewLogic.computeStyle(for: context).gradient
-    }
-
     var body: some View {
-        VStack(spacing: 8) {
-            // Carousel with page indicators inside
-            ZStack(alignment: .bottom) {
-                TabView(selection: $currentIndex) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        InspirationCard(
-                            message: item.message,
-                            slogan: item.slogan,
-                            timeOfDay: timeOfDay,
-                            completionPercentage: completionPercentage,
-                            shouldShow: true,
-                            onDismiss: {
-                                animateIfAllowed(SpringAnimation.interactive) {
-                                    onDismiss(item)
-                                }
+        VStack(spacing: Spacing.small) {
+            // Carousel
+            TabView(selection: $currentIndex) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    InspirationCard(
+                        message: item.message,
+                        slogan: item.slogan,
+                        timeOfDay: timeOfDay,
+                        completionPercentage: completionPercentage,
+                        shouldShow: true,
+                        onDismiss: {
+                            animateIfAllowed(SpringAnimation.interactive) {
+                                onDismiss(item)
                             }
-                        )
-                        .tag(index)
+                        }
+                    )
+                    .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .contentMargins(.horizontal, Spacing.small, for: .scrollContent)
+            .frame(minHeight: 120)
+            .onChange(of: items.count) { _, newCount in
+                if currentIndex >= newCount {
+                    animateIfAllowed(.easeInOut(duration: 0.2)) {
+                        currentIndex = max(0, newCount - 1)
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(minHeight: 100)
-                .onChange(of: items.count) { _, newCount in
-                    if currentIndex >= newCount {
-                        animateIfAllowed(.easeInOut(duration: 0.2)) {
-                            currentIndex = max(0, newCount - 1)
+            }
+
+            // Page indicators and dismiss button - below the carousel
+            if items.count > 1 {
+                HStack(spacing: 8) {
+                    // Page indicators
+                    HStack(spacing: 6) {
+                        ForEach(0..<items.count, id: \.self) { index in
+                            Circle()
+                                .fill(index == currentIndex ? Color.primary : Color.primary.opacity(0.3))
+                                .frame(width: 6, height: 6)
+                                .reduceMotionAnimation(.easeInOut(duration: 0.2), value: currentIndex)
                         }
                     }
-                }
+                    // Accessibility: Group indicators and announce as single element
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Page \(currentIndex + 1) of \(items.count)")
+                    .accessibilityIdentifier(AccessibilityID.InspirationCarousel.pageIndicators)
 
-                // Page indicators and dismiss button (same line)
-                if items.count > 1 {
-                    HStack(spacing: 8) {
-                        // Page indicators
-                        HStack(spacing: 6) {
-                            ForEach(0..<items.count, id: \.self) { index in
+                    // Dismiss all button (X icon in circle)
+                    Button {
+                        onDismissAll()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .frame(width: 22, height: 22)
+                            .background(
                                 Circle()
-                                    .fill(index == currentIndex ? Color.white : Color.white.opacity(0.4))
-                                    .frame(width: 6, height: 6)
-                                    .reduceMotionAnimation(.easeInOut(duration: 0.2), value: currentIndex)
-                            }
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(
-                            Capsule()
-                                .fill(.secondary.opacity(0.15))
-                        )
-                        // Accessibility: Group indicators and announce as single element
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("Page \(currentIndex + 1) of \(items.count)")
-                        .accessibilityIdentifier(AccessibilityID.InspirationCarousel.pageIndicators)
-
-                        // Dismiss all button (X icon in circle)
-                        Button {
-                            onDismissAll()
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.8))
-                                .frame(width: 22, height: 22)
-                                .background(
-                                    Circle()
-                                        .fill(.secondary.opacity(0.15))
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Dismiss all")
-                        .accessibilityIdentifier(AccessibilityID.InspirationCarousel.dismissAllButton)
+                                    .fill(Color.secondary.opacity(0.15))
+                            )
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Dismiss all")
+                    .accessibilityIdentifier(AccessibilityID.InspirationCarousel.dismissAllButton)
                 }
             }
         }
-        .padding(CardDesign.cardPadding)
-        .background(
-            ZStack {
-                CardDesign.cardBackground
-                cardGradient
-            }
-        )
-        .cornerRadius(CardDesign.cornerRadius)
-        .overlay(
-            RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-        )
-        .shadow(color: CardDesign.shadowColor, radius: CardDesign.shadowRadius, x: 0, y: 2)
         .accessibilityIdentifier(AccessibilityID.InspirationCarousel.carousel)
     }
 }

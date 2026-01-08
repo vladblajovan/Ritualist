@@ -155,10 +155,22 @@ private struct StatusIndicatorView: View {
 private struct WhatSyncsSectionView: View {
     var body: some View {
         Section {
-            SyncItemRow(title: "Habits", subtitle: "All your habits and their settings")
-            SyncItemRow(title: "Categories", subtitle: "Custom categories and colors")
-            SyncItemRow(title: "Progress", subtitle: "Completions, streaks, and statistics")
-            SyncItemRow(title: "Profile", subtitle: "Your name, avatar, and preferences")
+            SyncItemRow(
+                title: String(localized: "Habits"),
+                subtitle: String(localized: "All your habits and their settings")
+            )
+            SyncItemRow(
+                title: String(localized: "Categories"),
+                subtitle: String(localized: "Custom categories and colors")
+            )
+            SyncItemRow(
+                title: String(localized: "Progress"),
+                subtitle: String(localized: "Completions, streaks, and statistics")
+            )
+            SyncItemRow(
+                title: String(localized: "Profile"),
+                subtitle: String(localized: "Your name, avatar, and preferences")
+            )
         } header: {
             Text("What Syncs")
         } footer: {
@@ -224,7 +236,7 @@ private struct TroubleshootingSectionView: View {
                 openSystemSettings()
             } label: {
                 HStack {
-                    Label("Open iCloud Settings", systemImage: "gear")
+                    Label("Open Settings", systemImage: "gear")
                     Spacer()
                     Image(systemName: "arrow.up.forward")
                         .font(.caption)
@@ -239,17 +251,17 @@ private struct TroubleshootingSectionView: View {
     private var problemDescription: String {
         switch status {
         case .notSignedIn:
-            return "You're not signed into iCloud. Sign in to sync your data across devices."
+            return String(localized: "You're not signed into iCloud. Sign in to sync your data across devices.")
         case .restricted:
-            return "iCloud access is restricted on this device, possibly by parental controls or device management."
+            return String(localized: "iCloud access is restricted on this device, possibly by parental controls or device management.")
         case .temporarilyUnavailable:
-            return "iCloud is temporarily unavailable. This usually resolves itself shortly."
+            return String(localized: "iCloud is temporarily unavailable. This usually resolves itself shortly.")
         case .timeout:
-            return "Could not connect to iCloud. Check your internet connection."
+            return String(localized: "Could not connect to iCloud. Check your internet connection.")
         case .notConfigured:
-            return "iCloud sync is not configured for this app."
+            return String(localized: "iCloud sync is not configured for this app.")
         case .unknown:
-            return "Could not determine iCloud status. Try again later."
+            return String(localized: "Could not determine iCloud status. Try again later.")
         case .available:
             return ""
         }
@@ -259,28 +271,28 @@ private struct TroubleshootingSectionView: View {
         switch status {
         case .notSignedIn:
             return [
-                "Open Settings on your device",
-                "Tap your name at the top",
-                "Sign in with your Apple ID",
-                "Enable iCloud Drive"
+                String(localized: "Open Settings on your device"),
+                String(localized: "Tap your name at the top"),
+                String(localized: "Sign in with your Apple ID"),
+                String(localized: "Enable iCloud Drive")
             ]
         case .restricted:
             return [
-                "Check Screen Time or parental control settings",
-                "Contact your device administrator",
-                "Ensure iCloud is allowed for this app"
+                String(localized: "Check Screen Time or parental control settings"),
+                String(localized: "Contact your device administrator"),
+                String(localized: "Ensure iCloud is allowed for this app")
             ]
         case .temporarilyUnavailable, .timeout:
             return [
-                "Check your internet connection",
-                "Try switching between Wi-Fi and cellular",
-                "Wait a few minutes and try again"
+                String(localized: "Check your internet connection"),
+                String(localized: "Try switching between Wi-Fi and cellular"),
+                String(localized: "Wait a few minutes and try again")
             ]
         case .notConfigured, .unknown:
             return [
-                "Ensure you're signed into iCloud",
-                "Check that iCloud Drive is enabled",
-                "Try restarting the app"
+                String(localized: "Ensure you're signed into iCloud"),
+                String(localized: "Check that iCloud Drive is enabled"),
+                String(localized: "Try restarting the app")
             ]
         case .available:
             return []

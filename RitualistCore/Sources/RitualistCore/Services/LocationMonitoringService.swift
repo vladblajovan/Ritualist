@@ -187,13 +187,17 @@ public final class DefaultLocationMonitoringService: NSObject, LocationMonitorin
         // CRITICAL: Always attempt to remove iOS geofence, even if not in memory.
         // After a cold launch, in-memory state is empty but iOS may still have geofences.
         // CLLocationManager.stopMonitoring is safe to call even if region isn't monitored.
-        let region = CLCircularRegion(
-            center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-            radius: 100,
-            identifier: habitId.uuidString
-        )
-
-        locationManager.stopMonitoring(for: region)
+        if let existingRegion = locationManager.monitoredRegions.first(where: { $0.identifier == habitId.uuidString }) {
+            locationManager.stopMonitoring(for: existingRegion)
+        } else {
+            // Fallback: Create minimal region just for identifier (safe no-op if not monitored)
+            let region = CLCircularRegion(
+                center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                radius: 100,
+                identifier: habitId.uuidString
+            )
+            locationManager.stopMonitoring(for: region)
+        }
         monitoredHabits.removeValue(forKey: habitId)
 
         logger.log(
