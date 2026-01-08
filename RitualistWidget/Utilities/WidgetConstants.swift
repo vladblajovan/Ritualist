@@ -30,6 +30,11 @@ enum WidgetConstants {
     /// Timeline refresh policy intervals (in hours)
     static let timelineHours = 6
 
+    /// Error retry interval in seconds (6 hours)
+    /// Used when widget cannot access data - longer interval to avoid battery drain
+    /// User must open main app to fix app group/data issues
+    static let errorRetryInterval: TimeInterval = 6 * 60 * 60
+
     /// Creates deep link URL for habit (legacy method for backward compatibility)
     static func habitDeepLinkURL(for habitId: UUID) -> URL {
         URL(string: "\(urlScheme)://habit/\(habitId)")!

@@ -17,7 +17,7 @@ struct RemainingHabitsProvider: TimelineProvider {
     typealias Entry = RemainingHabitsEntry
 
     @Injected(\.hasValidDataAccess) private var hasValidDataAccess
-    @Injected(\.widgetHabitsViewModel) private var viewModel
+    @Injected(\.widgetHabitsViewModel) private var viewModel: WidgetHabitsViewModel?
     @Injected(\.widgetDateNavigationService) private var navigationService
     @Injected(\.widgetLogger) private var logger
 
@@ -40,14 +40,13 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
     
     func getSnapshot(in context: Context, completion: @escaping (Entry) -> Void) {
-        // Check for data access before proceeding
-        guard hasValidDataAccess else {
+        // Check for data access and viewModel availability
+        guard hasValidDataAccess, let viewModel = self.viewModel else {
             logger.log("Widget snapshot failed - no data access", level: .error, category: .widget)
             completion(Entry.errorEntry())
             return
         }
 
-        let viewModel = self.viewModel
         let selectedDate = navigationService.currentDate
         Task {
             let timezone = await viewModel.getDisplayTimezone()
@@ -66,15 +65,15 @@ struct RemainingHabitsProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
-        // Check for data access before proceeding
-        guard hasValidDataAccess else {
+        // Check for data access and viewModel availability
+        guard hasValidDataAccess, let viewModel = self.viewModel else {
             logger.log("Widget timeline failed - no data access", level: .error, category: .widget)
-            let errorTimeline = Timeline(entries: [Entry.errorEntry()], policy: .after(Date().addingTimeInterval(3600)))
+            // Use longer retry interval to avoid battery drain - user must open main app to fix
+            let errorTimeline = Timeline(entries: [Entry.errorEntry()], policy: .after(Date().addingTimeInterval(WidgetConstants.errorRetryInterval)))
             completion(errorTimeline)
             return
         }
 
-        let viewModel = self.viewModel
         let selectedDate = navigationService.currentDate
         Task {
             let timezone = await viewModel.getDisplayTimezone()

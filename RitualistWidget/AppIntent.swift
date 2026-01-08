@@ -28,6 +28,12 @@ struct CompleteHabitIntent: AppIntent {
             "date": Date().description
         ])
 
+        // Check data access availability
+        guard let logHabitUseCase else {
+            logger.log("Data access unavailable - cannot complete habit", level: .warning, category: .widget)
+            return .result()
+        }
+
         // Convert string ID to UUID
         guard let habitUUID = UUID(uuidString: habitId) else {
             logger.log("Invalid habit ID format", level: .warning, category: .widget, metadata: ["habit_id": habitId])
@@ -108,6 +114,12 @@ struct CompleteHistoricalHabitIntent: AppIntent {
             "habit_id": habitId,
             "target_date": targetDate
         ])
+
+        // Check data access availability
+        guard let logHabitUseCase else {
+            logger.log("Data access unavailable - cannot complete historical habit", level: .warning, category: .widget)
+            return .result()
+        }
 
         // Convert string ID to UUID
         guard let habitUUID = UUID(uuidString: habitId) else {
@@ -217,7 +229,7 @@ struct NavigateToPreviousDayIntent: AppIntent {
         let navigationSuccess = navigationService.navigateToPrevious()
 
         if navigationSuccess {
-            logger.log("Navigated to previous day", level: .info, category: .widget, metadata: [
+            logger.log("Navigated to previous day", level: .debug, category: .widget, metadata: [
                 "new_date": navigationService.currentDate.description
             ])
 
@@ -255,7 +267,7 @@ struct NavigateToNextDayIntent: AppIntent {
         let navigationSuccess = navigationService.navigateToNext()
 
         if navigationSuccess {
-            logger.log("Navigated to next day", level: .info, category: .widget, metadata: [
+            logger.log("Navigated to next day", level: .debug, category: .widget, metadata: [
                 "new_date": navigationService.currentDate.description
             ])
 
@@ -292,7 +304,7 @@ struct NavigateToTodayIntent: AppIntent {
         // Execute navigation to today (always succeeds)
         navigationService.navigateToToday()
 
-        logger.log("Navigated to today", level: .info, category: .widget, metadata: [
+        logger.log("Navigated to today", level: .debug, category: .widget, metadata: [
             "new_date": navigationService.currentDate.description
         ])
 
