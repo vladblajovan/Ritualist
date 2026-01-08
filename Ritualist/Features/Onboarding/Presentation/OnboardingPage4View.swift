@@ -57,6 +57,13 @@ struct OnboardingPage4View: View {
                         title: "Stay Motivated",
                         description: "Discover strategies to maintain momentum"
                     )
+
+                    OnboardingFeatureCard(
+                        icon: "airplane.circle.fill",
+                        iconColor: .teal,
+                        title: "Travel Insights",
+                        description: "See how timezone changes affect your habits"
+                    )
                 }
                 .padding(.horizontal, 24)
 

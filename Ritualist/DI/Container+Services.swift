@@ -222,15 +222,11 @@ extension Container {
 
     var userService: Factory<UserService> {
         self { @MainActor in
-            #if DEBUG
-            return MockUserService(
+            DefaultUserService(
                 loadProfile: self.loadProfile(),
                 saveProfile: self.saveProfile(),
                 errorHandler: self.errorHandler()
             )
-            #else
-            return ICloudUserService(errorHandler: self.errorHandler())
-            #endif
         }
         .singleton
     }

@@ -31,10 +31,16 @@ struct AppLaunchView: View {
                 .animatedGlow(glowSize: 220)
                 .accessibilityLabel("Ritualist app icon")
 
-            // App name
+            // App name with brand gradient
             Text("Ritualist")
                 .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.ritualistIconBackground, AppColors.brand],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
 
             Spacer()
 
@@ -47,19 +53,19 @@ struct AppLaunchView: View {
                         .tint(AppColors.brand)
 
                     Text("Preparing Your Experience")
-                        .font(.headline)
+                        .font(CardDesign.headline)
                         .foregroundStyle(.primary)
 
                     #if DEBUG
                     if let details = migrationDetails {
                         Text(details.description)
-                            .font(.subheadline)
+                            .font(CardDesign.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     #endif
 
                     Text("This will only take a moment")
-                        .font(.caption)
+                        .font(CardDesign.caption)
                         .foregroundStyle(.secondary.opacity(0.7))
                 } else {
                     // Default loading spinner

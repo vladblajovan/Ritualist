@@ -9,38 +9,39 @@
 //
 
 import Foundation
+import Observation
 
 #if DEBUG
 
 /// Tracks iCloud sync diagnostic information for debugging
 /// This is a simple observable class that captures sync events for display in the Debug Menu
-@MainActor
-final class ICloudSyncDiagnostics: ObservableObject {
+@MainActor @Observable
+final class ICloudSyncDiagnostics {
     static let shared = ICloudSyncDiagnostics()
 
     /// Number of CloudKit silent push notifications received (via AppDelegate)
-    @Published private(set) var pushNotificationCount: Int = 0
+    private(set) var pushNotificationCount: Int = 0
 
     /// Last time a CloudKit push notification was received
-    @Published private(set) var lastPushNotificationDate: Date?
+    private(set) var lastPushNotificationDate: Date?
 
     /// Number of NSPersistentStoreRemoteChange notifications received
-    @Published private(set) var remoteChangeCount: Int = 0
+    private(set) var remoteChangeCount: Int = 0
 
     /// Last time a remote change notification was received
-    @Published private(set) var lastRemoteChangeDate: Date?
+    private(set) var lastRemoteChangeDate: Date?
 
     /// Number of times deduplication has run
-    @Published private(set) var deduplicationRunCount: Int = 0
+    private(set) var deduplicationRunCount: Int = 0
 
     /// Total number of duplicates removed across all deduplication runs
-    @Published private(set) var totalDuplicatesRemoved: Int = 0
+    private(set) var totalDuplicatesRemoved: Int = 0
 
     /// Last deduplication result
-    @Published private(set) var lastDeduplicationResult: String = "None"
+    private(set) var lastDeduplicationResult: String = "None"
 
     /// Whether remote notifications are registered
-    @Published private(set) var isRegisteredForRemoteNotifications: Bool = false
+    private(set) var isRegisteredForRemoteNotifications: Bool = false
 
     private init() {}
 

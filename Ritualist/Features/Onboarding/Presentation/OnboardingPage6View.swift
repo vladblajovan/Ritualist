@@ -71,6 +71,44 @@ struct OnboardingPage6View: View {
 
             Spacer()
 
+            // Training tour toggle
+            VStack(spacing: 8) {
+                Toggle(isOn: Binding(
+                    get: { viewModel.wantsTrainingTour },
+                    set: { _ in viewModel.toggleTrainingTour() }
+                )) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundStyle(.yellow)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Quick Tour")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text("Learn the basics with helpful tips")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .toggleStyle(.switch)
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.secondarySystemGroupedBackground))
+                )
+                .padding(.horizontal, 24)
+            }
+            .alert("Skip Quick Tour?", isPresented: $viewModel.showSkipTrainingAlert) {
+                Button("Skip", role: .destructive) {
+                    viewModel.confirmSkipTraining()
+                }
+                Button("Keep Tour", role: .cancel) {
+                    viewModel.cancelSkipTraining()
+                }
+            } message: {
+                Text("The quick tour shows helpful tips as you explore the app. You can always find help in Settings later.")
+            }
+
             if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
                 Text(Strings.OnboardingPermissions.skipForNow)
                     .font(.caption)

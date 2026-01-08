@@ -224,8 +224,8 @@ private struct RequirementRowView: View {
             category: .habits
         ),
         ThresholdRequirement(
-            name: "Consistent Tracking",
-            description: "Log habits for at least 7 consecutive days",
+            name: "Days Tracked",
+            description: "Log habits for at least 7 days",
             currentValue: 4,
             requiredValue: 7,
             category: .tracking

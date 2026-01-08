@@ -50,32 +50,47 @@ public struct UncompleteHabitSheet: View {
 
             Spacer()
 
-            // Action button
-            Button {
-                HapticFeedbackService.shared.trigger(.medium)
-                dismiss()
-                onUncomplete()
-            } label: {
-                HStack {
-                    Image(systemName: "arrow.uturn.backward.circle.fill")
-                        .accessibilityHidden(true)
-                    Text(Strings.UncompleteHabitSheet.markAsNotCompleted)
+            // Action buttons
+            VStack(spacing: Spacing.medium) {
+                Button {
+                    HapticFeedbackService.shared.trigger(.medium)
+                    dismiss()
+                    onUncomplete()
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.uturn.backward.circle.fill")
+                            .accessibilityHidden(true)
+                        Text(Strings.UncompleteHabitSheet.markAsNotCompleted)
+                    }
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(.orange)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.medium)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(CornerRadius.xlarge)
                 }
-                .font(.body.weight(.semibold))
-                .foregroundColor(.orange)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.medium)
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(CornerRadius.xlarge)
+                .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabitConfirmButton)
+                .accessibilityHint(Strings.UncompleteHabitSheet.markAsNotCompletedHint)
+
+                Button {
+                    dismiss()
+                    onCancel()
+                } label: {
+                    Text(Strings.Common.cancel)
+                        .font(.body.weight(.medium))
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Spacing.medium)
+                }
+                .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabitCancelButton)
+                .accessibilityHint(Strings.UncompleteHabitSheet.cancelHint)
             }
-            .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabitConfirmButton)
-            .accessibilityHint(Strings.UncompleteHabitSheet.markAsNotCompletedHint)
             .padding(.horizontal)
             .padding(.bottom, Spacing.medium)
         }
         .accessibilityIdentifier(AccessibilityID.Sheet.uncompleteHabit)
         .background(.clear)
-        .presentationDetents(isIPad ? [.medium] : [.height(220)])
+        .presentationDetents(isIPad ? [.medium] : [.height(280)])
         .presentationDragIndicator(.visible)
         .presentationBackground(.ultraThinMaterial)
         .onAppear {

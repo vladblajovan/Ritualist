@@ -35,9 +35,9 @@ public enum MonthlyCalendarViewLogic {
         /// 0.39 maintains readability across all device sizes.
         public static let fontSizeRatio: CGFloat = 0.39
 
-        /// Symmetric buffer for border stroke that extends outside circle bounds.
-        /// Applied to both top and bottom. Equals half the border lineWidth (2pt / 2 = 1pt).
-        public static let borderBuffer: CGFloat = 1
+        /// Symmetric buffer for content that extends outside circle bounds.
+        /// Applied to both top and bottom. Accommodates today glow (2pt) + border stroke (1pt).
+        public static let borderBuffer: CGFloat = 3
 
         /// Number of columns in the calendar grid (days per week)
         public static let columnCount: Int = 7

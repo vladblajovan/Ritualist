@@ -1,6 +1,7 @@
 import SwiftUI
 import RitualistCore
 import FactoryKit
+import TipKit
 
 /// A reusable HabitsAssistantSheet component with integrated dependencies (Clean Architecture)
 /// This component can be used by any view that wants to present the Habits Assistant
@@ -38,19 +39,18 @@ public struct HabitsAssistantSheet: View {
             HabitsAssistantView(
                 vm: vm,
                 isFirstVisit: isFirstVisit,
-                onSuggestionTap: { suggestion, isAdding in
-                    if isAdding {
-                        // Track suggestion viewed when user attempts to add
-                        vm.trackHabitSuggestionViewed(
-                            habitId: suggestion.id,
-                            category: suggestion.categoryId
-                        )
-                        _ = await vm.toggleHabitIntention(suggestion.id, intended: true)
-                    } else {
-                        // Get habitId for removal tracking
-                        let habitId = vm.suggestionToHabitMappings[suggestion.id]
-                        _ = await vm.toggleHabitIntention(suggestion.id, intended: false, habitId: habitId)
-                    }
+                onAddHabit: { suggestion in
+                    // Track suggestion viewed when user attempts to add
+                    vm.trackHabitSuggestionViewed(
+                        habitId: suggestion.id,
+                        category: suggestion.categoryId
+                    )
+                    // Immediately create the habit
+                    _ = await vm.addHabit(suggestion)
+                },
+                onRemoveHabit: { suggestionId in
+                    // Immediately delete the habit
+                    _ = await vm.removeHabit(suggestionId)
                 },
                 onShowPaywall: onShowPaywall ?? {}
             )
@@ -59,13 +59,10 @@ public struct HabitsAssistantSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
-                        Task {
-                            await vm.processIntentionChanges()
-                            dismiss()
-                        }
+                        // No need to process anything - all operations were immediate
+                        dismiss()
                     }
                     .fontWeight(.semibold)
-                    .disabled(vm.isProcessingActions)
                 }
             }
         }
@@ -145,7 +142,17 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
                 )
                 .onDisappear {
                     Task {
+                        // Refresh data FIRST so existingHabits is up-to-date for next sheet open
                         await onDataRefreshNeeded()
+
+                        // Reset VM state AFTER data refresh (singleton pattern)
+                        Container.shared.habitsAssistantSheetViewModel().reset()
+
+                        // Donate tip event when first-visit assistant closes (post-onboarding)
+                        // isFirstVisit is ONLY true when opened as part of onboarding flow
+                        if isFirstVisit {
+                            await TapHabitTip.habitsAssistantClosed.donate()
+                        }
                     }
                 }
             }

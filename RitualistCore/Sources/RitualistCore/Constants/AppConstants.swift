@@ -73,7 +73,7 @@ public enum UserDefaultsKeys {
 
     // MARK: - Mock/Debug
 
-    /// Key for storing mock purchases (used by MockSecureSubscriptionService)
+    /// Key for storing mock purchases
     /// Also used by PersistenceContainer to determine premium status at startup
     public static let mockPurchases = "secure_mock_purchases"
 
@@ -156,6 +156,10 @@ public extension Notification.Name {
     /// Posted when habits data changes locally (create, update, delete).
     /// Used to trigger immediate refresh in other tabs (e.g., Overview).
     static let habitsDataDidChange = Notification.Name("habitsDataDidChange")
+
+    /// Posted when user profile is updated (settings changes, iCloud sync).
+    /// Used to refresh cached profile data in UserService and dependent services.
+    static let userProfileDidChange = Notification.Name("userProfileDidChange")
 }
 
 // MARK: - iCloud Configuration

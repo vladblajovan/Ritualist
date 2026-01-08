@@ -75,8 +75,8 @@ public final class DefaultDataThresholdValidator: DataThresholdValidator {
         // Tracking consistency requirement
         let trackingDays = input.trackingDays
         requirements.append(ThresholdRequirement(
-            name: "Consistent Tracking",
-            description: "Log habits for at least \(Thresholds.minTrackingDays) consecutive days",
+            name: "Days Tracked",
+            description: "Log habits for at least \(Thresholds.minTrackingDays) days",
             currentValue: trackingDays,
             requiredValue: Thresholds.minTrackingDays,
             category: .tracking

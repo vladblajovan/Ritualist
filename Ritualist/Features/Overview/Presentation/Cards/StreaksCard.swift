@@ -137,10 +137,10 @@ struct StreaksCard: View {
             HStack {
                 HStack(spacing: 8) {
                     Text("🔥")
-                        .font(.title2)
+                        .font(CardDesign.title2)
                         .accessibilityHidden(true) // Decorative emoji
                     Text("Current Streaks")
-                        .font(.headline)
+                        .font(CardDesign.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
                 }
@@ -151,7 +151,7 @@ struct StreaksCard: View {
                 Spacer()
 
                 Text("\(streaks.count) \(streaks.count == 1 ? "streak" : "streaks")")
-                    .font(.subheadline.weight(.medium))
+                    .font(CardDesign.subheadline.weight(.medium))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -169,7 +169,7 @@ struct StreaksCard: View {
                         .scaleEffect(0.8)
 
                     Text("Loading streaks...")
-                        .font(.subheadline)
+                        .font(CardDesign.subheadline)
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -180,17 +180,17 @@ struct StreaksCard: View {
                 // Empty state
                 VStack(spacing: 12) {
                     Image(systemName: "flame")
-                        .font(.title)
+                        .font(CardDesign.title)
                         .foregroundColor(.secondary.opacity(0.6))
                         .accessibilityHidden(true) // Decorative
 
                     Text("No Active Streaks")
-                        .font(.subheadline)
+                        .font(CardDesign.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
 
                     Text("Start completing habits to build your streaks!")
-                        .font(.caption)
+                        .font(CardDesign.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -254,11 +254,11 @@ struct StreaksCard: View {
         VStack(spacing: 8) {
             VStack(spacing: 4) {
                 Text(streak.emoji)
-                    .font(.title2)
+                    .font(CardDesign.title2)
                     .accessibilityHidden(true)
 
                 Text(streak.habitName)
-                    .font(.caption)
+                    .font(CardDesign.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
                     .lineLimit(1)
@@ -268,21 +268,21 @@ struct StreaksCard: View {
             VStack(spacing: 2) {
                 HStack(spacing: 4) {
                     Text("\(streak.currentStreak)")
-                        .font(.body.weight(.bold))
+                        .font(CardDesign.body.weight(.bold))
                         .foregroundColor(.primary)
 
                     Text(streak.flameEmoji)
-                        .font(.caption2)
+                        .font(CardDesign.caption2)
                         .accessibilityHidden(true)
 
                     Text(streak.currentStreak == 1 ? "day" : "days")
-                        .font(.caption2)
+                        .font(CardDesign.caption2)
                         .foregroundColor(.secondary)
                 }
 
                 if streak.flameCount > 0 {
                     Text(StreakDetailSheet.streakLevelText(for: streak.flameCount))
-                        .font(.caption2)
+                        .font(CardDesign.caption2)
                         .foregroundColor(.orange)
                         .fontWeight(.medium)
                 }
@@ -302,7 +302,7 @@ struct StreaksCard: View {
     ScrollView {
         VStack(spacing: 20) {
             Text("Horizontal-First Fill Pattern")
-                .font(.headline)
+                .font(CardDesign.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
 

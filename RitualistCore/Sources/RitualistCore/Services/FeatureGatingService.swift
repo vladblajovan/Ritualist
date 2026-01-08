@@ -28,4 +28,8 @@ public protocol FeatureGatingService: Sendable {
 
     /// Check if a specific feature is available
     func isFeatureAvailable(_ feature: FeatureType) async -> Bool
+
+    /// Check if user has exceeded the active habit limit for free tier
+    /// Returns true if user is non-premium AND has more than freeMaxHabits active habits
+    func isOverActiveHabitLimit(activeCount: Int) async -> Bool
 }

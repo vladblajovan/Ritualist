@@ -3,11 +3,22 @@ import Observation
 import FactoryKit
 import RitualistCore
 import CoreLocation
+import TipKit
 
 // Helper enum for schedule picker
 public enum ScheduleType: CaseIterable {
     case daily
     case daysOfWeek
+}
+
+/// Explicit state for map picker dismiss handling.
+/// Replaces boolean flag to prevent race condition between SwiftUI sheet dismissal
+/// and @Observable state propagation timing.
+public enum MapPickerDismissResult {
+    /// No pending dismiss action (initial state, or after handling)
+    case none
+    /// User saved a valid location before dismissing
+    case savedValidLocation
 }
 
 @MainActor @Observable
@@ -86,6 +97,8 @@ public final class HabitDetailViewModel {
     public private(set) var isCheckingLocationAuth = false
     public private(set) var isRequestingLocationPermission = false
     public var showMapPicker = false
+    /// Tracks the result of map picker dismissal to handle race condition with @Observable timing
+    public var mapPickerDismissResult: MapPickerDismissResult = .none
 
     // Premium/Paywall state
     public var paywallItem: PaywallItem?
@@ -221,6 +234,8 @@ public final class HabitDetailViewModel {
                 try await updateHabit.execute(habit)
             } else {
                 _ = try await createHabit.execute(habit)
+                // Donate tip event for first habit added (gates TapHabitTip)
+                await TapHabitTip.firstHabitAdded.donate()
             }
 
             // Schedule notifications for the habit
@@ -511,20 +526,24 @@ extension HabitDetailViewModel {
     }
 
     /// Called when map picker sheet is dismissed (via Done, Cancel, or swipe-down)
-    /// Clears placeholder config if user didn't select a real location
+    /// Clears placeholder config if user didn't save a valid location
     public func handleMapPickerDismiss() {
+        // Check explicit dismiss result to avoid race condition with SwiftUI observation timing.
+        // On first-time enable, the observation update from saveConfiguration() may not have
+        // propagated before this callback runs, causing the coordinate check to see stale (0,0) values.
+        if mapPickerDismissResult == .savedValidLocation {
+            mapPickerDismissResult = .none
+            // User saved a valid location, config is already set correctly
+            return
+        }
+
+        // User dismissed without saving (Cancel, swipe-down, or Done without selection)
+        // Clear the placeholder config if one exists
         guard let config = locationConfiguration else { return }
 
-        // Check if this is still a placeholder (0,0 coordinates)
         let isPlaceholder = config.coordinate.latitude == 0 && config.coordinate.longitude == 0
-
         if isPlaceholder {
-            // User dismissed without selecting a location - clear the config
             locationConfiguration = nil
-        } else {
-            // Force SwiftUI observation update by reassigning the config
-            // This ensures the toggle binding re-evaluates
-            locationConfiguration = config
         }
     }
 
@@ -541,6 +560,9 @@ extension HabitDetailViewModel {
             locationConfiguration = nil
             return
         }
+
+        // Reset dismiss result at the start of a new enable flow
+        mapPickerDismissResult = .none
 
         // Enabling location reminders
         if locationConfiguration != nil {

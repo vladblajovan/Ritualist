@@ -15,13 +15,15 @@ public struct HabitsAssistantView: View {
     @Bindable var vm: HabitsAssistantSheetViewModel
 
     let isFirstVisit: Bool
-    let onSuggestionTap: (HabitSuggestion, Bool) async -> Void
+    let onAddHabit: (HabitSuggestion) async -> Void
+    let onRemoveHabit: (String) async -> Void
     let onShowPaywall: () -> Void
 
     // MARK: - Local UI State
 
-    @State private var isCreatingHabit = false
-    @State private var isDeletingHabit = false
+    /// Track which suggestion is currently being processed (by suggestionId)
+    @State private var processingAddSuggestionId: String?
+    @State private var processingRemoveSuggestionId: String?
 
     public var body: some View {
         ScrollView {
@@ -80,20 +82,29 @@ public struct HabitsAssistantView: View {
                 // Habit suggestions
                 LazyVStack(spacing: Spacing.medium) {
                     ForEach(vm.getSuggestions()) { suggestion in
+                        let isAdded = vm.addedSuggestionIds.contains(suggestion.id)
+                        let isProcessingAdd = processingAddSuggestionId == suggestion.id
+                        let isProcessingRemove = processingRemoveSuggestionId == suggestion.id
+
                         HabitSuggestionRow(
                             suggestion: suggestion,
-                            isAdded: vm.addedSuggestionIds.contains(suggestion.id),
-                            isCreating: isCreatingHabit,
-                            isDeleting: isDeletingHabit,
-                            onAdd: {
-                                isCreatingHabit = true
-                                await onSuggestionTap(suggestion, true)
-                                isCreatingHabit = false
-                            },
-                            onRemove: {
-                                isDeletingHabit = true
-                                await onSuggestionTap(suggestion, false)
-                                isDeletingHabit = false
+                            isAdded: isAdded,
+                            isProcessing: isProcessingAdd || isProcessingRemove,
+                            onTap: {
+                                // Check current state at tap time from ViewModel
+                                let currentlyAdded = vm.addedSuggestionIds.contains(suggestion.id)
+
+                                if currentlyAdded {
+                                    // Remove habit
+                                    processingRemoveSuggestionId = suggestion.id
+                                    await onRemoveHabit(suggestion.id)
+                                    processingRemoveSuggestionId = nil
+                                } else {
+                                    // Add habit
+                                    processingAddSuggestionId = suggestion.id
+                                    await onAddHabit(suggestion)
+                                    processingAddSuggestionId = nil
+                                }
                             }
                         )
                     }
@@ -113,10 +124,8 @@ public struct HabitsAssistantView: View {
 private struct HabitSuggestionRow: View {
     let suggestion: HabitSuggestion
     let isAdded: Bool
-    let isCreating: Bool
-    let isDeleting: Bool
-    let onAdd: () async -> Void
-    let onRemove: () async -> Void
+    let isProcessing: Bool
+    let onTap: () async -> Void
 
     private var scheduleText: String {
         switch suggestion.schedule {
@@ -185,7 +194,7 @@ private struct HabitSuggestionRow: View {
                     .fill(isAdded ? Color.green : AppColors.brand)
                     .frame(width: 32, height: 32)
 
-                if (isCreating && !isAdded) || (isDeleting && isAdded) {
+                if isProcessing {
                     ProgressView()
                         .scaleEffect(0.7)
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -203,8 +212,7 @@ private struct HabitSuggestionRow: View {
                 }
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isAdded)
-            .animation(.easeInOut(duration: 0.2), value: isCreating)
-            .animation(.easeInOut(duration: 0.2), value: isDeleting)
+            .animation(.easeInOut(duration: 0.2), value: isProcessing)
         }
         .padding(Spacing.medium)
         .background(.gray.opacity(0.05), in: RoundedRectangle(cornerRadius: CardDesign.cornerRadius))
@@ -214,13 +222,9 @@ private struct HabitSuggestionRow: View {
         )
         .contentShape(Rectangle())
         .onTapGesture {
-            guard !isCreating && !isDeleting else { return }
+            guard !isProcessing else { return }
             Task {
-                if isAdded {
-                    await onRemove()
-                } else {
-                    await onAdd()
-                }
+                await onTap()
             }
         }
     }

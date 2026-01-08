@@ -48,8 +48,7 @@ public struct CompleteHabitSheet: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Strings.CompleteHabitSheet.headerAccessibilityLabel(habit.name))
 
-            Divider()
-                .accessibilityHidden(true)
+            Spacer()
 
             // Action buttons
             VStack(spacing: Spacing.medium) {

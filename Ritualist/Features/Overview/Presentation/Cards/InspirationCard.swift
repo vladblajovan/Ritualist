@@ -57,14 +57,14 @@ struct InspirationCard: View {
                     HStack(alignment: .center, spacing: 12) {
                         // Time-based icon with scaled frame for Dynamic Type
                         Image(systemName: style.iconName)
-                            .font(.title2.weight(.medium))
+                            .font(CardDesign.title2.weight(.medium))
                             .foregroundColor(style.accentColor)
                             .frame(width: iconFrameSize, height: iconFrameSize)
                             .accessibilityHidden(true) // Decorative icon
 
                         // Main message on same line as icon
                         Text(message)
-                            .font(.subheadline.weight(.semibold))
+                            .font(CardDesign.subheadline.weight(.semibold))
                             .foregroundColor(.primary)
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
@@ -75,7 +75,7 @@ struct InspirationCard: View {
                     // Show original slogan as subtitle when message and slogan are different
                     if message != slogan && !slogan.isEmpty {
                         Text(slogan)
-                            .font(.subheadline.weight(.medium))
+                            .font(CardDesign.subheadline.weight(.medium))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
@@ -91,7 +91,7 @@ struct InspirationCard: View {
                 // Acknowledgement button in bottom-right
                 Button(action: onDismiss) {
                     Image(systemName: "checkmark")
-                        .font(.subheadline.weight(.semibold))
+                        .font(CardDesign.subheadline.weight(.semibold))
                         .foregroundColor(.secondary)
                         .frame(width: 44, height: 44) // Keep fixed for 44pt touch target
                         .background(

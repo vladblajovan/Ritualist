@@ -186,7 +186,8 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
     }
     
     private func createSuggestedHabits(count: Int, scenario: TestDataScenario) async throws -> [Habit] {
-        let allSuggestions = habitSuggestionsService.getSuggestions()
+        // Pass nil for demographics to get ALL suggestions for test data
+        let allSuggestions = habitSuggestionsService.getSuggestions(gender: nil, ageGroup: nil)
         guard !allSuggestions.isEmpty else {
             throw TestDataPopulationError("No habit suggestions available")
         }
@@ -218,6 +219,9 @@ public final class PopulateTestData: PopulateTestDataUseCase, @unchecked Sendabl
                    let habit = habits.first(where: { $0.id == habitId }) {
                     createdHabits.append(habit)
                 }
+            case .alreadyExists:
+                // Skip - habit already exists, don't count as newly created test data
+                break
             case .error(let error):
                 logger.log("Failed to create habit from suggestion '\(suggestion.name)': \(error)", level: .error, category: .debug)
             }

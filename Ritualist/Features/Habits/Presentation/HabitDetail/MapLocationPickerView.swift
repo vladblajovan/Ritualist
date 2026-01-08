@@ -220,6 +220,8 @@ public struct MapLocationPickerView: View {
             locationLabel: locationLabel.isEmpty ? nil : locationLabel
         )
         vm.updateLocationConfiguration(config)
+        // Set dismiss result BEFORE dismiss to prevent race condition with onDismiss callback
+        vm.mapPickerDismissResult = .savedValidLocation
     }
 
     private func handleCancel() {

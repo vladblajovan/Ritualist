@@ -16,17 +16,17 @@ struct PersonalityInsightsCard: View {
             // Header
             HStack {
                 Image(systemName: "brain.head.profile")
-                    .font(.title2)
+                    .font(CardDesign.title2)
                     .foregroundColor(.purple)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Personality Insights")
-                        .font(.headline)
+                        .font(CardDesign.headline)
                         .foregroundColor(.primary)
 
                     if let trait = dominantTrait {
                         Text("Based on your \(trait.lowercased()) profile")
-                            .font(.caption)
+                            .font(CardDesign.caption)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -35,7 +35,7 @@ struct PersonalityInsightsCard: View {
 
                 // Navigation indicator
                 Image(systemName: "chevron.right")
-                    .font(.body.weight(.medium))
+                    .font(CardDesign.body.weight(.medium))
                     .foregroundColor(.secondary)
             }
 
@@ -97,13 +97,13 @@ struct PersonalityInsightsCard: View {
                 if insights.count > initialInsightsCount {
                     HStack {
                         Text(isExpanded ? "Show less" : "View \(insights.count - initialInsightsCount) more insights")
-                            .font(.caption)
+                            .font(CardDesign.caption)
                             .foregroundColor(.secondary)
 
                         Spacer()
 
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption2)
+                            .font(CardDesign.caption2)
                             .foregroundColor(.secondary)
                     }
                     .padding(.top, 4)
@@ -127,11 +127,11 @@ struct PersonalityInsightsCard: View {
     private var warningBanner: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption)
+                .font(CardDesign.caption)
                 .foregroundColor(.orange)
             
             Text("These insights are from your previous analysis. Create more habits to unlock new analysis.")
-                .font(.caption)
+                .font(CardDesign.caption)
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal, 12)
@@ -143,35 +143,25 @@ struct PersonalityInsightsCard: View {
     @ViewBuilder
     private var insufficientDataContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "chart.bar")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-                
-                Text("Not enough data for personality analysis")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
             Text("Complete these requirements to unlock insights:")
-                .font(.caption)
+                .font(CardDesign.caption)
                 .foregroundColor(.secondary)
             
             VStack(spacing: 8) {
                 ForEach(thresholdRequirements, id: \.id) { requirement in
                     HStack {
                         Image(systemName: requirement.isMet ? "checkmark.circle.fill" : "circle")
-                            .font(.caption)
+                            .font(CardDesign.caption)
                             .foregroundColor(requirement.isMet ? .green : .secondary)
 
                         Text(requirement.name)
-                            .font(.caption2)
+                            .font(CardDesign.caption2)
                             .foregroundColor(.secondary)
 
                         Spacer()
 
                         Text("\(requirement.currentValue)/\(requirement.requiredValue)")
-                            .font(.caption2)
+                            .font(CardDesign.caption2)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -184,11 +174,11 @@ struct PersonalityInsightsCard: View {
     private var noInsightsContent: some View {
         HStack {
             Image(systemName: "brain.head.profile")
-                .font(.title3)
+                .font(CardDesign.title3)
                 .foregroundColor(.secondary)
             
             Text("Analysis in progress... Check back soon!")
-                .font(.subheadline)
+                .font(CardDesign.subheadline)
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, 8)
@@ -203,7 +193,7 @@ private struct InsightRow: View {
             HStack(spacing: 12) {
                 // Insight Icon
                 Image(systemName: insight.type.icon)
-                    .font(.title3)
+                    .font(CardDesign.title3)
                     .frame(width: 32, height: 32)
                     .background(insight.type.color.opacity(0.1))
                     .foregroundColor(insight.type.color)
@@ -212,13 +202,13 @@ private struct InsightRow: View {
                 // Insight Content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(insight.title)
-                        .font(.subheadline.weight(.medium))
+                        .font(CardDesign.subheadline.weight(.medium))
                         .foregroundColor(.primary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                     
                     Text(insight.message)
-                        .font(.caption)
+                        .font(CardDesign.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
@@ -274,7 +264,7 @@ struct PersonalityInsightsCard_Previews: PreviewProvider {
                     isDataSufficient: false,
                     thresholdRequirements: [
                         ThresholdRequirement(name: "Active Habits", description: "Track at least 5 active habits", currentValue: 2, requiredValue: 5, category: .habits),
-                        ThresholdRequirement(name: "Consistent Tracking", description: "Log habits for 7 days", currentValue: 3, requiredValue: 7, category: .tracking)
+                        ThresholdRequirement(name: "Days Tracked", description: "Log habits for 7 days", currentValue: 3, requiredValue: 7, category: .tracking)
                     ],
                     onOpenAnalysis: { }
                 )

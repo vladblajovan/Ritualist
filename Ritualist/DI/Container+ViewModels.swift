@@ -50,6 +50,7 @@ extension Container {
                 createHabitFromSuggestionUseCase: self.createHabitFromSuggestionUseCase(),
                 removeHabitFromSuggestionUseCase: self.removeHabitFromSuggestionUseCase(),
                 checkHabitCreationLimit: self.checkHabitCreationLimit(),
+                userService: self.userService(),
                 trackUserAction: self.trackUserAction(),
                 logger: self.debugLogger()
             )

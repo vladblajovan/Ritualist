@@ -62,13 +62,6 @@ public struct RootTabView: View {
                         }
                 }
                 .preferredColorScheme(vm.appearanceManager.colorScheme)
-                #if DEBUG
-                .overlay(alignment: .topTrailing) {
-                    if settingsViewModel.showFPSOverlay {
-                        FPSOverlay()
-                    }
-                }
-                #endif
                 .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                     // Show one-time toast when iCloud syncs data for the first time
                     handleFirstiCloudSync()

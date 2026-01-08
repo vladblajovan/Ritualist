@@ -11,22 +11,6 @@ struct DebugMenuPerformanceSection: View {
 
     var body: some View {
         Section("Performance Monitoring") {
-            Toggle(isOn: $vm.showFPSOverlay) {
-                HStack {
-                    Image(systemName: "gauge.with.dots.needle.67percent")
-                        .foregroundColor(.green)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Show FPS Overlay")
-                            .fontWeight(.medium)
-
-                        Text("Display frames-per-second in top-right corner")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Performance Statistics")

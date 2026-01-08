@@ -74,7 +74,6 @@ public final class SettingsViewModel {
     public private(set) var testDataProgressMessage: String = ""
 
     // Performance monitoring
-    public var showFPSOverlay = false
     public var showPerformanceStats = false
     #endif
 
@@ -668,6 +667,8 @@ extension SettingsViewModel {
             iCloudKeyValueService.resetOnboardingFlag()
             iCloudKeyValueService.resetLocalOnboardingFlag()
             userDefaults.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
+            // Schedule tip reset so training tour can show after re-onboarding
+            userDefaults.set(true, forKey: "shouldResetTipsOnNextLaunch")
             onboardingViewModel.reset()
             userActionTracker.track(.custom(event: "debug_onboarding_reset", parameters: [:]))
         } catch {

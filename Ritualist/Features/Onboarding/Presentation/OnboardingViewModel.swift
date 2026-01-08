@@ -2,6 +2,7 @@ import Foundation
 import UserNotifications
 import FactoryKit
 import RitualistCore
+import TipKit
 
 @MainActor
 @Observable
@@ -32,6 +33,12 @@ public final class OnboardingViewModel {
     public var isCompleted: Bool = false
     public var isLoading: Bool = false
     public var errorMessage: String?
+
+    /// Whether user wants to see the quick training tour (TipKit popovers) after onboarding
+    public var wantsTrainingTour: Bool = true
+
+    /// Whether to show confirmation alert when user disables the training tour
+    public var showSkipTrainingAlert: Bool = false
 
     // Constants
     nonisolated public static let maxNameLength = 50
@@ -162,6 +169,9 @@ public final class OnboardingViewModel {
             )
             isCompleted = true
 
+            // Configure TipKit based on training tour preference
+            configureTrainingTour()
+
             // Track onboarding completion
             userActionTracker.track(.onboardingCompleted)
 
@@ -272,6 +282,65 @@ extension OnboardingViewModel {
         isCompleted = false
         isLoading = false
         errorMessage = nil
+        wantsTrainingTour = true
+        showSkipTrainingAlert = false
+    }
+
+    // MARK: - Training Tour Management
+
+    /// Toggle the training tour setting with confirmation for disabling
+    public func toggleTrainingTour() {
+        if wantsTrainingTour {
+            // User is turning OFF the tour - show confirmation
+            showSkipTrainingAlert = true
+        } else {
+            // User is turning ON the tour - no confirmation needed
+            wantsTrainingTour = true
+        }
+    }
+
+    /// Confirm skipping the training tour
+    public func confirmSkipTraining() {
+        wantsTrainingTour = false
+        showSkipTrainingAlert = false
+    }
+
+    /// Cancel skipping the training tour
+    public func cancelSkipTraining() {
+        showSkipTrainingAlert = false
+        // Keep wantsTrainingTour = true
+    }
+
+    /// Configure TipKit based on training tour preference
+    /// Call this after onboarding completes
+    public func configureTrainingTour() {
+        if wantsTrainingTour {
+            // Tips will show automatically - TipKit was already configured at app startup
+            // Note: Tips.resetDatastore() cannot be called after Tips.configure()
+            // For re-onboarding scenarios, the reset happens at next app launch via the flag
+            logger.log(
+                "Training tour enabled - tips will show",
+                level: .info,
+                category: .userAction
+            )
+        } else {
+            // User declined training - invalidate all tips so they don't show
+            invalidateAllTips()
+            logger.log(
+                "Training tour skipped - tips invalidated",
+                level: .info,
+                category: .userAction
+            )
+        }
+    }
+
+    /// Invalidate all tips to prevent them from showing
+    private func invalidateAllTips() {
+        // Invalidate each tip type using their instances
+        CircleProgressTip().invalidate(reason: .actionPerformed)
+        TapHabitTip().invalidate(reason: .actionPerformed)
+        TapCompletedHabitTip().invalidate(reason: .actionPerformed)
+        LongPressLogTip().invalidate(reason: .actionPerformed)
     }
 }
 
