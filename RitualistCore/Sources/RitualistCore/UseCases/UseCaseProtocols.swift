@@ -433,6 +433,10 @@ public extension CalculateStreakAnalysisUseCase {
     }
 }
 
+public protocol GetConsistencyHeatmapDataUseCase: Sendable {
+    func execute(habitId: UUID, period: TimePeriod, timezone: TimeZone) async throws -> ConsistencyHeatmapData
+}
+
 // MARK: - Personality Analysis Use Cases
 
 public protocol AnalyzePersonalityUseCase: Sendable {

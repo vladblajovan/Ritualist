@@ -72,6 +72,12 @@ public final class StatsViewModel {
     public var isLoading = false
     public var error: Error?
 
+    // Consistency Heatmap
+    public var allHabits: [Habit] = []
+    public var selectedHeatmapHabit: Habit?
+    public var heatmapData: ConsistencyHeatmapData?
+    public var isLoadingHeatmap = false
+
     /// Track if initial data has been loaded to prevent duplicate loads during startup
     @ObservationIgnored private var hasLoadedInitialData = false
 
@@ -96,6 +102,8 @@ public final class StatsViewModel {
     @ObservationIgnored @Injected(\.isScheduledDay) internal var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
     @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
+    @ObservationIgnored @Injected(\.getConsistencyHeatmapData) private var getConsistencyHeatmapData
+    @ObservationIgnored @Injected(\.userDefaultsService) private var userDefaults
 
     /// Cached display timezone for synchronous access in computed properties.
     /// Fetched once on load from TimezoneService.getDisplayTimezone().
@@ -548,6 +556,7 @@ public final class StatsViewModel {
             let dashboardData = try await loadUnifiedDashboardData()
 
             // Extract all metrics from single source (no additional queries)
+            self.allHabits = dashboardData.habits
             if !dashboardData.habits.isEmpty {
                 self.hasHabits = true
                 self.habitPerformanceData = extractHabitPerformanceData(from: dashboardData)
@@ -564,6 +573,9 @@ public final class StatsViewModel {
                 self.streakAnalysis = nil
                 self.categoryBreakdown = []
             }
+
+            // Initialize or reload heatmap selection
+            await initializeHeatmapSelection()
 
             hasLoadedInitialData = true
         } catch {
@@ -634,6 +646,71 @@ public final class StatsViewModel {
         } catch {
             return error.localizedDescription
         }
+    }
+
+    // MARK: - Consistency Heatmap
+
+    /// Select a habit for heatmap display and load its data
+    public func selectHeatmapHabit(_ habit: Habit) async {
+        selectedHeatmapHabit = habit
+        // Persist the selection
+        userDefaults.set(habit.id.uuidString, forKey: UserDefaultsKeys.selectedHeatmapHabitId)
+        await loadHeatmapData()
+    }
+
+    /// Initialize heatmap habit selection - restores saved selection or falls back to first habit
+    private func initializeHeatmapSelection() async {
+        guard !allHabits.isEmpty else { return }
+
+        // Try to restore saved selection
+        if let savedIdString = userDefaults.string(forKey: UserDefaultsKeys.selectedHeatmapHabitId),
+           let savedId = UUID(uuidString: savedIdString),
+           let savedHabit = allHabits.first(where: { $0.id == savedId }) {
+            selectedHeatmapHabit = savedHabit
+        } else {
+            // Fall back to first habit
+            selectedHeatmapHabit = allHabits.first
+            // Persist the fallback selection
+            if let firstHabit = allHabits.first {
+                userDefaults.set(firstHabit.id.uuidString, forKey: UserDefaultsKeys.selectedHeatmapHabitId)
+            }
+        }
+
+        await loadHeatmapData()
+    }
+
+    /// Load heatmap data for the currently selected habit
+    public func loadHeatmapData() async {
+        guard let habit = selectedHeatmapHabit else {
+            heatmapData = nil
+            return
+        }
+
+        isLoadingHeatmap = true
+
+        // Capture values locally to avoid data races in Swift 6
+        let period = selectedTimePeriod
+        let timezone = displayTimezone
+        let habitId = habit.id
+
+        do {
+            let data = try await getConsistencyHeatmapData.execute(
+                habitId: habitId,
+                period: period,
+                timezone: timezone
+            )
+            heatmapData = data
+        } catch {
+            logger.log(
+                "Failed to load heatmap data",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["habit_id": habitId.uuidString, "error": error.localizedDescription]
+            )
+            heatmapData = nil
+        }
+
+        isLoadingHeatmap = false
     }
 }
 // swiftlint:enable type_body_length

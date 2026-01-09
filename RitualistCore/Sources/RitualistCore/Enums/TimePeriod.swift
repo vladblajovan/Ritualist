@@ -11,7 +11,7 @@ import Foundation
 /// let range = period.dateRange
 /// let displayName = period.displayName
 /// ```
-public enum TimePeriod: CaseIterable {
+public enum TimePeriod: CaseIterable, Sendable {
     case thisWeek
     case thisMonth
     case last6Months

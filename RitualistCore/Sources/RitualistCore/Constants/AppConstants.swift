@@ -52,6 +52,11 @@ public enum UserDefaultsKeys {
     /// Key for storing the selected date in widget navigation
     public static let widgetSelectedDate = "com.ritualist.widgetSelectedDate"
 
+    // MARK: - Stats
+
+    /// Key for storing the selected habit ID for the consistency heatmap
+    public static let selectedHeatmapHabitId = "com.ritualist.stats.selectedHeatmapHabitId"
+
     // MARK: - Migration & Backup
 
     /// Key for storing migration history entries

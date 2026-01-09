@@ -88,4 +88,13 @@ extension Container {
             )
         }
     }
+
+    var getConsistencyHeatmapData: Factory<GetConsistencyHeatmapDataUseCase> {
+        self {
+            GetConsistencyHeatmapData(
+                habitRepository: self.habitRepository(),
+                getLogsUseCase: self.getLogs()
+            )
+        }
+    }
 }
