@@ -785,7 +785,6 @@ public enum Strings {
         // Consistency Heatmap
         public static let consistencyHeatmap = String(localized: "stats.consistencyHeatmap")
         public static let selectHabit = String(localized: "stats.selectHabit")
-        public static let selectHabitPrompt = String(localized: "stats.selectHabitPrompt")
         public static let noHabitsForHeatmap = String(localized: "stats.noHabitsForHeatmap")
         public static let heatmapLessLabel = String(localized: "stats.heatmapLessLabel")
         public static let heatmapMoreLabel = String(localized: "stats.heatmapMoreLabel")

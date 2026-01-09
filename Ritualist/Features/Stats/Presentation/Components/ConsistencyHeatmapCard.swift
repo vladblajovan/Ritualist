@@ -12,8 +12,8 @@ import RitualistCore
 struct ConsistencyHeatmapCard: View {
     let habits: [Habit]
     let selectedHabit: Habit?
-    let heatmapData: ConsistencyHeatmapData?
-    let selectedPeriod: TimePeriod
+    let gridData: [[ConsistencyHeatmapViewLogic.CellData]]
+    let isLoading: Bool
     let timezone: TimeZone
     let onHabitSelected: (Habit) -> Void
 
@@ -25,24 +25,26 @@ struct ConsistencyHeatmapCard: View {
             // Habit picker
             habitPicker
 
-            // Heatmap content or placeholder
-            if let data = heatmapData {
-                let gridData = ConsistencyHeatmapViewLogic.buildGridData(
-                    from: data.dailyCompletions,
-                    period: selectedPeriod,
-                    timezone: timezone
-                )
-                HeatmapGridView(gridData: gridData, timezone: timezone)
-            } else if habits.isEmpty {
-                emptyStateView
-            } else {
-                // Loading state (habit auto-selected, waiting for data)
-                loadingView
-            }
+            // Heatmap content with explicit state handling
+            heatmapContent
         }
         .padding(CardDesign.cardPadding)
         .background(CardDesign.cardBackground)
         .cornerRadius(CardDesign.cornerRadius)
+    }
+
+    @ViewBuilder
+    private var heatmapContent: some View {
+        if habits.isEmpty {
+            emptyStateView
+        } else if isLoading {
+            loadingView
+        } else if !gridData.isEmpty {
+            HeatmapGridView(gridData: gridData, timezone: timezone)
+        } else {
+            // Fallback: no data and not loading (unlikely but defensive)
+            loadingView
+        }
     }
 
     // MARK: - Header
@@ -75,6 +77,7 @@ struct ConsistencyHeatmapCard: View {
             HStack {
                 if let habit = selectedHabit {
                     Text(habit.emoji ?? "📊")
+                        .accessibilityHidden(true)
                     Text(habit.name)
                         .lineLimit(1)
                 } else {
@@ -87,6 +90,7 @@ struct ConsistencyHeatmapCard: View {
                 Image(systemName: "chevron.down")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, Spacing.small)
             .padding(.vertical, Spacing.xsmall)
@@ -94,6 +98,15 @@ struct ConsistencyHeatmapCard: View {
             .cornerRadius(CardDesign.innerCornerRadius)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(habitPickerAccessibilityLabel)
+        .accessibilityHint(Strings.Stats.selectHabit)
+    }
+
+    private var habitPickerAccessibilityLabel: String {
+        if let habit = selectedHabit {
+            return habit.name
+        }
+        return Strings.Stats.selectHabit
     }
 
     // MARK: - States

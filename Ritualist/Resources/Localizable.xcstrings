@@ -9819,17 +9819,6 @@
         }
       }
     },
-    "stats.selectHabitPrompt" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a habit to view its heatmap"
-          }
-        }
-      }
-    },
     "stats.understandConsistencyTrends" : {
       "extractionState" : "manual",
       "localizations" : {

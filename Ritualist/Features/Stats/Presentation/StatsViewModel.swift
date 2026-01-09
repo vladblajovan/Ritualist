@@ -77,6 +77,8 @@ public final class StatsViewModel {
     public var selectedHeatmapHabit: Habit?
     public var heatmapData: ConsistencyHeatmapData?
     public var isLoadingHeatmap = false
+    /// Pre-computed grid data for heatmap (memoized to avoid recalculation on every render)
+    public var heatmapGridData: [[ConsistencyHeatmapViewLogic.CellData]] = []
 
     /// Track if initial data has been loaded to prevent duplicate loads during startup
     @ObservationIgnored private var hasLoadedInitialData = false
@@ -683,6 +685,7 @@ public final class StatsViewModel {
     public func loadHeatmapData() async {
         guard let habit = selectedHeatmapHabit else {
             heatmapData = nil
+            heatmapGridData = []
             return
         }
 
@@ -700,6 +703,13 @@ public final class StatsViewModel {
                 timezone: timezone
             )
             heatmapData = data
+
+            // Pre-compute grid data (memoized - only recalculated when data changes)
+            heatmapGridData = ConsistencyHeatmapViewLogic.buildGridData(
+                from: data.dailyCompletions,
+                period: period,
+                timezone: timezone
+            )
         } catch {
             logger.log(
                 "Failed to load heatmap data",
@@ -708,6 +718,7 @@ public final class StatsViewModel {
                 metadata: ["habit_id": habitId.uuidString, "error": error.localizedDescription]
             )
             heatmapData = nil
+            heatmapGridData = []
         }
 
         isLoadingHeatmap = false

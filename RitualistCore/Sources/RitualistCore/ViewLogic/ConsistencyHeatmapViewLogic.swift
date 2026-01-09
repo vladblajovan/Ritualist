@@ -49,14 +49,17 @@ public enum ConsistencyHeatmapViewLogic {
     /// Computes the fill color based on completion rate (0.0 to 1.0)
     /// Uses a green gradient intensity - darker green = higher completion
     public static func colorForCompletion(_ rate: Double) -> Color {
-        if rate <= 0 {
+        // Defensive clamping to handle any out-of-bounds values
+        let clampedRate = max(0, min(1, rate))
+
+        if clampedRate <= 0 {
             // No completion - very light gray
             return Color.gray.opacity(0.15)
         }
 
         // Green with intensity based on completion rate
-        // 0.2 base opacity + 0.8 * rate for full range
-        let opacity = 0.25 + (rate * 0.75)
+        // 0.25 base opacity + 0.75 * rate for full range
+        let opacity = 0.25 + (clampedRate * 0.75)
         return Color.green.opacity(opacity)
     }
 
@@ -73,8 +76,8 @@ public enum ConsistencyHeatmapViewLogic {
         period: TimePeriod,
         timezone: TimeZone
     ) -> [[CellData]] {
-        var calendar = Calendar.current
-        calendar.timeZone = timezone
+        // Use cached calendar for performance in hot paths
+        var calendar = CalendarUtils.cachedCalendar(for: timezone)
         // Start week on Monday
         calendar.firstWeekday = 2
 

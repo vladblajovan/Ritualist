@@ -476,8 +476,8 @@ public struct StatsView: View {
         ConsistencyHeatmapCard(
             habits: vm.allHabits,
             selectedHabit: vm.selectedHeatmapHabit,
-            heatmapData: vm.heatmapData,
-            selectedPeriod: vm.selectedTimePeriod,
+            gridData: vm.heatmapGridData,
+            isLoading: vm.isLoadingHeatmap,
             timezone: vm.displayTimezone,
             onHabitSelected: { habit in
                 Task {
