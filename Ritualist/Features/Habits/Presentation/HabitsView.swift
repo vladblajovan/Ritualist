@@ -229,7 +229,7 @@ private struct HabitsListView: View {
     private var stickyBrandHeader: some View {
         AppBrandHeader(
             completionPercentage: nil,
-            showProgressBar: false,
+            progressDisplayStyle: .circular,
             actions: headerActions
         )
         .padding(.horizontal, Spacing.large)

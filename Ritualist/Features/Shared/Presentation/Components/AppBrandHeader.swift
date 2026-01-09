@@ -110,7 +110,8 @@ struct AppBrandHeader: View {
             name: settingsVM.profile.name
         )
 
-        let showCircularProgress = progressDisplayStyle == .circular && showProgressBar && completionPercentage != nil
+        // Always show circular progress ring when style is circular - shows empty ring (0%) when no progress data
+        let showCircularProgress = progressDisplayStyle == .circular && showProgressBar
         let hasAvatarImage = contentType == .image
 
         ZStack {
@@ -485,22 +486,23 @@ struct AppBrandHeader: View {
 
     /// Handle completion percentage changes with animation and glow effects.
     private func handleCompletionPercentageChange(oldValue: Double?, newValue: Double?) {
-        guard let newValue = newValue else { return }
+        // Default to 0 when nil - shows empty progress ring
+        let effectiveNewValue = newValue ?? 0.0
 
         let shouldAnimate = hasInitializedProgress ? true : animateProgressOnLoad
 
         if shouldAnimate {
             withAnimation(.easeInOut(duration: 0.6)) {
-                animatedCompletionPercentage = newValue
+                animatedCompletionPercentage = effectiveNewValue
             }
         } else {
-            animatedCompletionPercentage = newValue
+            animatedCompletionPercentage = effectiveNewValue
         }
 
         hasInitializedProgress = true
 
         // Trigger glow animation when reaching 100%
-        if shouldAnimate && newValue >= 1.0, oldValue ?? 0.0 < 1.0 {
+        if shouldAnimate && effectiveNewValue >= 1.0, oldValue ?? 0.0 < 1.0 {
             progressGlowTask?.cancel()
             progressGlowTask = Task {
                 try? await Task.sleep(nanoseconds: AnimationTiming.progressAnimationDelay)
