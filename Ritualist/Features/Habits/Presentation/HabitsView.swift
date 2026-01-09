@@ -298,7 +298,7 @@ private struct HabitsListView: View {
                                     ContentUnavailableView(
                                         "No habits in this category",
                                         systemImage: "tray",
-                                        description: Text("No habits found for the selected category. Try selecting a different category or create a new habit.")
+                                        description: Text(Strings.Habits.noCategoryHabitsDescription)
                                     )
                                 } else {
                                     HabitsFirstTimeEmptyState()
@@ -404,7 +404,7 @@ private struct HabitsListView: View {
                 }
         }
         .alert("Delete Habit", isPresented: $showingDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
+            Button(Strings.Common.delete, role: .destructive) {
                 if let habit = habitToDelete {
                     Task {
                         await deleteHabit(habit)
@@ -412,7 +412,7 @@ private struct HabitsListView: View {
                     }
                 }
             }
-            Button("Cancel", role: .cancel) {
+            Button(Strings.Common.cancel, role: .cancel) {
                 habitToDelete = nil
             }
         } message: {
@@ -421,7 +421,7 @@ private struct HabitsListView: View {
             }
         }
         .alert("Delete Habits", isPresented: $showingBatchDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
+            Button(Strings.Common.delete, role: .destructive) {
                 Task {
                     logger.log(
                         "🗑️ Batch delete confirmed",
@@ -432,12 +432,12 @@ private struct HabitsListView: View {
                     await deleteSelectedHabits()
                 }
             }
-            Button("Cancel", role: .cancel) { }
+            Button(Strings.Common.cancel, role: .cancel) { }
         } message: {
             Text(batchDeleteConfirmationMessage)
         }
         .alert("Deactivate Habits", isPresented: $showingDeactivateConfirmation) {
-            Button("Deactivate", role: .destructive) {
+            Button(Strings.Common.deactivate, role: .destructive) {
                 Task {
                     logger.log(
                         "🔕 Batch deactivate confirmed",
@@ -448,7 +448,7 @@ private struct HabitsListView: View {
                     await deactivateSelectedHabits()
                 }
             }
-            Button("Cancel", role: .cancel) { }
+            Button(Strings.Common.cancel, role: .cancel) { }
         } message: {
             Text(deactivateConfirmationMessage)
         }

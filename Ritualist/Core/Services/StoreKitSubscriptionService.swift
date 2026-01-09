@@ -95,7 +95,26 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         // Update Keychain cache immediately after purchase
         // This ensures the user has offline access right away
         let plan = StoreKitProductID.subscriptionPlan(for: productId)
-        await SecurePremiumCache.shared.updateCache(plan: plan)
+
+        // Query transaction for trial info and expiry date
+        var isOnTrial = false
+        var expiryDate: Date?
+
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result,
+                  transaction.productID == productId else {
+                continue
+            }
+            isOnTrial = transaction.offerType == .introductory
+            expiryDate = transaction.expirationDate
+            break
+        }
+
+        await SecurePremiumCache.shared.updateCache(
+            plan: plan,
+            isOnTrial: isOnTrial,
+            expiryDate: expiryDate
+        )
     }
 
     public func clearPurchases() async throws {
@@ -148,6 +167,23 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         return nil
     }
 
+    public func isOnTrial() async -> Bool {
+        // Query StoreKit for current entitlements to check offer type
+        for await result in Transaction.currentEntitlements {
+            // Verify transaction cryptographically
+            guard let transaction = try? checkVerified(result) else {
+                continue
+            }
+
+            // Check if this is a subscription with an introductory offer (free trial)
+            if transaction.offerType == .introductory {
+                return true
+            }
+        }
+
+        return false
+    }
+
     // MARK: - Private Methods
 
     /// Refresh cache from StoreKit if cache is stale
@@ -178,6 +214,8 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         // Query StoreKit for current entitlements
         var validPurchases: Set<String> = []
         var didReceiveAnyEntitlement = false
+        var isOnTrial = false
+        var expiryDate: Date?
 
         for await result in Transaction.currentEntitlements {
             didReceiveAnyEntitlement = true
@@ -191,6 +229,18 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
             // Check if transaction is valid (not expired, not revoked)
             if await isTransactionValid(transaction) {
                 validPurchases.insert(transaction.productID)
+
+                // Capture trial status and expiry date from valid transaction
+                // (Use the most recent valid transaction for these values)
+                if transaction.offerType == .introductory {
+                    isOnTrial = true
+                }
+                if let transactionExpiry = transaction.expirationDate {
+                    // Keep the earliest expiry date if multiple subscriptions
+                    if expiryDate == nil || transactionExpiry < expiryDate! {
+                        expiryDate = transactionExpiry
+                    }
+                }
             }
         }
 
@@ -202,8 +252,12 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         let plan = subscriptionPlanFromPurchases(validPurchases)
 
         if plan != .free {
-            // User has valid subscription - always update cache with actual plan
-            await SecurePremiumCache.shared.updateCache(plan: plan)
+            // User has valid subscription - update cache with trial info and expiry
+            await SecurePremiumCache.shared.updateCache(
+                plan: plan,
+                isOnTrial: isOnTrial,
+                expiryDate: expiryDate
+            )
         } else if didReceiveAnyEntitlement {
             // StoreKit responded with entitlements but none are valid (expired/revoked)
             // This is a confirmed "not premium" - safe to update cache

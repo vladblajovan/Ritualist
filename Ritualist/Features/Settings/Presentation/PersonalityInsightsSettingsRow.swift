@@ -28,7 +28,7 @@ struct PersonalityInsightsSettingsRow: View {
                     
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 8) {
-                            Text("Personality Analysis")
+                            Text(Strings.PersonalityInsights.personalityAnalysis)
                                 .font(.headline)
                                 .fontWeight(.medium)
                                 .foregroundColor(.primary)
@@ -39,7 +39,7 @@ struct PersonalityInsightsSettingsRow: View {
                         }
                         
                         if isEnabled {
-                            Text("Tap to view insights")
+                            Text(Strings.PersonalityInsights.tapToViewInsights)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .padding(.leading, 0) // Align with title above

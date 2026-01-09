@@ -172,6 +172,10 @@ public protocol GetSubscriptionExpiryDateUseCase: Sendable {
     func execute() async -> Date?
 }
 
+public protocol GetIsOnTrialUseCase: Sendable {
+    func execute() async -> Bool
+}
+
 public protocol GetCurrentUserProfileUseCase: Sendable {
     func execute() async -> UserProfile
 }

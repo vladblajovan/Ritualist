@@ -119,28 +119,28 @@ public struct StatsView: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $showingProgressTrendInfo) {
             ChartInfoSheet(
-                title: "Progress Trend",
+                title: Strings.Stats.progressTrendTitle,
                 icon: "chart.line.uptrend.xyaxis",
-                description: "Shows your daily habit completion rate over time.",
+                description: Strings.Stats.progressTrendDescription,
                 details: [
-                    "Each point represents your completion percentage for a specific date",
-                    "The line shows how your performance changes day by day",
-                    "Use this to spot trends - are you improving or declining over time?"
+                    Strings.Stats.progressTrendDetail1,
+                    Strings.Stats.progressTrendDetail2,
+                    Strings.Stats.progressTrendDetail3
                 ],
-                example: "If you completed 3 of 5 habits on Dec 20, that day shows as 60%"
+                example: Strings.Stats.progressTrendExample
             )
         }
         .sheet(isPresented: $showingHabitPatternsInfo) {
             ChartInfoSheet(
-                title: "Habit Patterns",
+                title: Strings.Stats.habitPatternsTitle,
                 icon: "chart.bar.fill",
-                description: "Shows your average performance for each day of the week.",
+                description: Strings.Stats.habitPatternsDescription,
                 details: [
-                    "Each bar represents your average completion rate for that weekday",
-                    "Data is aggregated across the selected time period",
-                    "Helps identify which days you perform best or struggle most"
+                    Strings.Stats.habitPatternsDetail1,
+                    Strings.Stats.habitPatternsDetail2,
+                    Strings.Stats.habitPatternsDetail3
                 ],
-                example: "If Wednesday shows 80%, it means across all Wednesdays in the period, you averaged 80% completion"
+                example: Strings.Stats.habitPatternsExample
             )
         }
     }
@@ -181,7 +181,7 @@ public struct StatsView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.2)
-            Text("Loading analytics...")
+            Text(Strings.Stats.loadingAnalytics)
                 .font(.body)
                 .foregroundColor(.secondary)
         }
@@ -228,7 +228,7 @@ public struct StatsView: View {
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .font(.title2)
                 .foregroundColor(AppColors.brand)
-            Text("Progress Trend")
+            Text(Strings.Stats.progressTrend)
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
@@ -237,7 +237,7 @@ public struct StatsView: View {
                     .font(.body)
                     .foregroundColor(.secondary)
             }
-            .accessibilityLabel("About Progress Trend")
+            .accessibilityLabel(Strings.Stats.aboutProgressTrend)
         }
     }
 
@@ -269,7 +269,7 @@ public struct StatsView: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Progress trend chart")
+        .accessibilityLabel(Strings.Stats.progressTrendChart)
         .accessibilityValue(chartAccessibilityDescription(data: data))
     }
 
@@ -297,10 +297,10 @@ public struct StatsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Habit Patterns")
+                    Text(Strings.Stats.habitPatterns)
                         .font(.headline)
                         .foregroundColor(.primary)
-                    Text("Understand your consistency trends")
+                    Text(Strings.Stats.understandConsistencyTrends)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -314,7 +314,7 @@ public struct StatsView: View {
                         .font(.body)
                         .foregroundColor(.secondary)
                 }
-                .accessibilityLabel("About Habit Patterns")
+                .accessibilityLabel(Strings.Stats.aboutHabitPatterns)
             }
 
             if patterns.isDataSufficient {
@@ -343,8 +343,8 @@ public struct StatsView: View {
         HStack {
             Image(systemName: "flame.fill").font(.title2).foregroundColor(.orange)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Period Streaks").font(.headline).foregroundColor(.primary)
-                Text("Performance during selected period").font(.caption).foregroundColor(.secondary)
+                Text(Strings.Stats.periodStreaks).font(.headline).foregroundColor(.primary)
+                Text(Strings.Stats.performanceDuringPeriod).font(.caption).foregroundColor(.secondary)
             }
             Spacer()
         }
@@ -355,15 +355,15 @@ public struct StatsView: View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
             VStack(spacing: 4) {
                 Text("\(analysis.daysWithFullCompletion)").font(.title2).fontWeight(.bold).foregroundColor(.orange)
-                Text("Perfect Days").font(.caption).foregroundColor(.secondary)
+                Text(Strings.Stats.perfectDays).font(.caption).foregroundColor(.secondary)
             }
             VStack(spacing: 4) {
                 Text("\(analysis.longestStreak)").font(.title2).fontWeight(.bold).foregroundColor(.green)
-                Text("Peak").font(.caption).foregroundColor(.secondary)
+                Text(Strings.Stats.peak).font(.caption).foregroundColor(.secondary)
             }
             VStack(spacing: 4) {
                 Text(String(format: "%.0f%%", analysis.consistencyScore * 100)).font(.title2).fontWeight(.bold).foregroundColor(AppColors.brand)
-                Text("Consistency").font(.caption).foregroundColor(.secondary)
+                Text(Strings.Stats.consistency).font(.caption).foregroundColor(.secondary)
             }
         }
     }
@@ -375,7 +375,7 @@ public struct StatsView: View {
                   analysis.streakTrend == "declining" ? "arrow.down.circle.fill" : "minus.circle.fill")
                 .foregroundColor(analysis.streakTrend == "improving" ? .green :
                                analysis.streakTrend == "declining" ? .red : .orange)
-            Text("Period trend: \(analysis.streakTrend.capitalized)").font(.subheadline).foregroundColor(.primary)
+            Text(Strings.Stats.periodTrend(analysis.streakTrend.capitalized)).font(.subheadline).foregroundColor(.primary)
             Spacer()
         }
     }
@@ -397,7 +397,7 @@ public struct StatsView: View {
     private var categoryBreakdownHeader: some View {
         HStack {
             Image(systemName: "square.grid.3x3.fill").font(.title2).foregroundColor(.blue)
-            Text("Category Performance").font(.headline).foregroundColor(.primary)
+            Text(Strings.Stats.categoryPerformance).font(.headline).foregroundColor(.primary)
             Spacer()
         }
     }
@@ -421,7 +421,7 @@ public struct StatsView: View {
             habitCount: category.habitCount,
             completionPercent: Int((category.completionRate * 100).rounded())
         ))
-        .accessibilityHint("Tap to view habits in this category")
+        .accessibilityHint(Strings.Stats.tapToViewCategoryHabits)
     }
 
     @ViewBuilder
@@ -435,7 +435,7 @@ public struct StatsView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(category.categoryName).font(.subheadline.weight(.medium)).foregroundColor(.primary)
-                Text("\(category.habitCount) habits").font(.caption).foregroundColor(.secondary)
+                Text(Strings.Stats.habitsCount(category.habitCount)).font(.caption).foregroundColor(.secondary)
             }
         }
     }
@@ -482,8 +482,8 @@ public struct StatsView: View {
                 Image(systemName: "scope").font(.system(size: 18, weight: .semibold)).foregroundStyle(AppColors.brand)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Building Your Profile").font(.subheadline.weight(.semibold)).foregroundColor(.primary)
-                Text("Complete these to unlock insights").font(.caption).foregroundColor(.secondary)
+                Text(Strings.Stats.buildingYourProfile).font(.subheadline.weight(.semibold)).foregroundColor(.primary)
+                Text(Strings.Stats.completeToUnlockInsights).font(.caption).foregroundColor(.secondary)
             }
             Spacer()
         }
@@ -541,14 +541,14 @@ public struct StatsView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 if patterns.isConsistentExcellence {
-                    Text("Excellent every day").font(.subheadline.weight(.medium)).foregroundColor(.primary)
-                    Text("Consistent \(Int((patterns.averageWeeklyCompletion * 100).rounded()))% completion").font(.caption).foregroundColor(.secondary)
+                    Text(Strings.Stats.excellentEveryDay).font(.subheadline.weight(.medium)).foregroundColor(.primary)
+                    Text(Strings.Stats.consistentCompletion(Int((patterns.averageWeeklyCompletion * 100).rounded()))).font(.caption).foregroundColor(.secondary)
                 } else if patterns.isConsistentPerformance {
-                    Text("Consistent across all days").font(.subheadline.weight(.medium)).foregroundColor(.primary)
-                    Text("\(Int((patterns.averageWeeklyCompletion * 100).rounded()))% average completion").font(.caption).foregroundColor(.secondary)
+                    Text(Strings.Stats.consistentAcrossDays).font(.subheadline.weight(.medium)).foregroundColor(.primary)
+                    Text(Strings.Stats.averageCompletion(Int((patterns.averageWeeklyCompletion * 100).rounded()))).font(.caption).foregroundColor(.secondary)
                 } else {
-                    Text("\(patterns.bestDay) works best").font(.subheadline.weight(.medium)).foregroundColor(.primary)
-                    Text("\(Int((patterns.bestDayCompletionRate * 100).rounded()))% completion rate").font(.caption).foregroundColor(.secondary)
+                    Text(Strings.Stats.dayWorksBest(patterns.bestDay)).font(.subheadline.weight(.medium)).foregroundColor(.primary)
+                    Text(Strings.Stats.completionRate(Int((patterns.bestDayCompletionRate * 100).rounded()))).font(.caption).foregroundColor(.secondary)
                 }
             }
             Spacer()
@@ -568,7 +568,7 @@ public struct StatsView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(patterns.optimizationMessage).font(.subheadline.weight(.medium)).foregroundColor(.primary)
-                Text(patterns.isOptimizationMeaningful ? "Consider rescheduling some habits" : "No changes needed").font(.caption).foregroundColor(.secondary)
+                Text(patterns.isOptimizationMeaningful ? Strings.Stats.considerRescheduling : Strings.Stats.noChangesNeeded).font(.caption).foregroundColor(.secondary)
             }
             Spacer()
         }
@@ -599,17 +599,17 @@ public struct StatsView: View {
             AxisMarks { _ in AxisValueLabel().font(.caption2).foregroundStyle(.secondary) }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Weekly performance chart")
+        .accessibilityLabel(Strings.Stats.weeklyPerformanceChart)
         .accessibilityValue(weeklyChartAccessibilityValue(patterns: patterns))
     }
 
     private func weeklyChartAccessibilityValue(patterns: StatsViewModel.WeeklyPatternsViewModel) -> String {
         if patterns.isConsistentExcellence {
-            return "Excellent consistent performance at \(Int((patterns.averageWeeklyCompletion * 100).rounded()))% completion"
+            return Strings.Stats.excellentConsistentPerformance(Int((patterns.averageWeeklyCompletion * 100).rounded()))
         } else if patterns.isConsistentPerformance {
-            return "Consistent performance at \(Int((patterns.averageWeeklyCompletion * 100).rounded()))% average completion"
+            return Strings.Stats.consistentPerformance(Int((patterns.averageWeeklyCompletion * 100).rounded()))
         }
-        return "Best day is \(patterns.bestDay) at \(Int((patterns.bestDayCompletionRate * 100).rounded()))% completion"
+        return Strings.Stats.bestDayPerformance(patterns.bestDay, Int((patterns.bestDayCompletionRate * 100).rounded()))
     }
 }
 

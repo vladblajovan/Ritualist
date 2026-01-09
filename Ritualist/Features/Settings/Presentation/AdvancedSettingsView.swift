@@ -22,7 +22,7 @@ struct AdvancedSettingsView: View {
             // Intro Section
             Section {
                 VStack(alignment: .leading, spacing: Spacing.small) {
-                    Text("Timezone settings control when your habit day resets. This affects when streaks update and when habits become available again.")
+                    Text(Strings.Timezone.intro)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -50,7 +50,7 @@ struct AdvancedSettingsView: View {
                 displayMode: displayMode
             )
         }
-        .navigationTitle("Timezone")
+        .navigationTitle(Strings.Timezone.title)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingHomeTimezonePicker) {
             HomeTimezonePickerView(
@@ -58,8 +58,8 @@ struct AdvancedSettingsView: View {
                 onSelect: updateHomeTimezone
             )
         }
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) { }
+        .alert(Strings.Common.error, isPresented: $showError) {
+            Button(Strings.Common.ok, role: .cancel) { }
         } message: {
             if let errorMessage {
                 Text(errorMessage)
@@ -94,7 +94,7 @@ struct AdvancedSettingsView: View {
                 vm.profile.displayTimezoneMode = newMode
                 _ = await vm.save()
             } catch {
-                errorMessage = "Failed to update display mode: \(error.localizedDescription)"
+                errorMessage = "\(Strings.Timezone.failedToUpdateMode): \(error.localizedDescription)"
                 showError = true
             }
         }
@@ -119,7 +119,7 @@ struct AdvancedSettingsView: View {
                 // Refresh travel status
                 travelStatus = try await timezoneService.detectTravelStatus()
             } catch {
-                errorMessage = "Failed to update timezone: \(error.localizedDescription)"
+                errorMessage = "\(Strings.Timezone.failedToUpdateTimezone): \(error.localizedDescription)"
                 showError = true
             }
         }
@@ -135,14 +135,14 @@ private struct TravelStatusSectionView: View {
         Section {
             VStack(alignment: .leading, spacing: Spacing.small) {
                 Label {
-                    Text("You're Traveling")
+                    Text(Strings.Timezone.youAreTraveling)
                         .font(.headline)
                 } icon: {
                     Image(systemName: "airplane")
                         .foregroundColor(.blue)
                 }
 
-                Text("Your device timezone differs from your home timezone. The app is using your selected display mode for habit tracking.")
+                Text(Strings.Timezone.travelingDescription)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -165,9 +165,9 @@ private struct DisplayModeSectionView: View {
         Section {
             VStack(alignment: .leading, spacing: Spacing.medium) {
                 // Display Mode Picker
-                Picker("Display Mode", selection: $displayMode) {
-                    Text("Current Location").tag(DisplayTimezoneMode.current)
-                    Text("Home Location").tag(DisplayTimezoneMode.home)
+                Picker(Strings.Timezone.displayMode, selection: $displayMode) {
+                    Text(Strings.Timezone.currentLocation).tag(DisplayTimezoneMode.current)
+                    Text(Strings.Timezone.homeLocation).tag(DisplayTimezoneMode.home)
                 }
                 .pickerStyle(.segmented)
                 .onChange(of: displayMode) { _, newValue in
@@ -186,7 +186,7 @@ private struct DisplayModeSectionView: View {
                         onShowPicker()
                     } label: {
                         HStack {
-                            Text("Home Timezone")
+                            Text(Strings.Timezone.homeTimezone)
                                 .foregroundColor(.primary)
                             Spacer()
                             Text(homeTimezone.compactDisplayName)
@@ -200,9 +200,9 @@ private struct DisplayModeSectionView: View {
             }
             .padding(.vertical, Spacing.small)
         } header: {
-            Text("Habit Tracking")
+            Text(Strings.Timezone.habitTracking)
         } footer: {
-            Text("Controls which timezone is used for habit schedules, streaks, and statistics.")
+            Text(Strings.Timezone.habitTrackingFooter)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -211,11 +211,11 @@ private struct DisplayModeSectionView: View {
     private var modeExplanation: String {
         switch displayMode {
         case .current:
-            return "Habits track in your current device timezone (\(currentTimezone.compactDisplayName)). Perfect for daily use."
+            return Strings.Timezone.currentModeExplanation(currentTimezone.compactDisplayName)
         case .home:
-            return "Habits track in your home timezone (\(homeTimezone.compactDisplayName)). Use this while traveling to maintain your home schedule."
+            return Strings.Timezone.homeModeExplanation(homeTimezone.compactDisplayName)
         case .custom:
-            return "Use a custom timezone for habit tracking."
+            return Strings.Timezone.customModeExplanation
         }
     }
 }
@@ -231,7 +231,7 @@ private struct TimezoneInformationSectionView: View {
         Section {
             // Current Timezone (always shown)
             HStack {
-                Text("Current Timezone")
+                Text(Strings.Timezone.currentTimezone)
                 Spacer()
                 Text(currentTimezone.localizedDisplayName)
                     .foregroundColor(.secondary)
@@ -240,7 +240,7 @@ private struct TimezoneInformationSectionView: View {
 
             // Home Timezone (always shown)
             HStack {
-                Text("Home Timezone")
+                Text(Strings.Timezone.homeTimezone)
                 Spacer()
                 Text(homeTimezone.localizedDisplayName)
                     .foregroundColor(.secondary)
@@ -249,16 +249,16 @@ private struct TimezoneInformationSectionView: View {
 
             // Active Display Timezone
             HStack {
-                Text("Using for Habits")
+                Text(Strings.Timezone.usingForHabits)
                 Spacer()
                 Text(effectiveTimezone.localizedDisplayName)
                     .foregroundColor(.blue)
                     .font(.caption.weight(.medium))
             }
         } header: {
-            Text("Timezone Info")
+            Text(Strings.Timezone.timezoneInfo)
         } footer: {
-            Text("Current is auto-detected. Home is where your daily routine happens. The active timezone determines habit schedules.")
+            Text(Strings.Timezone.timezoneInfoFooter)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -312,12 +312,12 @@ private struct HomeTimezonePickerView: View {
                     }
                 }
             }
-            .searchable(text: $searchText, prompt: "Search timezones")
-            .navigationTitle("Select Home Timezone")
+            .searchable(text: $searchText, prompt: Strings.Timezone.searchTimezones)
+            .navigationTitle(Strings.Timezone.selectHomeTimezone)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(Strings.Common.cancel) {
                         dismiss()
                     }
                 }

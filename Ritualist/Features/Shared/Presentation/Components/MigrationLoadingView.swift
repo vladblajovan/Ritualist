@@ -53,7 +53,7 @@ public struct MigrationLoadingView: View {
                 .accessibilityHidden(true)
 
                 // Title
-                Text("Preparing Your Experience")
+                Text(Strings.Loading.preparingExperience)
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
@@ -80,7 +80,7 @@ public struct MigrationLoadingView: View {
                     .accessibilityLabel("Loading")
 
                 // Helpful message
-                Text("This will only take a moment")
+                Text(Strings.Loading.onlyTakeAMoment)
                     .font(.caption)
                     .foregroundColor(.secondary.opacity(0.7))
                     .padding(.top, Spacing.small)

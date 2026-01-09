@@ -157,7 +157,7 @@ public struct GenericRowView: View {
             label += ". \(badgeTexts)"
         }
         if !isEnabled {
-            label += ". Inactive"
+            label += ". \(Strings.Components.inactive)"
         }
         return label
     }
@@ -191,15 +191,15 @@ public extension GenericRowView {
         
         // Predefined badge types
         public static func active() -> RowBadge {
-            RowBadge(text: "Active", color: .green)
+            RowBadge(text: Strings.Components.active, color: .green)
         }
-        
+
         public static func inactive() -> RowBadge {
-            RowBadge(text: "Inactive", color: .orange)
+            RowBadge(text: Strings.Components.inactive, color: .orange)
         }
-        
+
         public static func predefined() -> RowBadge {
-            RowBadge(text: "Predefined", color: .secondary)
+            RowBadge(text: Strings.Components.predefined, color: .secondary)
         }
         
         public static func custom(text: String, color: Color) -> RowBadge {
@@ -225,7 +225,7 @@ public extension GenericRowView {
                 Image(systemName: "info.circle")
                     .font(.title3)
                     .foregroundColor(.secondary)
-                    .accessibilityLabel("View habit details")
+                    .accessibilityLabel(Strings.Components.viewHabitDetails)
             ),
             action: onTap,
             isEnabled: habit.isActive
@@ -395,7 +395,7 @@ private struct HabitRowWithSplitZones: View {
                         HStack(spacing: Spacing.small) {
                             if !habit.isActive {
                                 // Only show inactive badge for inactive habits
-                                Text("Inactive")
+                                Text(Strings.Components.inactive)
                                     .font(.caption)
                                     .foregroundColor(.orange)
                             } else {
@@ -423,7 +423,7 @@ private struct HabitRowWithSplitZones: View {
                         Image(systemName: "bell.fill")
                             .font(.body)
                             .foregroundColor(.orange)
-                            .accessibilityLabel("Time-based reminders enabled")
+                            .accessibilityLabel(Strings.Components.timeRemindersEnabled)
                     }
 
                     // Location indicator (only for premium users with location enabled)
@@ -431,7 +431,7 @@ private struct HabitRowWithSplitZones: View {
                         Image(systemName: "location.fill")
                             .font(.body)
                             .foregroundColor(.purple)
-                            .accessibilityLabel("Location-based reminders enabled")
+                            .accessibilityLabel(Strings.Components.locationRemindersEnabled)
                     }
 
                     // Schedule indicator - use .medium size to match Today card
@@ -464,49 +464,49 @@ private struct HabitIconInfoSheet: View {
                     HabitIconInfoRow(
                         icon: "bell.fill",
                         iconColor: .orange,
-                        title: "Time-Based Reminders",
-                        description: "Habit has scheduled notification reminders at specific times"
+                        title: Strings.Components.timeRemindersTitle,
+                        description: Strings.Components.timeRemindersDesc
                     )
 
                     HabitIconInfoRow(
                         icon: "location.fill",
                         iconColor: .purple,
-                        title: "Location-Based Reminders",
-                        description: "Habit has geofence reminders that trigger when arriving or leaving a location"
+                        title: Strings.Components.locationRemindersTitle,
+                        description: Strings.Components.locationRemindersDesc
                     )
 
                     HabitIconInfoRow(
                         icon: "infinity.circle.fill",
                         iconColor: .blue,
-                        title: "Always Available",
-                        description: "Daily habits that can be logged any day"
+                        title: Strings.Components.alwaysAvailableTitle,
+                        description: Strings.Components.alwaysAvailableDesc
                     )
 
                     HabitIconInfoRow(
                         icon: "calendar.circle.fill",
                         iconColor: .green,
-                        title: "Scheduled for Today",
-                        description: "Habit is scheduled for specific days, and today is one of them"
+                        title: Strings.Components.scheduledTodayTitle,
+                        description: Strings.Components.scheduledTodayDesc
                     )
 
                     HabitIconInfoRow(
                         icon: "calendar.circle.fill",
                         iconColor: .green,
-                        title: "Not Scheduled Today",
-                        description: "Habit is scheduled for specific days, but not today (shown with reduced opacity)",
+                        title: Strings.Components.notScheduledTodayTitle,
+                        description: Strings.Components.notScheduledTodayDesc,
                         opacity: 0.7
                     )
                 } header: {
-                    Text("Habit Icons")
+                    Text(Strings.Components.habitIcons)
                 } footer: {
-                    Text("These icons show habit configuration at a glance: reminders, location features, and schedule type.")
+                    Text(Strings.Components.habitIconsDescription)
                 }
             }
-            .navigationTitle("Habit Indicators")
+            .navigationTitle(Strings.Components.habitIndicators)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button(Strings.Button.done) {
                         dismiss()
                     }
                 }

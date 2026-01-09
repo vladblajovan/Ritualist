@@ -44,7 +44,7 @@ struct ChartInfoSheet: View {
 
                     // Details
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("How it works")
+                        Text(Strings.Stats.howItWorks)
                             .font(.headline)
                             .foregroundColor(.primary)
 
@@ -63,7 +63,7 @@ struct ChartInfoSheet: View {
 
                     // Example
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Example")
+                        Text(Strings.Stats.example)
                             .font(.headline)
                             .foregroundColor(.primary)
 
@@ -87,12 +87,12 @@ struct ChartInfoSheet: View {
                 }
                 .padding(24)
             }
-            .navigationTitle("About This Chart")
+            .navigationTitle(Strings.Stats.aboutThisChart)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button(Strings.Button.done) {
                         dismiss()
                     }
                 }

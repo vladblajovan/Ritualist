@@ -40,7 +40,7 @@ struct StreakDetailSheet: View {
                                     .fontWeight(.bold)
                                     .foregroundColor(AppColors.brand)
                                 
-                                Text("Days Active")
+                                Text(Strings.Overview.daysActive)
                                     .font(CardDesign.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.secondary)
@@ -68,7 +68,7 @@ struct StreakDetailSheet: View {
                                 Text(streak.flameEmoji.isEmpty ? "🔥" : streak.flameEmoji)
                                     .font(CardDesign.title)
                                 
-                                Text("Achievement")
+                                Text(Strings.Overview.achievement)
                                     .font(CardDesign.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.secondary)
@@ -94,31 +94,31 @@ struct StreakDetailSheet: View {
                     
                     // Explanation
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("How Streaks Work")
+                        Text(Strings.Overview.howStreaksWork)
                             .font(CardDesign.headline)
                             .fontWeight(.semibold)
-                        
+
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("**Days Active**: Your current consecutive streak ending today")
+                            Text(Strings.Overview.daysActiveExplanation)
                                 .font(CardDesign.subheadline)
-                            
-                            Text("**Achievement Levels**: Based on streak length")
+
+                            Text(Strings.Overview.achievementLevelsExplanation)
                                 .font(CardDesign.subheadline)
-                            
+
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
                                     Text("🔥")
-                                    Text("7+ days: Building")
+                                    Text(Strings.Overview.streakBuilding)
                                         .font(CardDesign.subheadline)
                                 }
                                 HStack {
                                     Text("🔥🔥")
-                                    Text("14+ days: Strong")
+                                    Text(Strings.Overview.streakStrong)
                                         .font(CardDesign.subheadline)
                                 }
                                 HStack {
                                     Text("🔥🔥🔥")
-                                    Text("30+ days: Fire Master")
+                                    Text(Strings.Overview.streakFireMaster)
                                         .font(CardDesign.subheadline)
                                 }
                             }
@@ -131,12 +131,12 @@ struct StreakDetailSheet: View {
                 }
                 .padding()
             }
-            .navigationTitle("Streak Details")
+            .navigationTitle(Strings.Overview.streakDetails)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(Strings.Common.done) {
                         dismiss()
                     }
                 }

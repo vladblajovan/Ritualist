@@ -322,6 +322,12 @@ struct AppBrandHeader: View {
         .onDisappear {
             progressGlowTask?.cancel()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .premiumStatusDidChange)) { _ in
+            // Refresh premium status when purchase completes to update crown badge
+            Task {
+                await settingsVM.refreshSubscriptionStatus()
+            }
+        }
     }
 
     // MARK: - Gradient Title

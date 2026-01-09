@@ -86,23 +86,23 @@ import TipKit
                 }
                 // MARK: - Timezone Change Alert
                 .alert(
-                    "Timezone Changed",
+                    Strings.TimezoneChange.title,
                     isPresented: $showTimezoneChangeAlert,
                     presenting: detectedTimezoneChange
                 ) { change in
-                    Button("Keep Home Timezone") {
+                    Button(Strings.TimezoneChange.keepHome) {
                         Task {
                             await timezoneChangeHandler.keepHomeTimezone(currentLocation: change.newTimezone)
                         }
                     }
 
-                    Button("Use Current Timezone") {
+                    Button(Strings.TimezoneChange.useCurrent) {
                         Task {
                             await timezoneChangeHandler.useCurrentTimezone(newTimezone: change.newTimezone)
                         }
                     }
 
-                    Button("I Moved Here") {
+                    Button(Strings.TimezoneChange.movedHere) {
                         Task {
                             await timezoneChangeHandler.updateHomeTimezone(
                                 previousTimezone: change.previousTimezone,
@@ -111,7 +111,7 @@ import TipKit
                         }
                     }
                 } message: { change in
-                    Text("You're now in \(change.newTimezoneDisplayName).\n\nHow would you like to track your habits?")
+                    Text(Strings.TimezoneChange.message(change.newTimezoneDisplayName))
                 }
         }
     }

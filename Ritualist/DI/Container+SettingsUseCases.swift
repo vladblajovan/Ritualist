@@ -49,6 +49,10 @@ extension Container {
         self { GetSubscriptionExpiryDate(subscriptionService: self.subscriptionService()) }
     }
 
+    var getIsOnTrial: Factory<GetIsOnTrial> {
+        self { GetIsOnTrial(subscriptionService: self.subscriptionService()) }
+    }
+
     // MARK: - iCloud Sync Operations
 
     var syncWithiCloud: Factory<SyncWithiCloudUseCase> {

@@ -226,8 +226,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         }
         .accessibilityIdentifier(AccessibilityID.Overview.todaysSummaryCard)
         .alert("Remove Log Entry?", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { habitToDelete = nil }
-            Button("Remove", role: .destructive) {
+            Button(Strings.Common.cancel, role: .cancel) { habitToDelete = nil }
+            Button(Strings.Common.remove, role: .destructive) {
                 if let habit = habitToDelete { performRemovalAnimation(for: habit) }
                 habitToDelete = nil
             }
@@ -246,6 +246,10 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         }
         .onAppear { updateVisibleHabits(); updateHabitProgressAnimations() }
         .task { isPremiumUser = await subscriptionService.isPremiumUser() }
+        .onReceive(NotificationCenter.default.publisher(for: .premiumStatusDidChange)) { _ in
+            // Refresh premium status when purchase completes
+            Task { isPremiumUser = await subscriptionService.isPremiumUser() }
+        }
         .onDisappear { cancelAllAnimationTasks() }
         .onChange(of: summary?.completedHabitsCount) { _, _ in
             updateVisibleHabits()
@@ -306,7 +310,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private var dateTitle: some View {
         VStack(spacing: 4) {
             if isViewingToday {
-                Text("Today, \(CalendarUtils.formatCompact(viewingDate, timezone: timezone))")
+                Text(Strings.Overview.todayDate(CalendarUtils.formatCompact(viewingDate, timezone: timezone)))
                     .font(CardDesign.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
@@ -448,7 +452,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private func quickActionTextContent(habit: Habit, scheduleStatus: HabitScheduleStatus, isDisabled: Bool) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Next: \(habit.name)")
+            Text(Strings.Overview.nextHabit(habit.name))
                 .font(.system(size: 15, weight: .medium, design: .rounded))
                 .foregroundColor(isDisabled ? .primary.opacity(0.6) : .primary)
 
@@ -511,7 +515,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 // Remaining section - only show if there are remaining habits
                 if scheduledIncompleteCount > 0 {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Remaining")
+                        Text(Strings.Overview.remaining)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.secondary)
                             .padding(.leading, 12)
@@ -536,7 +540,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 // Completed section - only show if there are completed habits
                 if !summary.completedHabits.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Completed")
+                        Text(Strings.Overview.completed)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.secondary)
                             .padding(.leading, 12)
@@ -564,7 +568,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 // Remaining section - only show if there are remaining habits
                 if scheduledIncompleteCount > 0 {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Remaining")
+                        Text(Strings.Overview.remaining)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.secondary)
                             .padding(.leading, 12)
@@ -576,7 +580,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 // Completed section - only show if there are completed habits
                 if !summary.completedHabits.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Completed")
+                        Text(Strings.Overview.completed)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.secondary)
                             .padding(.leading, 12)

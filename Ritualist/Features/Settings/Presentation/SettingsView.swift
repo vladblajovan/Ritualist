@@ -43,6 +43,18 @@ public struct SettingsRoot: View {
                     await vm.reload()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .premiumStatusDidChange)) { _ in
+                // Refresh subscription status when purchase completes
+                // This updates the subscription section immediately after paywall dismisses
+                Task {
+                    logger.log(
+                        "💳 Premium status changed - refreshing subscription status",
+                        level: .info,
+                        category: .subscription
+                    )
+                    await vm.refreshSubscriptionStatus()
+                }
+            }
     }
 }
 
@@ -85,7 +97,7 @@ private struct SettingsFormView: View {
         Group {
             if let error = vm.error {
                 ErrorView(
-                    title: "Failed to Load Settings",
+                    title: Strings.Settings.failedToLoad,
                     message: error.localizedDescription
                 ) {
                     await vm.retry()
@@ -107,10 +119,10 @@ private struct SettingsFormView: View {
 
                     #if DEBUG
                     // Debug Section
-                    Section("Debug") {
+                    Section(Strings.Settings.sectionDebug) {
                         GenericRowView.settingsRow(
-                            title: "Debug Menu",
-                            subtitle: "Development tools and database management",
+                            title: Strings.Settings.debugMenu,
+                            subtitle: Strings.Settings.debugMenuSubtitle,
                             icon: "wrench.and.screwdriver",
                             iconColor: .red
                         ) {
@@ -120,7 +132,7 @@ private struct SettingsFormView: View {
                     #endif
 
                     // Appearance Section
-                    Section("Appearance") {
+                    Section(Strings.Settings.sectionAppearance) {
                         HStack {
                             Label {
                                 Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
@@ -145,7 +157,7 @@ private struct SettingsFormView: View {
                     }
 
                     // Timezone Section
-                    Section("Timezone") {
+                    Section(Strings.Settings.sectionTimezone) {
                         NavigationLink {
                             AdvancedSettingsView(
                                 vm: vm,
@@ -153,7 +165,7 @@ private struct SettingsFormView: View {
                             )
                         } label: {
                             HStack {
-                                Label("Timezone Settings", systemImage: "clock.badge.questionmark")
+                                Label(Strings.Settings.timezoneSettings, systemImage: "clock.badge.questionmark")
                                 Spacer()
                             }
                         }
@@ -177,10 +189,10 @@ private struct SettingsFormView: View {
                     SocialMediaLinksView()
 
                     // Support Section
-                    Section("Support") {
+                    Section(Strings.Settings.sectionSupport) {
                         Link(destination: AppURLs.supportEmail) {
                             HStack {
-                                Label("Contact Support", systemImage: "envelope")
+                                Label(Strings.Settings.contactSupport, systemImage: "envelope")
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
                                     .font(.caption)
@@ -190,7 +202,7 @@ private struct SettingsFormView: View {
 
                         Link(destination: AppURLs.helpAndFAQ) {
                             HStack {
-                                Label("Help & FAQ", systemImage: "questionmark.circle")
+                                Label(Strings.Settings.helpAndFAQ, systemImage: "questionmark.circle")
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
                                     .font(.caption)
@@ -200,10 +212,10 @@ private struct SettingsFormView: View {
                     }
 
                     // Legal Section
-                    Section("Legal") {
+                    Section(Strings.Settings.sectionLegal) {
                         Link(destination: AppURLs.privacyPolicy) {
                             HStack {
-                                Text("Privacy Policy")
+                                Text(Strings.Settings.privacyPolicy)
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
                                     .font(.caption)
@@ -213,7 +225,7 @@ private struct SettingsFormView: View {
 
                         Link(destination: AppURLs.termsOfService) {
                             HStack {
-                                Text("Terms of Service")
+                                Text(Strings.Settings.termsOfService)
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
                                     .font(.caption)
@@ -223,10 +235,10 @@ private struct SettingsFormView: View {
                     }
 
                     // About Section
-                    Section("About") {
+                    Section(Strings.Settings.sectionAbout) {
                         // Version (always visible)
                         HStack {
-                            Text("Version")
+                            Text(Strings.Settings.version)
                             Spacer()
                             Text(appVersion)
                                 .foregroundColor(.secondary)
@@ -235,7 +247,7 @@ private struct SettingsFormView: View {
                         #if DEBUG
                         // Build number (only in debug/TestFlight builds)
                         HStack {
-                            Text("Build")
+                            Text(Strings.Settings.build)
                             Spacer()
                             Text("(\(buildNumber))")
                                 .foregroundColor(.secondary)
@@ -246,7 +258,7 @@ private struct SettingsFormView: View {
                         NavigationLink {
                             AcknowledgementsView()
                         } label: {
-                            Text("Acknowledgements")
+                            Text(Strings.Settings.acknowledgements)
                         }
                     }
                 }
@@ -309,7 +321,7 @@ private struct SettingsFormView: View {
                 }
             } // else
         } // Group
-        .navigationTitle("Settings")
+        .navigationTitle(Strings.Settings.title)
     }
 
     // MARK: - Computed Properties

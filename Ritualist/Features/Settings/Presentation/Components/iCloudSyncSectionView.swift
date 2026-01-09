@@ -10,7 +10,7 @@ struct ICloudSyncSectionView: View {
                 ICloudSyncSettingsView(vm: vm)
             } label: {
                 HStack {
-                    Label("iCloud", systemImage: "icloud")
+                    Label(Strings.ICloudSync.iCloud, systemImage: "icloud")
                         .foregroundStyle(.primary)
 
                     Spacer()
@@ -24,12 +24,12 @@ struct ICloudSyncSectionView: View {
                 }
             }
         } header: {
-            Text("Sync")
+            Text(Strings.ICloudSync.sectionSync)
         } footer: {
             if vm.iCloudStatus.canSync {
-                Text("Syncing across your devices.")
+                Text(Strings.ICloudSync.syncingAcrossDevices)
             } else {
-                Text("Tap to see how to enable sync.")
+                Text(Strings.ICloudSync.tapToEnableSync)
             }
         }
     }
@@ -106,6 +106,7 @@ struct ICloudSyncSectionView: View {
                 checkPremiumStatus: MockCheckPremiumStatus(),
                 getCurrentSubscriptionPlan: MockGetCurrentSubscriptionPlan(),
                 getSubscriptionExpiryDate: MockGetSubscriptionExpiryDate(),
+                getIsOnTrial: MockGetIsOnTrial(),
                 syncWithiCloud: MockSyncWithiCloud(),
                 checkiCloudStatus: MockCheckiCloudStatus(),
                 getLastSyncDate: MockGetLastSyncDate(),
@@ -163,6 +164,10 @@ private struct MockGetCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase
 
 private struct MockGetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
     func execute() async -> Date? { nil }
+}
+
+private struct MockGetIsOnTrial: GetIsOnTrialUseCase {
+    func execute() async -> Bool { false }
 }
 
 private struct MockSyncWithiCloud: SyncWithiCloudUseCase {

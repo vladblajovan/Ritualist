@@ -23,10 +23,10 @@ public struct CategoryManagementView: View {
             VStack(spacing: 0) {
                 Group {
                     if vm.isLoading {
-                        ProgressView("Loading categories...")
+                        ProgressView(Strings.CategoryManagement.loadingCategories)
                     } else if let error = vm.error {
                         ErrorView(
-                            title: "Failed to Load Categories",
+                            title: Strings.CategoryManagement.failedToLoad,
                             message: error.localizedDescription
                         ) {
                             await vm.load()
@@ -41,21 +41,21 @@ public struct CategoryManagementView: View {
                     bottomToolbar
                 }
             }
-            .navigationTitle("Manage Categories")
+            .navigationTitle(Strings.CategoryManagement.manageCategories)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
+                    Button(Strings.Button.done) {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     if !vm.customCategories.isEmpty {
                         EditButton()
                     }
-                    
-                    Button("Add") {
+
+                    Button(Strings.Common.add) {
                         showingAddCategory = true
                     }
                     .disabled(vm.isLoading)
@@ -72,30 +72,30 @@ public struct CategoryManagementView: View {
                 }
             }
             .confirmationDialog(
-                "Delete Categories",
+                Strings.CategoryManagement.deleteCategories,
                 isPresented: $showingDeleteConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Delete", role: .destructive) {
+                Button(Strings.Common.delete, role: .destructive) {
                     Task {
                         await deleteSelectedCategories()
                     }
                 }
-                Button("Cancel", role: .cancel) { }
+                Button(Strings.Common.cancel, role: .cancel) { }
             } message: {
                 Text(deleteConfirmationMessage)
             }
             .confirmationDialog(
-                "Deactivate Categories",
+                Strings.CategoryManagement.deactivateCategories,
                 isPresented: $showingDeactivateConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Deactivate", role: .destructive) {
+                Button(Strings.Button.deactivate, role: .destructive) {
                     Task {
                         await deactivateSelectedCategories()
                     }
                 }
-                Button("Cancel", role: .cancel) { }
+                Button(Strings.Common.cancel, role: .cancel) { }
             } message: {
                 Text(deactivateConfirmationMessage)
             }
@@ -138,7 +138,7 @@ public struct CategoryManagementView: View {
                                 }
                             } label: {
                                 Label(
-                                    category.isActive ? "Deactivate" : "Activate",
+                                    category.isActive ? Strings.Button.deactivate : Strings.Button.activate,
                                     systemImage: category.isActive ? "pause.circle" : "play.circle"
                                 )
                             }
@@ -152,7 +152,7 @@ public struct CategoryManagementView: View {
                                 categoriesToDelete = [category.id]
                                 showingDeleteConfirmation = true
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label(Strings.Common.delete, systemImage: "trash")
                             }
                         }
                     }
@@ -196,9 +196,9 @@ public struct CategoryManagementView: View {
         let customCategories = vm.categories.filter { categoriesToCount.contains($0.id) && !$0.isPredefined }
 
         if customCategories.count == 1 {
-            return "Are you sure you want to delete \"\(customCategories.first!.displayName)\"? This action cannot be undone."
+            return Strings.CategoryManagement.deleteConfirmSingle(customCategories.first!.displayName)
         } else {
-            return "Are you sure you want to delete \(customCategories.count) categories? This action cannot be undone."
+            return Strings.CategoryManagement.deleteConfirmMultiple(customCategories.count)
         }
     }
 
@@ -207,9 +207,9 @@ public struct CategoryManagementView: View {
         let customCategories = vm.categories.filter { categoriesToCount.contains($0.id) && !$0.isPredefined && $0.isActive }
 
         if customCategories.count == 1 {
-            return "Are you sure you want to deactivate \"\(customCategories.first!.displayName)\"? It will be hidden from habit creation but existing habits will remain."
+            return Strings.CategoryManagement.deactivateConfirmSingle(customCategories.first!.displayName)
         } else {
-            return "Are you sure you want to deactivate \(customCategories.count) categories? They will be hidden from habit creation but existing habits will remain."
+            return Strings.CategoryManagement.deactivateConfirmMultiple(customCategories.count)
         }
     }
 
@@ -266,7 +266,7 @@ private struct CategoryBatchToolbar: View {
             Divider()
 
             HStack {
-                Text("\(selectedCategoryIds.count) selected")
+                Text(Strings.CategoryManagement.selectedCount(selectedCategoryIds.count))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
@@ -274,16 +274,16 @@ private struct CategoryBatchToolbar: View {
 
                 HStack(spacing: Spacing.large) {
                     if hasInactiveSelected {
-                        toolbarButton(icon: "play.circle", label: "Activate", color: .green) {
+                        toolbarButton(icon: "play.circle", label: Strings.Button.activate, color: .green) {
                             Task { await onActivate() }
                         }
                     }
 
                     if hasActiveSelected {
-                        toolbarButton(icon: "pause.circle", label: "Deactivate", color: .primary, action: onDeactivate)
+                        toolbarButton(icon: "pause.circle", label: Strings.Button.deactivate, color: .primary, action: onDeactivate)
                     }
 
-                    toolbarButton(icon: "trash", label: "Delete", color: .red, action: onDelete)
+                    toolbarButton(icon: "trash", label: Strings.Common.delete, color: .red, action: onDelete)
                         .disabled(selectedArePredefined)
                 }
             }

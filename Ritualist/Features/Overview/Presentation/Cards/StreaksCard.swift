@@ -139,7 +139,7 @@ struct StreaksCard: View {
                     Text("🔥")
                         .font(CardDesign.title2)
                         .accessibilityHidden(true) // Decorative emoji
-                    Text("Current Streaks")
+                    Text(Strings.Overview.currentStreaks)
                         .font(CardDesign.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
@@ -150,7 +150,7 @@ struct StreaksCard: View {
 
                 Spacer()
 
-                Text("\(streaks.count) \(streaks.count == 1 ? "streak" : "streaks")")
+                Text(Strings.Overview.streaksCount(streaks.count))
                     .font(CardDesign.subheadline.weight(.medium))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
@@ -168,7 +168,7 @@ struct StreaksCard: View {
                     ProgressView()
                         .scaleEffect(0.8)
 
-                    Text("Loading streaks...")
+                    Text(Strings.Overview.loadingStreaks)
                         .font(CardDesign.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -184,12 +184,12 @@ struct StreaksCard: View {
                         .foregroundColor(.secondary.opacity(0.6))
                         .accessibilityHidden(true) // Decorative
 
-                    Text("No Active Streaks")
+                    Text(Strings.Overview.noActiveStreaks)
                         .font(CardDesign.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
 
-                    Text("Start completing habits to build your streaks!")
+                    Text(Strings.Overview.startCompletingHabits)
                         .font(CardDesign.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)

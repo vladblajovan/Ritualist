@@ -32,14 +32,14 @@ public struct LocationConfigurationSection: View {
                     Image(systemName: "location.fill")
                         .foregroundColor(.purple)
                         .accessibilityHidden(true) // Decorative icon
-                    Text("Location Reminders")
+                    Text(Strings.Habits.locationReminders)
                     if !vm.isPremiumUser {
                         Spacer()
                         CrownProBadge()
                     }
                 }
             }
-            .accessibilityLabel("Location Reminders")
+            .accessibilityLabel(Strings.Habits.locationReminders)
             .accessibilityHint((vm.locationConfiguration?.isEnabled ?? false) ? "Currently enabled. Double tap to disable location-based reminders." : "Currently disabled. Double tap to enable reminders when you arrive at or leave a location.")
 
             // Show configuration UI when enabled
@@ -94,7 +94,7 @@ public struct LocationConfigurationSection: View {
                     }
                 )
             } else if vm.locationConfiguration == nil || vm.locationConfiguration?.isEnabled == false {
-                Text("Get reminded when you arrive at or leave a specific location")
+                Text(Strings.Habits.locationBasedDescription)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -103,10 +103,10 @@ public struct LocationConfigurationSection: View {
                 LocationPermissionStatus(vm: vm)
             }
         } header: {
-            Text("Location-Based")
+            Text(Strings.Habits.locationBased)
         } footer: {
             if vm.locationConfiguration?.isEnabled == true {
-                Text("Notifications are automatically skipped if the habit is already completed.")
+                Text(Strings.Habits.locationAutoSkip)
             }
         }
     }
@@ -145,12 +145,12 @@ private struct LocationPermissionStatus: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
-                Text("Location permission denied")
+                Text(Strings.Habits.locationPermissionDenied)
                     .font(.caption)
 
                 Spacer()
 
-                Button("Settings") {
+                Button(Strings.Settings.title) {
                     Task {
                         await vm.openLocationSettings()
                     }

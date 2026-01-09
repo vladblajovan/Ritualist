@@ -20,12 +20,12 @@ struct PersonalityInsightsCard: View {
                     .foregroundColor(.purple)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Personality Insights")
+                    Text(Strings.Overview.personalityInsights)
                         .font(CardDesign.headline)
                         .foregroundColor(.primary)
 
                     if let trait = dominantTrait {
-                        Text("Based on your \(trait.lowercased()) profile")
+                        Text(Strings.Overview.basedOnProfile(trait.lowercased()))
                             .font(CardDesign.caption)
                             .foregroundColor(.secondary)
                     }
@@ -130,7 +130,7 @@ struct PersonalityInsightsCard: View {
                 .font(CardDesign.caption)
                 .foregroundColor(.orange)
             
-            Text("These insights are from your previous analysis. Create more habits to unlock new analysis.")
+            Text(Strings.Overview.insightsFromPreviousAnalysis)
                 .font(CardDesign.caption)
                 .foregroundColor(.secondary)
         }
@@ -143,7 +143,7 @@ struct PersonalityInsightsCard: View {
     @ViewBuilder
     private var insufficientDataContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Complete these requirements to unlock insights:")
+            Text(Strings.Overview.completeRequirements)
                 .font(CardDesign.caption)
                 .foregroundColor(.secondary)
             
@@ -177,7 +177,7 @@ struct PersonalityInsightsCard: View {
                 .font(CardDesign.title3)
                 .foregroundColor(.secondary)
             
-            Text("Analysis in progress... Check back soon!")
+            Text(Strings.Overview.analysisInProgress)
                 .font(CardDesign.subheadline)
                 .foregroundColor(.secondary)
         }

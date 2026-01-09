@@ -88,10 +88,10 @@ struct DataManagementSectionView: View {
                     if vm.isExportingData {
                         ProgressView()
                             .controlSize(.small)
-                        Text("Exporting...")
+                        Text(Strings.DataManagement.exporting)
                             .foregroundStyle(.secondary)
                     } else {
-                        Label("Export", systemImage: "square.and.arrow.up")
+                        Label(Strings.DataManagement.export, systemImage: "square.and.arrow.up")
                         Spacer()
                         if !vm.isPremiumUser {
                             CrownProBadge()
@@ -115,10 +115,10 @@ struct DataManagementSectionView: View {
                     if vm.isImportingData {
                         ProgressView()
                             .controlSize(.small)
-                        Text("Importing...")
+                        Text(Strings.DataManagement.importing)
                             .foregroundStyle(.secondary)
                     } else {
-                        Label("Import", systemImage: "square.and.arrow.down")
+                        Label(Strings.DataManagement.importData, systemImage: "square.and.arrow.down")
                         Spacer()
                         if !vm.isPremiumUser {
                             CrownProBadge()
@@ -136,7 +136,7 @@ struct DataManagementSectionView: View {
                     if vm.isDeletingCloudData {
                         ProgressView()
                             .controlSize(.small)
-                        Text("Deleting...")
+                        Text(Strings.DataManagement.deleting)
                             .foregroundStyle(.secondary)
                     } else {
                         Label(Strings.DataManagement.deleteAllData, systemImage: "trash")
@@ -147,7 +147,7 @@ struct DataManagementSectionView: View {
             .disabled(vm.isDeletingCloudData || vm.isExportingData || vm.isImportingData)
             .opacity(vm.isDeletingCloudData ? 0.5 : 1.0)
         } header: {
-            Text("Data Management")
+            Text(Strings.DataManagement.sectionDataManagement)
         } footer: {
             Text(footerText)
         }
@@ -179,9 +179,9 @@ struct DataManagementSectionView: View {
 
             switch result {
             case .success:
-                vm.toastService.success("Data exported successfully")
+                vm.toastService.success(Strings.DataManagement.exportSuccess)
             case .failure(let error):
-                vm.toastService.error("Export failed: \(error.localizedDescription)")
+                vm.toastService.error(Strings.DataManagement.exportFailed(error.localizedDescription))
             }
         }
         .fileImporter(
@@ -196,7 +196,7 @@ struct DataManagementSectionView: View {
                     await handleImportFile(url: url)
                 }
             case .failure(let error):
-                vm.toastService.error("Import failed: \(error.localizedDescription)")
+                vm.toastService.error(Strings.DataManagement.importFailed(error.localizedDescription))
             }
         }
     }
@@ -204,7 +204,7 @@ struct DataManagementSectionView: View {
     private func handleImportFile(url: URL) async {
         // Start accessing security-scoped resource
         guard url.startAccessingSecurityScopedResource() else {
-            vm.toastService.error("Unable to access the selected file. Please try again.")
+            vm.toastService.error(Strings.DataManagement.unableToAccessFile)
             return
         }
         defer { url.stopAccessingSecurityScopedResource() }
@@ -214,7 +214,7 @@ struct DataManagementSectionView: View {
             let jsonString = try String(contentsOf: url, encoding: .utf8)
             await vm.importData(jsonString: jsonString)
         } catch {
-            vm.toastService.error("Could not read the file. Make sure it's a valid JSON file.")
+            vm.toastService.error(Strings.DataManagement.invalidFile)
         }
     }
 }

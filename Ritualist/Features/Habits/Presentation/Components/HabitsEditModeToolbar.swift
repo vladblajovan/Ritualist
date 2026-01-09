@@ -16,7 +16,7 @@ struct HabitsEditModeToolbar: View {
 
     var body: some View {
         HStack(spacing: Spacing.large) {
-            Text("\(selectionCount) selected")
+            Text(Strings.Habits.selectedCount(selectionCount))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
@@ -27,7 +27,7 @@ struct HabitsEditModeToolbar: View {
                     VStack(spacing: 2) {
                         Image(systemName: "play.circle")
                             .font(.title2)
-                        Text("Activate")
+                        Text(Strings.Habits.activate)
                             .font(.caption2)
                     }
                 }
@@ -39,7 +39,7 @@ struct HabitsEditModeToolbar: View {
                     VStack(spacing: 2) {
                         Image(systemName: "pause.circle")
                             .font(.title2)
-                        Text("Deactivate")
+                        Text(Strings.Habits.deactivate)
                             .font(.caption2)
                     }
                 }
@@ -50,7 +50,7 @@ struct HabitsEditModeToolbar: View {
                 VStack(spacing: 2) {
                     Image(systemName: "trash")
                         .font(.title2)
-                    Text("Delete")
+                    Text(Strings.Button.delete)
                         .font(.caption2)
                 }
             }

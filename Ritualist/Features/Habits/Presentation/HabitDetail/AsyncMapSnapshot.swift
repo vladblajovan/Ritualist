@@ -62,7 +62,7 @@ struct AsyncMapSnapshot: View {
                             Image(systemName: "map")
                                 .font(.system(size: 40))
                                 .foregroundColor(.secondary)
-                            Text("Tap to view map")
+                            Text(Strings.Location.tapToViewMap)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

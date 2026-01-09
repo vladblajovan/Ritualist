@@ -38,4 +38,8 @@ public protocol SecureSubscriptionService: Sendable {
     /// Get subscription expiry date for active subscriptions
     /// Returns nil for free users
     func getSubscriptionExpiryDate() async -> Date?
+
+    /// Check if user is currently on a free trial period
+    /// Returns true if the active subscription is using an introductory offer (free trial)
+    func isOnTrial() async -> Bool
 }

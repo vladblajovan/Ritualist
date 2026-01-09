@@ -6,12 +6,12 @@ struct PermissionsSectionView: View {
     @Bindable var vm: SettingsViewModel
 
     var body: some View {
-        Section("Permissions") {
+        Section(Strings.Settings.sectionPermissions) {
             // Notifications Permission Row
             PermissionRow(
                 icon: vm.hasNotificationPermission ? "bell.fill" : "bell.slash.fill",
                 iconColor: vm.hasNotificationPermission ? .green : .orange,
-                title: "Notifications",
+                title: Strings.Settings.notifications,
                 subtitle: vm.hasNotificationPermission ? nil : Strings.Settings.notificationsDisabled,
                 isRequesting: vm.isRequestingNotifications,
                 isGranted: vm.hasNotificationPermission,
@@ -23,17 +23,17 @@ struct PermissionsSectionView: View {
                         UIApplication.shared.open(settingsUrl)
                     }
                 },
-                requestAccessibilityLabel: "Request notification permission",
-                requestAccessibilityHint: "Tap to enable notifications",
-                settingsAccessibilityLabel: "Open notification settings",
-                settingsAccessibilityHint: "Opens iOS Settings app"
+                requestAccessibilityLabel: Strings.Settings.requestNotificationPermission,
+                requestAccessibilityHint: Strings.Settings.enableNotificationsHint,
+                settingsAccessibilityLabel: Strings.Settings.openNotificationSettings,
+                settingsAccessibilityHint: Strings.Settings.opensSettingsApp
             )
 
             // Location Permission Row
             PermissionRow(
                 icon: vm.locationAuthStatus.canMonitorGeofences ? "location.fill" : "location.slash.fill",
                 iconColor: vm.locationAuthStatus.canMonitorGeofences ? .green : .orange,
-                title: "Location",
+                title: Strings.Settings.location,
                 subtitle: vm.locationAuthStatus.canMonitorGeofences ? nil : vm.locationAuthStatus.displayText,
                 isRequesting: vm.isRequestingLocationPermission,
                 isGranted: vm.locationAuthStatus.canMonitorGeofences,
@@ -45,10 +45,10 @@ struct PermissionsSectionView: View {
                         UIApplication.shared.open(settingsUrl)
                     }
                 },
-                requestAccessibilityLabel: "Request location permission",
-                requestAccessibilityHint: "Tap to enable location services",
-                settingsAccessibilityLabel: "Open location settings",
-                settingsAccessibilityHint: "Opens iOS Settings app"
+                requestAccessibilityLabel: Strings.Settings.requestLocationPermission,
+                requestAccessibilityHint: Strings.Settings.enableLocationHint,
+                settingsAccessibilityLabel: Strings.Settings.openLocationSettings,
+                settingsAccessibilityHint: Strings.Settings.opensSettingsApp
             )
         }
     }

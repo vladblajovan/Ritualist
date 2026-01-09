@@ -37,11 +37,11 @@ struct TapHabitTip: Tip {
     static let firstHabitAdded = Tips.Event(id: RitualistTipEvents.firstHabitAdded)
 
     var title: Text {
-        Text("Tap to Log Progress")
+        Text(Strings.Tips.tapToLogTitle)
     }
 
     var message: Text? {
-        Text("Tap any habit to quickly log your progress or mark it complete.")
+        Text(Strings.Tips.tapToLogMessage)
     }
 
     var image: Image? {
@@ -71,11 +71,11 @@ struct TapCompletedHabitTip: Tip {
     static let gotItActionId = "tapCompletedHabitTip.gotIt"
 
     var title: Text {
-        Text("Adjust Completed Habits")
+        Text(Strings.Tips.adjustCompletedTitle)
     }
 
     var message: Text? {
-        Text("Tap completed habits to adjust progress or undo completion.")
+        Text(Strings.Tips.adjustCompletedMessage)
     }
 
     var image: Image? {
@@ -84,7 +84,7 @@ struct TapCompletedHabitTip: Tip {
 
     var actions: [Action] {
         [
-            Action(id: Self.gotItActionId, title: "Got it")
+            Action(id: Self.gotItActionId, title: Strings.Tips.gotIt)
         ]
     }
 
@@ -109,11 +109,11 @@ struct LongPressLogTip: Tip {
     static let gotItActionId = "longPressLogTip.gotIt"
 
     var title: Text {
-        Text("Quick Log with Long-Press")
+        Text(Strings.Tips.longPressTitle)
     }
 
     var message: Text? {
-        Text("Press and hold any habit to instantly log it without opening a sheet.")
+        Text(Strings.Tips.longPressMessage)
     }
 
     var image: Image? {
@@ -122,7 +122,7 @@ struct LongPressLogTip: Tip {
 
     var actions: [Action] {
         [
-            Action(id: Self.gotItActionId, title: "Got it")
+            Action(id: Self.gotItActionId, title: Strings.Tips.gotIt)
         ]
     }
 
@@ -141,11 +141,11 @@ struct CircleProgressTip: Tip {
     static let longPressTipDismissed = Tips.Event(id: RitualistTipEvents.longPressTipDismissed)
 
     var title: Text {
-        Text("Daily Progress")
+        Text(Strings.Tips.dailyProgressTitle)
     }
 
     var message: Text? {
-        Text("This circle shows your overall habit completion for today. It fills up as you complete habits.")
+        Text(Strings.Tips.dailyProgressMessage)
     }
 
     var image: Image? {

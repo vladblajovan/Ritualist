@@ -21,7 +21,7 @@ struct ICloudSyncSettingsView: View {
                 TroubleshootingSectionView(status: vm.iCloudStatus)
             }
         }
-        .navigationTitle("iCloud Sync")
+        .navigationTitle(Strings.ICloudSync.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await vm.refreshiCloudStatus()
@@ -320,6 +320,7 @@ private struct TroubleshootingSectionView: View {
             checkPremiumStatus: PreviewMocks.CheckPremiumStatus(),
             getCurrentSubscriptionPlan: PreviewMocks.GetCurrentSubscriptionPlan(),
             getSubscriptionExpiryDate: PreviewMocks.GetSubscriptionExpiryDate(),
+            getIsOnTrial: PreviewMocks.GetIsOnTrial(),
             syncWithiCloud: PreviewMocks.SyncWithiCloud(),
             checkiCloudStatus: PreviewMocks.CheckiCloudStatus(status: .available),
             getLastSyncDate: PreviewMocks.GetLastSyncDate(),
@@ -342,6 +343,7 @@ private struct TroubleshootingSectionView: View {
             checkPremiumStatus: PreviewMocks.CheckPremiumStatus(),
             getCurrentSubscriptionPlan: PreviewMocks.GetCurrentSubscriptionPlan(),
             getSubscriptionExpiryDate: PreviewMocks.GetSubscriptionExpiryDate(),
+            getIsOnTrial: PreviewMocks.GetIsOnTrial(),
             syncWithiCloud: PreviewMocks.SyncWithiCloud(),
             checkiCloudStatus: PreviewMocks.CheckiCloudStatus(status: .notSignedIn),
             getLastSyncDate: PreviewMocks.GetLastSyncDate(),
@@ -395,6 +397,10 @@ private enum PreviewMocks {
 
     struct GetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
         func execute() async -> Date? { nil }
+    }
+
+    struct GetIsOnTrial: GetIsOnTrialUseCase {
+        func execute() async -> Bool { false }
     }
 
     struct SyncWithiCloud: SyncWithiCloudUseCase {

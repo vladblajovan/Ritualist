@@ -15,16 +15,16 @@ struct OnboardingPage6View: View {
                     color: viewModel.hasGrantedNotifications ? .blue : .secondary,
                     isGranted: viewModel.hasGrantedNotifications
                 )
-                .accessibilityLabel("Notifications")
-                .accessibilityValue(viewModel.hasGrantedNotifications ? "Enabled" : "Not enabled")
+                .accessibilityLabel(Strings.Onboarding.notificationsTitle)
+                .accessibilityValue(viewModel.hasGrantedNotifications ? Strings.Onboarding.enabled : Strings.Onboarding.notEnabled)
 
                 PermissionIcon(
                     icon: viewModel.hasGrantedLocation ? "location.fill" : "location.slash.fill",
                     color: viewModel.hasGrantedLocation ? .green : .secondary,
                     isGranted: viewModel.hasGrantedLocation
                 )
-                .accessibilityLabel("Location")
-                .accessibilityValue(viewModel.hasGrantedLocation ? "Enabled" : "Not enabled")
+                .accessibilityLabel(Strings.Onboarding.locationTitle)
+                .accessibilityValue(viewModel.hasGrantedLocation ? Strings.Onboarding.enabled : Strings.Onboarding.notEnabled)
             }
 
             // Title and description
@@ -46,8 +46,8 @@ struct OnboardingPage6View: View {
                 PermissionCard(
                     icon: "bell.fill",
                     iconColor: .blue,
-                    title: "Notifications",
-                    description: "Get reminders for your habits at the right time",
+                    title: Strings.Onboarding.notificationsTitle,
+                    description: Strings.Onboarding.notificationsDescription,
                     isGranted: viewModel.hasGrantedNotifications
                 ) {
                     Task {
@@ -58,8 +58,8 @@ struct OnboardingPage6View: View {
                 PermissionCard(
                     icon: "location.fill",
                     iconColor: .green,
-                    title: "Location",
-                    description: "Enable location-based habit reminders",
+                    title: Strings.Onboarding.locationTitle,
+                    description: Strings.Onboarding.locationDescription,
                     isGranted: viewModel.hasGrantedLocation
                 ) {
                     Task {
@@ -81,10 +81,10 @@ struct OnboardingPage6View: View {
                         Image(systemName: "lightbulb.fill")
                             .foregroundStyle(.yellow)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Quick Tour")
+                            Text(Strings.Onboarding.quickTour)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            Text("Learn the basics with helpful tips")
+                            Text(Strings.Onboarding.quickTourDescription)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -98,15 +98,15 @@ struct OnboardingPage6View: View {
                 )
                 .padding(.horizontal, 24)
             }
-            .alert("Skip Quick Tour?", isPresented: $viewModel.showSkipTrainingAlert) {
-                Button("Skip", role: .destructive) {
+            .alert(Strings.Onboarding.skipQuickTourTitle, isPresented: $viewModel.showSkipTrainingAlert) {
+                Button(Strings.Onboarding.skip, role: .destructive) {
                     viewModel.confirmSkipTraining()
                 }
-                Button("Keep Tour", role: .cancel) {
+                Button(Strings.Onboarding.keepTour, role: .cancel) {
                     viewModel.cancelSkipTraining()
                 }
             } message: {
-                Text("The quick tour shows helpful tips as you explore the app. You can always find help in Settings later.")
+                Text(Strings.Onboarding.skipQuickTourMessage)
             }
 
             if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
@@ -187,7 +187,7 @@ private struct PermissionCard: View {
                     .font(.title2)
                     .foregroundStyle(.green)
             } else {
-                Button("Enable") {
+                Button(Strings.Onboarding.enable) {
                     action()
                 }
                 .buttonStyle(.bordered)
@@ -201,7 +201,7 @@ private struct PermissionCard: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title). \(description)")
-        .accessibilityValue(isGranted ? "Enabled" : "Not enabled")
-        .accessibilityHint(isGranted ? "" : "Double tap to enable \(title.lowercased())")
+        .accessibilityValue(isGranted ? Strings.Onboarding.enabled : Strings.Onboarding.notEnabled)
+        .accessibilityHint(isGranted ? "" : String(format: String(localized: "onboarding.enableHint"), title.lowercased()))
     }
 }
