@@ -97,35 +97,18 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         // This ensures the user has offline access right away
         let plan = StoreKitProductID.subscriptionPlan(for: productId)
 
-        // Small delay to allow StoreKit to propagate the transaction
-        // This mitigates race conditions where the transaction hasn't synced yet
-        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        // Query transaction with retry logic for race condition mitigation
+        // StoreKit may not have propagated the transaction immediately after purchase
+        let transactionInfo = await queryTransactionWithRetry(productId: productId)
 
-        // Query transaction for trial info and expiry date
-        // Capture the most recent transaction in case user has multiple (edge case)
-        var isOnTrial = false
-        var expiryDate: Date?
-        var latestPurchaseDate: Date?
-
-        for await result in Transaction.currentEntitlements {
-            guard case .verified(let transaction) = result,
-                  transaction.productID == productId else {
-                continue
-            }
-            // Keep the most recent transaction by purchase date
-            let shouldUpdate = latestPurchaseDate.map { transaction.purchaseDate > $0 } ?? true
-            if shouldUpdate {
-                latestPurchaseDate = transaction.purchaseDate
-                isOnTrial = transaction.offer?.type == .introductory
-                expiryDate = transaction.expirationDate
-            }
-        }
-
-        // If transaction wasn't found (race condition), use conservative fallback
+        // If transaction wasn't found after retries, use conservative fallback
         // The next cache refresh will get accurate data from StoreKit
-        if latestPurchaseDate == nil {
+        let isOnTrial = transactionInfo.isOnTrial
+        var expiryDate = transactionInfo.expiryDate
+
+        if !transactionInfo.found {
             Container.shared.debugLogger().log(
-                "Transaction not yet available for \(productId) - using fallback expiry",
+                "Transaction not found after retries for \(productId) - using fallback expiry",
                 level: .warning,
                 category: .subscription
             )
@@ -138,6 +121,48 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
             isOnTrial: isOnTrial,
             expiryDate: expiryDate
         )
+    }
+
+    /// Queries StoreKit for transaction info with exponential backoff retry
+    /// Returns transaction details if found, or defaults if not found after retries
+    private func queryTransactionWithRetry(productId: String) async -> TransactionQueryResult {
+        let maxAttempts = 3
+        var delayNanoseconds: UInt64 = 100_000_000 // Start at 100ms
+
+        for attempt in 1...maxAttempts {
+            // Query StoreKit for current entitlements
+            var latestPurchaseDate: Date?
+            var result = TransactionQueryResult()
+
+            for await entitlement in Transaction.currentEntitlements {
+                guard case .verified(let transaction) = entitlement,
+                      transaction.productID == productId else {
+                    continue
+                }
+                // Keep the most recent transaction by purchase date
+                let shouldUpdate = latestPurchaseDate.map { transaction.purchaseDate > $0 } ?? true
+                if shouldUpdate {
+                    latestPurchaseDate = transaction.purchaseDate
+                    result.isOnTrial = transaction.offer?.type == .introductory
+                    result.expiryDate = transaction.expirationDate
+                }
+            }
+
+            // Found the transaction
+            if latestPurchaseDate != nil {
+                result.found = true
+                return result
+            }
+
+            // Not found - wait and retry (except on last attempt)
+            if attempt < maxAttempts {
+                try? await Task.sleep(nanoseconds: delayNanoseconds)
+                delayNanoseconds *= 2 // Exponential backoff: 100ms, 200ms, 400ms
+            }
+        }
+
+        // Transaction not found after all retries
+        return TransactionQueryResult()
     }
 
     /// Returns a fallback expiry date based on subscription plan type
@@ -261,6 +286,13 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         return timeSinceLastUpdate > cacheValidityDuration
     }
 
+    /// Result of querying a specific transaction with retry logic
+    private struct TransactionQueryResult {
+        var found = false
+        var isOnTrial = false
+        var expiryDate: Date?
+    }
+
     /// Result of processing StoreKit entitlements
     private struct EntitlementResult {
         var validPurchases: Set<String> = []
@@ -286,7 +318,11 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
             }
             if let transactionExpiry = transaction.expirationDate {
                 // Keep the earliest expiry date if multiple subscriptions
-                if result.expiryDate == nil || transactionExpiry < result.expiryDate! {
+                if let currentExpiry = result.expiryDate {
+                    if transactionExpiry < currentExpiry {
+                        result.expiryDate = transactionExpiry
+                    }
+                } else {
                     result.expiryDate = transactionExpiry
                 }
             }
