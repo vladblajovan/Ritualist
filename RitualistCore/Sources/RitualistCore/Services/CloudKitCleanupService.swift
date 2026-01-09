@@ -64,6 +64,16 @@ public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Senda
     /// Reference: This is observable in CloudKit Dashboard when inspecting synced records.
     private static let recordType = "CD_PersonalityAnalysisModel"
 
+    /// CloudKit zone where SwiftData/CoreData stores synced records
+    ///
+    /// SwiftData automatically creates and uses this specific zone for all synced records.
+    /// When querying CloudKit directly, we MUST specify this zone to avoid querying the
+    /// `_zoneWide` special zone, which causes BAD_REQUEST errors on private databases.
+    private static let swiftDataZoneID = CKRecordZone.ID(
+        zoneName: "com.apple.coredata.cloudkit.zone",
+        ownerName: CKCurrentUserDefaultName
+    )
+
     public init(logger: DebugLogger, userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
         self.logger = logger
         self.userDefaults = userDefaults
@@ -165,7 +175,12 @@ public final class CloudKitCleanupService: CloudKitCleanupServiceProtocol, Senda
         if let cursor = cursor {
             (results, nextCursor) = try await database.records(continuingMatchFrom: cursor)
         } else {
-            (results, nextCursor) = try await database.records(matching: query)
+            // IMPORTANT: Query within the SwiftData zone, NOT the default zone
+            // Querying without a zone uses _zoneWide which fails with BAD_REQUEST
+            (results, nextCursor) = try await database.records(
+                matching: query,
+                inZoneWith: Self.swiftDataZoneID
+            )
         }
 
         // Extract records, logging any fetch errors instead of silently discarding
