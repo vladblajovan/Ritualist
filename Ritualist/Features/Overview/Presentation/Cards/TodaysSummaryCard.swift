@@ -619,23 +619,29 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         if isFirstItem {
             VStack(spacing: 4) {
                 // Show tap tip OR long-press tip based on TipKit rules
-                TipView(tapHabitTip, arrowEdge: .bottom) { action in
-                    if action.id == TapHabitTip.gotItActionId {
-                        // User tapped "Got it" - enable next tip in chain
-                        TapHabitTip.wasDismissed.sendDonation()
-                        tapHabitTip.invalidate(reason: .actionPerformed)
-                        logger.log("Tap habit tip 'Got it' tapped - completed habit tip enabled", level: .debug, category: .ui)
+                // Status observers donate chain events on ANY dismissal (X button or action)
+                TipView(tapHabitTip, arrowEdge: .bottom)
+                    .task {
+                        for await status in tapHabitTip.statusUpdates {
+                            if case .invalidated = status {
+                                TapHabitTip.wasDismissed.sendDonation()
+                                logger.log("Tap habit tip dismissed - completed habit tip enabled", level: .debug, category: .ui)
+                            }
+                        }
                     }
-                }
-                TipView(longPressLogTip, arrowEdge: .bottom) { action in
-                    if action.id == LongPressLogTip.gotItActionId {
-                        // User tapped "Got it" - enable circle progress tip
-                        LongPressLogTip.wasDismissed.sendDonation()
-                        CircleProgressTip.longPressTipDismissed.sendDonation()
-                        longPressLogTip.invalidate(reason: .actionPerformed)
-                        logger.log("Long-press tip 'Got it' tapped - circle progress tip enabled", level: .debug, category: .ui)
+                TipView(longPressLogTip, arrowEdge: .bottom)
+                    .task {
+                        for await status in longPressLogTip.statusUpdates {
+                            // Only donate chain events for X button dismissal (.tipClosed)
+                            // For programmatic dismissal (.actionPerformed), we donate in onComplete
+                            // after the habit is actually completed and moved
+                            if case .invalidated(let reason) = status, reason == .tipClosed {
+                                LongPressLogTip.wasDismissed.sendDonation()
+                                CircleProgressTip.longPressTipDismissed.sendDonation()
+                                logger.log("Long-press tip X-dismissed - circle progress tip enabled", level: .debug, category: .ui)
+                            }
+                        }
                     }
-                }
                 habitRow(habit: habit, isCompleted: false)
             }
             .onAppear {
@@ -663,15 +669,17 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func completedHabitItem(habit: Habit, isFirstItem: Bool) -> some View {
         if isFirstItem {
             VStack(spacing: 4) {
-                TipView(tapCompletedHabitTip, arrowEdge: .bottom) { action in
-                    if action.id == TapCompletedHabitTip.gotItActionId {
-                        // User tapped "Got it" - enable long-press tip
-                        TapCompletedHabitTip.wasDismissed.sendDonation()
-                        LongPressLogTip.shouldShowLongPressTip.sendDonation()
-                        tapCompletedHabitTip.invalidate(reason: .actionPerformed)
-                        logger.log("Completed habit tip 'Got it' tapped - long-press tip enabled", level: .debug, category: .ui)
+                // Status observer donates chain events on ANY dismissal (X button or action)
+                TipView(tapCompletedHabitTip, arrowEdge: .bottom)
+                    .task {
+                        for await status in tapCompletedHabitTip.statusUpdates {
+                            if case .invalidated = status {
+                                TapCompletedHabitTip.wasDismissed.sendDonation()
+                                LongPressLogTip.shouldShowLongPressTip.sendDonation()
+                                logger.log("Completed habit tip dismissed - long-press tip enabled", level: .debug, category: .ui)
+                            }
+                        }
                     }
-                }
                 habitRow(habit: habit, isCompleted: true)
             }
             .onAppear {
@@ -752,12 +760,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 longPressHabitId = habit.id
                 longPressProgress = 0.0
                 // Dismiss tips when user starts learning the gesture
-                // IMPORTANT: Also donate wasDismissed events to enable tip chain progression
+                // TapHabitTip chain event donated immediately (user is learning)
                 TapHabitTip.wasDismissed.sendDonation()
                 tapHabitTip.invalidate(reason: .actionPerformed)
-                // Long-press tip dismissal enables CircleProgressTip
-                LongPressLogTip.wasDismissed.sendDonation()
-                CircleProgressTip.longPressTipDismissed.sendDonation()
+                // LongPressLogTip dismissed visually, but chain event donated in onComplete
+                // (after habit actually completes and moves to completed section)
                 longPressLogTip.invalidate(reason: .actionPerformed)
             },
             onComplete: {
@@ -780,6 +787,15 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
                 // Trigger tip for completed habits
                 TapCompletedHabitTip.firstHabitCompleted.sendDonation()
+
+                // Donate long-press tip chain events after short delay
+                // This ensures avatar tip appears AFTER habit moves to completed section
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 500ms - time for UI to update
+                    LongPressLogTip.wasDismissed.sendDonation()
+                    CircleProgressTip.longPressTipDismissed.sendDonation()
+                    logger.log("Long-press complete - circle progress tip enabled", level: .debug, category: .ui)
+                }
 
                 // Schedule removal from recently completed set after delay
                 longPressCompletionTasks[habit.id]?.cancel()

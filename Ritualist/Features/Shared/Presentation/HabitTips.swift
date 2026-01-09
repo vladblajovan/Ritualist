@@ -6,15 +6,15 @@ import SwiftUI
 /// Centralized identifiers for TipKit events to prevent accidental changes.
 /// TipKit persists state using these IDs - changing them will reset tip state for users.
 ///
-/// TIP CHAIN FLOW:
+/// TIP CHAIN FLOW (status observer pattern - chain events donated on ANY dismissal):
 /// 1. TapHabitTip (after onboarding + first habit added)
-///    └─► "Got it" donates tapHabitTipDismissed
+///    └─► Dismissal donates tapHabitTipDismissed
 /// 2. TapCompletedHabitTip (after first habit completed + tap tip dismissed)
-///    └─► "Got it" donates shouldShowLongPressTip
+///    └─► Dismissal donates shouldShowLongPressTip
 /// 3. LongPressLogTip (after completed tip dismissed)
-///    └─► "Got it" donates longPressTipDismissed
+///    └─► Dismissal donates longPressTipDismissed
 /// 4. CircleProgressTip (after long-press tip dismissed)
-///    └─► "Got it" ends the chain
+///    └─► Dismissal ends the chain
 public enum RitualistTipEvents {
     /// Event ID for when user closes Habits Assistant after onboarding
     public static let habitsAssistantClosed = "habitsAssistantClosedAfterOnboarding"
@@ -52,9 +52,6 @@ struct TapHabitTip: Tip {
     /// Event triggered when this tip is dismissed - gates TapCompletedHabitTip
     static let wasDismissed = Tips.Event(id: RitualistTipEvents.tapHabitTipDismissed)
 
-    /// Action ID for the "Got it" button
-    static let gotItActionId = "tapHabitTip.gotIt"
-
     var title: Text {
         Text(Strings.Tips.tapToLogTitle)
     }
@@ -65,12 +62,6 @@ struct TapHabitTip: Tip {
 
     var image: Image? {
         Image(systemName: "hand.tap.fill")
-    }
-
-    var actions: [Action] {
-        [
-            Action(id: Self.gotItActionId, title: Strings.Tips.gotIt)
-        ]
     }
 
     var rules: [Rule] {
@@ -92,9 +83,6 @@ struct TapCompletedHabitTip: Tip {
     /// Event triggered when this tip is dismissed - gates the long-press tip
     static let wasDismissed = Tips.Event(id: RitualistTipEvents.completedHabitTipDismissed)
 
-    /// Action ID for the "Got it" button
-    static let gotItActionId = "tapCompletedHabitTip.gotIt"
-
     var title: Text {
         Text(Strings.Tips.adjustCompletedTitle)
     }
@@ -105,12 +93,6 @@ struct TapCompletedHabitTip: Tip {
 
     var image: Image? {
         Image(systemName: "arrow.uturn.backward.circle.fill")
-    }
-
-    var actions: [Action] {
-        [
-            Action(id: Self.gotItActionId, title: Strings.Tips.gotIt)
-        ]
     }
 
     var rules: [Rule] {
@@ -132,9 +114,6 @@ struct LongPressLogTip: Tip {
     /// Event triggered when this tip is dismissed - gates the avatar tip
     static let wasDismissed = Tips.Event(id: RitualistTipEvents.longPressTipDismissed)
 
-    /// Action ID for the "Got it" button
-    static let gotItActionId = "longPressLogTip.gotIt"
-
     var title: Text {
         Text(Strings.Tips.longPressTitle)
     }
@@ -145,12 +124,6 @@ struct LongPressLogTip: Tip {
 
     var image: Image? {
         Image(systemName: "hand.tap.fill")
-    }
-
-    var actions: [Action] {
-        [
-            Action(id: Self.gotItActionId, title: Strings.Tips.gotIt)
-        ]
     }
 
     var rules: [Rule] {
@@ -167,9 +140,6 @@ struct CircleProgressTip: Tip {
     /// Event triggered when LongPressLogTip is dismissed
     static let longPressTipDismissed = Tips.Event(id: RitualistTipEvents.longPressTipDismissed)
 
-    /// Action ID for the "Got it" button
-    static let gotItActionId = "circleProgressTip.gotIt"
-
     var title: Text {
         Text(Strings.Tips.dailyProgressTitle)
     }
@@ -180,12 +150,6 @@ struct CircleProgressTip: Tip {
 
     var image: Image? {
         Image(systemName: "circle.dashed")
-    }
-
-    var actions: [Action] {
-        [
-            Action(id: Self.gotItActionId, title: Strings.Tips.gotIt)
-        ]
     }
 
     var rules: [Rule] {

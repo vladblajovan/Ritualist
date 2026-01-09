@@ -280,11 +280,8 @@ struct AppBrandHeader: View {
         .id(profileRefreshTrigger) // Force re-render when profile loads
 
         if showAvatarTip {
-            button.popoverTip(circleProgressTip, arrowEdge: .top) { action in
-                if action.id == CircleProgressTip.gotItActionId {
-                    circleProgressTip.invalidate(reason: .actionPerformed)
-                }
-            }
+            // CircleProgressTip is the last tip in the chain - no need to donate events on dismissal
+            button.popoverTip(circleProgressTip, arrowEdge: .top)
         } else {
             button
         }

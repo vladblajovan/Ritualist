@@ -93,9 +93,7 @@ struct DebugMenuView: View {
             DebugMenuOnboardingSection(
                 vm: vm,
                 showingResetOnboardingConfirmation: $showingResetOnboardingConfirmation,
-                showingSimulateNewDeviceConfirmation: $showingSimulateNewDeviceConfirmation,
-                showingRestartRequiredAlert: $showingRestartRequiredAlert,
-                restartInstructionMessage: $restartInstructionMessage
+                showingSimulateNewDeviceConfirmation: $showingSimulateNewDeviceConfirmation
             )
 
             DebugMenuMigrationSection(
@@ -251,12 +249,12 @@ private struct ResetOnboardingAlertModifier: ViewModifier {
             Button("Reset", role: .destructive) {
                 Task {
                     await vm.resetOnboarding()
-                    restartInstructionMessage = "Onboarding has been reset. Please close and reopen the app to see the onboarding flow."
+                    restartInstructionMessage = "Onboarding and tips have been reset. Please close and reopen the app to see the onboarding flow and tips again."
                     showingRestartRequiredAlert = true
                 }
             }
         } message: {
-            Text("This will clear the onboarding completion status. You'll need to manually restart the app to see the onboarding flow again.")
+            Text("This will clear the onboarding completion status and reset all tips. Restart the app to see the onboarding flow and tips again.")
         }
     }
 }

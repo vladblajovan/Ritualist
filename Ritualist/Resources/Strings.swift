@@ -583,7 +583,6 @@ public enum Strings {
         public static let longPressMessage = String(localized: "tips.longPress.message")
         public static let dailyProgressTitle = String(localized: "tips.dailyProgress.title")
         public static let dailyProgressMessage = String(localized: "tips.dailyProgress.message")
-        public static let gotIt = String(localized: "tips.gotIt")
     }
 
     // MARK: - Timezone Change
@@ -855,6 +854,7 @@ public enum Strings {
         public static func discountSavePercent(_ percent: Int) -> String {
             String(format: String(localized: "paywall.discount.savePercent"), percent)
         }
+        public static let discountFallback = String(localized: "paywall.discount.fallback")
     }
 
     // MARK: - Personality Insights

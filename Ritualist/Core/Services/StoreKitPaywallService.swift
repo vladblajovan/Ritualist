@@ -197,10 +197,11 @@ public actor StoreKitPaywallService: PaywallService {
     }
 
     /// Calculates the discount percentage for annual subscription compared to monthly
-    private func calculateAnnualDiscount(annualProduct: StoreKit.Product) -> String? {
+    private func calculateAnnualDiscount(annualProduct: StoreKit.Product) -> String {
         // Find the monthly product to compare prices
         guard let monthlyProduct = storeProducts.first(where: { $0.id == StoreKitProductID.monthly }) else {
-            return nil
+            // Fallback marketing text when monthly product unavailable for comparison
+            return Strings.Paywall.discountFallback
         }
 
         let annualPrice = annualProduct.price as Decimal
@@ -208,11 +209,11 @@ public actor StoreKitPaywallService: PaywallService {
         let yearlyMonthlyTotal = monthlyPrice * 12
 
         // Calculate savings percentage: (monthlyTotal - annual) / monthlyTotal * 100
-        guard yearlyMonthlyTotal > 0 else { return nil }
+        guard yearlyMonthlyTotal > 0 else { return Strings.Paywall.discountFallback }
         let savings = (yearlyMonthlyTotal - annualPrice) / yearlyMonthlyTotal * 100
         let savingsPercent = Int(NSDecimalNumber(decimal: savings).doubleValue.rounded())
 
-        guard savingsPercent > 0 else { return nil }
+        guard savingsPercent > 0 else { return Strings.Paywall.discountFallback }
         return Strings.Paywall.discountSavePercent(savingsPercent)
     }
 

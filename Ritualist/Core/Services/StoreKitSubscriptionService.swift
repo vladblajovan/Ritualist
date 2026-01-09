@@ -109,7 +109,8 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
                 continue
             }
             // Keep the most recent transaction by purchase date
-            if latestPurchaseDate == nil || transaction.purchaseDate > latestPurchaseDate! {
+            let shouldUpdate = latestPurchaseDate.map { transaction.purchaseDate > $0 } ?? true
+            if shouldUpdate {
                 latestPurchaseDate = transaction.purchaseDate
                 isOnTrial = transaction.offer?.type == .introductory
                 expiryDate = transaction.expirationDate
@@ -267,10 +268,16 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         let plan = subscriptionPlanFromPurchases(result.validPurchases)
 
         if plan != .free {
-            // Log warning if active subscription has no expiry date (StoreKit API issue)
-            if result.expiryDate == nil {
+            // Determine expiry date - use 1-day fallback if missing to force earlier re-verification
+            let effectiveExpiryDate: Date?
+            if let expiryDate = result.expiryDate {
+                effectiveExpiryDate = expiryDate
+            } else {
+                // StoreKit API issue - no expiry date provided
+                // Use 1-day fallback to force re-verification sooner
+                effectiveExpiryDate = Calendar.current.date(byAdding: .day, value: 1, to: Date())
                 Container.shared.debugLogger().log(
-                    "Active subscription (\(plan)) has no expiry date - StoreKit API may have issues",
+                    "Active subscription (\(plan)) has no expiry date - using 1-day fallback for cache",
                     level: .warning,
                     category: .subscription
                 )
@@ -280,7 +287,7 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
             await SecurePremiumCache.shared.updateCache(
                 plan: plan,
                 isOnTrial: result.isOnTrial,
-                expiryDate: result.expiryDate
+                expiryDate: effectiveExpiryDate
             )
         } else if result.didReceiveAnyEntitlement {
             // StoreKit responded with entitlements but none are valid (expired/revoked)
