@@ -35,7 +35,7 @@ struct DeactivateHabitsPromptBanner: View {
                     .foregroundStyle(.orange)
                     .font(CardDesign.title3)
 
-                Text("Too Many Active Habits")
+                Text(Strings.Overview.tooManyActiveHabits)
                     .font(CardDesign.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
@@ -44,7 +44,7 @@ struct DeactivateHabitsPromptBanner: View {
             }
 
             // Explanation text
-            Text("Deactivate \(excessCount) habits or upgrade.")
+            Text(Strings.Overview.deactivateHabitsOrUpgrade(excessCount))
                 .font(CardDesign.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -53,7 +53,7 @@ struct DeactivateHabitsPromptBanner: View {
             HStack(spacing: Spacing.small) {
                 // Manage Habits button
                 Button(action: onManageHabits) {
-                    Text("Manage Habits")
+                    Text(Strings.Overview.manageHabits)
                         .font(CardDesign.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(.primary)
@@ -69,7 +69,7 @@ struct DeactivateHabitsPromptBanner: View {
                     HStack(spacing: 6) {
                         Image(systemName: "crown.fill")
                             .font(CardDesign.caption)
-                        Text("Upgrade")
+                        Text(Strings.Overview.upgrade)
                             .font(CardDesign.subheadline)
                             .fontWeight(.semibold)
                     }

@@ -29,7 +29,7 @@ struct OnboardingPage2View: View {
 
                 // Title and description
                 VStack(spacing: 8) {
-                    Text("Track Your Habits")
+                    Text(Strings.Onboarding.trackHabitsTitle)
                         .font(.title.weight(.bold))
                         .fontDesign(.rounded)
                         .multilineTextAlignment(.center)
@@ -47,29 +47,29 @@ struct OnboardingPage2View: View {
                     OnboardingFeatureCard(
                         icon: "calendar",
                         iconColor: .blue,
-                        title: "Daily Tracking",
-                        description: "Mark habits as complete each day"
+                        title: Strings.Onboarding.dailyTrackingTitle,
+                        description: Strings.Onboarding.dailyTrackingDescription
                     )
 
                     OnboardingFeatureCard(
                         icon: "chart.bar.fill",
                         iconColor: .purple,
-                        title: "Progress Visualization",
-                        description: "See your streaks and patterns over time"
+                        title: Strings.Onboarding.progressVisualizationTitle,
+                        description: Strings.Onboarding.progressVisualizationDescription
                     )
 
                     OnboardingFeatureCard(
                         icon: "bell.fill",
                         iconColor: .orange,
-                        title: "Smart Reminders",
-                        description: "Get notified when it's time for your habits"
+                        title: Strings.Onboarding.smartRemindersTitle,
+                        description: Strings.Onboarding.smartRemindersDescription
                     )
 
                     OnboardingFeatureCard(
                         icon: "icloud.fill",
                         iconColor: .cyan,
-                        title: "iCloud Sync",
-                        description: "Your habits sync automatically across all your devices"
+                        title: Strings.Onboarding.iCloudSyncTitle,
+                        description: Strings.Onboarding.iCloudSyncDescription
                     )
                 }
                 .padding(.horizontal, 24)
@@ -82,12 +82,10 @@ struct OnboardingPage2View: View {
     }
 
     private var personalizedGreeting: String {
-        let baseMessage = "Build lasting habits with visual progress tracking and smart reminders."
-
         if !viewModel.userName.isEmpty {
-            return "Hi \(viewModel.userName)! \(baseMessage)"
+            return Strings.Onboarding.trackHabitsGreeting(viewModel.userName)
         } else {
-            return baseMessage
+            return Strings.Onboarding.trackHabitsSubtitle
         }
     }
 }

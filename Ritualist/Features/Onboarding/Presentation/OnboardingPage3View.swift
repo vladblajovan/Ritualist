@@ -23,12 +23,12 @@ struct OnboardingPage3View: View {
 
                 // Title and description
                 VStack(spacing: 8) {
-                    Text("Make It Yours")
+                    Text(Strings.Onboarding.makeItYoursTitle)
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
                         .accessibilityAddTraits(.isHeader)
 
-                    Text("Customize your habits with colors, emojis, and flexible scheduling.")
+                    Text(Strings.Onboarding.makeItYoursSubtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -40,29 +40,29 @@ struct OnboardingPage3View: View {
                     OnboardingFeatureCard(
                         icon: "paintpalette.fill",
                         iconColor: .pink,
-                        title: "Colors & Emojis",
-                        description: "Personalize each habit with colors and emojis"
+                        title: Strings.Onboarding.colorsEmojisTitle,
+                        description: Strings.Onboarding.colorsEmojisDescription
                     )
 
                     OnboardingFeatureCard(
                         icon: "calendar",
                         iconColor: .purple,
-                        title: "Flexible Scheduling",
-                        description: "Daily, weekly, or custom schedules that fit you"
+                        title: Strings.Onboarding.flexibleSchedulingTitle,
+                        description: Strings.Onboarding.flexibleSchedulingDescription
                     )
 
                     OnboardingFeatureCard(
                         icon: "target",
                         iconColor: .indigo,
-                        title: "Set Your Goals",
-                        description: "Binary tracking or numeric targets with units"
+                        title: Strings.Onboarding.setGoalsTitle,
+                        description: Strings.Onboarding.setGoalsDescription
                     )
 
                     OnboardingFeatureCard(
                         icon: "airplane",
                         iconColor: .blue,
-                        title: "Travel-Friendly",
-                        description: "Automatic timezone handling keeps habits on track wherever you go"
+                        title: Strings.Onboarding.travelFriendlyTitle,
+                        description: Strings.Onboarding.travelFriendlyDescription
                     )
                 }
                 .padding(.horizontal, 24)

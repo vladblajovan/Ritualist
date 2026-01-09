@@ -112,6 +112,12 @@ struct InspirationCard: View {
                 }
             )
             .cornerRadius(CardDesign.cornerRadius)
+            .shadow(
+                color: CardDesign.shadowColor,
+                radius: CardDesign.shadowRadius,
+                x: 0,
+                y: 2
+            )
             // PERFORMANCE: Reactive cache updates - only when dependencies change
             .onAppear {
                 updateCachedStyle()

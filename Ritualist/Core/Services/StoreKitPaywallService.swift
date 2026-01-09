@@ -177,7 +177,7 @@ public actor StoreKitPaywallService: PaywallService {
 
         let features = getFeaturesForProduct(storeProduct)
         let isPopular = storeProduct.id == StoreKitProductID.annual
-        let discount: String? = isPopular ? "Save 58%" : nil
+        let discount: String? = isPopular ? calculateAnnualDiscount(annualProduct: storeProduct) : nil
         let hasFreeTrial = storeProduct.subscription?.introductoryOffer?.paymentMode == .freeTrial
 
         return RitualistCore.Product(
@@ -194,6 +194,32 @@ public actor StoreKitPaywallService: PaywallService {
             isPopular: isPopular,
             discount: discount
         )
+    }
+
+    /// Calculates the discount percentage for annual subscription compared to monthly
+    private func calculateAnnualDiscount(annualProduct: StoreKit.Product) -> String {
+        // Find the monthly product to compare prices
+        guard let monthlyProduct = storeProducts.first(where: { $0.id == StoreKitProductID.monthly }) else {
+            // Fallback marketing text when monthly product unavailable for comparison
+            logger.log(
+                "Monthly product unavailable for discount calculation - using fallback text",
+                level: .warning,
+                category: .subscription
+            )
+            return Strings.Paywall.discountFallback
+        }
+
+        let annualPrice = annualProduct.price as Decimal
+        let monthlyPrice = monthlyProduct.price as Decimal
+        let yearlyMonthlyTotal = monthlyPrice * 12
+
+        // Calculate savings percentage: (monthlyTotal - annual) / monthlyTotal * 100
+        guard yearlyMonthlyTotal > 0 else { return Strings.Paywall.discountFallback }
+        let savings = (yearlyMonthlyTotal - annualPrice) / yearlyMonthlyTotal * 100
+        let savingsPercent = Int(NSDecimalNumber(decimal: savings).doubleValue.rounded())
+
+        guard savingsPercent > 0 else { return Strings.Paywall.discountFallback }
+        return Strings.Paywall.discountSavePercent(savingsPercent)
     }
 
     private func getFeaturesForProduct(_ product: StoreKit.Product) -> [String] {

@@ -75,7 +75,7 @@ public struct PersonalityInsightsView: View {
                     }
                 }
             }
-            .navigationTitle("Personality Insights")
+            .navigationTitle(Strings.PersonalityInsights.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
@@ -238,7 +238,7 @@ private struct SettingsView: View {
                     Text("How often personality analysis is performed. Regenerate to update analysis with latest habit data.")
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle(Strings.PersonalityInsights.settingsTitle)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -777,7 +777,7 @@ private struct FrequencySelectionView: View {
                 .buttonStyle(.plain)
             }
         }
-        .navigationTitle("Analysis Frequency")
+        .navigationTitle(Strings.PersonalityInsights.analysisFrequency)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -940,7 +940,7 @@ struct BigFiveInfoSheet: View {
                     }
                 }
             }
-            .navigationTitle("About Big Five")
+            .navigationTitle(Strings.PersonalityInsights.aboutBigFive)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {

@@ -117,6 +117,7 @@ extension Container {
                 checkPremiumStatus: self.checkPremiumStatus(),
                 getCurrentSubscriptionPlan: self.getCurrentSubscriptionPlan(),
                 getSubscriptionExpiryDate: self.getSubscriptionExpiryDate(),
+                getIsOnTrial: self.getIsOnTrial(),
                 syncWithiCloud: self.syncWithiCloud(),
                 checkiCloudStatus: self.checkiCloudStatus(),
                 getLastSyncDate: self.getLastSyncDate(),

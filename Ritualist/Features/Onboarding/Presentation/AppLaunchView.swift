@@ -52,7 +52,7 @@ struct AppLaunchView: View {
                         .scaleEffect(1.2)
                         .tint(AppColors.brand)
 
-                    Text("Preparing Your Experience")
+                    Text(Strings.Onboarding.preparingExperience)
                         .font(CardDesign.headline)
                         .foregroundStyle(.primary)
 
@@ -64,7 +64,7 @@ struct AppLaunchView: View {
                     }
                     #endif
 
-                    Text("This will only take a moment")
+                    Text(Strings.Onboarding.onlyTakesMoment)
                         .font(CardDesign.caption)
                         .foregroundStyle(.secondary.opacity(0.7))
                 } else {
@@ -72,7 +72,7 @@ struct AppLaunchView: View {
                     ProgressView()
                         .scaleEffect(1.5)
                         .tint(AppColors.brand)
-                        .accessibilityLabel("Loading")
+                        .accessibilityLabel(Strings.Onboarding.loading)
                 }
             }
             .padding(.bottom, 60)
@@ -80,7 +80,7 @@ struct AppLaunchView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(migrationDetails != nil ? "Ritualist is preparing your experience" : "Ritualist is loading")
+        .accessibilityLabel(migrationDetails != nil ? Strings.Onboarding.preparingAccessibility : Strings.Onboarding.loadingAccessibility)
     }
 }
 

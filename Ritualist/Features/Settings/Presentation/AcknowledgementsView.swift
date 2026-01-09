@@ -6,12 +6,13 @@
 //
 
 import SwiftUI
+import RitualistCore
 
 struct AcknowledgementsView: View {
     var body: some View {
         List {
             Section {
-                Text("Ritualist uses the following open source libraries:")
+                Text(Strings.Settings.acknowledgementsIntro)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -19,12 +20,12 @@ struct AcknowledgementsView: View {
 
             Section("Factory") {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("A new approach to Container-Based Dependency Injection for Swift and SwiftUI.")
+                    Text(Strings.Settings.factoryDescription)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
                     Link(destination: URL(string: "https://github.com/hmlongco/Factory")!) {
-                        Label("View on GitHub", systemImage: "link")
+                        Label(Strings.Settings.viewOnGitHub, systemImage: "link")
                             .font(.subheadline)
                     }
 
@@ -37,7 +38,7 @@ struct AcknowledgementsView: View {
                 .padding(.vertical, 8)
             }
         }
-        .navigationTitle("Acknowledgements")
+        .navigationTitle(Strings.Settings.acknowledgements)
         .navigationBarTitleDisplayMode(.inline)
     }
 

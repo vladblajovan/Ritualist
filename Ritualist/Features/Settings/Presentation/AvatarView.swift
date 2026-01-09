@@ -170,7 +170,7 @@ public struct AvatarImagePicker: View {
     public var body: some View {
         NavigationView {
             VStack(spacing: Spacing.large) {
-                Text("Profile Photo")
+                Text(Strings.Avatar.profilePhoto)
                     .font(.title2)
                     .fontWeight(.semibold)
                 
@@ -190,7 +190,7 @@ public struct AvatarImagePicker: View {
                     ) {
                         HStack {
                             Image(systemName: "photo")
-                            Text("Choose from Photos")
+                            Text(Strings.Avatar.chooseFromPhotos)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
@@ -208,7 +208,7 @@ public struct AvatarImagePicker: View {
                         } label: {
                             HStack {
                                 Image(systemName: "trash")
-                                Text("Remove Photo")
+                                Text(Strings.Avatar.removePhoto)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
@@ -232,13 +232,13 @@ public struct AvatarImagePicker: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(Strings.Common.cancel) {
                         onDismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(Strings.Common.done) {
                         if let imageData = selectedImageData {
                             onImageSelected(imageData)
                         }

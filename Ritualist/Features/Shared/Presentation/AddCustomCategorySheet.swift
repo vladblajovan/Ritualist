@@ -27,13 +27,13 @@ public struct AddCustomCategorySheet: View {
                 VStack(spacing: Spacing.medium) {
                     Text("🏷️")
                         .font(.system(size: 60))
-                    
+
                     VStack(spacing: Spacing.small) {
-                        Text("Create Custom Category")
+                        Text(Strings.CategoryManagement.createTitle)
                             .font(.title2)
                             .fontWeight(.bold)
-                        
-                        Text("Add a new category to organize your habits")
+
+                        Text(Strings.CategoryManagement.createSubtitle)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -44,19 +44,19 @@ public struct AddCustomCategorySheet: View {
                 VStack(spacing: Spacing.large) {
                     // Category name input
                     VStack(alignment: .leading, spacing: Spacing.small) {
-                        Text("Category Name")
+                        Text(Strings.CategoryManagement.nameLabel)
                             .font(.headline)
                             .fontWeight(.semibold)
-                        
-                        TextField("Enter category name", text: $categoryName)
+
+                        TextField(Strings.CategoryManagement.namePlaceholder, text: $categoryName)
                             .textFieldStyle(.plain)
                             .autocapitalization(.words)
                             .disableAutocorrection(false)
                     }
-                    
+
                     // Emoji selection
                     VStack(alignment: .leading, spacing: Spacing.small) {
-                        Text("Choose an Emoji")
+                        Text(Strings.CategoryManagement.chooseEmoji)
                             .font(.headline)
                             .fontWeight(.semibold)
                         
@@ -98,17 +98,17 @@ public struct AddCustomCategorySheet: View {
                 
                 Spacer()
             }
-            .navigationTitle("New Category")
+            .navigationTitle(Strings.CategoryManagement.newCategory)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(Strings.Button.cancel) {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button(Strings.Button.save) {
                         saveCategory()
                     }
                     .disabled(isFormInvalid || isLoading)
@@ -118,7 +118,7 @@ public struct AddCustomCategorySheet: View {
             .disabled(isLoading)
             .overlay {
                 if isLoading {
-                    ProgressView("Creating category...")
+                    ProgressView(Strings.CategoryManagement.creatingCategory)
                         .progressViewStyle(CircularProgressViewStyle())
                         .scaleEffect(1.2)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -145,7 +145,7 @@ public struct AddCustomCategorySheet: View {
             if success {
                 dismiss()
             } else {
-                errorMessage = "Failed to create category. Please try again."
+                errorMessage = Strings.CategoryManagement.failedToCreate
             }
         }
     }

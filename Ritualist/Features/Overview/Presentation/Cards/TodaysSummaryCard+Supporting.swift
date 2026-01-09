@@ -31,9 +31,9 @@ struct ScheduleIconInfoSheet: View {
                         description: "Habit has geofence reminders that trigger when arriving or leaving a location"
                     )
                 } header: {
-                    Text("Reminder Icons")
+                    Text(Strings.Overview.reminderIcons)
                 } footer: {
-                    Text("These icons show which reminder features are enabled for each habit (Pro feature).")
+                    Text(Strings.Overview.reminderIconsDescription)
                 }
 
                 Section {
@@ -51,24 +51,24 @@ struct ScheduleIconInfoSheet: View {
                         description: "Habit is scheduled for specific days, and today is one of them"
                     )
                 } header: {
-                    Text("Schedule Icons")
+                    Text(Strings.Overview.scheduleIcons)
                 } footer: {
-                    Text("These icons indicate when habits are available to log based on their schedule type.")
+                    Text(Strings.Overview.scheduleIconsDescription)
                 }
 
                 Section {
                     StreakInfoRow()
                 } header: {
-                    Text("Streak Indicator")
+                    Text(Strings.Overview.streakIndicator)
                 } footer: {
-                    Text("Keep your streaks alive by logging habits before midnight!")
+                    Text(Strings.Overview.streakIndicatorDescription)
                 }
             }
-            .navigationTitle("Habit Status")
+            .navigationTitle(Strings.HabitStatus.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button(Strings.Common.done) { dismiss() }
                 }
             }
         }
@@ -106,8 +106,8 @@ struct StreakInfoRow: View {
                 .frame(width: 32)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Streak at Risk").font(CardDesign.headline)
-                Text("You have an active streak! Log this habit today to keep it going. The number shows your current streak length.")
+                Text(Strings.Overview.streakAtRisk).font(CardDesign.headline)
+                Text(Strings.Overview.streakAtRiskDescription)
                     .font(CardDesign.subheadline).foregroundColor(.secondary)
             }
         }

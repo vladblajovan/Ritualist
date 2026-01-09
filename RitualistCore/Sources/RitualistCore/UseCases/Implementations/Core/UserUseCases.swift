@@ -38,6 +38,18 @@ public final class GetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
     }
 }
 
+public final class GetIsOnTrial: GetIsOnTrialUseCase {
+    private let subscriptionService: SecureSubscriptionService
+
+    public init(subscriptionService: SecureSubscriptionService) {
+        self.subscriptionService = subscriptionService
+    }
+
+    public func execute() async -> Bool {
+        await subscriptionService.isOnTrial()
+    }
+}
+
 @MainActor
 public final class GetCurrentUserProfile: GetCurrentUserProfileUseCase {
     private let userService: UserService

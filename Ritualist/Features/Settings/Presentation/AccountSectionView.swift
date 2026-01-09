@@ -25,8 +25,8 @@ struct AccountSectionView: View {
                 ) {
                     showingImagePicker = true
                 }
-                .accessibilityLabel("Edit profile picture")
-                .accessibilityHint("Double tap to change your avatar")
+                .accessibilityLabel(Strings.Settings.editProfilePicture)
+                .accessibilityHint(Strings.Settings.changeAvatarHint)
 
                 VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                     TextField(Strings.Form.name, text: $name)
@@ -41,14 +41,14 @@ struct AccountSectionView: View {
                                 await updateUserName()
                             }
                         }
-                        .accessibilityLabel("Your name")
-                        .accessibilityHint("Enter your display name")
+                        .accessibilityLabel(Strings.Settings.yourName)
+                        .accessibilityHint(Strings.Settings.enterDisplayName)
 
                     if vm.isUpdatingUser {
                         HStack {
                             ProgressView()
                                 .scaleEffect(ScaleFactors.tiny)
-                            Text("Updating...")
+                            Text(Strings.Settings.updating)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -59,7 +59,7 @@ struct AccountSectionView: View {
             // Gender Picker
             HStack {
                 Label {
-                    Picker("Gender", selection: $gender) {
+                    Picker(Strings.Settings.gender, selection: $gender) {
                         ForEach(UserGender.allCases) { genderOption in
                             Text(genderOption.displayName).tag(genderOption)
                         }
@@ -70,8 +70,8 @@ struct AccountSectionView: View {
                             await vm.updateGender(newValue)
                         }
                     }
-                    .accessibilityLabel("Gender")
-                    .accessibilityHint("Select your gender for personalized insights")
+                    .accessibilityLabel(Strings.Settings.gender)
+                    .accessibilityHint(Strings.Settings.genderHint)
                 } icon: {
                     Image(systemName: "person.fill")
                         .font(.title2)
@@ -82,7 +82,7 @@ struct AccountSectionView: View {
             // Age Group Picker
             HStack {
                 Label {
-                    Picker("Age Group", selection: $ageGroup) {
+                    Picker(Strings.Settings.ageGroup, selection: $ageGroup) {
                         ForEach(UserAgeGroup.allCases) { ageGroupOption in
                             Text(ageGroupOption.displayName).tag(ageGroupOption)
                         }
@@ -93,8 +93,8 @@ struct AccountSectionView: View {
                             await vm.updateAgeGroup(newValue)
                         }
                     }
-                    .accessibilityLabel("Age group")
-                    .accessibilityHint("Select your age range for personalized insights")
+                    .accessibilityLabel(Strings.Settings.ageGroup)
+                    .accessibilityHint(Strings.Settings.ageGroupHint)
                 } icon: {
                     Image(systemName: "number.circle")
                         .font(.title2)

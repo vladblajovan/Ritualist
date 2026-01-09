@@ -160,6 +160,10 @@ public extension Notification.Name {
     /// Posted when user profile is updated (settings changes, iCloud sync).
     /// Used to refresh cached profile data in UserService and dependent services.
     static let userProfileDidChange = Notification.Name("userProfileDidChange")
+
+    /// Posted when premium/subscription status changes (purchase completed, restored, expired).
+    /// Used to immediately refresh premium-dependent UI across the app (crown badge, Settings, etc.).
+    static let premiumStatusDidChange = Notification.Name("premiumStatusDidChange")
 }
 
 // MARK: - iCloud Configuration

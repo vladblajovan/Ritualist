@@ -78,8 +78,8 @@ struct ToastView: View {
                     .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Dismiss notification")
-            .accessibilityHint("Double-tap to dismiss this notification")
+            .accessibilityLabel(Strings.Toast.dismissLabel)
+            .accessibilityHint(Strings.Toast.dismissHint)
             .accessibilityIdentifier(AccessibilityID.Toast.dismissButton)
         }
         .padding(.leading, Spacing.medium)
@@ -97,7 +97,7 @@ struct ToastView: View {
         .offset(y: isVisible ? dragOffset : -20)
         .reduceMotionAnimation(SpringAnimation.interactive, value: dragOffset)
         // Accessibility: Expose swipe gesture to VoiceOver users
-        .accessibilityHint("Swipe up to dismiss")
+        .accessibilityHint(Strings.Toast.swipeHint)
         .accessibilityAction(.escape) { dismissToast() }
         .gesture(
             DragGesture()

@@ -13,7 +13,7 @@ struct SubscriptionManagementSectionView: View {
             // AllFeatures Mode Indicator (TestFlight/Debug builds)
             #if ALL_FEATURES_ENABLED
             HStack {
-                Label("Mode", systemImage: "checkmark.seal.fill")
+                Label(Strings.Subscription.mode, systemImage: "checkmark.seal.fill")
                     .foregroundStyle(.primary)
 
                 Spacer()
@@ -22,7 +22,7 @@ struct SubscriptionManagementSectionView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                         .font(.caption)
-                    Text("All Features Unlocked")
+                    Text(Strings.Subscription.allFeaturesUnlocked)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(.green)
@@ -38,7 +38,8 @@ struct SubscriptionManagementSectionView: View {
             // Subscription Row (Production) - only show for premium users
             if vm.subscriptionPlan != .free {
                 HStack {
-                    Label(vm.subscriptionPlan.displayName, systemImage: subscriptionIcon)
+                    // Show "Trial" when user is on trial, otherwise show plan name (Annual/Monthly/Weekly)
+                    Label(vm.isOnTrial ? Strings.Subscription.trial : vm.subscriptionPlan.displayName, systemImage: subscriptionIcon)
                         .foregroundStyle(.primary)
 
                     Spacer()
@@ -55,10 +56,14 @@ struct SubscriptionManagementSectionView: View {
             }
 
             // Expiry Date Row (for subscriptions)
+            // Shows "Billing starts" for trial users, "Renews" for active subscribers
             if let expiryDate = vm.subscriptionExpiryDate {
                 HStack {
-                    Label("Renews", systemImage: "calendar")
-                        .foregroundStyle(.secondary)
+                    Label(
+                        vm.isOnTrial ? Strings.Subscription.billingStarts : Strings.Subscription.renews,
+                        systemImage: "calendar"
+                    )
+                    .foregroundStyle(.secondary)
 
                     Spacer()
 
@@ -79,10 +84,10 @@ struct SubscriptionManagementSectionView: View {
                         if isRestoringPurchases {
                             ProgressView()
                                 .controlSize(.small)
-                            Text("Restoring...")
+                            Text(Strings.Subscription.restoring)
                                 .foregroundStyle(.secondary)
                         } else {
-                            Label("Restore Purchases", systemImage: "arrow.clockwise")
+                            Label(Strings.Subscription.restorePurchases, systemImage: "arrow.clockwise")
                         }
                     }
                 }
@@ -95,7 +100,7 @@ struct SubscriptionManagementSectionView: View {
                     openSubscriptionManagement()
                 } label: {
                     HStack {
-                        Label("Manage Subscription", systemImage: "gearshape")
+                        Label(Strings.Subscription.manageSubscription, systemImage: "gearshape")
                         Spacer()
                         Image(systemName: "arrow.up.right.square")
                             .font(.caption)
@@ -110,12 +115,12 @@ struct SubscriptionManagementSectionView: View {
             }
             #endif
         } header: {
-            Text("Subscription")
+            Text(Strings.Subscription.sectionHeader)
         } footer: {
             footerText
         }
-        .alert("Restore Purchases", isPresented: $showingRestoreAlert) {
-            Button("OK", role: .cancel) {}
+        .alert(Strings.Subscription.restorePurchases, isPresented: $showingRestoreAlert) {
+            Button(Strings.Common.ok, role: .cancel) {}
         } message: {
             Text(restoreAlertMessage)
         }
@@ -137,17 +142,22 @@ struct SubscriptionManagementSectionView: View {
     @ViewBuilder
     private var footerText: some View {
         #if ALL_FEATURES_ENABLED
-        Text("All premium features are unlocked in this build for testing purposes. This is a TestFlight/development build.")
+        Text(Strings.Subscription.allFeaturesFooter)
         #else
-        switch vm.subscriptionPlan {
-        case .free:
-            Text("Upgrade to Ritualist Pro to unlock unlimited habits, advanced analytics, and premium features.")
-        case .weekly:
-            Text("Your weekly subscription gives you access to all premium features. Manage or cancel anytime in App Store.")
-        case .monthly:
-            Text("Your monthly subscription gives you access to all premium features. Manage or cancel anytime in App Store.")
-        case .annual:
-            Text("Your annual subscription includes all premium features. You can manage or cancel anytime in App Store.")
+        // Don't show promotional footer for trial users
+        if vm.isOnTrial {
+            EmptyView()
+        } else {
+            switch vm.subscriptionPlan {
+            case .free:
+                Text(Strings.Subscription.freeFooter)
+            case .weekly:
+                Text(Strings.Subscription.weeklyFooter)
+            case .monthly:
+                Text(Strings.Subscription.monthlyFooter)
+            case .annual:
+                Text(Strings.Subscription.annualFooter)
+            }
         }
         #endif
     }
@@ -187,14 +197,16 @@ struct SubscriptionManagementSectionView: View {
             }
 
             if !restoredProducts.isEmpty {
-                restoreAlertMessage = "Successfully restored \(restoredProducts.count) purchase(s)."
+                restoreAlertMessage = Strings.Subscription.restoredPurchases(restoredProducts.count)
+                // Notify the app that premium status changed so all UI updates immediately
+                NotificationCenter.default.post(name: .premiumStatusDidChange, object: nil)
             } else {
-                restoreAlertMessage = "No purchases found to restore."
+                restoreAlertMessage = Strings.Subscription.noPurchasesToRestore
             }
 
             showingRestoreAlert = true
         } catch {
-            restoreAlertMessage = "Failed to restore purchases. Please try again later."
+            restoreAlertMessage = Strings.Subscription.restoreFailed
             showingRestoreAlert = true
         }
 
@@ -223,7 +235,7 @@ struct SubscriptionManagementSectionView: View {
 // MARK: - Preview Helpers
 
 @MainActor
-private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> SettingsViewModel {
+private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil, isOnTrial: Bool = false) -> SettingsViewModel {
     let profile = UserProfile()
 
     let vm = SettingsViewModel(
@@ -236,6 +248,7 @@ private func makePreviewVM(plan: SubscriptionPlan, expiryDate: Date? = nil) -> S
         checkPremiumStatus: MockCheckPremiumStatus(isPremium: plan.isPremium),
         getCurrentSubscriptionPlan: MockGetCurrentSubscriptionPlan(plan: plan),
         getSubscriptionExpiryDate: MockGetSubscriptionExpiryDate(expiryDate: expiryDate),
+        getIsOnTrial: MockGetIsOnTrial(isOnTrial: isOnTrial),
         syncWithiCloud: MockSyncWithiCloud(),
         checkiCloudStatus: MockCheckiCloudStatus(),
         getLastSyncDate: MockGetLastSyncDate(),
@@ -317,6 +330,12 @@ private struct MockGetSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase {
     let expiryDate: Date?
 
     func execute() async -> Date? { expiryDate }
+}
+
+private struct MockGetIsOnTrial: GetIsOnTrialUseCase {
+    let isOnTrial: Bool
+
+    func execute() async -> Bool { isOnTrial }
 }
 
 private struct MockDeleteData: DeleteDataUseCase {

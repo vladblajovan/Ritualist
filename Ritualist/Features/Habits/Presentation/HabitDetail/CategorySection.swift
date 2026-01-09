@@ -14,7 +14,7 @@ public struct CategorySection: View {
     @Binding var showingCategoryManagement: Bool
 
     public var body: some View {
-        Section("Category") {
+        Section(Strings.Habits.sectionCategory) {
             // Show category selection for new habits or editable habits (not from suggestions)
             if !vm.isEditMode || (vm.originalHabit?.suggestionId == nil) {
                 VStack(alignment: .leading, spacing: Spacing.small) {
@@ -22,7 +22,7 @@ public struct CategorySection: View {
                         HStack {
                             ProgressView()
                                 .scaleEffect(0.8)
-                            Text("Loading categories...")
+                            Text(Strings.Habits.loadingCategories)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
@@ -49,7 +49,7 @@ public struct CategorySection: View {
                         HStack {
                             ProgressView()
                                 .scaleEffect(0.8)
-                            Text("Loading category...")
+                            Text(Strings.Habits.loadingCategory)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }

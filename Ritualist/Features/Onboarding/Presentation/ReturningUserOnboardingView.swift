@@ -87,15 +87,15 @@ struct ReturningUserOnboardingView: View {
         .onChange(of: currentStep) { _, newStep in
             announceStepChange(newStep)
         }
-        .alert("Error", isPresented: .init(
+        .alert(Strings.Common.error, isPresented: .init(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.dismissError() } }
         )) {
-            Button("OK") {
+            Button(Strings.Common.ok) {
                 viewModel.dismissError()
             }
         } message: {
-            Text(viewModel.errorMessage ?? "An unexpected error occurred")
+            Text(viewModel.errorMessage ?? Strings.Onboarding.unexpectedError)
         }
     }
 
@@ -103,9 +103,9 @@ struct ReturningUserOnboardingView: View {
     private func announceStepChange(_ step: ReturningUserStep) {
         guard UIAccessibility.isVoiceOverRunning else { return }
         let stepTitle = switch step {
-        case .welcome: "Welcome Back"
-        case .profileCompletion: "Complete Your Profile"
-        case .permissions: "Set Up This Device"
+        case .welcome: Strings.Onboarding.stepWelcomeBack
+        case .profileCompletion: Strings.Onboarding.stepCompleteProfile
+        case .permissions: Strings.Onboarding.stepSetUpDevice
         }
         UIAccessibility.post(notification: .screenChanged, argument: stepTitle)
     }
@@ -146,26 +146,26 @@ struct ReturningUserPermissionsView: View {
                     color: viewModel.hasGrantedNotifications ? .blue : .secondary,
                     isGranted: viewModel.hasGrantedNotifications
                 )
-                .accessibilityLabel("Notifications")
-                .accessibilityValue(viewModel.hasGrantedNotifications ? "Enabled" : "Not enabled")
+                .accessibilityLabel(Strings.Onboarding.notificationsTitle)
+                .accessibilityValue(viewModel.hasGrantedNotifications ? Strings.Onboarding.enabled : Strings.Onboarding.notEnabled)
 
                 PermissionIcon(
                     icon: viewModel.hasGrantedLocation ? "location.fill" : "location.slash.fill",
                     color: viewModel.hasGrantedLocation ? .green : .secondary,
                     isGranted: viewModel.hasGrantedLocation
                 )
-                .accessibilityLabel("Location")
-                .accessibilityValue(viewModel.hasGrantedLocation ? "Enabled" : "Not enabled")
+                .accessibilityLabel(Strings.Onboarding.locationTitle)
+                .accessibilityValue(viewModel.hasGrantedLocation ? Strings.Onboarding.enabled : Strings.Onboarding.notEnabled)
             }
 
             // Title
             VStack(spacing: 8) {
-                Text("Set Up This Device")
+                Text(Strings.Onboarding.stepSetUpDevice)
                     .font(.system(.title, design: .rounded, weight: .bold))
                     .multilineTextAlignment(.center)
                     .accessibilityAddTraits(.isHeader)
 
-                Text("Enable permissions to get the most out of your habits")
+                Text(Strings.Onboarding.enablePermissionsSubtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -177,8 +177,8 @@ struct ReturningUserPermissionsView: View {
                 PermissionCard(
                     icon: "bell.fill",
                     iconColor: .blue,
-                    title: "Notifications",
-                    description: "Get reminders for your habits at the right time",
+                    title: Strings.Onboarding.notificationsTitle,
+                    description: Strings.Onboarding.notificationsDescription,
                     isGranted: viewModel.hasGrantedNotifications,
                     action: {
                         Task {
@@ -190,8 +190,8 @@ struct ReturningUserPermissionsView: View {
                 PermissionCard(
                     icon: "location.fill",
                     iconColor: .green,
-                    title: "Location",
-                    description: "Enable location-based habit reminders",
+                    title: Strings.Onboarding.locationTitle,
+                    description: Strings.Onboarding.locationDescription,
                     isGranted: viewModel.hasGrantedLocation,
                     action: {
                         Task {
@@ -207,7 +207,7 @@ struct ReturningUserPermissionsView: View {
             // Continue button
             VStack(spacing: 8) {
                 Button(action: onComplete) {
-                    Text("Get Started")
+                    Text(Strings.Onboarding.getStarted)
                         .font(.headline)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -215,10 +215,10 @@ struct ReturningUserPermissionsView: View {
                         .background(AppColors.brand)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .accessibilityHint("Complete setup and start using Ritualist")
+                .accessibilityHint(Strings.Onboarding.completeHint)
 
                 if !viewModel.hasGrantedNotifications || !viewModel.hasGrantedLocation {
-                    Text("You can enable these later in Settings")
+                    Text(Strings.Onboarding.enableLaterInSettings)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -291,7 +291,7 @@ private struct PermissionCard: View {
                     .font(.title2)
                     .foregroundStyle(.green)
             } else {
-                Button("Enable") {
+                Button(Strings.Onboarding.enable) {
                     action()
                 }
                 .buttonStyle(.bordered)
@@ -305,8 +305,8 @@ private struct PermissionCard: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title). \(description)")
-        .accessibilityValue(isGranted ? "Enabled" : "Not enabled")
-        .accessibilityHint(isGranted ? "" : "Double tap to enable \(title.lowercased())")
+        .accessibilityValue(isGranted ? Strings.Onboarding.enabled : Strings.Onboarding.notEnabled)
+        .accessibilityHint(isGranted ? "" : String(format: String(localized: "onboarding.enableHint"), title.lowercased()))
     }
 }
 
@@ -352,12 +352,12 @@ struct ReturningUserProfileCompletionView: View {
 
             // Title and subtitle
             VStack(spacing: 8) {
-                Text("Complete Your Profile")
+                Text(Strings.Onboarding.stepCompleteProfile)
                     .font(.system(.title, design: .rounded, weight: .bold))
                     .multilineTextAlignment(.center)
                     .accessibilityAddTraits(.isHeader)
 
-                Text("Help us personalize your experience")
+                Text(Strings.Onboarding.helpPersonalize)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -368,7 +368,7 @@ struct ReturningUserProfileCompletionView: View {
                 // Name input (only if missing)
                 if needsName {
                     VStack(alignment: .trailing, spacing: 4) {
-                        TextField("What should we call you?", text: $viewModel.userName)
+                        TextField(Strings.Onboarding.namePlaceholder, text: $viewModel.userName)
                             .font(.system(.body, design: .rounded, weight: .medium))
                             .foregroundStyle(AppColors.brand)
                             .multilineTextAlignment(.center)
@@ -379,8 +379,8 @@ struct ReturningUserProfileCompletionView: View {
                             .onSubmit {
                                 isTextFieldFocused = false
                             }
-                            .accessibilityLabel("Name")
-                            .accessibilityHint("Enter your name to personalize your experience. Maximum \(OnboardingViewModel.maxNameLength) characters.")
+                            .accessibilityLabel(Strings.Form.name)
+                            .accessibilityHint(Strings.Onboarding.nameHint(OnboardingViewModel.maxNameLength))
                             .modifier(ProfileFieldStyle())
 
                         // Character count (only show when approaching limit)
@@ -409,7 +409,7 @@ struct ReturningUserProfileCompletionView: View {
                         }
                     } label: {
                         HStack {
-                            Text(viewModel.gender == .preferNotToSay ? "Gender" : viewModel.gender.displayName)
+                            Text(viewModel.gender == .preferNotToSay ? Strings.Onboarding.genderPlaceholder : viewModel.gender.displayName)
                                 .font(.system(.body, design: .rounded, weight: .medium))
                                 .foregroundStyle(viewModel.gender == .preferNotToSay ? .secondary : AppColors.brand)
                             Spacer()
@@ -419,7 +419,7 @@ struct ReturningUserProfileCompletionView: View {
                         }
                         .modifier(ProfileFieldStyle())
                     }
-                    .accessibilityLabel("Gender")
+                    .accessibilityLabel(Strings.Settings.gender)
                     .accessibilityValue(viewModel.gender.displayName)
 
                     // Age group picker
@@ -431,7 +431,7 @@ struct ReturningUserProfileCompletionView: View {
                         }
                     } label: {
                         HStack {
-                            Text(viewModel.ageGroup == .preferNotToSay ? "Age" : viewModel.ageGroup.displayName)
+                            Text(viewModel.ageGroup == .preferNotToSay ? Strings.Onboarding.agePlaceholder : viewModel.ageGroup.displayName)
                                 .font(.system(.body, design: .rounded, weight: .medium))
                                 .foregroundStyle(viewModel.ageGroup == .preferNotToSay ? .secondary : AppColors.brand)
                             Spacer()
@@ -441,7 +441,7 @@ struct ReturningUserProfileCompletionView: View {
                         }
                         .modifier(ProfileFieldStyle())
                     }
-                    .accessibilityLabel("Age group")
+                    .accessibilityLabel(Strings.Settings.ageGroup)
                     .accessibilityValue(viewModel.ageGroup.displayName)
                 }
             }
@@ -451,7 +451,7 @@ struct ReturningUserProfileCompletionView: View {
 
             // Continue button
             Button(action: onContinue) {
-                Text("Continue")
+                Text(Strings.Onboarding.continueButton)
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -462,7 +462,7 @@ struct ReturningUserProfileCompletionView: View {
             .disabled(!canContinue)
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
-            .accessibilityHint(canContinue ? "Continue to permissions setup" : "Enter your name to continue")
+            .accessibilityHint(canContinue ? Strings.Onboarding.continueToPermissions : Strings.Onboarding.enterNameToContinue)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))

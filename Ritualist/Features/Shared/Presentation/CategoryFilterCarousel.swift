@@ -36,7 +36,7 @@ public struct CategoryFilterCarousel: View {
             // Header with title, manage button and add habit button
             if showHeader {
                 HStack {
-                    Text("Categories")
+                    Text(Strings.CategoryManagement.categories)
                         .font(.headline)
                         .fontWeight(.semibold)
 
@@ -47,7 +47,7 @@ public struct CategoryFilterCarousel: View {
                             HStack(spacing: Spacing.xsmall) {
                                 Image(systemName: "gear")
                                     .font(.caption)
-                                Text("Manage")
+                                Text(Strings.CategoryManagement.manage)
                                     .font(.caption)
                                     .fontWeight(.medium)
                             }
@@ -73,8 +73,8 @@ public struct CategoryFilterCarousel: View {
                                 }
                             }
                             .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
-                            .accessibilityLabel("Habits Assistant")
-                            .accessibilityHint("Open the AI habit assistant")
+                            .accessibilityLabel(Strings.Components.habitsAssistant)
+                            .accessibilityHint(Strings.Components.assistantHint)
                             .accessibilityIdentifier("category_filter_assistant_button")
                         }
 
@@ -87,8 +87,8 @@ public struct CategoryFilterCarousel: View {
                                     .foregroundColor(AppColors.brand)
                             }
                             .frame(minWidth: 44, minHeight: 44) // Meet 44pt touch target
-                            .accessibilityLabel("Add Habit")
-                            .accessibilityHint("Create a new habit")
+                            .accessibilityLabel(Strings.Components.addHabit)
+                            .accessibilityHint(Strings.Components.createHabitHint)
                             .accessibilityIdentifier("category_filter_add_habit_button")
                         }
                     }
@@ -101,7 +101,7 @@ public struct CategoryFilterCarousel: View {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("Loading categories...")
+                    Text(Strings.CategoryManagement.loadingCategories)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }

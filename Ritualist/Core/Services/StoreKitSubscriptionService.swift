@@ -9,6 +9,7 @@
 import Foundation
 import StoreKit
 import RitualistCore
+import FactoryKit
 
 /// Production StoreKit 2 subscription validation service
 ///
@@ -95,7 +96,89 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         // Update Keychain cache immediately after purchase
         // This ensures the user has offline access right away
         let plan = StoreKitProductID.subscriptionPlan(for: productId)
-        await SecurePremiumCache.shared.updateCache(plan: plan)
+
+        // Query transaction with retry logic for race condition mitigation
+        // StoreKit may not have propagated the transaction immediately after purchase
+        let transactionInfo = await queryTransactionWithRetry(productId: productId)
+
+        // If transaction wasn't found after retries, use conservative fallback
+        // The next cache refresh will get accurate data from StoreKit
+        let isOnTrial = transactionInfo.isOnTrial
+        var expiryDate = transactionInfo.expiryDate
+
+        if !transactionInfo.found {
+            Container.shared.debugLogger().log(
+                "Transaction not found after retries for \(productId) - using fallback expiry",
+                level: .warning,
+                category: .subscription
+            )
+            // Use plan-appropriate fallback expiry (will be corrected on next refresh)
+            expiryDate = Self.fallbackExpiryDate(for: plan)
+        }
+
+        await SecurePremiumCache.shared.updateCache(
+            plan: plan,
+            isOnTrial: isOnTrial,
+            expiryDate: expiryDate
+        )
+    }
+
+    /// Queries StoreKit for transaction info with exponential backoff retry
+    /// Returns transaction details if found, or defaults if not found after retries
+    private func queryTransactionWithRetry(productId: String) async -> TransactionQueryResult {
+        let maxAttempts = 3
+        var delayNanoseconds: UInt64 = 100_000_000 // Start at 100ms
+
+        for attempt in 1...maxAttempts {
+            // Query StoreKit for current entitlements
+            var latestPurchaseDate: Date?
+            var result = TransactionQueryResult()
+
+            for await entitlement in Transaction.currentEntitlements {
+                guard case .verified(let transaction) = entitlement,
+                      transaction.productID == productId else {
+                    continue
+                }
+                // Keep the most recent transaction by purchase date
+                let shouldUpdate = latestPurchaseDate.map { transaction.purchaseDate > $0 } ?? true
+                if shouldUpdate {
+                    latestPurchaseDate = transaction.purchaseDate
+                    result.isOnTrial = transaction.offer?.type == .introductory
+                    result.expiryDate = transaction.expirationDate
+                }
+            }
+
+            // Found the transaction
+            if latestPurchaseDate != nil {
+                result.found = true
+                return result
+            }
+
+            // Not found - wait and retry (except on last attempt)
+            if attempt < maxAttempts {
+                try? await Task.sleep(nanoseconds: delayNanoseconds)
+                delayNanoseconds *= 2 // Exponential backoff: 100ms, 200ms, 400ms
+            }
+        }
+
+        // Transaction not found after all retries
+        return TransactionQueryResult()
+    }
+
+    /// Returns a fallback expiry date based on subscription plan type
+    /// Used when StoreKit transaction hasn't propagated yet
+    private static func fallbackExpiryDate(for plan: SubscriptionPlan) -> Date {
+        let calendar = Calendar.current
+        switch plan {
+        case .weekly:
+            return calendar.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+        case .monthly:
+            return calendar.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+        case .annual:
+            return calendar.date(byAdding: .year, value: 1, to: Date()) ?? Date()
+        case .free:
+            return Date()
+        }
     }
 
     public func clearPurchases() async throws {
@@ -148,6 +231,23 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         return nil
     }
 
+    public func isOnTrial() async -> Bool {
+        // Query StoreKit for current entitlements to check offer type
+        for await result in Transaction.currentEntitlements {
+            // Verify transaction cryptographically
+            guard let transaction = try? checkVerified(result) else {
+                continue
+            }
+
+            // Check if this is a subscription with an introductory offer (free trial)
+            if transaction.offer?.type == .introductory {
+                return true
+            }
+        }
+
+        return false
+    }
+
     // MARK: - Private Methods
 
     /// Refresh cache from StoreKit if cache is stale
@@ -166,64 +266,106 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
     /// - Parameter force: If true, refresh regardless of cache age
     ///
     private func refreshCache(force: Bool) async {
-        // Skip if not forced and cache is still valid
-        if !force {
-            let now = Date()
-            let timeSinceLastUpdate = now.timeIntervalSince(lastCacheUpdate)
-            if timeSinceLastUpdate <= cacheValidityDuration {
-                return
-            }
-        }
+        guard shouldRefreshCache(force: force) else { return }
 
         // Query StoreKit for current entitlements
+        let entitlementResult = await processCurrentEntitlements()
+
+        // Update in-memory cache
+        cachedValidPurchases = entitlementResult.validPurchases
+        lastCacheUpdate = Date()
+
+        // Update secure cache based on entitlement results
+        await updateSecureCache(with: entitlementResult)
+    }
+
+    /// Check if cache refresh is needed
+    private func shouldRefreshCache(force: Bool) -> Bool {
+        if force { return true }
+        let timeSinceLastUpdate = Date().timeIntervalSince(lastCacheUpdate)
+        return timeSinceLastUpdate > cacheValidityDuration
+    }
+
+    /// Result of querying a specific transaction with retry logic
+    private struct TransactionQueryResult {
+        var found = false
+        var isOnTrial = false
+        var expiryDate: Date?
+    }
+
+    /// Result of processing StoreKit entitlements
+    private struct EntitlementResult {
         var validPurchases: Set<String> = []
         var didReceiveAnyEntitlement = false
+        var isOnTrial = false
+        var expiryDate: Date?
+    }
 
-        for await result in Transaction.currentEntitlements {
-            didReceiveAnyEntitlement = true
+    /// Process all current entitlements from StoreKit
+    private func processCurrentEntitlements() async -> EntitlementResult {
+        var result = EntitlementResult()
 
-            // Verify transaction cryptographically
-            guard let transaction = try? checkVerified(result) else {
-                // Skip unverified transactions
-                continue
+        for await verificationResult in Transaction.currentEntitlements {
+            result.didReceiveAnyEntitlement = true
+
+            guard let transaction = try? checkVerified(verificationResult) else { continue }
+            guard await isTransactionValid(transaction) else { continue }
+
+            result.validPurchases.insert(transaction.productID)
+
+            if transaction.offer?.type == .introductory {
+                result.isOnTrial = true
             }
-
-            // Check if transaction is valid (not expired, not revoked)
-            if await isTransactionValid(transaction) {
-                validPurchases.insert(transaction.productID)
+            if let transactionExpiry = transaction.expirationDate {
+                // Keep the earliest expiry date if multiple subscriptions
+                if let currentExpiry = result.expiryDate {
+                    if transactionExpiry < currentExpiry {
+                        result.expiryDate = transactionExpiry
+                    }
+                } else {
+                    result.expiryDate = transactionExpiry
+                }
             }
         }
 
-        // Update in-memory cache
-        cachedValidPurchases = validPurchases
-        lastCacheUpdate = Date()
+        return result
+    }
 
-        // Determine subscription plan from valid purchases
-        let plan = subscriptionPlanFromPurchases(validPurchases)
+    /// Update secure cache based on entitlement results
+    private func updateSecureCache(with result: EntitlementResult) async {
+        let plan = subscriptionPlanFromPurchases(result.validPurchases)
 
         if plan != .free {
-            // User has valid subscription - always update cache with actual plan
-            await SecurePremiumCache.shared.updateCache(plan: plan)
-        } else if didReceiveAnyEntitlement {
+            // Determine expiry date - use 1-day fallback if missing to force earlier re-verification
+            let effectiveExpiryDate: Date?
+            if let expiryDate = result.expiryDate {
+                effectiveExpiryDate = expiryDate
+            } else {
+                // StoreKit API issue - no expiry date provided
+                // Use 1-day fallback to force re-verification sooner
+                effectiveExpiryDate = Calendar.current.date(byAdding: .day, value: 1, to: Date())
+                Container.shared.debugLogger().log(
+                    "Active subscription (\(plan)) has no expiry date - using 1-day fallback for cache",
+                    level: .warning,
+                    category: .subscription
+                )
+            }
+
+            // User has valid subscription - update cache with trial info and expiry
+            await SecurePremiumCache.shared.updateCache(
+                plan: plan,
+                isOnTrial: result.isOnTrial,
+                expiryDate: effectiveExpiryDate
+            )
+        } else if result.didReceiveAnyEntitlement {
             // StoreKit responded with entitlements but none are valid (expired/revoked)
-            // This is a confirmed "not premium" - safe to update cache
             await SecurePremiumCache.shared.updateCache(plan: .free)
         } else {
-            // StoreKit returned NO entitlements at all - could be:
-            // 1. User truly has no purchases (never purchased)
-            // 2. Network/StoreKit failure (timeout, no connectivity)
-            //
-            // DON'T overwrite Keychain cache here - preserve grace period!
-            // The existing Keychain cache (if premium) will continue to grant
-            // access for up to 3 days, giving time for connectivity to restore.
-            //
-            // Only update to false if the grace period has already expired
+            // StoreKit returned NO entitlements - preserve grace period if cache still valid
             let cacheStillValid = await SecurePremiumCache.shared.isCacheValid()
             if !cacheStillValid {
-                // Grace period expired - safe to mark as not premium
                 await SecurePremiumCache.shared.updateCache(plan: .free)
             }
-            // else: Keep existing cache, let grace period protect the user
         }
     }
 

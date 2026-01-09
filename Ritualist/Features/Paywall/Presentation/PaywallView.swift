@@ -76,7 +76,7 @@ public struct PaywallView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .navigationTitle("Ritualist Pro")
+            .navigationTitle(Strings.Paywall.title)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -90,7 +90,7 @@ public struct PaywallView: View {
         .presentationDragIndicator(.visible)
         .presentationBackground(.ultraThinMaterial)
         .alert("Purchase Error", isPresented: $showingError) {
-            Button("OK") {
+            Button(Strings.Common.ok) {
                 vm.dismissError()
             }
         } message: {
@@ -115,7 +115,7 @@ public struct PaywallView: View {
         }
         .offerCodeRedemption(isPresented: $showingOfferCodeSheet)
         .alert("Unable to Load Subscriptions", isPresented: $showingProductsUnavailableAlert) {
-            Button("OK") {
+            Button(Strings.Common.ok) {
                 dismiss()
             }
         } message: {
@@ -150,12 +150,12 @@ public struct PaywallView: View {
                 .foregroundStyle(GradientTokens.premiumCrown)
             
             VStack(spacing: 8) {
-                Text("Unlock Your Full Potential")
+                Text(Strings.Paywall.headerTitle)
                     .font(.title2)
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
-                
-                Text("Get unlimited habits, advanced analytics, and premium features")
+
+                Text(Strings.Paywall.headerSubtitle)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -169,7 +169,7 @@ public struct PaywallView: View {
     private var benefitsSection: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("What's Included")
+                Text(Strings.Paywall.whatsIncluded)
                     .font(.headline)
                     .fontWeight(.semibold)
                 Spacer()
@@ -189,14 +189,14 @@ public struct PaywallView: View {
     private var pricingSection: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("Choose Your Plan")
+                Text(Strings.Paywall.choosePlan)
                     .font(.headline)
                     .fontWeight(.semibold)
                 Spacer()
             }
             
             if vm.isLoading {
-                ProgressView("Loading plans...")
+                ProgressView(Strings.Paywall.loadingPlans)
                     .frame(height: 200)
             } else {
                 VStack(spacing: 12) {
@@ -242,7 +242,7 @@ public struct PaywallView: View {
     // MARK: - Restore Section
 
     private var restoreSection: some View {
-        Button("Restore Purchases") {
+        Button(Strings.Paywall.restorePurchases) {
             Task {
                 await vm.restorePurchases()
             }
@@ -311,7 +311,7 @@ private struct PricingCard: View {
                                 .fontWeight(.semibold)
 
                             if product.isPopular {
-                                Text("POPULAR")
+                                Text(Strings.Paywall.popular)
                                     .font(.caption2)
                                     .fontWeight(.bold)
                                     .padding(.horizontal, 8)

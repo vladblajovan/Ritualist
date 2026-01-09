@@ -5,12 +5,25 @@ import SwiftUI
 
 /// Centralized identifiers for TipKit events to prevent accidental changes.
 /// TipKit persists state using these IDs - changing them will reset tip state for users.
+///
+/// TIP CHAIN FLOW (status observer pattern - chain events donated on ANY dismissal):
+/// 1. TapHabitTip (after onboarding + first habit added)
+///    └─► Dismissal donates tapHabitTipDismissed
+/// 2. TapCompletedHabitTip (after first habit completed + tap tip dismissed)
+///    └─► Dismissal donates shouldShowLongPressTip
+/// 3. LongPressLogTip (after completed tip dismissed)
+///    └─► Dismissal donates longPressTipDismissed
+/// 4. CircleProgressTip (after long-press tip dismissed)
+///    └─► Dismissal ends the chain
 public enum RitualistTipEvents {
     /// Event ID for when user closes Habits Assistant after onboarding
     public static let habitsAssistantClosed = "habitsAssistantClosedAfterOnboarding"
 
     /// Event ID for when user adds their first habit
     public static let firstHabitAdded = "userAddedFirstHabit"
+
+    /// Event ID for when TapHabitTip is dismissed - gates TapCompletedHabitTip
+    public static let tapHabitTipDismissed = "tapHabitTipDismissed"
 
     /// Event ID for when user completes a habit for the first time
     public static let firstHabitCompleted = "userCompletedFirstHabit"
@@ -36,12 +49,15 @@ struct TapHabitTip: Tip {
     /// Event triggered when user adds their first habit
     static let firstHabitAdded = Tips.Event(id: RitualistTipEvents.firstHabitAdded)
 
+    /// Event triggered when this tip is dismissed - gates TapCompletedHabitTip
+    static let wasDismissed = Tips.Event(id: RitualistTipEvents.tapHabitTipDismissed)
+
     var title: Text {
-        Text("Tap to Log Progress")
+        Text(Strings.Tips.tapToLogTitle)
     }
 
     var message: Text? {
-        Text("Tap any habit to quickly log your progress or mark it complete.")
+        Text(Strings.Tips.tapToLogMessage)
     }
 
     var image: Image? {
@@ -59,7 +75,7 @@ struct TapHabitTip: Tip {
 }
 
 /// Tip to inform users they can tap completed habits to adjust progress
-/// Shows SECOND: after user completes a habit for the first time
+/// Shows SECOND: after TapHabitTip dismissed AND user completes a habit for the first time
 struct TapCompletedHabitTip: Tip {
     /// Event triggered when user completes a habit
     static let firstHabitCompleted = Tips.Event(id: RitualistTipEvents.firstHabitCompleted)
@@ -67,30 +83,23 @@ struct TapCompletedHabitTip: Tip {
     /// Event triggered when this tip is dismissed - gates the long-press tip
     static let wasDismissed = Tips.Event(id: RitualistTipEvents.completedHabitTipDismissed)
 
-    /// Action ID for the "Got it" button
-    static let gotItActionId = "tapCompletedHabitTip.gotIt"
-
     var title: Text {
-        Text("Adjust Completed Habits")
+        Text(Strings.Tips.adjustCompletedTitle)
     }
 
     var message: Text? {
-        Text("Tap completed habits to adjust progress or undo completion.")
+        Text(Strings.Tips.adjustCompletedMessage)
     }
 
     var image: Image? {
         Image(systemName: "arrow.uturn.backward.circle.fill")
     }
 
-    var actions: [Action] {
-        [
-            Action(id: Self.gotItActionId, title: "Got it")
-        ]
-    }
-
     var rules: [Rule] {
         [
-            // Show only after user completes their first habit
+            // Only show after TapHabitTip has been dismissed
+            #Rule(TapHabitTip.wasDismissed) { $0.donations.count >= 1 },
+            // AND after user completes their first habit
             #Rule(Self.firstHabitCompleted) { $0.donations.count >= 1 }
         ]
     }
@@ -105,25 +114,16 @@ struct LongPressLogTip: Tip {
     /// Event triggered when this tip is dismissed - gates the avatar tip
     static let wasDismissed = Tips.Event(id: RitualistTipEvents.longPressTipDismissed)
 
-    /// Action ID for the "Got it" button
-    static let gotItActionId = "longPressLogTip.gotIt"
-
     var title: Text {
-        Text("Quick Log with Long-Press")
+        Text(Strings.Tips.longPressTitle)
     }
 
     var message: Text? {
-        Text("Press and hold any habit to instantly log it without opening a sheet.")
+        Text(Strings.Tips.longPressMessage)
     }
 
     var image: Image? {
         Image(systemName: "hand.tap.fill")
-    }
-
-    var actions: [Action] {
-        [
-            Action(id: Self.gotItActionId, title: "Got it")
-        ]
     }
 
     var rules: [Rule] {
@@ -141,11 +141,11 @@ struct CircleProgressTip: Tip {
     static let longPressTipDismissed = Tips.Event(id: RitualistTipEvents.longPressTipDismissed)
 
     var title: Text {
-        Text("Daily Progress")
+        Text(Strings.Tips.dailyProgressTitle)
     }
 
     var message: Text? {
-        Text("This circle shows your overall habit completion for today. It fills up as you complete habits.")
+        Text(Strings.Tips.dailyProgressMessage)
     }
 
     var image: Image? {

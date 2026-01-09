@@ -32,7 +32,7 @@ public struct CategorySelectionView: View {
         VStack(alignment: .leading, spacing: Spacing.medium) {
             // Section header
             HStack {
-                Text("Category")
+                Text(Strings.CategoryManagement.category)
                     .font(.headline)
                     .fontWeight(.semibold)
                 
@@ -46,7 +46,7 @@ public struct CategorySelectionView: View {
                             HStack(spacing: Spacing.xsmall) {
                                 Image(systemName: "gear")
                                     .font(.caption)
-                                Text("Manage")
+                                Text(Strings.CategoryManagement.manage)
                                     .font(.caption)
                                     .fontWeight(.medium)
                             }
@@ -63,7 +63,7 @@ public struct CategorySelectionView: View {
                             HStack(spacing: Spacing.xsmall) {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.caption)
-                                Text("Add Custom")
+                                Text(Strings.CategoryManagement.addCustom)
                                     .font(.caption)
                                     .fontWeight(.medium)
                             }
@@ -80,7 +80,7 @@ public struct CategorySelectionView: View {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("Loading categories...")
+                    Text(Strings.CategoryManagement.loadingCategories)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }

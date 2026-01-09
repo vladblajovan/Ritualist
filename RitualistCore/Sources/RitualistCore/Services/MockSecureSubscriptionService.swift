@@ -94,6 +94,10 @@ public actor MockSecureSubscriptionService: SecureSubscriptionService {
     public func clearPurchases() async throws {
         validatedPurchases.removeAll()
         saveMockPurchases()
+
+        // Also clear Keychain cache to ensure consistent state
+        // This clears: premium status, subscription plan, timestamp, trial status, expiry date
+        await SecurePremiumCache.shared.clearCache()
     }
 
     public func getCurrentSubscriptionPlan() async -> SubscriptionPlan {
@@ -138,6 +142,12 @@ public actor MockSecureSubscriptionService: SecureSubscriptionService {
             // No expiry for free
             return nil
         }
+    }
+
+    public func isOnTrial() async -> Bool {
+        // Mock implementation: Annual subscriptions have trial period
+        // In development, simulate trial for first 7 days of annual subscription
+        validatedPurchases.contains(StoreKitProductID.annual)
     }
 
     // MARK: - Private Helpers

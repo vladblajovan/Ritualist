@@ -13,7 +13,7 @@ struct SmartInsightsCard: View {
                 HStack(spacing: 8) {
                     Text("💡")
                         .font(CardDesign.title2)
-                    Text("Weekly Insights")
+                    Text(Strings.Overview.weeklyInsights)
                         .font(CardDesign.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
@@ -43,12 +43,12 @@ struct SmartInsightsCard: View {
                         .accessibilityHidden(true) // Decorative emoji
                     
                     VStack(spacing: 4) {
-                        Text("Gathering Insights")
+                        Text(Strings.Overview.gatheringInsights)
                             .font(CardDesign.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(.primary)
-                        
-                        Text("Complete habits for 2 weeks to unlock personalized insights about your patterns.")
+
+                        Text(Strings.Overview.completeHabitsToUnlock)
                             .font(CardDesign.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)

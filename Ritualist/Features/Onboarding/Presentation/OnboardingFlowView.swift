@@ -25,14 +25,16 @@ private struct OnboardingContentView: View {
     let onComplete: () -> Void
 
     /// Page titles for VoiceOver announcements
-    private let pageTitles = [
-        "Welcome",
-        "Track Your Habits",
-        "Make It Yours",
-        "Learn & Improve",
-        "Free vs Pro",
-        "Permissions"
-    ]
+    private var pageTitles: [String] {
+        [
+            Strings.Onboarding.pageWelcome,
+            Strings.Onboarding.pageTrackHabits,
+            Strings.Onboarding.pageMakeItYours,
+            Strings.Onboarding.pageLearnImprove,
+            Strings.Onboarding.pageFreePro,
+            Strings.Onboarding.pagePermissions
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,8 +71,8 @@ private struct OnboardingContentView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") {
+        .alert(Strings.Common.error, isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button(Strings.Common.ok) {
                 viewModel.dismissError()
             }
         } message: {
@@ -86,8 +88,8 @@ private struct OnboardingContentView: View {
     /// Announces page change to VoiceOver users
     private func announcePageChange(_ page: Int) {
         guard UIAccessibility.isVoiceOverRunning else { return }
-        let pageTitle = page < pageTitles.count ? pageTitles[page] : "Page \(page + 1)"
-        let announcement = "Step \(page + 1) of \(viewModel.totalPages): \(pageTitle)"
+        let pageTitle = page < pageTitles.count ? pageTitles[page] : Strings.Onboarding.pageAnnouncement(page + 1)
+        let announcement = Strings.Onboarding.stepAnnouncement(page + 1, viewModel.totalPages, pageTitle)
         UIAccessibility.post(notification: .screenChanged, argument: announcement)
     }
 }
@@ -106,8 +108,8 @@ private struct OnboardingProgressView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Step \(currentPage + 1) of \(totalPages)")
-        .accessibilityValue("\(Int((Double(currentPage + 1) / Double(totalPages)) * 100)) percent complete")
+        .accessibilityLabel(Strings.Onboarding.progressLabel(currentPage + 1, totalPages))
+        .accessibilityValue(Strings.Onboarding.progressPercent(Int((Double(currentPage + 1) / Double(totalPages)) * 100)))
     }
 }
 
@@ -127,7 +129,7 @@ private struct OnboardingNavigationView: View {
                         }
                     }
                 } label: {
-                    Text("Skip")
+                    Text(Strings.Onboarding.skip)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppColors.brand)
                         .frame(minHeight: 44)
@@ -140,12 +142,12 @@ private struct OnboardingNavigationView: View {
                         )
                 }
                 .accessibilityIdentifier("onboarding.skip")
-                .accessibilityHint("Skip onboarding and use defaults")
+                .accessibilityHint(Strings.Onboarding.skipHint)
             } else {
                 Button {
                     viewModel.previousPage()
                 } label: {
-                    Text("Back")
+                    Text(Strings.Onboarding.back)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppColors.brand)
                         .frame(minHeight: 44)
@@ -158,7 +160,7 @@ private struct OnboardingNavigationView: View {
                         )
                 }
                 .accessibilityIdentifier("onboarding.back")
-                .accessibilityHint("Go to the previous step")
+                .accessibilityHint(Strings.Onboarding.backHint)
             }
 
             Spacer()
@@ -184,7 +186,7 @@ private struct OnboardingNavigationView: View {
                             .scaleEffect(0.7)
                             .tint(.white)
                     } else {
-                        Text(viewModel.isLastPage ? "Get Started" : "Continue")
+                        Text(viewModel.isLastPage ? Strings.Onboarding.getStarted : Strings.Onboarding.continueButton)
                             .font(.subheadline.weight(.semibold))
                     }
                 }
@@ -197,7 +199,7 @@ private struct OnboardingNavigationView: View {
             }
             .disabled(!viewModel.canProceedFromCurrentPage || viewModel.isLoading)
             .accessibilityIdentifier("onboarding.continue")
-            .accessibilityHint(viewModel.isLastPage ? "Complete setup and start using Ritualist" : "Go to the next step")
+            .accessibilityHint(viewModel.isLastPage ? Strings.Onboarding.completeHint : Strings.Onboarding.nextHint)
         }
     }
 }

@@ -155,6 +155,9 @@ public final class PaywallViewModel {
             case .success(let purchasedProduct):
                 purchaseState = .success(purchasedProduct)
 
+                // Notify the app that premium status changed so all UI updates immediately
+                NotificationCenter.default.post(name: .premiumStatusDidChange, object: nil)
+
                 // Track successful purchase
                 userActionTracker.track(.purchaseCompleted(
                     productId: purchasedProduct.id,
@@ -210,6 +213,9 @@ public final class PaywallViewModel {
             switch result {
             case .success(let restoredProductIds):
                 purchaseState = .idle
+
+                // Notify the app that premium status changed so all UI updates immediately
+                NotificationCenter.default.post(name: .premiumStatusDidChange, object: nil)
 
                 // Track successful restore
                 if let firstProductId = restoredProductIds.first {

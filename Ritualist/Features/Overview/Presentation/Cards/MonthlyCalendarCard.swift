@@ -175,17 +175,39 @@ struct MonthlyCalendarCard: View {
 
                         let circlePath = Circle().path(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
 
-                        // Today's date gets a compact bright glow effect
+                        // Today's date gets a prominent multi-layer glow effect
                         if dayData.isToday {
                             let glowColor = AppColors.brand
-                            let glowRadius = radius + 2
-                            let glowPath = Circle().path(in: CGRect(
-                                x: center.x - glowRadius,
-                                y: center.y - glowRadius,
-                                width: glowRadius * 2,
-                                height: glowRadius * 2
+
+                            // Outer soft glow (large, faint)
+                            let outerGlowRadius = radius + 6
+                            let outerGlowPath = Circle().path(in: CGRect(
+                                x: center.x - outerGlowRadius,
+                                y: center.y - outerGlowRadius,
+                                width: outerGlowRadius * 2,
+                                height: outerGlowRadius * 2
                             ))
-                            context.fill(glowPath, with: .color(glowColor.opacity(0.4)))
+                            context.fill(outerGlowPath, with: .color(glowColor.opacity(0.2)))
+
+                            // Middle glow (medium)
+                            let midGlowRadius = radius + 4
+                            let midGlowPath = Circle().path(in: CGRect(
+                                x: center.x - midGlowRadius,
+                                y: center.y - midGlowRadius,
+                                width: midGlowRadius * 2,
+                                height: midGlowRadius * 2
+                            ))
+                            context.fill(midGlowPath, with: .color(glowColor.opacity(0.35)))
+
+                            // Inner bright glow (tight, vibrant)
+                            let innerGlowRadius = radius + 2
+                            let innerGlowPath = Circle().path(in: CGRect(
+                                x: center.x - innerGlowRadius,
+                                y: center.y - innerGlowRadius,
+                                width: innerGlowRadius * 2,
+                                height: innerGlowRadius * 2
+                            ))
+                            context.fill(innerGlowPath, with: .color(glowColor.opacity(0.5)))
                         }
 
                         // Fill the day circle

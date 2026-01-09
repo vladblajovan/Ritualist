@@ -32,7 +32,7 @@ struct HabitLocalDataSourceTests {
             HabitLogBuilder.binary(habitId: habit.id, date: TestDates.today)
         ]
 
-        let (container, context, habitModel, _) = try TestModelContainer.withHabitAndLogs(habit, logs: logs)
+        let (container, context, _, _) = try TestModelContainer.withHabitAndLogs(habit, logs: logs)
 
         // Verify initial state - habit and logs exist
         let initialHabits = try TestModelContainer.fetchAllHabits(from: context)

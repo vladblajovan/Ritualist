@@ -24,7 +24,7 @@ struct StartDateSection: View {
             .datePickerStyle(.compact)
             .accessibilityIdentifier(AccessibilityID.HabitDetail.startDatePicker)
         } header: {
-            Text("Start Date")
+            Text(Strings.Habits.startDate)
         } footer: {
             footerContent
         }
@@ -38,7 +38,7 @@ struct StartDateSection: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                    Text("Failed to load log history.")
+                    Text(Strings.Habits.failedToLoadHistory)
                 }
                 .font(.caption)
                 .foregroundStyle(.red)
@@ -50,7 +50,7 @@ struct StartDateSection: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.clockwise")
-                        Text("Retry")
+                        Text(Strings.Button.retry)
                     }
                     .font(.caption)
                 }
@@ -60,7 +60,7 @@ struct StartDateSection: View {
             HStack(spacing: 4) {
                 ProgressView()
                     .scaleEffect(0.6)
-                Text("Loading log history...")
+                Text(Strings.Habits.loadingHistory)
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -68,12 +68,12 @@ struct StartDateSection: View {
             // Show error when start date is after existing logs
             HStack(spacing: 4) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                Text("Start date cannot be after existing logs.")
+                Text(Strings.Habits.startDateAfterLogs)
             }
             .font(.caption)
             .foregroundStyle(.red)
         } else {
-            Text("Set an earlier date to log habits retroactively. Logging before this date is not allowed.")
+            Text(Strings.Habits.startDateFooter)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

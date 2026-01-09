@@ -29,12 +29,12 @@ struct OnboardingPage1View: View {
 
                     // Welcome message
                     VStack(spacing: 8) {
-                        Text("Welcome to Ritualist!")
+                        Text(Strings.Onboarding.welcomeTitle)
                             .font(.system(.title, design: .rounded, weight: .bold))
                             .multilineTextAlignment(.center)
                             .accessibilityAddTraits(.isHeader)
 
-                        Text("Let's start by getting to know you better.")
+                        Text(Strings.Onboarding.welcomeSubtitle)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -44,7 +44,7 @@ struct OnboardingPage1View: View {
                     VStack(spacing: 16) {
                         // Name input
                         VStack(alignment: .trailing, spacing: 4) {
-                            TextField("What should we call you?", text: $viewModel.userName)
+                            TextField(Strings.Onboarding.namePlaceholder, text: $viewModel.userName)
                                 .font(.system(.body, design: .rounded, weight: .medium))
                                 .foregroundStyle(AppColors.brand)
                                 .multilineTextAlignment(.center)
@@ -55,8 +55,8 @@ struct OnboardingPage1View: View {
                                 .onSubmit {
                                     isTextFieldFocused = false
                                 }
-                                .accessibilityLabel("Name")
-                                .accessibilityHint("Enter your name to personalize your experience. Maximum \(OnboardingViewModel.maxNameLength) characters.")
+                                .accessibilityLabel(Strings.Form.name)
+                                .accessibilityHint(Strings.Onboarding.nameHint(OnboardingViewModel.maxNameLength))
                                 .modifier(GradientFieldStyle())
 
                             // Character count (only show when approaching limit)
@@ -85,7 +85,7 @@ struct OnboardingPage1View: View {
                                 }
                             } label: {
                                 HStack {
-                                    Text(viewModel.gender == .preferNotToSay ? "Gender" : viewModel.gender.displayName)
+                                    Text(viewModel.gender == .preferNotToSay ? Strings.Onboarding.genderPlaceholder : viewModel.gender.displayName)
                                         .font(.system(.body, design: .rounded, weight: .medium))
                                         .foregroundStyle(viewModel.gender == .preferNotToSay ? .secondary : AppColors.brand)
                                     Spacer()
@@ -95,7 +95,7 @@ struct OnboardingPage1View: View {
                                 }
                                 .modifier(GradientFieldStyle())
                             }
-                            .accessibilityLabel("Gender")
+                            .accessibilityLabel(Strings.Settings.gender)
                             .accessibilityValue(viewModel.gender.displayName)
 
                             // Age group picker
@@ -108,7 +108,7 @@ struct OnboardingPage1View: View {
                                 }
                             } label: {
                                 HStack {
-                                    Text(viewModel.ageGroup == .preferNotToSay ? "Age" : viewModel.ageGroup.displayName)
+                                    Text(viewModel.ageGroup == .preferNotToSay ? Strings.Onboarding.agePlaceholder : viewModel.ageGroup.displayName)
                                         .font(.system(.body, design: .rounded, weight: .medium))
                                         .foregroundStyle(viewModel.ageGroup == .preferNotToSay ? .secondary : AppColors.brand)
                                     Spacer()
@@ -118,7 +118,7 @@ struct OnboardingPage1View: View {
                                 }
                                 .modifier(GradientFieldStyle())
                             }
-                            .accessibilityLabel("Age group")
+                            .accessibilityLabel(Strings.Settings.ageGroup)
                             .accessibilityValue(viewModel.ageGroup.displayName)
                         }
                     }

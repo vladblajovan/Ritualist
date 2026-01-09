@@ -29,12 +29,12 @@ extension PaywallView {
                     .frame(width: 32)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Have a promo code?")
+                    Text(Strings.Paywall.havePromoCode)
                         .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
 
-                    Text("Redeem your offer code here")
+                    Text(Strings.Paywall.redeemOfferCode)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -74,7 +74,7 @@ extension PaywallView {
                         ProgressView()
                             .scaleEffect(0.8)
                             .tint(.white)
-                        Text("Processing...")
+                        Text(Strings.Paywall.processing)
                     } else {
                         Text(purchaseButtonText)
                             .fontWeight(.semibold)
@@ -95,12 +95,12 @@ extension PaywallView {
     @ViewBuilder
     private var purchaseHelperText: some View {
         if !vm.hasProducts && !vm.isLoading {
-            Text("Unable to load products. Please check your connection and try again.")
+            Text(Strings.Paywall.productsError)
                 .font(.caption)
                 .foregroundColor(.orange)
                 .multilineTextAlignment(.center)
         } else if vm.selectedProduct == nil && vm.hasProducts {
-            Text("Select a plan above to continue")
+            Text(Strings.Paywall.selectPlan)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -113,14 +113,14 @@ extension PaywallView {
     }
 
     var purchaseButtonText: String {
-        guard let selectedProduct = vm.selectedProduct else { return "Purchase" }
-        return selectedProduct.duration == .annual ? "Start Free Trial" : "Purchase"
+        guard let selectedProduct = vm.selectedProduct else { return Strings.Paywall.purchase }
+        return selectedProduct.duration == .annual ? Strings.Paywall.startFreeTrial : Strings.Paywall.purchase
     }
 
     var trialInfoText: String? {
         guard let selectedProduct = vm.selectedProduct else { return nil }
         if selectedProduct.duration == .annual {
-            return "7-day free trial, then \(selectedProduct.localizedPrice). Cancel anytime."
+            return Strings.Paywall.trialInfo(selectedProduct.localizedPrice)
         }
         return nil
     }

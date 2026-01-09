@@ -27,18 +27,18 @@ struct WelcomeBackView: View {
             // Welcome message
             VStack(spacing: 4) {
                 if let name = summary.profileName, !name.isEmpty {
-                    Text("Welcome back,")
+                    Text(Strings.Onboarding.welcomeBackWithName)
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .accessibilityAddTraits(.isHeader)
                     Text("\(name)!")
                         .font(.system(.title, design: .rounded, weight: .bold))
                 } else {
-                    Text("Welcome back!")
+                    Text(Strings.Onboarding.welcomeBackWithoutName)
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .accessibilityAddTraits(.isHeader)
                 }
 
-                Text("Your data has been synced from iCloud")
+                Text(Strings.Onboarding.dataSyncedFromICloud)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -52,12 +52,12 @@ struct WelcomeBackView: View {
 
             // Continue button
             VStack(spacing: 12) {
-                Text("Let's set up this device")
+                Text(Strings.Onboarding.letsSetUpDevice)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
                 Button(action: onContinue) {
-                    Text("Continue")
+                    Text(Strings.Onboarding.continueButton)
                         .font(.headline)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -65,7 +65,7 @@ struct WelcomeBackView: View {
                         .background(AppColors.brand)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .accessibilityHint("Continue to set up this device")
+                .accessibilityHint(Strings.Onboarding.continueToSetUp)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
@@ -131,7 +131,7 @@ struct WelcomeBackView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                         .frame(width: 24)
-                    Text("\(summary.habitsCount) habits synced")
+                    Text(Strings.Onboarding.habitsSynced(summary.habitsCount))
                         .font(.subheadline)
                 }
             }
@@ -142,7 +142,7 @@ struct WelcomeBackView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                         .frame(width: 24)
-                    Text("\(summary.categoriesCount) custom categories synced")
+                    Text(Strings.Onboarding.categoriesSynced(summary.categoriesCount))
                         .font(.subheadline)
                 }
             }
@@ -153,7 +153,7 @@ struct WelcomeBackView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                         .frame(width: 24)
-                    Text("Profile restored")
+                    Text(Strings.Onboarding.profileRestored)
                         .font(.subheadline)
                 }
             }

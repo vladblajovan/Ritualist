@@ -23,12 +23,12 @@ struct OnboardingPage4View: View {
 
                 // Title and description
                 VStack(spacing: 8) {
-                    Text("Learn & Improve")
+                    Text(Strings.Onboarding.learnImproveTitle)
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
                         .accessibilityAddTraits(.isHeader)
 
-                    Text("Get expert tips and insights to build better habits.")
+                    Text(Strings.Onboarding.learnImproveSubtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -40,29 +40,29 @@ struct OnboardingPage4View: View {
                     OnboardingFeatureCard(
                         icon: "book.fill",
                         iconColor: .orange,
-                        title: "Science-Based Tips",
-                        description: "Learn proven techniques for habit formation"
+                        title: Strings.Onboarding.scienceBasedTipsTitle,
+                        description: Strings.Onboarding.scienceBasedTipsDescription
                     )
 
                     OnboardingFeatureCard(
                         icon: "chart.bar.fill",
                         iconColor: .yellow,
-                        title: "Track Your Progress",
-                        description: "Visualize your journey with streaks and insights"
+                        title: Strings.Onboarding.trackProgressTitle,
+                        description: Strings.Onboarding.trackProgressDescription
                     )
 
                     OnboardingFeatureCard(
                         icon: "arrow.up.right.circle.fill",
                         iconColor: .red,
-                        title: "Stay Motivated",
-                        description: "Discover strategies to maintain momentum"
+                        title: Strings.Onboarding.stayMotivatedTitle,
+                        description: Strings.Onboarding.stayMotivatedDescription
                     )
 
                     OnboardingFeatureCard(
                         icon: "airplane.circle.fill",
                         iconColor: .teal,
-                        title: "Travel Insights",
-                        description: "See how timezone changes affect your habits"
+                        title: Strings.Onboarding.travelInsightsTitle,
+                        description: Strings.Onboarding.travelInsightsDescription
                     )
                 }
                 .padding(.horizontal, 24)

@@ -4,12 +4,12 @@ import RitualistCore
 /// Social media links section for Settings page
 struct SocialMediaLinksView: View {
     var body: some View {
-        Section("Connect With Us") {
+        Section(Strings.Settings.sectionConnectWithUs) {
             // Instagram
             SocialMediaButton(
                 iconName: "camera.fill",
                 iconColor: .purple,
-                title: "Instagram",
+                title: Strings.Settings.instagram,
                 url: "https://instagram.com/ritualist.app"
             )
 
@@ -17,7 +17,7 @@ struct SocialMediaLinksView: View {
             SocialMediaButton(
                 iconName: "bird.fill",
                 iconColor: .blue,
-                title: "X (Twitter)",
+                title: Strings.Settings.xTwitter,
                 url: "https://x.com/ritualist_app"
             )
 
@@ -25,7 +25,7 @@ struct SocialMediaLinksView: View {
             SocialMediaButton(
                 iconName: "music.note",
                 iconColor: .black,
-                title: "TikTok",
+                title: Strings.Settings.tiktok,
                 url: "https://tiktok.com/@ritualist.app"
             )
 
@@ -33,7 +33,7 @@ struct SocialMediaLinksView: View {
             SocialMediaButton(
                 iconName: "globe",
                 iconColor: .green,
-                title: "Visit Our Website",
+                title: Strings.Settings.visitWebsite,
                 url: "https://ritualist.app"
             )
         }

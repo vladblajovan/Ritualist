@@ -54,7 +54,7 @@ public struct HabitsAssistantSheet: View {
                 },
                 onShowPaywall: onShowPaywall ?? {}
             )
-            .navigationTitle("Habits Assistant")
+            .navigationTitle(Strings.HabitsAssistant.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

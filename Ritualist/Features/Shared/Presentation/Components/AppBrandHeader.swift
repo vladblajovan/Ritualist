@@ -74,6 +74,10 @@ struct AppBrandHeader: View {
     /// Set to false when used in Settings to avoid redundancy.
     var showProfileAvatar: Bool = true
 
+    /// Whether to show the avatar/progress tip. Defaults to false.
+    /// Only enable on Overview tab to avoid showing tips on multiple screens.
+    var showAvatarTip: Bool = false
+
     /// Optional action buttons displayed to the left of the profile avatar (max 3)
     var actions: [HeaderAction] = []
 
@@ -255,10 +259,33 @@ struct AppBrandHeader: View {
     @State private var hasInitializedProgress = false
     @State private var progressGlowTask: Task<Void, Never>?
     @State private var showingSettings = false
+    @State private var profileRefreshTrigger = UUID()
 
     // MARK: - Tips
 
     private let circleProgressTip = CircleProgressTip()
+
+    /// Profile avatar button with optional tip (only shown on Overview)
+    @ViewBuilder
+    private var profileAvatarButton: some View {
+        let button = Button {
+            showingSettings = true
+        } label: {
+            profileAvatarViewWithoutCrown
+        }
+        .buttonStyle(.plain)
+        .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
+        .accessibilityLabel("Profile")
+        .accessibilityHint("Double tap to open settings")
+        .id(profileRefreshTrigger) // Force re-render when profile loads
+
+        if showAvatarTip {
+            // CircleProgressTip is the last tip in the chain - no need to donate events on dismissal
+            button.popoverTip(circleProgressTip, arrowEdge: .top)
+        } else {
+            button
+        }
+    }
 
     // MARK: - Constants
 
@@ -322,6 +349,21 @@ struct AppBrandHeader: View {
         .onDisappear {
             progressGlowTask?.cancel()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .premiumStatusDidChange)) { _ in
+            // Refresh premium status when purchase completes to update crown badge
+            Task {
+                await settingsVM.refreshSubscriptionStatus()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .userProfileDidChange)) { _ in
+            // Force reload profile data AND refresh view when profile changes
+            // This ensures avatar initials appear immediately after onboarding completes
+            // Simply changing profileRefreshTrigger isn't enough - we need fresh data from repository
+            Task {
+                await settingsVM.reload()
+                profileRefreshTrigger = UUID()
+            }
+        }
     }
 
     // MARK: - Gradient Title
@@ -372,16 +414,7 @@ struct AppBrandHeader: View {
             // Profile avatar - always visible with progress gradient, opens settings sheet on tap
             if showProfileAvatar {
                 ZStack(alignment: .bottomTrailing) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        profileAvatarViewWithoutCrown
-                    }
-                    .buttonStyle(.plain)
-                    .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
-                    .accessibilityLabel("Profile")
-                    .accessibilityHint("Double tap to open settings")
-                    .popoverTip(circleProgressTip, arrowEdge: .top)
+                    profileAvatarButton
                     .fullScreenCover(isPresented: $showingSettings) {
                         NavigationStack {
                             SettingsRoot()

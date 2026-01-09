@@ -17,6 +17,7 @@ public final class SettingsViewModel {
     private let checkPremiumStatus: CheckPremiumStatusUseCase
     private let getCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase
     private let getSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase
+    private let getIsOnTrial: GetIsOnTrialUseCase
     private let syncWithiCloud: SyncWithiCloudUseCase
     private let checkiCloudStatus: CheckiCloudStatusUseCase
     private let getLastSyncDate: GetLastSyncDateUseCase
@@ -94,6 +95,7 @@ public final class SettingsViewModel {
     // Cache subscription data from service to avoid async issues in UI
     private var cachedSubscriptionPlan: SubscriptionPlan = .free
     private var cachedSubscriptionExpiryDate: Date?
+    private var cachedIsOnTrial: Bool = false
 
     // Paywall state
     public var paywallItem: PaywallItem?
@@ -115,6 +117,11 @@ public final class SettingsViewModel {
     /// Returns nil for free users
     public var subscriptionExpiryDate: Date? {
         cachedSubscriptionExpiryDate
+    }
+
+    /// Whether the user is currently on a free trial period
+    public var isOnTrial: Bool {
+        cachedIsOnTrial
     }
 
     // MARK: - Account Setup Status
@@ -153,6 +160,7 @@ public final class SettingsViewModel {
                 checkPremiumStatus: CheckPremiumStatusUseCase,
                 getCurrentSubscriptionPlan: GetCurrentSubscriptionPlanUseCase,
                 getSubscriptionExpiryDate: GetSubscriptionExpiryDateUseCase,
+                getIsOnTrial: GetIsOnTrialUseCase,
                 syncWithiCloud: SyncWithiCloudUseCase,
                 checkiCloudStatus: CheckiCloudStatusUseCase,
                 getLastSyncDate: GetLastSyncDateUseCase,
@@ -169,6 +177,7 @@ public final class SettingsViewModel {
         self.checkPremiumStatus = checkPremiumStatus
         self.getCurrentSubscriptionPlan = getCurrentSubscriptionPlan
         self.getSubscriptionExpiryDate = getSubscriptionExpiryDate
+        self.getIsOnTrial = getIsOnTrial
         self.syncWithiCloud = syncWithiCloud
         self.checkiCloudStatus = checkiCloudStatus
         self.getLastSyncDate = getLastSyncDate
@@ -246,6 +255,11 @@ public final class SettingsViewModel {
             }
 
             profile = try await loadProfile.execute()
+
+            // Note: Don't post .userProfileDidChange here - it causes infinite loop
+            // when AppBrandHeader responds to notification by calling reload()
+            // The notification is posted from CompleteOnboarding when profile actually changes
+
             await loadStatusesInParallel()
             hasLoadedInitialData = true
             logger.logSubscription(
@@ -275,6 +289,7 @@ public final class SettingsViewModel {
         async let syncDate = getLastSyncDate.execute()
         async let subscriptionPlan = getCurrentSubscriptionPlan.execute()
         async let subscriptionExpiry = getSubscriptionExpiryDate.execute()
+        async let trialStatus = getIsOnTrial.execute()
         async let cloudStatus = checkiCloudStatus.execute()
 
         // Await all results (runs in parallel)
@@ -284,6 +299,7 @@ public final class SettingsViewModel {
         lastSyncDate = await syncDate
         cachedSubscriptionPlan = await subscriptionPlan
         cachedSubscriptionExpiryDate = await subscriptionExpiry
+        cachedIsOnTrial = await trialStatus
         iCloudStatus = await cloudStatus
 
         // Check if device allows in-app purchases (parental controls, etc.)
@@ -302,6 +318,9 @@ public final class SettingsViewModel {
 
             // Track profile update
             userActionTracker.track(.profileUpdated(field: "general_settings"))
+
+            // Notify UI that profile changed (for AppBrandHeader avatar/initials)
+            NotificationCenter.default.post(name: .userProfileDidChange, object: nil)
 
             // Send notification after successful save
             // try? await notificationService.sendImmediate(
@@ -544,13 +563,15 @@ extension SettingsViewModel {
         logger.logSubscription(event: "Refreshing subscription status from service")
         cachedSubscriptionPlan = await subscriptionService.getCurrentSubscriptionPlan()
         cachedSubscriptionExpiryDate = await subscriptionService.getSubscriptionExpiryDate()
+        cachedIsOnTrial = await subscriptionService.isOnTrial()
         cachedPremiumStatus = await checkPremiumStatus.execute()
         logger.logSubscription(
             event: "Updated subscription status",
             plan: cachedSubscriptionPlan.rawValue,
             metadata: [
                 "expiry": cachedSubscriptionExpiryDate?.description ?? "nil",
-                "is_premium": cachedPremiumStatus
+                "is_premium": cachedPremiumStatus,
+                "is_on_trial": cachedIsOnTrial
             ]
         )
     }

@@ -28,7 +28,7 @@ struct PersonalityInsightsUpsellCard: View {
                     )
 
                 HStack(spacing: 6) {
-                    Text("Personality Insights")
+                    Text(Strings.Overview.personalityInsights)
                         .font(CardDesign.headline)
                         .foregroundColor(.primary)
 
@@ -49,7 +49,7 @@ struct PersonalityInsightsUpsellCard: View {
 
             // Marketing content
             VStack(alignment: .leading, spacing: Spacing.small) {
-                Text("Your habit data is ready for personality analysis:")
+                Text(Strings.Overview.dataReadyForAnalysis)
                     .font(CardDesign.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -67,7 +67,7 @@ struct PersonalityInsightsUpsellCard: View {
                 HStack {
                     Image(systemName: "lock.open.fill")
                         .font(CardDesign.subheadline)
-                    Text("Unlock with Pro")
+                    Text(Strings.Components.unlockWithPro)
                         .font(CardDesign.subheadline.weight(.semibold))
                 }
                 .frame(maxWidth: .infinity)

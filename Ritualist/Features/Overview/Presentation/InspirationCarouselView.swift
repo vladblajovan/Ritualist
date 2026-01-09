@@ -13,7 +13,7 @@ struct InspirationCarouselView: View {
 
     var body: some View {
         VStack(spacing: Spacing.small) {
-            // Carousel
+            // Carousel - negative margins extend container, card padding brings it back to match other cards
             TabView(selection: $currentIndex) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     InspirationCard(
@@ -29,11 +29,13 @@ struct InspirationCarouselView: View {
                         }
                     )
                     .padding(.horizontal, Spacing.small) // Visual separation between carousel cards
+                    .padding(.top, CardDesign.shadowRadius) // Room for shadow above
+                    .padding(.bottom, CardDesign.shadowRadius + 4) // Extra room for shadow + y-offset below
                     .tag(index)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .contentMargins(.horizontal, Spacing.small, for: .scrollContent)
+            .padding(.horizontal, -Spacing.small) // Extend carousel to compensate for card padding
             .frame(minHeight: 120)
             .onChange(of: items.count) { _, newCount in
                 if currentIndex >= newCount {

@@ -60,6 +60,12 @@ public actor SecurePremiumCache {
     /// Keychain account for cache timestamp
     private let cacheTimestampAccount = "cache_timestamp"
 
+    /// Keychain account for trial status (boolean)
+    private let isOnTrialAccount = "is_on_trial"
+
+    /// Keychain account for subscription expiry date
+    private let expiryDateAccount = "expiry_date"
+
     /// Offline grace period duration (3 days - industry standard)
     /// After this period, cached premium status is no longer trusted.
     ///
@@ -102,9 +108,15 @@ public actor SecurePremiumCache {
     /// Call this whenever StoreKit successfully verifies the user's subscription status.
     /// This keeps the cache fresh for offline scenarios.
     ///
-    /// - Parameter plan: The user's current subscription plan
+    /// - Parameters:
+    ///   - plan: The user's current subscription plan
+    ///   - isOnTrial: Whether the user is currently on a free trial
+    ///   - expiryDate: When the subscription/trial expires (nil for free users)
     ///
-    public func updateCache(plan: SubscriptionPlan) {
+    /// **Important:** Trial subscriptions do NOT get offline grace period.
+    /// When a trial expires, user must go online to convert or they become free immediately.
+    ///
+    public func updateCache(plan: SubscriptionPlan, isOnTrial: Bool = false, expiryDate: Date? = nil) {
         // Store premium status (boolean for backward compatibility and quick checks)
         let isPremium = plan != .free
         let statusData = Data([isPremium ? 1 : 0])
@@ -113,6 +125,19 @@ public actor SecurePremiumCache {
         // Store subscription plan (for Settings display in offline mode)
         if let planData = plan.rawValue.data(using: .utf8) {
             saveToKeychain(data: planData, account: subscriptionPlanAccount)
+        }
+
+        // Store trial status (trials don't get grace period when expired)
+        let trialData = Data([isOnTrial ? 1 : 0])
+        saveToKeychain(data: trialData, account: isOnTrialAccount)
+
+        // Store expiry date (for trial expiration checks)
+        if let expiryDate = expiryDate {
+            let expiryTimestamp = expiryDate.timeIntervalSince1970
+            let expiryData = withUnsafeBytes(of: expiryTimestamp) { Data($0) }
+            saveToKeychain(data: expiryData, account: expiryDateAccount)
+        } else {
+            deleteFromKeychain(account: expiryDateAccount)
         }
 
         // Store current timestamp
@@ -124,12 +149,18 @@ public actor SecurePremiumCache {
     /// Get cached premium status if within the offline grace period.
     ///
     /// **Returns:**
-    /// - `true` if user was premium AND cache is less than 3 days old
-    /// - `false` if user was not premium, cache is too old, or no cache exists
+    /// - `true` if user was premium AND cache is valid (see rules below)
+    /// - `false` if user was not premium, cache is expired, or no cache exists
+    ///
+    /// **Trial vs Paid Subscription Rules:**
+    /// - **Trial:** NO grace period. If trial expiry date has passed → `false` immediately.
+    ///   Users must go online to convert to paid or they lose access.
+    /// - **Paid Subscription:** 3-day offline grace period. If cache is less than 3 days old
+    ///   AND subscription hasn't expired → `true`. This handles billing retry scenarios.
     ///
     /// **Security:**
-    /// The 3-day limit prevents indefinite offline exploitation.
-    /// Users must go online periodically to maintain premium access.
+    /// The 3-day limit prevents indefinite offline exploitation for paid subscriptions.
+    /// Trials get no grace period to prevent free access beyond the trial period.
     ///
     public func getCachedPremiumStatus() -> Bool {
         // Read premium status from Keychain
@@ -140,12 +171,41 @@ public actor SecurePremiumCache {
 
         let isPremium = statusByte == 1
 
-        // If not premium, no need to check timestamp
+        // If not premium, no need to check further
         guard isPremium else {
             return false
         }
 
-        // Read and validate timestamp
+        // Check if this was a trial subscription
+        let isOnTrial = getCachedTrialStatus()
+
+        // Check expiry date if available
+        if let expiryDate = getCachedExpiryDate() {
+            // If trial AND expired → NO grace period, return false immediately
+            if isOnTrial && expiryDate < Date() {
+                logger.log(
+                    "Trial expired while offline - no grace period",
+                    level: .info,
+                    category: .premiumCache,
+                    metadata: ["expiry": expiryDate.description]
+                )
+                return false
+            }
+
+            // If paid subscription AND not yet expired → return true
+            if !isOnTrial && expiryDate > Date() {
+                return true
+            }
+        }
+
+        // Fall back to cache age check for paid subscriptions (handles billing retry)
+        // Trials should have been caught above with expiry date check
+        if isOnTrial {
+            // Trial without expiry date = invalid cache, be conservative
+            return false
+        }
+
+        // Read and validate cache timestamp for paid subscriptions
         guard let timestampData = readFromKeychain(account: cacheTimestampAccount),
               timestampData.count == MemoryLayout<TimeInterval>.size else {
             // No timestamp = cache is invalid
@@ -156,7 +216,7 @@ public actor SecurePremiumCache {
         let cacheDate = Date(timeIntervalSince1970: timestamp)
         let cacheAge = Date().timeIntervalSince(cacheDate)
 
-        // Check if within grace period
+        // Check if within grace period (paid subscriptions only)
         if cacheAge <= Self.offlineGracePeriod {
             return true
         } else {
@@ -165,15 +225,42 @@ public actor SecurePremiumCache {
         }
     }
 
+    /// Get cached trial status
+    private func getCachedTrialStatus() -> Bool {
+        guard let trialData = readFromKeychain(account: isOnTrialAccount),
+              let trialByte = trialData.first else {
+            return false
+        }
+        return trialByte == 1
+    }
+
+    /// Get cached expiry date
+    private func getCachedExpiryDate() -> Date? {
+        guard let expiryData = readFromKeychain(account: expiryDateAccount),
+              expiryData.count == MemoryLayout<TimeInterval>.size else {
+            return nil
+        }
+        let expiryTimestamp = expiryData.withUnsafeBytes { $0.load(as: TimeInterval.self) }
+        return Date(timeIntervalSince1970: expiryTimestamp)
+    }
+
     /// Get cached subscription plan if within the offline grace period.
     ///
     /// Used by Settings to display the correct plan in offline scenarios.
     ///
     /// - Returns: The cached subscription plan, or `.free` if cache is invalid/expired/missing
     ///
+    /// **Trial Handling:** If cached plan was a trial that has expired, returns `.free`.
+    ///
     public func getCachedSubscriptionPlan() -> SubscriptionPlan {
         // First check if cache is valid (within grace period)
         guard isCacheValid() else {
+            return .free
+        }
+
+        // Check if trial has expired (trials get no grace period)
+        let isOnTrial = getCachedTrialStatus()
+        if isOnTrial, let expiryDate = getCachedExpiryDate(), expiryDate < Date() {
             return .free
         }
 
@@ -252,6 +339,8 @@ public actor SecurePremiumCache {
         deleteFromKeychain(account: premiumStatusAccount)
         deleteFromKeychain(account: subscriptionPlanAccount)
         deleteFromKeychain(account: cacheTimestampAccount)
+        deleteFromKeychain(account: isOnTrialAccount)
+        deleteFromKeychain(account: expiryDateAccount)
     }
 
     // MARK: - Keychain Operations
@@ -323,6 +412,9 @@ extension SecurePremiumCache {
     public func debugDescription() -> String {
         let isPremium = getCachedPremiumStatus()
         let plan = getCachedSubscriptionPlan()
+        let isOnTrial = getCachedTrialStatus()
+        let expiryDate = getCachedExpiryDate()
+        let expiryString = expiryDate.map { DateFormatter.localizedString(from: $0, dateStyle: .short, timeStyle: .short) } ?? "none"
         let age = getCacheAge()
         let ageString = age.map { String(format: "%.1f hours", $0 / 3600) } ?? "no cache"
         let gracePeriodHours = Self.offlineGracePeriod / 3600
@@ -332,6 +424,8 @@ extension SecurePremiumCache {
         SecurePremiumCache:
           - Cached Premium: \(isPremium)
           - Cached Plan: \(plan.rawValue)
+          - Is On Trial: \(isOnTrial)
+          - Expiry Date: \(expiryString)
           - Cache Age: \(ageString)
           - Grace Period: \(gracePeriodHours) hours
           - Staleness Threshold: \(stalenessThresholdHours) hours
