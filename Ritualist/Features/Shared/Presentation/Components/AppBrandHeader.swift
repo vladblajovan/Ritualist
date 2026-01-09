@@ -259,6 +259,7 @@ struct AppBrandHeader: View {
     @State private var hasInitializedProgress = false
     @State private var progressGlowTask: Task<Void, Never>?
     @State private var showingSettings = false
+    @State private var profileRefreshTrigger = UUID()
 
     // MARK: - Tips
 
@@ -276,9 +277,14 @@ struct AppBrandHeader: View {
         .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
         .accessibilityLabel("Profile")
         .accessibilityHint("Double tap to open settings")
+        .id(profileRefreshTrigger) // Force re-render when profile loads
 
         if showAvatarTip {
-            button.popoverTip(circleProgressTip, arrowEdge: .top)
+            button.popoverTip(circleProgressTip, arrowEdge: .top) { action in
+                if action.id == CircleProgressTip.gotItActionId {
+                    circleProgressTip.invalidate(reason: .actionPerformed)
+                }
+            }
         } else {
             button
         }
@@ -350,6 +356,15 @@ struct AppBrandHeader: View {
             // Refresh premium status when purchase completes to update crown badge
             Task {
                 await settingsVM.refreshSubscriptionStatus()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .userProfileDidChange)) { _ in
+            // Force reload profile data AND refresh view when profile changes
+            // This ensures avatar initials appear immediately after onboarding completes
+            // Simply changing profileRefreshTrigger isn't enough - we need fresh data from repository
+            Task {
+                await settingsVM.reload()
+                profileRefreshTrigger = UUID()
             }
         }
     }

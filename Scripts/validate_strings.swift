@@ -16,6 +16,10 @@ struct StringConstraints {
     static let formFieldLabel = StringConstraints(name: "Form Field", characterLimit: 40, pixelWidth: 200)
     static let validationMessage = StringConstraints(name: "Validation", characterLimit: 85, pixelWidth: 280)
     static let accessibilityLabel = StringConstraints(name: "Accessibility", characterLimit: 100, pixelWidth: 0)
+    // For detailed descriptions, empty states, and explanatory text that needs more space
+    static let longDescription = StringConstraints(name: "Long Description", characterLimit: 150, pixelWidth: 350)
+    // For legal text, terms, and multi-sentence content
+    static let legalText = StringConstraints(name: "Legal Text", characterLimit: 500, pixelWidth: 0)
 }
 
 struct ValidationResult {
@@ -101,6 +105,98 @@ class StringValidator {
                      lowercaseKey.contains("error") ||
                      lowercaseKey.contains("restriction") ||
                      key.contains("This will remove"):  // Confirmation dialogs
+            return .validationMessage
+
+        // ===== SPECIFIC LONG/LEGAL PATTERNS (must come before generic patterns) =====
+
+        // Legal text - subscription terms, privacy text (very long, 500 chars)
+        case _ where lowercaseKey.contains("subscriptionterms") ||
+                     lowercaseKey.contains("privacypolicy") ||
+                     lowercaseKey.contains("legaltext"):
+            return .legalText
+        // Category deactivate confirmations are longer (explain consequences)
+        case _ where key.hasPrefix("category.deactivate.confirm"):
+            return .longDescription
+        // Long descriptions - empty states, detailed explanations
+        case _ where lowercaseKey.contains("nocategoryhabits") ||
+                     lowercaseKey.contains("emptystate") ||
+                     key == "icloud.description" ||
+                     key == "components.habitIconsDescription":
+            return .longDescription
+
+        // ===== GENERIC PATTERNS =====
+
+        // Descriptive text patterns - footers, descriptions, explanations, info, intros
+        case _ where lowercaseKey.contains("footer") ||
+                     lowercaseKey.contains("description") ||
+                     lowercaseKey.contains("explanation") ||
+                     lowercaseKey.contains("intro") ||
+                     lowercaseKey.hasSuffix(".desc") ||
+                     lowercaseKey.hasSuffix("info") ||
+                     lowercaseKey.contains("subtitle") ||
+                     lowercaseKey.contains("detail"):
+            return .validationMessage
+        // Confirmation dialogs
+        case _ where lowercaseKey.contains("confirm") ||
+                     lowercaseKey.contains("dialog"):
+            return .validationMessage
+        // Paywall and subscription descriptive text
+        case _ where (key.hasPrefix("paywall.") || key.hasPrefix("subscription.")) &&
+                     (lowercaseKey.contains("terms") ||
+                      lowercaseKey.contains("trial") ||
+                      lowercaseKey.contains("header")):
+            return .validationMessage
+        // Timezone descriptive text
+        case _ where key.hasPrefix("timezone") &&
+                     (lowercaseKey.contains("footer") ||
+                      lowercaseKey.contains("explanation") ||
+                      lowercaseKey.contains("intro")):
+            return .validationMessage
+        // iCloud sync descriptions (not the main description, which is long)
+        case _ where key.hasPrefix("icloud.") &&
+                     (lowercaseKey.contains("footer") ||
+                      lowercaseKey.contains("syncs")):
+            return .validationMessage
+        // Stats info and examples
+        case _ where key.hasPrefix("stats.") &&
+                     (lowercaseKey.contains("info") ||
+                      lowercaseKey.contains("example") ||
+                      lowercaseKey.contains("consider")):
+            return .validationMessage
+        // Components descriptions (not habitIconsDescription, which is long)
+        case _ where key.hasPrefix("components.") &&
+                     lowercaseKey.contains("desc") &&
+                     !lowercaseKey.contains("iconsdescription"):
+            return .validationMessage
+        // Overview descriptive text
+        case _ where key.hasPrefix("overview.") &&
+                     (lowercaseKey.contains("description") ||
+                      lowercaseKey.contains("explanation")):
+            return .validationMessage
+        // Habits descriptive text (not noCategoryHabitsDescription, which is long)
+        case _ where key.hasPrefix("habits.") &&
+                     (lowercaseKey.contains("accessibility") ||
+                      lowercaseKey.contains("footer") ||
+                      lowercaseKey.contains("startdate")):
+            return .validationMessage
+        case _ where key.hasPrefix("habits.") &&
+                     lowercaseKey.contains("description") &&
+                     !lowercaseKey.contains("nocategoryhabits"):
+            return .validationMessage
+        // Category confirmations and failures (not deactivate.confirm, which is long)
+        case _ where key.hasPrefix("category.") &&
+                     (lowercaseKey.contains("failed") ||
+                      lowercaseKey.contains("subtitle")):
+            return .validationMessage
+        case _ where key.hasPrefix("category.") &&
+                     lowercaseKey.contains("confirm") &&
+                     !key.hasPrefix("category.deactivate.confirm"):
+            return .validationMessage
+        // Settings descriptions and hints
+        case _ where (key.hasPrefix("settings") || key.hasPrefix("Settings")) &&
+                     (lowercaseKey.contains("description") ||
+                      lowercaseKey.contains("hint") ||
+                      lowercaseKey.contains("intro")):
             return .validationMessage
         default:
             return .formFieldLabel // Default constraint

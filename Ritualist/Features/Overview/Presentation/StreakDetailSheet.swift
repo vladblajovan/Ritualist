@@ -118,7 +118,7 @@ struct StreakDetailSheet: View {
                                 }
                                 HStack {
                                     Text("🔥🔥🔥")
-                                    Text(Strings.Overview.streakFireMaster)
+                                    Text(Strings.Overview.streakFireChampion)
                                         .font(CardDesign.subheadline)
                                 }
                             }

@@ -255,6 +255,11 @@ public final class SettingsViewModel {
             }
 
             profile = try await loadProfile.execute()
+
+            // Note: Don't post .userProfileDidChange here - it causes infinite loop
+            // when AppBrandHeader responds to notification by calling reload()
+            // The notification is posted from CompleteOnboarding when profile actually changes
+
             await loadStatusesInParallel()
             hasLoadedInitialData = true
             logger.logSubscription(
@@ -313,6 +318,9 @@ public final class SettingsViewModel {
 
             // Track profile update
             userActionTracker.track(.profileUpdated(field: "general_settings"))
+
+            // Notify UI that profile changed (for AppBrandHeader avatar/initials)
+            NotificationCenter.default.post(name: .userProfileDidChange, object: nil)
 
             // Send notification after successful save
             // try? await notificationService.sendImmediate(

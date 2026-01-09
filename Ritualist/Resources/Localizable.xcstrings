@@ -7580,13 +7580,13 @@
         }
       }
     },
-    "overview.streakFireMaster" : {
+    "overview.streakFireChampion" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fire Master"
+            "value" : "Fire Champion"
           }
         }
       }

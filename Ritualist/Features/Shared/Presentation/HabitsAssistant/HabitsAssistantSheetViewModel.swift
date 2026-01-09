@@ -259,6 +259,8 @@ public final class HabitsAssistantSheetViewModel { // swiftlint:disable:this typ
             suggestionToHabitMappings[suggestion.id] = habitId
             trackHabitAdded(habitId: suggestion.id, habitName: suggestion.name, category: suggestion.categoryId)
             await TapHabitTip.firstHabitAdded.donate()
+            // Notify other views (Overview) that habits data changed
+            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
             logger.log(
                 "Habit added successfully",
                 level: .info,
@@ -313,6 +315,8 @@ public final class HabitsAssistantSheetViewModel { // swiftlint:disable:this typ
         if success {
             addedSuggestionIds.remove(suggestionId)
             suggestionToHabitMappings.removeValue(forKey: suggestionId)
+            // Notify other views (Overview) that habits data changed
+            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
             logger.log(
                 "Habit removed successfully",
                 level: .info,

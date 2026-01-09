@@ -287,7 +287,7 @@ public enum Strings {
         public static let achievementLevelsExplanation = String(localized: "overview.achievementLevelsExplanation")
         public static let streakBuilding = String(localized: "overview.streakBuilding")
         public static let streakStrong = String(localized: "overview.streakStrong")
-        public static let streakFireMaster = String(localized: "overview.streakFireMaster")
+        public static let streakFireChampion = String(localized: "overview.streakFireChampion")
         public static let streakDetails = String(localized: "overview.streakDetails")
 
         // Personality Insights

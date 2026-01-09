@@ -104,6 +104,11 @@ public final class CompleteOnboarding: CompleteOnboardingUseCase {
 
         try await profileRepo.saveProfile(profile)
 
+        // Notify UI that profile is available (for AppBrandHeader avatar/initials)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .userProfileDidChange, object: nil)
+        }
+
         // No need to sync to UserService - it uses ProfileRepository as single source of truth
     }
 }

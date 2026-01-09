@@ -389,6 +389,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func handleQuickActionTap(habit: Habit, scheduleStatus: HabitScheduleStatus) {
         guard scheduleStatus.isAvailable else { return }
         // Auto-dismiss the "tap to log" tip when user performs the action
+        // IMPORTANT: Also donate wasDismissed to enable tip chain progression
+        TapHabitTip.wasDismissed.sendDonation()
         tapHabitTip.invalidate(reason: .actionPerformed)
         if habit.kind == .numeric {
             onNumericHabitAction?(habit)
@@ -617,8 +619,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         if isFirstItem {
             VStack(spacing: 4) {
                 // Show tap tip OR long-press tip based on TipKit rules
-                TipView(tapHabitTip, arrowEdge: .bottom) { _ in
-                    logger.log("Tap habit tip dismissed", level: .debug, category: .ui)
+                TipView(tapHabitTip, arrowEdge: .bottom) { action in
+                    if action.id == TapHabitTip.gotItActionId {
+                        // User tapped "Got it" - enable next tip in chain
+                        TapHabitTip.wasDismissed.sendDonation()
+                        tapHabitTip.invalidate(reason: .actionPerformed)
+                        logger.log("Tap habit tip 'Got it' tapped - completed habit tip enabled", level: .debug, category: .ui)
+                    }
                 }
                 TipView(longPressLogTip, arrowEdge: .bottom) { action in
                     if action.id == LongPressLogTip.gotItActionId {
@@ -745,7 +752,12 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 longPressHabitId = habit.id
                 longPressProgress = 0.0
                 // Dismiss tips when user starts learning the gesture
+                // IMPORTANT: Also donate wasDismissed events to enable tip chain progression
+                TapHabitTip.wasDismissed.sendDonation()
                 tapHabitTip.invalidate(reason: .actionPerformed)
+                // Long-press tip dismissal enables CircleProgressTip
+                LongPressLogTip.wasDismissed.sendDonation()
+                CircleProgressTip.longPressTipDismissed.sendDonation()
                 longPressLogTip.invalidate(reason: .actionPerformed)
             },
             onComplete: {
@@ -774,7 +786,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 longPressCompletionTasks[habit.id] = Task { @MainActor in
                     try? await Task.sleep(nanoseconds: AnimationTiming.longPressCheckmarkDisplay)
                     guard !Task.isCancelled else { return }
-                    withAnimation(.easeOut(duration: 0.3)) {
+                    _ = withAnimation(.easeOut(duration: 0.3)) {
                         recentlyCompletedViaLongPress.remove(habit.id)
                     }
                     longPressCompletionTasks.removeValue(forKey: habit.id)
@@ -807,6 +819,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private func handleHabitRowTap(habit: Habit, isCompleted: Bool, scheduleStatus: HabitScheduleStatus) {
         if isCompleted {
             // Auto-dismiss the "adjust completed habits" tip when user performs the action
+            // IMPORTANT: Also donate wasDismissed events to enable tip chain progression
+            TapCompletedHabitTip.wasDismissed.sendDonation()
+            LongPressLogTip.shouldShowLongPressTip.sendDonation()
             tapCompletedHabitTip.invalidate(reason: .actionPerformed)
             if habit.kind == .numeric {
                 onNumericHabitAction?(habit)
@@ -815,6 +830,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             }
         } else if scheduleStatus.isAvailable {
             // Auto-dismiss the "tap to log" tip when user performs the action
+            // IMPORTANT: Also donate wasDismissed to enable tip chain progression
+            TapHabitTip.wasDismissed.sendDonation()
             tapHabitTip.invalidate(reason: .actionPerformed)
             if habit.kind == .numeric {
                 onNumericHabitAction?(habit)
