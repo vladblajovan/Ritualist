@@ -25,6 +25,17 @@ public enum ConsistencyHeatmapViewLogic {
         public static let cellCornerRadius: CGFloat = 2
     }
 
+    // MARK: - Color Constants
+
+    private enum ColorConstants {
+        /// Opacity for empty cells (0% completion)
+        static let emptyOpacity: Double = 0.15
+        /// Base opacity for completed cells (minimum visible green)
+        static let baseOpacity: Double = 0.25
+        /// Additional opacity range that scales with completion rate
+        static let opacityRange: Double = 0.75
+    }
+
     // MARK: - Cell Data
 
     /// Data for a single cell in the heatmap grid
@@ -54,12 +65,11 @@ public enum ConsistencyHeatmapViewLogic {
 
         if clampedRate <= 0 {
             // No completion - very light gray
-            return Color.gray.opacity(0.15)
+            return Color.gray.opacity(ColorConstants.emptyOpacity)
         }
 
         // Green with intensity based on completion rate
-        // 0.25 base opacity + 0.75 * rate for full range
-        let opacity = 0.25 + (clampedRate * 0.75)
+        let opacity = ColorConstants.baseOpacity + (clampedRate * ColorConstants.opacityRange)
         return Color.green.opacity(opacity)
     }
 

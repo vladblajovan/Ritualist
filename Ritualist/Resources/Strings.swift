@@ -788,6 +788,7 @@ public enum Strings {
         public static let noHabitsForHeatmap = String(localized: "stats.noHabitsForHeatmap")
         public static let heatmapLessLabel = String(localized: "stats.heatmapLessLabel")
         public static let heatmapMoreLabel = String(localized: "stats.heatmapMoreLabel")
+        public static let noDataForPeriod = String(localized: "stats.noDataForPeriod")
     }
 
     // MARK: - Dashboard

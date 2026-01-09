@@ -18,6 +18,14 @@ struct HeatmapGridView: View {
     private let cellGap = ConsistencyHeatmapViewLogic.LayoutConstants.cellGap
     private let cornerRadius = ConsistencyHeatmapViewLogic.LayoutConstants.cellCornerRadius
 
+    /// Shared date formatter for accessibility labels (DateFormatter creation is expensive)
+    private var accessibilityDateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeZone = timezone
+        return formatter
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Heatmap grid with day labels
@@ -87,10 +95,7 @@ struct HeatmapGridView: View {
     }
 
     private func accessibilityLabel(for cell: ConsistencyHeatmapViewLogic.CellData) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeZone = timezone
-        let dateString = formatter.string(from: cell.date)
+        let dateString = accessibilityDateFormatter.string(from: cell.date)
         let percentage = Int(cell.completionRate * 100)
         return "\(dateString), \(percentage)% complete"
     }

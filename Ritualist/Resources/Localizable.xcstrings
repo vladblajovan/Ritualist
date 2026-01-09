@@ -9610,6 +9610,17 @@
         }
       }
     },
+    "stats.noDataForPeriod" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data for this period"
+          }
+        }
+      }
+    },
     "stats.howItWorks" : {
       "extractionState" : "manual",
       "localizations" : {

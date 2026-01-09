@@ -42,8 +42,8 @@ struct ConsistencyHeatmapCard: View {
         } else if !gridData.isEmpty {
             HeatmapGridView(gridData: gridData, timezone: timezone)
         } else {
-            // Fallback: no data and not loading (unlikely but defensive)
-            loadingView
+            // No data available for selected habit/period
+            noDataView
         }
     }
 
@@ -56,8 +56,6 @@ struct ConsistencyHeatmapCard: View {
                 .foregroundStyle(.primary)
 
             Spacer()
-
-            // Optional info button could go here
         }
     }
 
@@ -127,6 +125,21 @@ struct ConsistencyHeatmapCard: View {
                 .foregroundStyle(.secondary)
 
             Text(Strings.Stats.noHabitsForHeatmap)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 120)
+    }
+
+    private var noDataView: some View {
+        VStack(spacing: Spacing.small) {
+            Image(systemName: "calendar.badge.exclamationmark")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+
+            Text(Strings.Stats.noDataForPeriod)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
