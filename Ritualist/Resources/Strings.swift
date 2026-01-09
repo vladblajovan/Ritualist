@@ -781,6 +781,14 @@ public enum Strings {
         public static let habitPatternsDetail2 = String(localized: "stats.habitPatternsInfo.detail2")
         public static let habitPatternsDetail3 = String(localized: "stats.habitPatternsInfo.detail3")
         public static let habitPatternsExample = String(localized: "stats.habitPatternsInfo.example")
+
+        // Consistency Heatmap
+        public static let consistencyHeatmap = String(localized: "stats.consistencyHeatmap")
+        public static let selectHabit = String(localized: "stats.selectHabit")
+        public static let noHabitsForHeatmap = String(localized: "stats.noHabitsForHeatmap")
+        public static let heatmapLessLabel = String(localized: "stats.heatmapLessLabel")
+        public static let heatmapMoreLabel = String(localized: "stats.heatmapMoreLabel")
+        public static let noDataForPeriod = String(localized: "stats.noDataForPeriod")
     }
 
     // MARK: - Dashboard

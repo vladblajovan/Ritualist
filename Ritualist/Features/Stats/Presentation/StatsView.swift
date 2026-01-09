@@ -8,9 +8,11 @@ public struct StatsView: View {
     @Bindable var vm: StatsViewModel
     @Injected(\.debugLogger) private var logger
     @Injected(\.navigationService) private var navigationService
+    @Injected(\.featureGatingService) private var featureGatingService
 
     @State private var showingProgressTrendInfo = false
     @State private var showingHabitPatternsInfo = false
+    @State private var isPremiumUser = false
 
     public init(vm: StatsViewModel) {
         self.vm = vm
@@ -70,6 +72,13 @@ public struct StatsView: View {
                             categoryBreakdownSection(categories: categoryBreakdown)
                         }
                     }
+
+                    // Row 3: Consistency Heatmap (Premium only)
+                    if isPremiumUser {
+                        ReadableWidthContainer {
+                            consistencyHeatmapSection
+                        }
+                    }
                 } else {
                     emptyStateView
                 }
@@ -83,6 +92,7 @@ public struct StatsView: View {
                 await vm.refresh()
             }
             .task {
+                isPremiumUser = await featureGatingService.hasAdvancedAnalytics()
                 await vm.loadData()
             }
             .onAppear {
@@ -457,6 +467,24 @@ public struct StatsView: View {
                 .font(.subheadline.weight(.semibold)).foregroundColor(.primary).frame(minWidth: 44, alignment: .trailing)
             Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundColor(.secondary)
         }
+    }
+
+    // MARK: - Consistency Heatmap
+
+    @ViewBuilder
+    private var consistencyHeatmapSection: some View {
+        ConsistencyHeatmapCard(
+            habits: vm.allHabits,
+            selectedHabit: vm.selectedHeatmapHabit,
+            gridData: vm.heatmapGridData,
+            isLoading: vm.isLoadingHeatmap,
+            timezone: vm.displayTimezone,
+            onHabitSelected: { habit in
+                Task {
+                    await vm.selectHeatmapHabit(habit)
+                }
+            }
+        )
     }
 
     // MARK: - Habit Patterns Helpers

@@ -9412,6 +9412,17 @@
         }
       }
     },
+    "stats.consistencyHeatmap" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consistency Heatmap"
+          }
+        }
+      }
+    },
     "stats.consistentAcrossDays" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9577,6 +9588,39 @@
         }
       }
     },
+    "stats.heatmapLessLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Less"
+          }
+        }
+      }
+    },
+    "stats.heatmapMoreLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        }
+      }
+    },
+    "stats.noDataForPeriod" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data for this period"
+          }
+        }
+      }
+    },
     "stats.howItWorks" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9606,6 +9650,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No schedule changes needed"
+          }
+        }
+      }
+    },
+    "stats.noHabitsForHeatmap" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No habits available"
           }
         }
       }
@@ -9760,6 +9815,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap to view habits in this category"
+          }
+        }
+      }
+    },
+    "stats.selectHabit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a habit"
           }
         }
       }

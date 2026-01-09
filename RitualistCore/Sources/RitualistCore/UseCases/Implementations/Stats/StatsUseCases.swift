@@ -107,3 +107,97 @@ public final class GenerateProgressChartDataUseCase: GenerateProgressChartDataUs
         )
     }
 }
+
+// MARK: - Consistency Heatmap Use Case
+
+public final class GetConsistencyHeatmapData: GetConsistencyHeatmapDataUseCase {
+    private let habitRepository: HabitRepository
+    private let getLogsUseCase: GetLogsUseCase
+
+    public init(
+        habitRepository: HabitRepository,
+        getLogsUseCase: GetLogsUseCase
+    ) {
+        self.habitRepository = habitRepository
+        self.getLogsUseCase = getLogsUseCase
+    }
+
+    public func execute(habitId: UUID, period: TimePeriod, timezone: TimeZone) async throws -> ConsistencyHeatmapData {
+        // Fetch the habit
+        guard let habit = try await habitRepository.fetchHabit(by: habitId) else {
+            throw HeatmapError.habitNotFound
+        }
+
+        // Get date range from period
+        let dateRange = period.dateRange
+
+        // Fetch logs for this habit in the date range
+        let logs = try await getLogsUseCase.execute(
+            for: habitId,
+            since: dateRange.start,
+            until: dateRange.end,
+            timezone: timezone
+        )
+
+        // Build daily completions dictionary
+        var dailyCompletions: [Date: Double] = [:]
+
+        // Group logs by date (start of day in the given timezone)
+        var logsByDate: [Date: HabitLog] = [:]
+        for log in logs {
+            let dayStart = CalendarUtils.startOfDayLocal(for: log.date, timezone: timezone)
+            // Keep the latest log for each day (in case of multiple logs)
+            if let existing = logsByDate[dayStart] {
+                if log.date > existing.date {
+                    logsByDate[dayStart] = log
+                }
+            } else {
+                logsByDate[dayStart] = log
+            }
+        }
+
+        // Calculate completion rate for each day in the period
+        var currentDate = CalendarUtils.startOfDayLocal(for: dateRange.start, timezone: timezone)
+        let endDate = CalendarUtils.startOfDayLocal(for: dateRange.end, timezone: timezone)
+
+        while currentDate <= endDate {
+            if let log = logsByDate[currentDate] {
+                // Calculate completion rate based on habit type
+                let completionRate: Double
+                let logValue = log.value ?? 0.0
+                switch habit.kind {
+                case .binary:
+                    // Binary: any positive value means complete
+                    completionRate = logValue > 0 ? 1.0 : 0.0
+                case .numeric:
+                    // Numeric: value / target, capped at 1.0
+                    let target = habit.dailyTarget ?? 1.0
+                    completionRate = min(logValue / target, 1.0)
+                }
+                dailyCompletions[currentDate] = completionRate
+            } else {
+                // No log for this day - 0% completion
+                dailyCompletions[currentDate] = 0.0
+            }
+            currentDate = CalendarUtils.addDaysLocal(1, to: currentDate, timezone: timezone)
+        }
+
+        return ConsistencyHeatmapData(
+            habitId: habit.id,
+            habitName: habit.name,
+            habitEmoji: habit.emoji ?? "📊",
+            dailyCompletions: dailyCompletions
+        )
+    }
+}
+
+public enum HeatmapError: Error, LocalizedError {
+    case habitNotFound
+
+    public var errorDescription: String? {
+        switch self {
+        case .habitNotFound:
+            return "Habit not found"
+        }
+    }
+}
