@@ -552,5 +552,9 @@ private actor TestSubscriptionService: SecureSubscriptionService {
     func getSubscriptionExpiryDate() async -> Date? {
         isPremium ? Date().addingTimeInterval(365 * 24 * 60 * 60) : nil
     }
+
+    func isOnTrial() async -> Bool {
+        false
+    }
 }
 
