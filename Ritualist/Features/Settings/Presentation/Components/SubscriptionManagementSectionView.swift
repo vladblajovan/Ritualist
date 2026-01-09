@@ -116,8 +116,6 @@ struct SubscriptionManagementSectionView: View {
             #endif
         } header: {
             Text(Strings.Subscription.sectionHeader)
-        } footer: {
-            footerText
         }
         .alert(Strings.Subscription.restorePurchases, isPresented: $showingRestoreAlert) {
             Button(Strings.Common.ok, role: .cancel) {}
@@ -135,31 +133,6 @@ struct SubscriptionManagementSectionView: View {
         case .weekly, .monthly, .annual:
             return "star.circle.fill"
         }
-    }
-
-    // MARK: - Footer Text
-
-    @ViewBuilder
-    private var footerText: some View {
-        #if ALL_FEATURES_ENABLED
-        Text(Strings.Subscription.allFeaturesFooter)
-        #else
-        // Don't show promotional footer for trial users
-        if vm.isOnTrial {
-            EmptyView()
-        } else {
-            switch vm.subscriptionPlan {
-            case .free:
-                Text(Strings.Subscription.freeFooter)
-            case .weekly:
-                Text(Strings.Subscription.weeklyFooter)
-            case .monthly:
-                Text(Strings.Subscription.monthlyFooter)
-            case .annual:
-                Text(Strings.Subscription.annualFooter)
-            }
-        }
-        #endif
     }
 
     // MARK: - Actions

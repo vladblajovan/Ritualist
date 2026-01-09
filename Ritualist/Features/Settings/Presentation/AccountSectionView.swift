@@ -1,7 +1,7 @@
 import SwiftUI
 import RitualistCore
 
-/// Account section for Settings page including profile, appearance, and time display
+/// Account section for Settings page including profile and personalization link
 struct AccountSectionView: View {
     @Bindable var vm: SettingsViewModel
     @Binding var name: String
@@ -12,6 +12,11 @@ struct AccountSectionView: View {
     @FocusState.Binding var isNameFieldFocused: Bool
     @Binding var showingImagePicker: Bool
     let updateUserName: () async -> Void
+
+    /// Whether user has chosen "prefer not to say" for either demographic
+    private var hasMissingDemographics: Bool {
+        gender == .preferNotToSay || ageGroup == .preferNotToSay
+    }
 
     var body: some View {
         Section {
@@ -56,49 +61,28 @@ struct AccountSectionView: View {
                 }
             }
 
-            // Gender Picker
-            HStack {
+            // Personalization row - show subtitle hint when demographics are missing
+            NavigationLink {
+                PersonalizationSettingsView(
+                    vm: vm,
+                    gender: $gender,
+                    ageGroup: $ageGroup
+                )
+            } label: {
                 Label {
-                    Picker(Strings.Settings.gender, selection: $gender) {
-                        ForEach(UserGender.allCases) { genderOption in
-                            Text(genderOption.displayName).tag(genderOption)
+                    VStack(alignment: .leading, spacing: Spacing.xxsmall) {
+                        Text(Strings.Settings.personalization)
+
+                        if hasMissingDemographics {
+                            Text(Strings.Settings.personalizationTip)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .pickerStyle(MenuPickerStyle())
-                    .onChange(of: gender) { _, newValue in
-                        Task {
-                            await vm.updateGender(newValue)
-                        }
-                    }
-                    .accessibilityLabel(Strings.Settings.gender)
-                    .accessibilityHint(Strings.Settings.genderHint)
                 } icon: {
-                    Image(systemName: "person.fill")
+                    Image(systemName: "person.text.rectangle")
                         .font(.title2)
                         .foregroundColor(.purple)
-                }
-            }
-
-            // Age Group Picker
-            HStack {
-                Label {
-                    Picker(Strings.Settings.ageGroup, selection: $ageGroup) {
-                        ForEach(UserAgeGroup.allCases) { ageGroupOption in
-                            Text(ageGroupOption.displayName).tag(ageGroupOption)
-                        }
-                    }
-                    .pickerStyle(MenuPickerStyle())
-                    .onChange(of: ageGroup) { _, newValue in
-                        Task {
-                            await vm.updateAgeGroup(newValue)
-                        }
-                    }
-                    .accessibilityLabel(Strings.Settings.ageGroup)
-                    .accessibilityHint(Strings.Settings.ageGroupHint)
-                } icon: {
-                    Image(systemName: "number.circle")
-                        .font(.title2)
-                        .foregroundColor(.orange)
                 }
             }
         }

@@ -164,6 +164,12 @@ public enum Strings {
         public static let genderHint = String(localized: "settingsGenderHint")
         public static let ageGroupHint = String(localized: "settingsAgeGroupHint")
 
+        // Personalization Section
+        public static let personalization = String(localized: "settingsPersonalization")
+        public static let demographics = String(localized: "settingsDemographics")
+        public static let personalizationExplanation = String(localized: "settingsPersonalizationExplanation")
+        public static let personalizationTip = String(localized: "settingsPersonalizationTip")
+
         // Permissions Section
         public static let sectionPermissions = String(localized: "settingsSectionPermissions")
         public static let location = String(localized: "settingsLocation")
@@ -1157,13 +1163,6 @@ public enum Strings {
         }
         public static let noPurchasesToRestore = String(localized: "subscription.no_purchases_to_restore")
         public static let restoreFailed = String(localized: "subscription.restore_failed")
-
-        // Footer texts
-        public static let allFeaturesFooter = String(localized: "subscription.all_features_footer")
-        public static let freeFooter = String(localized: "subscription.free_footer")
-        public static let weeklyFooter = String(localized: "subscription.weekly_footer")
-        public static let monthlyFooter = String(localized: "subscription.monthly_footer")
-        public static let annualFooter = String(localized: "subscription.annual_footer")
     }
 
     // MARK: - Numeric Habit Log
