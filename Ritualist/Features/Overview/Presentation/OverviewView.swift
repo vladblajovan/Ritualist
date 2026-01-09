@@ -271,7 +271,8 @@ public struct OverviewView: View {
     private var stickyBrandHeader: some View {
         AppBrandHeader(
             completionPercentage: vm.todaysSummary?.completionPercentage,
-            progressDisplayStyle: .circular
+            progressDisplayStyle: .circular,
+            showAvatarTip: true
         )
         .padding(.horizontal, Spacing.large)
         .padding(.top, Spacing.medium + (horizontalSizeClass == .regular ? 10 : 0))

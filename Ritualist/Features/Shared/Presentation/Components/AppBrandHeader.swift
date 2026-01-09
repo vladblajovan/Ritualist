@@ -74,6 +74,10 @@ struct AppBrandHeader: View {
     /// Set to false when used in Settings to avoid redundancy.
     var showProfileAvatar: Bool = true
 
+    /// Whether to show the avatar/progress tip. Defaults to false.
+    /// Only enable on Overview tab to avoid showing tips on multiple screens.
+    var showAvatarTip: Bool = false
+
     /// Optional action buttons displayed to the left of the profile avatar (max 3)
     var actions: [HeaderAction] = []
 
@@ -260,6 +264,26 @@ struct AppBrandHeader: View {
 
     private let circleProgressTip = CircleProgressTip()
 
+    /// Profile avatar button with optional tip (only shown on Overview)
+    @ViewBuilder
+    private var profileAvatarButton: some View {
+        let button = Button {
+            showingSettings = true
+        } label: {
+            profileAvatarViewWithoutCrown
+        }
+        .buttonStyle(.plain)
+        .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
+        .accessibilityLabel("Profile")
+        .accessibilityHint("Double tap to open settings")
+
+        if showAvatarTip {
+            button.popoverTip(circleProgressTip, arrowEdge: .top)
+        } else {
+            button
+        }
+    }
+
     // MARK: - Constants
 
     /// App name from bundle (uses display name if available, falls back to bundle name)
@@ -378,16 +402,7 @@ struct AppBrandHeader: View {
             // Profile avatar - always visible with progress gradient, opens settings sheet on tap
             if showProfileAvatar {
                 ZStack(alignment: .bottomTrailing) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        profileAvatarViewWithoutCrown
-                    }
-                    .buttonStyle(.plain)
-                    .transaction { $0.animation = nil } // Prevent progress bar animation from affecting avatar
-                    .accessibilityLabel("Profile")
-                    .accessibilityHint("Double tap to open settings")
-                    .popoverTip(circleProgressTip, arrowEdge: .top)
+                    profileAvatarButton
                     .fullScreenCover(isPresented: $showingSettings) {
                         NavigationStack {
                             SettingsRoot()
