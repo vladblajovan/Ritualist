@@ -201,6 +201,11 @@ public actor StoreKitPaywallService: PaywallService {
         // Find the monthly product to compare prices
         guard let monthlyProduct = storeProducts.first(where: { $0.id == StoreKitProductID.monthly }) else {
             // Fallback marketing text when monthly product unavailable for comparison
+            logger.log(
+                "Monthly product unavailable for discount calculation - using fallback text",
+                level: .warning,
+                category: .subscription
+            )
             return Strings.Paywall.discountFallback
         }
 

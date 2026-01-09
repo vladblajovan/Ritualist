@@ -97,6 +97,10 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
         // This ensures the user has offline access right away
         let plan = StoreKitProductID.subscriptionPlan(for: productId)
 
+        // Small delay to allow StoreKit to propagate the transaction
+        // This mitigates race conditions where the transaction hasn't synced yet
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
         // Query transaction for trial info and expiry date
         // Capture the most recent transaction in case user has multiple (edge case)
         var isOnTrial = false
@@ -117,11 +121,39 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
             }
         }
 
+        // If transaction wasn't found (race condition), use conservative fallback
+        // The next cache refresh will get accurate data from StoreKit
+        if latestPurchaseDate == nil {
+            Container.shared.debugLogger().log(
+                "Transaction not yet available for \(productId) - using fallback expiry",
+                level: .warning,
+                category: .subscription
+            )
+            // Use plan-appropriate fallback expiry (will be corrected on next refresh)
+            expiryDate = Self.fallbackExpiryDate(for: plan)
+        }
+
         await SecurePremiumCache.shared.updateCache(
             plan: plan,
             isOnTrial: isOnTrial,
             expiryDate: expiryDate
         )
+    }
+
+    /// Returns a fallback expiry date based on subscription plan type
+    /// Used when StoreKit transaction hasn't propagated yet
+    private static func fallbackExpiryDate(for plan: SubscriptionPlan) -> Date {
+        let calendar = Calendar.current
+        switch plan {
+        case .weekly:
+            return calendar.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+        case .monthly:
+            return calendar.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+        case .annual:
+            return calendar.date(byAdding: .year, value: 1, to: Date()) ?? Date()
+        case .free:
+            return Date()
+        }
     }
 
     public func clearPurchases() async throws {
