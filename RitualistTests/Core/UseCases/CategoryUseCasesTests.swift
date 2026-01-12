@@ -12,6 +12,10 @@ import Foundation
 @testable import RitualistCore
 
 // MARK: - Test Infrastructure
+//
+// Note on @unchecked Sendable: This test double uses mutable state (var properties)
+// but is safe because each @Test creates its own isolated instance, all test suites
+// are @MainActor isolated, and no concurrent mutations occur within a single test.
 
 /// Test double for CategoryRepository with configurable behavior
 private final class TestCategoryRepository: CategoryRepository, @unchecked Sendable {

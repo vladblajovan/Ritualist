@@ -17,6 +17,13 @@ import Foundation
 @testable import RitualistCore
 
 // MARK: - Test Doubles
+//
+// Note on @unchecked Sendable: These test doubles use mutable state (var properties)
+// but are safe because:
+// - Each @Test function creates its own isolated instance (not shared across tests)
+// - All test suites are @MainActor isolated, ensuring single-threaded access
+// - No concurrent mutations occur within a single test execution
+// - The test framework creates fresh instances per test, not shared state
 
 /// Configurable mock subscription service for testing feature gating logic
 final class TestFeatureGatingSubscriptionService: SecureSubscriptionService, @unchecked Sendable {

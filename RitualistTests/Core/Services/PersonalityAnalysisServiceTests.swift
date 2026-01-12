@@ -17,6 +17,10 @@ import Foundation
 @testable import RitualistCore
 
 // MARK: - Test Repository
+//
+// Note on @unchecked Sendable: This test double uses mutable state (var properties)
+// but is safe because each @Test creates its own isolated instance, all test suites
+// are @MainActor isolated, and no concurrent mutations occur within a single test.
 
 /// In-memory PersonalityAnalysisRepository for testing service logic
 /// Follows the "Real Objects Over Mocks" philosophy by providing minimal implementation
