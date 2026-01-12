@@ -280,22 +280,15 @@ class AppDelegate: NSObject, UIApplicationDelegate, UIWindowSceneDelegate {
         // Enable main thread checker to catch UI updates from background threads
         // This is set at process launch time via environment variables
         // Note: These are typically set in the scheme, but can be verified here
-        if ProcessInfo.processInfo.environment["SWIFT_DETERMINISTIC_HASHING"] == nil {
-            logger.log(
-                "🔍 Concurrency debugging enabled",
-                level: .debug,
-                category: .system,
-                metadata: [
-                    "strictConcurrency": "complete",
-                    "defaultActorIsolation": "MainActor"
-                ]
-            )
+        // Only log concurrency configuration when debugging is active
+        // SWIFT_DETERMINISTIC_HASHING is set when running tests, skip verbose logging
+        guard ProcessInfo.processInfo.environment["SWIFT_DETERMINISTIC_HASHING"] == nil else {
+            return
         }
 
-        // Log concurrency configuration for debugging
         logger.log(
-            "🧵 Swift Concurrency Configuration",
-            level: .info,
+            "🧵 Swift 6 Concurrency Configuration",
+            level: .debug,
             category: .system,
             metadata: [
                 "swiftVersion": "6.0",

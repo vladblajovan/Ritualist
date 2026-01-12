@@ -85,7 +85,12 @@ struct CreateHabitUseCaseTests {
 
     @Test("Display order handles non-contiguous existing orders")
     func displayOrder_handlesNonContiguousExistingOrders() async throws {
-        // Existing habits with gaps in display order
+        // Design decision: Non-contiguous display orders can occur after:
+        // - Habit deletion (gaps remain)
+        // - Cloud sync merging habits from different devices
+        // - Future batch import features
+        // Rather than compacting (O(n) updates), we simply use max+1 for new habits.
+        // ReorderHabits use case handles explicit reordering when user drags habits.
         let existingHabits = [
             HabitBuilder.binary(name: "Habit 1", displayOrder: 0),
             HabitBuilder.binary(name: "Habit 2", displayOrder: 5),
