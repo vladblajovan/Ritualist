@@ -12,11 +12,16 @@ import RitualistCore
 /// Coordinates notification action handling between services and UI
 /// Note: This coordinator is NOT MainActor-isolated because it's called from
 /// the notification service's action handler which runs in a non-isolated context.
-/// All MainActor operations are dispatched explicitly using Task { @MainActor in }.
+/// All MainActor operations are dispatched explicitly using MainActor.run { }.
+/// With Swift 6.2's default MainActor isolation enabled, all methods must be
+/// explicitly marked as nonisolated.
 public final class NotificationActionCoordinator: Sendable {
     private let logger: DebugLogger
 
-    public init(logger: DebugLogger) {
+    /// Explicitly nonisolated init because this coordinator is designed to be
+    /// non-MainActor-isolated (see class comment). All MainActor operations
+    /// are dispatched explicitly using MainActor.run { } within methods.
+    public nonisolated init(logger: DebugLogger) {
         self.logger = logger
     }
 
@@ -26,7 +31,7 @@ public final class NotificationActionCoordinator: Sendable {
     ///   .openApp = Notification tap - show confirmation sheet
     ///   .remindLater = Snooze quick action
     ///   .dismiss = Dismiss quick action
-    public func handleAction(
+    public nonisolated func handleAction(
         _ action: NotificationAction,
         habitId: UUID,
         habitName: String?,
@@ -61,7 +66,7 @@ public final class NotificationActionCoordinator: Sendable {
     // MARK: - Private Handlers
 
     /// Quick action "Mark Complete" for binary habits: auto-log without showing sheet
-    private func handleBinaryQuickAction(
+    private nonisolated func handleBinaryQuickAction(
         habitId: UUID,
         habitName: String?,
         reminderTime: ReminderTime?
@@ -88,7 +93,7 @@ public final class NotificationActionCoordinator: Sendable {
     }
 
     /// Quick action "Log Progress" for numeric habits: show value entry sheet
-    private func handleNumericQuickAction(habitId: UUID) async {
+    private nonisolated func handleNumericQuickAction(habitId: UUID) async {
         logger.log(
             "🔔 Numeric quick action - showing sheet",
             level: .info,
@@ -100,7 +105,7 @@ public final class NotificationActionCoordinator: Sendable {
     }
 
     /// Notification tap for binary habits: show confirmation sheet
-    private func handleBinaryNotificationTap(habitId: UUID) async {
+    private nonisolated func handleBinaryNotificationTap(habitId: UUID) async {
         logger.log(
             "🔔 Binary notification tap - showing confirmation sheet",
             level: .info,
@@ -112,7 +117,7 @@ public final class NotificationActionCoordinator: Sendable {
     }
 
     /// Notification tap for numeric habits: show value entry sheet
-    private func handleNumericNotificationTap(habitId: UUID) async {
+    private nonisolated func handleNumericNotificationTap(habitId: UUID) async {
         logger.log(
             "🔔 Numeric notification tap - showing sheet",
             level: .info,
@@ -125,15 +130,15 @@ public final class NotificationActionCoordinator: Sendable {
 
     // MARK: - UI Helpers
 
-    private func showBinaryHabitSheet(habitId: UUID) async {
+    private nonisolated func showBinaryHabitSheet(habitId: UUID) async {
         await showHabitSheet(habitId: habitId, isBinary: true)
     }
 
-    private func showNumericHabitSheet(habitId: UUID) async {
+    private nonisolated func showNumericHabitSheet(habitId: UUID) async {
         await showHabitSheet(habitId: habitId, isBinary: false)
     }
 
-    private func showHabitSheet(habitId: UUID, isBinary: Bool) async {
+    private nonisolated func showHabitSheet(habitId: UUID, isBinary: Bool) async {
         do {
             let repository = Container.shared.habitRepository()
             guard let habit = try await repository.fetchHabit(by: habitId) else {

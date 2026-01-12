@@ -176,6 +176,9 @@ public protocol GetIsOnTrialUseCase: Sendable {
     func execute() async -> Bool
 }
 
+/// Use case for accessing the current user profile from UI layer.
+/// MainActor-isolated because UserProfile is UI state.
+@MainActor
 public protocol GetCurrentUserProfileUseCase: Sendable {
     func execute() async -> UserProfile
 }

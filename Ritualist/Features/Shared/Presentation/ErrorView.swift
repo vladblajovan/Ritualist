@@ -22,7 +22,8 @@ public struct ErrorView: View {
             Text(message)
         } actions: {
             ActionButton.primary(title: "Retry") {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await retryAction()
                 }
             }

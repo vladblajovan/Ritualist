@@ -248,7 +248,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         .task { isPremiumUser = await subscriptionService.isPremiumUser() }
         .onReceive(NotificationCenter.default.publisher(for: .premiumStatusDidChange)) { _ in
             // Refresh premium status when purchase completes
-            Task { isPremiumUser = await subscriptionService.isPremiumUser() }
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in isPremiumUser = await subscriptionService.isPremiumUser() }
         }
         .onDisappear { cancelAllAnimationTasks() }
         .onChange(of: summary?.completedHabitsCount) { _, _ in
@@ -1084,8 +1085,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         completionAnimationTask?.cancel()
 
         // After animation completes, fade and trigger actual completion
-        // Note: Task inherits MainActor context from View, no MainActor.run needed
-        completionAnimationTask = Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        completionAnimationTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: AnimationTiming.completionAnimationDelay)
 
             // Start fade out
@@ -1121,8 +1122,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         completionAnimationTask?.cancel()
 
         // After animation completes, fade and trigger actual removal
-        // Note: Task inherits MainActor context from View, no MainActor.run needed
-        completionAnimationTask = Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        completionAnimationTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: AnimationTiming.completionAnimationDelay)
 
             // Start fade out

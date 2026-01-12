@@ -87,7 +87,8 @@ struct AdvancedSettingsView: View {
     }
 
     private func updateDisplayMode(_ newMode: DisplayTimezoneMode) {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             do {
                 try await timezoneService.updateDisplayTimezoneMode(newMode)
                 displayMode = newMode
@@ -101,7 +102,8 @@ struct AdvancedSettingsView: View {
     }
 
     private func updateHomeTimezone(_ newTimezone: TimeZone) {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             do {
                 try await timezoneService.updateHomeTimezone(newTimezone)
                 homeTimezone = newTimezone

@@ -135,8 +135,9 @@ extension Container {
     }
 
     #if DEBUG
+    @MainActor
     var populateTestData: Factory<PopulateTestData> {
-        self {
+        self { @MainActor in
             PopulateTestData(
                 debugService: self.debugService(),
                 habitSuggestionsService: self.habitSuggestionsService(),
@@ -154,12 +155,14 @@ extension Container {
         }
     }
 
+    @MainActor
     var getDatabaseStats: Factory<GetDatabaseStats> {
-        self { GetDatabaseStats(debugService: self.debugService()) }
+        self { @MainActor in GetDatabaseStats(debugService: self.debugService()) }
     }
-    
+
+    @MainActor
     var clearDatabase: Factory<ClearDatabase> {
-        self { ClearDatabase(debugService: self.debugService()) }
+        self { @MainActor in ClearDatabase(debugService: self.debugService()) }
     }
     #endif
 }

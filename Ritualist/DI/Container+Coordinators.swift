@@ -13,52 +13,49 @@ extension Container {
 
     // MARK: - Deep Link Handler
 
+    @MainActor
     var deepLinkHandler: Factory<DeepLinkHandler> {
-        self {
-            MainActor.assumeIsolated {
-                DeepLinkHandler(
-                    urlValidationService: self.urlValidationService(),
-                    navigationService: self.navigationService(),
-                    logger: self.debugLogger()
-                )
-            }
+        self { @MainActor in
+            DeepLinkHandler(
+                urlValidationService: self.urlValidationService(),
+                navigationService: self.navigationService(),
+                logger: self.debugLogger()
+            )
         }
         .singleton
     }
 
     // MARK: - Timezone Change Handler
 
+    @MainActor
     var timezoneChangeHandler: Factory<TimezoneChangeHandler> {
-        self {
-            MainActor.assumeIsolated {
-                TimezoneChangeHandler(
-                    timezoneService: self.timezoneService(),
-                    dailyNotificationScheduler: self.dailyNotificationScheduler(),
-                    toastService: self.toastService(),
-                    logger: self.debugLogger()
-                )
-            }
+        self { @MainActor in
+            TimezoneChangeHandler(
+                timezoneService: self.timezoneService(),
+                dailyNotificationScheduler: self.dailyNotificationScheduler(),
+                toastService: self.toastService(),
+                logger: self.debugLogger()
+            )
         }
         .singleton
     }
 
     // MARK: - iCloud Sync Coordinator
 
+    @MainActor
     var iCloudSyncCoordinator: Factory<ICloudSyncCoordinator> {
-        self {
-            MainActor.assumeIsolated {
-                ICloudSyncCoordinator(
-                    syncWithiCloud: self.syncWithiCloud(),
-                    updateLastSyncDate: self.updateLastSyncDate(),
-                    checkiCloudStatus: self.checkiCloudStatus(),
-                    deduplicateData: self.deduplicateData(),
-                    cloudKitCleanupService: self.cloudKitCleanupService(),
-                    userDefaults: self.userDefaultsService(),
-                    profileCache: self.profileCache(),
-                    logger: self.debugLogger(),
-                    userActionTracker: self.userActionTracker()
-                )
-            }
+        self { @MainActor in
+            ICloudSyncCoordinator(
+                syncWithiCloud: self.syncWithiCloud(),
+                updateLastSyncDate: self.updateLastSyncDate(),
+                checkiCloudStatus: self.checkiCloudStatus(),
+                deduplicateData: self.deduplicateData(),
+                cloudKitCleanupService: self.cloudKitCleanupService(),
+                userDefaults: self.userDefaultsService(),
+                profileCache: self.profileCache(),
+                logger: self.debugLogger(),
+                userActionTracker: self.userActionTracker()
+            )
         }
         .singleton
     }
@@ -82,7 +79,8 @@ extension Container {
     }
 
     // MARK: - Notification Action Coordinator
-
+    // Note: NOT @MainActor because NotificationActionCoordinator is designed to be
+    // nonisolated (handles notifications from background contexts)
     var notificationActionCoordinator: Factory<NotificationActionCoordinator> {
         self {
             NotificationActionCoordinator(logger: self.debugLogger())

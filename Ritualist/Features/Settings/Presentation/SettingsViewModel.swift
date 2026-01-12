@@ -444,7 +444,9 @@ extension SettingsViewModel {
     public func refreshiCloudStatus() async {
         if statusCheckTask != nil { return }
 
-        statusCheckTask = Task { [weak self] in
+        // Note: Task { } does NOT inherit MainActor isolation, so we must explicitly specify it
+        // to safely update @Observable properties
+        statusCheckTask = Task { @MainActor [weak self] in
             guard let self, !Task.isCancelled else { return }
             isCheckingCloudStatus = true
             iCloudStatus = await checkiCloudStatus.execute()

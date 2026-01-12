@@ -44,7 +44,8 @@ public struct HabitsRoot: View {
             // When view becomes visible (tab switch), reload to pick up changes from other tabs
             // Skip on initial appear - the .task modifier handles initial load.
             if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     logger.log("Tab switch detected: Reloading habits data", level: .debug, category: .ui)
                     vm.invalidateCacheForTabSwitch()
                     await vm.refresh()
@@ -59,7 +60,8 @@ public struct HabitsRoot: View {
             guard vm.selectedHabit == nil else { return }
 
             // Auto-refresh when iCloud syncs new data from another device
-            Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
                 logger.log(
                     "☁️ iCloud sync detected - refreshing Habits list",
                     level: .info,
@@ -71,14 +73,16 @@ public struct HabitsRoot: View {
         .onReceive(NotificationCenter.default.publisher(for: .habitsDataDidChange)) { _ in
             // Refresh when habits are created/updated/deleted from other screens (e.g., AI assistant)
             guard vm.selectedHabit == nil else { return }
-            Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
                 await vm.refresh()
             }
         }
         .sheet(
             isPresented: $showingCategoryManagement,
             onDismiss: {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await vm.refresh()
                 }
             },
@@ -258,7 +262,8 @@ private struct HabitsListView: View {
                             currentCount: vm.habitsData.totalHabitsCount,
                             maxCount: vm.freeMaxHabits,
                             onUpgradeTap: {
-                                Task {
+                                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                                Task { @MainActor in
                                     await vm.showPaywall()
                                 }
                             }
@@ -320,7 +325,8 @@ private struct HabitsListView: View {
                                 .swipeActions(edge: .leading) {
                                     if editMode?.wrappedValue != .active {
                                         Button {
-                                            Task {
+                                            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                                            Task { @MainActor in
                                                 await vm.toggleActiveStatus(id: habit.id)
                                             }
                                         } label: {
@@ -340,7 +346,8 @@ private struct HabitsListView: View {
                                 }
                             })
                             .onMove(perform: { source, destination in
-                                Task {
+                                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                                Task { @MainActor in
                                     await handleMove(from: source, to: destination)
                                 }
                             })
@@ -364,7 +371,8 @@ private struct HabitsListView: View {
                             hasActiveSelected: hasActiveSelectedHabits,
                             hasInactiveSelected: hasInactiveSelectedHabits,
                             onActivate: {
-                                Task { await activateSelectedHabits() }
+                                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                                Task { @MainActor in await activateSelectedHabits() }
                             },
                             onDeactivate: {
                                 habitsToDeactivate = selection
@@ -393,7 +401,8 @@ private struct HabitsListView: View {
             let detailVM = vm.makeHabitDetailViewModel(for: habit)
             HabitDetailView(vm: detailVM, onDelete: {
                 vm.selectedHabit = nil
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await vm.refresh()
                 }
             })
@@ -406,7 +415,8 @@ private struct HabitsListView: View {
         .alert("Delete Habit", isPresented: $showingDeleteConfirmation) {
             Button(Strings.Common.delete, role: .destructive) {
                 if let habit = habitToDelete {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await deleteHabit(habit)
                         habitToDelete = nil
                     }
@@ -422,7 +432,8 @@ private struct HabitsListView: View {
         }
         .alert("Delete Habits", isPresented: $showingBatchDeleteConfirmation) {
             Button(Strings.Common.delete, role: .destructive) {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     logger.log(
                         "🗑️ Batch delete confirmed",
                         level: .info,
@@ -438,7 +449,8 @@ private struct HabitsListView: View {
         }
         .alert("Deactivate Habits", isPresented: $showingDeactivateConfirmation) {
             Button(Strings.Common.deactivate, role: .destructive) {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     logger.log(
                         "🔕 Batch deactivate confirmed",
                         level: .info,

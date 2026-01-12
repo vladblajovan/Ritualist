@@ -42,7 +42,8 @@ public struct HorizontalCarousel<T: Identifiable, Content: View>: View {
                     ForEach(items) { item in
                         content(item, selectedItem?.id == item.id)
                             .onTapGesture {
-                                Task { await onItemTap(item) }
+                                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                                Task { @MainActor in await onItemTap(item) }
                             }
                             .onLongPressGesture(minimumDuration: 0.5) {
                                 onItemLongPress?(item)

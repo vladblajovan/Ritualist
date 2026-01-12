@@ -304,8 +304,9 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
             loadTask = nil
 
             // Save on dismiss if value changed - user sees Overview animate with new progress
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
             if value != currentValue {
-                Task {
+                Task { @MainActor in
                     do {
                         try await onSave(value)
                     } catch {

@@ -20,7 +20,8 @@ public struct LocationConfigurationSection: View {
                 set: { newValue in
                     if newValue && !vm.isPremiumUser {
                         // Show paywall when non-premium user tries to enable
-                        Task {
+                        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                        Task { @MainActor in
                             await vm.showPaywall()
                         }
                     } else {
@@ -151,7 +152,8 @@ private struct LocationPermissionStatus: View {
                 Spacer()
 
                 Button(Strings.Settings.title) {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.openLocationSettings()
                     }
                 }
@@ -173,7 +175,8 @@ private struct RequestPermissionRow: View {
 
     var body: some View {
         Button {
-            Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
                 _ = await vm.requestLocationPermission(requestAlways: requestAlways)
             }
         } label: {

@@ -57,7 +57,8 @@ public final class StatsViewModel {
     public var selectedTimePeriod: TimePeriod = .thisWeek {
         didSet {
             if oldValue != selectedTimePeriod {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await refresh()
                 }
             }

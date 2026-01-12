@@ -210,7 +210,8 @@ public final class InspirationCardViewModel {
             return
         }
 
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             let now = Date()
             let isComebackStory = await patternAnalyzer.checkComebackStory(
                 currentCompletion: summary.completionPercentage,
@@ -262,7 +263,8 @@ public final class InspirationCardViewModel {
     private func showInspirationWithTrigger(_ trigger: InspirationTrigger) {
         let delay = InspirationTriggerEvaluator.animationDelay(for: trigger)
 
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(delay))
 
             let message = await getPersonalizedMessage(for: trigger)

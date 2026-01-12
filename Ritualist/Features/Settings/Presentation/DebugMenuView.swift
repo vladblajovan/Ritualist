@@ -213,7 +213,8 @@ private struct ClearDatabaseAlertModifier: ViewModifier {
         content.alert("Clear Database?", isPresented: $isPresented) {
             Button("Cancel", role: .cancel) { }
             Button("Clear All Data", role: .destructive) {
-                Task { await vm.clearDatabaseData() }
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in await vm.clearDatabaseData() }
             }
         } message: {
             Text("This will permanently delete all habits, logs, categories, and user data from the local database. This action cannot be undone.\n\nThis is useful for testing with a clean slate.")
@@ -247,7 +248,8 @@ private struct ResetOnboardingAlertModifier: ViewModifier {
         content.alert("Reset Onboarding?", isPresented: $isPresented) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await vm.resetOnboarding()
                     restartInstructionMessage = "Onboarding and tips have been reset. Please close and reopen the app to see the onboarding flow and tips again."
                     showingRestartRequiredAlert = true
@@ -269,7 +271,8 @@ private struct SimulateNewDeviceAlertModifier: ViewModifier {
         content.alert("Simulate New Device?", isPresented: $isPresented) {
             Button("Cancel", role: .cancel) { }
             Button("Simulate", role: .destructive) {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await vm.simulateNewDevice()
                     restartInstructionMessage = "New device simulation ready. Please close and reopen the app to test the returning user flow."
                     showingRestartRequiredAlert = true

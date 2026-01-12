@@ -175,7 +175,8 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
     /// Show paywall for personality insights upsell
     public func showPersonalityPaywall() {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await personalityVM.showPaywall()
         }
     }
@@ -802,14 +803,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
-            Task { await loadData() }
+            Task { @MainActor in await loadData() }
             return
         }
 
         // SELECTIVE RELOAD: Only if date out of cached range
         if needsReload(for: viewingDate) {
             hasLoadedInitialData = false  // Allow reload
-            Task { await loadData() }
+            Task { @MainActor in await loadData() }
         } else {
             guard let data = overviewData else { return }
             refreshUIState(with: data)
@@ -823,14 +824,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
-            Task { await loadData() }
+            Task { @MainActor in await loadData() }
             return
         }
 
         // SELECTIVE RELOAD: Only if date out of cached range
         if needsReload(for: viewingDate) {
             hasLoadedInitialData = false  // Allow reload
-            Task { await loadData() }
+            Task { @MainActor in await loadData() }
         } else {
             guard let data = overviewData else { return }
             refreshUIState(with: data)
@@ -842,14 +843,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
-            Task { await loadData() }
+            Task { @MainActor in await loadData() }
             return
         }
 
         // SELECTIVE RELOAD: Only if date out of cached range
         if needsReload(for: Date()) {
             hasLoadedInitialData = false  // Allow reload
-            Task { await loadData() }
+            Task { @MainActor in await loadData() }
         } else {
             guard let data = overviewData else { return }
             refreshUIState(with: data)
@@ -861,14 +862,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
 
         // MIGRATION CHECK: Invalidate cache if migration just completed
         if checkMigrationAndInvalidateCache() {
-            Task { await loadData() }
+            Task { @MainActor in await loadData() }
             return
         }
 
         // SELECTIVE RELOAD: Only if date out of cached range
         if needsReload(for: date) {
             hasLoadedInitialData = false  // Allow reload
-            Task { await loadData() }
+            Task { @MainActor in await loadData() }
         } else {
             guard let data = overviewData else { return }
             refreshUIState(with: data)

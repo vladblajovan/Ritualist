@@ -56,7 +56,8 @@ struct PersonalityInsightsSettingsRow: View {
             .buttonStyle(.plain)
         }
         .onAppear {
-            Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
                 await personalityVM.loadPreferences()
             }
         }

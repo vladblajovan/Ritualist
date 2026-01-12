@@ -76,7 +76,8 @@ struct SubscriptionManagementSectionView: View {
             // Restore Purchases Button (for free users only - in case they have a purchase not synced)
             if vm.subscriptionPlan == .free {
                 Button {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await restorePurchases()
                     }
                 } label: {
@@ -138,7 +139,8 @@ struct SubscriptionManagementSectionView: View {
     // MARK: - Actions
 
     private func showPaywall() {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await vm.showPaywall()
         }
     }
@@ -172,7 +174,10 @@ struct SubscriptionManagementSectionView: View {
             if !restoredProducts.isEmpty {
                 restoreAlertMessage = Strings.Subscription.restoredPurchases(restoredProducts.count)
                 // Notify the app that premium status changed so all UI updates immediately
-                NotificationCenter.default.post(name: .premiumStatusDidChange, object: nil)
+                // Note: Explicit MainActor.run ensures we're on main thread after async sequence iteration
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .premiumStatusDidChange, object: nil)
+                }
             } else {
                 restoreAlertMessage = Strings.Subscription.noPurchasesToRestore
             }

@@ -103,7 +103,8 @@ public struct OverviewView: View {
                     navigationService.navigateToHabits()
                 },
                 onUpgrade: {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await paywallViewModel.load()
                         paywallViewModel.trackPaywallShown(source: "overview", trigger: "habit_limit_banner")
                         habitLimitPaywallItem = PaywallItem(viewModel: paywallViewModel)
@@ -127,7 +128,8 @@ public struct OverviewView: View {
             canGoToNext: vm.canGoToNextDay,
             currentSlogan: vm.isViewingToday ? vm.currentSlogan : nil,
             onQuickAction: { habit in
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await vm.completeHabit(habit)
                 }
             },
@@ -144,7 +146,8 @@ public struct OverviewView: View {
                 vm.showBinarySheet(for: habit)
             },
             onLongPressComplete: { habit in
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     if habit.kind == .binary {
                         await vm.completeHabit(habit)
                     } else {
@@ -154,7 +157,8 @@ public struct OverviewView: View {
                 }
             },
             onDeleteHabitLog: { habit in
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await vm.deleteHabitLog(habit)
                 }
             },
@@ -333,7 +337,8 @@ private struct OverviewLifecycleModifier: ViewModifier {
         content
             .onChange(of: vm.isMigrating) { wasMigrating, isMigrating in
                 if wasMigrating && !isMigrating {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.refresh()
                     }
                 }
@@ -349,7 +354,8 @@ private struct OverviewLifecycleModifier: ViewModifier {
             .onChange(of: vm.isViewVisible) { wasVisible, isVisible in
                 if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
                     vm.hidePersonalityUpsell()
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         Container.shared.debugLogger().log("Tab switch detected: Reloading overview data", level: .debug, category: .ui)
                         vm.invalidateCacheForTabSwitch()
                         await vm.refresh()
@@ -368,12 +374,14 @@ private struct OverviewNotificationModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await vm.refresh()
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     Container.shared.debugLogger().log(
                         "☁️ iCloud sync detected - refreshing Overview",
                         level: .info,
@@ -383,7 +391,8 @@ private struct OverviewNotificationModifier: ViewModifier {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .habitsDataDidChange)) { _ in
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await vm.refresh()
                 }
             }
@@ -426,7 +435,8 @@ private struct OverviewSheetModifier: ViewModifier {
             }
             .onChange(of: habitLimitPaywallItem) { oldValue, newValue in
                 if oldValue != nil && newValue == nil {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.refresh()
                     }
                 }
@@ -455,7 +465,8 @@ private struct OverviewSheetModifier: ViewModifier {
             CompleteHabitSheet(
                 habit: habit,
                 onComplete: {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.completeHabit(habit)
                     }
                 },

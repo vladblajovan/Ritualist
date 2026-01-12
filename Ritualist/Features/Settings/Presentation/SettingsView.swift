@@ -25,7 +25,8 @@ public struct SettingsRoot: View {
                 // When view becomes visible (tab switch), reload to pick up changes from other tabs
                 // Skip on initial appear - the .task modifier handles initial load.
                 if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         logger.log("Tab switch detected: Reloading settings data", level: .debug, category: .ui)
                         await vm.reload()
                     }
@@ -34,7 +35,8 @@ public struct SettingsRoot: View {
             .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                 // Auto-refresh when iCloud syncs new data from another device
                 // This updates profile name, avatar, appearance, and timezone settings
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     logger.log(
                         "☁️ iCloud sync detected - refreshing Settings",
                         level: .info,
@@ -46,7 +48,8 @@ public struct SettingsRoot: View {
             .onReceive(NotificationCenter.default.publisher(for: .premiumStatusDidChange)) { _ in
                 // Refresh subscription status when purchase completes
                 // This updates the subscription section immediately after paywall dismisses
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     logger.log(
                         "💳 Premium status changed - refreshing subscription status",
                         level: .info,
@@ -142,7 +145,8 @@ private struct SettingsFormView: View {
                                 }
                                 .pickerStyle(MenuPickerStyle())
                                 .onChange(of: appearance) { _, newValue in
-                                    Task {
+                                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                                    Task { @MainActor in
                                         vm.profile.appearance = newValue
                                         _ = await vm.save()
                                         await vm.updateAppearance(newValue)
@@ -272,7 +276,8 @@ private struct SettingsFormView: View {
                         currentImageData: vm.profile.avatarImageData,
                         selectedImageData: $selectedImageData
                     ) { newImageData in
-                        Task {
+                        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                        Task { @MainActor in
                             await vm.updateAvatar(newImageData)
                         }
                         selectedImageData = nil
@@ -285,7 +290,8 @@ private struct SettingsFormView: View {
                     PaywallView(vm: item.viewModel)
                         .onDisappear {
                             // Refresh subscription status after paywall dismissal
-                            Task {
+                            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                            Task { @MainActor in
                                 try? await Task.sleep(nanoseconds: 100_000_000)
                                 await vm.refreshSubscriptionStatus()
                                 await vm.reload()
@@ -304,14 +310,16 @@ private struct SettingsFormView: View {
                     // Initialize local state
                     updateLocalState()
                     // Run all refresh operations in parallel for faster startup
-                    Task { await vm.refreshNotificationStatus() }
-                    Task { await vm.refreshLocationStatus() }
-                    Task { await vm.refreshPremiumStatus() }
-                    Task { await vm.refreshiCloudStatus() }
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in await vm.refreshNotificationStatus() }
+                    Task { @MainActor in await vm.refreshLocationStatus() }
+                    Task { @MainActor in await vm.refreshPremiumStatus() }
+                    Task { @MainActor in await vm.refreshiCloudStatus() }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     // Refresh iCloud status when app becomes active (handles connectivity changes)
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.refreshiCloudStatus()
                     }
                 }

@@ -51,7 +51,8 @@ struct DebugMenuSubscriptionSection: View {
             .alert("Clear Mock Purchases?", isPresented: $showingClearMockPurchasesConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear", role: .destructive) {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await clearMockPurchases()
                     }
                 }
@@ -83,7 +84,8 @@ struct DebugMenuSubscriptionSection: View {
             .alert("Force Reset to Free User?", isPresented: $showingClearPremiumCacheConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Reset", role: .destructive) {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await forceResetToFreeUser()
                     }
                 }

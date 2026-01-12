@@ -70,7 +70,8 @@ struct DataManagementSectionView: View {
             // Export My Data Button (Premium Feature)
             Button {
                 if vm.isPremiumUser {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.exportData()
                         // Only show exporter if export succeeded
                         if let jsonString = vm.exportedDataJSON {
@@ -79,7 +80,8 @@ struct DataManagementSectionView: View {
                         }
                     }
                 } else {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.showPaywall()
                     }
                 }
@@ -106,7 +108,8 @@ struct DataManagementSectionView: View {
                 if vm.isPremiumUser {
                     showingImporter = true
                 } else {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.showPaywall()
                     }
                 }
@@ -156,11 +159,10 @@ struct DataManagementSectionView: View {
             isPresented: $showingDeleteConfirmation
         ) {
             Button(Strings.Button.delete, role: .destructive) {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     let result = await vm.deleteAllData()
-                    await MainActor.run {
-                        onDeleteResult(result)
-                    }
+                    onDeleteResult(result)
                 }
             }
             Button(Strings.Button.cancel, role: .cancel) {}
@@ -192,7 +194,8 @@ struct DataManagementSectionView: View {
             switch result {
             case .success(let urls):
                 guard let url = urls.first else { return }
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await handleImportFile(url: url)
                 }
             case .failure(let error):

@@ -126,7 +126,8 @@ struct ToastView: View {
             // Auto-dismiss after duration (cancelled if manually dismissed)
             // Persistent toasts skip auto-dismiss - they must be dismissed manually
             guard !isPersistent else { return }
-            dismissTask = Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            dismissTask = Task { @MainActor in
                 try? await Task.sleep(for: .seconds(duration))
                 if !Task.isCancelled {
                     dismissToast()

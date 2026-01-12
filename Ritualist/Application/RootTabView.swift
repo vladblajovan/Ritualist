@@ -84,7 +84,8 @@ public struct RootTabView: View {
             isPresented: $showOnboarding,
             onDismiss: {
                 // Handle post-onboarding after the fullScreenCover has actually dismissed
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await handlePostOnboarding()
                 }
             },
@@ -354,7 +355,8 @@ public struct RootTabView: View {
         .sheet(
             isPresented: $showingQuickActionAddHabit,
             onDismiss: {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await loadCurrentHabits()
                 }
                 // Check if we need to re-show this sheet or show a different one
@@ -471,7 +473,8 @@ public struct RootTabView: View {
     private func handleReturningUserWelcome(retryCount: Int = 0) {
         guard viewModel.pendingReturningUserWelcome else { return }
 
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await loadCurrentHabits()
             let profile = await loadProfileSafely()
 
@@ -545,7 +548,8 @@ public struct RootTabView: View {
             return
         }
 
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await performFirstiCloudSyncCheck(retryCount: retryCount)
         }
     }
