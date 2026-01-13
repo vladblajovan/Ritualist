@@ -66,6 +66,10 @@ public actor SecurePremiumCache {
     /// Keychain account for subscription expiry date
     private let expiryDateAccount = "expiry_date"
 
+    /// Keychain account for billing issue detection timestamp
+    /// Used to suppress repeated "Billing Problem" system dialogs
+    private let billingIssueTimestampAccount = "billing_issue_timestamp"
+
     /// Offline grace period duration (3 days - industry standard)
     /// After this period, cached premium status is no longer trusted.
     ///
@@ -93,6 +97,23 @@ public actor SecurePremiumCache {
     /// - Users who purchased/cancelled will see updates on next launch after 24h
     /// - Explicit "Restore Purchases" always bypasses this cache for immediate verification
     public static let verificationSkipThreshold: TimeInterval = 24 * 60 * 60 // 24 hours in seconds
+
+    /// Billing dialog suppression period (24 hours)
+    /// When a billing issue (grace period/billing retry) is detected, we suppress the
+    /// `Product.SubscriptionInfo.status()` API call for this duration to prevent Apple's
+    /// "Billing Problem" system dialog from appearing more than once per day.
+    ///
+    /// **Rationale:**
+    /// - Apple's grace period is typically 16-30 days (configurable in App Store Connect)
+    /// - Billing retry can extend up to 60 days
+    /// - 24-hour suppression = user sees dialog once per day maximum
+    /// - Daily reminder is reasonable: not annoying, but keeps user aware of payment issue
+    /// - User can tap "Resolve Billing Problem" whenever ready to fix payment
+    /// - If user doesn't use app daily, they'll see the dialog on next launch
+    ///
+    /// **Note:** This affects both trial-to-paid renewal failures and regular subscription
+    /// renewal failures equally - both enter Apple's grace period system.
+    public static let billingDialogSuppression: TimeInterval = 24 * 60 * 60 // 24 hours
 
     // Local logger: Singleton initialized before DI container
     private let logger = DebugLogger(subsystem: LoggerConstants.appSubsystem, category: "premiumCache")
@@ -331,6 +352,82 @@ public actor SecurePremiumCache {
         return age <= Self.verificationSkipThreshold
     }
 
+    // MARK: - Billing Issue Suppression
+
+    /// Record that a billing issue (grace period/billing retry) was detected.
+    ///
+    /// Call this when `Product.SubscriptionInfo.status()` returns `.inGracePeriod`
+    /// or `.inBillingRetryPeriod`. This allows us to skip future status queries
+    /// and avoid repeatedly showing Apple's "Billing Problem" system dialog.
+    ///
+    /// **User Experience:**
+    /// - User sees the billing dialog once
+    /// - If they tap "Cancel", the app grants premium access (per Apple guidelines)
+    /// - The dialog won't appear again for 24 hours (daily reminder)
+    /// - User can still tap "Resolve Billing Problem" when ready to fix payment
+    ///
+    public func recordBillingIssueDetected() {
+        let timestamp = Date().timeIntervalSince1970
+        let timestampData = withUnsafeBytes(of: timestamp) { Data($0) }
+        saveToKeychain(data: timestampData, account: billingIssueTimestampAccount)
+
+        logger.log(
+            "📋 Billing dialog shown - suppressing for \(Int(Self.billingDialogSuppression / 3600)) hours",
+            level: .info,
+            category: .premiumCache
+        )
+    }
+
+    /// Check if Apple's billing dialog should be suppressed for this session.
+    ///
+    /// - Returns: `true` if billing dialog was shown within the last 24 hours
+    ///
+    /// **Usage:** Before calling `Product.SubscriptionInfo.status()`, check this method.
+    /// If it returns `true`, skip the API call to avoid showing the dialog again today.
+    ///
+    /// **Important:** This does NOT mean we blindly grant premium access. The caller
+    /// should still verify the subscription state through `Transaction.currentEntitlements`.
+    /// This method only prevents the repeated system dialog.
+    ///
+    /// **Daily Reminder Pattern:**
+    /// - User sees "Billing Problem" dialog once per day (24-hour suppression)
+    /// - Each day is a new opportunity to remind them to fix payment
+    /// - After 24 hours, suppression expires → dialog can appear again
+    ///
+    public func shouldSuppressBillingDialog() -> Bool {
+        guard let timestampData = readFromKeychain(account: billingIssueTimestampAccount),
+              timestampData.count == MemoryLayout<TimeInterval>.size else {
+            return false // No billing issue recorded
+        }
+
+        let timestamp = timestampData.withUnsafeBytes { $0.load(as: TimeInterval.self) }
+        let issueDate = Date(timeIntervalSince1970: timestamp)
+        let timeSinceIssue = Date().timeIntervalSince(issueDate)
+
+        if timeSinceIssue <= Self.billingDialogSuppression {
+            logger.log(
+                "📋 Suppressing billing dialog (shown \(String(format: "%.1f", timeSinceIssue / 3600)) hours ago)",
+                level: .debug,
+                category: .premiumCache
+            )
+            return true
+        }
+
+        // Suppression expired - dialog can be shown again
+        return false
+    }
+
+    /// Clear the billing issue suppression flag.
+    ///
+    /// Call this when:
+    /// - User successfully resolves billing issue (payment succeeds)
+    /// - User explicitly restores purchases
+    /// - For testing/debugging purposes
+    ///
+    public func clearBillingIssueFlag() {
+        deleteFromKeychain(account: billingIssueTimestampAccount)
+    }
+
     /// Clear all cached subscription data.
     ///
     /// Call this when user explicitly signs out or subscription is revoked.
@@ -341,6 +438,7 @@ public actor SecurePremiumCache {
         deleteFromKeychain(account: cacheTimestampAccount)
         deleteFromKeychain(account: isOnTrialAccount)
         deleteFromKeychain(account: expiryDateAccount)
+        deleteFromKeychain(account: billingIssueTimestampAccount)
     }
 
     // MARK: - Keychain Operations
@@ -420,6 +518,9 @@ extension SecurePremiumCache {
         let gracePeriodHours = Self.offlineGracePeriod / 3600
         let stalenessThresholdHours = Self.stalenessThreshold / 3600
 
+        let billingSuppressionHours = Self.billingDialogSuppression / 3600
+        let billingSuppressed = shouldSuppressBillingDialog()
+
         return """
         SecurePremiumCache:
           - Cached Premium: \(isPremium)
@@ -431,6 +532,8 @@ extension SecurePremiumCache {
           - Staleness Threshold: \(stalenessThresholdHours) hours
           - Cache Valid: \(isCacheValid())
           - Cache Stale: \(isCacheStale())
+          - Billing Suppression: \(billingSuppressionHours) hours
+          - Billing Query Suppressed: \(billingSuppressed)
         """
     }
 }

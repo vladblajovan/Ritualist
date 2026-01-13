@@ -74,11 +74,12 @@ public struct StatsView: View {
                     }
 
                     // Row 3: Consistency Heatmap (Premium only)
-                    if isPremiumUser {
-                        ReadableWidthContainer {
-                            consistencyHeatmapSection
-                        }
-                    }
+                    // TODO: Re-enable when implementing as a widget
+                    // if isPremiumUser {
+                    //     ReadableWidthContainer {
+                    //         consistencyHeatmapSection
+                    //     }
+                    // }
                 } else {
                     emptyStateView
                 }

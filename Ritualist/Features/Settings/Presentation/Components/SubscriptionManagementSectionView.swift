@@ -95,6 +95,12 @@ struct SubscriptionManagementSectionView: View {
                 .disabled(isRestoringPurchases)
             }
 
+            // Billing Issue Banner (for premium users with payment problems)
+            // Shows when user is in billing grace period or billing retry
+            if vm.hasBillingIssue && vm.subscriptionPlan != .free {
+                BillingIssueBannerView(onResolveTap: openSubscriptionManagement)
+            }
+
             // Manage Subscription Button (for all premium users)
             if vm.subscriptionPlan == .weekly || vm.subscriptionPlan == .monthly || vm.subscriptionPlan == .annual {
                 Button {
@@ -158,36 +164,22 @@ struct SubscriptionManagementSectionView: View {
     private func restorePurchases() async {
         isRestoringPurchases = true
 
-        // Use App Store StoreKit API to restore purchases
-        do {
-            // Sync with App Store to restore transactions
-            try await AppStore.sync()
+        // Use ViewModel's restore method which properly:
+        // 1. Syncs with App Store
+        // 2. Restores via PaywallService (registers in cache)
+        // 3. Refreshes subscription status
+        // 4. Notifies app of status change
+        let result = await vm.restorePurchases()
 
-            // Check if any purchases were restored
-            var restoredProducts: [String] = []
-            for await result in Transaction.currentEntitlements {
-                if case .verified(let transaction) = result {
-                    restoredProducts.append(transaction.productID)
-                }
-            }
-
-            if !restoredProducts.isEmpty {
-                restoreAlertMessage = Strings.Subscription.restoredPurchases(restoredProducts.count)
-                // Notify the app that premium status changed so all UI updates immediately
-                // Note: Explicit MainActor.run ensures we're on main thread after async sequence iteration
-                await MainActor.run {
-                    NotificationCenter.default.post(name: .premiumStatusDidChange, object: nil)
-                }
-            } else {
-                restoreAlertMessage = Strings.Subscription.noPurchasesToRestore
-            }
-
-            showingRestoreAlert = true
-        } catch {
+        if result.success {
+            restoreAlertMessage = Strings.Subscription.restoredPurchases(result.count)
+        } else if result.message.contains("No purchases") {
+            restoreAlertMessage = Strings.Subscription.noPurchasesToRestore
+        } else {
             restoreAlertMessage = Strings.Subscription.restoreFailed
-            showingRestoreAlert = true
         }
 
+        showingRestoreAlert = true
         isRestoringPurchases = false
     }
 }

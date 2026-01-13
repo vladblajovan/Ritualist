@@ -132,17 +132,47 @@ public actor StoreKitPaywallService: PaywallService {
 
     public func restorePurchases() async throws -> RestoreResult {
         var restoredProducts: [String] = []
+        var failedRegistrations: [String] = []
 
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
                 restoredProducts.append(transaction.productID)
-                try? await subscriptionService.registerPurchase(transaction.productID)
+                do {
+                    try await subscriptionService.registerPurchase(transaction.productID)
+                } catch {
+                    // Log failure but continue - the entitlement exists in StoreKit
+                    // even if we couldn't register it in our cache
+                    logger.log(
+                        "⚠️ Failed to register restored purchase in cache",
+                        level: .warning,
+                        category: .subscription,
+                        metadata: [
+                            "productId": transaction.productID,
+                            "error": error.localizedDescription
+                        ]
+                    )
+                    failedRegistrations.append(transaction.productID)
+                }
             }
         }
 
         if restoredProducts.isEmpty {
             return .noProductsToRestore
         }
+
+        // Log if some registrations failed (products still restored in StoreKit)
+        if !failedRegistrations.isEmpty {
+            logger.log(
+                "⚠️ Some restored products failed cache registration",
+                level: .warning,
+                category: .subscription,
+                metadata: [
+                    "restored": restoredProducts.count,
+                    "failed_registration": failedRegistrations.count
+                ]
+            )
+        }
+
         return .success(restoredProductIds: restoredProducts)
     }
 
