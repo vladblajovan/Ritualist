@@ -35,7 +35,8 @@ public struct HabitDetailView: View {
             .sheet(
                 isPresented: $showingCategoryManagement,
                 onDismiss: {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.loadCategories()
                     }
                 },
@@ -51,10 +52,11 @@ public struct HabitDetailView: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        Task {
+                        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                        Task { @MainActor in
                             await saveHabit()
                         }
                     } label: {

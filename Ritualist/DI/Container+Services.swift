@@ -80,7 +80,8 @@ extension Container {
             }
 
             // Configure the action handler to delegate to the NotificationActionCoordinator
-            service.actionHandler = { action, habitId, habitName, habitKind, reminderTime in
+            // Note: @Sendable because this closure crosses isolation boundaries
+            service.actionHandler = { @Sendable action, habitId, habitName, habitKind, reminderTime in
                 try await Container.shared.notificationActionCoordinator().handleAction(
                     action,
                     habitId: habitId,
@@ -379,12 +380,11 @@ extension Container {
     // MARK: - Debug Services
 
     #if DEBUG
+    @MainActor
     var debugService: Factory<DebugServiceProtocol> {
-        self {
-            MainActor.assumeIsolated {
-                let container = self.persistenceContainer()
-                return DebugService(persistenceContainer: container)
-            }
+        self { @MainActor in
+            let container = self.persistenceContainer()
+            return DebugService(persistenceContainer: container)
         }
         .singleton
     }

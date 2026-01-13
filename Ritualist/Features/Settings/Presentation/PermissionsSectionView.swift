@@ -16,7 +16,8 @@ struct PermissionsSectionView: View {
                 isRequesting: vm.isRequestingNotifications,
                 isGranted: vm.hasNotificationPermission,
                 requestAction: {
-                    Task { await vm.requestNotifications() }
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in await vm.requestNotifications() }
                 },
                 settingsAction: {
                     if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
@@ -38,7 +39,8 @@ struct PermissionsSectionView: View {
                 isRequesting: vm.isRequestingLocationPermission,
                 isGranted: vm.locationAuthStatus.canMonitorGeofences,
                 requestAction: {
-                    Task { await vm.requestLocationPermission() }
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in await vm.requestLocationPermission() }
                 },
                 settingsAction: {
                     if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {

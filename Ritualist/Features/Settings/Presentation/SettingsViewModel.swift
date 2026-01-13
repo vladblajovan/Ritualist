@@ -96,6 +96,7 @@ public final class SettingsViewModel {
     private var cachedSubscriptionPlan: SubscriptionPlan = .free
     private var cachedSubscriptionExpiryDate: Date?
     private var cachedIsOnTrial: Bool = false
+    private var cachedHasBillingIssue: Bool = false
 
     // Paywall state
     public var paywallItem: PaywallItem?
@@ -122,6 +123,12 @@ public final class SettingsViewModel {
     /// Whether the user is currently on a free trial period
     public var isOnTrial: Bool {
         cachedIsOnTrial
+    }
+
+    /// Whether the user has a billing issue (payment failed, in grace period)
+    /// When true, user should be prompted to update their payment method
+    public var hasBillingIssue: Bool {
+        cachedHasBillingIssue
     }
 
     // MARK: - Account Setup Status
@@ -291,6 +298,7 @@ public final class SettingsViewModel {
         async let subscriptionExpiry = getSubscriptionExpiryDate.execute()
         async let trialStatus = getIsOnTrial.execute()
         async let cloudStatus = checkiCloudStatus.execute()
+        async let billingIssue = SecurePremiumCache.shared.shouldSuppressBillingDialog()
 
         // Await all results (runs in parallel)
         hasNotificationPermission = await notificationStatus
@@ -301,6 +309,7 @@ public final class SettingsViewModel {
         cachedSubscriptionExpiryDate = await subscriptionExpiry
         cachedIsOnTrial = await trialStatus
         iCloudStatus = await cloudStatus
+        cachedHasBillingIssue = await billingIssue
 
         // Check if device allows in-app purchases (parental controls, etc.)
         canMakePayments = AppStore.canMakePayments
@@ -444,7 +453,9 @@ extension SettingsViewModel {
     public func refreshiCloudStatus() async {
         if statusCheckTask != nil { return }
 
-        statusCheckTask = Task { [weak self] in
+        // Note: Task { } does NOT inherit MainActor isolation, so we must explicitly specify it
+        // to safely update @Observable properties
+        statusCheckTask = Task { @MainActor [weak self] in
             guard let self, !Task.isCancelled else { return }
             isCheckingCloudStatus = true
             iCloudStatus = await checkiCloudStatus.execute()
@@ -565,15 +576,73 @@ extension SettingsViewModel {
         cachedSubscriptionExpiryDate = await subscriptionService.getSubscriptionExpiryDate()
         cachedIsOnTrial = await subscriptionService.isOnTrial()
         cachedPremiumStatus = await checkPremiumStatus.execute()
+        cachedHasBillingIssue = await SecurePremiumCache.shared.shouldSuppressBillingDialog()
         logger.logSubscription(
             event: "Updated subscription status",
             plan: cachedSubscriptionPlan.rawValue,
             metadata: [
                 "expiry": cachedSubscriptionExpiryDate?.description ?? "nil",
                 "is_premium": cachedPremiumStatus,
-                "is_on_trial": cachedIsOnTrial
+                "is_on_trial": cachedIsOnTrial,
+                "has_billing_issue": cachedHasBillingIssue
             ]
         )
+    }
+
+    /// Restore purchases using the proper service (ensures cache registration)
+    ///
+    /// Uses `PaywallService.restorePurchases()` which:
+    /// 1. Calls `AppStore.sync()` via StoreKit
+    /// 2. Iterates over `Transaction.currentEntitlements`
+    /// 3. Registers each purchase in the premium cache
+    /// 4. Logs any failures for visibility
+    ///
+    /// - Returns: Tuple with success flag and restored product count (or error message)
+    ///
+    public func restorePurchases() async -> (success: Bool, message: String, count: Int) {
+        do {
+            // First sync with App Store
+            try await AppStore.sync()
+
+            // Then restore using service (registers in cache)
+            let result = try await paywallService.restorePurchases()
+
+            switch result {
+            case .success(let productIds):
+                // Refresh local state after restore
+                await refreshSubscriptionStatus()
+
+                // Notify app that premium status may have changed
+                NotificationCenter.default.post(name: .premiumStatusDidChange, object: nil)
+
+                logger.logSubscription(
+                    event: "Restore purchases completed",
+                    metadata: ["restored_count": productIds.count]
+                )
+
+                return (true, "Restored \(productIds.count) purchase(s)", productIds.count)
+
+            case .noProductsToRestore:
+                return (false, "No purchases to restore", 0)
+
+            case .failed(let errorMessage):
+                logger.log(
+                    "Restore purchases failed",
+                    level: .error,
+                    category: .subscription,
+                    metadata: ["error": errorMessage]
+                )
+                return (false, "Restore failed: \(errorMessage)", 0)
+            }
+        } catch {
+            logger.log(
+                "Failed to restore purchases",
+                level: .error,
+                category: .subscription,
+                metadata: ["error": error.localizedDescription]
+            )
+            return (false, "Restore failed: \(error.localizedDescription)", 0)
+        }
     }
 }
 

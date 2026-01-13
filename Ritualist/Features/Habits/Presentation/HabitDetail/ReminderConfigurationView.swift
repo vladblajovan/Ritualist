@@ -33,7 +33,8 @@ public struct ReminderSection: View {
                 if vm.isPremiumUser {
                     showingAddReminder = true
                 } else {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await vm.showPaywall()
                     }
                 }

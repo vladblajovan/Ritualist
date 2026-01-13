@@ -25,6 +25,9 @@ let package = Package(
             name: "RitualistCore",
             dependencies: [],
             path: "Sources/RitualistCore"
+            // Note: NonisolatedNonsendingByDefault is default in Swift 6.2 but requires
+            // updating protocol definitions to have proper @MainActor annotations.
+            // Enable incrementally after updating GetCurrentUserProfileUseCase and similar.
         ),
         .testTarget(
             name: "RitualistCoreTests",

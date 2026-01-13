@@ -151,7 +151,8 @@ struct BackupListView: View {
     }
 
     private func createBackup() {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             do {
                 try backupManager.createBackup()
                 loadBackups()

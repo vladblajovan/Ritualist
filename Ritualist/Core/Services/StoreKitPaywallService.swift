@@ -75,8 +75,11 @@ public actor StoreKitPaywallService: PaywallService {
                 category: .subscription
             )
 
-            let products = storeProducts.compactMap { storeProduct -> RitualistCore.Product? in
-                mapStoreProduct(storeProduct)
+            var products: [RitualistCore.Product] = []
+            for storeProduct in storeProducts {
+                if let product = await mapStoreProduct(storeProduct) {
+                    products.append(product)
+                }
             }
 
             return products.sorted { product1, product2 in
@@ -129,17 +132,47 @@ public actor StoreKitPaywallService: PaywallService {
 
     public func restorePurchases() async throws -> RestoreResult {
         var restoredProducts: [String] = []
+        var failedRegistrations: [String] = []
 
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
                 restoredProducts.append(transaction.productID)
-                try? await subscriptionService.registerPurchase(transaction.productID)
+                do {
+                    try await subscriptionService.registerPurchase(transaction.productID)
+                } catch {
+                    // Log failure but continue - the entitlement exists in StoreKit
+                    // even if we couldn't register it in our cache
+                    logger.log(
+                        "⚠️ Failed to register restored purchase in cache",
+                        level: .warning,
+                        category: .subscription,
+                        metadata: [
+                            "productId": transaction.productID,
+                            "error": error.localizedDescription
+                        ]
+                    )
+                    failedRegistrations.append(transaction.productID)
+                }
             }
         }
 
         if restoredProducts.isEmpty {
             return .noProductsToRestore
         }
+
+        // Log if some registrations failed (products still restored in StoreKit)
+        if !failedRegistrations.isEmpty {
+            logger.log(
+                "⚠️ Some restored products failed cache registration",
+                level: .warning,
+                category: .subscription,
+                metadata: [
+                    "restored": restoredProducts.count,
+                    "failed_registration": failedRegistrations.count
+                ]
+            )
+        }
+
         return .success(restoredProductIds: restoredProducts)
     }
 
@@ -156,7 +189,7 @@ public actor StoreKitPaywallService: PaywallService {
 
     // MARK: - Private Methods
 
-    private func mapStoreProduct(_ storeProduct: StoreKit.Product) -> RitualistCore.Product? {
+    private func mapStoreProduct(_ storeProduct: StoreKit.Product) async -> RitualistCore.Product? {
         let subscriptionPlan = StoreKitProductID.subscriptionPlan(for: storeProduct.id)
 
         let duration: ProductDuration
@@ -177,7 +210,7 @@ public actor StoreKitPaywallService: PaywallService {
 
         let features = getFeaturesForProduct(storeProduct)
         let isPopular = storeProduct.id == StoreKitProductID.annual
-        let discount: String? = isPopular ? calculateAnnualDiscount(annualProduct: storeProduct) : nil
+        let discount: String? = isPopular ? await calculateAnnualDiscount(annualProduct: storeProduct) : nil
         let hasFreeTrial = storeProduct.subscription?.introductoryOffer?.paymentMode == .freeTrial
 
         return RitualistCore.Product(
@@ -197,7 +230,9 @@ public actor StoreKitPaywallService: PaywallService {
     }
 
     /// Calculates the discount percentage for annual subscription compared to monthly
-    private func calculateAnnualDiscount(annualProduct: StoreKit.Product) -> String {
+    /// Note: async because Strings.Paywall is MainActor-isolated and this actor
+    /// has its own isolation domain (not MainActor).
+    private func calculateAnnualDiscount(annualProduct: StoreKit.Product) async -> String {
         // Find the monthly product to compare prices
         guard let monthlyProduct = storeProducts.first(where: { $0.id == StoreKitProductID.monthly }) else {
             // Fallback marketing text when monthly product unavailable for comparison
@@ -206,7 +241,7 @@ public actor StoreKitPaywallService: PaywallService {
                 level: .warning,
                 category: .subscription
             )
-            return Strings.Paywall.discountFallback
+            return await MainActor.run { Strings.Paywall.discountFallback }
         }
 
         let annualPrice = annualProduct.price as Decimal
@@ -214,12 +249,16 @@ public actor StoreKitPaywallService: PaywallService {
         let yearlyMonthlyTotal = monthlyPrice * 12
 
         // Calculate savings percentage: (monthlyTotal - annual) / monthlyTotal * 100
-        guard yearlyMonthlyTotal > 0 else { return Strings.Paywall.discountFallback }
+        guard yearlyMonthlyTotal > 0 else {
+            return await MainActor.run { Strings.Paywall.discountFallback }
+        }
         let savings = (yearlyMonthlyTotal - annualPrice) / yearlyMonthlyTotal * 100
         let savingsPercent = Int(NSDecimalNumber(decimal: savings).doubleValue.rounded())
 
-        guard savingsPercent > 0 else { return Strings.Paywall.discountFallback }
-        return Strings.Paywall.discountSavePercent(savingsPercent)
+        guard savingsPercent > 0 else {
+            return await MainActor.run { Strings.Paywall.discountFallback }
+        }
+        return await MainActor.run { Strings.Paywall.discountSavePercent(savingsPercent) }
     }
 
     private func getFeaturesForProduct(_ product: StoreKit.Product) -> [String] {

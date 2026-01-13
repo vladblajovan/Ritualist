@@ -35,7 +35,8 @@ struct DebugMenuNotificationsSection: View {
             .alert("Clear App Badge?", isPresented: $showingClearBadgeConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear", role: .destructive) {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await clearAppBadge()
                     }
                 }
@@ -87,7 +88,8 @@ struct DebugMenuNotificationsSection: View {
             .alert("Clear Snooze Notifications?", isPresented: $showingClearSnoozeConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear", role: .destructive) {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await clearPendingSnoozeNotifications()
                     }
                 }

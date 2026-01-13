@@ -21,7 +21,8 @@ struct DebugMenuDatabaseSection: View {
 
                     if vm.databaseStats == nil {
                         Button("Load Stats") {
-                            Task {
+                            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                            Task { @MainActor in
                                 await vm.loadDatabaseStats()
                             }
                         }

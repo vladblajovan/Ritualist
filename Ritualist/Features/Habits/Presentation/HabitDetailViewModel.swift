@@ -148,7 +148,8 @@ public final class HabitDetailViewModel {
         }
 
         // Load initial data asynchronously (fire-and-forget for production)
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await loadInitialData()
         }
     }
@@ -359,7 +360,8 @@ public final class HabitDetailViewModel {
     public func selectCategory(_ category: HabitCategory) {
         selectedCategory = category
         // Re-validate for duplicates when category changes
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await validateForDuplicates()
         }
     }
@@ -582,7 +584,8 @@ extension HabitDetailViewModel {
             )
 
             // Request permissions and show map picker async
-            Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
                 // Check current permission status
                 await checkLocationAuthStatus()
 

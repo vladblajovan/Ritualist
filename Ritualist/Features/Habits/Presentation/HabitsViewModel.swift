@@ -191,7 +191,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         isViewVisible = visible
         // Refresh premium status when view becomes visible to catch any status changes
         if visible {
-            Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
                 await refreshPremiumStatus()
             }
         }
@@ -241,7 +242,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         notificationCoalesceTask?.cancel()
 
         // Schedule new notification with short delay for coalescing
-        notificationCoalesceTask = Task {
+        // Note: Task { } does NOT inherit MainActor isolation, so we must explicitly specify it
+        notificationCoalesceTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
             guard !Task.isCancelled else { return }
             NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
@@ -426,7 +428,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     
     /// Handle create habit button tap from toolbar
     public func handleCreateHabitTap() {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             if await canCreateMoreHabits() {
                 showingCreateHabit = true
             } else {
@@ -450,14 +453,16 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     
     /// Handle when create habit sheet is dismissed - refresh data
     public func handleCreateHabitDismissal() {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await refresh()
         }
     }
 
     /// Handle when habit detail sheet is dismissed - refresh data
     public func handleHabitDetailDismissal() {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await refresh()
         }
     }
@@ -598,7 +603,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         paywallViewModel.trackPaywallDismissed()
 
         // Refresh premium status in case user purchased
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await refreshPremiumStatus()
         }
 
@@ -613,7 +619,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
 
             // Wait for paywall dismissal animation to complete before reopening assistant
             // Using a cancellable Task instead of DispatchQueue to prevent race conditions
-            pendingAssistantReopenTask = Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            pendingAssistantReopenTask = Task { @MainActor in
                 try? await Task.sleep(for: .seconds(1.0))
                 guard !Task.isCancelled else { return }
                 showingHabitAssistant = true
@@ -626,7 +633,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     
     /// Handle when assistant sheet is dismissed - refresh data and show pending paywall
     public func handleAssistantDismissal() {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await refresh()
         }
 
@@ -639,7 +647,8 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
 
             // Small delay to let the sheet dismissal animation complete
             // Using a cancellable Task to prevent race conditions
-            pendingPaywallShowTask = Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            pendingPaywallShowTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(350))
                 guard !Task.isCancelled else { return }
                 await showPaywall()

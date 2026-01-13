@@ -1171,6 +1171,10 @@ public enum Strings {
         }
         public static let noPurchasesToRestore = String(localized: "subscription.no_purchases_to_restore")
         public static let restoreFailed = String(localized: "subscription.restore_failed")
+
+        // Billing issue banner
+        public static let billingIssueTitle = String(localized: "subscription.billing_issue_title")
+        public static let billingIssueSubtitle = String(localized: "subscription.billing_issue_subtitle")
     }
 
     // MARK: - Numeric Habit Log

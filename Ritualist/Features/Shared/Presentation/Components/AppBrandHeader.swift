@@ -352,7 +352,8 @@ struct AppBrandHeader: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .premiumStatusDidChange)) { _ in
             // Refresh premium status when purchase completes to update crown badge
-            Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
                 await settingsVM.refreshSubscriptionStatus()
             }
         }
@@ -360,7 +361,8 @@ struct AppBrandHeader: View {
             // Force reload profile data AND refresh view when profile changes
             // This ensures avatar initials appear immediately after onboarding completes
             // Simply changing profileRefreshTrigger isn't enough - we need fresh data from repository
-            Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
                 await settingsVM.reload()
                 profileRefreshTrigger = UUID()
             }
@@ -504,7 +506,8 @@ struct AppBrandHeader: View {
         // Trigger glow animation when reaching 100%
         if shouldAnimate && effectiveNewValue >= 1.0, oldValue ?? 0.0 < 1.0 {
             progressGlowTask?.cancel()
-            progressGlowTask = Task {
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            progressGlowTask = Task { @MainActor in
                 try? await Task.sleep(nanoseconds: AnimationTiming.progressAnimationDelay)
                 withAnimation(.easeInOut(duration: 0.3)) {
                     showProgressGlow = true

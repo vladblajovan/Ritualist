@@ -36,7 +36,8 @@ public struct BasicInfoSection: View {
                         }
                         .onChange(of: vm.name) { _, _ in
                             // Validate for duplicates when name changes
-                            Task {
+                            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                            Task { @MainActor in
                                 await vm.validateForDuplicates()
                             }
                         }

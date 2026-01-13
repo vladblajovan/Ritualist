@@ -121,7 +121,8 @@ public final class PersonalityInsightsCardViewModel {
         paywallViewModel.trackPaywallDismissed()
 
         // Refresh to get correct state (will show insights card if now premium)
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await loadPersonalityInsights()
         }
     }

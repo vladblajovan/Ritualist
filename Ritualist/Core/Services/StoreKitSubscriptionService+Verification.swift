@@ -124,35 +124,52 @@ extension StoreKitSubscriptionService {
                     // Handle the result based on what StoreKit returned
                     switch result {
                     case .premium(let plan):
-                        // User has valid subscription - always update cache with plan
+                        // User has valid subscription - update cache
+                        // NOTE: We do NOT clear the billing flag here because .premium can mean:
+                        // 1. Active subscription (expiration in future)
+                        // 2. Grace period (expiration in past, but billing grace active)
+                        // The billing flag is cleared ONLY in checkGracePeriodStatus() when
+                        // we confirm the status is .subscribed (not .inGracePeriod)
                         await SecurePremiumCache.shared.updateCache(plan: plan)
                         return true
 
                     case .notPremiumConfirmed:
-                        // StoreKit confirmed no valid subscription - safe to update cache
-                        await SecurePremiumCache.shared.updateCache(plan: .free)
+                        // StoreKit confirmed no valid subscription (all expired/revoked)
+                        // Clear ALL caches including billing suppression flag
+                        startupLogger.log(
+                            "🔔 StoreKit confirmed not premium - clearing all caches",
+                            level: .info,
+                            category: .subscription
+                        )
+                        await SecurePremiumCache.shared.clearCache()
                         return false
 
                     case .noEntitlementsReturned:
                         // StoreKit returned NO entitlements - could be:
                         // 1. User truly never purchased (should return false)
-                        // 2. StoreKit Config file issue / race condition (preserve cache)
+                        // 2. Subscription fully expired and removed (should return false)
+                        // 3. StoreKit Config file issue / race condition (preserve cache briefly)
                         //
-                        // To protect against StoreKit testing issues while still being correct
-                        // for real users, only update cache if it's already expired/invalid.
-                        // This preserves the 3-day grace period for purchased users.
+                        // For real users, no entitlements = no subscription.
+                        // We preserve cache only briefly (3 days) to handle edge cases.
                         let cacheStillValid = await SecurePremiumCache.shared.isCacheValid()
                         if cacheStillValid {
                             startupLogger.log(
-                                "⚠️ StoreKit returned no entitlements but cache is valid - preserving cache",
+                                "⚠️ StoreKit returned no entitlements but cache is valid - preserving cache briefly",
                                 level: .warning,
                                 category: .subscription,
                                 metadata: ["cache_age_hours": String(format: "%.1f", (await SecurePremiumCache.shared.getCacheAge() ?? 0) / 3600)]
                             )
                             return await SecurePremiumCache.shared.getCachedPremiumStatus()
                         } else {
-                            // Cache expired or doesn't exist - user is not premium
-                            await SecurePremiumCache.shared.updateCache(plan: .free)
+                            // Cache expired - subscription is truly gone
+                            // Clear ALL caches including billing suppression flag
+                            startupLogger.log(
+                                "🔔 No entitlements and cache expired - clearing all caches, falling back to free",
+                                level: .info,
+                                category: .subscription
+                            )
+                            await SecurePremiumCache.shared.clearCache()
                             return false
                         }
                     }
@@ -213,9 +230,59 @@ extension StoreKitSubscriptionService {
     /// Used by `verifyPremiumSync` during startup verification when a subscription
     /// appears expired. This allows users in grace period to retain premium access.
     ///
+    /// **Billing Dialog Handling:**
+    /// - Calling `Product.SubscriptionInfo.status()` when user is in grace period
+    ///   triggers Apple's "Billing Problem" system dialog
+    /// - We suppress this dialog for 24 hours after it's shown (daily reminder pattern)
+    /// - When suppressed, we STILL check if user should get premium via cache validity
+    /// - When subscription is `.expired` or `.revoked`, we clear ALL caches
+    ///
+    /// **State Transitions:**
+    /// - `.inGracePeriod` / `.inBillingRetryPeriod` → Grant premium, suppress dialog 24h
+    /// - `.expired` / `.revoked` → Clear all caches, deny premium
+    ///
     /// - Returns: `true` if user is in grace period or billing retry, `false` otherwise
     ///
     static func checkGracePeriodStatus() async -> Bool {
+        // Check if we should suppress the billing dialog (shown within last 24 hours)
+        let shouldSuppressDialog = await SecurePremiumCache.shared.shouldSuppressBillingDialog()
+        let cacheValid = await SecurePremiumCache.shared.isCacheValid()
+        let cacheAge = await SecurePremiumCache.shared.getCacheAge()
+
+        // Debug logging for billing dialog flow
+        startupLogger.log(
+            "🔍 Billing dialog check",
+            level: .debug,
+            category: .subscription,
+            metadata: [
+                "should_suppress": shouldSuppressDialog,
+                "cache_valid": cacheValid,
+                "cache_age_hours": cacheAge.map { String(format: "%.2f", $0 / 3600) } ?? "nil"
+            ]
+        )
+
+        if shouldSuppressDialog {
+            // Dialog is suppressed - if cache is valid, skip the API call entirely
+            if cacheValid {
+                startupLogger.log(
+                    "🔔 Startup: Billing dialog suppressed (24h), cache valid - granting premium",
+                    level: .info,
+                    category: .subscription
+                )
+                return true
+            }
+
+            // Cache not valid but dialog was recently shown
+            // In billing grace period, we should STILL grant premium without showing dialog again
+            // The billing timestamp proves we're in grace period
+            startupLogger.log(
+                "🔔 Startup: Billing dialog suppressed but cache invalid - granting premium (known billing issue)",
+                level: .info,
+                category: .subscription
+            )
+            return true
+        }
+
         do {
             let statuses = try await Product.SubscriptionInfo.status(
                 for: StoreKitProductID.subscriptionGroupID
@@ -223,30 +290,57 @@ extension StoreKitSubscriptionService {
 
             for status in statuses {
                 switch status.state {
-                case .subscribed, .inGracePeriod, .inBillingRetryPeriod:
-                    if status.state == .inGracePeriod {
-                        startupLogger.log(
-                            "🔔 Startup: User in billing grace period - granting premium access",
-                            level: .info,
-                            category: .subscription
-                        )
-                    } else if status.state == .inBillingRetryPeriod {
-                        startupLogger.log(
-                            "🔔 Startup: User in billing retry period - granting premium access",
-                            level: .info,
-                            category: .subscription
-                        )
-                    }
+                case .subscribed:
+                    // Clear any billing issue flag since subscription is active
+                    await SecurePremiumCache.shared.clearBillingIssueFlag()
                     return true
 
-                case .expired, .revoked:
-                    continue
+                case .inGracePeriod:
+                    startupLogger.log(
+                        "🔔 Startup: User in billing grace period - granting premium access",
+                        level: .info,
+                        category: .subscription
+                    )
+                    // Record when dialog was shown (24-hour suppression)
+                    await SecurePremiumCache.shared.recordBillingIssueDetected()
+                    return true
+
+                case .inBillingRetryPeriod:
+                    startupLogger.log(
+                        "🔔 Startup: User in billing retry period - granting premium access",
+                        level: .info,
+                        category: .subscription
+                    )
+                    // Record when dialog was shown (24-hour suppression)
+                    await SecurePremiumCache.shared.recordBillingIssueDetected()
+                    return true
+
+                case .expired:
+                    startupLogger.log(
+                        "🔔 Startup: Subscription expired - clearing all caches, falling back to free",
+                        level: .info,
+                        category: .subscription
+                    )
+                    // Subscription fully expired - clear ALL caches
+                    await SecurePremiumCache.shared.clearCache()
+                    return false
+
+                case .revoked:
+                    startupLogger.log(
+                        "🔔 Startup: Subscription revoked - clearing all caches, falling back to free",
+                        level: .info,
+                        category: .subscription
+                    )
+                    // Subscription revoked (refund, etc.) - clear ALL caches immediately
+                    await SecurePremiumCache.shared.clearCache()
+                    return false
 
                 default:
                     continue
                 }
             }
 
+            // No relevant status found
             return false
         } catch {
             startupLogger.log(

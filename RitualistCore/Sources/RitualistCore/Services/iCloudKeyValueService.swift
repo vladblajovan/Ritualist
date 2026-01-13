@@ -228,11 +228,21 @@ public final class DefaultiCloudKeyValueService: iCloudKeyValueService, @uncheck
         )
 
         // Post notification for any observers
-        NotificationCenter.default.post(
-            name: .iCloudKeyValueDidChange,
-            object: nil,
-            userInfo: userInfo
-        )
+        // Note: Must dispatch to MainActor because this @objc method can be called from any thread
+        // and UI observers expect notifications on the main thread.
+        // We extract the reason as a Sendable value before crossing the isolation boundary.
+        let changeReason = userInfo[NSUbiquitousKeyValueStoreChangeReasonKey] as? Int
+        Task { @MainActor in
+            var sendableUserInfo: [AnyHashable: Any]?
+            if let reason = changeReason {
+                sendableUserInfo = [NSUbiquitousKeyValueStoreChangeReasonKey: reason]
+            }
+            NotificationCenter.default.post(
+                name: .iCloudKeyValueDidChange,
+                object: nil,
+                userInfo: sendableUserInfo
+            )
+        }
     }
 }
 

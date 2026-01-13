@@ -77,7 +77,8 @@ public struct CategoryManagementView: View {
                 titleVisibility: .visible
             ) {
                 Button(Strings.Common.delete, role: .destructive) {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await deleteSelectedCategories()
                     }
                 }
@@ -91,7 +92,8 @@ public struct CategoryManagementView: View {
                 titleVisibility: .visible
             ) {
                 Button(Strings.Button.deactivate, role: .destructive) {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await deactivateSelectedCategories()
                     }
                 }
@@ -104,7 +106,8 @@ public struct CategoryManagementView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                 // Auto-refresh when iCloud syncs new data from another device
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     logger.log(
                         "☁️ iCloud sync detected - refreshing Categories",
                         level: .info,
@@ -132,7 +135,8 @@ public struct CategoryManagementView: View {
                                     showingDeactivateConfirmation = true
                                 } else {
                                     // Activate directly without confirmation
-                                    Task {
+                                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                                    Task { @MainActor in
                                         await vm.toggleActiveStatus(id: category.id)
                                     }
                                 }
@@ -164,13 +168,15 @@ public struct CategoryManagementView: View {
     }
     
     private func deleteCategories(offsets: IndexSet) {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await vm.deleteCategories(at: offsets)
         }
     }
-    
+
     private func moveCategories(from source: IndexSet, to destination: Int) {
-        Task {
+        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+        Task { @MainActor in
             await vm.moveCategories(from: source, to: destination)
         }
     }

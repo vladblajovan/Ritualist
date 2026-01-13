@@ -121,6 +121,9 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
             isOnTrial: isOnTrial,
             expiryDate: expiryDate
         )
+
+        // Clear billing issue flag since user successfully purchased/resolved payment
+        await SecurePremiumCache.shared.clearBillingIssueFlag()
     }
 
     /// Queries StoreKit for transaction info with exponential backoff retry
@@ -434,9 +437,33 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
     /// - `.inGracePeriod` - Payment failed, user has time to fix payment method
     /// - `.inBillingRetryPeriod` - Apple is retrying the payment
     ///
+    /// **Subscription States that revoke access:**
+    /// - `.expired` - Grace period ended, payment never resolved → clear ALL caches
+    /// - `.revoked` - Refund, family sharing removed, etc. → clear ALL caches immediately
+    ///
+    /// **Billing Dialog Handling:**
+    /// - Calling `Product.SubscriptionInfo.status()` triggers Apple's "Billing Problem" dialog
+    /// - We suppress this dialog for 24 hours after it's shown (daily reminder pattern)
+    /// - When suppressed, we verify cache validity instead of blindly granting premium
+    ///
     /// - Returns: `true` if user is in grace period or billing retry, `false` otherwise
     ///
     private func isUserInGracePeriod() async -> Bool {
+        // Check if we should suppress the billing dialog (shown within last 24 hours)
+        let shouldSuppressDialog = await SecurePremiumCache.shared.shouldSuppressBillingDialog()
+
+        if shouldSuppressDialog {
+            // Dialog was shown within 24 hours - billing issue is known
+            // Grant premium without showing dialog again (daily reminder pattern)
+            // The billing timestamp itself proves we detected grace period
+            Self.startupLogger.log(
+                "🔔 Billing dialog suppressed (24h) - assuming grace period active",
+                level: .info,
+                category: .subscription
+            )
+            return true
+        }
+
         do {
             // Query subscription status for our subscription group
             let statuses = try await Product.SubscriptionInfo.status(
@@ -446,18 +473,19 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
             for status in statuses {
                 switch status.state {
                 case .subscribed:
-                    // Active subscription - should have been caught by expiration check
-                    // but return true just in case
+                    // Active subscription - clear any billing flags
+                    await SecurePremiumCache.shared.clearBillingIssueFlag()
                     return true
 
                 case .inGracePeriod:
                     // User's payment failed but they're in grace period
-                    // They should retain access while fixing payment method
                     Self.startupLogger.log(
                         "🔔 User in billing grace period - retaining premium access",
                         level: .info,
                         category: .subscription
                     )
+                    // Record when dialog was shown (24-hour suppression)
+                    await SecurePremiumCache.shared.recordBillingIssueDetected()
                     return true
 
                 case .inBillingRetryPeriod:
@@ -467,11 +495,29 @@ public actor StoreKitSubscriptionService: SecureSubscriptionService {
                         level: .info,
                         category: .subscription
                     )
+                    // Record when dialog was shown (24-hour suppression)
+                    await SecurePremiumCache.shared.recordBillingIssueDetected()
                     return true
 
-                case .expired, .revoked:
-                    // Fully expired or revoked - no access
-                    continue
+                case .expired:
+                    // Subscription fully expired - clear ALL caches, fall back to free
+                    Self.startupLogger.log(
+                        "🔔 Subscription expired - clearing all caches, falling back to free",
+                        level: .info,
+                        category: .subscription
+                    )
+                    await SecurePremiumCache.shared.clearCache()
+                    return false
+
+                case .revoked:
+                    // Subscription revoked (refund, etc.) - clear ALL caches immediately
+                    Self.startupLogger.log(
+                        "🔔 Subscription revoked - clearing all caches, falling back to free",
+                        level: .info,
+                        category: .subscription
+                    )
+                    await SecurePremiumCache.shared.clearCache()
+                    return false
 
                 default:
                     // Unknown state - be conservative and continue checking

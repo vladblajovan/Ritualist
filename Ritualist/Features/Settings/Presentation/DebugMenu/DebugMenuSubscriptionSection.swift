@@ -51,7 +51,8 @@ struct DebugMenuSubscriptionSection: View {
             .alert("Clear Mock Purchases?", isPresented: $showingClearMockPurchasesConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear", role: .destructive) {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await clearMockPurchases()
                     }
                 }
@@ -83,7 +84,8 @@ struct DebugMenuSubscriptionSection: View {
             .alert("Force Reset to Free User?", isPresented: $showingClearPremiumCacheConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Reset", role: .destructive) {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await forceResetToFreeUser()
                     }
                 }
@@ -92,6 +94,61 @@ struct DebugMenuSubscriptionSection: View {
             }
 
             Text("Clears ALL premium caches and forces subscription status refresh. Use this after deleting StoreKit transactions to immediately become a free user.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            // MARK: - Billing Issue Testing
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Billing Issue Status")
+                        .font(.headline)
+                    Spacer()
+                    Text(vm.hasBillingIssue ? "Active" : "None")
+                        .fontWeight(.medium)
+                        .foregroundColor(vm.hasBillingIssue ? .orange : .secondary)
+                }
+
+                Text("Simulates Apple's billing dialog being shown/dismissed")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 4)
+
+            Button {
+                Task { @MainActor in
+                    await simulateBillingIssue()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundColor(.orange)
+                    Text("Simulate Billing Issue")
+                    Spacer()
+                }
+            }
+
+            Text("Records a billing issue timestamp (as if user dismissed Apple's dialog). Use this to test the billing banner in Settings without relying on simulator dialog.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Button {
+                Task { @MainActor in
+                    await clearBillingIssue()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "checkmark.circle")
+                        .foregroundColor(.green)
+                    Text("Clear Billing Issue")
+                    Spacer()
+                }
+            }
+            .disabled(!vm.hasBillingIssue)
+
+            Text("Clears the billing issue flag (as if payment was resolved)")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -128,6 +185,26 @@ struct DebugMenuSubscriptionSection: View {
         } catch {
             logger.logError(error, context: "Failed to force reset to free user")
         }
+    }
+
+    private func simulateBillingIssue() async {
+        // Record a billing issue as if user dismissed Apple's dialog
+        await SecurePremiumCache.shared.recordBillingIssueDetected()
+
+        // Refresh ViewModel to pick up the change
+        await vm.refreshSubscriptionStatus()
+
+        logger.log("Simulated billing issue - banner should now appear in Settings", level: .info, category: .debug)
+    }
+
+    private func clearBillingIssue() async {
+        // Clear the billing issue flag as if payment was resolved
+        await SecurePremiumCache.shared.clearBillingIssueFlag()
+
+        // Refresh ViewModel to pick up the change
+        await vm.refreshSubscriptionStatus()
+
+        logger.log("Cleared billing issue - banner should disappear from Settings", level: .info, category: .debug)
     }
 }
 #endif

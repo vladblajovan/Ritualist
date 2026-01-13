@@ -29,7 +29,8 @@ struct TestDataScenariosView: View {
             ForEach(TestDataScenario.allCases) { scenario in
                 Section {
                     Button {
-                        Task {
+                        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                        Task { @MainActor in
                             await vm.populateTestData(scenario: scenario)
                         }
                     } label: {

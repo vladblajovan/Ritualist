@@ -44,7 +44,8 @@ public struct ConfirmationDialog: View {
             
             VStack(spacing: Spacing.medium) {
                 Button {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         await onConfirm()
                     }
                 } label: {

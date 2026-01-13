@@ -74,11 +74,12 @@ public struct StatsView: View {
                     }
 
                     // Row 3: Consistency Heatmap (Premium only)
-                    if isPremiumUser {
-                        ReadableWidthContainer {
-                            consistencyHeatmapSection
-                        }
-                    }
+                    // TODO: Re-enable when implementing as a widget
+                    // if isPremiumUser {
+                    //     ReadableWidthContainer {
+                    //         consistencyHeatmapSection
+                    //     }
+                    // }
                 } else {
                     emptyStateView
                 }
@@ -106,7 +107,8 @@ public struct StatsView: View {
                 // When view becomes visible (tab switch), reload to pick up changes from other tabs
                 // Skip on initial appear - the .task modifier handles initial load.
                 if !wasVisible && isVisible && vm.isReturningFromTabSwitch {
-                    Task {
+                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                    Task { @MainActor in
                         logger.log("Tab switch detected: Reloading dashboard data", level: .debug, category: .ui)
                         vm.invalidateCacheForTabSwitch()
                         await vm.refresh()
@@ -115,7 +117,8 @@ public struct StatsView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .iCloudDidSyncRemoteChanges)) { _ in
                 // Auto-refresh when iCloud syncs new data from another device
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     logger.log(
                         "☁️ iCloud sync detected - refreshing Dashboard",
                         level: .info,

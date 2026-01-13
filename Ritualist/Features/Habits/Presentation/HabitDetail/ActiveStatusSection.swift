@@ -15,7 +15,8 @@ public struct ActiveStatusSection: View {
     public var body: some View {
         Section {
             Button {
-                Task {
+                // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+                Task { @MainActor in
                     await vm.toggleActiveStatus()
                 }
             } label: {
