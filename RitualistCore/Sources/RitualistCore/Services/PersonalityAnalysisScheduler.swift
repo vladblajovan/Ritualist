@@ -22,10 +22,12 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     private let logger: DebugLogger
     
     // MARK: - State
-    
+
     private var scheduledUsers: Set<UUID> = []
     private var lastAnalysisDates: [UUID: Date] = [:]
     private var lastDataHashes: [UUID: String] = [:]
+    /// Tracks users with in-flight analysis to prevent duplicate concurrent triggers
+    private var analysisInProgress: Set<UUID> = []
     
     // MARK: - Constants
     
@@ -272,25 +274,33 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     }
     
     private func performAnalysis(for userId: UUID) async {
+        // Prevent duplicate concurrent analysis for the same user
+        guard !analysisInProgress.contains(userId) else {
+            logger.log("Analysis already in progress for user \(userId), skipping duplicate trigger", level: .info, category: .personality)
+            return
+        }
+
+        analysisInProgress.insert(userId)
+        defer { analysisInProgress.remove(userId) }
+
         do {
-            
             let profile = try await analyzePersonalityUseCase.execute(for: userId)
-            
+
             // CRITICAL: Save the profile to the database!
             try await personalityRepository.savePersonalityProfile(profile)
             // Personality profile saved to database
-            
+
             lastAnalysisDates[userId] = Date()
             saveSchedulerState()
-            
+
             // Send rich notification about the completed analysis
             try await notificationService.sendPersonalityAnalysisCompleted(userId: userId, profile: profile)
-            
+
             // Schedule next analysis
             if let preferences = try await personalityRepository.getAnalysisPreferences(for: userId) {
                 await scheduleNextAnalysis(for: userId, preferences: preferences)
             }
-            
+
         } catch {
             // Failed automatic personality analysis - fail silently
             // No notifications for insufficient data scenarios

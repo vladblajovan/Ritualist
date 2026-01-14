@@ -103,9 +103,9 @@ public struct GenericRowView: View {
             ZStack {
                 Circle()
                     .fill((backgroundColor ?? AppColors.brand).opacity(0.1))
-                    .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                    .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
                 Text(emoji)
-                    .font(.title3)
+                    .font(.title2)
             }
             
         case .circleWithIcon(let iconName, let color):
@@ -377,9 +377,9 @@ private struct HabitRowWithSplitZones: View {
                     ZStack {
                         Circle()
                             .fill(Color(hex: habit.colorHex).opacity(0.1))
-                            .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                            .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
                         Text(habit.emoji ?? "•")
-                            .font(.title3)
+                            .font(.title2)
                     }
 
                     // Content Section

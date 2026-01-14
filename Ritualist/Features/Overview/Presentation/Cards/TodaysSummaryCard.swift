@@ -426,7 +426,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         ZStack {
             Circle()
                 .fill(Color(hex: habit.colorHex).opacity(0.15))
-                .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
 
             if habit.kind == .numeric {
                 let currentValue = getProgress(habit)
@@ -444,11 +444,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         ),
                         style: StrokeStyle(lineWidth: 3, lineCap: .round)
                     )
-                    .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                    .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
                     .rotationEffect(.degrees(-90))
             }
 
-            Text(habit.emoji ?? "📊").font(CardDesign.title3)
+            Text(habit.emoji ?? "📊").font(CardDesign.title2)
         }
     }
 
@@ -892,7 +892,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             // Background circle - transitions to green as checkmark appears
             Circle()
                 .fill(Color(hex: habit.colorHex).opacity(0.15))
-                .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
                 .overlay(
                     Circle()
                         .fill(Color.green.opacity(0.15))
@@ -916,7 +916,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         ),
                         style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
                     )
-                    .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                    .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
                     .rotationEffect(.degrees(-90))
             }
 
@@ -931,7 +931,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                     ),
                     style: StrokeStyle(lineWidth: 3, lineCap: .round)
                 )
-                .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
                 .rotationEffect(.degrees(-90))
                 .opacity(isLongPressing ? 1 : 0)
                 .animation(.linear(duration: 0.65), value: longPressProgress)
@@ -947,17 +947,17 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                         ),
                         style: StrokeStyle(lineWidth: 3, lineCap: .round)
                     )
-                    .frame(width: IconSize.xxlarge, height: IconSize.xxlarge)
+                    .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
             }
 
             // Emoji - visible until 0.8, then fades out
             Text(habit.emoji ?? "📊")
-                .font(CardDesign.title3)
+                .font(CardDesign.title2)
                 .opacity(emojiOpacity)
 
             // Checkmark - starts appearing at 0.8, fully visible at 1.0
             Image(systemName: "checkmark")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundStyle(.green)
                 .opacity(checkmarkOpacity)
         }

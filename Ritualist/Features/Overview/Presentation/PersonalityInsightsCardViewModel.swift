@@ -46,9 +46,7 @@ public final class PersonalityInsightsCardViewModel {
     @ObservationIgnored @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
     @ObservationIgnored @Injected(\.validateAnalysisDataUseCase) private var validateAnalysisDataUseCase
     @ObservationIgnored @Injected(\.isPersonalityAnalysisEnabledUseCase) private var isPersonalityAnalysisEnabledUseCase
-    @ObservationIgnored @Injected(\.getAnalysisPreferencesUseCase) private var getAnalysisPreferencesUseCase
-    @ObservationIgnored @Injected(\.triggerAnalysisCheckUseCase) private var triggerAnalysisCheckUseCase
-    @ObservationIgnored @Injected(\.forceManualAnalysisUseCase) private var forceManualAnalysisUseCase
+    @ObservationIgnored @Injected(\.triggerAppropriateAnalysisUseCase) private var triggerAppropriateAnalysisUseCase
     @ObservationIgnored @Injected(\.checkPremiumStatus) private var checkPremiumStatus
     @ObservationIgnored @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     @ObservationIgnored @Injected(\.getCurrentUserProfile) private var getCurrentUserProfile
@@ -162,21 +160,11 @@ public final class PersonalityInsightsCardViewModel {
         var profile = try await getPersonalityProfileUseCase.execute(for: userId)
 
         if isPersonalityDataSufficient && profile == nil {
-            do {
-                // Trigger analysis through scheduler - ensures notification is sent
-                let preferences = try await getAnalysisPreferencesUseCase.execute(for: userId)
-                if let prefs = preferences, prefs.analysisFrequency == .manual {
-                    await forceManualAnalysisUseCase.execute(for: userId)
-                } else {
-                    await triggerAnalysisCheckUseCase.execute(for: userId)
-                }
-                // Reload the generated profile
-                profile = try await getPersonalityProfileUseCase.execute(for: userId)
-            } catch {
-                logger.log("Failed to trigger or fetch personality analysis: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
-                personalityInsights = []
-                dominantPersonalityTrait = nil
-            }
+            // Trigger analysis through scheduler - ensures notification is sent
+            // Uses centralized UseCase that handles manual vs automatic frequency
+            await triggerAppropriateAnalysisUseCase.execute(for: userId)
+            // Reload the generated profile
+            profile = try await getPersonalityProfileUseCase.execute(for: userId)
         }
         return profile
     }

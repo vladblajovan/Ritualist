@@ -84,6 +84,24 @@ extension Container {
         self { DefaultForceManualAnalysisUseCase(scheduler: self.personalityAnalysisScheduler()) }
     }
 
+    var markAnalysisAsSeenUseCase: Factory<MarkAnalysisAsSeenUseCase> {
+        self { DefaultMarkAnalysisAsSeenUseCase(userDefaults: self.userDefaultsService()) }
+    }
+
+    var getLastSeenAnalysisDateUseCase: Factory<GetLastSeenAnalysisDateUseCase> {
+        self { DefaultGetLastSeenAnalysisDateUseCase(userDefaults: self.userDefaultsService()) }
+    }
+
+    var triggerAppropriateAnalysisUseCase: Factory<TriggerAppropriateAnalysisUseCase> {
+        self {
+            DefaultTriggerAppropriateAnalysisUseCase(
+                getAnalysisPreferencesUseCase: self.getAnalysisPreferencesUseCase(),
+                triggerAnalysisCheckUseCase: self.triggerAnalysisCheckUseCase(),
+                forceManualAnalysisUseCase: self.forceManualAnalysisUseCase()
+            )
+        }
+    }
+
     // MARK: - Personality Analysis Data Use Cases
 
     var getHabitAnalysisInputUseCase: Factory<GetHabitAnalysisInputUseCase> {

@@ -496,6 +496,62 @@ public final class DefaultForceManualAnalysisUseCase: ForceManualAnalysisUseCase
     }
 }
 
+public final class DefaultMarkAnalysisAsSeenUseCase: MarkAnalysisAsSeenUseCase {
+    private let userDefaults: UserDefaultsService
+
+    public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
+        self.userDefaults = userDefaults
+    }
+
+    public func execute(analysisDate: Date) async {
+        userDefaults.set(analysisDate, forKey: UserDefaultsKeys.personalityLastSeenAnalysisDate)
+    }
+}
+
+public final class DefaultGetLastSeenAnalysisDateUseCase: GetLastSeenAnalysisDateUseCase {
+    private let userDefaults: UserDefaultsService
+
+    public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
+        self.userDefaults = userDefaults
+    }
+
+    public func execute() async -> Date? {
+        userDefaults.object(forKey: UserDefaultsKeys.personalityLastSeenAnalysisDate) as? Date
+    }
+}
+
+/// Centralizes the manual vs automatic frequency logic for triggering analysis
+/// Fetches user preferences and calls the appropriate scheduler method
+public final class DefaultTriggerAppropriateAnalysisUseCase: TriggerAppropriateAnalysisUseCase {
+    private let getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase
+    private let triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase
+    private let forceManualAnalysisUseCase: ForceManualAnalysisUseCase
+
+    public init(
+        getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase,
+        triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase,
+        forceManualAnalysisUseCase: ForceManualAnalysisUseCase
+    ) {
+        self.getAnalysisPreferencesUseCase = getAnalysisPreferencesUseCase
+        self.triggerAnalysisCheckUseCase = triggerAnalysisCheckUseCase
+        self.forceManualAnalysisUseCase = forceManualAnalysisUseCase
+    }
+
+    public func execute(for userId: UUID) async {
+        do {
+            let preferences = try await getAnalysisPreferencesUseCase.execute(for: userId)
+            if let prefs = preferences, prefs.analysisFrequency == .manual {
+                await forceManualAnalysisUseCase.execute(for: userId)
+            } else {
+                await triggerAnalysisCheckUseCase.execute(for: userId)
+            }
+        } catch {
+            // If we can't fetch preferences, fall back to regular trigger
+            await triggerAnalysisCheckUseCase.execute(for: userId)
+        }
+    }
+}
+
 // MARK: - Personality Analysis Data Use Cases
 
 public final class DefaultGetHabitAnalysisInputUseCase: GetHabitAnalysisInputUseCase {

@@ -43,6 +43,10 @@ public enum UserDefaultsKeys {
     /// Used to show "New Analysis" indicator when analysis is newer than last seen
     public static let personalityLastSeenAnalysisDate = "com.ritualist.personalityLastSeenAnalysisDate"
 
+    /// Key for storing the last time analysis trigger check was performed
+    /// Used to debounce app launch triggers and avoid redundant checks
+    public static let personalityLastTriggerCheckDate = "com.ritualist.personalityLastTriggerCheckDate"
+
     // MARK: - Inspiration/Motivation
 
     /// Key for storing the last date inspiration triggers were reset

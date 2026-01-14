@@ -15,9 +15,13 @@ final class PersonalityPreferencesManager {
     private let startAnalysisSchedulingUseCase: StartAnalysisSchedulingUseCase
     private let updateAnalysisSchedulingUseCase: UpdateAnalysisSchedulingUseCase
     private let getNextScheduledAnalysisUseCase: GetNextScheduledAnalysisUseCase
+    private let triggerAppropriateAnalysisUseCase: TriggerAppropriateAnalysisUseCase
     private let triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase
-    private let forceManualAnalysisUseCase: ForceManualAnalysisUseCase
     private let logger: DebugLogger
+
+    /// Minimum interval between automatic trigger checks (5 minutes)
+    /// Prevents redundant database queries on rapid app restarts
+    private static let triggerCheckDebounceInterval: TimeInterval = 5 * 60
 
     init(
         getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase,
@@ -25,8 +29,8 @@ final class PersonalityPreferencesManager {
         startAnalysisSchedulingUseCase: StartAnalysisSchedulingUseCase,
         updateAnalysisSchedulingUseCase: UpdateAnalysisSchedulingUseCase,
         getNextScheduledAnalysisUseCase: GetNextScheduledAnalysisUseCase,
+        triggerAppropriateAnalysisUseCase: TriggerAppropriateAnalysisUseCase,
         triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase,
-        forceManualAnalysisUseCase: ForceManualAnalysisUseCase,
         logger: DebugLogger
     ) {
         self.getAnalysisPreferencesUseCase = getAnalysisPreferencesUseCase
@@ -34,8 +38,8 @@ final class PersonalityPreferencesManager {
         self.startAnalysisSchedulingUseCase = startAnalysisSchedulingUseCase
         self.updateAnalysisSchedulingUseCase = updateAnalysisSchedulingUseCase
         self.getNextScheduledAnalysisUseCase = getNextScheduledAnalysisUseCase
+        self.triggerAppropriateAnalysisUseCase = triggerAppropriateAnalysisUseCase
         self.triggerAnalysisCheckUseCase = triggerAnalysisCheckUseCase
-        self.forceManualAnalysisUseCase = forceManualAnalysisUseCase
         self.logger = logger
     }
 
@@ -45,9 +49,10 @@ final class PersonalityPreferencesManager {
                 if loaded.isCurrentlyActive {
                     await startAnalysisSchedulingUseCase.execute(for: userId)
                     // Trigger automatic analysis check if frequency-based (not manual)
-                    // This runs analysis if the scheduled time has passed
-                    if loaded.analysisFrequency != .manual {
+                    // Only trigger if not recently checked (debounce rapid app restarts)
+                    if loaded.analysisFrequency != .manual && shouldTriggerAnalysisCheck() {
                         await triggerAnalysisCheckUseCase.execute(for: userId)
+                        recordTriggerCheck()
                     }
                 }
                 return loaded
@@ -56,14 +61,30 @@ final class PersonalityPreferencesManager {
             try? await saveAnalysisPreferencesUseCase.execute(defaults)
             await startAnalysisSchedulingUseCase.execute(for: userId)
             // Trigger automatic analysis check for new users with default frequency
-            if defaults.analysisFrequency != .manual {
+            if defaults.analysisFrequency != .manual && shouldTriggerAnalysisCheck() {
                 await triggerAnalysisCheckUseCase.execute(for: userId)
+                recordTriggerCheck()
             }
             return defaults
         } catch {
             logger.log("Error loading preferences: \(error)", level: .error, category: .personality)
             return PersonalityAnalysisPreferences(userId: userId)
         }
+    }
+
+    // MARK: - Debouncing
+
+    /// Returns true if enough time has passed since the last trigger check
+    private func shouldTriggerAnalysisCheck() -> Bool {
+        guard let lastCheck = UserDefaults.standard.object(forKey: UserDefaultsKeys.personalityLastTriggerCheckDate) as? Date else {
+            return true // Never checked before
+        }
+        return Date().timeIntervalSince(lastCheck) >= Self.triggerCheckDebounceInterval
+    }
+
+    /// Records the current time as the last trigger check
+    private func recordTriggerCheck() {
+        UserDefaults.standard.set(Date(), forKey: UserDefaultsKeys.personalityLastTriggerCheckDate)
     }
 
     func savePreferences(_ prefs: PersonalityAnalysisPreferences, for userId: UUID) async -> Bool {
@@ -81,11 +102,9 @@ final class PersonalityPreferencesManager {
         await getNextScheduledAnalysisUseCase.execute(for: userId)
     }
 
-    func triggerManualAnalysisCheck(for userId: UUID, preferences: PersonalityAnalysisPreferences?) async {
-        if let prefs = preferences, prefs.analysisFrequency == .manual {
-            await forceManualAnalysisUseCase.execute(for: userId)
-        } else {
-            await triggerAnalysisCheckUseCase.execute(for: userId)
-        }
+    /// Triggers analysis using the appropriate method based on user preferences
+    /// Uses centralized UseCase that handles manual vs automatic frequency
+    func triggerAnalysis(for userId: UUID) async {
+        await triggerAppropriateAnalysisUseCase.execute(for: userId)
     }
 }

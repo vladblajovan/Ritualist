@@ -507,6 +507,20 @@ public protocol ForceManualAnalysisUseCase: Sendable {
     func execute(for userId: UUID) async
 }
 
+public protocol MarkAnalysisAsSeenUseCase: Sendable {
+    func execute(analysisDate: Date) async
+}
+
+public protocol GetLastSeenAnalysisDateUseCase: Sendable {
+    func execute() async -> Date?
+}
+
+/// Triggers the appropriate analysis based on user preferences (manual vs automatic)
+/// This centralizes the manual/non-manual frequency logic in a single location
+public protocol TriggerAppropriateAnalysisUseCase: Sendable {
+    func execute(for userId: UUID) async
+}
+
 // MARK: - Personality Analysis Data Use Cases
 
 public protocol GetHabitAnalysisInputUseCase: Sendable {
