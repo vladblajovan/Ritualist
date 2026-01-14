@@ -284,6 +284,7 @@ private struct PersonalityProfileView: View {
     let profile: PersonalityProfile
     @State private var showingConfidenceInfo = false
     @Injected(\.settingsViewModel) private var settingsVM
+    @Injected(\.personalityInsightsViewModel) private var insightsVM
 
     // Avatar sizing (larger than header avatar)
     private let avatarSize: CGFloat = 72
@@ -291,6 +292,11 @@ private struct PersonalityProfileView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
+                // New Analysis Banner (dismissible)
+                if insightsVM.hasUnseenAnalysis {
+                    newAnalysisBanner
+                }
+
                 dominantTraitSection
 
                 insightsSection
@@ -300,6 +306,7 @@ private struct PersonalityProfileView: View {
                 analysisDetailsSection
             }
             .padding()
+            .animation(.easeOut(duration: 0.2), value: insightsVM.hasUnseenAnalysis)
         }
         .task {
             // Ensure profile is loaded for avatar display
@@ -466,9 +473,9 @@ private struct PersonalityProfileView: View {
 
     private var personalityInsights: [String] {
         var insights: [String] = []
-        
+
         let topTraits = profile.traitsByScore.prefix(3)
-        
+
         for (trait, score) in topTraits where score > 0.6 {
                 switch trait {
                 case .openness:
@@ -483,12 +490,72 @@ private struct PersonalityProfileView: View {
                     insights.append("Focus on stress-reduction and mindfulness practices")
                 }
         }
-        
+
         if insights.isEmpty {
             insights.append("Your balanced personality allows flexibility in habit choices")
         }
-        
+
         return insights
+    }
+
+    // MARK: - New Analysis Banner
+
+    private var newAnalysisBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.title3)
+                .foregroundStyle(.linearGradient(
+                    colors: [.purple, .blue],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("New Analysis Available")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Text("Your personality insights have been updated")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    insightsVM.markAnalysisAsSeen()
+                }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.secondary.opacity(0.6))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.linearGradient(
+                    colors: [.purple.opacity(0.08), .blue.opacity(0.08)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.linearGradient(
+                            colors: [.purple.opacity(0.2), .blue.opacity(0.2)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ), lineWidth: 1)
+                )
+        )
+        .transition(.asymmetric(
+            insertion: .scale(scale: 0.95).combined(with: .opacity),
+            removal: .scale(scale: 0.95).combined(with: .opacity)
+        ))
     }
 }
 

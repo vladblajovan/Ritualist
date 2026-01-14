@@ -44,12 +44,21 @@ final class PersonalityPreferencesManager {
             if let loaded = try await getAnalysisPreferencesUseCase.execute(for: userId) {
                 if loaded.isCurrentlyActive {
                     await startAnalysisSchedulingUseCase.execute(for: userId)
+                    // Trigger automatic analysis check if frequency-based (not manual)
+                    // This runs analysis if the scheduled time has passed
+                    if loaded.analysisFrequency != .manual {
+                        await triggerAnalysisCheckUseCase.execute(for: userId)
+                    }
                 }
                 return loaded
             }
             let defaults = PersonalityAnalysisPreferences(userId: userId)
             try? await saveAnalysisPreferencesUseCase.execute(defaults)
             await startAnalysisSchedulingUseCase.execute(for: userId)
+            // Trigger automatic analysis check for new users with default frequency
+            if defaults.analysisFrequency != .manual {
+                await triggerAnalysisCheckUseCase.execute(for: userId)
+            }
             return defaults
         } catch {
             logger.log("Error loading preferences: \(error)", level: .error, category: .personality)

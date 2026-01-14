@@ -39,6 +39,10 @@ public enum UserDefaultsKeys {
     /// Key for storing data hashes for personality analysis change detection
     public static let personalitySchedulerHashes = "com.ritualist.personalitySchedulerHashes"
 
+    /// Key for storing the last analysis date the user has seen
+    /// Used to show "New Analysis" indicator when analysis is newer than last seen
+    public static let personalityLastSeenAnalysisDate = "com.ritualist.personalityLastSeenAnalysisDate"
+
     // MARK: - Inspiration/Motivation
 
     /// Key for storing the last date inspiration triggers were reset
