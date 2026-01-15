@@ -29,8 +29,6 @@ struct WeekDateSelector: View {
     @State private var currentWeekIndex: Int
     @State private var weeks: [[Date]] = []
 
-    private let calendar = Calendar.current
-
     init(
         selectedDate: Date,
         timezone: TimeZone,
@@ -54,53 +52,36 @@ struct WeekDateSelector: View {
         self._currentWeekIndex = State(initialValue: 4) // weeksBuffer
     }
 
-    // MARK: - Week Calculations
-
-    /// Get the start of the week for a given date
-    private func startOfWeek(for date: Date) -> Date {
-        var cal = calendar
-        cal.timeZone = timezone
-        let components = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
-        return cal.date(from: components) ?? date
-    }
+    // MARK: - Week Calculations (using CalendarUtils)
 
     /// Get all dates for the week starting at weekStart
     private func datesForWeek(startingAt weekStart: Date) -> [Date] {
-        (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: weekStart) }
+        (0..<7).compactMap { CalendarUtils.addDaysLocal($0, to: weekStart, timezone: timezone) }
     }
 
     /// Generate weeks array centered around the selected date
     private func generateWeeks() -> [[Date]] {
-        let currentWeekStart = startOfWeek(for: selectedDate)
+        let currentWeekStart = CalendarUtils.startOfWeekLocal(for: selectedDate, timezone: timezone)
         var weeksArray: [[Date]] = []
 
         // Generate weeks before and after current week
         for offset in -weeksBuffer...weeksBuffer {
-            if let weekStart = calendar.date(byAdding: .weekOfYear, value: offset, to: currentWeekStart) {
-                weeksArray.append(datesForWeek(startingAt: weekStart))
-            }
+            let weekStart = CalendarUtils.addWeeksLocal(offset, to: currentWeekStart, timezone: timezone)
+            weeksArray.append(datesForWeek(startingAt: weekStart))
         }
 
         return weeksArray
     }
 
-    /// Check if two dates are the same day
-    private func isSameDay(_ date1: Date, _ date2: Date) -> Bool {
-        var cal = calendar
-        cal.timeZone = timezone
-        return cal.isDate(date1, inSameDayAs: date2)
-    }
-
-    /// Check if date is today
-    private func isToday(_ date: Date) -> Bool {
-        var cal = calendar
-        cal.timeZone = timezone
-        return cal.isDateInToday(date)
+    /// Trigger haptic feedback for date selection
+    private func triggerHapticFeedback() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
     }
 
     /// Find which week index contains the selected date
     private func weekIndexForDate(_ date: Date) -> Int {
-        for (index, week) in weeks.enumerated() where week.contains(where: { isSameDay($0, date) }) {
+        for (index, week) in weeks.enumerated() where week.contains(where: { CalendarUtils.areSameDayLocal($0, date, timezone: timezone) }) {
             return index
         }
         return weeksBuffer
@@ -141,6 +122,14 @@ struct WeekDateSelector: View {
         HStack {
             // Left side: Date display
             HStack(spacing: 4) {
+                // "Today, " prefix when viewing today
+                if isViewingToday {
+                    Text("Today,")
+                        .font(CardDesign.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                }
+
                 // Day name (bold, primary)
                 Text(dayName(for: selectedDate))
                     .font(CardDesign.title3)
@@ -192,7 +181,8 @@ struct WeekDateSelector: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: 70)
+        .frame(height: 85) // Increased to accommodate today dot
+        .padding(.horizontal, -Spacing.large) // Negative padding for full width
     }
 
     // MARK: - Week Row
@@ -204,29 +194,34 @@ struct WeekDateSelector: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 6)
     }
 
     // MARK: - Day Column
 
     private func dayColumn(for date: Date) -> some View {
-        let isSelected = isSameDay(date, selectedDate)
-        let isDateToday = isToday(date)
+        let isSelected = CalendarUtils.areSameDayLocal(date, selectedDate, timezone: timezone)
+        let isDateToday = CalendarUtils.isTodayLocal(date, timezone: timezone)
         let canSelect = canSelectDate(date)
         let isFutureDate = isFuture(date)
         let completion = completionForDate(date)
 
         return Button {
             if canSelect {
+                triggerHapticFeedback()
                 onDateSelected(date)
             }
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
+                // Today indicator dot
+                Circle()
+                    .fill(isDateToday ? AppColors.brand : Color.clear)
+                    .frame(width: 5, height: 5)
+
                 // Day abbreviation
                 Text(dayAbbreviation(for: date))
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundColor(dayAbbreviationColor(isSelected: isSelected, isFuture: isFutureDate))
-                    .textCase(.uppercase)
 
                 // Date number with selection indicator
                 ZStack {
@@ -239,19 +234,13 @@ struct WeekDateSelector: View {
                     } else {
                         // Past dates & today: completion-based color (matches MonthlyCalendarCard)
                         Circle()
-                            .fill(dayCircleColor(completion: completion, isToday: isDateToday))
+                            .fill(dayCircleColor(completion: completion))
                             .frame(width: 36, height: 36)
 
                         // Selected state: add brand stroke to indicate selection
                         if isSelected {
                             Circle()
                                 .stroke(AppColors.brand, lineWidth: 1.5)
-                                .frame(width: 36, height: 36)
-                        }
-                        // Today (not selected) gets brand stroke ONLY when no completion data
-                        else if isDateToday && completion == 0 {
-                            Circle()
-                                .stroke(AppColors.brand.opacity(0.5), lineWidth: 1.5)
                                 .frame(width: 36, height: 36)
                         }
                     }
@@ -265,7 +254,7 @@ struct WeekDateSelector: View {
             .padding(.horizontal, 4)
             .padding(.vertical, 6)
             .background(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: 22)
                     .fill(dayBackgroundColor(isSelected: isSelected, isFuture: isFutureDate))
             )
             .contentShape(Rectangle())
@@ -279,14 +268,12 @@ struct WeekDateSelector: View {
 
     /// Get completion value for a date from weeklyData
     private func completionForDate(_ date: Date) -> Double {
-        var cal = calendar
-        cal.timeZone = timezone
-        let normalizedDate = cal.startOfDay(for: date)
+        let normalizedDate = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
         return weeklyData[normalizedDate] ?? 0.0
     }
 
     /// Day circle color based on completion - matches MonthlyCalendarCard colors
-    private func dayCircleColor(completion: Double, isToday: Bool) -> Color {
+    private func dayCircleColor(completion: Double) -> Color {
         // Same logic as MonthlyCalendarViewLogic.backgroundColor
         if completion >= 1.0 {
             return CardDesign.progressGreen
@@ -304,10 +291,8 @@ struct WeekDateSelector: View {
 
     /// Check if date is in the future relative to today
     private func isFuture(_ date: Date) -> Bool {
-        var cal = calendar
-        cal.timeZone = timezone
-        let today = cal.startOfDay(for: Date())
-        let targetDay = cal.startOfDay(for: date)
+        let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: timezone)
+        let targetDay = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
         return targetDay > today
     }
 
@@ -341,28 +326,21 @@ struct WeekDateSelector: View {
     /// - Past dates (relative to TODAY): Controlled by canGoToPrevious (business rule about history limit)
     /// - Today: Always selectable
     private func canSelectDate(_ date: Date) -> Bool {
-        var cal = calendar
-        cal.timeZone = timezone
-        let today = cal.startOfDay(for: Date())
-        let targetDay = cal.startOfDay(for: date)
+        let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: timezone)
+        let targetDay = CalendarUtils.startOfDayLocal(for: date, timezone: timezone)
 
         // Can always select today
-        if cal.isDate(date, inSameDayAs: Date()) {
+        if CalendarUtils.isTodayLocal(date, timezone: timezone) {
             return true
         }
 
         // Future dates are NEVER selectable - you can't log habits for tomorrow
-        // Note: canGoToNext from parent is for navigation (viewing), not logging
         if targetDay > today {
             return false
         }
 
         // Past dates are selectable based on business rules (e.g., how far back history goes)
-        if targetDay < today {
-            return canGoToPrevious
-        }
-
-        return true
+        return canGoToPrevious
     }
 
     /// Date number color - ensures WCAG contrast in light/dark modes

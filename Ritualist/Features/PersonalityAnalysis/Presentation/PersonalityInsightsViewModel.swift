@@ -18,6 +18,8 @@ public final class PersonalityInsightsViewModel {
     public var isLoadingPreferences = false
     public var isSavingPreferences = false
     public var lastSeenAnalysisDate: Date?
+    /// Error message shown when preference save fails - cleared on next successful save or manual dismissal
+    public var preferenceSaveError: String?
 
     // MARK: - View State
 
@@ -259,8 +261,10 @@ public final class PersonalityInsightsViewModel {
 
     public func savePreferences(_ newPreferences: PersonalityAnalysisPreferences) async {
         isSavingPreferences = true
+        preferenceSaveError = nil // Clear any previous error
         guard let userId = await getCurrentUserId() else {
             isSavingPreferences = false
+            preferenceSaveError = "Unable to save preferences. Please try again."
             return
         }
         let success = await preferencesManager.savePreferences(newPreferences, for: userId)
@@ -269,8 +273,16 @@ public final class PersonalityInsightsViewModel {
             if !newPreferences.isCurrentlyActive {
                 await loadPersonalityInsights()
             }
+        } else {
+            preferenceSaveError = "Unable to save preferences. Please try again."
+            logger.log("Failed to save personality analysis preferences", level: .error, category: .personality)
         }
         isSavingPreferences = false
+    }
+
+    /// Clears the preference save error (for manual dismissal from UI)
+    public func clearPreferenceSaveError() {
+        preferenceSaveError = nil
     }
 
     public func deleteAllPersonalityData() async {

@@ -4,17 +4,17 @@ import RitualistCore
 
 public struct OverviewView: View {
     @State var vm: OverviewViewModel
-
+    
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Injected(\.navigationService) private var navigationService
     @Injected(\.paywallViewModel) private var paywallViewModel
-
+    
     @State private var habitLimitPaywallItem: PaywallItem?
-
+    
     public init(vm: OverviewViewModel) {
         self.vm = vm
     }
-
+    
     public var body: some View {
         VStack(spacing: 0) {
             stickyBrandHeader
@@ -22,9 +22,9 @@ public struct OverviewView: View {
         }
         .background(Color(.systemGroupedBackground))
     }
-
+    
     // MARK: - Scroll Content
-
+    
     @ViewBuilder
     private var scrollContent: some View {
         ScrollViewReader { proxy in
@@ -49,9 +49,9 @@ public struct OverviewView: View {
             .background(Color(.systemGroupedBackground))
         }
     }
-
+    
     // MARK: - Card Content
-
+    
     @ViewBuilder
     private func cardContent(proxy: ScrollViewProxy) -> some View {
         LazyVStack(spacing: CardDesign.cardSpacing) {
@@ -66,9 +66,9 @@ public struct OverviewView: View {
         .padding(.top, 16)
         .id("scrollTop")
     }
-
+    
     // MARK: - Inspiration Section
-
+    
     @ViewBuilder
     private var inspirationSection: some View {
         if vm.shouldShowInspirationCard && !vm.inspirationItems.isEmpty {
@@ -90,9 +90,9 @@ public struct OverviewView: View {
             .transition(.move(edge: .top).combined(with: .opacity))
         }
     }
-
+    
     // MARK: - Habit Limit Banner Section
-
+    
     @ViewBuilder
     private var habitLimitBannerSection: some View {
         if vm.showDeactivateHabitsBanner {
@@ -114,9 +114,9 @@ public struct OverviewView: View {
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
-
+    
     // MARK: - Today's Summary Section
-
+    
     @ViewBuilder
     private var todaysSummarySection: some View {
         TodaysSummaryCard(
@@ -185,9 +185,9 @@ public struct OverviewView: View {
         )
         .cardStyle()
     }
-
+    
     // MARK: - Calendar Section
-
+    
     @ViewBuilder
     private func calendarSection(proxy: ScrollViewProxy) -> some View {
         if vm.shouldShowActiveStreaks || vm.isLoading {
@@ -196,10 +196,19 @@ public struct OverviewView: View {
             calendarOnly(proxy: proxy)
         }
     }
-
+    
     @ViewBuilder
     private func calendarWithStreaks(proxy: ScrollViewProxy) -> some View {
         EqualHeightRow {
+            StreaksCard(
+                streaks: vm.activeStreaks,
+                shouldAnimateBestStreak: false,
+                onAnimationComplete: {},
+                isLoading: vm.isLoading
+            )
+            .frame(maxHeight: .infinity, alignment: .top)
+            .cardStyle()
+        } second: {
             MonthlyCalendarCard(
                 monthlyData: vm.monthlyCompletionData,
                 onDateSelect: { date in
@@ -215,18 +224,9 @@ public struct OverviewView: View {
             )
             .frame(maxHeight: .infinity, alignment: .top)
             .cardStyle()
-        } second: {
-            StreaksCard(
-                streaks: vm.activeStreaks,
-                shouldAnimateBestStreak: false,
-                onAnimationComplete: {},
-                isLoading: vm.isLoading
-            )
-            .frame(maxHeight: .infinity, alignment: .top)
-            .cardStyle()
         }
     }
-
+    
     @ViewBuilder
     private func calendarOnly(proxy: ScrollViewProxy) -> some View {
         MonthlyCalendarCard(
@@ -244,9 +244,9 @@ public struct OverviewView: View {
         )
         .cardStyle()
     }
-
+    
     // MARK: - Personality Section
-
+    
     @ViewBuilder
     private var personalitySection: some View {
         if vm.shouldShowPersonalityInsights {
@@ -269,9 +269,9 @@ public struct OverviewView: View {
             .cardStyle()
         }
     }
-
+    
     // MARK: - Brand Header
-
+    
     @ViewBuilder
     private var stickyBrandHeader: some View {
         AppBrandHeader(
@@ -284,17 +284,17 @@ public struct OverviewView: View {
         .background(Color(.systemGroupedBackground))
         .zIndex(1)
     }
-
+    
     // MARK: - Private Methods
-
+    
     private func processNumericHabitWithViewStateValidation() {
         guard vm.pendingNumericHabitFromNotification != nil && !vm.isPendingHabitProcessed else {
             return
         }
-
+        
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
-
+            
             if isViewReadyForSheetPresentation() {
                 vm.processPendingNumericHabit()
             } else {
@@ -303,21 +303,21 @@ public struct OverviewView: View {
             }
         }
     }
-
+    
     private func isViewReadyForSheetPresentation() -> Bool {
         let hasDataLoaded = vm.todaysSummary != nil
         let noConflictingSheet = !vm.showingNumericSheet && !vm.showingCompleteHabitSheet && vm.selectedHabitForSheet == nil
         return hasDataLoaded && noConflictingSheet
     }
-
+    
     private func processBinaryHabitWithViewStateValidation() {
         guard vm.pendingBinaryHabitFromNotification != nil && !vm.isPendingBinaryHabitProcessed else {
             return
         }
-
+        
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
-
+            
             if isViewReadyForSheetPresentation() {
                 vm.processPendingBinaryHabit()
             } else {
@@ -333,7 +333,7 @@ public struct OverviewView: View {
 private struct OverviewLifecycleModifier: ViewModifier {
     let vm: OverviewViewModel
     let onAppear: () -> Void
-
+    
     func body(content: Content) -> some View {
         content
             .onChange(of: vm.isMigrating) { wasMigrating, isMigrating in
@@ -371,7 +371,7 @@ private struct OverviewLifecycleModifier: ViewModifier {
 
 private struct OverviewNotificationModifier: ViewModifier {
     let vm: OverviewViewModel
-
+    
     func body(content: Content) -> some View {
         content
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
@@ -405,7 +405,7 @@ private struct OverviewNotificationModifier: ViewModifier {
 private struct OverviewSheetModifier: ViewModifier {
     let vm: OverviewViewModel
     @Binding var habitLimitPaywallItem: PaywallItem?
-
+    
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: .init(
@@ -443,7 +443,7 @@ private struct OverviewSheetModifier: ViewModifier {
                 }
             }
     }
-
+    
     @ViewBuilder
     private var numericSheetContent: some View {
         if let habit = vm.selectedHabitForSheet, habit.kind == .numeric {
@@ -459,7 +459,7 @@ private struct OverviewSheetModifier: ViewModifier {
             )
         }
     }
-
+    
     @ViewBuilder
     private var binarySheetContent: some View {
         if let habit = vm.selectedHabitForSheet, habit.kind == .binary {

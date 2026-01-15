@@ -241,12 +241,13 @@ struct MonthlyCalendarCard: View {
         case 12, 1, 2: return "❄️"
         case 3, 4, 5: return "🌸"
         case 6, 7, 8: return "☀️"
+        case 9, 10, 11: return "🍂"
         default: return "🍂"
         }
     }
 
     private var weekdayHeaders: [String] {
-        DateUtils.orderedWeekdaySymbols(style: .veryShort)
+        DateUtils.orderedWeekdaySymbols(style: .short)
     }
 
     private func changeMonth(by value: Int) {

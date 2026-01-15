@@ -7,15 +7,15 @@
 
 import SwiftUI
 import FactoryKit
-import UserNotifications
 import RitualistCore
 
 /// Main view for displaying personality insights in Settings
 public struct PersonalityInsightsView: View {
-    
+
     @State private var viewModel: PersonalityInsightsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingPrivacy = false
+    @Injected(\.notificationService) private var notificationService
     
     public init(viewModel: PersonalityInsightsViewModel) {
         self._viewModel = State(wrappedValue: viewModel)
@@ -96,9 +96,10 @@ public struct PersonalityInsightsView: View {
         .task {
             await viewModel.loadPersonalityInsights()
         }
-        .onAppear {
-            // Clear any personality analysis notification badges when user opens insights
-            UNUserNotificationCenter.current().setBadgeCount(0)
+        .task {
+            // Clear only personality-related notifications and update badge count
+            // This preserves habit reminder badges while clearing personality notifications
+            await notificationService.clearPersonalityNotifications()
         }
         .fullScreenCover(isPresented: $showingPrivacy) {
             SettingsView()
@@ -257,6 +258,15 @@ private struct SettingsView: View {
                     hasLoaded = true
                 }
             }
+            // Toast for save errors
+            .toast(item: .init(
+                get: { viewModel.preferenceSaveError },
+                set: { _ in viewModel.clearPreferenceSaveError() }
+            )) { errorMessage in
+                ToastView.error(errorMessage) {
+                    viewModel.clearPreferenceSaveError()
+                }
+            }
         }
     }
 
@@ -276,7 +286,10 @@ private struct SettingsView: View {
             analysisFrequency: analysisFrequency
         )
         await viewModel.savePreferences(updated)
-        dismiss()
+        // Only dismiss if save was successful (no error set)
+        if viewModel.preferenceSaveError == nil {
+            dismiss()
+        }
     }
 }
 

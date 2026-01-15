@@ -49,6 +49,10 @@ public protocol NotificationService: Sendable {
     func updateBadgeCount() async
     func decrementBadge() async
 
+    /// Clears personality analysis notifications from delivered list and updates badge count
+    /// Call this when user views personality insights to clear those specific notifications
+    func clearPersonalityNotifications() async
+
     // Fired notification tracking (prevents duplicates on app restart)
     func syncFiredNotificationsFromDelivered() async
 }
@@ -928,6 +932,43 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
             category: .notifications,
             metadata: ["newCount": newCount]
         )
+    }
+
+    /// Clears personality-related notifications from delivered list and updates badge
+    /// This ensures only personality badges are cleared, not habit reminder badges
+    public func clearPersonalityNotifications() async {
+        let center = UNUserNotificationCenter.current()
+        let delivered = await center.deliveredNotifications()
+
+        // Find personality analysis notification IDs
+        // Personality notifications use identifiers like "personality_completed_<userId>"
+        // and categories from personalityAnalysisCategories
+        let personalityNotificationIds = delivered.compactMap { notification -> String? in
+            let id = notification.request.identifier
+            let category = notification.request.content.categoryIdentifier
+
+            // Check if it's a personality notification by ID prefix or category
+            if id.hasPrefix("personality_") || Self.personalityAnalysisCategories.contains(category) {
+                return id
+            }
+            return nil
+        }
+
+        // Remove only personality notifications from delivered list
+        if !personalityNotificationIds.isEmpty {
+            center.removeDeliveredNotifications(withIdentifiers: personalityNotificationIds)
+
+            logger.log(
+                "🧠 Cleared personality notifications",
+                level: .debug,
+                category: .notifications,
+                metadata: ["count": personalityNotificationIds.count, "ids": personalityNotificationIds.joined(separator: ", ")]
+            )
+        }
+
+        // Update badge count based on remaining habit notifications
+        // This recalculates from scratch rather than clearing everything
+        await updateBadgeCount()
     }
 
     // MARK: - Private Helpers
