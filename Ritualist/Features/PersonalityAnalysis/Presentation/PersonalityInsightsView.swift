@@ -524,7 +524,7 @@ private struct PersonalityProfileView: View {
             Spacer()
 
             Button {
-                Task {
+                Task { @MainActor in
                     await insightsVM.markAnalysisAsSeen()
                 }
             } label: {

@@ -126,6 +126,7 @@ public struct OverviewView: View {
             timezone: vm.displayTimezone,
             canGoToPrevious: vm.canGoToPreviousDay,
             canGoToNext: vm.canGoToNextDay,
+            weeklyData: vm.monthlyCompletionData,
             currentSlogan: vm.isViewingToday ? vm.currentSlogan : nil,
             onQuickAction: { habit in
                 // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify

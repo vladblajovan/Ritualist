@@ -21,6 +21,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let timezone: TimeZone
     let canGoToPrevious: Bool
     let canGoToNext: Bool
+    /// Daily completion data for week selector - keys are normalized dates
+    let weeklyData: [Date: Double]
     let currentSlogan: String?
     let onQuickAction: (Habit) -> Void
     let onNumericHabitUpdate: ((Habit, Double) async throws -> Void)?
@@ -103,6 +105,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
          timezone: TimeZone = .current,
          canGoToPrevious: Bool,
          canGoToNext: Bool,
+         weeklyData: [Date: Double] = [:],
          currentSlogan: String? = nil,
          onQuickAction: @escaping (Habit) -> Void,
          onNumericHabitUpdate: ((Habit, Double) async throws -> Void)? = nil,
@@ -124,6 +127,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         self.timezone = timezone
         self.canGoToPrevious = canGoToPrevious
         self.canGoToNext = canGoToNext
+        self.weeklyData = weeklyData
         self.currentSlogan = currentSlogan
         self.onQuickAction = onQuickAction
         self.onNumericHabitUpdate = onNumericHabitUpdate
@@ -272,12 +276,14 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     private var dateNavigationHeader: some View {
         // Week date selector with animated swipe navigation
         // Includes "Return to Today" button in header when not viewing today
+        // Day circles show completion status using the same colors as MonthlyCalendarCard
         WeekDateSelector(
             selectedDate: viewingDate,
             timezone: timezone,
             canGoToPrevious: canGoToPrevious,
             canGoToNext: canGoToNext,
             isViewingToday: isViewingToday,
+            weeklyData: weeklyData,
             onDateSelected: { date in
                 navigateToDate(date)
             },
