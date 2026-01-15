@@ -270,69 +270,47 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     @ViewBuilder
     private var dateNavigationHeader: some View {
-        VStack(spacing: 12) {
-            HStack {
-                previousDayButton
-                Spacer()
-                dateTitle
-                Spacer()
-                nextDayButton
-            }
-        }
+        // Week date selector with animated swipe navigation
+        // Includes "Return to Today" button in header when not viewing today
+        WeekDateSelector(
+            selectedDate: viewingDate,
+            timezone: timezone,
+            canGoToPrevious: canGoToPrevious,
+            canGoToNext: canGoToNext,
+            isViewingToday: isViewingToday,
+            onDateSelected: { date in
+                navigateToDate(date)
+            },
+            onGoToToday: onGoToToday
+        )
     }
 
-    @ViewBuilder
-    private var previousDayButton: some View {
-        Button(action: onPreviousDay) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(canGoToPrevious ? .secondary : .secondary.opacity(0.3))
+    // MARK: - Date Navigation Helpers
+
+    /// Navigate to a specific date by calculating the difference and calling day callbacks
+    private func navigateToDate(_ targetDate: Date) {
+        var cal = Calendar.current
+        cal.timeZone = timezone
+
+        let targetDay = cal.startOfDay(for: targetDate)
+        let viewingDay = cal.startOfDay(for: viewingDate)
+
+        // If same day, no navigation needed
+        if cal.isDate(targetDate, inSameDayAs: viewingDate) {
+            return
         }
-        .disabled(!canGoToPrevious)
-        .accessibilityLabel("Previous day")
-        .accessibilityHint(Strings.Accessibility.previousDayHint)
-        .accessibilityIdentifier(AccessibilityID.Overview.previousDayButton)
-    }
 
-    @ViewBuilder
-    private var nextDayButton: some View {
-        Button(action: onNextDay) {
-            Image(systemName: "chevron.right")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(canGoToNext ? .secondary : .secondary.opacity(0.3))
-        }
-        .disabled(!canGoToNext)
-        .accessibilityLabel("Next day")
-        .accessibilityHint(Strings.Accessibility.nextDayHint)
-        .accessibilityIdentifier(AccessibilityID.Overview.nextDayButton)
-    }
-
-    @ViewBuilder
-    private var dateTitle: some View {
-        VStack(spacing: 4) {
-            if isViewingToday {
-                Text(Strings.Overview.todayDate(CalendarUtils.formatCompact(viewingDate, timezone: timezone)))
-                    .font(CardDesign.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                    .accessibilityAddTraits(.isHeader)
-            } else {
-                HStack(spacing: 6) {
-                    Button(action: onGoToToday) {
-                        Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .accessibilityLabel("Return to today")
-                    .accessibilityHint(Strings.Accessibility.returnToTodayHint)
-                    .accessibilityIdentifier(AccessibilityID.Overview.todayButton)
-
-                    Text(CalendarUtils.formatCompact(viewingDate, includeDayName: true, timezone: timezone))
-                        .font(CardDesign.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .accessibilityAddTraits(.isHeader)
+        // Calculate days difference and navigate
+        if let daysDiff = cal.dateComponents([.day], from: viewingDay, to: targetDay).day {
+            if daysDiff > 0 {
+                // Going forward
+                for _ in 0..<daysDiff where canGoToNext {
+                    onNextDay()
+                }
+            } else if daysDiff < 0 {
+                // Going backward
+                for _ in 0..<abs(daysDiff) where canGoToPrevious {
+                    onPreviousDay()
                 }
             }
         }

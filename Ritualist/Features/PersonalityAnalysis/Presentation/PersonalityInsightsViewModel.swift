@@ -59,6 +59,7 @@ public final class PersonalityInsightsViewModel {
         triggerAppropriateAnalysisUseCase: TriggerAppropriateAnalysisUseCase,
         triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase,
         loadProfile: LoadProfileUseCase,
+        userDefaults: UserDefaultsService,
         logger: DebugLogger
     ) {
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
@@ -78,6 +79,7 @@ public final class PersonalityInsightsViewModel {
             getNextScheduledAnalysisUseCase: getNextScheduledAnalysisUseCase,
             triggerAppropriateAnalysisUseCase: triggerAppropriateAnalysisUseCase,
             triggerAnalysisCheckUseCase: triggerAnalysisCheckUseCase,
+            userDefaults: userDefaults,
             logger: logger
         )
     }
@@ -333,12 +335,10 @@ public final class PersonalityInsightsViewModel {
     }
 
     /// Marks the current analysis as seen, hiding the "New Analysis" indicator
-    public func markAnalysisAsSeen() {
+    public func markAnalysisAsSeen() async {
         guard let profile = currentProfile else { return }
         lastSeenAnalysisDate = profile.analysisMetadata.analysisDate
-        Task {
-            await markAnalysisAsSeenUseCase.execute(analysisDate: profile.analysisMetadata.analysisDate)
-        }
+        await markAnalysisAsSeenUseCase.execute(analysisDate: profile.analysisMetadata.analysisDate)
     }
 
     /// Loads the last seen analysis date from persistence

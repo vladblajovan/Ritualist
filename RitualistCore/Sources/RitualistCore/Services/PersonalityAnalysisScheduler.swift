@@ -284,11 +284,8 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         defer { analysisInProgress.remove(userId) }
 
         do {
+            // Profile is saved internally by analyzePersonalityUseCase.execute()
             let profile = try await analyzePersonalityUseCase.execute(for: userId)
-
-            // CRITICAL: Save the profile to the database!
-            try await personalityRepository.savePersonalityProfile(profile)
-            // Personality profile saved to database
 
             lastAnalysisDates[userId] = Date()
             saveSchedulerState()

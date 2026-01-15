@@ -17,11 +17,14 @@ final class PersonalityPreferencesManager {
     private let getNextScheduledAnalysisUseCase: GetNextScheduledAnalysisUseCase
     private let triggerAppropriateAnalysisUseCase: TriggerAppropriateAnalysisUseCase
     private let triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase
+    private let userDefaults: UserDefaultsService
     private let logger: DebugLogger
 
-    /// Minimum interval between automatic trigger checks (5 minutes)
-    /// Prevents redundant database queries on rapid app restarts
-    private static let triggerCheckDebounceInterval: TimeInterval = 5 * 60
+    /// Minimum interval between automatic trigger checks (2 minutes)
+    /// Prevents redundant database queries on rapid app restarts while still being responsive.
+    /// Rationale: 2 minutes balances between preventing excessive checks (battery/performance)
+    /// and ensuring users who restart the app expecting new analysis don't wait too long.
+    private static let triggerCheckDebounceInterval: TimeInterval = 2 * 60
 
     init(
         getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase,
@@ -31,6 +34,7 @@ final class PersonalityPreferencesManager {
         getNextScheduledAnalysisUseCase: GetNextScheduledAnalysisUseCase,
         triggerAppropriateAnalysisUseCase: TriggerAppropriateAnalysisUseCase,
         triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase,
+        userDefaults: UserDefaultsService,
         logger: DebugLogger
     ) {
         self.getAnalysisPreferencesUseCase = getAnalysisPreferencesUseCase
@@ -40,6 +44,7 @@ final class PersonalityPreferencesManager {
         self.getNextScheduledAnalysisUseCase = getNextScheduledAnalysisUseCase
         self.triggerAppropriateAnalysisUseCase = triggerAppropriateAnalysisUseCase
         self.triggerAnalysisCheckUseCase = triggerAnalysisCheckUseCase
+        self.userDefaults = userDefaults
         self.logger = logger
     }
 
@@ -76,7 +81,7 @@ final class PersonalityPreferencesManager {
 
     /// Returns true if enough time has passed since the last trigger check
     private func shouldTriggerAnalysisCheck() -> Bool {
-        guard let lastCheck = UserDefaults.standard.object(forKey: UserDefaultsKeys.personalityLastTriggerCheckDate) as? Date else {
+        guard let lastCheck = userDefaults.object(forKey: UserDefaultsKeys.personalityLastTriggerCheckDate) as? Date else {
             return true // Never checked before
         }
         return Date().timeIntervalSince(lastCheck) >= Self.triggerCheckDebounceInterval
@@ -84,7 +89,7 @@ final class PersonalityPreferencesManager {
 
     /// Records the current time as the last trigger check
     private func recordTriggerCheck() {
-        UserDefaults.standard.set(Date(), forKey: UserDefaultsKeys.personalityLastTriggerCheckDate)
+        userDefaults.set(Date(), forKey: UserDefaultsKeys.personalityLastTriggerCheckDate)
     }
 
     func savePreferences(_ prefs: PersonalityAnalysisPreferences, for userId: UUID) async -> Bool {

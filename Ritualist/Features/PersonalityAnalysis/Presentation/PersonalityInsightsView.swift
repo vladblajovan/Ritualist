@@ -524,8 +524,8 @@ private struct PersonalityProfileView: View {
             Spacer()
 
             Button {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    insightsVM.markAnalysisAsSeen()
+                Task {
+                    await insightsVM.markAnalysisAsSeen()
                 }
             } label: {
                 Image(systemName: "xmark.circle.fill")

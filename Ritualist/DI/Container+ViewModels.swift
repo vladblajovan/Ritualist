@@ -179,6 +179,7 @@ extension Container {
                 triggerAppropriateAnalysisUseCase: self.triggerAppropriateAnalysisUseCase(),
                 triggerAnalysisCheckUseCase: self.triggerAnalysisCheckUseCase(),
                 loadProfile: self.loadProfile(),
+                userDefaults: self.userDefaultsService(),
                 logger: self.debugLogger()
             )
         }
