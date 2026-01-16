@@ -540,6 +540,7 @@ private struct PersonalityProfileView: View {
                 // Store task reference for proper lifecycle management
                 bannerDismissTask?.cancel()
                 bannerDismissTask = Task { @MainActor in
+                    defer { bannerDismissTask = nil }
                     await insightsVM.markAnalysisAsSeen()
                     // Clear personality notifications only after user acknowledges the new analysis
                     await notificationService.clearPersonalityNotifications()

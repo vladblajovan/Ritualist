@@ -90,6 +90,39 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
     private let timezoneService: TimezoneService
     private let logger: DebugLogger
 
+    // Badge count cache to avoid frequent deliveredNotifications() API calls
+    // Cache is simple (not thread-safe) - worst case is an extra API call, which is acceptable
+    private var cachedDeliveredNotifications: [UNNotification]?
+    private var cacheTimestamp: Date?
+    private static let cacheValidityDuration: TimeInterval = 5.0
+
+    /// Get delivered notifications with caching to reduce API calls
+    /// Cache is invalidated after 5 seconds or when explicitly cleared
+    private func getDeliveredNotificationsCached(bypassCache: Bool = false) async -> [UNNotification] {
+        let center = UNUserNotificationCenter.current()
+
+        // Check if cache is valid
+        if !bypassCache,
+           let cached = cachedDeliveredNotifications,
+           let timestamp = cacheTimestamp,
+           Date().timeIntervalSince(timestamp) < Self.cacheValidityDuration {
+            return cached
+        }
+
+        // Fetch fresh data and update cache
+        let delivered = await center.deliveredNotifications()
+        cachedDeliveredNotifications = delivered
+        cacheTimestamp = Date()
+        return delivered
+    }
+
+    /// Invalidate the delivered notifications cache
+    /// Call after removing notifications to ensure fresh data on next read
+    private func invalidateDeliveredNotificationsCache() {
+        cachedDeliveredNotifications = nil
+        cacheTimestamp = nil
+    }
+
     // Track catch-up notifications to prevent duplicate delivery on repeated foreground events
     // Persisted to UserDefaults to survive app termination/relaunch
     // Keys defined in UserDefaultsKeys for centralized management
@@ -173,8 +206,8 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
     /// Sync fired notification state from delivered notifications
     /// Call this on app launch to catch notifications that fired in background
     public func syncFiredNotificationsFromDelivered() async {
-        let center = UNUserNotificationCenter.current()
-        let delivered = await center.deliveredNotifications()
+        // Bypass cache on app launch to ensure fresh data, but populate cache for subsequent calls
+        let delivered = await getDeliveredNotificationsCached(bypassCache: true)
 
         for notification in delivered {
             let id = notification.request.identifier
@@ -886,8 +919,7 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
     /// Updates the app badge to show the count of delivered (unread) habit notifications
     public func updateBadgeCount() async {
-        let center = UNUserNotificationCenter.current()
-        let delivered = await center.deliveredNotifications()
+        let delivered = await getDeliveredNotificationsCached()
         let habitNotificationCount = delivered.filter(isHabitNotificationForBadge).count
 
         try? await UNUserNotificationCenter.current().setBadgeCount(habitNotificationCount)
@@ -902,14 +934,16 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
     /// Decrements the badge count by 1 (minimum 0)
     public func decrementBadge() async {
-        let center = UNUserNotificationCenter.current()
-        let delivered = await center.deliveredNotifications()
+        let delivered = await getDeliveredNotificationsCached()
         let habitNotificationCount = delivered.filter(isHabitNotificationForBadge).count
 
         // Badge should reflect delivered notifications minus 1 (the one being handled)
         let newCount = max(0, habitNotificationCount - 1)
 
         try? await UNUserNotificationCenter.current().setBadgeCount(newCount)
+
+        // Invalidate cache since we're decrementing (notification was handled)
+        invalidateDeliveredNotificationsCache()
 
         logger.log(
             "🔢 Badge decremented",
@@ -923,7 +957,7 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
     /// This ensures only personality badges are cleared, not habit reminder badges
     public func clearPersonalityNotifications() async {
         let center = UNUserNotificationCenter.current()
-        let delivered = await center.deliveredNotifications()
+        let delivered = await getDeliveredNotificationsCached()
 
         // Find personality analysis notification IDs
         // Personality notifications use identifiers like "personality_completed_<userId>"
@@ -942,6 +976,9 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
         // Remove only personality notifications from delivered list
         if !personalityNotificationIds.isEmpty {
             center.removeDeliveredNotifications(withIdentifiers: personalityNotificationIds)
+
+            // Invalidate cache since delivered notifications changed
+            invalidateDeliveredNotificationsCache()
 
             logger.log(
                 "🧠 Cleared personality notifications",

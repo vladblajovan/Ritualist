@@ -280,13 +280,13 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     }
     
     private func performAnalysis(for userId: UUID) async {
-        // Prevent duplicate concurrent analysis for the same user
-        guard !analysisInProgress.contains(userId) else {
+        // Prevent duplicate concurrent analysis using atomic insert
+        // insert() returns (inserted: Bool, memberAfterInsert: UUID)
+        // If inserted is false, element was already present
+        guard analysisInProgress.insert(userId).inserted else {
             logger.log("Analysis already in progress for user \(userId), skipping duplicate trigger", level: .info, category: .personality)
             return
         }
-
-        analysisInProgress.insert(userId)
         defer { analysisInProgress.remove(userId) }
 
         do {
