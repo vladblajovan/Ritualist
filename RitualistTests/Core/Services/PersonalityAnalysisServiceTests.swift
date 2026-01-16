@@ -263,7 +263,7 @@ struct PersonalityAnalysisServiceEmptyInputTests {
     func emptyInput_hasZeroAccumulators() {
         let input = PersonalityTestDataBuilder.emptyInput()
 
-        let (_, accumulators, totalWeights) = service.calculatePersonalityScoresWithDetails(
+        let (_, accumulators, _) = service.calculatePersonalityScoresWithDetails(
             from: input,
             completionStats: nil
         )
@@ -337,7 +337,7 @@ struct PersonalityAnalysisServicePredefinedCategoryTests {
             completionRates: [0.8]
         )
 
-        let (scores, accumulators, _) = service.calculatePersonalityScoresWithDetails(
+        let (_, accumulators, _) = service.calculatePersonalityScoresWithDetails(
             from: input,
             completionStats: HabitCompletionStats(totalHabits: 1, completedHabits: 1, completionRate: 0.8)
         )
@@ -481,7 +481,7 @@ struct PersonalityAnalysisServiceCompletionRateTests {
             completionRate: 0.15
         )
 
-        let (scores, accumulators, _) = service.calculatePersonalityScoresWithDetails(
+        let (_, accumulators, _) = service.calculatePersonalityScoresWithDetails(
             from: input,
             completionStats: lowCompletionStats
         )

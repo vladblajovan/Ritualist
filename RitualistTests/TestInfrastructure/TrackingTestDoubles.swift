@@ -104,6 +104,7 @@ public actor TestNotificationService: NotificationService {
     nonisolated public func sendLocationTriggeredNotification(for habitID: UUID, habitName: String, event: GeofenceEvent) async throws {}
     nonisolated public func updateBadgeCount() async {}
     nonisolated public func decrementBadge() async {}
+    nonisolated public func clearPersonalityNotifications() async {}
     nonisolated public func syncFiredNotificationsFromDelivered() async {}
 
     // MARK: - Pending Notification Management (Trackable)
@@ -212,6 +213,7 @@ public actor TrackingNotificationService: NotificationService {
     nonisolated public func sendLocationTriggeredNotification(for habitID: UUID, habitName: String, event: GeofenceEvent) async throws {}
     nonisolated public func updateBadgeCount() async {}
     nonisolated public func decrementBadge() async {}
+    nonisolated public func clearPersonalityNotifications() async {}
     nonisolated public func syncFiredNotificationsFromDelivered() async {}
 
     public func getPendingHabitNotificationIds() async -> [String] {
