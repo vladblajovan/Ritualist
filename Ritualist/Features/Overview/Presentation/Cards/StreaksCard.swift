@@ -4,7 +4,7 @@ import RitualistCore
 // MARK: - Accessibility Strings
 
 private enum StreaksAccessibility {
-    static let cardTitle = "Current Streaks"
+    static let cardTitle = "Streaks"
     static func streakCount(_ count: Int) -> String {
         count == 1 ? "1 active streak" : "\(count) active streaks"
     }
@@ -139,7 +139,7 @@ struct StreaksCard: View {
                     Text("🔥")
                         .font(CardDesign.title2)
                         .accessibilityHidden(true) // Decorative emoji
-                    Text(Strings.Overview.currentStreaks)
+                    Text(Strings.Overview.streaks)
                         .font(CardDesign.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
@@ -150,7 +150,7 @@ struct StreaksCard: View {
 
                 Spacer()
 
-                Text(Strings.Overview.streaksCount(streaks.count))
+                Text("\(streaks.count)")
                     .font(CardDesign.subheadline.weight(.medium))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)

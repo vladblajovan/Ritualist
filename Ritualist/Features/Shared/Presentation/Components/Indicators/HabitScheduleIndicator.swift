@@ -11,12 +11,14 @@ public struct HabitScheduleIndicator: View {
         case small
         case medium
         case large
+        case xlarge
 
         var iconFont: Font {
             switch self {
             case .small: return .caption2
             case .medium: return .caption
             case .large: return .footnote
+            case .xlarge: return .system(size: 14)
             }
         }
 
@@ -25,6 +27,7 @@ public struct HabitScheduleIndicator: View {
             case .small: return .caption2
             case .medium: return .caption
             case .large: return .footnote
+            case .xlarge: return .subheadline
             }
         }
 
@@ -33,6 +36,7 @@ public struct HabitScheduleIndicator: View {
             case .small: return 4
             case .medium: return 6
             case .large: return 8
+            case .xlarge: return 10
             }
         }
     }

@@ -1770,6 +1770,28 @@
         }
       }
     },
+    "components.iconVisibility" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Today Summary"
+          }
+        }
+      }
+    },
+    "components.iconVisibilityDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose which icons appear on habit cards in the Today Summary."
+          }
+        }
+      }
+    },
     "components.habitsAssistant" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1924,6 +1946,28 @@
         }
       }
     },
+    "components.scheduleIndicator.desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows whether the habit is always available or scheduled for specific days"
+          }
+        }
+      }
+    },
+    "components.scheduleIndicator.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule Indicator"
+          }
+        }
+      }
+    },
     "components.timeReminders.desc" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1953,6 +1997,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Time-based reminders enabled"
+          }
+        }
+      }
+    },
+    "components.streakAtRisk.desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows streaks that will break if you don't complete the habit today"
+          }
+        }
+      }
+    },
+    "components.streakAtRisk.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak at Risk"
           }
         }
       }
@@ -7306,6 +7372,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current Streaks"
+          }
+        }
+      }
+    },
+    "overview.streaks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaks"
           }
         }
       }

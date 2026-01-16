@@ -491,6 +491,30 @@ public struct CalendarUtils {
         return formatter.string(from: date)
     }
 
+    /// Format day abbreviation (e.g., "Mon", "Tue")
+    public static func formatDayAbbreviation(_ date: Date, timezone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        formatter.timeZone = timezone
+        return formatter.string(from: date)
+    }
+
+    /// Format day number (e.g., "1", "15", "31")
+    public static func formatDayNumber(_ date: Date, timezone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        formatter.timeZone = timezone
+        return formatter.string(from: date)
+    }
+
+    /// Format month and day (e.g., "Dec 20")
+    public static func formatMonthAndDay(_ date: Date, timezone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        formatter.timeZone = timezone
+        return formatter.string(from: date)
+    }
+
     /// Format time components in specified timezone
     public static func formatTime(_ date: Date, timezone: TimeZone = .current) -> String {
         let formatter = DateFormatter()

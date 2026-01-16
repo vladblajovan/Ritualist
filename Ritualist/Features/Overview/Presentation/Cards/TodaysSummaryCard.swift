@@ -41,8 +41,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let onDateSelected: (Date) -> Void
     let isLoggingLocked: Bool // When true, all habit logging is disabled (over habit limit)
     
-    @State private var isCompletedSectionExpanded = false
-    @State private var isRemainingSectionExpanded = true  // Show all remaining habits by default
+    @State private var isCompletedViewCompact = true  // Compact view shows only emoji circles
+    @State private var isRemainingViewCompact = false  // Remaining habits show expanded by default (user needs to see what to do)
     @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     @State private var showingScheduleInfoSheet = false
@@ -71,26 +71,16 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         static let longPressCheckmarkDisplay: UInt64 = 1_500_000_000  // 1.5s - checkmark display after long-press
     }
 
-    // MARK: - Layout Configuration
-
-    /// Default visible remaining items when collapsed
-    private var defaultVisibleRemaining: Int {
-        horizontalSizeClass == .regular
-            ? BusinessConstants.iPadHabitGridColumns * BusinessConstants.iPadDefaultVisibleRemainingRows
-            : BusinessConstants.iPhoneDefaultVisibleRemaining
-    }
-
-    /// Default visible completed items when collapsed
-    private var defaultVisibleCompleted: Int {
-        horizontalSizeClass == .regular
-            ? BusinessConstants.iPadHabitGridColumns * BusinessConstants.iPadDefaultVisibleCompletedRows
-            : BusinessConstants.iPhoneDefaultVisibleCompleted
-    }
-
     // PERFORMANCE: Pre-computed arrays to avoid creating NEW arrays on every render
     @State private var visibleIncompleteHabits: [Habit] = []
     @State private var visibleCompletedHabits: [Habit] = []
     @State private var scheduledIncompleteCount: Int = 0  // Track filtered count for display
+
+    // Icon visibility settings (persisted in UserDefaults)
+    @AppStorage(UserDefaultsKeys.showTimeReminderIcon) private var showTimeReminderIcon = true
+    @AppStorage(UserDefaultsKeys.showLocationIcon) private var showLocationIcon = true
+    @AppStorage(UserDefaultsKeys.showScheduleIcon) private var showScheduleIcon = true
+    @AppStorage(UserDefaultsKeys.showStreakAtRiskIcon) private var showStreakAtRiskIcon = true
 
     // Computed ID that changes when any numeric habit progress changes
     private var habitProgressStateId: String {
@@ -169,15 +159,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         // Store the filtered count for display
         scheduledIncompleteCount = scheduledIncompleteHabits.count
 
-        // Pre-compute incomplete habits array
-        visibleIncompleteHabits = isRemainingSectionExpanded ?
-            scheduledIncompleteHabits :
-            Array(scheduledIncompleteHabits.prefix(defaultVisibleRemaining))
-
-        // Pre-compute completed habits array (no need to filter - completed habits are always valid)
-        visibleCompletedHabits = isCompletedSectionExpanded ?
-            Array(summary.completedHabits.dropFirst(defaultVisibleCompleted)) :
-            []
+        // Show all habits - compact/expanded toggle controls view style, not item count
+        visibleIncompleteHabits = scheduledIncompleteHabits
+        visibleCompletedHabits = summary.completedHabits
     }
 
     // MARK: - Progress Calculation Helper
@@ -270,8 +254,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         .onChange(of: summary?.incompleteHabits.count) { _, _ in updateHabitProgressAnimations() }
         .onChange(of: habitProgressStateId) { _, _ in updateHabitProgressAnimations() }
         .onChange(of: viewingDate) { _, _ in updateVisibleHabits(); updateHabitProgressAnimations() }
-        .onChange(of: isRemainingSectionExpanded) { _, _ in updateVisibleHabits() }
-        .onChange(of: isCompletedSectionExpanded) { _, _ in updateVisibleHabits() }
     }
 
     // MARK: - Body Helper Views
@@ -471,51 +453,39 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         if horizontalSizeClass == .regular {
             VStack(alignment: .leading, spacing: 16) {
                 // Remaining section - only show if there are remaining habits
+                // Supports compact view (emoji circles only) and expanded view (full habit rows)
                 if scheduledIncompleteCount > 0 {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(Strings.Overview.remaining)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 12)
+                        remainingSectionHeader(count: scheduledIncompleteCount)
 
-                        LazyVGrid(columns: iPadGrid, spacing: 8) {
-                            ForEach(visibleIncompleteHabits, id: \.id) { habit in
-                                habitRow(habit: habit, isCompleted: false)
+                        if isRemainingViewCompact {
+                            compactRemainingCircles(habits: visibleIncompleteHabits)
+                                .padding(.horizontal, 12)
+                        } else {
+                            LazyVGrid(columns: iPadGrid, spacing: 8) {
+                                ForEach(visibleIncompleteHabits, id: \.id) { habit in
+                                    habitRow(habit: habit, isCompleted: false)
+                                }
                             }
-                        }
-
-                        if scheduledIncompleteCount > defaultVisibleRemaining {
-                            sectionToggleButton(
-                                isExpanded: isRemainingSectionExpanded,
-                                expandText: "+ \(scheduledIncompleteCount - defaultVisibleRemaining) more remaining",
-                                color: AppColors.brand,
-                                onToggle: { isRemainingSectionExpanded.toggle() }
-                            )
                         }
                     }
                 }
 
                 // Completed section - only show if there are completed habits
+                // Supports compact view (emoji circles only) and expanded view (full habit rows)
                 if !summary.completedHabits.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(Strings.Overview.completed)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 12)
+                        completedSectionHeader(count: summary.completedHabits.count)
 
-                        LazyVGrid(columns: iPadGrid, spacing: 8) {
-                            ForEach(summary.completedHabits.prefix(isCompletedSectionExpanded ? summary.completedHabits.count : defaultVisibleCompleted), id: \.id) { habit in
-                                habitRow(habit: habit, isCompleted: true)
+                        if isCompletedViewCompact {
+                            compactCompletedCircles(habits: summary.completedHabits)
+                                .padding(.horizontal, 12)
+                        } else {
+                            LazyVGrid(columns: iPadGrid, spacing: 8) {
+                                ForEach(summary.completedHabits, id: \.id) { habit in
+                                    habitRow(habit: habit, isCompleted: true)
+                                }
                             }
-                        }
-
-                        if summary.completedHabits.count > defaultVisibleCompleted {
-                            sectionToggleButton(
-                                isExpanded: isCompletedSectionExpanded,
-                                expandText: "+ \(summary.completedHabits.count - defaultVisibleCompleted) more completed",
-                                color: .green,
-                                onToggle: { isCompletedSectionExpanded.toggle() }
-                            )
                         }
                     }
                 }
@@ -524,26 +494,32 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             // iPhone: Stacked layout with labels
             VStack(alignment: .leading, spacing: 16) {
                 // Remaining section - only show if there are remaining habits
+                // Supports compact view (emoji circles only) and expanded view (full habit rows)
                 if scheduledIncompleteCount > 0 {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(Strings.Overview.remaining)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 12)
+                        remainingSectionHeader(count: scheduledIncompleteCount)
 
-                        incompleteHabitsContent(summary: summary)
+                        if isRemainingViewCompact {
+                            compactRemainingCircles(habits: visibleIncompleteHabits)
+                                .padding(.horizontal, 12)
+                        } else {
+                            incompleteHabitsContent(summary: summary)
+                        }
                     }
                 }
 
                 // Completed section - only show if there are completed habits
+                // Supports compact view (emoji circles only) and expanded view (full habit rows)
                 if !summary.completedHabits.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(Strings.Overview.completed)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 12)
+                        completedSectionHeader(count: summary.completedHabits.count)
 
-                        completedHabitsContent(summary: summary)
+                        if isCompletedViewCompact {
+                            compactCompletedCircles(habits: summary.completedHabits)
+                                .padding(.horizontal, 12)
+                        } else {
+                            completedHabitsContent(summary: summary)
+                        }
                     }
                 }
             }
@@ -556,15 +532,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             VStack(spacing: 8) {
                 ForEach(Array(visibleIncompleteHabits.enumerated()), id: \.element.id) { index, habit in
                     incompleteHabitItem(habit: habit, isFirstItem: index == 0)
-                }
-
-                if scheduledIncompleteCount > defaultVisibleRemaining {
-                    sectionToggleButton(
-                        isExpanded: isRemainingSectionExpanded,
-                        expandText: "+ \(scheduledIncompleteCount - defaultVisibleRemaining) more remaining",
-                        color: AppColors.brand,
-                        onToggle: { isRemainingSectionExpanded.toggle() }
-                    )
                 }
             }
         }
@@ -611,12 +578,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private func completedHabitsContent(summary: TodaysSummary) -> some View {
         VStack(spacing: 6) {
-            ForEach(Array(summary.completedHabits.prefix(defaultVisibleCompleted).enumerated()), id: \.element.id) { index, habit in
+            ForEach(Array(summary.completedHabits.enumerated()), id: \.element.id) { index, habit in
                 completedHabitItem(habit: habit, isFirstItem: index == 0)
-            }
-
-            if summary.completedHabits.count > defaultVisibleCompleted {
-                completedHabitsExpandableSection(summary: summary)
             }
         }
     }
@@ -646,39 +609,140 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         }
     }
 
-    @ViewBuilder
-    private func completedHabitsExpandableSection(summary: TodaysSummary) -> some View {
-        if isCompletedSectionExpanded {
-            ForEach(visibleCompletedHabits, id: \.id) { habit in
-                habitRow(habit: habit, isCompleted: true)
-            }
-        }
+    // MARK: - Compact Completed View
 
-        sectionToggleButton(
-            isExpanded: isCompletedSectionExpanded,
-            expandText: "+ \(summary.completedHabits.count - defaultVisibleCompleted) more completed",
-            color: .green,
-            onToggle: { isCompletedSectionExpanded.toggle() }
-        )
+    /// Header for completed section with expand/collapse toggle
+    @ViewBuilder
+    private func completedSectionHeader(count: Int) -> some View {
+        HStack {
+            Text(Strings.Overview.completed)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isCompletedViewCompact.toggle()
+                }
+            } label: {
+                Image(systemName: isCompletedViewCompact ? "plus.circle" : "minus.circle")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.green)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .accessibilityLabel(isCompletedViewCompact ? "Expand completed habits" : "Collapse completed habits")
+        }
+        .padding(.leading, 12)
+        .padding(.trailing, 8)
     }
 
+    /// Compact view showing only habit emoji circles in a flowing layout
     @ViewBuilder
-    private func sectionToggleButton(isExpanded: Bool, expandText: String, color: Color, onToggle: @escaping () -> Void) -> some View {
-        Button(action: onToggle) {
-            HStack {
-                Text(isExpanded ? "Show less" : expandText)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(color)
-
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(color)
+    private func compactCompletedCircles(habits: [Habit]) -> some View {
+        // Use a flexible flow layout with wrapping
+        FlowLayout(spacing: 8) {
+            ForEach(habits, id: \.id) { habit in
+                compactHabitCircle(habit: habit)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+        }
+    }
+
+    /// Single compact habit circle (36pt) with green background and border
+    @ViewBuilder
+    private func compactHabitCircle(habit: Habit) -> some View {
+        Button {
+            // Same action as tapping the full habit row
+            if let action = onBinaryHabitAction, habit.kind == .binary {
+                action(habit)
+            } else if let action = onNumericHabitAction, habit.kind == .numeric {
+                action(habit)
+            }
+        } label: {
+            Text(habit.emoji ?? "✓")
+                .font(.system(size: 18))
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(Color.green.opacity(0.1))
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Color.green.opacity(0.2), lineWidth: 1)
+                )
         }
         .buttonStyle(PlainButtonStyle())
-        .padding(.top, isExpanded ? 4 : 2)
+        .accessibilityLabel("\(habit.name), completed")
+    }
+
+    // MARK: - Compact Remaining View
+
+    /// Header for remaining section with expand/collapse toggle
+    @ViewBuilder
+    private func remainingSectionHeader(count: Int) -> some View {
+        HStack {
+            Text(Strings.Overview.remaining)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isRemainingViewCompact.toggle()
+                }
+            } label: {
+                Image(systemName: isRemainingViewCompact ? "plus.circle" : "minus.circle")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(AppColors.brand)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .accessibilityLabel(isRemainingViewCompact ? "Expand remaining habits" : "Collapse remaining habits")
+        }
+        .padding(.leading, 12)
+        .padding(.trailing, 8)
+    }
+
+    /// Compact view showing only remaining habit emoji circles in a flowing layout
+    @ViewBuilder
+    private func compactRemainingCircles(habits: [Habit]) -> some View {
+        FlowLayout(spacing: 8) {
+            ForEach(habits, id: \.id) { habit in
+                compactRemainingHabitCircle(habit: habit)
+            }
+        }
+    }
+
+    /// Single compact remaining habit circle (36pt) with brand color background and border
+    @ViewBuilder
+    private func compactRemainingHabitCircle(habit: Habit) -> some View {
+        let scheduleStatus = getScheduleStatus(habit)
+        let isDisabled = !scheduleStatus.isAvailable || isLoggingLocked
+
+        Button {
+            guard !isDisabled else { return }
+            if let action = onBinaryHabitAction, habit.kind == .binary {
+                action(habit)
+            } else if let action = onNumericHabitAction, habit.kind == .numeric {
+                action(habit)
+            }
+        } label: {
+            Text(habit.emoji ?? "📊")
+                .font(.system(size: 18))
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(isDisabled ? Color.gray.opacity(0.1) : AppColors.brand.opacity(0.1))
+                )
+                .overlay(
+                    Circle()
+                        .stroke(isDisabled ? Color.gray.opacity(0.2) : AppColors.brand.opacity(0.2), lineWidth: 1)
+                )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1.0)
+        .accessibilityLabel("\(habit.name), remaining")
     }
 
     @ViewBuilder
@@ -959,33 +1023,51 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             Button {
                 showingScheduleInfoSheet = true
             } label: {
-                HStack(spacing: 6) {
-                    // Time-based reminders indicator (only for premium users with reminders)
-                    if isPremiumUser && !habit.reminders.isEmpty {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.orange)
-                            .accessibilityLabel("Time-based reminders enabled")
-                    }
+                HStack(spacing: 8) {
+                    // Streak at risk indicator (first for urgency)
+                    if showStreakAtRiskIcon, isViewingToday, let streakStatus = getStreakStatus?(habit), streakStatus.isAtRisk {
+                        // Fire emoji with streak count badge overlay
+                        ZStack(alignment: .topTrailing) {
+                            Text("🔥")
+                                .font(.system(size: 12))
 
-                    // Location indicator (only for premium users with location enabled)
-                    if isPremiumUser && habit.locationConfiguration?.isEnabled == true {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.purple)
-                            .accessibilityLabel("Location-based reminders enabled")
-                    }
-
-                    if isViewingToday, let streakStatus = getStreakStatus?(habit), streakStatus.isAtRisk {
-                        HStack(spacing: 2) {
+                            // Badge with streak count
                             Text("\(streakStatus.atRisk)")
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                .foregroundColor(.orange)
-                            Text("🔥").font(.system(size: 12))
+                                .font(.system(size: 8, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 3)
+                                .padding(.vertical, 1)
+                                .background(
+                                    Capsule()
+                                        .fill(Color(red: 0.9, green: 0.45, blue: 0.1))
+                                )
+                                .offset(x: 4, y: -2)
                         }
                         .modifier(PulseAnimationModifier())
                     }
-                    HabitScheduleIndicator(status: scheduleStatus, size: .medium, style: .iconOnly)
+
+                    // Other indicators grouped with tighter spacing
+                    HStack(spacing: 4) {
+                        // Time-based reminders indicator (only for premium users with reminders)
+                        if showTimeReminderIcon, isPremiumUser, !habit.reminders.isEmpty {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.orange)
+                                .accessibilityLabel("Time-based reminders enabled")
+                        }
+
+                        // Location indicator (only for premium users with location enabled)
+                        if showLocationIcon, isPremiumUser, habit.locationConfiguration?.isEnabled == true {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.purple)
+                                .accessibilityLabel("Location-based reminders enabled")
+                        }
+
+                        if showScheduleIcon {
+                            HabitScheduleIndicator(status: scheduleStatus, size: .xlarge, style: .iconOnly)
+                        }
+                    }
                 }
                 .padding(.leading, 8)
                 .contentShape(Rectangle())

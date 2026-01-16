@@ -373,50 +373,32 @@ struct WeekDateSelector: View {
         }
     }
 
-    // MARK: - Date Formatting
+    // MARK: - Date Formatting (using CalendarUtils)
 
     private func dayName(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = timezone
-        formatter.dateFormat = "EEE" // Short day name: "Sat"
-        return formatter.string(from: date)
+        CalendarUtils.formatDayAbbreviation(date, timezone: timezone)
     }
 
     private func monthAndDate(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = timezone
-        formatter.dateFormat = "MMM d" // Month and date: "Dec 20"
-        return formatter.string(from: date)
+        CalendarUtils.formatMonthAndDay(date, timezone: timezone)
     }
 
     private func dayAbbreviation(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = timezone
-        formatter.dateFormat = "EEE" // "Sun", "Mon", etc.
-        return formatter.string(from: date)
+        CalendarUtils.formatDayAbbreviation(date, timezone: timezone)
     }
 
     private func dateNumber(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = timezone
-        formatter.dateFormat = "d" // Just the day number
-        return formatter.string(from: date)
+        CalendarUtils.formatDayNumber(date, timezone: timezone)
     }
 
     // MARK: - Accessibility
 
     private var fullDateAccessibilityLabel: String {
-        let formatter = DateFormatter()
-        formatter.timeZone = timezone
-        formatter.dateStyle = .full
-        return formatter.string(from: selectedDate)
+        CalendarUtils.formatForDisplay(selectedDate, style: .full, timezone: timezone)
     }
 
     private func accessibilityLabel(for date: Date, isSelected: Bool, isToday: Bool, isFuture: Bool) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = timezone
-        formatter.dateStyle = .full
-        var label = formatter.string(from: date)
+        var label = CalendarUtils.formatForDisplay(date, style: .full, timezone: timezone)
 
         if isToday {
             label += ", today"

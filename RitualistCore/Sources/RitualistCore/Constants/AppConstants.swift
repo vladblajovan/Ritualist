@@ -98,6 +98,20 @@ public enum UserDefaultsKeys {
     /// which cannot see the flag directly due to Swift Package compilation isolation
     public static let allFeaturesEnabledCache = "com.ritualist.allFeaturesEnabled"
 
+    // MARK: - Habit Icon Visibility (Today Summary)
+
+    /// Key for showing/hiding time reminder bell icon
+    public static let showTimeReminderIcon = "com.ritualist.habitIcons.showTimeReminder"
+
+    /// Key for showing/hiding location reminder icon
+    public static let showLocationIcon = "com.ritualist.habitIcons.showLocation"
+
+    /// Key for showing/hiding schedule indicator icon
+    public static let showScheduleIcon = "com.ritualist.habitIcons.showSchedule"
+
+    /// Key for showing/hiding streak at risk fire icon
+    public static let showStreakAtRiskIcon = "com.ritualist.habitIcons.showStreakAtRisk"
+
     // MARK: - Notifications
 
     /// Key for storing habit IDs that received catch-up notifications today

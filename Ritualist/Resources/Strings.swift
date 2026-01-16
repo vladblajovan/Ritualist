@@ -338,6 +338,7 @@ public enum Strings {
 
         // Streaks Card
         public static let currentStreaks = String(localized: "overview.currentStreaks")
+        public static let streaks = String(localized: "overview.streaks")
         public static func streaksCount(_ count: Int) -> String {
             String(format: String(localized: "overview.streaksCount"), count, count == 1 ? "streak" : "streaks")
         }
@@ -670,6 +671,14 @@ public enum Strings {
         public static let scheduledTodayDesc = String(localized: "components.scheduledToday.desc")
         public static let notScheduledTodayTitle = String(localized: "components.notScheduledToday.title")
         public static let notScheduledTodayDesc = String(localized: "components.notScheduledToday.desc")
+
+        // Icon Visibility Toggles
+        public static let iconVisibility = String(localized: "components.iconVisibility")
+        public static let iconVisibilityDescription = String(localized: "components.iconVisibilityDescription")
+        public static let streakAtRiskTitle = String(localized: "components.streakAtRisk.title")
+        public static let streakAtRiskDesc = String(localized: "components.streakAtRisk.desc")
+        public static let scheduleIndicatorTitle = String(localized: "components.scheduleIndicator.title")
+        public static let scheduleIndicatorDesc = String(localized: "components.scheduleIndicator.desc")
 
         // Category Filter
         public static let habitsAssistant = String(localized: "components.habitsAssistant")

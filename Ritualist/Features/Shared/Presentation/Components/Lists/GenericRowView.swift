@@ -417,11 +417,11 @@ private struct HabitRowWithSplitZones: View {
             Button {
                 showingIconInfoSheet = true
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     // Time-based reminders indicator (only for premium users with reminders)
                     if isPremiumUser && !habit.reminders.isEmpty {
                         Image(systemName: "bell.fill")
-                            .font(.body)
+                            .font(.system(size: 14))
                             .foregroundColor(.orange)
                             .accessibilityLabel(Strings.Components.timeRemindersEnabled)
                     }
@@ -429,13 +429,13 @@ private struct HabitRowWithSplitZones: View {
                     // Location indicator (only for premium users with location enabled)
                     if isPremiumUser && habit.locationConfiguration?.isEnabled == true {
                         Image(systemName: "location.fill")
-                            .font(.body)
+                            .font(.system(size: 14))
                             .foregroundColor(.purple)
                             .accessibilityLabel(Strings.Components.locationRemindersEnabled)
                     }
 
-                    // Schedule indicator - use .medium size to match Today card
-                    HabitScheduleIndicator(status: scheduleStatus, size: .medium, style: .iconOnly)
+                    // Schedule indicator - use .xlarge size (14pt) to match other indicators
+                    HabitScheduleIndicator(status: scheduleStatus, size: .xlarge, style: .iconOnly)
                 }
                 .padding(.leading, 8)
                 .contentShape(Rectangle())
@@ -457,24 +457,56 @@ private struct HabitRowWithSplitZones: View {
 private struct HabitIconInfoSheet: View {
     @Environment(\.dismiss) private var dismiss
 
+    // Icon visibility toggles (defaults to true = show all)
+    @AppStorage(UserDefaultsKeys.showTimeReminderIcon) private var showTimeReminder = true
+    @AppStorage(UserDefaultsKeys.showLocationIcon) private var showLocation = true
+    @AppStorage(UserDefaultsKeys.showScheduleIcon) private var showSchedule = true
+    @AppStorage(UserDefaultsKeys.showStreakAtRiskIcon) private var showStreakAtRisk = true
+
     var body: some View {
         NavigationStack {
             List {
+                // Visibility toggles section
                 Section {
-                    HabitIconInfoRow(
+                    HabitIconToggleRow(
+                        icon: "flame.fill",
+                        iconColor: Color(red: 0.9, green: 0.45, blue: 0.1),
+                        title: Strings.Components.streakAtRiskTitle,
+                        description: Strings.Components.streakAtRiskDesc,
+                        isOn: $showStreakAtRisk
+                    )
+
+                    HabitIconToggleRow(
                         icon: "bell.fill",
                         iconColor: .orange,
                         title: Strings.Components.timeRemindersTitle,
-                        description: Strings.Components.timeRemindersDesc
+                        description: Strings.Components.timeRemindersDesc,
+                        isOn: $showTimeReminder
                     )
 
-                    HabitIconInfoRow(
+                    HabitIconToggleRow(
                         icon: "location.fill",
                         iconColor: .purple,
                         title: Strings.Components.locationRemindersTitle,
-                        description: Strings.Components.locationRemindersDesc
+                        description: Strings.Components.locationRemindersDesc,
+                        isOn: $showLocation
                     )
 
+                    HabitIconToggleRow(
+                        icon: "calendar.circle.fill",
+                        iconColor: .green,
+                        title: Strings.Components.scheduleIndicatorTitle,
+                        description: Strings.Components.scheduleIndicatorDesc,
+                        isOn: $showSchedule
+                    )
+                } header: {
+                    Text(Strings.Components.iconVisibility)
+                } footer: {
+                    Text(Strings.Components.iconVisibilityDescription)
+                }
+
+                // Icon legend section
+                Section {
                     HabitIconInfoRow(
                         icon: "infinity.circle.fill",
                         iconColor: .blue,
@@ -512,6 +544,34 @@ private struct HabitIconInfoSheet: View {
                 }
             }
         }
+    }
+}
+
+private struct HabitIconToggleRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let description: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            HStack(spacing: 16) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(iconColor)
+                    .frame(width: 32)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                    Text(description)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
